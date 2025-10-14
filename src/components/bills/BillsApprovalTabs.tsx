@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
 import { ManualBillEntry } from "./ManualBillEntry";
-import BackgroundBillUpload from "./BackgroundBillUpload";
+import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
 import { useBillCounts } from "@/hooks/useBillCounts";
 import { usePendingBills } from "@/hooks/usePendingBills";
@@ -13,10 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
 import { normalizeToYMD } from "@/utils/dateOnly";
-import { useQueryClient } from "@tanstack/react-query";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-
+import { Loader2 } from "lucide-react";
 
 interface BillsApprovalTabsProps {
   projectId?: string;
@@ -38,54 +35,89 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [remaining, setRemaining] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const minVisibleRef = useRef<number | null>(null);
+  const safetyFuseRef = useRef<number | null>(null);
 
-  const [batchActive, setBatchActive] = useState(false);
-  const [batchTotal, setBatchTotal] = useState(0);
-  const [batchDone, setBatchDone] = useState(0);
-  const [isLoadingAfterBatch, setIsLoadingAfterBatch] = useState(false);
+  // Update batch bills when pending bills change
+  useEffect(() => {
+    const fetchBillsWithLines = async () => {
+      if (!pendingBills || pendingBills.length === 0) {
+        setBatchBills([]);
+        return;
+      }
 
-  // Build batch bills from completed pending uploads
-  const fetchBillsWithLines = useCallback(async () => {
-    if (!pendingBills || pendingBills.length === 0) {
-      setBatchBills([]);
-      return;
-    }
-    try {
-      const completedBills = pendingBills.filter(b => b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error');
+      try {
+        const completedBills = pendingBills.filter(b => 
+          b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
+        );
+      
       const billsWithLines = await Promise.all(
         completedBills.map(async (bill) => {
           const extractedData = bill.extracted_data || {};
+          
           const { data: lines } = await supabase
             .from('pending_bill_lines')
             .select('*')
             .eq('pending_upload_id', bill.id)
             .order('line_number');
+          
           let finalLines = lines || [];
+          
+          // Handle both snake_case and camelCase from extracted_data
           const snakeLines = Array.isArray(extractedData.line_items) ? extractedData.line_items : [];
           const camelLines = Array.isArray(extractedData.lineItems) ? extractedData.lineItems : [];
           const unified = snakeLines.length > 0 ? snakeLines : camelLines;
+          
           if ((!lines || lines.length === 0) && unified.length > 0) {
             const { data: userData } = await supabase.auth.getUser();
             const ownerId = userData.user?.id;
-            const { data: accounts } = await supabase.from('accounts').select('id, name').eq('owner_id', ownerId);
-            const { data: costCodes } = await supabase.from('cost_codes').select('id, name').eq('owner_id', ownerId);
+
+            const { data: accounts } = await supabase
+              .from('accounts')
+              .select('id, name')
+              .eq('owner_id', ownerId);
+
+            const { data: costCodes } = await supabase
+              .from('cost_codes')
+              .select('id, name')
+              .eq('owner_id', ownerId);
+
             const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
             const isSingleLine = unified.length === 1;
+
             const linesToInsert = unified.map((item: any, index: number) => {
-              const accountId = item.account_name ? accounts?.find((a: any) => a.name === item.account_name)?.id : null;
-              const costCodeId = item.cost_code_name ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id : null;
+              const accountId = item.account_name 
+                ? accounts?.find((a: any) => a.name === item.account_name)?.id 
+                : null;
+              const costCodeId = item.cost_code_name 
+                ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id 
+                : null;
+              
               const lineType = costCodeId || item.cost_code_id || item.cost_code_name ? 'job_cost' : 'expense';
+              
               const qty = Number(item.quantity) || 1;
-              const unitPrice = Number(item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0);
-              let parsedAmount = typeof item.amount === 'string' ? Number(item.amount.replace(/[^0-9.-]/g, '')) : Number(item.amount) || 0;
+              const unitPrice = Number(
+                item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0
+              );
+              
+              let parsedAmount = typeof item.amount === 'string'
+                ? Number(item.amount.replace(/[^0-9.-]/g, ''))
+                : Number(item.amount) || 0;
+              
               if (isSingleLine && extractedTotal > 0 && Math.abs(parsedAmount - extractedTotal) > 0.01) {
                 parsedAmount = extractedTotal;
               }
+              
               if (parsedAmount > 1000000 && unitPrice > 0) {
                 parsedAmount = qty * unitPrice;
               }
+              
               const finalAmount = unitPrice > 0 ? Math.round(qty * unitPrice * 100) / 100 : parsedAmount;
               const unitCost = finalAmount > 0 && qty > 0 ? finalAmount / qty : 0;
+              
               return {
                 pending_upload_id: bill.id,
                 owner_id: ownerId,
@@ -103,37 +135,66 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                 memo: item.memo || item.description || '',
               };
             });
-            const { data: insertedLines } = await supabase.from('pending_bill_lines').insert(linesToInsert).select();
+
+            const { data: insertedLines } = await supabase
+              .from('pending_bill_lines')
+              .insert(linesToInsert)
+              .select();
+
             finalLines = insertedLines || [];
           }
+
           try {
             const vendorId = extractedData.vendor_id || extractedData.vendorId || null;
             if (vendorId) {
-              const { data: cc } = await supabase.from('company_cost_codes').select('cost_code_id').eq('company_id', vendorId);
+              const { data: cc } = await supabase
+                .from('company_cost_codes')
+                .select('cost_code_id')
+                .eq('company_id', vendorId);
               if (cc && cc.length === 1) {
                 const defaultId = cc[0].cost_code_id as string;
-                const { data: ccInfo } = await supabase.from('cost_codes').select('code, name').eq('id', defaultId).maybeSingle();
+                const { data: ccInfo } = await supabase
+                  .from('cost_codes')
+                  .select('code, name')
+                  .eq('id', defaultId)
+                  .maybeSingle();
                 const costCodeName = ccInfo ? `${ccInfo.code}: ${ccInfo.name}` : null;
+
                 const updatePromises: Promise<any>[] = [];
                 finalLines = (finalLines || []).map((line: any) => {
                   if (line.line_type === 'job_cost' && !line.cost_code_id) {
                     line.cost_code_id = defaultId;
                     line.cost_code_name = costCodeName;
-                    updatePromises.push((async () => { await supabase.from('pending_bill_lines').update({ cost_code_id: defaultId, cost_code_name: costCodeName }).eq('id', line.id); })());
+                    updatePromises.push(
+                      (async () => {
+                        await supabase.from('pending_bill_lines')
+                          .update({ cost_code_id: defaultId, cost_code_name: costCodeName })
+                          .eq('id', line.id);
+                      })()
+                    );
                   } else if (line.line_type === 'expense' && !line.account_id && !line.cost_code_id) {
                     line.line_type = 'job_cost';
                     line.cost_code_id = defaultId;
                     line.cost_code_name = costCodeName;
-                    updatePromises.push((async () => { await supabase.from('pending_bill_lines').update({ line_type: 'job_cost', cost_code_id: defaultId, cost_code_name: costCodeName }).eq('id', line.id); })());
+                    updatePromises.push(
+                      (async () => {
+                        await supabase.from('pending_bill_lines')
+                          .update({ line_type: 'job_cost', cost_code_id: defaultId, cost_code_name: costCodeName })
+                          .eq('id', line.id);
+                      })()
+                    );
                   }
                   return line;
                 });
-                if (updatePromises.length) await Promise.all(updatePromises);
+                if (updatePromises.length) {
+                  await Promise.all(updatePromises);
+                }
               }
             }
           } catch (e) {
             console.warn('Default cost code application skipped:', e);
           }
+          
           return {
             id: bill.id,
             file_name: bill.file_name,
@@ -147,21 +208,24 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             terms: extractedData.terms || 'net-30',
             notes: extractedData.notes || '',
             total_amount: extractedData.totalAmount || extractedData.total_amount || 0,
-            lines: finalLines,
+            lines: finalLines
           };
         })
       );
+      
       setBatchBills(billsWithLines);
-    } catch (error) {
-      console.error('Error fetching bill lines:', error);
-      toast({ title: 'Error', description: 'Failed to load bill details', variant: 'destructive' });
-    }
-  }, [pendingBills]);
+      } catch (error) {
+        console.error('Error fetching bill lines:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load bill details",
+          variant: "destructive"
+        });
+      }
+    };
 
-  // Refresh batch bills when pending bills change, but not during extraction
-  useEffect(() => {
     fetchBillsWithLines();
-  }, [fetchBillsWithLines]);
+  }, [pendingBills, refreshKey]);
 
 
   const handleBillUpdate = async (billId: string, updates: any) => {
@@ -261,32 +325,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       .insert(linesToInsert);
   };
 
-  const queryClient = useQueryClient();
-  const handleRefresh = async () => {
-    try {
-      await queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
-      await queryClient.refetchQueries({ queryKey: ['pending-bills'], type: 'active' });
-    } catch {}
-    // fetchBillsWithLines will run automatically when pendingBills updates
-  };
-
-  // Monitor when batchBills actually populate after loading starts
-  useEffect(() => {
-    if (isLoadingAfterBatch && batchBills.length > 0) {
-      setIsLoadingAfterBatch(false);
-    }
-  }, [batchBills, isLoadingAfterBatch]);
-
-  // Safety timeout in case no bills are found
-  useEffect(() => {
-    if (isLoadingAfterBatch) {
-      const timeout = setTimeout(() => {
-        setIsLoadingAfterBatch(false);
-      }, 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [isLoadingAfterBatch]);
-
   const handleBillSelect = (billId: string) => {
     setSelectedBillIds(prev => {
       const newSet = new Set(prev);
@@ -336,6 +374,48 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     return issues;
   };
 
+  const handleExtractionStart = (total: number) => {
+    setRemaining(total);
+    setIsExtracting(true);
+    minVisibleRef.current = Date.now();
+    
+    // Safety fuse: if extraction doesn't complete in 60s, show non-destructive warning
+    if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
+    safetyFuseRef.current = window.setTimeout(() => {
+      console.warn('[Safety Fuse] Still finalizing after 60s');
+      toast({
+        title: "Still finalizing...",
+        description: "Your uploads are still being processed. The spinner will clear when complete.",
+      });
+    }, 60000);
+  };
+
+  const handleExtractionProgress = (remaining: number) => {
+    setRemaining(remaining);
+  };
+
+  const handleExtractionComplete = () => {
+    // Clear safety fuse
+    if (safetyFuseRef.current) {
+      clearTimeout(safetyFuseRef.current);
+      safetyFuseRef.current = null;
+    }
+    
+    const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
+    const minVisible = 600;
+
+    if (elapsed < minVisible) {
+      setTimeout(() => {
+        setIsExtracting(false);
+        setRemaining(0);
+        setRefreshKey(prev => prev + 1);
+      }, minVisible - elapsed);
+    } else {
+      setIsExtracting(false);
+      setRemaining(0);
+      setRefreshKey(prev => prev + 1);
+    }
+  };
 
   const handleSubmitAllBills = async () => {
     if (loadingPendingBills) {
@@ -530,52 +610,22 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       
       {!reviewOnly && (
         <TabsContent value="enter-ai" className="mt-6 space-y-6">
-          <BackgroundBillUpload
-            onBatchStart={(total) => {
-              setBatchActive(true);
-              setBatchTotal(total);
-              setBatchDone(0);
-            }}
-            onBatchProgress={(done, total) => {
-              setBatchDone(done);
-              setBatchTotal(total);
-            }}
-            onBatchComplete={async () => {
-              setBatchActive(false);
-              setIsLoadingAfterBatch(true);
-              await handleRefresh();
-            }}
+          <SimplifiedAIBillExtraction
+            onDataExtracted={() => {}}
+            onSwitchToManual={() => setActiveTab("enter-manually")}
+            suppressIndividualToasts
+            onExtractionStart={handleExtractionStart}
+            onExtractionProgress={handleExtractionProgress}
+            onExtractionComplete={handleExtractionComplete}
           />
 
-          {batchActive ? (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Processing bills...</CardTitle>
-                    <CardDescription>
-                      {batchDone}/{batchTotal} ({Math.floor((batchDone / Math.max(batchTotal, 1)) * 100)}%)
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Progress value={Math.round((batchDone / Math.max(batchTotal, 1)) * 100)} />
-              </CardContent>
-            </Card>
-          ) : isLoadingAfterBatch ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Loading extracted bills...</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              </CardContent>
-            </Card>
+          {isExtracting ? (
+            <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Extracting {remaining} file{remaining !== 1 ? 's' : ''}...</span>
+              </div>
+            </div>
           ) : (
             <Card>
               <CardHeader>
@@ -589,17 +639,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                       }
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    {batchBills.length > 0 && (
-                      <Button
-                        onClick={handleSubmitAllBills}
-                        disabled={isSubmitting || selectedBillIds.size === 0}
-                        size="lg"
-                      >
-                        {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
-                      </Button>
-                    )}
-                  </div>
+                  {batchBills.length > 0 && (
+                    <Button
+                      onClick={handleSubmitAllBills}
+                      disabled={isSubmitting || selectedBillIds.size === 0}
+                      size="lg"
+                    >
+                      {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
