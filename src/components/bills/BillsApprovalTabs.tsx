@@ -15,6 +15,7 @@ import { useParams } from "react-router-dom";
 import { normalizeToYMD } from "@/utils/dateOnly";
 import { useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 interface BillsApprovalTabsProps {
@@ -41,6 +42,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchActive, setBatchActive] = useState(false);
   const [batchTotal, setBatchTotal] = useState(0);
   const [batchDone, setBatchDone] = useState(0);
+  const [isLoadingAfterBatch, setIsLoadingAfterBatch] = useState(false);
 
   // Build batch bills from completed pending uploads
   const fetchBillsWithLines = useCallback(async () => {
@@ -267,6 +269,23 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     } catch {}
     await fetchBillsWithLines();
   };
+
+  // Monitor when batchBills actually populate after loading starts
+  useEffect(() => {
+    if (isLoadingAfterBatch && batchBills.length > 0) {
+      setIsLoadingAfterBatch(false);
+    }
+  }, [batchBills, isLoadingAfterBatch]);
+
+  // Safety timeout in case no bills are found
+  useEffect(() => {
+    if (isLoadingAfterBatch) {
+      const timeout = setTimeout(() => {
+        setIsLoadingAfterBatch(false);
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoadingAfterBatch]);
 
   const handleBillSelect = (billId: string) => {
     setSelectedBillIds(prev => {
@@ -523,6 +542,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             }}
             onBatchComplete={async () => {
               setBatchActive(false);
+              setIsLoadingAfterBatch(true);
               await handleRefresh();
             }}
           />
@@ -541,6 +561,19 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               </CardHeader>
               <CardContent>
                 <Progress value={Math.round((batchDone / Math.max(batchTotal, 1)) * 100)} />
+              </CardContent>
+            </Card>
+          ) : isLoadingAfterBatch ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Loading extracted bills...</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
               </CardContent>
             </Card>
           ) : (
