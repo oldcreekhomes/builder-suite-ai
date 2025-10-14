@@ -557,13 +557,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={handleRefresh}
-                      variant="outline"
-                      disabled={batchActive}
-                    >
-                      Refresh results
-                    </Button>
                     {batchBills.length > 0 && (
                       <Button
                         onClick={handleSubmitAllBills}
