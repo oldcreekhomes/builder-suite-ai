@@ -39,6 +39,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     refetch,
   } = usePendingBills();
   const [batchBills, setBatchBills] = useState<any[]>([]);
+  const [displayBills, setDisplayBills] = useState<any[]>([]); // Separate display state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [isExtracting, setIsExtracting] = useState(false);
@@ -46,16 +47,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const minVisibleRef = useRef<number | null>(null);
   const safetyFuseRef = useRef<number | null>(null);
 
-  // Update batch bills when pending bills change - BUT NOT DURING EXTRACTION
+  // Update batch bills when pending bills change - ALWAYS process, even during extraction
   useEffect(() => {
-    // Skip expensive processing while extraction is in progress
-    if (isExtracting) {
-      return;
-    }
-
     const fetchBillsWithLines = async () => {
       if (!pendingBills || pendingBills.length === 0) {
         setBatchBills([]);
+        // Only update display if not extracting
+        if (!isExtracting) {
+          setDisplayBills([]);
+        }
         return;
       }
 
@@ -217,6 +217,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         );
 
         setBatchBills(billsWithLines);
+        // Only update display if NOT extracting
+        if (!isExtracting) {
+          setDisplayBills(billsWithLines);
+        }
       } catch (error) {
         console.error("Error fetching bill lines:", error);
         toast({
@@ -228,16 +232,16 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     };
 
     fetchBillsWithLines();
-  }, [pendingBills, isExtracting]); // Added isExtracting to dependencies
+  }, [pendingBills, isExtracting]);
 
   const handleBillUpdate = async (billId: string, updates: any) => {
-    // Update local state immediately for responsive UI
+    // Update both states
     setBatchBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, ...(updates || {}) } : bill)));
+    setDisplayBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, ...(updates || {}) } : bill)));
 
     // If vendor info is being updated, persist to database
     if (updates && (updates.vendor_id !== undefined || updates.vendor_name !== undefined)) {
       try {
-        // Get the current extracted_data
         const { data: currentBill } = await supabase
           .from("pending_bill_uploads")
           .select("extracted_data")
@@ -246,7 +250,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
         const currentData = (currentBill?.extracted_data as Record<string, any>) || {};
 
-        // Merge the updates into extracted_data
         const updatedData: Record<string, any> = {
           ...currentData,
         };
@@ -261,7 +264,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           updatedData.vendor = updates.vendor_name;
         }
 
-        // Save to database
         const { error } = await supabase
           .from("pending_bill_uploads")
           .update({
@@ -287,22 +289,21 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const handleBillDelete = async (billId: string) => {
     try {
       await deletePendingUpload.mutateAsync(billId);
-      // Update local state to remove the deleted bill
       setBatchBills((prev) => prev.filter((bill) => bill.id !== billId));
-      // Remove from selection if it was selected
+      setDisplayBills((prev) => prev.filter((bill) => bill.id !== billId));
       setSelectedBillIds((prev) => {
         const newSet = new Set(prev);
         newSet.delete(billId);
         return newSet;
       });
     } catch (error) {
-      // Error handling is already done by the mutation
       console.error("Delete failed:", error);
     }
   };
 
   const handleLinesUpdate = async (billId: string, lines: any[]) => {
     setBatchBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, lines } : bill)));
+    setDisplayBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, lines } : bill)));
 
     const { data: userData } = await supabase.auth.getUser();
     const ownerId = userData.user?.id;
@@ -332,7 +333,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   const handleSelectAll = (selectAll: boolean) => {
     if (selectAll) {
-      setSelectedBillIds(new Set(batchBills.map((bill) => bill.id)));
+      setSelectedBillIds(new Set(displayBills.map((bill) => bill.id)));
     } else {
       setSelectedBillIds(new Set());
     }
@@ -372,7 +373,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     setIsExtracting(true);
     minVisibleRef.current = Date.now();
 
-    // Safety fuse: if extraction doesn't complete in 60s, show non-destructive warning
     if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
     safetyFuseRef.current = window.setTimeout(() => {
       console.warn("[Safety Fuse] Still finalizing after 60s");
@@ -383,32 +383,35 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }, 60000);
   };
 
-  const handleExtractionProgress = (remaining: number) => {
-    // Only update the counter - DO NOT trigger any refetches or invalidations
-    setExtractingCount(remaining);
+  const handleExtractionProgress = (done: number, total: number) => {
+    // Only update the counter - NO data refetch
+    setExtractingCount(total - done);
   };
 
   const handleExtractionComplete = async () => {
-    // Clear safety fuse
     if (safetyFuseRef.current) {
       clearTimeout(safetyFuseRef.current);
       safetyFuseRef.current = null;
     }
 
+    // Refetch to get final data
+    await refetch();
+
     const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
     const minVisible = 600;
-
-    // Refetch the data ONCE when extraction is complete
-    await refetch();
 
     if (elapsed < minVisible) {
       setTimeout(() => {
         setIsExtracting(false);
         setExtractingCount(0);
+        // Update display with final processed data
+        setDisplayBills(batchBills);
       }, minVisible - elapsed);
     } else {
       setIsExtracting(false);
       setExtractingCount(0);
+      // Update display with final processed data
+      setDisplayBills(batchBills);
     }
   };
 
@@ -445,7 +448,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     const billsWithIssues: Array<{ bill: any; issues: string[] }> = [];
 
     selectedBillIds.forEach((billId) => {
-      const bill = batchBills.find((b) => b.id === billId);
+      const bill = displayBills.find((b) => b.id === billId);
       if (bill) {
         const issues = validateBillForSubmission(bill);
         if (issues.length > 0) {
@@ -467,7 +470,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       return;
     }
 
-    const billsToSubmit = batchBills
+    const billsToSubmit = displayBills
       .filter((bill) => selectedBillIds.has(bill.id))
       .map((bill) => ({
         pendingUploadId: bill.id,
@@ -488,6 +491,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       const successIds = results.filter((r) => r.success).map((r) => r.pendingUploadId);
       if (successIds.length > 0) {
         setBatchBills((prev) => prev.filter((b) => !successIds.includes(b.id)));
+        setDisplayBills((prev) => prev.filter((b) => !successIds.includes(b.id)));
         setSelectedBillIds((prev) => {
           const next = new Set(prev);
           successIds.forEach((id) => next.delete(id));
@@ -617,12 +621,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                   <div>
                     <CardTitle>Extracted Bills</CardTitle>
                     <CardDescription>
-                      {batchBills.length > 0
-                        ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? "s" : ""} before submitting`
+                      {displayBills.length > 0
+                        ? `Review and edit ${displayBills.length} bill${displayBills.length > 1 ? "s" : ""} before submitting`
                         : "Upload PDF files above to extract bill data automatically"}
                     </CardDescription>
                   </div>
-                  {batchBills.length > 0 && (
+                  {displayBills.length > 0 && (
                     <Button
                       onClick={handleSubmitAllBills}
                       disabled={isSubmitting || selectedBillIds.size === 0}
@@ -635,7 +639,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               </CardHeader>
               <CardContent>
                 <BatchBillReviewTable
-                  bills={batchBills}
+                  bills={displayBills}
                   onBillUpdate={handleBillUpdate}
                   onBillDelete={handleBillDelete}
                   onLinesUpdate={handleLinesUpdate}
