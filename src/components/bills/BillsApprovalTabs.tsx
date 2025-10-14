@@ -383,9 +383,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }, 60000);
   };
 
-  const handleExtractionProgress = (done: number, total: number) => {
+  const handleExtractionProgress = (remaining: number) => {
     // Only update the counter - DO NOT trigger any refetches or invalidations
-    setExtractingCount(total - done);
+    setExtractingCount(remaining);
   };
 
   const handleExtractionComplete = async () => {

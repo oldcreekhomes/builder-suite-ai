@@ -42,7 +42,7 @@ export const usePendingBills = () => {
   const queryClient = useQueryClient();
 
   // Fetch all pending bills for review
-  const { data: pendingBills, isLoading } = useQuery({
+  const { data: pendingBills, isLoading, refetch } = useQuery({
     queryKey: ['pending-bills'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -339,6 +339,7 @@ export const usePendingBills = () => {
   return {
     pendingBills,
     isLoading,
+    refetch,
     usePendingBillLines,
     startReview,
     updateLine,
