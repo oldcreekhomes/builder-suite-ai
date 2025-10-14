@@ -41,83 +41,48 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const minVisibleRef = useRef<number | null>(null);
   const safetyFuseRef = useRef<number | null>(null);
 
-  // Update batch bills when pending bills change
-  useEffect(() => {
-    const fetchBillsWithLines = async () => {
-      if (!pendingBills || pendingBills.length === 0) {
-        setBatchBills([]);
-        return;
-      }
-
-      try {
-        const completedBills = pendingBills.filter(b => 
-          b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
-        );
-      
+  // Build batch bills from completed pending uploads
+  const fetchBillsWithLines = useCallback(async () => {
+    if (!pendingBills || pendingBills.length === 0) {
+      setBatchBills([]);
+      return;
+    }
+    try {
+      const completedBills = pendingBills.filter(b => b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error');
       const billsWithLines = await Promise.all(
         completedBills.map(async (bill) => {
           const extractedData = bill.extracted_data || {};
-          
           const { data: lines } = await supabase
             .from('pending_bill_lines')
             .select('*')
             .eq('pending_upload_id', bill.id)
             .order('line_number');
-          
           let finalLines = lines || [];
-          
-          // Handle both snake_case and camelCase from extracted_data
           const snakeLines = Array.isArray(extractedData.line_items) ? extractedData.line_items : [];
           const camelLines = Array.isArray(extractedData.lineItems) ? extractedData.lineItems : [];
           const unified = snakeLines.length > 0 ? snakeLines : camelLines;
-          
           if ((!lines || lines.length === 0) && unified.length > 0) {
             const { data: userData } = await supabase.auth.getUser();
             const ownerId = userData.user?.id;
-
-            const { data: accounts } = await supabase
-              .from('accounts')
-              .select('id, name')
-              .eq('owner_id', ownerId);
-
-            const { data: costCodes } = await supabase
-              .from('cost_codes')
-              .select('id, name')
-              .eq('owner_id', ownerId);
-
+            const { data: accounts } = await supabase.from('accounts').select('id, name').eq('owner_id', ownerId);
+            const { data: costCodes } = await supabase.from('cost_codes').select('id, name').eq('owner_id', ownerId);
             const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
             const isSingleLine = unified.length === 1;
-
             const linesToInsert = unified.map((item: any, index: number) => {
-              const accountId = item.account_name 
-                ? accounts?.find((a: any) => a.name === item.account_name)?.id 
-                : null;
-              const costCodeId = item.cost_code_name 
-                ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id 
-                : null;
-              
+              const accountId = item.account_name ? accounts?.find((a: any) => a.name === item.account_name)?.id : null;
+              const costCodeId = item.cost_code_name ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id : null;
               const lineType = costCodeId || item.cost_code_id || item.cost_code_name ? 'job_cost' : 'expense';
-              
               const qty = Number(item.quantity) || 1;
-              const unitPrice = Number(
-                item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0
-              );
-              
-              let parsedAmount = typeof item.amount === 'string'
-                ? Number(item.amount.replace(/[^0-9.-]/g, ''))
-                : Number(item.amount) || 0;
-              
+              const unitPrice = Number(item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0);
+              let parsedAmount = typeof item.amount === 'string' ? Number(item.amount.replace(/[^0-9.-]/g, '')) : Number(item.amount) || 0;
               if (isSingleLine && extractedTotal > 0 && Math.abs(parsedAmount - extractedTotal) > 0.01) {
                 parsedAmount = extractedTotal;
               }
-              
               if (parsedAmount > 1000000 && unitPrice > 0) {
                 parsedAmount = qty * unitPrice;
               }
-              
               const finalAmount = unitPrice > 0 ? Math.round(qty * unitPrice * 100) / 100 : parsedAmount;
               const unitCost = finalAmount > 0 && qty > 0 ? finalAmount / qty : 0;
-              
               return {
                 pending_upload_id: bill.id,
                 owner_id: ownerId,
@@ -135,66 +100,37 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                 memo: item.memo || item.description || '',
               };
             });
-
-            const { data: insertedLines } = await supabase
-              .from('pending_bill_lines')
-              .insert(linesToInsert)
-              .select();
-
+            const { data: insertedLines } = await supabase.from('pending_bill_lines').insert(linesToInsert).select();
             finalLines = insertedLines || [];
           }
-
           try {
             const vendorId = extractedData.vendor_id || extractedData.vendorId || null;
             if (vendorId) {
-              const { data: cc } = await supabase
-                .from('company_cost_codes')
-                .select('cost_code_id')
-                .eq('company_id', vendorId);
+              const { data: cc } = await supabase.from('company_cost_codes').select('cost_code_id').eq('company_id', vendorId);
               if (cc && cc.length === 1) {
                 const defaultId = cc[0].cost_code_id as string;
-                const { data: ccInfo } = await supabase
-                  .from('cost_codes')
-                  .select('code, name')
-                  .eq('id', defaultId)
-                  .maybeSingle();
+                const { data: ccInfo } = await supabase.from('cost_codes').select('code, name').eq('id', defaultId).maybeSingle();
                 const costCodeName = ccInfo ? `${ccInfo.code}: ${ccInfo.name}` : null;
-
                 const updatePromises: Promise<any>[] = [];
                 finalLines = (finalLines || []).map((line: any) => {
                   if (line.line_type === 'job_cost' && !line.cost_code_id) {
                     line.cost_code_id = defaultId;
                     line.cost_code_name = costCodeName;
-                    updatePromises.push(
-                      (async () => {
-                        await supabase.from('pending_bill_lines')
-                          .update({ cost_code_id: defaultId, cost_code_name: costCodeName })
-                          .eq('id', line.id);
-                      })()
-                    );
+                    updatePromises.push((async () => { await supabase.from('pending_bill_lines').update({ cost_code_id: defaultId, cost_code_name: costCodeName }).eq('id', line.id); })());
                   } else if (line.line_type === 'expense' && !line.account_id && !line.cost_code_id) {
                     line.line_type = 'job_cost';
                     line.cost_code_id = defaultId;
                     line.cost_code_name = costCodeName;
-                    updatePromises.push(
-                      (async () => {
-                        await supabase.from('pending_bill_lines')
-                          .update({ line_type: 'job_cost', cost_code_id: defaultId, cost_code_name: costCodeName })
-                          .eq('id', line.id);
-                      })()
-                    );
+                    updatePromises.push((async () => { await supabase.from('pending_bill_lines').update({ line_type: 'job_cost', cost_code_id: defaultId, cost_code_name: costCodeName }).eq('id', line.id); })());
                   }
                   return line;
                 });
-                if (updatePromises.length) {
-                  await Promise.all(updatePromises);
-                }
+                if (updatePromises.length) await Promise.all(updatePromises);
               }
             }
           } catch (e) {
             console.warn('Default cost code application skipped:', e);
           }
-          
           return {
             id: bill.id,
             file_name: bill.file_name,
@@ -208,24 +144,22 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             terms: extractedData.terms || 'net-30',
             notes: extractedData.notes || '',
             total_amount: extractedData.totalAmount || extractedData.total_amount || 0,
-            lines: finalLines
+            lines: finalLines,
           };
         })
       );
-      
       setBatchBills(billsWithLines);
-      } catch (error) {
-        console.error('Error fetching bill lines:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load bill details",
-          variant: "destructive"
-        });
-      }
-    };
+    } catch (error) {
+      console.error('Error fetching bill lines:', error);
+      toast({ title: 'Error', description: 'Failed to load bill details', variant: 'destructive' });
+    }
+  }, [pendingBills]);
 
+  // Refresh batch bills when pending bills change, but not during extraction
+  useEffect(() => {
+    if (isExtracting) return;
     fetchBillsWithLines();
-  }, [pendingBills, refreshKey]);
+  }, [isExtracting, fetchBillsWithLines, refreshKey]);
 
 
   const handleBillUpdate = async (billId: string, updates: any) => {
@@ -390,27 +324,26 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     setRemaining(remaining);
   };
 
-  const handleExtractionComplete = () => {
+  const handleExtractionComplete = async () => {
     // Clear safety fuse
     if (safetyFuseRef.current) {
       clearTimeout(safetyFuseRef.current);
       safetyFuseRef.current = null;
     }
-    
+
     const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
     const minVisible = 600;
+    const waitMs = elapsed < minVisible ? (minVisible - elapsed) : 0;
 
-    if (elapsed < minVisible) {
-      setTimeout(() => {
-        setIsExtracting(false);
-        setRemaining(0);
-        setRefreshKey(prev => prev + 1);
-      }, minVisible - elapsed);
-    } else {
-      setIsExtracting(false);
-      setRemaining(0);
-      setRefreshKey(prev => prev + 1);
+    // Keep spinner visible at least minVisible ms
+    if (waitMs > 0) {
+      await new Promise((res) => setTimeout(res, waitMs));
     }
+
+    // After minimum time, fetch final data ONCE, then hide spinner
+    await fetchBillsWithLines();
+    setIsExtracting(false);
+    setRemaining(0);
   };
 
   const handleSubmitAllBills = async () => {
