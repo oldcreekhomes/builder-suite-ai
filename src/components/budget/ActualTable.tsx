@@ -80,34 +80,32 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
               </TableRow>
             ) : (
               <>
-                {Object.entries(groupedBudgetItems).map(([group, items]) => (
-                  <React.Fragment key={group}>
-                    <ActualGroupHeader
-                      group={group}
-                      isExpanded={expandedGroups.has(group)}
-                      onToggle={handleGroupToggle}
-                      isSelected={isGroupSelected(items)}
-                      isPartiallySelected={isGroupPartiallySelected(items)}
-                      onCheckboxChange={onGroupCheckboxChange}
-                      groupBudgetTotal={calculateGroupBudgetTotal(items)}
-                      groupCommittedTotal={calculateGroupCommittedTotal(items)}
-                      groupPurchaseOrders={items.flatMap(item => 
-                        purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
-                      )}
+                {Object.entries(groupedBudgetItems).map(([group, items]) => [
+                  <ActualGroupHeader
+                    key={`header-${group}`}
+                    group={group}
+                    isExpanded={expandedGroups.has(group)}
+                    onToggle={handleGroupToggle}
+                    isSelected={isGroupSelected(items)}
+                    isPartiallySelected={isGroupPartiallySelected(items)}
+                    onCheckboxChange={onGroupCheckboxChange}
+                    groupBudgetTotal={calculateGroupBudgetTotal(items)}
+                    groupCommittedTotal={calculateGroupCommittedTotal(items)}
+                    groupPurchaseOrders={items.flatMap(item => 
+                      purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
+                    )}
+                  />,
+                  ...(expandedGroups.has(group) ? items.map((item) => (
+                    <ActualTableRow
+                      key={item.id}
+                      item={item}
+                      committedAmount={calculatePOByCostCode(item.cost_codes?.id)}
+                      isSelected={selectedItems.has(item.id)}
+                      onCheckboxChange={handleItemCheckboxChange}
+                      purchaseOrders={purchaseOrders}
                     />
-                    
-                    {expandedGroups.has(group) && items.map((item) => (
-                      <ActualTableRow
-                        key={item.id}
-                        item={item}
-                        committedAmount={calculatePOByCostCode(item.cost_codes?.id)}
-                        isSelected={selectedItems.has(item.id)}
-                        onCheckboxChange={handleItemCheckboxChange}
-                        purchaseOrders={purchaseOrders}
-                      />
-                    ))}
-                  </React.Fragment>
-                ))}
+                  )) : [])
+                ])}
               </>
             )}
           </TableBody>
