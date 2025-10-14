@@ -3,8 +3,6 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useAddBudgetModal } from '@/hooks/useAddBudgetModal';
-import { ExpandCollapseControls } from './ExpandCollapseControls';
-import { CostCodeGroup } from './CostCodeGroup';
 
 interface AddBudgetModalProps {
   projectId: string;
@@ -16,16 +14,9 @@ interface AddBudgetModalProps {
 export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCodeIds }: AddBudgetModalProps) {
   const {
     selectedCostCodes,
-    expandedGroups,
     groupedCostCodes,
     createBudgetItems,
     handleCostCodeToggle,
-    handleGroupCheckboxChange,
-    isGroupSelected,
-    isGroupPartiallySelected,
-    handleExpandAll,
-    handleCollapseAll,
-    handleGroupToggle,
     handleSave,
     resetSelection,
   } = useAddBudgetModal(projectId, existingCostCodeIds);
@@ -47,30 +38,45 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
           <DialogTitle>Add Budget</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto">
-          <ExpandCollapseControls
-            onExpandAll={handleExpandAll}
-            onCollapseAll={handleCollapseAll}
-          />
-
-          <div className="space-y-2">
-            {Object.entries(groupedCostCodes).map(([group, codes]) => (
-              <CostCodeGroup
-                key={group}
-                group={group}
-                codes={codes}
-                isExpanded={expandedGroups.has(group)}
-                isGroupSelected={isGroupSelected(group)}
-                isGroupPartiallySelected={isGroupPartiallySelected(group)}
-                selectedCostCodes={selectedCostCodes}
-                onGroupToggle={handleGroupToggle}
-                onGroupCheckboxChange={handleGroupCheckboxChange}
-                onCostCodeToggle={handleCostCodeToggle}
-              />
-            ))}
-          </div>
-
-          {Object.keys(groupedCostCodes).length === 0 && (
+        <div className="flex-1 overflow-auto px-4 py-2">
+          {groupedCostCodes.all && groupedCostCodes.all.length > 0 ? (
+            <div className="space-y-1">
+              {groupedCostCodes.all.map((costCode) => {
+                const indentLevel = (() => {
+                  if (!costCode.parent_group) return 0;
+                  const parent = groupedCostCodes.all.find(cc => cc.code === costCode.parent_group);
+                  if (!parent) return 0;
+                  // Check if parent has a parent (grandparent)
+                  if (!parent.parent_group) return 1;
+                  return 2;
+                })();
+                
+                const indent = indentLevel * 24; // 24px per level
+                
+                return (
+                  <div 
+                    key={costCode.id} 
+                    className="flex items-center space-x-3 py-1"
+                    style={{ paddingLeft: `${indent}px` }}
+                  >
+                    <input
+                      type="checkbox"
+                      id={costCode.id}
+                      checked={selectedCostCodes.has(costCode.id)}
+                      onChange={(e) => handleCostCodeToggle(costCode.id, e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <label
+                      htmlFor={costCode.id}
+                      className="text-sm cursor-pointer flex-1"
+                    >
+                      {costCode.code}: {costCode.name}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
             <div className="text-center py-8 text-gray-500">
               All cost codes have been added to the budget.
             </div>

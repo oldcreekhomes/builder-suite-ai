@@ -9,7 +9,6 @@ type CostCode = Tables<'cost_codes'>;
 
 export function useAddBudgetModal(projectId: string, existingCostCodeIds: string[]) {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -58,41 +57,38 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
     },
   });
 
-  // Build hierarchy: identify top-level parents and group all descendants under them
-  const topLevelParents = costCodes.filter(cc => 
-    !existingCostCodeIds.includes(cc.id) && 
-    (!cc.parent_group || cc.parent_group.trim() === '')
-  );
-
-  const groupedCostCodes = topLevelParents.reduce((acc, parent) => {
-    // Get all descendants of this parent (direct children and grandchildren)
-    const getAllDescendants = (parentCode: string): CostCode[] => {
-      const directChildren = costCodes.filter(cc => 
-        !existingCostCodeIds.includes(cc.id) && 
-        cc.parent_group === parentCode
-      );
-      
-      const allDescendants = [...directChildren];
-      
-      // Recursively get descendants of each child
-      directChildren.forEach(child => {
-        if (child.has_subcategories) {
-          allDescendants.push(...getAllDescendants(child.code));
-        }
-      });
-      
-      return allDescendants;
-    };
+  // Filter out cost codes already in budget and build a flat list with hierarchy info
+  const availableCostCodes = costCodes.filter(cc => !existingCostCodeIds.includes(cc.id));
+  
+  // Determine indentation level for each cost code based on parent hierarchy
+  const getIndentLevel = (costCode: CostCode): number => {
+    if (!costCode.parent_group) return 0;
     
-    const descendants = getAllDescendants(parent.code);
+    const parent = costCodes.find(cc => cc.code === costCode.parent_group);
+    if (!parent) return 0;
     
-    // Only include this group if it has descendants
-    if (descendants.length > 0) {
-      acc[parent.code] = descendants;
+    return 1 + getIndentLevel(parent);
+  };
+  
+  // Sort cost codes: parents before children, then by code
+  const sortedCostCodes = [...availableCostCodes].sort((a, b) => {
+    const aLevel = getIndentLevel(a);
+    const bLevel = getIndentLevel(b);
+    
+    // If different levels and one is parent of the other, parent comes first
+    if (a.code === b.parent_group) return -1;
+    if (b.code === a.parent_group) return 1;
+    
+    // If same parent, sort by code
+    if (a.parent_group === b.parent_group) {
+      return a.code.localeCompare(b.code, undefined, { numeric: true });
     }
     
-    return acc;
-  }, {} as Record<string, CostCode[]>);
+    // Otherwise sort by code
+    return a.code.localeCompare(b.code, undefined, { numeric: true });
+  });
+  
+  const groupedCostCodes = { all: sortedCostCodes };
 
   const handleCostCodeToggle = (costCodeId: string, checked: boolean) => {
     const newSelected = new Set(selectedCostCodes);
@@ -102,50 +98,6 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
       newSelected.delete(costCodeId);
     }
     setSelectedCostCodes(newSelected);
-  };
-
-  const handleGroupCheckboxChange = (group: string, checked: boolean) => {
-    const groupCostCodes = groupedCostCodes[group] || [];
-    const newSelected = new Set(selectedCostCodes);
-    
-    if (checked) {
-      // Select all items in this group
-      groupCostCodes.forEach(costCode => newSelected.add(costCode.id));
-    } else {
-      // Deselect all items in this group
-      groupCostCodes.forEach(costCode => newSelected.delete(costCode.id));
-    }
-    
-    setSelectedCostCodes(newSelected);
-  };
-
-  const isGroupSelected = (group: string) => {
-    const groupCostCodes = groupedCostCodes[group] || [];
-    return groupCostCodes.length > 0 && groupCostCodes.every(costCode => selectedCostCodes.has(costCode.id));
-  };
-
-  const isGroupPartiallySelected = (group: string) => {
-    const groupCostCodes = groupedCostCodes[group] || [];
-    const selectedInGroup = groupCostCodes.filter(costCode => selectedCostCodes.has(costCode.id));
-    return selectedInGroup.length > 0 && selectedInGroup.length < groupCostCodes.length;
-  };
-
-  const handleExpandAll = () => {
-    setExpandedGroups(new Set(Object.keys(groupedCostCodes)));
-  };
-
-  const handleCollapseAll = () => {
-    setExpandedGroups(new Set());
-  };
-
-  const handleGroupToggle = (group: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(group)) {
-      newExpanded.delete(group);
-    } else {
-      newExpanded.add(group);
-    }
-    setExpandedGroups(newExpanded);
   };
 
   const handleSave = () => {
@@ -166,16 +118,9 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
 
   return {
     selectedCostCodes,
-    expandedGroups,
     groupedCostCodes,
     createBudgetItems,
     handleCostCodeToggle,
-    handleGroupCheckboxChange,
-    isGroupSelected,
-    isGroupPartiallySelected,
-    handleExpandAll,
-    handleCollapseAll,
-    handleGroupToggle,
     handleSave,
     resetSelection,
   };
