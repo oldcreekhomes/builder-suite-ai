@@ -171,7 +171,7 @@ export default function BackgroundBillUpload({
       </label>
       {started && (
         <p className="text-sm text-muted-foreground">
-          Processing started in background. Use "Refresh results" to see completed bills.
+          Processing started in background. Results will appear automatically when ready.
         </p>
       )}
     </div>

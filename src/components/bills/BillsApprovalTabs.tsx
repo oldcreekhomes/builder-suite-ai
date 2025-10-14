@@ -264,10 +264,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const queryClient = useQueryClient();
   const handleRefresh = async () => {
     try {
-      // Force-refresh pending uploads
-      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+      await queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+      await queryClient.refetchQueries({ queryKey: ['pending-bills'], type: 'active' });
     } catch {}
-    await fetchBillsWithLines();
+    // fetchBillsWithLines will run automatically when pendingBills updates
   };
 
   // Monitor when batchBills actually populate after loading starts

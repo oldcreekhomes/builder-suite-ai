@@ -73,6 +73,7 @@ export const usePendingBills = () => {
         if (error) throw error;
         return data as PendingBillLine[];
       },
+      placeholderData: keepPreviousData,
       enabled: !!pendingUploadId,
     });
   };
