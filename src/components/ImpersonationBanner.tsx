@@ -10,28 +10,23 @@ export const ImpersonationBanner = () => {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-orange-500 text-white shadow-lg">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <div className="flex items-center flex-wrap gap-x-2">
-            <span className="font-semibold">Viewing as:</span>
-            <span>
-              {impersonatedProfile.first_name} {impersonatedProfile.last_name}
-            </span>
-            <span className="text-sm opacity-90">({impersonatedProfile.email})</span>
-          </div>
-        </div>
-        <Button
-          onClick={stopImpersonation}
-          variant="secondary"
-          size="sm"
-          className="flex-shrink-0"
-        >
-          <X className="h-4 w-4 mr-2" />
-          Exit Impersonation
-        </Button>
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-orange-500 text-white shadow-lg rounded-lg px-4 py-2 flex items-center gap-3 max-w-fit">
+      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+      <div className="flex items-center gap-2 text-sm">
+        <span className="font-semibold">Viewing as:</span>
+        <span className="whitespace-nowrap">
+          {impersonatedProfile.first_name} {impersonatedProfile.last_name}
+        </span>
       </div>
+      <Button
+        onClick={stopImpersonation}
+        variant="secondary"
+        size="sm"
+        className="flex-shrink-0 h-7 text-xs"
+      >
+        <X className="h-3 w-3 mr-1" />
+        Exit
+      </Button>
     </div>
   );
 };
