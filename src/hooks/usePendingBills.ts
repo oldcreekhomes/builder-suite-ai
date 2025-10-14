@@ -21,7 +21,7 @@ export interface PendingBillLine {
   id: string;
   pending_upload_id: string;
   line_number: number;
-  line_type: 'job_cost' | 'expense';
+  line_type: "job_cost" | "expense";
   description?: string;
   account_name?: string;
   cost_code_name?: string;
@@ -42,33 +42,37 @@ export const usePendingBills = () => {
   const queryClient = useQueryClient();
 
   // Fetch all pending bills for review
-  const { data: pendingBills, isLoading, refetch } = useQuery({
-    queryKey: ['pending-bills'],
+  const {
+    data: pendingBills,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["pending-bills"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('pending_bill_uploads')
-        .select('*')
-        .in('status', ['extracted', 'completed', 'reviewing', 'error'])
-        .order('created_at', { ascending: false });
+        .from("pending_bill_uploads")
+        .select("*")
+        .in("status", ["extracted", "completed", "reviewing", "error"])
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as PendingBill[];
     },
-    refetchInterval: 2000,
-    refetchOnWindowFocus: true,
+    // REMOVED refetchInterval - no more automatic polling!
+    refetchOnWindowFocus: false, // Changed to false to prevent flicker on focus
     placeholderData: keepPreviousData,
   });
 
   // Fetch lines for a specific pending bill
   const usePendingBillLines = (pendingUploadId: string) => {
     return useQuery({
-      queryKey: ['pending-bill-lines', pendingUploadId],
+      queryKey: ["pending-bill-lines", pendingUploadId],
       queryFn: async () => {
         const { data, error } = await supabase
-          .from('pending_bill_lines')
-          .select('*')
-          .eq('pending_upload_id', pendingUploadId)
-          .order('line_number');
+          .from("pending_bill_lines")
+          .select("*")
+          .eq("pending_upload_id", pendingUploadId)
+          .order("line_number");
 
         if (error) throw error;
         return data as PendingBillLine[];
@@ -82,73 +86,60 @@ export const usePendingBills = () => {
   const startReview = useMutation({
     mutationFn: async (pendingUploadId: string) => {
       const { error } = await supabase
-        .from('pending_bill_uploads')
-        .update({ status: 'reviewing' })
-        .eq('id', pendingUploadId);
+        .from("pending_bill_uploads")
+        .update({ status: "reviewing" })
+        .eq("id", pendingUploadId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+      queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
     },
   });
 
   // Update a pending bill line
   const updateLine = useMutation({
-    mutationFn: async ({ 
-      lineId, 
-      updates 
-    }: { 
-      lineId: string; 
-      updates: Partial<PendingBillLine> 
-    }) => {
-      const { error } = await supabase
-        .from('pending_bill_lines')
-        .update(updates)
-        .eq('id', lineId);
+    mutationFn: async ({ lineId, updates }: { lineId: string; updates: Partial<PendingBillLine> }) => {
+      const { error } = await supabase.from("pending_bill_lines").update(updates).eq("id", lineId);
 
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      // Get the pending_upload_id from the line being updated
-      queryClient.invalidateQueries({ 
-        queryKey: ['pending-bill-lines'] 
+      queryClient.invalidateQueries({
+        queryKey: ["pending-bill-lines"],
       });
     },
   });
 
   // Add a new line to pending bill
   const addLine = useMutation({
-    mutationFn: async ({ 
-      pendingUploadId, 
-      lineData 
-    }: { 
-      pendingUploadId: string; 
-      lineData: Partial<PendingBillLine> 
+    mutationFn: async ({
+      pendingUploadId,
+      lineData,
+    }: {
+      pendingUploadId: string;
+      lineData: Partial<PendingBillLine>;
     }) => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-      // Get the max line number
       const { data: existingLines } = await supabase
-        .from('pending_bill_lines')
-        .select('line_number')
-        .eq('pending_upload_id', pendingUploadId)
-        .order('line_number', { ascending: false })
+        .from("pending_bill_lines")
+        .select("line_number")
+        .eq("pending_upload_id", pendingUploadId)
+        .order("line_number", { ascending: false })
         .limit(1);
 
-      const nextLineNumber = existingLines && existingLines.length > 0 
-        ? existingLines[0].line_number + 1 
-        : 1;
+      const nextLineNumber = existingLines && existingLines.length > 0 ? existingLines[0].line_number + 1 : 1;
 
-      const { error } = await supabase
-        .from('pending_bill_lines')
-        .insert([{
+      const { error } = await supabase.from("pending_bill_lines").insert([
+        {
           pending_upload_id: pendingUploadId,
           line_number: nextLineNumber,
           owner_id: user.id,
-          line_type: lineData.line_type || 'expense',
+          line_type: lineData.line_type || "expense",
           quantity: lineData.quantity || 1,
           unit_cost: lineData.unit_cost || 0,
           amount: lineData.amount || 0,
@@ -160,13 +151,14 @@ export const usePendingBills = () => {
           cost_code_id: lineData.cost_code_id,
           project_id: lineData.project_id,
           memo: lineData.memo,
-        }]);
+        },
+      ]);
 
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ['pending-bill-lines', variables.pendingUploadId] 
+      queryClient.invalidateQueries({
+        queryKey: ["pending-bill-lines", variables.pendingUploadId],
       });
     },
   });
@@ -174,15 +166,12 @@ export const usePendingBills = () => {
   // Delete a line
   const deleteLine = useMutation({
     mutationFn: async (lineId: string) => {
-      const { error } = await supabase
-        .from('pending_bill_lines')
-        .delete()
-        .eq('id', lineId);
+      const { error } = await supabase.from("pending_bill_lines").delete().eq("id", lineId);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-bill-lines'] });
+      queryClient.invalidateQueries({ queryKey: ["pending-bill-lines"] });
     },
   });
 
@@ -207,7 +196,7 @@ export const usePendingBills = () => {
       terms?: string;
       notes?: string;
     }) => {
-      const { data, error } = await supabase.rpc('approve_pending_bill', {
+      const { data, error } = await supabase.rpc("approve_pending_bill", {
         pending_upload_id_param: pendingUploadId,
         vendor_id_param: vendorId,
         project_id_param: projectId,
@@ -220,21 +209,17 @@ export const usePendingBills = () => {
 
       if (error) throw error;
 
-      // Update vendor's terms in companies table
       if (vendorId && terms) {
-        await supabase
-          .from('companies')
-          .update({ terms })
-          .eq('id', vendorId);
+        await supabase.from("companies").update({ terms }).eq("id", vendorId);
       }
 
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
-      toast.success('Bill approved and created successfully');
+      queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
+      toast.success("Bill approved and created successfully");
     },
     onError: (error: any) => {
       toast.error(`Failed to approve bill: ${error.message}`);
@@ -243,14 +228,8 @@ export const usePendingBills = () => {
 
   // Reject a pending bill
   const rejectBill = useMutation({
-    mutationFn: async ({
-      pendingUploadId,
-      reviewNotes,
-    }: {
-      pendingUploadId: string;
-      reviewNotes?: string;
-    }) => {
-      const { error } = await supabase.rpc('reject_pending_bill', {
+    mutationFn: async ({ pendingUploadId, reviewNotes }: { pendingUploadId: string; reviewNotes?: string }) => {
+      const { error } = await supabase.rpc("reject_pending_bill", {
         pending_upload_id_param: pendingUploadId,
         review_notes_param: reviewNotes || null,
       });
@@ -258,8 +237,8 @@ export const usePendingBills = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
-      toast.success('Bill rejected');
+      queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
+      toast.success("Bill rejected");
     },
     onError: (error: any) => {
       toast.error(`Failed to reject bill: ${error.message}`);
@@ -269,17 +248,17 @@ export const usePendingBills = () => {
   // Permanently delete a pending bill upload
   const deletePendingUpload = useMutation({
     mutationFn: async (uploadId: string) => {
-      const { data, error } = await supabase.rpc('delete_pending_bill_upload', {
-        upload_id_param: uploadId
+      const { data, error } = await supabase.rpc("delete_pending_bill_upload", {
+        upload_id_param: uploadId,
       });
-      
+
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
-      toast.success('Bill deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
+      toast.success("Bill deleted successfully");
     },
     onError: (error: any) => {
       toast.error(`Failed to delete pending upload: ${error.message}`);
@@ -288,20 +267,23 @@ export const usePendingBills = () => {
 
   // Batch approve multiple bills
   const batchApproveBills = useMutation({
-    mutationFn: async (bills: Array<{
-      pendingUploadId: string;
-      vendorId: string;
-      projectId: string;
-      billDate: string;
-      dueDate?: string;
-      referenceNumber?: string;
-      terms?: string;
-      notes?: string;
-    }>) => {
+    mutationFn: async (
+      bills: Array<{
+        pendingUploadId: string;
+        vendorId: string;
+        projectId: string;
+        billDate: string;
+        dueDate?: string;
+        referenceNumber?: string;
+        terms?: string;
+        notes?: string;
+      }>,
+    ) => {
       const results = [];
+
       for (const bill of bills) {
         try {
-          const { data, error } = await supabase.rpc('approve_pending_bill', {
+          const { data, error } = await supabase.rpc("approve_pending_bill", {
             pending_upload_id_param: bill.pendingUploadId,
             vendor_id_param: bill.vendorId,
             project_id_param: bill.projectId,
@@ -314,12 +296,8 @@ export const usePendingBills = () => {
 
           if (error) throw error;
 
-          // Update vendor's terms in companies table
           if (bill.vendorId && bill.terms) {
-            await supabase
-              .from('companies')
-              .update({ terms: bill.terms })
-              .eq('id', bill.vendorId);
+            await supabase.from("companies").update({ terms: bill.terms }).eq("id", bill.vendorId);
           }
 
           results.push({ success: true, billId: data, pendingUploadId: bill.pendingUploadId });
@@ -327,12 +305,13 @@ export const usePendingBills = () => {
           results.push({ success: false, error, pendingUploadId: bill.pendingUploadId });
         }
       }
+
       return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
-      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
     },
   });
 
