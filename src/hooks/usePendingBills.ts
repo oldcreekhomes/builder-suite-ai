@@ -41,7 +41,6 @@ export interface PendingBillLine {
 export const usePendingBills = () => {
   const queryClient = useQueryClient();
 
-  // Fetch all pending bills for review
   const {
     data: pendingBills,
     isLoading,
@@ -58,12 +57,11 @@ export const usePendingBills = () => {
       if (error) throw error;
       return data as PendingBill[];
     },
-    // REMOVED refetchInterval - no more automatic polling!
-    refetchOnWindowFocus: false, // Changed to false to prevent flicker on focus
-    placeholderData: keepPreviousData,
+    refetchInterval: 3000, // Poll every 3 seconds - YES, BRING IT BACK
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData, // THIS prevents flickering
   });
 
-  // Fetch lines for a specific pending bill
   const usePendingBillLines = (pendingUploadId: string) => {
     return useQuery({
       queryKey: ["pending-bill-lines", pendingUploadId],
@@ -82,7 +80,6 @@ export const usePendingBills = () => {
     });
   };
 
-  // Update pending bill status to 'reviewing'
   const startReview = useMutation({
     mutationFn: async (pendingUploadId: string) => {
       const { error } = await supabase
@@ -97,7 +94,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Update a pending bill line
   const updateLine = useMutation({
     mutationFn: async ({ lineId, updates }: { lineId: string; updates: Partial<PendingBillLine> }) => {
       const { error } = await supabase.from("pending_bill_lines").update(updates).eq("id", lineId);
@@ -111,7 +107,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Add a new line to pending bill
   const addLine = useMutation({
     mutationFn: async ({
       pendingUploadId,
@@ -163,7 +158,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Delete a line
   const deleteLine = useMutation({
     mutationFn: async (lineId: string) => {
       const { error } = await supabase.from("pending_bill_lines").delete().eq("id", lineId);
@@ -175,7 +169,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Approve a pending bill (calls database function)
   const approveBill = useMutation({
     mutationFn: async ({
       pendingUploadId,
@@ -226,7 +219,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Reject a pending bill
   const rejectBill = useMutation({
     mutationFn: async ({ pendingUploadId, reviewNotes }: { pendingUploadId: string; reviewNotes?: string }) => {
       const { error } = await supabase.rpc("reject_pending_bill", {
@@ -245,7 +237,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Permanently delete a pending bill upload
   const deletePendingUpload = useMutation({
     mutationFn: async (uploadId: string) => {
       const { data, error } = await supabase.rpc("delete_pending_bill_upload", {
@@ -265,7 +256,6 @@ export const usePendingBills = () => {
     },
   });
 
-  // Batch approve multiple bills
   const batchApproveBills = useMutation({
     mutationFn: async (
       bills: Array<{
