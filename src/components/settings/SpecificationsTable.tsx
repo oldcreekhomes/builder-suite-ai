@@ -77,17 +77,13 @@ export function SpecificationsTable({
             </TableRow>
           ) : (
             // Sort groups to show ungrouped first, then alphabetically
-            // Only show parent groups that have child specifications
+            // Show groups that have any specifications (parent OR child)
             Object.entries(groupedSpecifications)
               .filter(([groupKey, groupSpecifications]) => {
                 if (groupKey === 'ungrouped') return true;
                 
-                // Only show parent groups if they have child specifications
-                // (not counting the parent cost code itself)
-                const childSpecs = groupSpecifications.filter(spec => 
-                  !parentCodes.has(spec.cost_code.code)
-                );
-                return childSpecs.length > 0;
+                // Show the group if it has any specs (parent or child)
+                return groupSpecifications.length > 0;
               })
               .sort(([a], [b]) => {
                 if (a === 'ungrouped') return -1;
@@ -112,14 +108,16 @@ export function SpecificationsTable({
                       onDeleteAllFiles={onDeleteAllFiles}
                     />
                   )}
-                  {/* Show child specifications when group is expanded or ungrouped */}
+                  {/* Show specifications when group is expanded or ungrouped */}
                   {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
                     groupSpecifications
-                      .filter(spec => {
-                        // Only show child codes (not the parent code itself in the child list)
-                        return !parentCodes.has(spec.cost_code.code);
+                      .sort((a, b) => {
+                        // Show parent codes first, then children by code
+                        const aIsParent = parentCodes.has(a.cost_code.code);
+                        const bIsParent = parentCodes.has(b.cost_code.code);
+                        if (aIsParent !== bIsParent) return aIsParent ? -1 : 1;
+                        return a.cost_code.code.localeCompare(b.cost_code.code);
                       })
-                      .sort((a, b) => a.cost_code.code.localeCompare(b.cost_code.code)) // Sort chronologically by code
                       .map((spec) => (
                         <SpecificationTableRow
                           key={`row-${spec.id}`}
