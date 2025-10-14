@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
 import { ActualTableHeader } from './ActualTableHeader';
@@ -10,6 +10,8 @@ import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { ViewCommittedCostsModal } from './ViewCommittedCostsModal';
+import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
 interface ActualTableProps {
   projectId: string;
@@ -19,6 +21,23 @@ interface ActualTableProps {
 export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
   const { budgetItems, groupedBudgetItems } = useBudgetData(projectId);
   const { purchaseOrders } = usePurchaseOrders(projectId);
+  
+  const [committedModal, setCommittedModal] = useState<{
+    open: boolean;
+    costCode: { code: string; name: string } | null;
+    purchaseOrders: PurchaseOrder[];
+    projectId?: string;
+  }>({
+    open: false,
+    costCode: null,
+    purchaseOrders: [],
+    projectId
+  });
+  
+  const openCommittedModal = (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) =>
+    setCommittedModal({ open: true, costCode: args.costCode, purchaseOrders: args.purchaseOrders, projectId: args.projectId });
+  
+  const closeCommittedModal = () => setCommittedModal(m => ({ ...m, open: false }));
   
   // Calculate total PO amount by cost code
   const calculatePOByCostCode = (costCodeId: string) => {
@@ -77,6 +96,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
           groupPurchaseOrders={items.flatMap(item => 
             purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
           )}
+          onShowCommitted={openCommittedModal}
         />
       );
 
@@ -90,6 +110,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
               isSelected={selectedItems.has(item.id)}
               onCheckboxChange={handleItemCheckboxChange}
               purchaseOrders={purchaseOrders}
+              onShowCommitted={openCommittedModal}
             />
           );
         }
@@ -132,6 +153,14 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <ViewCommittedCostsModal
+        isOpen={committedModal.open}
+        onClose={closeCommittedModal}
+        costCode={committedModal.costCode ?? { code: '', name: '' }}
+        purchaseOrders={committedModal.purchaseOrders}
+        projectId={committedModal.projectId}
+      />
 
       <ActualTableFooter budgetItems={budgetItems} purchaseOrders={purchaseOrders} />
     </div>

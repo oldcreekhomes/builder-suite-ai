@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown } from 'lucide-react';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
-import { ViewCommittedCostsModal } from './ViewCommittedCostsModal';
+
 
 interface ActualGroupHeaderProps {
   group: string;
@@ -15,6 +15,7 @@ interface ActualGroupHeaderProps {
   groupBudgetTotal: number;
   groupCommittedTotal: number;
   groupPurchaseOrders?: PurchaseOrder[];
+  onShowCommitted: (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) => void;
 }
 
 export function ActualGroupHeader({
@@ -26,9 +27,10 @@ export function ActualGroupHeader({
   onCheckboxChange,
   groupBudgetTotal,
   groupCommittedTotal,
-  groupPurchaseOrders = []
+  groupPurchaseOrders = [],
+  onShowCommitted
 }: ActualGroupHeaderProps) {
-  const [showModal, setShowModal] = useState(false);
+  
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -77,7 +79,11 @@ export function ActualGroupHeader({
         </TableCell>
         <TableCell 
           className="px-2 py-0 w-32 cursor-pointer hover:bg-gray-100"
-          onClick={() => setShowModal(true)}
+          onClick={() => onShowCommitted({
+            costCode: { code: group, name: '' },
+            purchaseOrders: groupPurchaseOrders,
+            projectId: groupPurchaseOrders[0]?.project_id
+          })}
         >
           <div className="text-xs font-medium">
             {formatCurrency(groupCommittedTotal)}
@@ -89,14 +95,6 @@ export function ActualGroupHeader({
           </div>
         </TableCell>
       </TableRow>
-      <ViewCommittedCostsModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        costCode={{ code: group, name: '' }}
-        purchaseOrders={groupPurchaseOrders}
-        projectId={groupPurchaseOrders[0]?.project_id}
-        key={`modal-${group}`}
-      />
     </>
   );
 }

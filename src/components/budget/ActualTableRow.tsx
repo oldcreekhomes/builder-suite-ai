@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Tables } from '@/integrations/supabase/types';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
-import { ViewCommittedCostsModal } from './ViewCommittedCostsModal';
+
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -13,6 +13,7 @@ interface ActualTableRowProps {
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   purchaseOrders: PurchaseOrder[];
+  onShowCommitted: (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) => void;
 }
 
 export function ActualTableRow({
@@ -20,9 +21,10 @@ export function ActualTableRow({
   committedAmount,
   isSelected,
   onCheckboxChange,
-  purchaseOrders
+  purchaseOrders,
+  onShowCommitted
 }: ActualTableRowProps) {
-  const [showModal, setShowModal] = useState(false);
+  
   const costCode = item.cost_codes as CostCode;
   const budgetTotal = (item.quantity || 0) * (item.unit_price || 0);
   const variance = budgetTotal - committedAmount; // Budget - Committed Costs
@@ -41,7 +43,7 @@ export function ActualTableRow({
   };
 
   return (
-    <>
+    
       <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
@@ -67,7 +69,11 @@ export function ActualTableRow({
         </TableCell>
         <TableCell 
           className="px-2 py-0 w-32 cursor-pointer hover:bg-muted/50"
-          onClick={() => setShowModal(true)}
+          onClick={() => onShowCommitted({
+            costCode: { code: costCode?.code || '-', name: costCode?.name || '-' },
+            purchaseOrders: costCodePOs,
+            projectId: item.project_id
+          })}
         >
           <div className="text-xs">
             {formatCurrency(committedAmount)}
@@ -80,13 +86,6 @@ export function ActualTableRow({
         </TableCell>
       </TableRow>
 
-      <ViewCommittedCostsModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        costCode={costCode ? { code: costCode.code, name: costCode.name } : null}
-        purchaseOrders={costCodePOs}
-        projectId={item.project_id}
-      />
-    </>
+    
   );
 }
