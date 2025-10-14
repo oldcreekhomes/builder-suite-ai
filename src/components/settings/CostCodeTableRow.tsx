@@ -68,8 +68,9 @@ export function CostCodeTableRow({
     }
   };
   
-  // Determine if this is a subcategory (should not have specs/bidding/subcategories options)
-  const isSubcategory = costCode.parent_group && costCode.parent_group.trim() !== '';
+  // Determine if this is a LEAF subcategory (has parent but no children)
+  // Only leaf subcategories should hide specs/bidding/subcategories options
+  const isLeafSubcategory = (costCode.parent_group && costCode.parent_group.trim() !== '') && !costCode.has_subcategories;
   
   return (
     <>
@@ -122,7 +123,7 @@ export function CostCodeTableRow({
           />
         </TableCell>
         <TableCell className="py-1">
-          {isSubcategory ? (
+          {isLeafSubcategory ? (
             <span className="text-muted-foreground text-sm">-</span>
           ) : (
             <CostCodeInlineEditor
@@ -133,7 +134,7 @@ export function CostCodeTableRow({
           )}
         </TableCell>
         <TableCell className="py-1">
-          {isSubcategory ? (
+          {isLeafSubcategory ? (
             <span className="text-muted-foreground text-sm">-</span>
           ) : (
             <CostCodeInlineEditor
@@ -144,7 +145,7 @@ export function CostCodeTableRow({
           )}
         </TableCell>
         <TableCell className="py-1">
-          {isSubcategory ? (
+          {isLeafSubcategory ? (
             <span className="text-muted-foreground text-sm">-</span>
           ) : (
             <CostCodeInlineEditor
