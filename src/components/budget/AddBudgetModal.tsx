@@ -42,14 +42,8 @@ export function AddBudgetModal({ projectId, open, onOpenChange, existingCostCode
           {groupedCostCodes.all && groupedCostCodes.all.length > 0 ? (
             <div className="space-y-1">
               {groupedCostCodes.all.map((costCode) => {
-                const indentLevel = (() => {
-                  if (!costCode.parent_group) return 0;
-                  const parent = groupedCostCodes.all.find(cc => cc.code === costCode.parent_group);
-                  if (!parent) return 0;
-                  // Check if parent has a parent (grandparent)
-                  if (!parent.parent_group) return 1;
-                  return 2;
-                })();
+                const indentLevel = !costCode.parent_group ? 0 : 
+                  !groupedCostCodes.all.find(cc => cc.code === costCode.parent_group)?.parent_group ? 1 : 2;
                 
                 const indent = indentLevel * 24; // 24px per level
                 
