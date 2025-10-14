@@ -1,11 +1,21 @@
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
+
+// Helper function outside the hook to avoid recreating it
+const getIndentLevel = (costCode: CostCode, allCostCodes: CostCode[]): number => {
+  if (!costCode.parent_group) return 0;
+  
+  const parent = allCostCodes.find(cc => cc.code === costCode.parent_group);
+  if (!parent) return 0;
+  
+  return 1 + getIndentLevel(parent, allCostCodes);
+};
 
 export function useAddBudgetModal(projectId: string, existingCostCodeIds: string[]) {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
@@ -57,50 +67,42 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
     },
   });
 
-  // Filter out cost codes already in budget and build a flat list with hierarchy info
-  const availableCostCodes = costCodes.filter(cc => !existingCostCodeIds.includes(cc.id));
-  
-  // Determine indentation level for each cost code based on parent hierarchy
-  const getIndentLevel = (costCode: CostCode): number => {
-    if (!costCode.parent_group) return 0;
+  // Memoize the grouped cost codes to prevent recreating on every render
+  const groupedCostCodes = useMemo(() => {
+    // Filter out cost codes already in budget
+    const availableCostCodes = costCodes.filter(cc => !existingCostCodeIds.includes(cc.id));
     
-    const parent = costCodes.find(cc => cc.code === costCode.parent_group);
-    if (!parent) return 0;
-    
-    return 1 + getIndentLevel(parent);
-  };
-  
-  // Sort cost codes: parents before children, then by code
-  const sortedCostCodes = [...availableCostCodes].sort((a, b) => {
-    const aLevel = getIndentLevel(a);
-    const bLevel = getIndentLevel(b);
-    
-    // If different levels and one is parent of the other, parent comes first
-    if (a.code === b.parent_group) return -1;
-    if (b.code === a.parent_group) return 1;
-    
-    // If same parent, sort by code
-    if (a.parent_group === b.parent_group) {
+    // Sort cost codes: parents before children, then by code
+    const sortedCostCodes = [...availableCostCodes].sort((a, b) => {
+      // If different levels and one is parent of the other, parent comes first
+      if (a.code === b.parent_group) return -1;
+      if (b.code === a.parent_group) return 1;
+      
+      // If same parent, sort by code
+      if (a.parent_group === b.parent_group) {
+        return a.code.localeCompare(b.code, undefined, { numeric: true });
+      }
+      
+      // Otherwise sort by code
       return a.code.localeCompare(b.code, undefined, { numeric: true });
-    }
+    });
     
-    // Otherwise sort by code
-    return a.code.localeCompare(b.code, undefined, { numeric: true });
-  });
-  
-  const groupedCostCodes = { all: sortedCostCodes };
+    return { all: sortedCostCodes };
+  }, [costCodes, existingCostCodeIds]);
 
-  const handleCostCodeToggle = (costCodeId: string, checked: boolean) => {
-    const newSelected = new Set(selectedCostCodes);
-    if (checked) {
-      newSelected.add(costCodeId);
-    } else {
-      newSelected.delete(costCodeId);
-    }
-    setSelectedCostCodes(newSelected);
-  };
+  const handleCostCodeToggle = useCallback((costCodeId: string, checked: boolean) => {
+    setSelectedCostCodes(prev => {
+      const newSelected = new Set(prev);
+      if (checked) {
+        newSelected.add(costCodeId);
+      } else {
+        newSelected.delete(costCodeId);
+      }
+      return newSelected;
+    });
+  }, []);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (selectedCostCodes.size === 0) {
       toast({
         title: "No Selection",
@@ -110,15 +112,16 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
       return;
     }
     createBudgetItems.mutate(Array.from(selectedCostCodes));
-  };
+  }, [selectedCostCodes, createBudgetItems, toast]);
 
-  const resetSelection = () => {
+  const resetSelection = useCallback(() => {
     setSelectedCostCodes(new Set());
-  };
+  }, []);
 
   return {
     selectedCostCodes,
     groupedCostCodes,
+    costCodes, // Export for indent calculation
     createBudgetItems,
     handleCostCodeToggle,
     handleSave,
