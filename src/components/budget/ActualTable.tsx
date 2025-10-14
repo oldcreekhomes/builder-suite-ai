@@ -80,7 +80,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
               </TableRow>
             ) : (
               <>
-                {Object.entries(groupedBudgetItems).map(([group, items]) => [
+                {Object.entries(groupedBudgetItems).flatMap(([group, items]) => [
                   <ActualGroupHeader
                     key={`header-${group}`}
                     group={group}
