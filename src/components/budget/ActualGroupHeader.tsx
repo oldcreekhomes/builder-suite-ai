@@ -48,7 +48,7 @@ export function ActualGroupHeader({
 
   return [
     (
-      <TableRow className="bg-gray-50 h-8" key="row">
+      <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
             checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
@@ -97,7 +97,7 @@ export function ActualGroupHeader({
         costCode={{ code: group, name: '' }}
         purchaseOrders={groupPurchaseOrders}
         projectId={groupPurchaseOrders[0]?.project_id}
-        key="modal"
+        key={`modal-${group}`}
       />
     )
   ];
