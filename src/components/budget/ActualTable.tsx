@@ -127,7 +127,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-                {rows}
+                rows
             )}
           </TableBody>
         </Table>
