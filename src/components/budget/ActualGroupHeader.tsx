@@ -1,6 +1,6 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { MinimalCheckbox } from '@/components/ui/minimal-checkbox';
 import { ChevronDown } from 'lucide-react';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
@@ -51,9 +51,10 @@ export function ActualGroupHeader({
   return (
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
-          <Checkbox
-            checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
-            onCheckedChange={(value) => onCheckboxChange(group, value === true)}
+          <MinimalCheckbox
+            checked={isSelected}
+            indeterminate={isPartiallySelected && !isSelected}
+            onChange={(e) => onCheckboxChange(group, e.currentTarget.checked)}
             className="h-3 w-3"
           />
         </TableCell>

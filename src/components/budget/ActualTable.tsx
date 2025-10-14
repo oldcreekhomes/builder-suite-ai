@@ -1,6 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 
+const RowsRenderer = React.memo(function RowsRenderer({ rows }: { rows: React.ReactNode[] }) {
+  return <>{rows}</>;
+});
+
 import { ActualTableHeader } from './ActualTableHeader';
 import { ActualGroupHeader } from './ActualGroupHeader';
 import { ActualTableRow } from './ActualTableRow';
@@ -63,6 +67,8 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
 
   const onGroupCheckboxChange = (group: string, checked: boolean) => {
     const groupItems = groupedBudgetItems[group] || [];
+    const alreadySelected = isGroupSelected(groupItems);
+    if (checked === alreadySelected) return; // no-op to avoid redundant updates
     handleGroupCheckboxChange(group, checked, groupItems);
   };
 
@@ -148,7 +154,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-                rows
+              <RowsRenderer rows={rows} />
             )}
           </TableBody>
         </Table>

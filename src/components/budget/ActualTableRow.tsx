@@ -1,6 +1,6 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
+import { MinimalCheckbox } from '@/components/ui/minimal-checkbox';
 import type { Tables } from '@/integrations/supabase/types';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
@@ -46,9 +46,9 @@ export function ActualTableRow({
     
       <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
         <TableCell className="px-1 py-0 w-12">
-          <Checkbox
+          <MinimalCheckbox
             checked={isSelected}
-            onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
+            onChange={(e) => onCheckboxChange(item.id, e.currentTarget.checked)}
             className="h-3 w-3"
           />
         </TableCell>
