@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -29,6 +29,14 @@ export function ActualGroupHeader({
   groupPurchaseOrders = []
 }: ActualGroupHeaderProps) {
   const [showModal, setShowModal] = useState(false);
+  const checkboxRef = useRef<HTMLButtonElement>(null);
+
+  // Handle indeterminate state in useEffect to avoid infinite loops
+  useEffect(() => {
+    if (checkboxRef.current) {
+      (checkboxRef.current as any).indeterminate = isPartiallySelected && !isSelected;
+    }
+  }, [isPartiallySelected, isSelected]);
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -51,12 +59,8 @@ export function ActualGroupHeader({
       <TableRow className="bg-gray-50 h-8">
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
+            ref={checkboxRef}
             checked={isSelected}
-            ref={(el) => {
-              if (el && 'indeterminate' in el) {
-                (el as any).indeterminate = isPartiallySelected && !isSelected;
-              }
-            }}
             onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
             className="h-3 w-3"
           />
