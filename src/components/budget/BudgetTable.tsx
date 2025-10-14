@@ -269,12 +269,14 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         projectAddress={projectAddress}
       />
 
-      <AddBudgetModal
-        projectId={projectId}
-        open={showAddBudgetModal}
-        onOpenChange={setShowAddBudgetModal}
-        existingCostCodeIds={existingCostCodeIds}
-      />
+      {showAddBudgetModal && (
+        <AddBudgetModal
+          projectId={projectId}
+          open={showAddBudgetModal}
+          onOpenChange={setShowAddBudgetModal}
+          existingCostCodeIds={existingCostCodeIds}
+        />
+      )}
     </div>
   );
 }

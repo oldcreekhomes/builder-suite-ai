@@ -69,8 +69,10 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
 
   // Memoize the grouped cost codes to prevent recreating on every render
   const groupedCostCodes = useMemo(() => {
-    // Filter out cost codes already in budget
-    const availableCostCodes = costCodes.filter(cc => !existingCostCodeIds.includes(cc.id));
+    // Filter out cost codes already in budget and subcategories (codes with dots)
+    const availableCostCodes = costCodes
+      .filter(cc => !existingCostCodeIds.includes(cc.id))
+      .filter(cc => !cc.code.includes('.')); // Remove subcategories like 2100.1
     
     // Sort cost codes: parents before children, then by code
     const sortedCostCodes = [...availableCostCodes].sort((a, b) => {
