@@ -383,9 +383,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }, 60000);
   };
 
-  const handleExtractionProgress = (remaining: number) => {
+  const handleExtractionProgress = (done: number, total: number) => {
     // Only update the counter - NO data refetch
-    setExtractingCount(remaining);
+    setExtractingCount(total - done);
   };
 
   const handleExtractionComplete = async () => {
@@ -394,24 +394,33 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       safetyFuseRef.current = null;
     }
 
-    // Refetch to get final data
-    await refetch();
-
     const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
     const minVisible = 600;
 
-    if (elapsed < minVisible) {
-      setTimeout(() => {
-        setIsExtracting(false);
-        setExtractingCount(0);
-        // Update display with final processed data
-        setDisplayBills(batchBills);
-      }, minVisible - elapsed);
-    } else {
+    // Give edge function time to finish writing data, then refetch multiple times
+    const finalizeData = async () => {
+      // Wait for database to be fully updated
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Refetch 3 times with delays to ensure we get complete data
+      await refetch();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await refetch();
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await refetch();
+
       setIsExtracting(false);
       setExtractingCount(0);
-      // Update display with final processed data
+      // Update display with final data
       setDisplayBills(batchBills);
+    };
+
+    if (elapsed < minVisible) {
+      setTimeout(() => {
+        finalizeData();
+      }, minVisible - elapsed);
+    } else {
+      await finalizeData();
     }
   };
 
