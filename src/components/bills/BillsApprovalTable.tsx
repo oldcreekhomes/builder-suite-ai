@@ -230,6 +230,7 @@ export function BillsApprovalTable({ status, projectId, projectIds }: BillsAppro
         <Table>
           <TableHeader>
             <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
@@ -249,13 +250,16 @@ export function BillsApprovalTable({ status, projectId, projectIds }: BillsAppro
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canShowActions ? 9 : canShowDeleteButton ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canShowActions ? 10 : canShowDeleteButton ? 10 : 9} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
             ) : (
               bills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
+                  <TableCell className="px-2 py-1 text-xs">
+                    {bill.projects?.address || '-'}
+                  </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.companies?.company_name || 'Unknown Vendor'}
                   </TableCell>

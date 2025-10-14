@@ -455,6 +455,7 @@ export function BatchBillReviewTable({
                   aria-label="Select all bills"
                 />
               </TableHead>
+              <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
@@ -476,7 +477,7 @@ export function BatchBillReviewTable({
                     <TableCell className="px-2 py-1">
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell className="px-3 py-1" colSpan={9}>
+                    <TableCell className="px-3 py-1" colSpan={10}>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
@@ -537,6 +538,9 @@ export function BatchBillReviewTable({
                       onCheckedChange={() => onBillSelect(bill.id)}
                       aria-label={`Select bill from ${vendorName}`}
                     />
+                  </TableCell>
+                  <TableCell className="px-3 py-1 text-xs">
+                    {bill.lines?.[0]?.project_name || '-'}
                   </TableCell>
                   <TableCell className="px-3 py-1">
                     {!vendorId && vendorName ? (
