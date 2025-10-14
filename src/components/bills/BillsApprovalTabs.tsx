@@ -24,25 +24,35 @@ interface BillsApprovalTabsProps {
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
   const { projectId: paramsProjectId } = useParams();
   const effectiveProjectId = projectId || paramsProjectId;
-  
+
   // Show project column only when viewing across multiple projects (not in single project context)
   const showProjectColumn = !effectiveProjectId || !!projectIds;
-  
+
   const [activeTab, setActiveTab] = useState(reviewOnly ? "pending" : "enter-manually");
   const { data: counts, isLoading } = useBillCounts(effectiveProjectId, projectIds);
-  
-  const { pendingBills, isLoading: loadingPendingBills, batchApproveBills, deletePendingUpload } = usePendingBills();
+
+  const {
+    pendingBills,
+    isLoading: loadingPendingBills,
+    batchApproveBills,
+    deletePendingUpload,
+    refetch,
+  } = usePendingBills();
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [isExtracting, setIsExtracting] = useState(false);
-  const [remaining, setRemaining] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [extractingCount, setExtractingCount] = useState(0);
   const minVisibleRef = useRef<number | null>(null);
   const safetyFuseRef = useRef<number | null>(null);
 
-  // Update batch bills when pending bills change
+  // Update batch bills when pending bills change - BUT NOT DURING EXTRACTION
   useEffect(() => {
+    // Skip expensive processing while extraction is in progress
+    if (isExtracting) {
+      return;
+    }
+
     const fetchBillsWithLines = async () => {
       if (!pendingBills || pendingBills.length === 0) {
         setBatchBills([]);
@@ -50,228 +60,218 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       }
 
       try {
-        const completedBills = pendingBills.filter(b => 
-          b.status === 'extracted' || b.status === 'completed' || b.status === 'reviewing' || b.status === 'error'
+        const completedBills = pendingBills.filter(
+          (b) =>
+            b.status === "extracted" || b.status === "completed" || b.status === "reviewing" || b.status === "error",
         );
-      
-      const billsWithLines = await Promise.all(
-        completedBills.map(async (bill) => {
-          const extractedData = bill.extracted_data || {};
-          
-          const { data: lines } = await supabase
-            .from('pending_bill_lines')
-            .select('*')
-            .eq('pending_upload_id', bill.id)
-            .order('line_number');
-          
-          let finalLines = lines || [];
-          
-          // Handle both snake_case and camelCase from extracted_data
-          const snakeLines = Array.isArray(extractedData.line_items) ? extractedData.line_items : [];
-          const camelLines = Array.isArray(extractedData.lineItems) ? extractedData.lineItems : [];
-          const unified = snakeLines.length > 0 ? snakeLines : camelLines;
-          
-          if ((!lines || lines.length === 0) && unified.length > 0) {
-            const { data: userData } = await supabase.auth.getUser();
-            const ownerId = userData.user?.id;
 
-            const { data: accounts } = await supabase
-              .from('accounts')
-              .select('id, name')
-              .eq('owner_id', ownerId);
+        const billsWithLines = await Promise.all(
+          completedBills.map(async (bill) => {
+            const extractedData = bill.extracted_data || {};
 
-            const { data: costCodes } = await supabase
-              .from('cost_codes')
-              .select('id, name')
-              .eq('owner_id', ownerId);
+            const { data: lines } = await supabase
+              .from("pending_bill_lines")
+              .select("*")
+              .eq("pending_upload_id", bill.id)
+              .order("line_number");
 
-            const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
-            const isSingleLine = unified.length === 1;
+            let finalLines = lines || [];
 
-            const linesToInsert = unified.map((item: any, index: number) => {
-              const accountId = item.account_name 
-                ? accounts?.find((a: any) => a.name === item.account_name)?.id 
-                : null;
-              const costCodeId = item.cost_code_name 
-                ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id 
-                : null;
-              
-              const lineType = costCodeId || item.cost_code_id || item.cost_code_name ? 'job_cost' : 'expense';
-              
-              const qty = Number(item.quantity) || 1;
-              const unitPrice = Number(
-                item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0
-              );
-              
-              let parsedAmount = typeof item.amount === 'string'
-                ? Number(item.amount.replace(/[^0-9.-]/g, ''))
-                : Number(item.amount) || 0;
-              
-              if (isSingleLine && extractedTotal > 0 && Math.abs(parsedAmount - extractedTotal) > 0.01) {
-                parsedAmount = extractedTotal;
-              }
-              
-              if (parsedAmount > 1000000 && unitPrice > 0) {
-                parsedAmount = qty * unitPrice;
-              }
-              
-              const finalAmount = unitPrice > 0 ? Math.round(qty * unitPrice * 100) / 100 : parsedAmount;
-              const unitCost = finalAmount > 0 && qty > 0 ? finalAmount / qty : 0;
-              
-              return {
-                pending_upload_id: bill.id,
-                owner_id: ownerId,
-                line_number: index + 1,
-                line_type: lineType,
-                description: item.description || '',
-                account_id: accountId,
-                cost_code_id: costCodeId,
-                account_name: item.account_name || null,
-                cost_code_name: item.cost_code_name || null,
-                project_name: item.project_name || null,
-                quantity: qty,
-                unit_cost: unitCost,
-                amount: finalAmount,
-                memo: item.memo || item.description || '',
-              };
-            });
+            // Handle both snake_case and camelCase from extracted_data
+            const snakeLines = Array.isArray(extractedData.line_items) ? extractedData.line_items : [];
+            const camelLines = Array.isArray(extractedData.lineItems) ? extractedData.lineItems : [];
+            const unified = snakeLines.length > 0 ? snakeLines : camelLines;
 
-            const { data: insertedLines } = await supabase
-              .from('pending_bill_lines')
-              .insert(linesToInsert)
-              .select();
+            if ((!lines || lines.length === 0) && unified.length > 0) {
+              const { data: userData } = await supabase.auth.getUser();
+              const ownerId = userData.user?.id;
 
-            finalLines = insertedLines || [];
-          }
+              const { data: accounts } = await supabase.from("accounts").select("id, name").eq("owner_id", ownerId);
 
-          try {
-            const vendorId = extractedData.vendor_id || extractedData.vendorId || null;
-            if (vendorId) {
-              const { data: cc } = await supabase
-                .from('company_cost_codes')
-                .select('cost_code_id')
-                .eq('company_id', vendorId);
-              if (cc && cc.length === 1) {
-                const defaultId = cc[0].cost_code_id as string;
-                const { data: ccInfo } = await supabase
-                  .from('cost_codes')
-                  .select('code, name')
-                  .eq('id', defaultId)
-                  .maybeSingle();
-                const costCodeName = ccInfo ? `${ccInfo.code}: ${ccInfo.name}` : null;
+              const { data: costCodes } = await supabase.from("cost_codes").select("id, name").eq("owner_id", ownerId);
 
-                const updatePromises: Promise<any>[] = [];
-                finalLines = (finalLines || []).map((line: any) => {
-                  if (line.line_type === 'job_cost' && !line.cost_code_id) {
-                    line.cost_code_id = defaultId;
-                    line.cost_code_name = costCodeName;
-                    updatePromises.push(
-                      (async () => {
-                        await supabase.from('pending_bill_lines')
-                          .update({ cost_code_id: defaultId, cost_code_name: costCodeName })
-                          .eq('id', line.id);
-                      })()
-                    );
-                  } else if (line.line_type === 'expense' && !line.account_id && !line.cost_code_id) {
-                    line.line_type = 'job_cost';
-                    line.cost_code_id = defaultId;
-                    line.cost_code_name = costCodeName;
-                    updatePromises.push(
-                      (async () => {
-                        await supabase.from('pending_bill_lines')
-                          .update({ line_type: 'job_cost', cost_code_id: defaultId, cost_code_name: costCodeName })
-                          .eq('id', line.id);
-                      })()
-                    );
+              const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
+              const isSingleLine = unified.length === 1;
+
+              const linesToInsert = unified.map((item: any, index: number) => {
+                const accountId = item.account_name
+                  ? accounts?.find((a: any) => a.name === item.account_name)?.id
+                  : null;
+                const costCodeId = item.cost_code_name
+                  ? costCodes?.find((c: any) => c.name === item.cost_code_name)?.id
+                  : null;
+
+                const lineType = costCodeId || item.cost_code_id || item.cost_code_name ? "job_cost" : "expense";
+
+                const qty = Number(item.quantity) || 1;
+                const unitPrice = Number(item.unit_cost ?? item.unitCost ?? item.unit_price ?? item.unitPrice ?? 0);
+
+                let parsedAmount =
+                  typeof item.amount === "string"
+                    ? Number(item.amount.replace(/[^0-9.-]/g, ""))
+                    : Number(item.amount) || 0;
+
+                if (isSingleLine && extractedTotal > 0 && Math.abs(parsedAmount - extractedTotal) > 0.01) {
+                  parsedAmount = extractedTotal;
+                }
+
+                if (parsedAmount > 1000000 && unitPrice > 0) {
+                  parsedAmount = qty * unitPrice;
+                }
+
+                const finalAmount = unitPrice > 0 ? Math.round(qty * unitPrice * 100) / 100 : parsedAmount;
+                const unitCost = finalAmount > 0 && qty > 0 ? finalAmount / qty : 0;
+
+                return {
+                  pending_upload_id: bill.id,
+                  owner_id: ownerId,
+                  line_number: index + 1,
+                  line_type: lineType,
+                  description: item.description || "",
+                  account_id: accountId,
+                  cost_code_id: costCodeId,
+                  account_name: item.account_name || null,
+                  cost_code_name: item.cost_code_name || null,
+                  project_name: item.project_name || null,
+                  quantity: qty,
+                  unit_cost: unitCost,
+                  amount: finalAmount,
+                  memo: item.memo || item.description || "",
+                };
+              });
+
+              const { data: insertedLines } = await supabase.from("pending_bill_lines").insert(linesToInsert).select();
+
+              finalLines = insertedLines || [];
+            }
+
+            try {
+              const vendorId = extractedData.vendor_id || extractedData.vendorId || null;
+              if (vendorId) {
+                const { data: cc } = await supabase
+                  .from("company_cost_codes")
+                  .select("cost_code_id")
+                  .eq("company_id", vendorId);
+                if (cc && cc.length === 1) {
+                  const defaultId = cc[0].cost_code_id as string;
+                  const { data: ccInfo } = await supabase
+                    .from("cost_codes")
+                    .select("code, name")
+                    .eq("id", defaultId)
+                    .maybeSingle();
+                  const costCodeName = ccInfo ? `${ccInfo.code}: ${ccInfo.name}` : null;
+
+                  const updatePromises: Promise<any>[] = [];
+                  finalLines = (finalLines || []).map((line: any) => {
+                    if (line.line_type === "job_cost" && !line.cost_code_id) {
+                      line.cost_code_id = defaultId;
+                      line.cost_code_name = costCodeName;
+                      updatePromises.push(
+                        (async () => {
+                          await supabase
+                            .from("pending_bill_lines")
+                            .update({ cost_code_id: defaultId, cost_code_name: costCodeName })
+                            .eq("id", line.id);
+                        })(),
+                      );
+                    } else if (line.line_type === "expense" && !line.account_id && !line.cost_code_id) {
+                      line.line_type = "job_cost";
+                      line.cost_code_id = defaultId;
+                      line.cost_code_name = costCodeName;
+                      updatePromises.push(
+                        (async () => {
+                          await supabase
+                            .from("pending_bill_lines")
+                            .update({ line_type: "job_cost", cost_code_id: defaultId, cost_code_name: costCodeName })
+                            .eq("id", line.id);
+                        })(),
+                      );
+                    }
+                    return line;
+                  });
+                  if (updatePromises.length) {
+                    await Promise.all(updatePromises);
                   }
-                  return line;
-                });
-                if (updatePromises.length) {
-                  await Promise.all(updatePromises);
                 }
               }
+            } catch (e) {
+              console.warn("Default cost code application skipped:", e);
             }
-          } catch (e) {
-            console.warn('Default cost code application skipped:', e);
-          }
-          
-          return {
-            id: bill.id,
-            file_name: bill.file_name,
-            file_path: bill.file_path,
-            status: bill.status,
-            vendor_id: extractedData.vendor_id || extractedData.vendorId || null,
-            vendor_name: extractedData.vendor_name || extractedData.vendor || '',
-            bill_date: normalizeToYMD(extractedData.bill_date || extractedData.billDate || extractedData.date || ''),
-            due_date: normalizeToYMD(extractedData.due_date || extractedData.dueDate || ''),
-            reference_number: extractedData.referenceNumber || extractedData.reference_number || '',
-            terms: extractedData.terms || 'net-30',
-            notes: extractedData.notes || '',
-            total_amount: extractedData.totalAmount || extractedData.total_amount || 0,
-            lines: finalLines
-          };
-        })
-      );
-      
-      setBatchBills(billsWithLines);
+
+            return {
+              id: bill.id,
+              file_name: bill.file_name,
+              file_path: bill.file_path,
+              status: bill.status,
+              vendor_id: extractedData.vendor_id || extractedData.vendorId || null,
+              vendor_name: extractedData.vendor_name || extractedData.vendor || "",
+              bill_date: normalizeToYMD(extractedData.bill_date || extractedData.billDate || extractedData.date || ""),
+              due_date: normalizeToYMD(extractedData.due_date || extractedData.dueDate || ""),
+              reference_number: extractedData.referenceNumber || extractedData.reference_number || "",
+              terms: extractedData.terms || "net-30",
+              notes: extractedData.notes || "",
+              total_amount: extractedData.totalAmount || extractedData.total_amount || 0,
+              lines: finalLines,
+            };
+          }),
+        );
+
+        setBatchBills(billsWithLines);
       } catch (error) {
-        console.error('Error fetching bill lines:', error);
+        console.error("Error fetching bill lines:", error);
         toast({
           title: "Error",
           description: "Failed to load bill details",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     };
 
     fetchBillsWithLines();
-  }, [pendingBills, refreshKey]);
-
+  }, [pendingBills, isExtracting]); // Added isExtracting to dependencies
 
   const handleBillUpdate = async (billId: string, updates: any) => {
     // Update local state immediately for responsive UI
-    setBatchBills(prev => prev.map(bill => 
-      bill.id === billId ? { ...bill, ...(updates || {}) } : bill
-    ));
-    
+    setBatchBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, ...(updates || {}) } : bill)));
+
     // If vendor info is being updated, persist to database
     if (updates && (updates.vendor_id !== undefined || updates.vendor_name !== undefined)) {
       try {
         // Get the current extracted_data
         const { data: currentBill } = await supabase
-          .from('pending_bill_uploads')
-          .select('extracted_data')
-          .eq('id', billId)
+          .from("pending_bill_uploads")
+          .select("extracted_data")
+          .eq("id", billId)
           .single();
-        
+
         const currentData = (currentBill?.extracted_data as Record<string, any>) || {};
-        
+
         // Merge the updates into extracted_data
         const updatedData: Record<string, any> = {
           ...currentData,
         };
-        
+
         if (updates.vendor_id !== undefined) {
           updatedData.vendor_id = updates.vendor_id;
           updatedData.vendorId = updates.vendor_id;
         }
-        
+
         if (updates.vendor_name !== undefined) {
           updatedData.vendor_name = updates.vendor_name;
           updatedData.vendor = updates.vendor_name;
         }
-        
+
         // Save to database
         const { error } = await supabase
-          .from('pending_bill_uploads')
-          .update({ 
+          .from("pending_bill_uploads")
+          .update({
             extracted_data: updatedData,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', billId);
-        
+          .eq("id", billId);
+
         if (error) {
-          console.error('Failed to persist vendor update:', error);
+          console.error("Failed to persist vendor update:", error);
           toast({
             title: "Warning",
             description: "Vendor was added but may need to be reselected",
@@ -279,7 +279,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           });
         }
       } catch (err) {
-        console.error('Error persisting vendor update:', err);
+        console.error("Error persisting vendor update:", err);
       }
     }
   };
@@ -288,45 +288,38 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     try {
       await deletePendingUpload.mutateAsync(billId);
       // Update local state to remove the deleted bill
-      setBatchBills(prev => prev.filter(bill => bill.id !== billId));
+      setBatchBills((prev) => prev.filter((bill) => bill.id !== billId));
       // Remove from selection if it was selected
-      setSelectedBillIds(prev => {
+      setSelectedBillIds((prev) => {
         const newSet = new Set(prev);
         newSet.delete(billId);
         return newSet;
       });
     } catch (error) {
       // Error handling is already done by the mutation
-      console.error('Delete failed:', error);
+      console.error("Delete failed:", error);
     }
   };
 
   const handleLinesUpdate = async (billId: string, lines: any[]) => {
-    setBatchBills(prev => prev.map(bill => 
-      bill.id === billId ? { ...bill, lines } : bill
-    ));
+    setBatchBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, lines } : bill)));
 
     const { data: userData } = await supabase.auth.getUser();
     const ownerId = userData.user?.id;
 
-    await supabase
-      .from('pending_bill_lines')
-      .delete()
-      .eq('pending_upload_id', billId);
+    await supabase.from("pending_bill_lines").delete().eq("pending_upload_id", billId);
 
-    const linesToInsert = lines.map(line => ({
+    const linesToInsert = lines.map((line) => ({
       pending_upload_id: billId,
       owner_id: ownerId,
       ...line,
     }));
 
-    await supabase
-      .from('pending_bill_lines')
-      .insert(linesToInsert);
+    await supabase.from("pending_bill_lines").insert(linesToInsert);
   };
 
   const handleBillSelect = (billId: string) => {
-    setSelectedBillIds(prev => {
+    setSelectedBillIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(billId)) {
         newSet.delete(billId);
@@ -339,7 +332,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   const handleSelectAll = (selectAll: boolean) => {
     if (selectAll) {
-      setSelectedBillIds(new Set(batchBills.map(bill => bill.id)));
+      setSelectedBillIds(new Set(batchBills.map((bill) => bill.id)));
     } else {
       setSelectedBillIds(new Set());
     }
@@ -347,7 +340,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   const validateBillForSubmission = (bill: any) => {
     const issues: string[] = [];
-    
+
     if (!bill.vendor_id) {
       if (!bill.vendor_name) {
         issues.push("Vendor required");
@@ -355,34 +348,34 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         issues.push("Vendor not in database");
       }
     }
-    
+
     if (!bill.bill_date) issues.push("Bill date required");
-    
+
     if (!bill.lines || bill.lines.length === 0) {
       issues.push("At least one line item required");
     } else {
       bill.lines.forEach((line: any, idx: number) => {
-        if (line.line_type === 'expense' && !line.account_id) {
+        if (line.line_type === "expense" && !line.account_id) {
           issues.push(`Line ${idx + 1}: Account required`);
         }
-        if (line.line_type === 'job_cost' && !line.cost_code_id) {
+        if (line.line_type === "job_cost" && !line.cost_code_id) {
           issues.push(`Line ${idx + 1}: Cost code required`);
         }
       });
     }
-    
+
     return issues;
   };
 
   const handleExtractionStart = (total: number) => {
-    setRemaining(total);
+    setExtractingCount(total);
     setIsExtracting(true);
     minVisibleRef.current = Date.now();
-    
+
     // Safety fuse: if extraction doesn't complete in 60s, show non-destructive warning
     if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
     safetyFuseRef.current = window.setTimeout(() => {
-      console.warn('[Safety Fuse] Still finalizing after 60s');
+      console.warn("[Safety Fuse] Still finalizing after 60s");
       toast({
         title: "Still finalizing...",
         description: "Your uploads are still being processed. The spinner will clear when complete.",
@@ -390,30 +383,32 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }, 60000);
   };
 
-  const handleExtractionProgress = (remaining: number) => {
-    setRemaining(remaining);
+  const handleExtractionProgress = (done: number, total: number) => {
+    // Only update the counter - DO NOT trigger any refetches or invalidations
+    setExtractingCount(total - done);
   };
 
-  const handleExtractionComplete = () => {
+  const handleExtractionComplete = async () => {
     // Clear safety fuse
     if (safetyFuseRef.current) {
       clearTimeout(safetyFuseRef.current);
       safetyFuseRef.current = null;
     }
-    
+
     const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
     const minVisible = 600;
+
+    // Refetch the data ONCE when extraction is complete
+    await refetch();
 
     if (elapsed < minVisible) {
       setTimeout(() => {
         setIsExtracting(false);
-        setRemaining(0);
-        setRefreshKey(prev => prev + 1);
+        setExtractingCount(0);
       }, minVisible - elapsed);
     } else {
       setIsExtracting(false);
-      setRemaining(0);
-      setRefreshKey(prev => prev + 1);
+      setExtractingCount(0);
     }
   };
 
@@ -446,11 +441,11 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }
 
     setIsSubmitting(true);
-    
+
     const billsWithIssues: Array<{ bill: any; issues: string[] }> = [];
-    
-    selectedBillIds.forEach(billId => {
-      const bill = batchBills.find(b => b.id === billId);
+
+    selectedBillIds.forEach((billId) => {
+      const bill = batchBills.find((b) => b.id === billId);
       if (bill) {
         const issues = validateBillForSubmission(bill);
         if (issues.length > 0) {
@@ -458,23 +453,23 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         }
       }
     });
-    
+
     if (billsWithIssues.length > 0) {
       const issueCount = billsWithIssues.length;
-      const firstBillIssues = billsWithIssues[0].issues.join(', ');
-      
+      const firstBillIssues = billsWithIssues[0].issues.join(", ");
+
       toast({
         title: "Cannot Submit Bills",
-        description: `${issueCount} selected bill${issueCount > 1 ? 's have' : ' has'} missing information. ${issueCount === 1 ? firstBillIssues : 'Please check the Issues column and fix all errors before submitting.'}`,
+        description: `${issueCount} selected bill${issueCount > 1 ? "s have" : " has"} missing information. ${issueCount === 1 ? firstBillIssues : "Please check the Issues column and fix all errors before submitting."}`,
         variant: "destructive",
       });
       setIsSubmitting(false);
       return;
     }
-    
+
     const billsToSubmit = batchBills
-      .filter(bill => selectedBillIds.has(bill.id))
-      .map(bill => ({
+      .filter((bill) => selectedBillIds.has(bill.id))
+      .map((bill) => ({
         pendingUploadId: bill.id,
         vendorId: bill.vendor_id,
         projectId: effectiveProjectId!,
@@ -486,16 +481,16 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
     try {
       const results = await batchApproveBills.mutateAsync(billsToSubmit);
-      
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
 
-      const successIds = results.filter(r => r.success).map(r => r.pendingUploadId);
+      const successful = results.filter((r) => r.success).length;
+      const failed = results.filter((r) => !r.success).length;
+
+      const successIds = results.filter((r) => r.success).map((r) => r.pendingUploadId);
       if (successIds.length > 0) {
-        setBatchBills(prev => prev.filter(b => !successIds.includes(b.id)));
-        setSelectedBillIds(prev => {
+        setBatchBills((prev) => prev.filter((b) => !successIds.includes(b.id)));
+        setSelectedBillIds((prev) => {
           const next = new Set(prev);
-          successIds.forEach(id => next.delete(id));
+          successIds.forEach((id) => next.delete(id));
           return next;
         });
       }
@@ -503,13 +498,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       if (successful > 0) {
         toast({
           title: "Success",
-          description: `${successful} bill${successful > 1 ? 's' : ''} created successfully${failed > 0 ? `, ${failed} failed` : ''}`,
+          description: `${successful} bill${successful > 1 ? "s" : ""} created successfully${failed > 0 ? `, ${failed} failed` : ""}`,
         });
       }
 
       if (failed > 0) {
         const errorSummaries = results
-          .filter(r => !r.success)
+          .filter((r) => !r.success)
           .map((r) => (r as any).error?.message || JSON.stringify((r as any).error));
         toast({
           title: successful > 0 ? "Some bills failed" : "No bills submitted",
@@ -518,12 +513,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : typeof error === 'object' && error !== null
-        ? JSON.stringify(error)
-        : "Failed to submit bills";
-      
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null
+            ? JSON.stringify(error)
+            : "Failed to submit bills";
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -537,17 +533,17 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const getTabLabel = (status: string, count: number | undefined) => {
     if (isLoading) {
       switch (status) {
-        case 'enter-manually':
+        case "enter-manually":
           return "Enter Manually";
-        case 'enter-ai':
+        case "enter-ai":
           return "Enter with AI";
-        case 'pending':
+        case "pending":
           return "Pending";
-        case 'rejected':
+        case "rejected":
           return "Rejected";
-        case 'approved':
+        case "approved":
           return "Approved";
-        case 'pay-bills':
+        case "pay-bills":
           return "Pay Bills";
         default:
           return status;
@@ -556,17 +552,17 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
     const displayCount = count || 0;
     switch (status) {
-      case 'enter-manually':
+      case "enter-manually":
         return "Enter Manually";
-      case 'enter-ai':
-        return `Enter with AI${displayCount > 0 ? ` (${displayCount})` : ''}`;
-      case 'pending':
+      case "enter-ai":
+        return `Enter with AI${displayCount > 0 ? ` (${displayCount})` : ""}`;
+      case "pending":
         return `Pending (${displayCount})`;
-      case 'rejected':
+      case "rejected":
         return `Rejected (${displayCount})`;
-      case 'approved':
+      case "approved":
         return `Approved (${displayCount})`;
-      case 'pay-bills':
+      case "pay-bills":
         return `Pay Bills (${displayCount})`;
       default:
         return `${status} (${displayCount})`;
@@ -575,39 +571,25 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-3' : 'grid-cols-6'}`}>
+      <TabsList className={`grid w-full ${reviewOnly ? "grid-cols-3" : "grid-cols-6"}`}>
         {!reviewOnly && (
           <>
-            <TabsTrigger value="enter-manually">
-              {getTabLabel('enter-manually', undefined)}
-            </TabsTrigger>
-            <TabsTrigger value="enter-ai">
-              {getTabLabel('enter-ai', counts?.aiExtractCount)}
-            </TabsTrigger>
+            <TabsTrigger value="enter-manually">{getTabLabel("enter-manually", undefined)}</TabsTrigger>
+            <TabsTrigger value="enter-ai">{getTabLabel("enter-ai", counts?.aiExtractCount)}</TabsTrigger>
           </>
         )}
-        <TabsTrigger value="pending">
-          {getTabLabel('pending', counts?.pendingCount)}
-        </TabsTrigger>
-        <TabsTrigger value="rejected">
-          {getTabLabel('rejected', counts?.rejectedCount)}
-        </TabsTrigger>
-        <TabsTrigger value="approved">
-          {getTabLabel('approved', counts?.approvedCount)}
-        </TabsTrigger>
-        {!reviewOnly && (
-          <TabsTrigger value="pay-bills">
-            {getTabLabel('pay-bills', counts?.payBillsCount)}
-          </TabsTrigger>
-        )}
+        <TabsTrigger value="pending">{getTabLabel("pending", counts?.pendingCount)}</TabsTrigger>
+        <TabsTrigger value="rejected">{getTabLabel("rejected", counts?.rejectedCount)}</TabsTrigger>
+        <TabsTrigger value="approved">{getTabLabel("approved", counts?.approvedCount)}</TabsTrigger>
+        {!reviewOnly && <TabsTrigger value="pay-bills">{getTabLabel("pay-bills", counts?.payBillsCount)}</TabsTrigger>}
       </TabsList>
-      
+
       {!reviewOnly && (
         <TabsContent value="enter-manually" className="mt-6">
           <ManualBillEntry />
         </TabsContent>
       )}
-      
+
       {!reviewOnly && (
         <TabsContent value="enter-ai" className="mt-6 space-y-6">
           <SimplifiedAIBillExtraction
@@ -623,7 +605,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Extracting {remaining} file{remaining !== 1 ? 's' : ''}...</span>
+                <span>
+                  Processing {extractingCount} PDF{extractingCount !== 1 ? "s" : ""}...
+                </span>
               </div>
             </div>
           ) : (
@@ -633,10 +617,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                   <div>
                     <CardTitle>Extracted Bills</CardTitle>
                     <CardDescription>
-                      {batchBills.length > 0 
-                        ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
-                        : 'Upload PDF files above to extract bill data automatically'
-                      }
+                      {batchBills.length > 0
+                        ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? "s" : ""} before submitting`
+                        : "Upload PDF files above to extract bill data automatically"}
                     </CardDescription>
                   </div>
                   {batchBills.length > 0 && (
@@ -666,22 +649,41 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           )}
         </TabsContent>
       )}
-      
+
       <TabsContent value="pending" className="mt-6">
-        <BillsApprovalTable status="draft" projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
+        <BillsApprovalTable
+          status="draft"
+          projectId={effectiveProjectId}
+          projectIds={projectIds}
+          showProjectColumn={!effectiveProjectId}
+        />
       </TabsContent>
-      
+
       <TabsContent value="rejected" className="mt-6">
-        <BillsApprovalTable status="void" projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
+        <BillsApprovalTable
+          status="void"
+          projectId={effectiveProjectId}
+          projectIds={projectIds}
+          showProjectColumn={!effectiveProjectId}
+        />
       </TabsContent>
-      
+
       <TabsContent value="approved" className="mt-6">
-        <BillsApprovalTable status={['posted', 'paid']} projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
+        <BillsApprovalTable
+          status={["posted", "paid"]}
+          projectId={effectiveProjectId}
+          projectIds={projectIds}
+          showProjectColumn={!effectiveProjectId}
+        />
       </TabsContent>
-      
+
       {!reviewOnly && (
         <TabsContent value="pay-bills" className="mt-6">
-          <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
+          <PayBillsTable
+            projectId={effectiveProjectId}
+            projectIds={projectIds}
+            showProjectColumn={!effectiveProjectId}
+          />
         </TabsContent>
       )}
     </Tabs>
