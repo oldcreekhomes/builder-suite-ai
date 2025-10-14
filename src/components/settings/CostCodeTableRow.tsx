@@ -68,6 +68,9 @@ export function CostCodeTableRow({
     }
   };
   
+  // Determine if this is a subcategory (should not have specs/bidding/subcategories options)
+  const isSubcategory = costCode.parent_group && costCode.parent_group.trim() !== '';
+  
   return (
     <>
       <TableRow className="h-8">
@@ -119,25 +122,37 @@ export function CostCodeTableRow({
           />
         </TableCell>
         <TableCell className="py-1">
-          <CostCodeInlineEditor
-            costCode={costCode}
-            field="has_specifications"
-            onUpdate={onUpdate}
-          />
+          {isSubcategory ? (
+            <span className="text-muted-foreground text-sm">-</span>
+          ) : (
+            <CostCodeInlineEditor
+              costCode={costCode}
+              field="has_specifications"
+              onUpdate={onUpdate}
+            />
+          )}
         </TableCell>
         <TableCell className="py-1">
-          <CostCodeInlineEditor
-            costCode={costCode}
-            field="has_bidding"
-            onUpdate={onUpdate}
-          />
+          {isSubcategory ? (
+            <span className="text-muted-foreground text-sm">-</span>
+          ) : (
+            <CostCodeInlineEditor
+              costCode={costCode}
+              field="has_bidding"
+              onUpdate={onUpdate}
+            />
+          )}
         </TableCell>
         <TableCell className="py-1">
-          <CostCodeInlineEditor
-            costCode={costCode}
-            field="has_subcategories"
-            onUpdate={onUpdate}
-          />
+          {isSubcategory ? (
+            <span className="text-muted-foreground text-sm">-</span>
+          ) : (
+            <CostCodeInlineEditor
+              costCode={costCode}
+              field="has_subcategories"
+              onUpdate={onUpdate}
+            />
+          )}
         </TableCell>
         <TableCell className="py-1">
           <div className="flex gap-1">
