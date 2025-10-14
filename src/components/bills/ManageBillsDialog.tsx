@@ -22,7 +22,7 @@ export function ManageBillsDialog({ open, onOpenChange, projectId, projectIds }:
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Manage Bills</DialogTitle>
           <DialogDescription>
-            Enter, review, approve, and pay bills - all in one place.
+            Review, approve and locate invoices - all in one place.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-auto px-6 pb-6">
