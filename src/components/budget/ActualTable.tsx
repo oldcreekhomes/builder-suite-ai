@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
+
 import { ActualTableHeader } from './ActualTableHeader';
 import { ActualGroupHeader } from './ActualGroupHeader';
 import { ActualTableRow } from './ActualTableRow';
@@ -60,8 +60,56 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     console.log('Print Actual');
   };
 
-  return (
-    <div className="space-y-4">
+  const rows = useMemo(() => {
+    const out: React.ReactNode[] = [];
+    for (const [group, items] of Object.entries(groupedBudgetItems)) {
+      out.push(
+        <ActualGroupHeader
+          key={`g-${group}`}
+          group={group}
+          isExpanded={expandedGroups.has(group)}
+          onToggle={handleGroupToggle}
+          isSelected={isGroupSelected(items)}
+          isPartiallySelected={isGroupPartiallySelected(items)}
+          onCheckboxChange={onGroupCheckboxChange}
+          groupBudgetTotal={calculateGroupBudgetTotal(items)}
+          groupCommittedTotal={calculateGroupCommittedTotal(items)}
+          groupPurchaseOrders={items.flatMap(item => 
+            purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
+          )}
+        />
+      );
+
+      if (expandedGroups.has(group)) {
+        for (const item of items as any[]) {
+          out.push(
+            <ActualTableRow
+              key={item.id}
+              item={item}
+              committedAmount={calculatePOByCostCode(item.cost_codes?.id)}
+              isSelected={selectedItems.has(item.id)}
+              onCheckboxChange={handleItemCheckboxChange}
+              purchaseOrders={purchaseOrders}
+            />
+          );
+        }
+      }
+    }
+    return out;
+  }, [
+    groupedBudgetItems,
+    expandedGroups,
+    purchaseOrders,
+    selectedItems,
+    handleGroupToggle,
+    onGroupCheckboxChange,
+    handleItemCheckboxChange,
+    isGroupSelected,
+    isGroupPartiallySelected
+  ]);
+
+    return (
+      <div className="space-y-4">
       <ActualPrintToolbar 
         onPrint={handlePrint} 
         budgetItems={budgetItems}
@@ -79,36 +127,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              <>
-                {Object.entries(groupedBudgetItems).map(([group, items]) => (
-                  <React.Fragment key={group}>
-                    <ActualGroupHeader
-                      group={group}
-                      isExpanded={expandedGroups.has(group)}
-                      onToggle={handleGroupToggle}
-                      isSelected={isGroupSelected(items)}
-                      isPartiallySelected={isGroupPartiallySelected(items)}
-                      onCheckboxChange={onGroupCheckboxChange}
-                      groupBudgetTotal={calculateGroupBudgetTotal(items)}
-                      groupCommittedTotal={calculateGroupCommittedTotal(items)}
-                      groupPurchaseOrders={items.flatMap(item => 
-                        purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
-                      )}
-                    />
-                    
-                    {expandedGroups.has(group) && items.map((item) => (
-                      <ActualTableRow
-                        key={item.id}
-                        item={item}
-                        committedAmount={calculatePOByCostCode(item.cost_codes?.id)}
-                        isSelected={selectedItems.has(item.id)}
-                        onCheckboxChange={handleItemCheckboxChange}
-                        purchaseOrders={purchaseOrders}
-                      />
-                    ))}
-                  </React.Fragment>
-                ))}
-              </>
+                {rows}
             )}
           </TableBody>
         </Table>

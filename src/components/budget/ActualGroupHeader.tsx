@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { ViewCommittedCostsModal } from './ViewCommittedCostsModal';
 
@@ -29,14 +29,6 @@ export function ActualGroupHeader({
   groupPurchaseOrders = []
 }: ActualGroupHeaderProps) {
   const [showModal, setShowModal] = useState(false);
-  const checkboxRef = useRef<HTMLButtonElement>(null);
-
-  // Handle indeterminate state in useEffect to avoid infinite loops
-  useEffect(() => {
-    if (checkboxRef.current) {
-      (checkboxRef.current as any).indeterminate = isPartiallySelected && !isSelected;
-    }
-  }, [isPartiallySelected, isSelected]);
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -54,14 +46,13 @@ export function ActualGroupHeader({
 
   const variance = calculateVariance(groupBudgetTotal, groupCommittedTotal);
 
-  return (
-    <>
-      <TableRow className="bg-gray-50 h-8">
+  return [
+    (
+      <TableRow className="bg-gray-50 h-8" key="row">
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
-            ref={checkboxRef}
-            checked={isSelected}
-            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+            checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
+            onCheckedChange={(value) => onCheckboxChange(group, value === true)}
             className="h-3 w-3"
           />
         </TableCell>
@@ -98,14 +89,16 @@ export function ActualGroupHeader({
           </div>
         </TableCell>
       </TableRow>
-
+    ),
+    (
       <ViewCommittedCostsModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         costCode={{ code: group, name: '' }}
         purchaseOrders={groupPurchaseOrders}
         projectId={groupPurchaseOrders[0]?.project_id}
+        key="modal"
       />
-    </>
-  );
+    )
+  ];
 }
