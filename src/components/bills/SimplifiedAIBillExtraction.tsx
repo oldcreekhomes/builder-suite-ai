@@ -54,7 +54,6 @@ export default function SimplifiedAIBillExtraction({
   const trackedIdsRef = useRef<Set<string>>(new Set());
   const pollIntervalRef = useRef<number | null>(null);
   const hardTimeoutRef = useRef<number | null>(null);
-  const toastRef = useRef<{ id: string; dismiss: () => void; update: (props: any) => void } | null>(null);
 
   const loadPendingUploads = async () => {
     const { data, error } = await supabase
@@ -149,13 +148,6 @@ export default function SimplifiedAIBillExtraction({
     onExtractionStart?.(totalFiles);
     setIsExtractingLocal(true);
     setRemainingLocal(totalFiles);
-    
-    // Show persistent toast
-    toastRef.current = toast({
-      title: "Extracting...",
-      description: `Extracting ${totalFiles} file${totalFiles !== 1 ? 's' : ''}...`,
-      duration: Infinity,
-    });
 
     setUploading(true);
 
@@ -194,11 +186,13 @@ export default function SimplifiedAIBillExtraction({
         if (uploadError) {
           console.error('[Upload] Storage upload failed:', uploadError);
           setPendingUploads(prev => prev.filter(u => u.id !== optimisticId));
-          toast({
-            title: "Storage upload failed",
-            description: `${uploadError.message} (Code: ${uploadError.name || 'unknown'})`,
-            variant: "destructive"
-          });
+          if (!suppressIndividualToasts) {
+            toast({
+              title: "Storage upload failed",
+              description: `${uploadError.message} (Code: ${uploadError.name || 'unknown'})`,
+              variant: "destructive"
+            });
+          }
           throw uploadError;
         }
 
@@ -223,11 +217,13 @@ export default function SimplifiedAIBillExtraction({
           setPendingUploads(prev => prev.filter(u => u.id !== optimisticId));
           // Clean up storage
           await supabase.storage.from('bill-attachments').remove([filePath]);
-          toast({
-            title: "Database insert failed",
-            description: insertError.message || 'RLS policy may be blocking this insert',
-            variant: "destructive"
-          });
+          if (!suppressIndividualToasts) {
+            toast({
+              title: "Database insert failed",
+              description: insertError.message || 'RLS policy may be blocking this insert',
+              variant: "destructive"
+            });
+          }
           throw insertError;
         }
 
@@ -306,32 +302,12 @@ export default function SimplifiedAIBillExtraction({
             setRemainingLocal(remaining);
             onExtractionProgress?.(remaining);
             
-            // Update toast with appropriate message
-            if (toastRef.current && remaining > 0) {
-              const stillWaitingForLines = otherTerminalIds.some(id => trackedIdsRef.current.has(id));
-              toastRef.current.update({
-                title: "Extracting...",
-                description: stillWaitingForLines 
-                  ? `Finalizing ${remaining} file${remaining !== 1 ? 's' : ''}...`
-                  : `Extracting ${remaining} file${remaining !== 1 ? 's' : ''}...`,
-                duration: Infinity,
-              });
-            }
-            
             if (trackedIdsRef.current.size === 0) {
               console.log('[Watchdog] All files processed and lines ready');
               if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
               if (hardTimeoutRef.current) clearTimeout(hardTimeoutRef.current);
               setIsExtractingLocal(false);
               setRemainingLocal(0);
-              if (toastRef.current) {
-                toastRef.current.dismiss();
-                toastRef.current = null;
-              }
-              toast({
-                title: "Extraction complete",
-                description: "Bills are ready for review",
-              });
               onExtractionComplete?.();
             }
           }
@@ -340,13 +316,6 @@ export default function SimplifiedAIBillExtraction({
         // Hard timeout after 120 seconds - just warn, don't clear
         hardTimeoutRef.current = window.setTimeout(() => {
           console.warn('[Watchdog] Hard timeout reached after 120s - continuing to poll');
-          if (toastRef.current) {
-            toastRef.current.update({
-              title: "Still processing...",
-              description: "Taking longer than expected, still finalizing...",
-              duration: Infinity,
-            });
-          }
         }, 120000);
       }
 
@@ -367,15 +336,13 @@ export default function SimplifiedAIBillExtraction({
       console.error('Upload error:', error);
       setIsExtractingLocal(false);
       setRemainingLocal(0);
-      if (toastRef.current) {
-        toastRef.current.dismiss();
-        toastRef.current = null;
+      if (!suppressIndividualToasts) {
+        toast({
+          title: "Upload failed",
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive"
+        });
       }
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      });
     } finally {
       setUploading(false);
       // Allow selecting the same file(s) again to retrigger onChange
@@ -628,11 +595,13 @@ export default function SimplifiedAIBillExtraction({
             } : u)
           );
           
-          toast({
-            title: 'AWS Textract Configuration Error',
-            description: 'Please check your AWS credentials in the edge function settings.',
-            variant: 'destructive'
-          });
+          if (!suppressIndividualToasts) {
+            toast({
+              title: 'AWS Textract Configuration Error',
+              description: 'Please check your AWS credentials in the edge function settings.',
+              variant: 'destructive'
+            });
+          }
           return;
         }
         
@@ -674,11 +643,13 @@ export default function SimplifiedAIBillExtraction({
                 } : u)
               );
               
-              toast({
-                title: 'Extraction failed',
-                description: errorMessage,
-                variant: 'destructive'
-              });
+              if (!suppressIndividualToasts) {
+                toast({
+                  title: 'Extraction failed',
+                  description: errorMessage,
+                  variant: 'destructive'
+                });
+              }
               return;
             }
             

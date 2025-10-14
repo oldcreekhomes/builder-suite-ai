@@ -379,14 +379,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     setIsExtracting(true);
     minVisibleRef.current = Date.now();
     
-    // Safety fuse: if extraction doesn't complete in 60s, show non-destructive warning
+    // Safety fuse: if extraction doesn't complete in 60s, log warning (no toast)
     if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
     safetyFuseRef.current = window.setTimeout(() => {
       console.warn('[Safety Fuse] Still finalizing after 60s');
-      toast({
-        title: "Still finalizing...",
-        description: "Your uploads are still being processed. The spinner will clear when complete.",
-      });
     }, 60000);
   };
 
