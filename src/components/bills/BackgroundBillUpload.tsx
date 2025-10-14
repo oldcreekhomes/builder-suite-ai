@@ -9,7 +9,11 @@ interface BackgroundBillUploadProps {
   onBatchComplete?: () => void;
 }
 
-export default function BackgroundBillUpload({ onBatchStart, onBatchProgress, onBatchComplete }: BackgroundBillUploadProps) {
+export default function BackgroundBillUpload({
+  onBatchStart,
+  onBatchProgress,
+  onBatchComplete,
+}: BackgroundBillUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [started, setStarted] = useState(false);
   const pollingRef = useRef<number | null>(null);
@@ -36,21 +40,25 @@ export default function BackgroundBillUpload({ onBatchStart, onBatchProgress, on
     }
 
     const startedAt = Date.now();
-    const MAX_MS = 10 * 60 * 1000; // safety timeout 10min
+    const MAX_MS = 10 * 60 * 1000;
+    let lastDone = -1; // Track last progress to prevent unnecessary updates
 
     pollingRef.current = window.setInterval(async () => {
       try {
-        const { data, error } = await supabase
-          .from("pending_bill_uploads")
-          .select("id,status")
-          .in("id", ids);
+        const { data, error } = await supabase.from("pending_bill_uploads").select("id,status").in("id", ids);
         if (error) {
           console.error("Polling error", error);
           return;
         }
         const rows = data || [];
-        const done = rows.filter(r => !inProgress.has((r as any).status)).length;
-        onBatchProgress?.(done, total);
+        const done = rows.filter((r) => !inProgress.has((r as any).status)).length;
+
+        // Only trigger progress update if the count actually changed
+        if (done !== lastDone) {
+          onBatchProgress?.(done, total);
+          lastDone = done;
+        }
+
         if (done >= total || Date.now() - startedAt > MAX_MS) {
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
@@ -73,7 +81,9 @@ export default function BackgroundBillUpload({ onBatchStart, onBatchProgress, on
 
     setUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       const uploadedIds: string[] = [];
@@ -154,11 +164,7 @@ export default function BackgroundBillUpload({ onBatchStart, onBatchProgress, on
       <label htmlFor="bg-pdf-upload">
         <Button disabled={uploading} asChild>
           <span>
-            {uploading ? (
-              <Upload className="h-4 w-4 mr-2 animate-pulse" />
-            ) : (
-              <Upload className="h-4 w-4 mr-2" />
-            )}
+            {uploading ? <Upload className="h-4 w-4 mr-2 animate-pulse" /> : <Upload className="h-4 w-4 mr-2" />}
             Upload PDFs
           </span>
         </Button>
