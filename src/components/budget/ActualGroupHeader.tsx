@@ -46,18 +46,13 @@ export function ActualGroupHeader({
 
   const variance = calculateVariance(groupBudgetTotal, groupCommittedTotal);
 
-  return [
-    (
+  return (
+    <>
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
-            checked={isSelected}
-            ref={(el) => {
-              if (el && 'indeterminate' in el) {
-                (el as any).indeterminate = isPartiallySelected && !isSelected;
-              }
-            }}
-            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+            checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
+            onCheckedChange={(value) => onCheckboxChange(group, value === true)}
             className="h-3 w-3"
           />
         </TableCell>
@@ -94,8 +89,6 @@ export function ActualGroupHeader({
           </div>
         </TableCell>
       </TableRow>
-    ),
-    (
       <ViewCommittedCostsModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -104,6 +97,6 @@ export function ActualGroupHeader({
         projectId={groupPurchaseOrders[0]?.project_id}
         key={`modal-${group}`}
       />
-    )
-  ];
+    </>
+  );
 }
