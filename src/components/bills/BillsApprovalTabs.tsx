@@ -506,35 +506,27 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       
       {!reviewOnly && (
         <TabsContent value="enter-ai" className="mt-6 space-y-6">
-          <SimplifiedAIBillExtraction
-            onDataExtracted={() => {}}
-            onSwitchToManual={() => setActiveTab("enter-manually")}
-            suppressIndividualToasts
-            onExtractionStart={handleExtractionStart}
-            onExtractionProgress={handleExtractionProgress}
-            onExtractionComplete={handleExtractionComplete}
-          />
+          <BackgroundBillUpload />
 
-          {isExtracting ? (
-            <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Extracting {remaining} file{remaining !== 1 ? 's' : ''}...</span>
-              </div>
-            </div>
-          ) : (
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Extracted Bills</CardTitle>
-                    <CardDescription>
-                      {batchBills.length > 0 
-                        ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
-                        : 'Upload PDF files above to extract bill data automatically'
-                      }
-                    </CardDescription>
-                  </div>
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Extracted Bills</CardTitle>
+                  <CardDescription>
+                    {batchBills.length > 0 
+                      ? `Review and edit ${batchBills.length} bill${batchBills.length > 1 ? 's' : ''} before submitting`
+                      : 'Upload PDF files above to extract bill data automatically'
+                    }
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleRefresh}
+                    variant="outline"
+                  >
+                    Refresh results
+                  </Button>
                   {batchBills.length > 0 && (
                     <Button
                       onClick={handleSubmitAllBills}
@@ -545,21 +537,21 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                     </Button>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <BatchBillReviewTable
-                  bills={batchBills}
-                  onBillUpdate={handleBillUpdate}
-                  onBillDelete={handleBillDelete}
-                  onLinesUpdate={handleLinesUpdate}
-                  selectedBillIds={selectedBillIds}
-                  onBillSelect={handleBillSelect}
-                  onSelectAll={handleSelectAll}
-                  showProjectColumn={!effectiveProjectId}
-                />
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <BatchBillReviewTable
+                bills={batchBills}
+                onBillUpdate={handleBillUpdate}
+                onBillDelete={handleBillDelete}
+                onLinesUpdate={handleLinesUpdate}
+                selectedBillIds={selectedBillIds}
+                onBillSelect={handleBillSelect}
+                onSelectAll={handleSelectAll}
+                showProjectColumn={!effectiveProjectId}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       )}
       
