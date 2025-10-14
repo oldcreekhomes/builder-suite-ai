@@ -94,14 +94,32 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
   const handleCostCodeToggle = useCallback((costCodeId: string, checked: boolean) => {
     setSelectedCostCodes(prev => {
       const newSelected = new Set(prev);
+      
+      // Find if this is a parent code
+      const toggledCode = costCodes.find(cc => cc.id === costCodeId);
+      const isParent = toggledCode && Object.keys(groupedCostCodes).includes(toggledCode.code);
+      
       if (checked) {
         newSelected.add(costCodeId);
+        
+        // If it's a parent, also select all its children
+        if (isParent && toggledCode) {
+          const children = groupedCostCodes[toggledCode.code] || [];
+          children.forEach(child => newSelected.add(child.id));
+        }
       } else {
         newSelected.delete(costCodeId);
+        
+        // If it's a parent, also deselect all its children
+        if (isParent && toggledCode) {
+          const children = groupedCostCodes[toggledCode.code] || [];
+          children.forEach(child => newSelected.delete(child.id));
+        }
       }
+      
       return newSelected;
     });
-  }, []);
+  }, [costCodes, groupedCostCodes]);
 
   const handleSave = useCallback(() => {
     if (selectedCostCodes.size === 0) {
