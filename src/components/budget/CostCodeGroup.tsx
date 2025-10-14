@@ -30,6 +30,44 @@ export function CostCodeGroup({
   onGroupCheckboxChange,
   onCostCodeToggle,
 }: CostCodeGroupProps) {
+  // Helper to render nested cost codes with proper indentation
+  const renderCostCodeItem = (costCode: CostCode, level: number = 0): React.ReactNode => {
+    const hasChildren = codes.some(c => c.parent_group === costCode.code);
+    const indent = level * 20; // 20px per level
+    
+    return (
+      <div key={costCode.id}>
+        <div 
+          className="flex items-center space-x-3 py-1" 
+          style={{ paddingLeft: `${indent}px` }}
+        >
+          <Checkbox
+            id={costCode.id}
+            checked={selectedCostCodes.has(costCode.id)}
+            onCheckedChange={(checked) => 
+              onCostCodeToggle(costCode.id, checked as boolean)
+            }
+          />
+          <label
+            htmlFor={costCode.id}
+            className={`text-sm cursor-pointer flex-1 ml-4 ${hasChildren ? 'font-medium' : ''}`}
+          >
+            {costCode.code}: {costCode.name}
+          </label>
+        </div>
+        
+        {/* Render children if this code has subcategories */}
+        {hasChildren && (
+          <div className="mt-1">
+            {codes
+              .filter(c => c.parent_group === costCode.code)
+              .map(child => renderCostCodeItem(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Collapsible 
       open={isExpanded}
@@ -52,24 +90,10 @@ export function CostCodeGroup({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="space-y-2 pl-6 pt-2">
-          {codes.map((costCode) => (
-            <div key={costCode.id} className="flex items-center space-x-3">
-              <Checkbox
-                id={costCode.id}
-                checked={selectedCostCodes.has(costCode.id)}
-                onCheckedChange={(checked) => 
-                  onCostCodeToggle(costCode.id, checked as boolean)
-                }
-              />
-              <label
-                htmlFor={costCode.id}
-                className="text-sm cursor-pointer flex-1 ml-4"
-              >
-                {costCode.code}: {costCode.name}
-              </label>
-            </div>
-          ))}
+        <div className="space-y-1 pl-6 pt-2">
+          {codes
+            .filter(cc => cc.parent_group === group)
+            .map(costCode => renderCostCodeItem(costCode, 0))}
         </div>
       </CollapsibleContent>
     </Collapsible>

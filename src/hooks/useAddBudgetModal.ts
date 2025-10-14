@@ -58,23 +58,39 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
     },
   });
 
-  // Group cost codes by parent group, excluding uncategorized and existing cost codes
-  const groupedCostCodes = costCodes.reduce((acc, costCode) => {
-    // Skip cost codes that are already in the budget
-    if (existingCostCodeIds.includes(costCode.id)) {
-      return acc;
-    }
+  // Build hierarchy: identify top-level parents and group all descendants under them
+  const topLevelParents = costCodes.filter(cc => 
+    !existingCostCodeIds.includes(cc.id) && 
+    (!cc.parent_group || cc.parent_group.trim() === '')
+  );
 
-    // Skip uncategorized items
-    const group = costCode.parent_group;
-    if (!group || group.toLowerCase() === 'uncategorized') {
-      return acc;
+  const groupedCostCodes = topLevelParents.reduce((acc, parent) => {
+    // Get all descendants of this parent (direct children and grandchildren)
+    const getAllDescendants = (parentCode: string): CostCode[] => {
+      const directChildren = costCodes.filter(cc => 
+        !existingCostCodeIds.includes(cc.id) && 
+        cc.parent_group === parentCode
+      );
+      
+      const allDescendants = [...directChildren];
+      
+      // Recursively get descendants of each child
+      directChildren.forEach(child => {
+        if (child.has_subcategories) {
+          allDescendants.push(...getAllDescendants(child.code));
+        }
+      });
+      
+      return allDescendants;
+    };
+    
+    const descendants = getAllDescendants(parent.code);
+    
+    // Only include this group if it has descendants
+    if (descendants.length > 0) {
+      acc[parent.code] = descendants;
     }
-
-    if (!acc[group]) {
-      acc[group] = [];
-    }
-    acc[group].push(costCode);
+    
     return acc;
   }, {} as Record<string, CostCode[]>);
 
