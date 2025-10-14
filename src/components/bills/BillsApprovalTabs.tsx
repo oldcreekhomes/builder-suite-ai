@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
 import { ManualBillEntry } from "./ManualBillEntry";
-import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
+import BackgroundBillUpload from "./BackgroundBillUpload";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
 import { useBillCounts } from "@/hooks/useBillCounts";
 import { usePendingBills } from "@/hooks/usePendingBills";
@@ -13,7 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useParams } from "react-router-dom";
 import { normalizeToYMD } from "@/utils/dateOnly";
-import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 interface BillsApprovalTabsProps {
   projectId?: string;
@@ -35,11 +36,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [batchBills, setBatchBills] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [remaining, setRemaining] = useState(0);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const minVisibleRef = useRef<number | null>(null);
-  const safetyFuseRef = useRef<number | null>(null);
 
   // Build batch bills from completed pending uploads
   const fetchBillsWithLines = useCallback(async () => {
@@ -157,9 +153,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   // Refresh batch bills when pending bills change, but not during extraction
   useEffect(() => {
-    if (isExtracting) return;
     fetchBillsWithLines();
-  }, [isExtracting, fetchBillsWithLines, refreshKey]);
+  }, [fetchBillsWithLines]);
 
 
   const handleBillUpdate = async (billId: string, updates: any) => {
@@ -259,6 +254,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       .insert(linesToInsert);
   };
 
+  const queryClient = useQueryClient();
+  const handleRefresh = async () => {
+    try {
+      // Force-refresh pending uploads
+      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+    } catch {}
+    await fetchBillsWithLines();
+  };
+
   const handleBillSelect = (billId: string) => {
     setSelectedBillIds(prev => {
       const newSet = new Set(prev);
@@ -308,43 +312,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     return issues;
   };
 
-  const handleExtractionStart = (total: number) => {
-    setRemaining(total);
-    setIsExtracting(true);
-    minVisibleRef.current = Date.now();
-    
-    // Safety fuse: if extraction doesn't complete in 60s, log warning (no toast)
-    if (safetyFuseRef.current) clearTimeout(safetyFuseRef.current);
-    safetyFuseRef.current = window.setTimeout(() => {
-      console.warn('[Safety Fuse] Still finalizing after 60s');
-    }, 60000);
-  };
-
-  const handleExtractionProgress = (remaining: number) => {
-    setRemaining(remaining);
-  };
-
-  const handleExtractionComplete = async () => {
-    // Clear safety fuse
-    if (safetyFuseRef.current) {
-      clearTimeout(safetyFuseRef.current);
-      safetyFuseRef.current = null;
-    }
-
-    const elapsed = minVisibleRef.current ? Date.now() - minVisibleRef.current : 0;
-    const minVisible = 600;
-    const waitMs = elapsed < minVisible ? (minVisible - elapsed) : 0;
-
-    // Keep spinner visible at least minVisible ms
-    if (waitMs > 0) {
-      await new Promise((res) => setTimeout(res, waitMs));
-    }
-
-    // After minimum time, fetch final data ONCE, then hide spinner
-    await fetchBillsWithLines();
-    setIsExtracting(false);
-    setRemaining(0);
-  };
 
   const handleSubmitAllBills = async () => {
     if (loadingPendingBills) {
