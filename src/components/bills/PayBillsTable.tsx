@@ -59,9 +59,10 @@ interface BillForPayment {
 interface PayBillsTableProps {
   projectId?: string;
   projectIds?: string[];
+  showProjectColumn?: boolean;
 }
 
-export function PayBillsTable({ projectId, projectIds }: PayBillsTableProps) {
+export function PayBillsTable({ projectId, projectIds, showProjectColumn = true }: PayBillsTableProps) {
   const { payBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -341,7 +342,7 @@ export function PayBillsTable({ projectId, projectIds }: PayBillsTableProps) {
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
-              {!projectId && (
+              {showProjectColumn && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
               )}
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
@@ -356,7 +357,7 @@ export function PayBillsTable({ projectId, projectIds }: PayBillsTableProps) {
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={!projectId ? 10 : 9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
@@ -369,7 +370,7 @@ export function PayBillsTable({ projectId, projectIds }: PayBillsTableProps) {
                   <TableCell className="px-2 py-1 text-xs">
                     {getCostCodeOrAccount(bill)}
                   </TableCell>
-                  {!projectId && (
+                  {showProjectColumn && (
                     <TableCell className="px-2 py-1 text-xs">
                       {bill.projects?.address || '-'}
                     </TableCell>

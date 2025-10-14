@@ -83,6 +83,7 @@ interface BatchBillReviewTableProps {
   selectedBillIds: Set<string>;
   onBillSelect: (billId: string) => void;
   onSelectAll: (selectAll: boolean) => void;
+  showProjectColumn?: boolean;
 }
 
 export function BatchBillReviewTable({ 
@@ -93,6 +94,7 @@ export function BatchBillReviewTable({
   selectedBillIds,
   onBillSelect,
   onSelectAll,
+  showProjectColumn = true,
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
@@ -408,6 +410,9 @@ export function BatchBillReviewTable({
               <TableHead className="w-12 px-2 py-0 text-xs font-medium">
                 <Checkbox disabled aria-label="Select all bills" />
               </TableHead>
+              {showProjectColumn && (
+                <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+              )}
               <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
@@ -422,7 +427,7 @@ export function BatchBillReviewTable({
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={11} className="h-32 text-center">
+              <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)} className="h-32 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
                   <p className="text-sm font-medium">No bills uploaded yet</p>
@@ -455,7 +460,9 @@ export function BatchBillReviewTable({
                   aria-label="Select all bills"
                 />
               </TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+              {showProjectColumn && (
+                <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+              )}
               <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
               <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
@@ -477,7 +484,7 @@ export function BatchBillReviewTable({
                     <TableCell className="px-2 py-1">
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell className="px-3 py-1" colSpan={10}>
+                    <TableCell className="px-3 py-1" colSpan={9 + (showProjectColumn ? 1 : 0)}>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
@@ -539,9 +546,11 @@ export function BatchBillReviewTable({
                       aria-label={`Select bill from ${vendorName}`}
                     />
                   </TableCell>
-                  <TableCell className="px-3 py-1 text-xs">
-                    {bill.lines?.[0]?.project_name || '-'}
-                  </TableCell>
+                  {showProjectColumn && (
+                    <TableCell className="px-3 py-1 text-xs">
+                      {bill.lines?.[0]?.project_name || '-'}
+                    </TableCell>
+                  )}
                   <TableCell className="px-3 py-1">
                     {!vendorId && vendorName ? (
                       <div className="flex items-center gap-1">

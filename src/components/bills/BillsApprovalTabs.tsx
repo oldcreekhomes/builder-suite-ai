@@ -25,6 +25,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const { projectId: paramsProjectId } = useParams();
   const effectiveProjectId = projectId || paramsProjectId;
   
+  // Show project column only when viewing across multiple projects (not in single project context)
+  const showProjectColumn = !effectiveProjectId || !!projectIds;
+  
   const [activeTab, setActiveTab] = useState(reviewOnly ? "pending" : "enter-manually");
   const { data: counts, isLoading } = useBillCounts(effectiveProjectId, projectIds);
   
@@ -656,7 +659,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                   selectedBillIds={selectedBillIds}
                   onBillSelect={handleBillSelect}
                   onSelectAll={handleSelectAll}
-                  
+                  showProjectColumn={!effectiveProjectId}
                 />
               </CardContent>
             </Card>
@@ -665,20 +668,20 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       )}
       
       <TabsContent value="pending" className="mt-6">
-        <BillsApprovalTable status="draft" projectId={effectiveProjectId} projectIds={projectIds} />
+        <BillsApprovalTable status="draft" projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
       </TabsContent>
       
       <TabsContent value="rejected" className="mt-6">
-        <BillsApprovalTable status="void" projectId={effectiveProjectId} projectIds={projectIds} />
+        <BillsApprovalTable status="void" projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
       </TabsContent>
       
       <TabsContent value="approved" className="mt-6">
-        <BillsApprovalTable status={['posted', 'paid']} projectId={effectiveProjectId} projectIds={projectIds} />
+        <BillsApprovalTable status={['posted', 'paid']} projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
       </TabsContent>
       
       {!reviewOnly && (
         <TabsContent value="pay-bills" className="mt-6">
-          <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} />
+          <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} showProjectColumn={!effectiveProjectId} />
         </TabsContent>
       )}
     </Tabs>
