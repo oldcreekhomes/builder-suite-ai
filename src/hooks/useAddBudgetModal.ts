@@ -19,6 +19,7 @@ const getIndentLevel = (costCode: CostCode, allCostCodes: CostCode[]): number =>
 
 export function useAddBudgetModal(projectId: string, existingCostCodeIds: string[]) {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -74,22 +75,20 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
       .filter(cc => !existingCostCodeIds.includes(cc.id))
       .filter(cc => !cc.code.includes('.')); // Remove subcategories like 2100.1
     
-    // Sort cost codes: parents before children, then by code
-    const sortedCostCodes = [...availableCostCodes].sort((a, b) => {
-      // If different levels and one is parent of the other, parent comes first
-      if (a.code === b.parent_group) return -1;
-      if (b.code === a.parent_group) return 1;
-      
-      // If same parent, sort by code
-      if (a.parent_group === b.parent_group) {
-        return a.code.localeCompare(b.code, undefined, { numeric: true });
-      }
-      
-      // Otherwise sort by code
-      return a.code.localeCompare(b.code, undefined, { numeric: true });
+    // Separate parents (no parent_group) from children
+    const parents = availableCostCodes.filter(cc => !cc.parent_group);
+    const children = availableCostCodes.filter(cc => cc.parent_group);
+    
+    // Group children by their parent code
+    const grouped: Record<string, CostCode[]> = {};
+    
+    parents.forEach(parent => {
+      grouped[parent.code] = children
+        .filter(child => child.parent_group === parent.code)
+        .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
     });
     
-    return { all: sortedCostCodes };
+    return grouped;
   }, [costCodes, existingCostCodeIds]);
 
   const handleCostCodeToggle = useCallback((costCodeId: string, checked: boolean) => {
@@ -120,12 +119,26 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
     setSelectedCostCodes(new Set());
   }, []);
 
+  const handleGroupToggle = useCallback((groupCode: string) => {
+    setExpandedGroups(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(groupCode)) {
+        newExpanded.delete(groupCode);
+      } else {
+        newExpanded.add(groupCode);
+      }
+      return newExpanded;
+    });
+  }, []);
+
   return {
     selectedCostCodes,
     groupedCostCodes,
+    expandedGroups,
     costCodes, // Export for indent calculation
     createBudgetItems,
     handleCostCodeToggle,
+    handleGroupToggle,
     handleSave,
     resetSelection,
   };
