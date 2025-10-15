@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { BillsReviewTable } from "./BillsReviewTable";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
 import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
@@ -336,7 +335,48 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       )}
 
       <TabsContent value="review" className="mt-6">
-        <BillsReviewTable />
+        {batchBills.length === 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Extracted Bills</CardTitle>
+              <CardDescription>No bills pending review</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <p>No bills uploaded yet</p>
+                <p className="text-sm">Upload PDF files in the "Enter with AI" tab to extract bill data</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Extracted Bills</CardTitle>
+                  <CardDescription>
+                    Review and edit {batchBills.length} bill{batchBills.length > 1 ? "s" : ""} before submitting
+                  </CardDescription>
+                </div>
+                <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="lg">
+                  {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <BatchBillReviewTable
+                bills={batchBills}
+                onBillUpdate={handleBillUpdate}
+                onBillDelete={handleBillDelete}
+                onLinesUpdate={handleLinesUpdate}
+                selectedBillIds={selectedBillIds}
+                onBillSelect={handleBillSelect}
+                onSelectAll={handleSelectAll}
+                showProjectColumn={!effectiveProjectId}
+              />
+            </CardContent>
+          </Card>
+        )}
       </TabsContent>
 
       <TabsContent value="approve" className="mt-6">
