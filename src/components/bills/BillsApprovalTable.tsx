@@ -74,7 +74,7 @@ interface BillsApprovalTableProps {
 
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill } = useBills();
-  const { canDeleteBills } = useUserRole();
+  const { canDeleteBills, isOwner } = useUserRole();
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     action: string;
@@ -219,7 +219,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   };
 
   const canShowActions = status === 'draft';
-  const canShowDeleteButton = canDeleteBills && (status === 'posted' || status === 'paid' || (Array.isArray(status) && (status.includes('posted') || status.includes('paid'))));
+  const canShowDeleteButton = 
+    // For rejected bills (void status), only owners can delete
+    (isOwner && (status === 'void' || (Array.isArray(status) && status.includes('void')))) ||
+    // For posted/paid bills, owners and accountants can delete
+    (canDeleteBills && (status === 'posted' || status === 'paid' || (Array.isArray(status) && (status.includes('posted') || status.includes('paid')))));
 
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills...</div>;
