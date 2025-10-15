@@ -72,11 +72,16 @@ interface BillsApprovalTableProps {
   showProjectColumn?: boolean;
   defaultSortBy?: 'bill_date' | 'due_date';
   sortOrder?: 'asc' | 'desc';
+  enableSorting?: boolean;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
+  const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | null>(
+    defaultSortBy === 'due_date' ? 'due_date' : null
+  );
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(sortOrder || 'asc');
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     action: string;
@@ -88,6 +93,17 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     billId: '',
     billInfo: undefined,
   });
+
+  const handleSort = (column: 'project' | 'due_date') => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
 
   // Fetch bills based on status
   const { data: bills = [], isLoading } = useQuery({
@@ -152,29 +168,36 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       // Return all bills
       const allBills = directBills || [];
       
-      // Sort by date strings (YYYY-MM-DD lexicographical sort)
+      // Sort by date strings or project
     return allBills.sort((a, b) => {
-      const sortField = defaultSortBy || 'bill_date';
-      const order = sortOrder || 'desc';
+      // Use state-based sorting if enabled, otherwise use props
+      const activeColumn = enableSorting ? sortColumn : null;
+      const activeDirection = enableSorting ? sortDirection : (sortOrder || 'desc');
       
-      // Get the date values to compare
-      const dateA = sortField === 'due_date' ? (a.due_date || '') : a.bill_date;
-      const dateB = sortField === 'due_date' ? (b.due_date || '') : b.bill_date;
+      let compareResult = 0;
       
-      const normalizedA = normalizeToYMD(dateA);
-      const normalizedB = normalizeToYMD(dateB);
-      
-      // Handle null/empty due dates - push them to the end
-      if (sortField === 'due_date') {
+      if (activeColumn === 'project') {
+        // Sort by project address
+        const projectA = (a.projects?.address || '').toLowerCase();
+        const projectB = (b.projects?.address || '').toLowerCase();
+        compareResult = projectA.localeCompare(projectB);
+      } else if (activeColumn === 'due_date' || (!activeColumn && defaultSortBy === 'due_date')) {
+        // Sort by due date
+        const dateA = a.due_date || '';
+        const dateB = b.due_date || '';
+        
+        // Handle null/empty due dates - push to end
         if (!dateA && dateB) return 1;
         if (dateA && !dateB) return -1;
         if (!dateA && !dateB) return 0;
+        
+        compareResult = normalizeToYMD(dateA).localeCompare(normalizeToYMD(dateB));
+      } else {
+        // Default: sort by bill_date
+        compareResult = normalizeToYMD(a.bill_date).localeCompare(normalizeToYMD(b.bill_date));
       }
       
-      // Apply sort order
-      return order === 'asc' 
-        ? normalizedA.localeCompare(normalizedB)
-        : normalizedB.localeCompare(normalizedA);
+      return activeDirection === 'asc' ? compareResult : -compareResult;
     }) as BillForApproval[];
     },
   });
@@ -259,12 +282,44 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <TableHeader>
             <TableRow className="h-8">
               {showProjectColumn && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+                  {enableSorting ? (
+                    <button
+                      onClick={() => handleSort('project')}
+                      className="flex items-center gap-1 hover:text-primary"
+                    >
+                      Project
+                      {sortColumn === 'project' && (
+                        <span className="text-xs">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </button>
+                  ) : (
+                    'Project'
+                  )}
+                </TableHead>
               )}
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+                {enableSorting ? (
+                  <button
+                    onClick={() => handleSort('due_date')}
+                    className="flex items-center gap-1 hover:text-primary"
+                  >
+                    Due Date
+                    {sortColumn === 'due_date' && (
+                      <span className="text-xs">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  'Due Date'
+                )}
+              </TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>

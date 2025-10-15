@@ -39,6 +39,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
                   projectIds={projectIds}
                   defaultSortBy="due_date"
                   sortOrder="asc"
+                  enableSorting={true}
                 />
               </TabsContent>
 
