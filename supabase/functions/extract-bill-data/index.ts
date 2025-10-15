@@ -885,6 +885,82 @@ Return ONLY the JSON object, no additional text.`;
       }
     }
 
+    // Insert line items into pending_bill_lines table
+    if (extractedData.line_items && Array.isArray(extractedData.line_items) && extractedData.line_items.length > 0) {
+      console.log(`Inserting ${extractedData.line_items.length} line items into pending_bill_lines...`);
+      
+      try {
+        // Map extracted line items to database format
+        const linesToInsert = extractedData.line_items.map((item: any, index: number) => {
+          // Parse cost code if present (format: "code: name")
+          let costCodeId = null;
+          let costCodeName = item.cost_code_name || null;
+          
+          if (item.cost_code_name) {
+            const codeMatch = item.cost_code_name.match(/^(\d+):\s*(.+)$/);
+            if (codeMatch) {
+              const [_, code, name] = codeMatch;
+              // Find matching cost code from our list
+              const matchingCode = costCodes?.find(cc => cc.code === code);
+              if (matchingCode) {
+                costCodeId = matchingCode.id;
+              }
+            }
+          }
+          
+          // Parse account if present (format: "code: name")
+          let accountId = null;
+          let accountName = item.account_name || null;
+          
+          if (item.account_name) {
+            const accMatch = item.account_name.match(/^(\d+):\s*(.+)$/);
+            if (accMatch) {
+              const [_, code, name] = accMatch;
+              // Find matching account from our list
+              const matchingAccount = accounts?.find(a => a.code === code);
+              if (matchingAccount) {
+                accountId = matchingAccount.id;
+              }
+            }
+          }
+          
+          return {
+            pending_upload_id: pendingUploadId,
+            owner_id: pendingUpload.owner_id, // Use original owner_id from pending_upload
+            line_number: item.line_number || (index + 1),
+            line_type: item.line_type || 'job_cost',
+            description: item.description || item.memo || null,
+            memo: item.memo || null,
+            account_id: accountId,
+            account_name: accountName,
+            cost_code_id: costCodeId,
+            cost_code_name: costCodeName,
+            project_id: null, // Project will be selected during review
+            project_name: null,
+            quantity: item.quantity || 1,
+            unit_cost: item.unit_cost || 0,
+            amount: item.amount || 0,
+          };
+        });
+        
+        // Insert all line items
+        const { error: linesError } = await supabase
+          .from('pending_bill_lines')
+          .insert(linesToInsert);
+        
+        if (linesError) {
+          console.error('Error inserting pending bill lines:', linesError);
+          throw new Error(`Failed to insert line items: ${linesError.message}`);
+        }
+        
+        console.log(`✅ Successfully inserted ${linesToInsert.length} line items`);
+      } catch (lineInsertError) {
+        console.error('Error processing line items:', lineInsertError);
+        // Don't throw - let the extraction succeed even if line insert fails
+        // The line items are still in extracted_data and can be reviewed
+      }
+    }
+
     // Update to 'extracted' only after everything is complete
     const { error: updateError } = await supabase
       .from('pending_bill_uploads')
