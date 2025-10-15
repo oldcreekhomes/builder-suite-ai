@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 
 const RowsRenderer = React.memo(function RowsRenderer({ rows }: { rows: React.ReactNode[] }) {
   return <>{rows}</>;
@@ -63,13 +64,31 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     removeGroupFromExpanded
   } = useBudgetGroups();
   
-  const { handleUpdateActual } = useBudgetMutations(projectId);
+  const { deletingGroups, deletingItems, handleUpdateActual, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
 
   const onGroupCheckboxChange = (group: string, checked: boolean) => {
     const groupItems = groupedBudgetItems[group] || [];
     const alreadySelected = isGroupSelected(groupItems);
     if (checked === alreadySelected) return; // no-op to avoid redundant updates
     handleGroupCheckboxChange(group, checked, groupItems);
+  };
+
+  const onDeleteGroup = (group: string) => {
+    const groupItems = groupedBudgetItems[group] || [];
+    handleDeleteGroup(group, groupItems);
+    removeDeletedItemsFromSelection(groupItems);
+    removeGroupFromExpanded(group);
+  };
+
+  const onDeleteItem = (itemId: string) => {
+    handleDeleteItem(itemId);
+  };
+
+  const onBulkDelete = () => {
+    const selectedBudgetItems = budgetItems.filter(item => selectedItems.has(item.id));
+    selectedBudgetItems.forEach(item => {
+      handleDeleteItem(item.id);
+    });
   };
 
   const calculateGroupBudgetTotal = (groupItems: any[]) => {
@@ -88,6 +107,9 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     // Print logic for Actual table (similar to Budget)
     console.log('Print Actual');
   };
+
+  const selectedCount = selectedItems.size;
+  const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
   const rows = useMemo(() => {
     const out: React.ReactNode[] = [];
@@ -108,6 +130,8 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
             purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
           )}
           onShowCommitted={openCommittedModal}
+          onDeleteGroup={onDeleteGroup}
+          isDeleting={deletingGroups.has(group)}
         />
       );
 
@@ -123,6 +147,8 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
               purchaseOrders={purchaseOrders}
               onShowCommitted={openCommittedModal}
               onUpdateActual={handleUpdateActual}
+              onDelete={onDeleteItem}
+              isDeleting={deletingItems.has(item.id)}
             />
           );
         }
@@ -148,6 +174,15 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
         budgetItems={budgetItems}
         onUpdateActual={handleUpdateActual}
       />
+
+      {selectedCount > 0 && (
+        <BulkActionBar
+          selectedCount={selectedCount}
+          selectedFolderCount={0}
+          onBulkDelete={onBulkDelete}
+          isDeleting={isDeletingSelected}
+        />
+      )}
 
       <div className="border rounded-lg overflow-hidden">
         <Table>

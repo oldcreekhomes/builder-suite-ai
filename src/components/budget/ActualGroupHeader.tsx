@@ -1,6 +1,7 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { MinimalCheckbox } from '@/components/ui/minimal-checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { ChevronDown } from 'lucide-react';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
@@ -17,6 +18,8 @@ interface ActualGroupHeaderProps {
   groupCommittedTotal: number;
   groupPurchaseOrders?: PurchaseOrder[];
   onShowCommitted: (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) => void;
+  onDeleteGroup: (group: string) => void;
+  isDeleting?: boolean;
 }
 
 export function ActualGroupHeader({
@@ -30,7 +33,9 @@ export function ActualGroupHeader({
   groupActualTotal,
   groupCommittedTotal,
   groupPurchaseOrders = [],
-  onShowCommitted
+  onShowCommitted,
+  onDeleteGroup,
+  isDeleting = false
 }: ActualGroupHeaderProps) {
   
 
@@ -53,10 +58,14 @@ export function ActualGroupHeader({
   return (
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
-          <MinimalCheckbox
+          <Checkbox
             checked={isSelected}
-            indeterminate={isPartiallySelected && !isSelected}
-            onChange={(e) => onCheckboxChange(group, e.currentTarget.checked)}
+            ref={(el) => {
+              if (el && 'indeterminate' in el) {
+                (el as any).indeterminate = isPartiallySelected && !isSelected;
+              }
+            }}
+            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
             className="h-3 w-3"
           />
         </TableCell>
@@ -99,6 +108,21 @@ export function ActualGroupHeader({
         <TableCell className="px-2 py-0 w-24">
           <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
             {formatCurrency(variance)}
+          </div>
+        </TableCell>
+        <TableCell className="px-1 py-0 w-20 sticky right-0 bg-gray-50 z-20">
+          <div className="flex justify-center">
+            {isSelected && (
+              <DeleteButton
+                onDelete={() => onDeleteGroup(group)}
+                title="Delete Group"
+                description={`Are you sure you want to delete all budget items in the "${group}" group? This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={isDeleting}
+                showIcon={true}
+              />
+            )}
           </div>
         </TableCell>
       </TableRow>

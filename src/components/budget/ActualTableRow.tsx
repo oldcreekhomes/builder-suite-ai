@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { MinimalCheckbox } from '@/components/ui/minimal-checkbox';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DeleteButton } from '@/components/ui/delete-button';
 import type { Tables } from '@/integrations/supabase/types';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
@@ -15,6 +16,8 @@ interface ActualTableRowProps {
   purchaseOrders: PurchaseOrder[];
   onShowCommitted: (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) => void;
   onUpdateActual?: (itemId: string, amount: number) => void;
+  onDelete: (itemId: string) => void;
+  isDeleting?: boolean;
 }
 
 export function ActualTableRow({
@@ -24,7 +27,9 @@ export function ActualTableRow({
   onCheckboxChange,
   purchaseOrders,
   onShowCommitted,
-  onUpdateActual
+  onUpdateActual,
+  onDelete,
+  isDeleting = false
 }: ActualTableRowProps) {
   const [isEditingActual, setIsEditingActual] = useState(false);
   const [actualValue, setActualValue] = useState(item.actual_amount?.toString() || '');
@@ -65,9 +70,10 @@ export function ActualTableRow({
     
       <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
         <TableCell className="px-1 py-0 w-12">
-          <MinimalCheckbox
+          <Checkbox
             checked={isSelected}
-            onChange={(e) => onCheckboxChange(item.id, e.currentTarget.checked)}
+            onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
+            tabIndex={-1}
             className="h-3 w-3"
           />
         </TableCell>
@@ -122,6 +128,21 @@ export function ActualTableRow({
         <TableCell className="px-2 py-0 w-24">
           <div className={`text-xs font-medium ${getVarianceColor(variance)}`}>
             {formatCurrency(variance)}
+          </div>
+        </TableCell>
+        <TableCell className={`px-1 py-0 w-20 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
+          <div className="flex items-center justify-center">
+            {isSelected && (
+              <DeleteButton
+                onDelete={() => onDelete(item.id)}
+                title="Delete Budget Item"
+                description="Are you sure you want to delete this budget item? This action cannot be undone."
+                size="sm"
+                variant="ghost"
+                isLoading={isDeleting}
+                showIcon={true}
+              />
+            )}
           </div>
         </TableCell>
       </TableRow>
