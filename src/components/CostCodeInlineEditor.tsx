@@ -43,7 +43,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
       "linear-feet": "LF",
       "square-yard": "SY",
       "cubic-yard": "CY",
-      "month": "MO",
+      "month": "MTH",
       "hour": "HR"
     };
     
