@@ -27,7 +27,7 @@ export function ManageBillsDialog({ open, onOpenChange, projectId, projectIds }:
         </DialogHeader>
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
-            <BillsApprovalTabs projectId={projectId} projectIds={projectIds} reviewOnly={true} />
+            <BillsApprovalTabs projectId={projectId} projectIds={projectIds} reviewOnly={false} />
           </UniversalFilePreviewProvider>
         </div>
       </DialogContent>

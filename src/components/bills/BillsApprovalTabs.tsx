@@ -8,6 +8,7 @@ import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
 import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
+import { ManualBillEntry } from "./ManualBillEntry";
 import { usePendingBills, type PendingBill, type PendingBillLine } from "@/hooks/usePendingBills";
 import { useBillCounts } from "@/hooks/useBillCounts";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,6 +208,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const getTabLabel = (status: string, count: number | undefined) => {
     if (countsLoading) {
       switch (status) {
+        case 'manual':
+          return "Enter Manually";
         case 'upload':
           return "Upload & Extract";
         case 'review':
@@ -222,6 +225,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
     const displayCount = count || 0;
     switch (status) {
+      case 'manual':
+        return "Enter Manually";
       case 'upload':
         return "Upload & Extract";
       case 'review':
@@ -242,6 +247,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
       ]
     : [
+        { value: "manual", label: getTabLabel('manual', undefined) },
         { value: "upload", label: getTabLabel('upload', undefined) },
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
@@ -250,7 +256,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-3' : 'grid-cols-4'}`}>
+      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-3' : 'grid-cols-5'}`}>
         {tabs.map(tab => (
           <TabsTrigger key={tab.value} value={tab.value}>
             {tab.label}
@@ -259,15 +265,20 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       </TabsList>
 
       {!reviewOnly && (
-        <TabsContent value="upload" className="mt-6 space-y-6">
-          <SimplifiedAIBillExtraction 
-            onDataExtracted={() => {}}
-            onSwitchToManual={() => {}}
-            suppressIndividualToasts={true}
-            onExtractionStart={(total) => handleExtractionStart()}
-            onExtractionComplete={handleExtractionComplete}
-            onExtractionProgress={handleExtractionProgress}
-          />
+        <>
+          <TabsContent value="manual" className="mt-6">
+            <ManualBillEntry />
+          </TabsContent>
+
+          <TabsContent value="upload" className="mt-6 space-y-6">
+            <SimplifiedAIBillExtraction 
+              onDataExtracted={() => {}}
+              onSwitchToManual={() => setActiveTab("manual")}
+              suppressIndividualToasts={true}
+              onExtractionStart={(total) => handleExtractionStart()}
+              onExtractionComplete={handleExtractionComplete}
+              onExtractionProgress={handleExtractionProgress}
+            />
 
           {isExtracting ? (
             <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
@@ -320,7 +331,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               </CardContent>
             </Card>
           )}
-        </TabsContent>
+          </TabsContent>
+        </>
       )}
 
       <TabsContent value="review" className="mt-6">
