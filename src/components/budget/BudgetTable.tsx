@@ -185,22 +185,12 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       : (item.quantity || 0) * (item.unit_price || 0);
   };
 
-  // Calculate total budget using the same logic as displayed rows
+  // Calculate total budget by summing the visible group totals
   const totalBudget = useMemo(() => {
-    return budgetItems.reduce((sum, item) => {
-      const costCode = item.cost_codes;
-      const hasSubcategories = costCode?.has_subcategories || false;
-      
-      if (hasSubcategories) {
-        // For items with subcategories, we need to calculate the subcategory total
-        // This is a simplified calculation - in a real scenario you'd want to fetch the selections
-        // For now, we'll just use quantity * unit_price as fallback
-        return sum + ((item.quantity || 0) * (item.unit_price || 0));
-      }
-      
-      return sum + ((item.quantity || 0) * (item.unit_price || 0));
+    return Object.values(groupedBudgetItems).reduce((sum, items) => {
+      return sum + calculateGroupTotal(items);
     }, 0);
-  }, [budgetItems]);
+  }, [groupedBudgetItems, calculateGroupTotal]);
 
   return (
     <div className="space-y-4">
