@@ -12,6 +12,7 @@ import { usePendingBills, type PendingBill, type PendingBillLine } from "@/hooks
 import { useBillCounts } from "@/hooks/useBillCounts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface BillsApprovalTabsProps {
   projectId?: string;
@@ -30,6 +31,7 @@ interface BatchBill extends PendingBill {
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
   const [activeTab, setActiveTab] = useState(reviewOnly ? "review" : "upload");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const effectiveProjectId = projectId || (projectIds && projectIds.length === 1 ? projectIds[0] : undefined);
   
   const { data: counts, isLoading: countsLoading } = useBillCounts(effectiveProjectId, projectIds);
@@ -184,6 +186,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         if (deleteError) throw deleteError;
       }
 
+      // Invalidate queries to update all tab counts immediately
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+
       toast({
         title: "Success",
         description: `${selectedBills.length} bill${selectedBills.length > 1 ? 's' : ''} submitted successfully`,
@@ -194,6 +200,11 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       await refetchPendingBills();
     } catch (error) {
       console.error("Error submitting bills:", error);
+      
+      // Invalidate queries even on error in case of partial success
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      
       toast({
         title: "Error",
         description: "Failed to submit bills. Please try again.",

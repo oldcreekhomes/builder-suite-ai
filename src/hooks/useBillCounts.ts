@@ -13,7 +13,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
   return useQuery({
     queryKey: ['bill-approval-counts', projectId, projectIds],
     refetchOnWindowFocus: true,
-    refetchInterval: 5000,
+    refetchInterval: 2000,
     queryFn: async (): Promise<BillCounts> => {
       // Get counts for each status
       const pendingQuery = supabase
