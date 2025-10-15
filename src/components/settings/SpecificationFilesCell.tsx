@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, X } from 'lucide-react';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
@@ -37,9 +36,9 @@ export function SpecificationFilesCell({
   };
 
   return (
-    <div className="flex items-center justify-between w-full gap-2">
+    <div className="flex items-center space-x-2">
       {files && files.length > 0 && (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           {files.map((filePath, index) => {
             const fileName = filePath.split('/').pop() || filePath;
             const IconComponent = getFileIcon(fileName);
@@ -60,10 +59,10 @@ export function SpecificationFilesCell({
                       e.stopPropagation();
                       setFileToDelete(filePath);
                     }}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
                     title="Delete file"
                   >
-                    <X className="h-2.5 w-2.5" />
+                    <span className="text-xs font-bold leading-none">×</span>
                   </button>
                 )}
               </div>
@@ -79,7 +78,6 @@ export function SpecificationFilesCell({
           className="h-8 text-xs"
           onClick={() => onFileUpload(specificationId)}
         >
-          <Plus className="h-3 w-3 mr-1" />
           Add Files
         </Button>
       )}
