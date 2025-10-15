@@ -189,14 +189,14 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
           </span>
         </SelectTrigger>
         <SelectContent className="z-50">
-          <SelectItem value="each">Each</SelectItem>
-          <SelectItem value="square-feet">Square Feet</SelectItem>
-          <SelectItem value="linear-feet">Linear Feet</SelectItem>
-          <SelectItem value="square-yard">Square Yard</SelectItem>
           <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
-          <SelectItem value="month">Month</SelectItem>
+          <SelectItem value="each">Each</SelectItem>
           <SelectItem value="hour">Hour</SelectItem>
+          <SelectItem value="linear-feet">Linear Feet</SelectItem>
           <SelectItem value="lump-sum">Lump Sum</SelectItem>
+          <SelectItem value="month">Month</SelectItem>
+          <SelectItem value="square-feet">Square Feet</SelectItem>
+          <SelectItem value="square-yard">Square Yard</SelectItem>
         </SelectContent>
       </Select>
     );
