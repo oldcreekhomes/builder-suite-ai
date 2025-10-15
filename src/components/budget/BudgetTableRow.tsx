@@ -249,7 +249,7 @@ export function BudgetTableRow({
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
             {selectedCount === 1 && singleSelectedSubcategory
               ? formatUnitOfMeasure(
-                  singleSelectedSubcategory.cost_codes.unit_of_measure || costCode?.unit_of_measure
+                  singleSelectedSubcategory.cost_codes?.unit_of_measure || costCode?.unit_of_measure
                 )
               : "N/A"}
             </span>
@@ -299,7 +299,7 @@ export function BudgetTableRow({
           {hasSubcategories ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               {selectedCount === 1 && singleSelectedSubcategory
-                ? singleSelectedSubcategory.quantity
+                ? (singleSelectedSubcategory.quantity || 0)
                 : "N/A"}
             </span>
           ) : isEditingQuantity ? (
