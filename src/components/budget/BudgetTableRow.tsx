@@ -66,9 +66,9 @@ export function BudgetTableRow({
   );
 
   // Calculate selected subcategory info
-  const selectedCount = Object.values(selections).filter(v => v === true).length;
+  const selectedCount = Object.values(selections).filter(v => !!v).length;
   const singleSelectedSubcategory = selectedCount === 1 
-    ? subcategories.find(sub => selections[sub.cost_codes.id] === true)
+    ? subcategories.find(sub => selections[sub.cost_codes.id])
     : null;
   
   // Use subcategory total if available, otherwise calculate normally
