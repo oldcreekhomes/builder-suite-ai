@@ -1947,6 +1947,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          receive_bill_payment_alerts: boolean
           sound_notifications_enabled: boolean
           toast_notifications_enabled: boolean
           updated_at: string
@@ -1955,6 +1956,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          receive_bill_payment_alerts?: boolean
           sound_notifications_enabled?: boolean
           toast_notifications_enabled?: boolean
           updated_at?: string
@@ -1963,6 +1965,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          receive_bill_payment_alerts?: boolean
           sound_notifications_enabled?: boolean
           toast_notifications_enabled?: boolean
           updated_at?: string

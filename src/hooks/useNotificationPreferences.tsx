@@ -8,27 +8,30 @@ export interface NotificationPreferences {
   user_id: string;
   sound_notifications_enabled: boolean;
   toast_notifications_enabled: boolean;
+  receive_bill_payment_alerts: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   sound_notifications_enabled: true,
   toast_notifications_enabled: true,
+  receive_bill_payment_alerts: false,
 };
 
-export const useNotificationPreferences = () => {
+export const useNotificationPreferences = (userId?: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const targetUserId = userId || user?.id;
 
   const { data: preferences, isLoading, error } = useQuery({
-    queryKey: ['notification-preferences', user?.id],
+    queryKey: ['notification-preferences', targetUserId],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!targetUserId) return null;
       
       const { data, error } = await supabase
         .from('user_notification_preferences')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .maybeSingle();
 
       if (error) {
@@ -40,7 +43,7 @@ export const useNotificationPreferences = () => {
       if (!data) {
         const defaultData = {
           ...defaultPreferences,
-          user_id: user.id,
+          user_id: targetUserId,
         };
 
         const { data: insertedData, error: insertError } = await supabase
@@ -60,17 +63,17 @@ export const useNotificationPreferences = () => {
 
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!targetUserId,
   });
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (newPreferences: Partial<NotificationPreferences>) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!targetUserId) throw new Error('User not authenticated');
 
       const { data: existingData } = await supabase
         .from('user_notification_preferences')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', targetUserId)
         .maybeSingle();
 
       if (existingData) {
@@ -78,7 +81,7 @@ export const useNotificationPreferences = () => {
         const { data, error } = await supabase
           .from('user_notification_preferences')
           .update(newPreferences)
-          .eq('user_id', user.id)
+          .eq('user_id', targetUserId)
           .select()
           .single();
 
@@ -91,7 +94,7 @@ export const useNotificationPreferences = () => {
           .insert({
             ...defaultPreferences,
             ...newPreferences,
-            user_id: user.id,
+            user_id: targetUserId,
           })
           .select()
           .single();
@@ -101,10 +104,10 @@ export const useNotificationPreferences = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-preferences', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences', targetUserId] });
       toast({
         title: "Preferences updated",
-        description: "Your notification preferences have been saved.",
+        description: "Notification preferences have been saved.",
       });
     },
     onError: (error) => {
@@ -122,7 +125,7 @@ export const useNotificationPreferences = () => {
   };
 
   return {
-    preferences: preferences || { ...defaultPreferences, user_id: user?.id || '' },
+    preferences: preferences || { ...defaultPreferences, user_id: targetUserId || '' },
     isLoading,
     error,
     updatePreferences,
