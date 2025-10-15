@@ -320,7 +320,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         size="sm"
                         variant="ghost"
                         isLoading={deleteBill.isPending}
-                      />
+                      >
+                        Delete
+                      </DeleteButton>
                     </TableCell>
                   )}
                 </TableRow>

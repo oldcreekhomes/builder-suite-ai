@@ -46,7 +46,7 @@ export function DeleteButton({
         size={size}
         onClick={() => setShowConfirmation(true)}
         disabled={isLoading}
-        className={`text-destructive hover:text-destructive/90 hover:bg-destructive/10 ${className}`}
+        className={`text-destructive hover:text-destructive/90 hover:bg-destructive/10 flex items-center gap-2 ${className}`}
       >
         {showIcon && <Trash2 className="h-icon-sm w-icon-sm" />}
         {children}
