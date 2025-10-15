@@ -246,7 +246,7 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSubcategories ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-gray-500 whitespace-nowrap">
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               {selectedCount === 1 && singleSelectedSubcategory
                 ? formatUnitOfMeasure(singleSelectedSubcategory.cost_codes.unit_of_measure)
                 : "N/A"}
@@ -295,7 +295,7 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-24">
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSubcategories ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-gray-500 whitespace-nowrap">
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               {selectedCount === 1 ? "1" : "N/A"}
             </span>
           ) : isEditingQuantity ? (
