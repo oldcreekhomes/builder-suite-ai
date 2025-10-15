@@ -58,12 +58,18 @@ export function BudgetTableRow({
   
   // Use subcategories hook to get calculated total if cost code has subcategories
   const hasSubcategories = costCode?.has_subcategories || false;
-  const { calculatedTotal: subcategoryTotal } = useBudgetSubcategories(
+  const { calculatedTotal: subcategoryTotal, selections, subcategories } = useBudgetSubcategories(
     item.id,
     costCode?.id,
     item.project_id,
     hasSubcategories
   );
+
+  // Calculate selected subcategory info
+  const selectedCount = Object.values(selections).filter(v => v === true).length;
+  const singleSelectedSubcategory = selectedCount === 1 
+    ? subcategories.find(sub => selections[sub.cost_codes.id] === true)
+    : null;
   
   // Use subcategory total if available, otherwise calculate normally
   const total = hasSubcategories 
@@ -239,7 +245,13 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {!hasSubcategories && isEditingUnit ? (
+          {hasSubcategories ? (
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-gray-500 whitespace-nowrap">
+              {selectedCount === 1 && singleSelectedSubcategory
+                ? formatUnitOfMeasure(singleSelectedSubcategory.cost_codes.unit_of_measure)
+                : "N/A"}
+            </span>
+          ) : isEditingUnit ? (
             <Select
               defaultOpen
               value={tempUnit || costCode?.unit_of_measure || ''}
@@ -272,8 +284,8 @@ export function BudgetTableRow({
             </Select>
           ) : (
             <span 
-              className={`${hasSubcategories ? '' : 'cursor-pointer hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
-              onClick={hasSubcategories ? undefined : handleUnitClick}
+              className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+              onClick={handleUnitClick}
             >
               {formatUnitOfMeasure(costCode?.unit_of_measure)}
             </span>
@@ -282,7 +294,11 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-24">
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {!hasSubcategories && isEditingQuantity ? (
+          {hasSubcategories ? (
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-gray-500 whitespace-nowrap">
+              {selectedCount === 1 ? "1" : "N/A"}
+            </span>
+          ) : isEditingQuantity ? (
             <input
               type="number"
               value={quantity}
@@ -295,8 +311,8 @@ export function BudgetTableRow({
             />
           ) : (
             <span 
-              className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
-              onClick={hasSubcategories ? undefined : handleQuantityClick}
+              className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+              onClick={handleQuantityClick}
             >
               {parseFloat(quantity) || 0}
             </span>
