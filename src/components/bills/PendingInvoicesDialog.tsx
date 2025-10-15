@@ -5,7 +5,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BillsApprovalTabs } from "@/components/bills/BillsApprovalTabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BillsApprovalTable } from "@/components/bills/BillsApprovalTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 interface PendingInvoicesDialogProps {
@@ -26,7 +27,26 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
         </DialogHeader>
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
-            <BillsApprovalTabs projectIds={projectIds} reviewOnly={false} />
+            <Tabs defaultValue="review" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="review">Review</TabsTrigger>
+                <TabsTrigger value="approve">Approve</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="review" className="mt-6">
+                <BillsApprovalTable 
+                  status="draft"
+                  projectIds={projectIds} 
+                />
+              </TabsContent>
+
+              <TabsContent value="approve" className="mt-6">
+                <BillsApprovalTable 
+                  status={['posted', 'paid']}
+                  projectIds={projectIds} 
+                />
+              </TabsContent>
+            </Tabs>
           </UniversalFilePreviewProvider>
         </div>
       </DialogContent>
