@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, FileText } from "lucide-react";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
-import { ManageBillsDialog } from "@/components/bills/ManageBillsDialog";
+import { PendingInvoicesDialog } from "@/components/bills/PendingInvoicesDialog";
 
 export function ProjectWarnings() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -74,7 +74,7 @@ export function ProjectWarnings() {
         </CardContent>
       </Card>
 
-      <ManageBillsDialog 
+      <PendingInvoicesDialog 
         open={isDialogOpen} 
         onOpenChange={setIsDialogOpen}
         projectIds={projectIds}
