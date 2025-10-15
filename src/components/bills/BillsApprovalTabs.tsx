@@ -40,6 +40,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     pendingBills,
     isLoading: pendingLoading,
     refetch: refetchPendingBills,
+    deletePendingUpload,
   } = usePendingBills();
 
   const [batchBills, setBatchBills] = useState<BatchBill[]>([]);
@@ -85,14 +86,31 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     ));
   }, []);
 
-  const handleBillDelete = useCallback((billId: string) => {
-    setBatchBills(prev => prev.filter(bill => bill.id !== billId));
-    setSelectedBillIds(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(billId);
-      return newSet;
-    });
-  }, []);
+  const handleBillDelete = useCallback(async (billId: string) => {
+    try {
+      // Delete from DB (also cleans up related lines via RPC)
+      await deletePendingUpload.mutateAsync(billId);
+
+      // Optimistically update local UI
+      setBatchBills(prev => prev.filter(bill => bill.id !== billId));
+      setSelectedBillIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(billId);
+        return newSet;
+      });
+
+      // Ensure counters and lists are in sync immediately
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
+      await refetchPendingBills();
+    } catch (err) {
+      console.error("Failed to delete pending upload:", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete the uploaded bill. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [deletePendingUpload, queryClient, refetchPendingBills, toast]);
 
   const handleLinesUpdate = useCallback((billId: string, lines: PendingBillLine[]) => {
     setBatchBills(prev => prev.map(bill => 
