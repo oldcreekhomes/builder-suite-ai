@@ -15,6 +15,7 @@ import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
+import { useAutoAddMissingCostCodes } from '@/hooks/useAutoAddMissingCostCodes';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
@@ -39,7 +40,14 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   });
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
-  const { data: historicalActualCosts = {} } = useHistoricalActualCosts(selectedHistoricalProject || null);
+  const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
+  
+  const historicalActualCosts = historicalData?.mapByCode || {};
+  const historicalTotal = historicalData?.total || 0;
+  const historicalCostCodes = historicalData?.costCodes || [];
+  
+  // Auto-add missing cost codes from historical project
+  useAutoAddMissingCostCodes(projectId, historicalCostCodes, budgetItems);
   
   const {
     expandedGroups,
@@ -233,11 +241,16 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         <BudgetGroupTotalRow
                           group={group}
                           groupTotal={calculateGroupTotal(items)}
-                          historicalTotal={items.reduce((sum, item) => {
-                            const costCode = item.cost_codes;
-                            const historicalActual = historicalActualCosts[costCode?.id] || 0;
-                            return sum + historicalActual;
-                          }, 0)}
+                          historicalTotal={(() => {
+                            // Sum unique codes to avoid double-counting
+                            const uniqueCodes = new Set(
+                              items.map(i => i.cost_codes?.code).filter(Boolean)
+                            );
+                            return Array.from(uniqueCodes).reduce(
+                              (sum, code) => sum + (historicalActualCosts[code] || 0),
+                              0
+                            );
+                          })()}
                           showVarianceAsPercentage={showVarianceAsPercentage}
                           visibleColumns={visibleColumns}
                         />
@@ -247,11 +260,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 ))}
                 <BudgetProjectTotalRow
                   totalBudget={budgetItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0)}
-                  totalHistorical={budgetItems.reduce((sum, item) => {
-                    const costCode = item.cost_codes;
-                    const historicalActual = historicalActualCosts[costCode?.id] || 0;
-                    return sum + historicalActual;
-                  }, 0)}
+                  totalHistorical={historicalTotal}
                   showVarianceAsPercentage={showVarianceAsPercentage}
                   visibleColumns={visibleColumns}
                 />

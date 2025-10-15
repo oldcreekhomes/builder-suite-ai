@@ -80,7 +80,7 @@ export function BudgetTableRow({
   // If has subcategories, show the calculated total (which represents the aggregated cost)
   const displayUnitPrice = hasSubcategories ? subcategoryTotal : parseFloat(unitPrice) || 0;
     
-  const historicalActual = historicalActualCosts[costCode?.id] || null;
+  const historicalActual = costCode?.code ? (historicalActualCosts[costCode.code] || null) : null;
   
   const calculateVariance = () => {
     // Only show no variance if BOTH are 0 or null
