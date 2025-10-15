@@ -242,6 +242,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           return "Enter with AI";
         case 'review':
           return "Review";
+        case 'rejected':
+          return "Rejected";
         case 'approve':
           return "Approved";
         case 'pay':
@@ -259,6 +261,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         return `Enter with AI (${displayCount})`;
       case 'review':
         return `Review (${displayCount})`;
+      case 'rejected':
+        return `Rejected (${displayCount})`;
       case 'approve':
         return `Approved (${displayCount})`;
       case 'pay':
@@ -271,6 +275,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const tabs = reviewOnly
     ? [
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
+        { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
       ]
@@ -278,13 +283,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         { value: "manual", label: getTabLabel('manual', undefined) },
         { value: "upload", label: getTabLabel('upload', counts?.aiExtractCount) },
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
+        { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
       ];
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-3' : 'grid-cols-5'}`}>
+      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-4' : 'grid-cols-6'}`}>
         {tabs.map(tab => (
           <TabsTrigger key={tab.value} value={tab.value}>
             {tab.label}
@@ -366,6 +372,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       <TabsContent value="review" className="mt-6">
         <BillsApprovalTable 
           status="draft"
+          projectId={effectiveProjectId} 
+          projectIds={projectIds}
+          showProjectColumn={false}
+        />
+      </TabsContent>
+
+      <TabsContent value="rejected" className="mt-6">
+        <BillsApprovalTable 
+          status="void"
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
