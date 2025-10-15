@@ -513,11 +513,24 @@ export function BatchBillReviewTable({
                 ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
                 : (bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0);
               
-              // Calculate account/cost code display
+              // Calculate cost code display - prioritize showing single cost code
               const accountDisplay = (() => {
                 if (!bill.lines || bill.lines.length === 0) return null;
                 
-                // Collect display names - these are already formatted with codes
+                // First, collect all cost codes from job_cost lines
+                const costCodes = bill.lines
+                  .filter(line => line.line_type === 'job_cost' && line.cost_code_name)
+                  .map(line => line.cost_code_name);
+                
+                // If there's exactly one unique cost code, show it
+                if (costCodes.length > 0) {
+                  const uniqueCostCodes = [...new Set(costCodes)];
+                  if (uniqueCostCodes.length === 1) {
+                    return uniqueCostCodes[0];
+                  }
+                }
+                
+                // Otherwise, collect all display names (both cost codes and accounts)
                 const displayNames = bill.lines
                   .map(line => {
                     if (line.line_type === 'job_cost') return line.cost_code_name;
