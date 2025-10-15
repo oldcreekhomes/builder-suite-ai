@@ -320,7 +320,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         size="icon"
                         variant="ghost"
                         isLoading={deleteBill.isPending}
-                        className="text-muted-foreground hover:text-muted-foreground/80 hover:bg-muted mx-auto"
+                        className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mx-auto"
                       />
                     </TableCell>
                    )}
