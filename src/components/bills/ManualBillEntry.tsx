@@ -268,8 +268,8 @@ export function ManualBillEntry() {
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
-          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
-          amount: parseFloat(row.amount) || 0,
+          unit_cost: parseFloat(row.amount) || 0,
+          amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
           memo: row.memo || undefined
         })),
       ...expenseRows
@@ -279,8 +279,8 @@ export function ManualBillEntry() {
           account_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           quantity: parseFloat(row.quantity) || 1,
-          unit_cost: parseFloat(row.amount) / (parseFloat(row.quantity) || 1) || 0,
-          amount: parseFloat(row.amount) || 0,
+          unit_cost: parseFloat(row.amount) || 0,
+          amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
           memo: row.memo || undefined
         }))
     ];
