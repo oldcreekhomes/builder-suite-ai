@@ -6,13 +6,17 @@ interface BudgetProjectTotalRowProps {
   totalHistorical: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
+  budgetItems?: any[];
+  groupedBudgetItems?: Record<string, any[]>;
 }
 
 export function BudgetProjectTotalRow({ 
   totalBudget, 
   totalHistorical,
   showVarianceAsPercentage = false,
-  visibleColumns
+  visibleColumns,
+  budgetItems,
+  groupedBudgetItems
 }: BudgetProjectTotalRowProps) {
   const formatCurrency = (amount: number | null) => {
     if (amount === null) return '-';

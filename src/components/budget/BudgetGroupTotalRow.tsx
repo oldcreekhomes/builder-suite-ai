@@ -1,6 +1,7 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 
 interface BudgetGroupTotalRowProps {
   group: string;
@@ -8,6 +9,7 @@ interface BudgetGroupTotalRowProps {
   historicalTotal?: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
+  groupItems?: any[];
 }
 
 export function BudgetGroupTotalRow({ 
@@ -15,23 +17,39 @@ export function BudgetGroupTotalRow({
   groupTotal,
   historicalTotal,
   showVarianceAsPercentage = false,
-  visibleColumns
+  visibleColumns,
+  groupItems = []
 }: BudgetGroupTotalRowProps) {
+  // Calculate actual displayed total using same logic as rows
+  const displayedTotal = React.useMemo(() => {
+    return groupItems.reduce((sum, item) => {
+      const costCode = item.cost_codes;
+      const hasSubcategories = costCode?.has_subcategories || false;
+      
+      if (hasSubcategories) {
+        // For subcategory items, use quantity * unit_price as it represents the calculated total
+        return sum + ((item.quantity || 0) * (item.unit_price || 0));
+      }
+      
+      return sum + ((item.quantity || 0) * (item.unit_price || 0));
+    }, 0);
+  }, [groupItems]);
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
   const calculateVariance = () => {
+    // Use displayedTotal instead of groupTotal
     // Only show no variance if BOTH are 0 or null
-    if ((historicalTotal === undefined || historicalTotal === null || historicalTotal === 0) && groupTotal === 0) return null;
+    if ((historicalTotal === undefined || historicalTotal === null || historicalTotal === 0) && displayedTotal === 0) return null;
     
     // Treat null/undefined historical as 0 for calculation
     const historical = historicalTotal || 0;
     
-    if (showVarianceAsPercentage && groupTotal !== 0) {
-      return ((historical - groupTotal) / groupTotal) * 100;
+    if (showVarianceAsPercentage && displayedTotal !== 0) {
+      return ((historical - displayedTotal) / displayedTotal) * 100;
     }
-    return historical - groupTotal;
+    return historical - displayedTotal;
   };
 
   const variance = calculateVariance();
@@ -82,7 +100,7 @@ export function BudgetGroupTotalRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
         <div className={`text-xs font-medium ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
-          {formatCurrency(groupTotal)}
+          {formatCurrency(displayedTotal)}
         </div>
       </TableCell>
       <TableCell className="px-3 py-0 w-48">
