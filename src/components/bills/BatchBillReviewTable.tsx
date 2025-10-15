@@ -406,23 +406,23 @@ export function BatchBillReviewTable({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="w-12 px-2 py-0 text-xs font-medium">
+            <TableRow>
+              <TableHead className="w-12 px-4 py-3">
                 <Checkbox disabled aria-label="Select all bills" />
               </TableHead>
               {showProjectColumn && (
-                <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+                <TableHead className="px-4 py-3">Project</TableHead>
               )}
-              <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Terms</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Cost Code</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Total</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Issues</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Actions</TableHead>
+              <TableHead className="px-4 py-3">Vendor</TableHead>
+              <TableHead className="px-4 py-3">Reference #</TableHead>
+              <TableHead className="px-4 py-3">Bill Date</TableHead>
+              <TableHead className="px-4 py-3">Terms</TableHead>
+              <TableHead className="px-4 py-3">Due Date</TableHead>
+              <TableHead className="px-4 py-3">Cost Code</TableHead>
+              <TableHead className="px-4 py-3">Total</TableHead>
+              <TableHead className="px-4 py-3">File</TableHead>
+              <TableHead className="px-4 py-3">Issues</TableHead>
+              <TableHead className="px-4 py-3">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -430,8 +430,8 @@ export function BatchBillReviewTable({
               <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)} className="h-32 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
-                  <p className="text-sm font-medium">No bills uploaded yet</p>
-                  <p className="text-xs mt-1">Upload PDF files above to extract bill data automatically</p>
+                  <p className="font-medium">No bills uploaded yet</p>
+                  <p className="mt-1">Upload PDF files above to extract bill data automatically</p>
                 </div>
               </TableCell>
             </TableRow>
@@ -447,8 +447,8 @@ export function BatchBillReviewTable({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="w-12 px-2 py-0 text-xs font-medium">
+            <TableRow>
+              <TableHead className="w-12 px-4 py-3">
                 <Checkbox
                   checked={allSelected}
                   ref={(el: any) => {
@@ -461,18 +461,18 @@ export function BatchBillReviewTable({
                 />
               </TableHead>
               {showProjectColumn && (
-                <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+                <TableHead className="px-4 py-3">Project</TableHead>
               )}
-              <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Terms</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Cost Code</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Total</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Issues</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Actions</TableHead>
+              <TableHead className="px-4 py-3">Vendor</TableHead>
+              <TableHead className="px-4 py-3">Reference #</TableHead>
+              <TableHead className="px-4 py-3">Bill Date</TableHead>
+              <TableHead className="px-4 py-3">Terms</TableHead>
+              <TableHead className="px-4 py-3">Due Date</TableHead>
+              <TableHead className="px-4 py-3">Cost Code</TableHead>
+              <TableHead className="px-4 py-3">Total</TableHead>
+              <TableHead className="px-4 py-3">File</TableHead>
+              <TableHead className="px-4 py-3">Issues</TableHead>
+              <TableHead className="px-4 py-3">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -480,17 +480,17 @@ export function BatchBillReviewTable({
               // Show spinner row for pending/processing bills
               if (bill.status === 'pending' || bill.status === 'processing') {
                 return (
-                  <TableRow key={bill.id} className="h-10">
-                    <TableCell className="px-2 py-1">
+                  <TableRow key={bill.id}>
+                    <TableCell className="px-4 py-3">
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell className="px-3 py-1" colSpan={9 + (showProjectColumn ? 1 : 0)}>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <TableCell className="px-4 py-3" colSpan={9 + (showProjectColumn ? 1 : 0)}>
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-1">
+                    <TableCell className="px-4 py-3">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -551,8 +551,8 @@ export function BatchBillReviewTable({
               const dueDate = getExtractedValue(bill, 'due_date', 'dueDate');
               
               return (
-                <TableRow key={bill.id} className="h-10 bg-gray-50 hover:bg-gray-50">
-                  <TableCell className="px-2 py-1">
+                <TableRow key={bill.id}>
+                  <TableCell className="px-4 py-3">
                     <Checkbox
                       checked={selectedBillIds.has(bill.id)}
                       onCheckedChange={() => onBillSelect(bill.id)}
@@ -560,65 +560,40 @@ export function BatchBillReviewTable({
                     />
                   </TableCell>
                   {showProjectColumn && (
-                    <TableCell className="px-3 py-1 text-xs">
+                    <TableCell className="px-4 py-3">
                       {bill.lines?.[0]?.project_name || '-'}
                     </TableCell>
                   )}
-                  <TableCell className="px-3 py-1">
-                    {!vendorId && vendorName ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-red-600 font-medium">{vendorName}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 px-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => handleRematchVendor(bill.id)}
-                          disabled={rematchingBillId === bill.id}
-                          title="Try to match vendor again"
-                        >
-                          {rematchingBillId === bill.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            "Re-match"
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 px-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => handleAddVendor(bill.id, vendorName as string)}
-                          title="Add vendor to database"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+                  <TableCell className="px-4 py-3">
+                    {!vendorId ? (
+                      <span className="font-medium text-red-600">{vendorName || '-'}</span>
                     ) : (
-                      <span className="text-xs">{vendorName || '-'}</span>
+                      <span>{vendorName || '-'}</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs">{referenceNumber || '-'}</span>
+                  <TableCell className="px-4 py-3">
+                    {referenceNumber || '-'}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs">{billDate ? formatDisplayFromAny(billDate as string) : '-'}</span>
+                  <TableCell className="px-4 py-3">
+                    {billDate ? formatDisplayFromAny(billDate as string) : '-'}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs">{formatTerms(getExtractedValue(bill, 'terms', 'terms') as string)}</span>
+                  <TableCell className="px-4 py-3">
+                    {formatTerms(getExtractedValue(bill, 'terms', 'terms') as string)}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs">{dueDate ? formatDisplayFromAny(dueDate as string) : '-'}</span>
+                  <TableCell className="px-4 py-3">
+                    {dueDate ? formatDisplayFromAny(dueDate as string) : '-'}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
+                  <TableCell className="px-4 py-3">
                     {accountDisplay === null ? (
-                      <span className="text-xs text-red-600 font-medium">NONE</span>
+                      <span className="text-red-600 font-medium">NONE</span>
                     ) : (
-                      <span className="text-xs">{accountDisplay}</span>
+                      <span>{accountDisplay}</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
+                  <TableCell className="px-4 py-3">
+                    <span className="font-medium">${totalAmount.toFixed(2)}</span>
                   </TableCell>
-                  <TableCell className="px-3 py-1">
+                  <TableCell className="px-4 py-3">
                     <div className="relative group inline-block">
                       <button
                         onClick={() => {
@@ -647,16 +622,14 @@ export function BatchBillReviewTable({
                       </button>
                     </div>
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <div className="flex flex-col gap-1">
-                      {issues.length > 0 ? (
-                        <span className="text-xs text-red-600">{issues.length}</span>
-                      ) : (
-                        <span className="text-xs text-green-600">Ready</span>
-                      )}
-                    </div>
+                  <TableCell className="px-4 py-3">
+                    {issues.length > 0 ? (
+                      <span className="text-red-600">{issues.length}</span>
+                    ) : (
+                      <span className="text-muted-foreground">–</span>
+                    )}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
+                  <TableCell className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
