@@ -211,7 +211,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         case 'manual':
           return "Enter Manually";
         case 'upload':
-          return "Upload & Extract";
+          return "Enter with AI";
         case 'review':
           return "Review";
         case 'approve':
@@ -228,7 +228,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       case 'manual':
         return "Enter Manually";
       case 'upload':
-        return "Upload & Extract";
+        return "Enter with AI";
       case 'review':
         return `Review (${displayCount})`;
       case 'approve':
