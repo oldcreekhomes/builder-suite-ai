@@ -364,53 +364,16 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       )}
 
       <TabsContent value="review" className="mt-6">
-        {batchBills.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Extracted Bills</CardTitle>
-              <CardDescription>No bills pending review</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <p>No bills uploaded yet</p>
-                <p className="text-sm">Upload PDF files in the "Enter with AI" tab to extract bill data</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Extracted Bills</CardTitle>
-                  <CardDescription>
-                    Review and edit {batchBills.length} bill{batchBills.length > 1 ? "s" : ""} before submitting
-                  </CardDescription>
-                </div>
-                <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="lg">
-                  {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <BatchBillReviewTable
-                bills={batchBills}
-                onBillUpdate={handleBillUpdate}
-                onBillDelete={handleBillDelete}
-                onLinesUpdate={handleLinesUpdate}
-                selectedBillIds={selectedBillIds}
-                onBillSelect={handleBillSelect}
-                onSelectAll={handleSelectAll}
-                showProjectColumn={!effectiveProjectId}
-              />
-            </CardContent>
-          </Card>
-        )}
+        <BillsApprovalTable 
+          status="draft"
+          projectId={effectiveProjectId} 
+          projectIds={projectIds} 
+        />
       </TabsContent>
 
       <TabsContent value="approve" className="mt-6">
         <BillsApprovalTable 
-          status="draft"
+          status={['posted', 'paid']}
           projectId={effectiveProjectId} 
           projectIds={projectIds} 
         />
