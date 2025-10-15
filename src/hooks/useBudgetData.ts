@@ -67,12 +67,27 @@ export function useBudgetData(projectId: string) {
     });
   });
 
+  // Filter out groups that are themselves children of other groups
+  // Only keep top-level groups (groups where the group key has no parent_group)
+  const topLevelGroupedBudgetItems: Record<string, typeof budgetItems> = {};
+  Object.keys(groupedBudgetItems).forEach(groupKey => {
+    // Check if this group key is itself a child of another group
+    const isChildGroup = allCostCodes.some(
+      cc => cc.code === groupKey && cc.parent_group && cc.parent_group.trim() !== ''
+    );
+    
+    // Only include if it's NOT a child group
+    if (!isChildGroup) {
+      topLevelGroupedBudgetItems[groupKey] = groupedBudgetItems[groupKey];
+    }
+  });
+
   // Get existing cost code IDs for the modal
   const existingCostCodeIds = budgetItems.map(item => item.cost_code_id);
 
   return {
     budgetItems,
-    groupedBudgetItems,
+    groupedBudgetItems: topLevelGroupedBudgetItems,
     existingCostCodeIds
   };
 }
