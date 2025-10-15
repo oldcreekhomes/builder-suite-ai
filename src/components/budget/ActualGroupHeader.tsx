@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DeleteButton } from '@/components/ui/delete-button';
@@ -37,13 +37,6 @@ export function ActualGroupHeader({
   onDeleteGroup,
   isDeleting = false
 }: ActualGroupHeaderProps) {
-  const checkboxRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (checkboxRef.current) {
-      (checkboxRef.current as any).indeterminate = isPartiallySelected && !isSelected;
-    }
-  }, [isPartiallySelected, isSelected]);
 
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
@@ -65,9 +58,8 @@ export function ActualGroupHeader({
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
         <TableCell className="px-1 py-0 w-12">
           <Checkbox
-            ref={checkboxRef}
-            checked={isSelected}
-            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+            checked={isSelected ? true : (isPartiallySelected && !isSelected ? 'indeterminate' : false)}
+            onCheckedChange={(checked) => onCheckboxChange(group, checked === 'indeterminate' ? true : !!checked)}
             className="h-3 w-3"
           />
         </TableCell>
