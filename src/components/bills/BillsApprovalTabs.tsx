@@ -48,7 +48,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
 
   // Sync pending bills to batch bills
   useEffect(() => {
-    if (pendingBills.length > 0) {
+    if (pendingBills && pendingBills.length > 0) {
       const newBatchBills = pendingBills.map(bill => ({
         ...bill,
         lines: [],
