@@ -250,7 +250,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-28">Actions</TableHead>
               )}
               {canShowDeleteButton && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-20">Delete</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">Delete</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -311,20 +311,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       </div>
                     </TableCell>
                   )}
-                  {canShowDeleteButton && (
-                    <TableCell className="py-1 text-left">
+                   {canShowDeleteButton && (
+                    <TableCell className="py-1 text-center">
                       <DeleteButton
                         onDelete={() => deleteBill.mutate(bill.id)}
                         title="Delete Bill"
                         description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
-                        size="sm"
+                        size="icon"
                         variant="ghost"
                         isLoading={deleteBill.isPending}
-                      >
-                        Delete
-                      </DeleteButton>
+                        className="text-muted-foreground hover:text-muted-foreground/80 hover:bg-muted mx-auto"
+                      />
                     </TableCell>
-                  )}
+                   )}
                 </TableRow>
               ))
             )}
