@@ -214,9 +214,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         case 'review':
           return "Review";
         case 'approve':
-          return "Approve";
+          return "Approved";
         case 'pay':
-          return "Pay";
+          return "Paid";
         default:
           return status;
       }
@@ -231,9 +231,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       case 'review':
         return `Review (${displayCount})`;
       case 'approve':
-        return `Approve (${displayCount})`;
+        return `Approved (${displayCount})`;
       case 'pay':
-        return `Pay (${displayCount})`;
+        return `Paid (${displayCount})`;
       default:
         return `${status} (${displayCount})`;
     }
