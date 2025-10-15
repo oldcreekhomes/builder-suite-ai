@@ -30,7 +30,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
             <Tabs defaultValue="review" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="review">Review</TabsTrigger>
-                <TabsTrigger value="approve">Approve</TabsTrigger>
+                <TabsTrigger value="approve">Approved</TabsTrigger>
               </TabsList>
               
               <TabsContent value="review" className="mt-6">
