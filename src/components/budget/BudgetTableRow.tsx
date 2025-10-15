@@ -259,12 +259,14 @@ export function BudgetTableRow({
                   {formatUnitOfMeasure(tempUnit || costCode?.unit_of_measure)}
                 </span>
               </SelectTrigger>
-              <SelectContent className="z-50">
+              <SelectContent className="z-50 bg-background">
                 <SelectItem value="each">Each</SelectItem>
                 <SelectItem value="square-feet">Square Feet</SelectItem>
                 <SelectItem value="linear-feet">Linear Feet</SelectItem>
                 <SelectItem value="square-yard">Square Yard</SelectItem>
                 <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+                <SelectItem value="hour">Hour</SelectItem>
               </SelectContent>
             </Select>
           ) : (
