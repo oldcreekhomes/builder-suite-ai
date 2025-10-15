@@ -367,7 +367,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         <BillsApprovalTable 
           status="draft"
           projectId={effectiveProjectId} 
-          projectIds={projectIds} 
+          projectIds={projectIds}
+          showProjectColumn={false}
         />
       </TabsContent>
 
@@ -375,7 +376,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         <BillsApprovalTable 
           status={['posted', 'paid']}
           projectId={effectiveProjectId} 
-          projectIds={projectIds} 
+          projectIds={projectIds}
+          showProjectColumn={false}
         />
       </TabsContent>
 
