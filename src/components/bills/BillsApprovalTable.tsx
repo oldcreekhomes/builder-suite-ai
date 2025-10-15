@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Table,
@@ -25,6 +25,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface BillForApproval {
   id: string;
@@ -168,39 +169,43 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       // Return all bills
       const allBills = directBills || [];
       
-      // Sort by date strings or project
-    return allBills.sort((a, b) => {
-      // Use state-based sorting if enabled, otherwise use props
-      const activeColumn = enableSorting ? sortColumn : null;
-      const activeDirection = enableSorting ? sortDirection : (sortOrder || 'desc');
-      
-      let compareResult = 0;
-      
-      if (activeColumn === 'project') {
-        // Sort by project address
-        const projectA = (a.projects?.address || '').toLowerCase();
-        const projectB = (b.projects?.address || '').toLowerCase();
-        compareResult = projectA.localeCompare(projectB);
-      } else if (activeColumn === 'due_date' || (!activeColumn && defaultSortBy === 'due_date')) {
-        // Sort by due date
-        const dateA = a.due_date || '';
-        const dateB = b.due_date || '';
-        
-        // Handle null/empty due dates - push to end
-        if (!dateA && dateB) return 1;
-        if (dateA && !dateB) return -1;
-        if (!dateA && !dateB) return 0;
-        
-        compareResult = normalizeToYMD(dateA).localeCompare(normalizeToYMD(dateB));
-      } else {
-        // Default: sort by bill_date
-        compareResult = normalizeToYMD(a.bill_date).localeCompare(normalizeToYMD(b.bill_date));
-      }
-      
-      return activeDirection === 'asc' ? compareResult : -compareResult;
-    }) as BillForApproval[];
+      return allBills as BillForApproval[];
     },
   });
+
+  const sortedBills = useMemo(() => {
+    const arr = [...bills];
+    if (arr.length === 0) return arr;
+
+    const activeColumn: 'project' | 'due_date' | 'bill_date' =
+      enableSorting && sortColumn ? sortColumn : (defaultSortBy === 'due_date' ? 'due_date' : 'bill_date');
+
+    const activeDirection: 'asc' | 'desc' =
+      enableSorting && sortColumn ? sortDirection : (sortOrder || (defaultSortBy === 'due_date' ? 'asc' : 'desc'));
+
+    const toYMD = (d?: string) => normalizeToYMD(d || '');
+
+    return arr.sort((a, b) => {
+      let cmp = 0;
+
+      if (activeColumn === 'project') {
+        const aAddr = (a.projects?.address || '').toLowerCase();
+        const bAddr = (b.projects?.address || '').toLowerCase();
+        cmp = aAddr.localeCompare(bAddr);
+      } else if (activeColumn === 'due_date') {
+        const aD = a.due_date || '';
+        const bD = b.due_date || '';
+        if (!aD && bD) cmp = 1;
+        else if (aD && !bD) cmp = -1;
+        else if (!aD && !bD) cmp = 0;
+        else cmp = toYMD(aD).localeCompare(toYMD(bD));
+      } else {
+        cmp = toYMD(a.bill_date).localeCompare(toYMD(b.bill_date));
+      }
+
+      return activeDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [bills, enableSorting, sortColumn, sortDirection, defaultSortBy, sortOrder]);
 
   const handleActionChange = (billId: string, action: string) => {
     const bill = bills.find(b => b.id === billId);
@@ -283,44 +288,54 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             <TableRow className="h-8">
               {showProjectColumn && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium">
-                  {enableSorting ? (
-                    <button
-                      onClick={() => handleSort('project')}
-                      className="flex items-center gap-1 hover:text-primary"
-                    >
-                      Project
-                      {sortColumn === 'project' && (
-                        <span className="text-xs">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </button>
-                  ) : (
-                    'Project'
-                  )}
-                </TableHead>
-              )}
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
                 {enableSorting ? (
                   <button
-                    onClick={() => handleSort('due_date')}
+                    type="button"
+                    onClick={() => handleSort('project')}
                     className="flex items-center gap-1 hover:text-primary"
                   >
-                    Due Date
-                    {sortColumn === 'due_date' && (
-                      <span className="text-xs">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
+                    <span>Project</span>
+                    {sortColumn === 'project' ? (
+                      sortDirection === 'asc' ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
                     )}
                   </button>
                 ) : (
-                  'Due Date'
+                  'Project'
                 )}
               </TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
+            )}
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+              {enableSorting ? (
+                <button
+                  type="button"
+                  onClick={() => handleSort('due_date')}
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <span>Due Date</span>
+                  {sortColumn === 'due_date' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              ) : (
+                'Due Date'
+              )}
+            </TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
@@ -333,14 +348,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bills.length === 0 ? (
+            {sortedBills.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8 + (showProjectColumn ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
             ) : (
-              bills.map((bill) => (
+              sortedBills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
                   {showProjectColumn && (
                     <TableCell className="px-2 py-1 text-xs">
