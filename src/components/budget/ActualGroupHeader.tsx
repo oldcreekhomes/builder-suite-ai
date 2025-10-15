@@ -13,6 +13,7 @@ interface ActualGroupHeaderProps {
   isPartiallySelected: boolean;
   onCheckboxChange: (group: string, checked: boolean) => void;
   groupBudgetTotal: number;
+  groupActualTotal: number;
   groupCommittedTotal: number;
   groupPurchaseOrders?: PurchaseOrder[];
   onShowCommitted: (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) => void;
@@ -26,6 +27,7 @@ export function ActualGroupHeader({
   isPartiallySelected,
   onCheckboxChange,
   groupBudgetTotal,
+  groupActualTotal,
   groupCommittedTotal,
   groupPurchaseOrders = [],
   onShowCommitted
@@ -36,8 +38,8 @@ export function ActualGroupHeader({
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
-  const calculateVariance = (budget: number, committed: number) => {
-    return budget - committed; // Budget - Committed Costs
+  const calculateVariance = (budget: number, actual: number, committed: number) => {
+    return budget - actual - committed; // Budget - Actual Cost - Committed Costs
   };
 
   const getVarianceColor = (variance: number) => {
@@ -46,7 +48,7 @@ export function ActualGroupHeader({
     return 'text-gray-600'; // On budget
   };
 
-  const variance = calculateVariance(groupBudgetTotal, groupCommittedTotal);
+  const variance = calculateVariance(groupBudgetTotal, groupActualTotal, groupCommittedTotal);
 
   return (
       <TableRow className="bg-gray-50 h-8" key={`row-${group}`}>
@@ -75,6 +77,11 @@ export function ActualGroupHeader({
         <TableCell className="px-2 py-0 w-28">
           <div className="text-xs font-medium">
             {formatCurrency(groupBudgetTotal)}
+          </div>
+        </TableCell>
+        <TableCell className="px-2 py-0 w-28">
+          <div className="text-xs font-medium">
+            {formatCurrency(groupActualTotal)}
           </div>
         </TableCell>
         <TableCell 

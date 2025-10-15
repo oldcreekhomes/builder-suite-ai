@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { MinimalCheckbox } from '@/components/ui/minimal-checkbox';
 import type { Tables } from '@/integrations/supabase/types';
@@ -14,6 +14,7 @@ interface ActualTableRowProps {
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   purchaseOrders: PurchaseOrder[];
   onShowCommitted: (args: { costCode: { code: string; name: string }, purchaseOrders: PurchaseOrder[], projectId?: string }) => void;
+  onUpdateActual?: (itemId: string, amount: number) => void;
 }
 
 export function ActualTableRow({
@@ -22,12 +23,16 @@ export function ActualTableRow({
   isSelected,
   onCheckboxChange,
   purchaseOrders,
-  onShowCommitted
+  onShowCommitted,
+  onUpdateActual
 }: ActualTableRowProps) {
+  const [isEditingActual, setIsEditingActual] = useState(false);
+  const [actualValue, setActualValue] = useState(item.actual_amount?.toString() || '');
   
   const costCode = item.cost_codes as CostCode;
   const budgetTotal = (item.quantity || 0) * (item.unit_price || 0);
-  const variance = budgetTotal - committedAmount; // Budget - Committed Costs
+  const actualCost = item.actual_amount || 0;
+  const variance = budgetTotal - actualCost - committedAmount; // Budget - Actual Cost - Committed Costs
 
   // Filter purchase orders for this cost code
   const costCodePOs = purchaseOrders.filter(po => po.cost_code_id === costCode?.id);
@@ -40,6 +45,20 @@ export function ActualTableRow({
     if (variance < 0) return 'text-red-600'; // Over budget (negative)
     if (variance > 0) return 'text-green-600'; // Under budget (positive)
     return 'text-gray-600'; // On budget
+  };
+
+  const handleActualBlur = () => {
+    setIsEditingActual(false);
+    const numericValue = parseFloat(actualValue) || 0;
+    if (numericValue !== (item.actual_amount || 0)) {
+      onUpdateActual?.(item.id, numericValue);
+    }
+  };
+
+  const handleActualKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
   };
 
   return (
@@ -66,6 +85,27 @@ export function ActualTableRow({
           <div className="text-xs font-medium">
             {formatCurrency(budgetTotal)}
           </div>
+        </TableCell>
+        <TableCell className="px-2 py-0 w-28">
+          {isEditingActual ? (
+            <input
+              type="number"
+              step="0.01"
+              value={actualValue}
+              onChange={(e) => setActualValue(e.target.value)}
+              onBlur={handleActualBlur}
+              onKeyDown={handleActualKeyDown}
+              className="w-full px-1 py-0.5 text-xs border border-blue-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              autoFocus
+            />
+          ) : (
+            <div 
+              className="text-xs cursor-pointer hover:bg-muted/50 rounded px-1"
+              onClick={() => setIsEditingActual(true)}
+            >
+              {formatCurrency(actualCost)}
+            </div>
+          )}
         </TableCell>
         <TableCell 
           className="px-2 py-0 w-32 cursor-pointer hover:bg-muted/50"

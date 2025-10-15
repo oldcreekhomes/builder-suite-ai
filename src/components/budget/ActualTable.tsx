@@ -80,6 +80,10 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     return items.reduce((sum, item) => sum + calculatePOByCostCode(item.cost_codes?.id), 0);
   };
 
+  const calculateGroupActualTotal = (items: any[]) => {
+    return items.reduce((sum, item) => sum + (item.actual_amount || 0), 0);
+  };
+
   const handlePrint = () => {
     // Print logic for Actual table (similar to Budget)
     console.log('Print Actual');
@@ -98,6 +102,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
           isPartiallySelected={isGroupPartiallySelected(items)}
           onCheckboxChange={onGroupCheckboxChange}
           groupBudgetTotal={calculateGroupBudgetTotal(items)}
+          groupActualTotal={calculateGroupActualTotal(items)}
           groupCommittedTotal={calculateGroupCommittedTotal(items)}
           groupPurchaseOrders={items.flatMap(item => 
             purchaseOrders.filter(po => po.cost_code_id === item.cost_codes?.id)
@@ -117,6 +122,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
               onCheckboxChange={handleItemCheckboxChange}
               purchaseOrders={purchaseOrders}
               onShowCommitted={openCommittedModal}
+              onUpdateActual={handleUpdateActual}
             />
           );
         }
