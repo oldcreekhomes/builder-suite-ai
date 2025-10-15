@@ -227,7 +227,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       case 'manual':
         return "Enter Manually";
       case 'upload':
-        return "Enter with AI";
+        return `Enter with AI (${displayCount})`;
       case 'review':
         return `Review (${displayCount})`;
       case 'approve':
@@ -247,7 +247,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       ]
     : [
         { value: "manual", label: getTabLabel('manual', undefined) },
-        { value: "upload", label: getTabLabel('upload', undefined) },
+        { value: "upload", label: getTabLabel('upload', counts?.aiExtractCount) },
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
