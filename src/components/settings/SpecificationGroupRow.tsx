@@ -24,7 +24,7 @@ interface SpecificationGroupRowProps {
   onDelete: (spec: SpecificationWithCostCode) => void;
   onUpdate: (specId: string, updatedSpec: any) => void;
   onFileUpload: (specId: string) => void;
-  onDeleteAllFiles: (specId: string) => void;
+  onDeleteIndividualFile: (specId: string, fileName: string) => void;
 }
 
 export function SpecificationGroupRow({
@@ -38,7 +38,7 @@ export function SpecificationGroupRow({
   onDelete,
   onUpdate,
   onFileUpload,
-  onDeleteAllFiles
+  onDeleteIndividualFile
 }: SpecificationGroupRowProps) {
   return (
     <TableRow className="bg-gray-50 border-b-2 border-gray-200 font-medium">

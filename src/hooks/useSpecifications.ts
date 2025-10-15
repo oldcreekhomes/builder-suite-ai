@@ -216,6 +216,54 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     }
   };
 
+  const handleDeleteIndividualSpecificationFile = async (specificationId: string, fileName: string) => {
+    try {
+      const specification = specifications.find(s => s.id === specificationId);
+      if (!specification) {
+        throw new Error('Specification not found');
+      }
+
+      // Delete file from storage
+      const { error: storageError } = await supabase.storage
+        .from('project-files')
+        .remove([fileName]);
+
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError);
+        toast({
+          title: "Error",
+          description: "Failed to delete file from storage",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update database - remove file from array
+      const updatedFiles = (specification.files || []).filter(f => f !== fileName);
+      
+      const { error } = await supabase
+        .from('cost_code_specifications')
+        .update({ files: updatedFiles })
+        .eq('id', specificationId);
+
+      if (error) throw error;
+
+      fetchSpecifications();
+      
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting specification file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete file",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSpecificationSelect = (specId: string, checked: boolean) => {
     const newSelected = new Set(selectedSpecifications);
     if (checked) {
@@ -344,6 +392,7 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     handleUpdateSpecificationDescription,
     handleSpecificationFileUpload,
     handleDeleteAllSpecificationFiles,
+    handleDeleteIndividualSpecificationFile,
     handleSpecificationSelect,
     handleSelectAllSpecifications,
     handleBulkDeleteSpecifications,

@@ -27,7 +27,7 @@ interface SpecificationsTabProps {
   onUpdateSpecification: (specId: string, updatedSpec: any) => void;
   onDeleteSpecification: (spec: SpecificationWithCostCode) => void;
   onFileUpload: (specId: string) => void;
-  onDeleteAllFiles: (specId: string) => void;
+  onDeleteIndividualFile: (specId: string, fileName: string) => void;
 }
 
 export function SpecificationsTab({
@@ -44,7 +44,7 @@ export function SpecificationsTab({
   onUpdateSpecification,
   onDeleteSpecification,
   onFileUpload,
-  onDeleteAllFiles
+  onDeleteIndividualFile
 }: SpecificationsTabProps) {
   // Use ALL cost codes for grouping so we can find parent codes like "4000"
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes, true);
@@ -118,7 +118,7 @@ export function SpecificationsTab({
         onEditDescription={onEditDescription}
         onDeleteSpecification={onDeleteSpecification}
         onFileUpload={onFileUpload}
-        onDeleteAllFiles={onDeleteAllFiles}
+        onDeleteIndividualFile={onDeleteIndividualFile}
         getParentCostCode={getParentSpecification}
       />
     </div>

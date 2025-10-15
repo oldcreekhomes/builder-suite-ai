@@ -49,6 +49,7 @@ const Settings = () => {
     handleUpdateSpecificationDescription,
     handleSpecificationFileUpload,
     handleDeleteAllSpecificationFiles,
+    handleDeleteIndividualSpecificationFile,
     handleSpecificationSelect,
     handleSelectAllSpecifications,
     handleBulkDeleteSpecifications,
@@ -159,7 +160,7 @@ const Settings = () => {
                     onUpdateSpecification={handleUpdateSpecification}
                     onDeleteSpecification={handleDeleteSpecificationClick}
                     onFileUpload={handleSpecificationFileUpload}
-                    onDeleteAllFiles={handleDeleteAllSpecificationFiles}
+                    onDeleteIndividualFile={handleDeleteIndividualSpecificationFile}
                   />
                 </TabsContent>
 

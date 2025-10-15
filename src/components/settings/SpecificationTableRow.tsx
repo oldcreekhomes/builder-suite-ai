@@ -23,7 +23,7 @@ interface SpecificationTableRowProps {
   onDelete: (spec: SpecificationWithCostCode) => void;
   onUpdate: (specId: string, updatedSpec: any) => void;
   onFileUpload: (specId: string) => void;
-  onDeleteAllFiles: (specId: string) => void;
+  onDeleteIndividualFile: (specId: string, fileName: string) => void;
 }
 
 export function SpecificationTableRow({
@@ -35,7 +35,7 @@ export function SpecificationTableRow({
   onDelete,
   onUpdate,
   onFileUpload,
-  onDeleteAllFiles
+  onDeleteIndividualFile
 }: SpecificationTableRowProps) {
   return (
     <TableRow className="h-8">
@@ -74,7 +74,7 @@ export function SpecificationTableRow({
           files={specification.files as string[] | null}
           specificationId={specification.id}
           onFileUpload={onFileUpload}
-          onDeleteAllFiles={onDeleteAllFiles}
+          onDeleteIndividualFile={onDeleteIndividualFile}
         />
       </TableCell>
       <TableCell className="py-1">

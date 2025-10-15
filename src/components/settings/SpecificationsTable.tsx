@@ -27,7 +27,7 @@ interface SpecificationsTableProps {
   onEditDescription: (spec: SpecificationWithCostCode) => void;
   onDeleteSpecification: (spec: SpecificationWithCostCode) => void;
   onFileUpload: (specId: string) => void;
-  onDeleteAllFiles: (specId: string) => void;
+  onDeleteIndividualFile: (specId: string, fileName: string) => void;
   getParentCostCode: (parentGroupCode: string) => SpecificationWithCostCode | undefined;
 }
 
@@ -45,7 +45,7 @@ export function SpecificationsTable({
   onEditDescription,
   onDeleteSpecification,
   onFileUpload,
-  onDeleteAllFiles,
+  onDeleteIndividualFile,
   getParentCostCode
 }: SpecificationsTableProps) {
   return (
@@ -102,11 +102,11 @@ export function SpecificationsTable({
                       onToggleCollapse={onToggleGroupCollapse}
                       onSelect={onSpecificationSelect}
                       onEditDescription={onEditDescription}
-                      onDelete={onDeleteSpecification}
-                      onUpdate={onUpdateSpecification}
-                      onFileUpload={onFileUpload}
-                      onDeleteAllFiles={onDeleteAllFiles}
-                    />
+                  onDelete={onDeleteSpecification}
+                  onUpdate={onUpdateSpecification}
+                  onFileUpload={onFileUpload}
+                  onDeleteIndividualFile={onDeleteIndividualFile}
+                />
                   )}
                   {/* Show specifications when group is expanded or ungrouped */}
                   {(groupKey === 'ungrouped' || !collapsedGroups.has(groupKey)) && 
@@ -125,10 +125,10 @@ export function SpecificationsTable({
                           isSelected={selectedSpecifications.has(spec.id)}
                           onSelect={onSpecificationSelect}
                           onEditDescription={onEditDescription}
-                          onDelete={onDeleteSpecification}
-                          onUpdate={onUpdateSpecification}
-                          onFileUpload={onFileUpload}
-                          onDeleteAllFiles={onDeleteAllFiles}
+                  onDelete={onDeleteSpecification}
+                  onUpdate={onUpdateSpecification}
+                  onFileUpload={onFileUpload}
+                  onDeleteIndividualFile={onDeleteIndividualFile}
                           isGrouped={groupKey !== 'ungrouped'}
                         />
                       ))
