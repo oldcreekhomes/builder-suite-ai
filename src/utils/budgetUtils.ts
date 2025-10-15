@@ -7,7 +7,9 @@ export const formatUnitOfMeasure = (unit: string | null) => {
     "square-feet": "SF", 
     "linear-feet": "LF",
     "square-yard": "SY",
-    "cubic-yard": "CY"
+    "cubic-yard": "CY",
+    "month": "MO",
+    "hour": "HR"
   };
   
   return unitMap[unit] || unit.toUpperCase();
