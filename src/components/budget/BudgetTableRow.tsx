@@ -267,6 +267,7 @@ export function BudgetTableRow({
                 <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
                 <SelectItem value="month">Month</SelectItem>
                 <SelectItem value="hour">Hour</SelectItem>
+                <SelectItem value="lump-sum">Lump Sum</SelectItem>
               </SelectContent>
             </Select>
           ) : (

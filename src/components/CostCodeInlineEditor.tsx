@@ -44,7 +44,8 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
       "square-yard": "SY",
       "cubic-yard": "CY",
       "month": "MTH",
-      "hour": "HR"
+      "hour": "HR",
+      "lump-sum": "LS"
     };
     
     return unitMap[unit] || unit.toUpperCase();
@@ -195,6 +196,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
           <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
           <SelectItem value="month">Month</SelectItem>
           <SelectItem value="hour">Hour</SelectItem>
+          <SelectItem value="lump-sum">Lump Sum</SelectItem>
         </SelectContent>
       </Select>
     );

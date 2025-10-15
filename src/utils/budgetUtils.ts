@@ -9,7 +9,8 @@ export const formatUnitOfMeasure = (unit: string | null) => {
     "square-yard": "SY",
     "cubic-yard": "CY",
     "month": "MTH",
-    "hour": "HR"
+    "hour": "HR",
+    "lump-sum": "LS"
   };
   
   return unitMap[unit] || unit.toUpperCase();
