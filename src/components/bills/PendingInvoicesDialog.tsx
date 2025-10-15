@@ -36,7 +36,9 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
               <TabsContent value="review" className="mt-6">
                 <BillsApprovalTable 
                   status="draft"
-                  projectIds={projectIds} 
+                  projectIds={projectIds}
+                  defaultSortBy="due_date"
+                  sortOrder="asc"
                 />
               </TabsContent>
 

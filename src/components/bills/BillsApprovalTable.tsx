@@ -70,9 +70,11 @@ interface BillsApprovalTableProps {
   projectId?: string;
   projectIds?: string[];
   showProjectColumn?: boolean;
+  defaultSortBy?: 'bill_date' | 'due_date';
+  sortOrder?: 'asc' | 'desc';
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -151,8 +153,29 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       const allBills = directBills || [];
       
       // Sort by date strings (YYYY-MM-DD lexicographical sort)
-      return allBills
-        .sort((a, b) => normalizeToYMD(b.bill_date).localeCompare(normalizeToYMD(a.bill_date))) as BillForApproval[];
+    return allBills.sort((a, b) => {
+      const sortField = defaultSortBy || 'bill_date';
+      const order = sortOrder || 'desc';
+      
+      // Get the date values to compare
+      const dateA = sortField === 'due_date' ? (a.due_date || '') : a.bill_date;
+      const dateB = sortField === 'due_date' ? (b.due_date || '') : b.bill_date;
+      
+      const normalizedA = normalizeToYMD(dateA);
+      const normalizedB = normalizeToYMD(dateB);
+      
+      // Handle null/empty due dates - push them to the end
+      if (sortField === 'due_date') {
+        if (!dateA && dateB) return 1;
+        if (dateA && !dateB) return -1;
+        if (!dateA && !dateB) return 0;
+      }
+      
+      // Apply sort order
+      return order === 'asc' 
+        ? normalizedA.localeCompare(normalizedB)
+        : normalizedB.localeCompare(normalizedA);
+    }) as BillForApproval[];
     },
   });
 
