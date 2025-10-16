@@ -65,6 +65,7 @@ export function ManualBillEntry() {
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createBill } = useBills();
 
@@ -202,6 +203,11 @@ export function ManualBillEntry() {
   };
 
   const handleSave = async (saveAndNew: boolean) => {
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring duplicate request');
+      return;
+    }
+
     if (!vendor) {
       toast({
         title: "Validation Error",
@@ -219,6 +225,8 @@ export function ManualBillEntry() {
       });
       return;
     }
+
+    setIsSubmitting(true);
 
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
@@ -382,6 +390,13 @@ export function ManualBillEntry() {
       }
     } catch (error) {
       console.error('Error saving bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save bill. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -394,6 +409,7 @@ export function ManualBillEntry() {
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
     setAttachments([]);
+    setIsSubmitting(false);
     
     const refNoInput = document.getElementById('refNo') as HTMLInputElement;
     if (refNoInput) refNoInput.value = '';
@@ -494,7 +510,7 @@ export function ManualBillEntry() {
               attachments={attachments}
               onAttachmentsChange={setAttachments}
               billId={savedBillId || undefined}
-              disabled={createBill.isPending}
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -726,18 +742,18 @@ export function ManualBillEntry() {
             type="button" 
             className="flex-1"
             onClick={() => handleSave(false)}
-            disabled={createBill.isPending}
+            disabled={isSubmitting}
           >
-            {createBill.isPending ? "Saving..." : "Save & Close"}
+            {isSubmitting ? "Saving..." : "Save & Close"}
           </Button>
           <Button 
             type="button" 
             variant="outline" 
             className="flex-1"
             onClick={() => handleSave(true)}
-            disabled={createBill.isPending}
+            disabled={isSubmitting}
           >
-            {createBill.isPending ? "Saving..." : "Save & New"}
+            {isSubmitting ? "Saving..." : "Save & New"}
           </Button>
         </div>
       </CardContent>

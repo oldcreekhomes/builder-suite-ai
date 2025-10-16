@@ -33,6 +33,8 @@ export const useBills = () => {
     mutationFn: async ({ billData, billLines }: { billData: BillData; billLines: BillLineData[] }) => {
       if (!user) throw new Error("User not authenticated");
 
+      console.log('Creating bill with data:', { billData, billLines });
+
       // Get the owner_id (either current user or home_builder_id for employees)
       const { data: userData } = await supabase
         .from('users')
@@ -52,9 +54,17 @@ export const useBills = () => {
           total_amount: billLines.reduce((sum, line) => sum + line.amount, 0)
         })
         .select()
-        .single();
+        .maybeSingle();
 
-      if (billError) throw billError;
+      if (billError) {
+        console.error('Bill insert error:', billError);
+        throw billError;
+      }
+      
+      if (!bill) {
+        console.error('Bill was inserted but could not be retrieved');
+        throw new Error("Bill was created but could not be retrieved. Please refresh the page.");
+      }
 
       // Create bill lines
       const billLinesWithBillId = billLines.map((line, index) => ({
@@ -73,11 +83,9 @@ export const useBills = () => {
       return bill;
     },
     onSuccess: () => {
+      console.log('Bill created successfully');
       queryClient.invalidateQueries({ queryKey: ['bills'] });
-      toast({
-        title: "Success",
-        description: "Bill saved successfully",
-      });
+      // Don't show toast here - let the component handle it to avoid duplicates
     },
     onError: (error) => {
       console.error('Error creating bill:', error);
