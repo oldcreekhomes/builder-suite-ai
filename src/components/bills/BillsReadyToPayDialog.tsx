@@ -39,7 +39,10 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
                   <TabsTrigger value="ready-to-pay" className="flex items-center gap-2">
                     Ready to Pay
                     {billCounts && billCounts.readyToPayCount > 0 && (
-                      <Badge variant="secondary" className="ml-auto">
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                      >
                         {billCounts.readyToPayCount}
                       </Badge>
                     )}
@@ -47,7 +50,10 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
                   <TabsTrigger value="rejected" className="flex items-center gap-2">
                     Rejected
                     {billCounts && billCounts.rejectedCount > 0 && (
-                      <Badge variant="secondary" className="ml-auto">
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                      >
                         {billCounts.rejectedCount}
                       </Badge>
                     )}
