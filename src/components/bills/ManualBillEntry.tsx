@@ -409,7 +409,7 @@ export function ManualBillEntry() {
               value={vendor}
               onChange={setVendor}
               placeholder="Search vendors..."
-              className="h-8"
+              className="w-full h-8"
             />
           </div>
 
