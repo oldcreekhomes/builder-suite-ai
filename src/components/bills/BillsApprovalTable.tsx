@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -92,11 +93,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     action: string;
     billId: string;
     billInfo?: BillForApproval;
+    notes: string;
   }>({
     open: false,
     action: '',
     billId: '',
     billInfo: undefined,
+    notes: '',
   });
   const [payBillDialogOpen, setPayBillDialogOpen] = useState(false);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<BillForApproval | null>(null);
@@ -244,20 +247,27 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       action,
       billId,
       billInfo: bill,
+      notes: '',
     });
   };
 
   const handleConfirmedAction = () => {
     if (confirmDialog.action === 'approve') {
-      approveBill.mutate(confirmDialog.billId);
+      approveBill.mutate({ 
+        billId: confirmDialog.billId,
+        notes: confirmDialog.notes 
+      });
     } else if (confirmDialog.action === 'reject') {
-      rejectBill.mutate(confirmDialog.billId);
+      rejectBill.mutate({ 
+        billId: confirmDialog.billId,
+        notes: confirmDialog.notes 
+      });
     }
-    setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined });
+    setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined, notes: '' });
   };
 
   const handleCancelAction = () => {
-    setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined });
+    setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined, notes: '' });
   };
 
   const handlePayBill = (bill: BillForApproval) => {
@@ -499,6 +509,24 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               {confirmDialog.action === 'reject' && ' This action cannot be undone.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          <div className="space-y-2 py-4">
+            <label htmlFor="approval-notes" className="text-sm font-medium">
+              {confirmDialog.action === 'approve' ? 'Approval Notes (Optional)' : 'Rejection Notes (Optional)'}
+            </label>
+            <Textarea
+              id="approval-notes"
+              placeholder={confirmDialog.action === 'approve' 
+                ? "Add any notes about this approval..." 
+                : "Add reason for rejection..."
+              }
+              value={confirmDialog.notes}
+              onChange={(e) => setConfirmDialog(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+          
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelAction}>Cancel</AlertDialogCancel>
             <AlertDialogAction 

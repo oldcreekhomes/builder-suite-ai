@@ -224,8 +224,21 @@ export const useBills = () => {
   });
 
   const approveBill = useMutation({
-    mutationFn: async (billId: string) => {
+    mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {
       if (!user) throw new Error("User not authenticated");
+
+      // Update bill notes if provided
+      if (notes && notes.trim()) {
+        const { error: notesError } = await supabase
+          .from('bills')
+          .update({ 
+            notes: notes.trim(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', billId);
+
+        if (notesError) throw notesError;
+      }
 
       // Approve a bill by posting it to the general ledger
       return await postBill.mutateAsync(billId);
@@ -250,14 +263,15 @@ export const useBills = () => {
   });
 
   const rejectBill = useMutation({
-    mutationFn: async (billId: string) => {
+    mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Update bill status to void (rejected)
+      // Update bill status to void (rejected) and add notes if provided
       const { error } = await supabase
         .from('bills')
         .update({ 
           status: 'void',
+          notes: notes && notes.trim() ? notes.trim() : null,
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
