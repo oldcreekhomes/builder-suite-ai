@@ -411,8 +411,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <TableCell className="px-2 py-1">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
-                  {showPayBillButton && (
-                    <TableCell className="py-1 text-xs">
+              {showPayBillButton && (
+                <TableCell className="py-1 text-xs text-center">
                       <Button
                         size="sm"
                         onClick={() => handlePayBill(bill)}
