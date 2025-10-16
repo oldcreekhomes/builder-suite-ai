@@ -21,6 +21,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -28,7 +29,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from 'lucide-react';
 
 interface BillForApproval {
   id: string;
@@ -396,6 +397,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
           {showPayBillButton && (
             <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-28">Pay Bill</TableHead>
           )}
@@ -410,7 +412,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -443,10 +445,26 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <TableCell className="px-2 py-1 text-xs">
                     {formatTerms(bill.terms)}
                   </TableCell>
-                  <TableCell className="px-2 py-1">
-                    <BillFilesCell attachments={bill.bill_attachments || []} />
-                  </TableCell>
-              {showPayBillButton && (
+            <TableCell className="px-2 py-1">
+              <BillFilesCell attachments={bill.bill_attachments || []} />
+            </TableCell>
+            <TableCell className="px-2 py-1 text-center">
+              {bill.notes?.trim() && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="inline-flex items-center justify-center">
+                        <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="text-xs whitespace-pre-wrap">{bill.notes}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </TableCell>
+            {showPayBillButton && (
                 <TableCell className="py-1 text-xs text-center">
                       <Button
                         size="sm"
