@@ -18,10 +18,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -104,6 +104,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   });
   const [payBillDialogOpen, setPayBillDialogOpen] = useState(false);
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<BillForApproval | null>(null);
+  const [notesDialog, setNotesDialog] = useState<{
+    open: boolean;
+    billInfo?: BillForApproval;
+  }>({
+    open: false,
+    billInfo: undefined,
+  });
 
   const handleSort = (column: 'project' | 'due_date') => {
     if (sortColumn === column) {
@@ -450,18 +457,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             </TableCell>
             <TableCell className="px-2 py-1 text-center">
               {bill.notes?.trim() && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="inline-flex items-center justify-center">
-                        <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-xs">
-                      <p className="text-xs whitespace-pre-wrap">{bill.notes}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-muted"
+                  onClick={() => setNotesDialog({ open: true, billInfo: bill })}
+                >
+                  <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                </Button>
               )}
             </TableCell>
             {showPayBillButton && (
@@ -564,6 +567,34 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         onConfirm={handleConfirmPayment}
         isLoading={payBill.isPending}
       />
+
+      <Dialog open={notesDialog.open} onOpenChange={(open) => !open && setNotesDialog({ open: false, billInfo: undefined })}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="h-4 w-4 text-yellow-600" />
+              Bill Notes
+            </DialogTitle>
+            {notesDialog.billInfo && (
+              <div className="text-sm text-muted-foreground mt-1">
+                {notesDialog.billInfo.companies?.company_name} - {formatCurrency(notesDialog.billInfo.total_amount)}
+              </div>
+            )}
+          </DialogHeader>
+          
+          <div className="space-y-2">
+            <div className="rounded-md border border-input bg-muted/50 p-3 text-sm whitespace-pre-wrap">
+              {notesDialog.billInfo?.notes || "No notes available"}
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => setNotesDialog({ open: false, billInfo: undefined })}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
