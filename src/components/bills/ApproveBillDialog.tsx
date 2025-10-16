@@ -49,6 +49,7 @@ export const ApproveBillDialog = ({
   const [referenceNumber, setReferenceNumber] = useState("");
   const [terms, setTerms] = useState("");
   const [notes, setNotes] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
   const [extractedVendorName, setExtractedVendorName] = useState<string | null>(null);
 
   // Update projectId when initialProjectId changes
@@ -157,6 +158,7 @@ export const ApproveBillDialog = ({
         referenceNumber,
         terms,
         notes,
+        reviewNotes,
       },
       {
         onSuccess: () => {
@@ -168,6 +170,7 @@ export const ApproveBillDialog = ({
           setReferenceNumber("");
           setTerms("");
           setNotes("");
+          setReviewNotes("");
         },
       }
     );
@@ -291,14 +294,28 @@ export const ApproveBillDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <Label htmlFor="notes">Bill Notes</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes..."
-              rows={3}
+              placeholder="Notes to attach to the bill..."
+              rows={2}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="review-notes">Approval Notes for Accountant (Optional)</Label>
+            <Textarea
+              id="review-notes"
+              value={reviewNotes}
+              onChange={(e) => setReviewNotes(e.target.value)}
+              placeholder="Add any notes about this approval for the accountant..."
+              rows={2}
+            />
+            <p className="text-xs text-muted-foreground">
+              These notes will help the accountant understand any special circumstances about this bill.
+            </p>
           </div>
         </div>
 

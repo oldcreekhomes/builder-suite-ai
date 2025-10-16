@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
 import { ApproveBillDialog } from "./ApproveBillDialog";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
+import { RejectBillDialog } from "./RejectBillDialog";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -23,19 +24,14 @@ interface BillsReviewTableRowProps {
 export const BillsReviewTableRow = ({
   bill,
 }: BillsReviewTableRowProps) => {
-  const { rejectBill, deletePendingUpload } = usePendingBills();
+  const { deletePendingUpload } = usePendingBills();
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const { openBillAttachment } = useUniversalFilePreviewContext();
 
   const extractedData = bill.extracted_data as ExtractedData | null;
   const vendorName = extractedData?.vendor_name;
-
-  const handleReject = () => {
-    if (confirm('Are you sure you want to reject this bill?')) {
-      rejectBill.mutate({ pendingUploadId: bill.id });
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -114,7 +110,7 @@ export const BillsReviewTableRow = ({
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={handleReject}
+                  onClick={() => setShowRejectDialog(true)}
                 >
                   <X className="h-4 w-4 mr-1" />
                   Reject
@@ -138,6 +134,13 @@ export const BillsReviewTableRow = ({
         open={showApproveDialog}
         onOpenChange={setShowApproveDialog}
         pendingUploadId={bill.id}
+      />
+      
+      <RejectBillDialog
+        open={showRejectDialog}
+        onOpenChange={setShowRejectDialog}
+        pendingUploadId={bill.id}
+        vendorName={vendorName}
       />
       
       <EditExtractedBillDialog

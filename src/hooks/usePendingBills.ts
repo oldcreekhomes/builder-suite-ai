@@ -179,6 +179,7 @@ export const usePendingBills = () => {
       referenceNumber,
       terms,
       notes,
+      reviewNotes,
     }: {
       pendingUploadId: string;
       vendorId: string;
@@ -188,6 +189,7 @@ export const usePendingBills = () => {
       referenceNumber?: string;
       terms?: string;
       notes?: string;
+      reviewNotes?: string;
     }) => {
       const { data, error } = await supabase.rpc("approve_pending_bill", {
         pending_upload_id_param: pendingUploadId,
@@ -198,6 +200,7 @@ export const usePendingBills = () => {
         reference_number_param: referenceNumber || null,
         terms_param: terms || null,
         notes_param: notes || null,
+        review_notes_param: reviewNotes || null,
       });
 
       if (error) throw error;
@@ -267,6 +270,7 @@ export const usePendingBills = () => {
         referenceNumber?: string;
         terms?: string;
         notes?: string;
+        reviewNotes?: string;
       }>,
     ) => {
       const results = [];
@@ -282,6 +286,7 @@ export const usePendingBills = () => {
             reference_number_param: bill.referenceNumber || null,
             terms_param: bill.terms || null,
             notes_param: bill.notes || null,
+            review_notes_param: bill.reviewNotes || null,
           });
 
           if (error) throw error;
