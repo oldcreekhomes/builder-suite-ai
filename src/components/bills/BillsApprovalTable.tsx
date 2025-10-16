@@ -77,9 +77,10 @@ interface BillsApprovalTableProps {
   sortOrder?: 'asc' | 'desc';
   enableSorting?: boolean;
   showPayBillButton?: boolean;
+  searchQuery?: string;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | null>(
@@ -211,6 +212,30 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       return activeDirection === 'asc' ? cmp : -cmp;
     });
   }, [bills, enableSorting, sortColumn, sortDirection, defaultSortBy, sortOrder]);
+
+  const filteredBills = useMemo(() => {
+    if (!searchQuery?.trim()) return sortedBills;
+    
+    const query = searchQuery.toLowerCase();
+    return sortedBills.filter(bill => {
+      // Check project address
+      if (bill.projects?.address?.toLowerCase().includes(query)) return true;
+      
+      // Check vendor name
+      if (bill.companies?.company_name?.toLowerCase().includes(query)) return true;
+      
+      // Check reference number
+      if (bill.reference_number?.toLowerCase().includes(query)) return true;
+      
+      // Check cost codes in bill lines
+      if (bill.bill_lines?.some(line => 
+        line.cost_codes?.name?.toLowerCase().includes(query) ||
+        line.cost_codes?.code?.toLowerCase().includes(query)
+      )) return true;
+      
+      return false;
+    });
+  }, [sortedBills, searchQuery]);
 
   const handleActionChange = (billId: string, action: string) => {
     const bill = bills.find(b => b.id === billId);
@@ -373,14 +398,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedBills.length === 0 ? (
+            {filteredBills.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
             ) : (
-              sortedBills.map((bill) => (
+              filteredBills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
                   {showProjectColumn && (
                     <TableCell className="px-2 py-1 text-xs">
