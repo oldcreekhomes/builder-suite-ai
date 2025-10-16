@@ -29,13 +29,6 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
             Review and approve invoices that need your attention.
           </DialogDescription>
         </DialogHeader>
-        <div className="relative max-w-sm px-6 pb-4">
-          <Input
-            placeholder="Search bills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
             <Tabs defaultValue="review" className="w-full">
@@ -44,7 +37,15 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
                 <TabsTrigger value="approve">Approved</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="review" className="mt-6">
+              <div className="relative max-w-sm mt-4 mb-6">
+                <Input
+                  placeholder="Search bills..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <TabsContent value="review" className="mt-0">
                 <BillsApprovalTable 
                   status="draft"
                   projectIds={projectIds}
@@ -55,7 +56,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
                 />
               </TabsContent>
 
-              <TabsContent value="approve" className="mt-6">
+              <TabsContent value="approve" className="mt-0">
                 <BillsApprovalTable 
                   status={['posted', 'paid']}
                   projectIds={projectIds}
