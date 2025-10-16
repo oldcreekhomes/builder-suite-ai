@@ -32,10 +32,12 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
             <Tabs defaultValue="review" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="review">Review</TabsTrigger>
-                <TabsTrigger value="approve">Approved</TabsTrigger>
-              </TabsList>
+              <div className="max-w-sm">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="review">Review</TabsTrigger>
+                  <TabsTrigger value="approve">Approved</TabsTrigger>
+                </TabsList>
+              </div>
               
               <div className="relative max-w-sm mt-4 mb-6">
                 <Input
