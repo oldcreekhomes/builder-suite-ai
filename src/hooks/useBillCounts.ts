@@ -6,6 +6,7 @@ interface BillCounts {
   rejectedCount: number;
   approvedCount: number;
   payBillsCount: number;
+  readyToPayCount: number;
   aiExtractCount: number;
 }
 
@@ -36,6 +37,11 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         .select('id', { count: 'exact', head: true })
         .eq('status', 'paid');
 
+      const readyToPayQuery = supabase
+        .from('bills')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'posted');
+
       // Get count for AI extraction (pending uploads)
       const aiExtractQuery = supabase
         .from('pending_bill_uploads')
@@ -48,20 +54,23 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         rejectedQuery.in('project_id', projectIds);
         approvedQuery.in('project_id', projectIds);
         payBillsQuery.in('project_id', projectIds);
+        readyToPayQuery.in('project_id', projectIds);
         // Note: pending_bill_uploads doesn't have project_id, so no filter for AI
       } else if (projectId) {
         pendingQuery.eq('project_id', projectId);
         rejectedQuery.eq('project_id', projectId);
         approvedQuery.eq('project_id', projectId);
         payBillsQuery.eq('project_id', projectId);
+        readyToPayQuery.eq('project_id', projectId);
         // Note: pending_bill_uploads doesn't have project_id, so no filter for AI
       }
 
-      const [pendingResult, rejectedResult, approvedResult, payBillsResult, aiExtractResult] = await Promise.all([
+      const [pendingResult, rejectedResult, approvedResult, payBillsResult, readyToPayResult, aiExtractResult] = await Promise.all([
         pendingQuery,
         rejectedQuery,
         approvedQuery,
         payBillsQuery,
+        readyToPayQuery,
         aiExtractQuery
       ]);
 
@@ -69,6 +78,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       if (rejectedResult.error) throw rejectedResult.error;
       if (approvedResult.error) throw approvedResult.error;
       if (payBillsResult.error) throw payBillsResult.error;
+      if (readyToPayResult.error) throw readyToPayResult.error;
       if (aiExtractResult.error) throw aiExtractResult.error;
 
       return {
@@ -76,6 +86,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         rejectedCount: rejectedResult.count || 0,
         approvedCount: approvedResult.count || 0,
         payBillsCount: payBillsResult.count || 0,
+        readyToPayCount: readyToPayResult.count || 0,
         aiExtractCount: aiExtractResult.count || 0
       };
     },

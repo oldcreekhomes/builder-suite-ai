@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { BillsApprovalTable } from "@/components/bills/BillsApprovalTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
+import { useBillCounts } from "@/hooks/useBillCounts";
 
 interface BillsReadyToPayDialogProps {
   open: boolean;
@@ -18,6 +20,7 @@ interface BillsReadyToPayDialogProps {
 
 export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: billCounts } = useBillCounts();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,8 +36,22 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
             <Tabs defaultValue="ready-to-pay" className="w-full">
               <div className="max-w-sm">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="ready-to-pay">Ready to Pay</TabsTrigger>
-                  <TabsTrigger value="rejected">Rejected</TabsTrigger>
+                  <TabsTrigger value="ready-to-pay" className="flex items-center gap-2">
+                    Ready to Pay
+                    {billCounts && billCounts.readyToPayCount > 0 && (
+                      <Badge variant="secondary" className="ml-auto">
+                        {billCounts.readyToPayCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="rejected" className="flex items-center gap-2">
+                    Rejected
+                    {billCounts && billCounts.rejectedCount > 0 && (
+                      <Badge variant="secondary" className="ml-auto">
+                        {billCounts.rejectedCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
