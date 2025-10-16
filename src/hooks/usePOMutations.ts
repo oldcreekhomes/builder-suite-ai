@@ -131,6 +131,7 @@ export const usePOMutations = (projectId: string) => {
       // Invalidate both purchase orders and bidding queries
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
       
       toast({
         title: "PO Email Sent",
@@ -169,6 +170,7 @@ export const usePOMutations = (projectId: string) => {
       console.log('Bid package status updated to closed');
       // Invalidate bidding data to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
       toast({
         title: "Status Updated",
         description: "Bid package moved to closed status",
@@ -288,6 +290,7 @@ export const usePOMutations = (projectId: string) => {
       console.log('PO email resent successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
       
       toast({
         title: "PO Email Resent",
