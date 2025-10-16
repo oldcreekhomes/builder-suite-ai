@@ -361,9 +361,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
-              {showPayBillButton && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Pay Bill</TableHead>
-              )}
+          {showPayBillButton && (
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-28">Pay Bill</TableHead>
+          )}
               {canShowActions && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-28">Actions</TableHead>
               )}
