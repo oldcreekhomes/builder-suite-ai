@@ -64,6 +64,7 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
                   sortOrder="asc"
                   enableSorting={true}
                   searchQuery={searchQuery}
+                  showEditButton={true}
                 />
               </TabsContent>
             </Tabs>

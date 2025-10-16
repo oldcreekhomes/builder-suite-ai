@@ -29,7 +29,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit } from 'lucide-react';
 
 interface BillForApproval {
   id: string;
@@ -80,9 +80,10 @@ interface BillsApprovalTableProps {
   enableSorting?: boolean;
   showPayBillButton?: boolean;
   searchQuery?: string;
+  showEditButton?: boolean;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | null>(
@@ -412,7 +413,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-28">Actions</TableHead>
               )}
               {canShowDeleteButton && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">Delete</TableHead>
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">
+                  {showEditButton ? 'Actions' : 'Delete'}
+                </TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -513,15 +516,30 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   )}
                    {canShowDeleteButton && (
                     <TableCell className="py-1 text-center">
-                      <DeleteButton
-                        onDelete={() => deleteBill.mutate(bill.id)}
-                        title="Delete Bill"
-                        description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
-                        size="icon"
-                        variant="ghost"
-                        isLoading={deleteBill.isPending}
-                        className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 mx-auto"
-                      />
+                      <div className="flex items-center justify-center gap-1">
+                        {showEditButton && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+                            onClick={() => {
+                              // TODO: Implement edit functionality
+                              console.log('Edit bill:', bill.id);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <DeleteButton
+                          onDelete={() => deleteBill.mutate(bill.id)}
+                          title="Delete Bill"
+                          description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
+                          size="icon"
+                          variant="ghost"
+                          isLoading={deleteBill.isPending}
+                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                        />
+                      </div>
                     </TableCell>
                    )}
                 </TableRow>
