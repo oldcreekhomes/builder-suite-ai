@@ -89,14 +89,14 @@ export function ProjectWarnings() {
                   
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Current</span>
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Current</span>
                       <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
                         {currentCount}
                       </Badge>
                     </div>
                     
                     <div className="relative">
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Late</span>
+                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Late</span>
                       <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
                         {lateCount}
                       </Badge>
