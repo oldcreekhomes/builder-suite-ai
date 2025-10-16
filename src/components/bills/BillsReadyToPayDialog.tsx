@@ -31,7 +31,7 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
             <Tabs defaultValue="ready-to-pay" className="w-full">
-              <TabsList>
+              <TabsList className="max-w-sm">
                 <TabsTrigger value="ready-to-pay">Ready to Pay</TabsTrigger>
                 <TabsTrigger value="rejected">Rejected</TabsTrigger>
               </TabsList>
