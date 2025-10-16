@@ -388,8 +388,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       </TabsContent>
 
       <TabsContent value="approve" className="mt-6">
-        <BillsApprovalTable 
-          status={['posted', 'paid']}
+        <PayBillsTable 
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
@@ -397,7 +396,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       </TabsContent>
 
       <TabsContent value="pay" className="mt-6">
-        <PayBillsTable projectId={effectiveProjectId} projectIds={projectIds} />
+        <BillsApprovalTable 
+          status="paid"
+          projectId={effectiveProjectId} 
+          projectIds={projectIds}
+          showProjectColumn={false}
+        />
       </TabsContent>
     </Tabs>
   );
