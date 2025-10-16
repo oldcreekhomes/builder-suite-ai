@@ -30,6 +30,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
 import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit } from 'lucide-react';
+import { EditBillDialog } from './EditBillDialog';
 
 interface BillForApproval {
   id: string;
@@ -112,6 +113,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     open: false,
     billInfo: undefined,
   });
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   const handleSort = (column: 'project' | 'due_date') => {
     if (sortColumn === column) {
@@ -522,10 +524,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
-                            onClick={() => {
-                              // TODO: Implement edit functionality
-                              console.log('Edit bill:', bill.id);
-                            }}
+                            onClick={() => setEditingBillId(bill.id)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -627,6 +626,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           </div>
         </DialogContent>
       </Dialog>
+
+      <EditBillDialog
+        open={editingBillId !== null}
+        onOpenChange={(open) => !open && setEditingBillId(null)}
+        billId={editingBillId || ''}
+      />
     </>
   );
 }

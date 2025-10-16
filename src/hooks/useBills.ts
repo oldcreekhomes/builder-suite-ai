@@ -447,12 +447,93 @@ export const useBills = () => {
     }
   });
 
+  const updateBill = useMutation({
+    mutationFn: async ({ 
+      billId, 
+      billData, 
+      billLines,
+      deletedLineIds 
+    }: { 
+      billId: string; 
+      billData: BillData; 
+      billLines: BillLineData[];
+      deletedLineIds: string[];
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Get the owner_id
+      const { data: bill } = await supabase
+        .from('bills')
+        .select('owner_id')
+        .eq('id', billId)
+        .single();
+
+      if (!bill) throw new Error("Bill not found");
+
+      // Update bill header and set status to 'draft' (back to review queue)
+      const { error: billError } = await supabase
+        .from('bills')
+        .update({
+          ...billData,
+          status: 'draft', // KEY: Move back to review queue
+          total_amount: billLines.reduce((sum, line) => sum + line.amount, 0),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', billId);
+
+      if (billError) throw billError;
+
+      // Delete all existing bill lines (simplest approach)
+      const { error: deleteError } = await supabase
+        .from('bill_lines')
+        .delete()
+        .eq('bill_id', billId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert all lines fresh with updated line numbers
+      const billLinesWithBillId = billLines.map((line, index) => ({
+        ...line,
+        bill_id: billId,
+        line_number: index + 1,
+        owner_id: bill.owner_id
+      }));
+
+      const { error: linesError } = await supabase
+        .from('bill_lines')
+        .insert(billLinesWithBillId);
+
+      if (linesError) throw linesError;
+
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill'] });
+      toast({
+        title: "Success",
+        description: "Bill updated and sent back for review",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update bill",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     createBill,
     postBill,
     approveBill,
     rejectBill,
     payBill,
-    deleteBill
+    deleteBill,
+    updateBill
   };
 };
