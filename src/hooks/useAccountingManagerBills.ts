@@ -12,6 +12,8 @@ interface BillSummary {
 
 interface AccountingManagerBillsData {
   pendingCount: number;
+  currentCount: number;
+  lateCount: number;
   totalAmount: number;
   recentBills: BillSummary[];
   projectIds: string[];
@@ -24,7 +26,7 @@ export function useAccountingManagerBills() {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       // Get projects where current user is the accounting manager
@@ -35,11 +37,11 @@ export function useAccountingManagerBills() {
 
       if (projectsError) {
         console.error('Error fetching managed projects:', projectsError);
-        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       if (!projects || projects.length === 0) {
-        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
       const projectIds = projects.map(p => p.id);
@@ -51,6 +53,7 @@ export function useAccountingManagerBills() {
           id,
           total_amount,
           bill_date,
+          due_date,
           project_id,
           vendor:companies!bills_vendor_id_fkey(company_name),
           project:projects!bills_project_id_fkey(address)
@@ -61,10 +64,29 @@ export function useAccountingManagerBills() {
 
       if (billsError) {
         console.error('Error fetching bills:', billsError);
-        return { pendingCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
       }
 
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const currentBills = bills?.filter(bill => {
+        if (!bill.due_date) return true; // No due date = not late
+        const dueDate = new Date(bill.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate >= today;
+      }) || [];
+
+      const lateBills = bills?.filter(bill => {
+        if (!bill.due_date) return false; // No due date = not late
+        const dueDate = new Date(bill.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
+      }) || [];
+
       const pendingCount = bills?.length || 0;
+      const currentCount = currentBills.length;
+      const lateCount = lateBills.length;
       const totalAmount = bills?.reduce((sum, bill) => sum + Number(bill.total_amount), 0) || 0;
       
       const recentBills: BillSummary[] = (bills || []).slice(0, 5).map(bill => ({
@@ -78,6 +100,8 @@ export function useAccountingManagerBills() {
 
       return {
         pendingCount,
+        currentCount,
+        lateCount,
         totalAmount,
         recentBills,
         projectIds,

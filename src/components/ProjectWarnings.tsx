@@ -51,7 +51,12 @@ export function ProjectWarnings() {
     );
   }
 
-  const { pendingCount, projectIds } = pendingData || { pendingCount: 0, projectIds: [] };
+  const { pendingCount, currentCount, lateCount, projectIds } = pendingData || { 
+    pendingCount: 0, 
+    currentCount: 0, 
+    lateCount: 0, 
+    projectIds: [] 
+  };
   const { count: readyToPayCount, projectIds: readyToPayProjectIds, hasAccess } = readyToPayData || { count: 0, projectIds: [], hasAccess: false };
   
   const hasAlerts = pendingCount > 0 || (hasAccess && readyToPayCount > 0);
@@ -74,14 +79,31 @@ export function ProjectWarnings() {
             <div className="divide-y">
               {pendingCount > 0 && (
                 <div
-                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
+                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => setIsPendingDialogOpen(true)}
                 >
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 mb-3">
                     <FileText className="h-5 w-5 text-gray-600" />
                     <span className="text-sm font-medium">Pending Invoices</span>
                   </div>
-                  <Badge variant="secondary">{pendingCount}</Badge>
+                  
+                  <div className="flex items-center justify-center gap-8">
+                    {/* Current Counter */}
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-muted-foreground mb-1">Current</span>
+                      <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 text-lg px-3 py-1">
+                        {currentCount}
+                      </Badge>
+                    </div>
+                    
+                    {/* Late Counter */}
+                    <div className="flex flex-col items-center">
+                      <span className="text-xs text-muted-foreground mb-1">Late</span>
+                      <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600 text-lg px-3 py-1">
+                        {lateCount}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
               )}
               
