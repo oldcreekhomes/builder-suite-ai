@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from '@/components/ui/button';
-import { Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Download, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 // Set up PDF.js worker using local import to avoid CDN blocking
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -15,7 +15,6 @@ interface PDFViewerProps {
 
 export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -30,14 +29,6 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     console.error('PDF load error:', error);
     setHasError(true);
     setIsLoading(false);
-  };
-
-  const goToPrevPage = () => {
-    setPageNumber(prev => Math.max(1, prev - 1));
-  };
-
-  const goToNextPage = () => {
-    setPageNumber(prev => Math.min(numPages, prev + 1));
   };
 
   const zoomIn = () => {
@@ -75,25 +66,9 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
       {/* Controls */}
       <div className="flex items-center justify-between gap-2 p-2 border-b bg-muted/50">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={goToPrevPage} 
-            disabled={pageNumber <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[80px] text-center">
-            {isLoading ? 'Loading...' : `${pageNumber} / ${numPages}`}
+          <span className="text-sm font-medium">
+            {isLoading ? 'Loading...' : `${numPages} ${numPages === 1 ? 'page' : 'pages'}`}
           </span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={goToNextPage} 
-            disabled={pageNumber >= numPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
         
         <div className="flex items-center gap-2">
@@ -114,7 +89,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
 
       {/* PDF Viewer */}
       <div className="flex-1 overflow-auto bg-muted/20 p-4">
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-4">
           <Document
             file={fileUrl}
             onLoadSuccess={onDocumentLoadSuccess}
@@ -128,16 +103,19 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
               </div>
             }
           >
-            <Page
-              pageNumber={pageNumber}
-              scale={scale}
-              className="shadow-lg border bg-white"
-              loading={
-                <div className="flex items-center justify-center p-8 bg-white border shadow-lg">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              }
-            />
+            {Array.from(new Array(numPages), (_, index) => (
+              <Page
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
+                scale={scale}
+                className="shadow-lg border bg-white mb-4"
+                loading={
+                  <div className="flex items-center justify-center p-8 bg-white border shadow-lg mb-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                }
+              />
+            ))}
           </Document>
         </div>
       </div>
