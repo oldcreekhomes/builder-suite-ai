@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { BillsApprovalTable } from "@/components/bills/BillsApprovalTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
@@ -16,6 +18,8 @@ interface PendingInvoicesDialogProps {
 }
 
 export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: PendingInvoicesDialogProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">
@@ -25,6 +29,13 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
             Review and approve invoices that need your attention.
           </DialogDescription>
         </DialogHeader>
+        <div className="relative max-w-sm px-6 pb-4">
+          <Input
+            placeholder="Search bills..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
             <Tabs defaultValue="review" className="w-full">
@@ -40,13 +51,15 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
                   defaultSortBy="due_date"
                   sortOrder="asc"
                   enableSorting={true}
+                  searchQuery={searchQuery}
                 />
               </TabsContent>
 
               <TabsContent value="approve" className="mt-6">
                 <BillsApprovalTable 
                   status={['posted', 'paid']}
-                  projectIds={projectIds} 
+                  projectIds={projectIds}
+                  searchQuery={searchQuery}
                 />
               </TabsContent>
             </Tabs>
