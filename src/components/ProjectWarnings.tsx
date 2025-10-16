@@ -87,16 +87,16 @@ export function ProjectWarnings() {
                     <span className="text-sm font-medium">Pending Invoices</span>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs text-muted-foreground mb-0.5">Current</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-muted-foreground">Current</span>
                       <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
                         {currentCount}
                       </Badge>
                     </div>
                     
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs text-muted-foreground mb-0.5">Late</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs text-muted-foreground">Late</span>
                       <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
                         {lateCount}
                       </Badge>
