@@ -3,13 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, FileText } from "lucide-react";
+import { AlertTriangle, FileText, DollarSign } from "lucide-react";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
+import { useBillsReadyToPay } from "@/hooks/useBillsReadyToPay";
 import { PendingInvoicesDialog } from "@/components/bills/PendingInvoicesDialog";
+import { BillsReadyToPayDialog } from "@/components/bills/BillsReadyToPayDialog";
 
 export function ProjectWarnings() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { data, isLoading, error } = useAccountingManagerBills();
+  const [isPendingDialogOpen, setIsPendingDialogOpen] = useState(false);
+  const [isReadyToPayDialogOpen, setIsReadyToPayDialogOpen] = useState(false);
+  
+  const { data: pendingData, isLoading: pendingLoading, error: pendingError } = useAccountingManagerBills();
+  const { data: readyToPayData, isLoading: readyToPayLoading, error: readyToPayError } = useBillsReadyToPay();
+
+  const isLoading = pendingLoading || readyToPayLoading;
+  const error = pendingError || readyToPayError;
 
   if (isLoading) {
     return (
@@ -43,7 +51,10 @@ export function ProjectWarnings() {
     );
   }
 
-  const { pendingCount, projectIds } = data || { pendingCount: 0, projectIds: [] };
+  const { pendingCount, projectIds } = pendingData || { pendingCount: 0, projectIds: [] };
+  const { count: readyToPayCount, projectIds: readyToPayProjectIds, hasAccess } = readyToPayData || { count: 0, projectIds: [], hasAccess: false };
+  
+  const hasAlerts = pendingCount > 0 || (hasAccess && readyToPayCount > 0);
 
   return (
     <>
@@ -55,29 +66,51 @@ export function ProjectWarnings() {
           </div>
         </div>
         <CardContent className="p-0">
-          {pendingCount === 0 ? (
+          {!hasAlerts ? (
             <div className="p-6 text-sm text-muted-foreground">
               No pending warnings
             </div>
           ) : (
-            <div
-              className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <div className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-gray-600" />
-                <span className="text-sm font-medium">Pending Invoices</span>
-              </div>
-              <Badge variant="secondary">{pendingCount}</Badge>
+            <div className="divide-y">
+              {pendingCount > 0 && (
+                <div
+                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
+                  onClick={() => setIsPendingDialogOpen(true)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-medium">Pending Invoices</span>
+                  </div>
+                  <Badge variant="secondary">{pendingCount}</Badge>
+                </div>
+              )}
+              
+              {hasAccess && readyToPayCount > 0 && (
+                <div
+                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
+                  onClick={() => setIsReadyToPayDialogOpen(true)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-medium">Bills Ready to Pay</span>
+                  </div>
+                  <Badge variant="secondary">{readyToPayCount}</Badge>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
       <PendingInvoicesDialog 
-        open={isDialogOpen} 
-        onOpenChange={setIsDialogOpen}
+        open={isPendingDialogOpen} 
+        onOpenChange={setIsPendingDialogOpen}
         projectIds={projectIds}
+      />
+      
+      <BillsReadyToPayDialog 
+        open={isReadyToPayDialogOpen} 
+        onOpenChange={setIsReadyToPayDialogOpen}
       />
     </>
   );
