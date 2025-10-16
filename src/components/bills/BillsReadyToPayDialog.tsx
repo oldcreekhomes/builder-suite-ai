@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BillsApprovalTable } from "@/components/bills/BillsApprovalTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
@@ -22,28 +23,48 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle>Bills Ready to Pay</DialogTitle>
+          <DialogTitle>Ready for Review</DialogTitle>
           <DialogDescription>
-            These bills have been approved and are ready to be paid across all projects.
+            Review bills that are ready to pay or have been rejected across all projects.
           </DialogDescription>
         </DialogHeader>
-        <div className="relative max-w-sm px-6 pb-4">
-          <Input
-            placeholder="Search bills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
-            <BillsApprovalTable 
-              status="posted"
-              defaultSortBy="due_date"
-              sortOrder="asc"
-              enableSorting={true}
-              showPayBillButton={true}
-              searchQuery={searchQuery}
-            />
+            <Tabs defaultValue="ready-to-pay" className="w-full">
+              <TabsList>
+                <TabsTrigger value="ready-to-pay">Ready to Pay</TabsTrigger>
+                <TabsTrigger value="rejected">Rejected</TabsTrigger>
+              </TabsList>
+              
+              <div className="relative max-w-sm mt-4 mb-6">
+                <Input
+                  placeholder="Search bills..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <TabsContent value="ready-to-pay" className="mt-0">
+                <BillsApprovalTable 
+                  status="posted"
+                  defaultSortBy="due_date"
+                  sortOrder="asc"
+                  enableSorting={true}
+                  showPayBillButton={true}
+                  searchQuery={searchQuery}
+                />
+              </TabsContent>
+
+              <TabsContent value="rejected" className="mt-0">
+                <BillsApprovalTable 
+                  status="void"
+                  defaultSortBy="due_date"
+                  sortOrder="asc"
+                  enableSorting={true}
+                  searchQuery={searchQuery}
+                />
+              </TabsContent>
+            </Tabs>
           </UniversalFilePreviewProvider>
         </div>
       </DialogContent>

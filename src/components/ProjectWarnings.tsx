@@ -112,7 +112,7 @@ export function ProjectWarnings() {
                 >
                   <div className="flex items-center space-x-2">
                     <DollarSign className="h-5 w-5 text-gray-600" />
-                    <span className="text-sm font-medium">Bills Ready to Pay</span>
+                    <span className="text-sm font-medium">Ready for Review</span>
                   </div>
                   <Badge variant="secondary">{readyToPayCount}</Badge>
                 </div>
