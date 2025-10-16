@@ -34,7 +34,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       const payBillsQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'posted');
+        .eq('status', 'paid');
 
       // Get count for AI extraction (pending uploads)
       const aiExtractQuery = supabase
