@@ -78,7 +78,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         .from('bills')
         .select(`
           *,
-          bill_lines (*),
+          bill_lines (
+            *,
+            cost_codes (code, name),
+            accounts (code, name)
+          ),
           bill_attachments (*)
         `)
         .eq('id', billId)
@@ -105,7 +109,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         .map((line: any, index: number) => ({
           id: `job-${index}`,
           dbId: line.id,
-          account: '', // Will be populated by cost code name
+          account: line.cost_codes ? `${line.cost_codes.code}: ${line.cost_codes.name}` : '',
           accountId: line.cost_code_id || '',
           project: '',
           projectId: line.project_id || '',
@@ -124,7 +128,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         .map((line: any, index: number) => ({
           id: `expense-${index}`,
           dbId: line.id,
-          account: '',
+          account: line.accounts ? `${line.accounts.code}: ${line.accounts.name}` : '',
           accountId: line.account_id || '',
           project: '',
           projectId: line.project_id || '',
