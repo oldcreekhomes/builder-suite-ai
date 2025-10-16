@@ -28,7 +28,7 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
             These bills have been approved and are ready to be paid across all projects.
           </DialogDescription>
         </DialogHeader>
-        <div className="relative flex-1 max-w-sm px-6">
+        <div className="relative max-w-sm px-6 pb-4">
           <Search className="absolute left-9 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Search bills..."
