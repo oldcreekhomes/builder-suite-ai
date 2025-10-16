@@ -53,11 +53,11 @@ export function EmployeeTable() {
       let query = supabase.from('users').select('*');
 
       if (currentUser.role === 'owner') {
-        // Owners see their internal users
-        query = query.eq('home_builder_id', user.id);
+        // Owners see themselves AND their internal users
+        query = query.or(`id.eq.${user.id},home_builder_id.eq.${user.id}`);
       } else if (currentUser.home_builder_id) {
-        // Internal users see other internal users in their company
-        query = query.eq('home_builder_id', currentUser.home_builder_id);
+        // Internal users see their owner and other internal users in their company
+        query = query.or(`id.eq.${currentUser.home_builder_id},home_builder_id.eq.${currentUser.home_builder_id}`);
       } else {
         return [];
       }
