@@ -32,7 +32,7 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
           <UniversalFilePreviewProvider>
             <Tabs defaultValue="ready-to-pay" className="w-full">
               <div className="max-w-sm">
-                <TabsList className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="ready-to-pay">Ready to Pay</TabsTrigger>
                   <TabsTrigger value="rejected">Rejected</TabsTrigger>
                 </TabsList>
