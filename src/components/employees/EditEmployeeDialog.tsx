@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { EmployeeAccessPreferences } from "./EmployeeAccessPreferences";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Employee {
   id: string;
@@ -37,6 +38,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isOwner } = useUserRole();
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -189,15 +191,17 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${isOwner ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="access">
-              <Shield className="h-4 w-4 mr-2" />
-              Access
-            </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="access">
+                <Shield className="h-4 w-4 mr-2" />
+                Access
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile">
@@ -342,9 +346,11 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
             </form>
           </TabsContent>
 
-          <TabsContent value="access">
-            <EmployeeAccessPreferences employeeId={employee.id} />
-          </TabsContent>
+          {isOwner && (
+            <TabsContent value="access">
+              <EmployeeAccessPreferences employeeId={employee.id} />
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
