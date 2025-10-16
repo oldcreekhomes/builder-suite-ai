@@ -19,11 +19,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { useUserRole } from "@/hooks/useUserRole";
 import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -74,10 +76,11 @@ interface BillsApprovalTableProps {
   defaultSortBy?: 'bill_date' | 'due_date';
   sortOrder?: 'asc' | 'desc';
   enableSorting?: boolean;
+  showPayBillButton?: boolean;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false }: BillsApprovalTableProps) {
-  const { approveBill, rejectBill, deleteBill } = useBills();
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false }: BillsApprovalTableProps) {
+  const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | null>(
     defaultSortBy === 'due_date' ? 'due_date' : null
@@ -94,6 +97,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     billId: '',
     billInfo: undefined,
   });
+  const [payBillDialogOpen, setPayBillDialogOpen] = useState(false);
+  const [selectedBillForPayment, setSelectedBillForPayment] = useState<BillForApproval | null>(null);
 
   const handleSort = (column: 'project' | 'due_date') => {
     if (sortColumn === column) {
@@ -230,6 +235,23 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined });
   };
 
+  const handlePayBill = (bill: BillForApproval) => {
+    setSelectedBillForPayment(bill);
+    setPayBillDialogOpen(true);
+  };
+
+  const handleConfirmPayment = (billId: string, paymentAccountId: string, paymentDate: string, memo?: string) => {
+    payBill.mutate(
+      { billId, paymentAccountId, paymentDate, memo },
+      {
+        onSuccess: () => {
+          setPayBillDialogOpen(false);
+          setSelectedBillForPayment(null);
+        }
+      }
+    );
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -339,6 +361,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
+              {showPayBillButton && (
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Pay Bill</TableHead>
+              )}
               {canShowActions && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-left w-28">Actions</TableHead>
               )}
@@ -350,7 +375,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <TableBody>
             {sortedBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8 + (showProjectColumn ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -386,6 +411,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <TableCell className="px-2 py-1">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
+                  {showPayBillButton && (
+                    <TableCell className="py-1 text-xs">
+                      <Button
+                        size="sm"
+                        onClick={() => handlePayBill(bill)}
+                        disabled={payBill.isPending}
+                        className="h-7 text-xs px-3"
+                      >
+                        {payBill.isPending ? "Processing..." : "Pay Bill"}
+                      </Button>
+                    </TableCell>
+                  )}
                   {canShowActions && (
                     <TableCell className="py-1 text-left">
                       <div className="flex justify-start">
@@ -448,6 +485,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PayBillDialog
+        open={payBillDialogOpen}
+        onOpenChange={setPayBillDialogOpen}
+        bill={selectedBillForPayment}
+        onConfirm={handleConfirmPayment}
+        isLoading={payBill.isPending}
+      />
     </>
   );
 }

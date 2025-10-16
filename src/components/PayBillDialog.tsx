@@ -25,10 +25,10 @@ interface BillForPayment {
   id: string;
   vendor_id: string;
   bill_date: string;
-  due_date: string | null;
+  due_date?: string | null;
   total_amount: number;
-  reference_number: string | null;
-  terms: string | null;
+  reference_number?: string | null;
+  terms?: string | null;
   companies?: {
     company_name: string;
   };

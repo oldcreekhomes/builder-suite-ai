@@ -30,6 +30,7 @@ export function BillsReadyToPayDialog({ open, onOpenChange }: BillsReadyToPayDia
               defaultSortBy="due_date"
               sortOrder="asc"
               enableSorting={true}
+              showPayBillButton={true}
             />
           </UniversalFilePreviewProvider>
         </div>
