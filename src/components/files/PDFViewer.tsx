@@ -15,7 +15,7 @@ interface PDFViewerProps {
 
 export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [scale, setScale] = useState<number>(1.0);
+  const [scale, setScale] = useState<number>(1.5);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -40,7 +40,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   };
 
   const resetZoom = () => {
-    setScale(1.0);
+    setScale(1.5);
   };
 
   if (hasError) {
