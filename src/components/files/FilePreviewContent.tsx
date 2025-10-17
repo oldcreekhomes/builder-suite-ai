@@ -118,6 +118,14 @@ export function FilePreviewContent({
   if (fileType === FileType.PDF) {
     return (
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Download button */}
+        <div className="flex items-center justify-center p-3 border-b bg-background/50">
+          <Button onClick={onDownload} variant="default" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
+            Download
+          </Button>
+        </div>
+        
         {/* Embedded PDF viewer */}
         <PDFViewer
           fileUrl={fileUrl}

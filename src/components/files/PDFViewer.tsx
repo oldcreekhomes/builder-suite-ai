@@ -15,7 +15,7 @@ interface PDFViewerProps {
 
 export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [scale, setScale] = useState<number>(1.0);
+  const [scale, setScale] = useState<number>(1.5);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -40,7 +40,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   };
 
   const resetZoom = () => {
-    setScale(1.0);
+    setScale(1.5);
   };
 
   if (hasError) {
@@ -88,8 +88,8 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
       </div>
 
       {/* PDF Viewer */}
-      <div className="flex-1 overflow-y-auto bg-muted/20 p-4 min-h-0" tabIndex={0} role="region" aria-label="PDF pages">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex-1 overflow-y-auto bg-muted/20 p-2 min-h-0" tabIndex={0} role="region" aria-label="PDF pages">
+        <div className="flex flex-col items-center gap-2 w-full max-w-[95%] mx-auto">
           <Document
             file={fileUrl}
             onLoadSuccess={onDocumentLoadSuccess}
@@ -107,10 +107,11 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
               <Page
                 key={`page_${index + 1}`}
                 pageNumber={index + 1}
+                width={Math.min(window.innerWidth * 0.85, 1200)}
                 scale={scale}
-                className="shadow-lg border bg-white mb-4"
+                className="shadow-lg border bg-white mb-2"
                 loading={
-                  <div className="flex items-center justify-center p-8 bg-white border shadow-lg mb-4">
+                  <div className="flex items-center justify-center p-8 bg-white border shadow-lg mb-2">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                   </div>
                 }
