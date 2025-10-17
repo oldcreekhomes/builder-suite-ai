@@ -88,8 +88,8 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
       </div>
 
       {/* PDF Viewer */}
-      <div className="flex-1 overflow-y-auto bg-muted/20 p-1 min-h-0" tabIndex={0} role="region" aria-label="PDF pages">
-        <div className="flex flex-col items-center gap-2 w-full">
+      <div className="flex-1 overflow-y-auto bg-muted/20 p-2 min-h-0" tabIndex={0} role="region" aria-label="PDF pages">
+        <div className="flex flex-col items-center gap-2 w-full max-w-[95%] mx-auto">
           <Document
             file={fileUrl}
             onLoadSuccess={onDocumentLoadSuccess}
@@ -108,8 +108,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
                 key={`page_${index + 1}`}
                 pageNumber={index + 1}
                 scale={scale}
-                width={Math.min(window.innerWidth - 100, 1400)}
-                className="shadow-lg border bg-white mb-2"
+                className="shadow-lg border bg-white mb-2 max-w-full"
                 loading={
                   <div className="flex items-center justify-center p-8 bg-white border shadow-lg mb-2">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
