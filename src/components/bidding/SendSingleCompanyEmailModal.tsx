@@ -7,7 +7,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
-import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+
+// Helper to get storage path for specification files
+const getProjectFileStoragePath = (fileRef: string): string => {
+  if (fileRef.includes('/')) return fileRef;
+  return `specifications/${fileRef}`;
+};
 
 interface SendSingleCompanyEmailModalProps {
   open: boolean;
@@ -25,6 +31,7 @@ export function SendSingleCompanyEmailModal({
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Fetch specific company data
   const { data: companyData, isLoading } = useQuery({
@@ -297,7 +304,7 @@ export function SendSingleCompanyEmailModal({
                                 console.log('📁 SendSingleCompanyEmailModal: Opening file', fileName);
                                 const displayName = fileName.split('/').pop() || fileName;
                                 const storagePath = getProjectFileStoragePath(fileName);
-                                openFileViaRedirect('project-files', storagePath, displayName);
+                                openSpecificationFile(storagePath, displayName);
                               }}
                               className={`flex items-center justify-center p-1 ${iconColorClass} hover:bg-accent rounded transition-colors`}
                               title={`Click to open ${fileName}`}

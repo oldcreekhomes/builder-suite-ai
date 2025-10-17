@@ -4,7 +4,7 @@ import { Upload, X } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { openProposalFile } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface ProposalCellProps {
   proposals: string[] | null;
@@ -24,6 +24,7 @@ export function ProposalCell({
   isReadOnly = false 
 }: ProposalCellProps) {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const { openProposalFile } = useUniversalFilePreviewContext();
   
   const handleFilePreview = (fileName: string) => {
     console.log('PROPOSAL CELL: Opening file', fileName);

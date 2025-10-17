@@ -8,9 +8,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
-import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+
+// Helper to get storage path for specification files
+const getProjectFileStoragePath = (fileRef: string): string => {
+  if (fileRef.includes('/')) return fileRef;
+  return `specifications/${fileRef}`;
+};
 
 interface SendBidPackageModalProps {
   open: boolean;
@@ -23,6 +29,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { users } = useCompanyUsers();
+  const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Fetch companies and representatives for this bid package
   const { data: companiesData, isLoading } = useQuery({
@@ -319,9 +326,9 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                             <button
                               key={index}
                               onClick={() => {
-                                console.log('📁 SendBidPackageModal: Opening file', fileName, 'as', displayName);
+                              console.log('📁 SendBidPackageModal: Opening file', fileName, 'as', displayName);
                                 const storagePath = getProjectFileStoragePath(fileName);
-                                openFileViaRedirect('project-files', storagePath, displayName);
+                                openSpecificationFile(storagePath, displayName);
                               }}
                               className={`flex items-center justify-center p-1 hover:bg-muted-foreground/10 rounded transition-colors ${iconColorClass}`}
                               title={`Click to open ${displayName}`}

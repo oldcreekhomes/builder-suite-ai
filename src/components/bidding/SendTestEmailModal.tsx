@@ -10,7 +10,13 @@ import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
-import { openFileViaRedirect, getProjectFileStoragePath } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+
+// Helper to get storage path for specification files
+const getProjectFileStoragePath = (fileRef: string): string => {
+  if (fileRef.includes('/')) return fileRef;
+  return `specifications/${fileRef}`;
+};
 
 interface SendTestEmailModalProps {
   open: boolean;
@@ -29,6 +35,7 @@ export function SendTestEmailModal({
   const [testEmail, setTestEmail] = useState('');
   const { toast } = useToast();
   const { users } = useCompanyUsers();
+  const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Get current user's email as default
   const { data: currentUser } = useQuery({
@@ -362,7 +369,7 @@ export function SendTestEmailModal({
                                 console.log('📁 SendTestEmailModal: Opening file', fileName);
                                 const displayName = fileName.split('/').pop() || fileName;
                                 const storagePath = getProjectFileStoragePath(fileName);
-                                openFileViaRedirect('project-files', storagePath, displayName);
+                                openSpecificationFile(storagePath, displayName);
                               }}
                               className={`flex items-center justify-center p-1 ${iconColorClass} hover:bg-accent rounded transition-colors`}
                               title={`Click to open ${fileName}`}

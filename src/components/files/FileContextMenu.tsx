@@ -1,7 +1,7 @@
 import React from 'react';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
-import { ExternalLink, Download, Copy } from 'lucide-react';
-import { openFileViaRedirect, downloadFile } from '@/utils/fileOpenUtils';
+import { Download, Copy } from 'lucide-react';
+import { downloadFile } from '@/utils/fileOpenUtils';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,10 +14,6 @@ interface FileContextMenuProps {
 }
 
 export function FileContextMenu({ children, bucket, path, fileName, fileUrl }: FileContextMenuProps) {
-  const handleOpenInNewTab = () => {
-    openFileViaRedirect(bucket, path, fileName);
-  };
-
   const handleDownload = async () => {
     if (fileUrl) {
       await downloadFile(fileUrl, fileName);
@@ -63,10 +59,6 @@ export function FileContextMenu({ children, bucket, path, fileName, fileUrl }: F
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={handleOpenInNewTab}>
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Open in New Tab
-        </ContextMenuItem>
         <ContextMenuItem onClick={handleDownload}>
           <Download className="h-4 w-4 mr-2" />
           Download File

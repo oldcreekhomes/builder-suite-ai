@@ -7,7 +7,6 @@ import {
 } from '@/components/ui/dialog';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
-import { openFileViaRedirect } from '@/utils/fileOpenUtils';
 
 interface ViewCommittedCostsModalProps {
   isOpen: boolean;
@@ -49,34 +48,7 @@ export function ViewCommittedCostsModal({
     }
   };
 
-  const handleFilePreview = (file: any, po: PurchaseOrder) => {
-    const fileName = file.name || file.id || file;
-    
-    if (file.bucket && file.path) {
-      openFileViaRedirect(file.bucket, file.path, fileName);
-      return;
-    }
-    
-    if (file.url) {
-      try {
-        const url = new URL(file.url);
-        const pathParts = url.pathname.split('/object/public/');
-        if (pathParts.length === 2) {
-          const [bucket, ...pathSegments] = pathParts[1].split('/');
-          const path = pathSegments.join('/');
-          openFileViaRedirect(bucket, decodeURIComponent(path), fileName);
-          return;
-        }
-      } catch (error) {
-        console.error('Failed to parse file URL:', error);
-      }
-    }
-    
-    if (projectId) {
-      const filePath = `purchase-orders/${projectId}/${file.id || file.name || file}`;
-      openFileViaRedirect('project-files', filePath, fileName);
-    }
-  };
+  // Note: File preview functionality removed - use download or preview modal instead
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -121,36 +93,35 @@ export function ViewCommittedCostsModal({
                             {capitalizeFirstLetter(po.status)}
                           </span>
                         </td>
-                        <td className="py-1 px-4 text-xs w-1/4">
-                          {files.length === 0 ? (
-                            <div className="flex justify-end">
-                              <span className="text-muted-foreground">—</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-end gap-1">
-                              {files.slice(0, 3).map((file: any, index: number) => {
-                                const fileName = file.name || file.id || file;
-                                const IconComponent = getFileIcon(fileName);
-                                const iconColorClass = getFileIconColor(fileName);
-                                return (
-                                  <button
-                                    key={`${fileName}-${index}`}
-                                    onClick={() => handleFilePreview(file, po)}
-                                    className={`inline-block ${iconColorClass} transition-colors p-1`}
-                                    title={fileName}
-                                  >
-                                    <IconComponent className="h-4 w-4" />
-                                  </button>
-                                );
-                              })}
-                              {files.length > 3 && (
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  +{files.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
+                          <td className="py-1 px-4 text-xs w-1/4">
+                            {files.length === 0 ? (
+                              <div className="flex justify-end">
+                                <span className="text-muted-foreground">—</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end gap-1">
+                                {files.slice(0, 3).map((file: any, index: number) => {
+                                  const fileName = file.name || file.id || file;
+                                  const IconComponent = getFileIcon(fileName);
+                                  const iconColorClass = getFileIconColor(fileName);
+                                  return (
+                                    <div
+                                      key={`${fileName}-${index}`}
+                                      className={`inline-block ${iconColorClass} p-1`}
+                                      title={fileName}
+                                    >
+                                      <IconComponent className="h-4 w-4" />
+                                    </div>
+                                  );
+                                })}
+                                {files.length > 3 && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    +{files.length - 3}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
                       </tr>
                     );
                   })

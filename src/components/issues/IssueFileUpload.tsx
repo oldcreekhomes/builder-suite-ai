@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, File, X, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { openIssueFile } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface IssueFile {
   id: string;
@@ -25,6 +25,7 @@ interface IssueFileUploadProps {
 export function IssueFileUpload({ issueId, files = [], onFilesChange, className }: IssueFileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { openIssueFile } = useUniversalFilePreviewContext();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;

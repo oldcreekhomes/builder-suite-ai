@@ -3,8 +3,13 @@ import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
-import { getProjectFileStoragePath } from '@/utils/fileOpenUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+
+// Helper to get storage path for specification files
+const getProjectFileStoragePath = (fileRef: string): string => {
+  if (fileRef.includes('/')) return fileRef;
+  return `specifications/${fileRef}`;
+};
 
 interface BiddingTableRowFilesProps {
   item: any;

@@ -3,7 +3,7 @@ import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
-import { openIssueFile } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface IssueFile {
   id: string;
@@ -31,6 +31,7 @@ export function IssueFilesCell({
   onFileDelete
 }: IssueFilesCellProps) {
   const [fileToDelete, setFileToDelete] = useState<IssueFile | null>(null);
+  const { openIssueFile } = useUniversalFilePreviewContext();
 
   const handleFileUpload = () => {
     const input = document.createElement('input');

@@ -6,7 +6,7 @@ import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { openProposalFile } from '@/utils/fileOpenUtils';
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface Company {
   id: string;
@@ -48,6 +48,7 @@ export function ConfirmPODialog({
 }: ConfirmPODialogProps) {
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
+  const { openProposalFile } = useUniversalFilePreviewContext();
   const [customMessage, setCustomMessage] = useState('');
   const [costCodeData, setCostCodeData] = useState<{code: string, name: string} | null>(null);
 

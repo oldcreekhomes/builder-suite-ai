@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, AlertCircle, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
+import { Download, FileText, AlertCircle, ZoomIn, ZoomOut } from "lucide-react";
 import { UniversalFile } from "./FilePreviewModal";
 import { getFileType, FileType } from "./utils/fileTypeUtils";
 import { PDFViewer } from "./PDFViewer";
-import { openFileViaRedirect } from "@/utils/fileOpenUtils";
 
 interface FilePreviewContentProps {
   file: UniversalFile;
@@ -25,10 +24,6 @@ export function FilePreviewContent({
   const [pdfError, setPdfError] = useState(false);
   
   const fileType = getFileType(file.name, file.mimeType);
-
-  const handleOpenInBrowser = () => {
-    openFileViaRedirect(file.bucket, file.path, file.name);
-  };
 
   const zoomIn = () => setImageZoom(prev => Math.min(prev + 0.25, 3));
   const zoomOut = () => setImageZoom(prev => Math.max(prev - 0.25, 0.25));
@@ -52,18 +47,12 @@ export function FilePreviewContent({
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="font-medium text-foreground mb-2">Preview not available</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            {error || "Unable to load file preview. Try opening in browser or download to view the file."}
+            {error || "Unable to load file preview. Download the file to view it."}
           </p>
-          <div className="flex gap-2 justify-center">
-            <Button onClick={handleOpenInBrowser} variant="default" className="gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Open in Browser
-            </Button>
-            <Button onClick={onDownload} variant="outline" className="gap-2">
-              <Download className="h-4 w-4" />
-              Download
-            </Button>
-          </div>
+          <Button onClick={onDownload} variant="default" className="gap-2">
+            <Download className="h-4 w-4" />
+            Download
+          </Button>
         </div>
       </div>
     );
@@ -125,22 +114,10 @@ export function FilePreviewContent({
     );
   }
 
-  // PDF preview with PDF.js (with fallback to browser viewer)
+  // PDF preview with PDF.js
   if (fileType === FileType.PDF) {
     return (
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* PDF action buttons */}
-        <div className="flex items-center justify-center gap-2 p-2 border-b bg-background/50">
-          <Button onClick={handleOpenInBrowser} variant="default" size="sm" className="gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Open in Browser's PDF Viewer
-          </Button>
-          <Button onClick={onDownload} variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-        </div>
-        
         {/* Embedded PDF viewer */}
         <PDFViewer
           fileUrl={fileUrl}
@@ -174,18 +151,12 @@ export function FilePreviewContent({
           File type: {file.mimeType || 'Unknown'}
         </p>
         <p className="text-sm text-muted-foreground mb-4">
-          This file type can't be previewed here. Use "Open in Browser" for the best viewing experience.
+          This file type can't be previewed here. Download the file to view it.
         </p>
-        <div className="flex gap-2 justify-center">
-          <Button onClick={handleOpenInBrowser} variant="default" className="gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Open in Browser
-          </Button>
-          <Button onClick={onDownload} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-        </div>
+        <Button onClick={onDownload} variant="default" className="gap-2">
+          <Download className="h-4 w-4" />
+          Download
+        </Button>
       </div>
     </div>
   );
