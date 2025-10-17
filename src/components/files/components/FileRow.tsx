@@ -164,14 +164,32 @@ export function FileRow({
           )}
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell 
+        className="cursor-pointer hover:bg-gray-50"
+        onClick={() => onFileSelect(file)}
+      >
         <Badge className={getFileTypeColor(file.file_type)}>
           {file.file_type.toUpperCase()}
         </Badge>
       </TableCell>
-      <TableCell>{formatFileSize(file.file_size)}</TableCell>
-      <TableCell>{file.uploaded_by_profile?.email || 'Unknown'}</TableCell>
-      <TableCell>{format(new Date(file.uploaded_at), 'MMM dd, yyyy')}</TableCell>
+      <TableCell 
+        className="cursor-pointer hover:bg-gray-50"
+        onClick={() => onFileSelect(file)}
+      >
+        {formatFileSize(file.file_size)}
+      </TableCell>
+      <TableCell 
+        className="cursor-pointer hover:bg-gray-50"
+        onClick={() => onFileSelect(file)}
+      >
+        {file.uploaded_by_profile?.email || 'Unknown'}
+      </TableCell>
+      <TableCell 
+        className="cursor-pointer hover:bg-gray-50"
+        onClick={() => onFileSelect(file)}
+      >
+        {format(new Date(file.uploaded_at), 'MMM dd, yyyy')}
+      </TableCell>
       <TableCell>
         <div className="flex items-center space-x-2">
           {isEditing ? (
