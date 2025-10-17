@@ -161,21 +161,24 @@ export default function SubmitBid() {
 
   if (!bidPackageId || !companyId) {
     return (
-      <div className="min-h-screen w-screen bg-white grid place-items-center p-4">
-        <div className="w-full max-w-md mx-auto">
+      <div className="fixed inset-0 bg-white overflow-auto">
+        <div className="min-h-screen w-full flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
           <Card>
             <CardContent className="pt-6">
               <p className="text-center text-red-600">Invalid bid submission link.</p>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-screen bg-white grid place-items-center p-4">
-      <div className="w-full max-w-2xl mx-auto">
+    <div className="fixed inset-0 bg-white overflow-auto">
+      <div className="min-h-screen w-full flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
         <Card>
           <CardHeader className="text-center bg-black text-white">
             <CardTitle className="text-2xl font-bold">Submit Your Bid</CardTitle>
@@ -307,6 +310,7 @@ export default function SubmitBid() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
