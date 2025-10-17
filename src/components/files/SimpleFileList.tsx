@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Eye, Edit3, FolderPlus, CheckSquare, Square, Share2 } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Edit3, FolderPlus, CheckSquare, Square, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -653,18 +653,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             </div>
             <div 
               className="flex-1 min-w-0 cursor-pointer"
-              title="Ctrl/Cmd-click or Middle-click to open in new tab"
-              onMouseDown={(e) => {
-                if (e.button === 1 || e.metaKey || e.ctrlKey) {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  openProjectFile(file.storage_path, file.displayName);
-                }
-              }}
+              onClick={() => handleFileView(file)}
             >
               <p className="font-medium truncate">{file.displayName}</p>
             </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground whitespace-nowrap">
+            <div 
+              className="flex items-center gap-3 text-sm text-muted-foreground whitespace-nowrap cursor-pointer"
+              onClick={() => handleFileView(file)}
+            >
               <span>{formatFileSize(file.file_size)}</span>
               <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
               {file.uploader && (
@@ -681,14 +677,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 className="gap-1"
               >
                 <Share2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFileView(file)}
-                className="gap-1"
-              >
-                <Eye className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
