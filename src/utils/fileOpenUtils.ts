@@ -1,22 +1,24 @@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Main file opening function - redirects to /file-redirect route like live version
+// Main file opening function - now routes through a Supabase Edge Function that streams the file
 export function openFileViaRedirect(bucket: string, path: string, fileName?: string) {
   console.log('openFileViaRedirect called:', { bucket, path, fileName });
-  
-  // Build the redirect URL with parameters
+
+  const base = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/file-proxy';
+  const safeName = fileName || (path.split('/').pop() || 'download');
   const params = new URLSearchParams({
     bucket,
     path,
-    ...(fileName && { fileName })
+    filename: safeName,
+    disposition: 'inline',
   });
+
+  const proxyUrl = `${base}?${params.toString()}`;
+  console.log('Opening proxy URL:', proxyUrl);
   
-  const redirectUrl = `/file-redirect?${params.toString()}`;
-  console.log('Opening redirect URL:', redirectUrl);
-  
-  // Open in new tab
-  window.open(redirectUrl, '_blank');
+  // Open in new tab (avoid popup blockers with direct user gesture)
+  window.open(proxyUrl, '_blank', 'noopener,noreferrer');
 }
 
 /**
