@@ -128,7 +128,7 @@ export function FilePreviewContent({
   // PDF preview with PDF.js (with fallback to browser viewer)
   if (fileType === FileType.PDF) {
     return (
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* PDF action buttons */}
         <div className="flex items-center justify-center gap-2 p-2 border-b bg-background/50">
           <Button onClick={handleOpenInBrowser} variant="default" size="sm" className="gap-2">

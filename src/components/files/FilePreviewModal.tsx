@@ -51,7 +51,7 @@ export function FilePreviewModal({ file, isOpen, onClose, onFileDeleted }: FileP
           File preview for {file.name}
         </DialogDescription>
         
-        <div className="relative w-full flex flex-col bg-background rounded-lg overflow-hidden h-[calc(95vh-2rem)]">
+        <div className="relative w-full flex flex-col bg-background rounded-lg overflow-hidden h-[calc(95vh-2rem)] min-h-0">
           <FilePreviewHeader
             file={file}
             isDeleting={isDeleting}

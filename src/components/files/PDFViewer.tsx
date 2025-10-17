@@ -62,7 +62,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Controls */}
       <div className="flex items-center justify-between gap-2 p-2 border-b bg-muted/50">
         <div className="flex items-center gap-2">
@@ -88,7 +88,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
       </div>
 
       {/* PDF Viewer */}
-      <div className="flex-1 overflow-auto bg-muted/20 p-4">
+      <div className="flex-1 overflow-y-auto bg-muted/20 p-4 min-h-0" tabIndex={0} role="region" aria-label="PDF pages">
         <div className="flex flex-col items-center gap-4">
           <Document
             file={fileUrl}
