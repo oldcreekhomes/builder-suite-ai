@@ -1416,6 +1416,7 @@ export type Database = {
           price: number | null
           proposals: string[] | null
           reminder_date: string | null
+          reminder_sent_at: string | null
           updated_at: string
         }
         Insert: {
@@ -1428,6 +1429,7 @@ export type Database = {
           price?: number | null
           proposals?: string[] | null
           reminder_date?: string | null
+          reminder_sent_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -1440,6 +1442,7 @@ export type Database = {
           price?: number | null
           proposals?: string[] | null
           reminder_date?: string | null
+          reminder_sent_at?: string | null
           updated_at?: string
         }
         Relationships: [

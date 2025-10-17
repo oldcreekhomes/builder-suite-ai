@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.public-file-download]
 verify_jwt = false
+
+[functions.send-bid-reminders]
+verify_jwt = false

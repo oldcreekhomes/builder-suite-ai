@@ -55,6 +55,7 @@ interface BidPackageEmailRequest {
       is_primary?: boolean;
     }>;
   }>;
+  isReminder?: boolean;
 }
 
 const formatDate = (dateString: string | undefined) => {
@@ -206,7 +207,7 @@ const generateFileDownloadLinks = (files: string[]) => {
   return `<div style="display: inline-block; vertical-align: top;">${fileLinks}</div>`;
 };
 
-const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: string) => {
+const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: string, isReminder = false) => {
   const projectAddress = data.project?.address || 'Project Address Not Available';
   const costCodeName = data.bidPackage.costCode?.name || data.bidPackage.name;
   const managerName = data.project?.manager || 'Project Manager';
@@ -246,7 +247,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Invitation</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${isReminder ? 'REMINDER: Bid Coming Due' : 'Bid Invitation'}</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</p>
                         </td>
                     </tr>
@@ -471,8 +472,11 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Send emails to each company individually with their specific company ID
     const emailPromises = companies.map(async (company) => {
-      const emailHTML = await generateEmailHTML(requestData, company.id);
-      const subject = `Bid Invitation - ${requestData.project?.address || 'Project Address'}`;
+      const isReminder = requestData.isReminder || false;
+      const emailHTML = await generateEmailHTML(requestData, company.id, isReminder);
+      const subject = isReminder 
+        ? `REMINDER: Bid Coming Due - ${requestData.project?.address || 'Project Address'}`
+        : `Bid Invitation - ${requestData.project?.address || 'Project Address'}`;
       
       // Get recipients for this specific company
       const companyRecipients = company.representatives
