@@ -174,8 +174,8 @@ export default function SubmitBid() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="w-full max-w-2xl px-4 mx-auto">
+    <div className="min-h-screen bg-gray-50 py-12 flex justify-center">
+      <div className="w-full max-w-2xl px-4">
         <Card>
           <CardHeader className="text-center bg-black text-white">
             <CardTitle className="text-2xl font-bold">Submit Your Bid</CardTitle>
