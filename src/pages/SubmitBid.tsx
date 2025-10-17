@@ -161,8 +161,8 @@ export default function SubmitBid() {
 
   if (!bidPackageId || !companyId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-full max-w-md px-4 mx-auto">
+      <div className="min-h-screen w-screen bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
           <Card>
             <CardContent className="pt-6">
               <p className="text-center text-red-600">Invalid bid submission link.</p>
@@ -174,8 +174,8 @@ export default function SubmitBid() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 flex justify-center">
-      <div className="w-full max-w-2xl px-4">
+    <div className="min-h-screen w-screen bg-white flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full">
         <Card>
           <CardHeader className="text-center bg-black text-white">
             <CardTitle className="text-2xl font-bold">Submit Your Bid</CardTitle>
