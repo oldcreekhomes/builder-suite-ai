@@ -456,6 +456,133 @@ export const useBankReconciliation = () => {
     });
   };
 
+  // Update check transaction (date, ref #, amount)
+  const updateCheckTransaction = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
+      const updates: any = {};
+      
+      if (field === 'date') {
+        updates.check_date = value;
+      } else if (field === 'reference_number') {
+        updates.check_number = value;
+      } else if (field === 'amount') {
+        updates.amount = parseFloat(value);
+      }
+
+      const { error } = await supabase
+        .from('checks')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      toast({
+        title: "Check updated",
+        description: "The check has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update deposit transaction (date, amount)
+  const updateDepositTransaction = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
+      const updates: any = {};
+      
+      if (field === 'date') {
+        updates.deposit_date = value;
+      } else if (field === 'amount') {
+        updates.amount = parseFloat(value);
+      }
+
+      const { error } = await supabase
+        .from('deposits')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      toast({
+        title: "Deposit updated",
+        description: "The deposit has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update bill payment transaction (date via journal_entries, ref # via bills, amount via journal_entry_lines)
+  const updateBillPaymentTransaction = useMutation({
+    mutationFn: async ({ id, field, value, bankAccountId }: { id: string; field: string; value: any; bankAccountId: string }) => {
+      if (field === 'date') {
+        // Update journal_entries.entry_date
+        const { error } = await supabase
+          .from('journal_entries')
+          .update({ entry_date: value })
+          .eq('source_type', 'bill_payment')
+          .eq('source_id', id);
+        
+        if (error) throw error;
+      } else if (field === 'reference_number') {
+        // Update bills.reference_number
+        const { error } = await supabase
+          .from('bills')
+          .update({ reference_number: value })
+          .eq('id', id);
+        
+        if (error) throw error;
+      } else if (field === 'amount') {
+        // Update journal_entry_lines.credit for the bank account line
+        const { data: journalEntry } = await supabase
+          .from('journal_entries')
+          .select('id')
+          .eq('source_type', 'bill_payment')
+          .eq('source_id', id)
+          .single();
+        
+        if (journalEntry) {
+          const { error } = await supabase
+            .from('journal_entry_lines')
+            .update({ credit: parseFloat(value) })
+            .eq('journal_entry_id', journalEntry.id)
+            .eq('account_id', bankAccountId)
+            .gt('credit', 0);
+          
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      toast({
+        title: "Bill payment updated",
+        description: "The bill payment has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     useReconciliationTransactions,
     createReconciliation,
@@ -464,5 +591,8 @@ export const useBankReconciliation = () => {
     useReconciliationHistory,
     useLastCompletedReconciliation,
     useReconciliationDefaults,
+    updateCheckTransaction,
+    updateDepositTransaction,
+    updateBillPaymentTransaction,
   };
 };

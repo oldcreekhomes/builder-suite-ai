@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InlineEditCell } from "@/components/schedule/InlineEditCell";
 
 const BankReconciliation = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -49,6 +50,9 @@ const BankReconciliation = () => {
     createReconciliation,
     updateReconciliation,
     markTransactionReconciled,
+    updateCheckTransaction,
+    updateDepositTransaction,
+    updateBillPaymentTransaction,
   } = useBankReconciliation();
 
   const { 
@@ -104,6 +108,25 @@ const BankReconciliation = () => {
       }
       return newSet;
     });
+  };
+
+  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment', field: string, value: any) => {
+    try {
+      if (type === 'check') {
+        await updateCheckTransaction.mutateAsync({ id, field, value });
+      } else if (type === 'deposit') {
+        await updateDepositTransaction.mutateAsync({ id, field, value });
+      } else if (type === 'bill_payment') {
+        await updateBillPaymentTransaction.mutateAsync({ 
+          id, 
+          field, 
+          value,
+          bankAccountId: selectedBankAccountId!
+        });
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+    }
   };
 
   const handleSaveProgress = async () => {
@@ -381,10 +404,29 @@ const BankReconciliation = () => {
                                         onCheckedChange={() => handleToggleTransaction(check.id)}
                                       />
                                     </td>
-                                    <td className="p-2">{format(new Date(check.date), "MM/dd/yyyy")}</td>
-                                    <td className="p-2">{check.reference_number || '-'}</td>
+                                    <td className="p-2">
+                                      <InlineEditCell
+                                        value={check.date}
+                                        type="date"
+                                        onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
+                                      />
+                                    </td>
+                                    <td className="p-2">
+                                      <InlineEditCell
+                                        value={check.reference_number || ''}
+                                        type="text"
+                                        onSave={(value) => handleUpdateTransaction(check.id, check.type, 'reference_number', value)}
+                                      />
+                                    </td>
                                     <td className="p-2">{check.payee}</td>
-                                    <td className="p-2 text-right">{formatCurrency(check.amount)}</td>
+                                    <td className="p-2 text-right">
+                                      <InlineEditCell
+                                        value={check.amount.toString()}
+                                        type="number"
+                                        onSave={(value) => handleUpdateTransaction(check.id, check.type, 'amount', value)}
+                                        displayFormat={(val) => formatCurrency(parseFloat(val))}
+                                      />
+                                    </td>
                                   </tr>
                                 ))}
                             </tbody>
@@ -416,9 +458,22 @@ const BankReconciliation = () => {
                                         onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                       />
                                     </td>
-                                    <td className="p-2">{format(new Date(deposit.date), "MM/dd/yyyy")}</td>
+                                    <td className="p-2">
+                                      <InlineEditCell
+                                        value={deposit.date}
+                                        type="date"
+                                        onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
+                                      />
+                                    </td>
                                     <td className="p-2">{deposit.source}</td>
-                                    <td className="p-2 text-right">{formatCurrency(deposit.amount)}</td>
+                                    <td className="p-2 text-right">
+                                      <InlineEditCell
+                                        value={deposit.amount.toString()}
+                                        type="number"
+                                        onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'amount', value)}
+                                        displayFormat={(val) => formatCurrency(parseFloat(val))}
+                                      />
+                                    </td>
                                   </tr>
                                 ))}
                             </tbody>
