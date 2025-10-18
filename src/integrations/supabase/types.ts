@@ -100,6 +100,60 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliations: {
+        Row: {
+          bank_account_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          difference: number
+          id: string
+          notes: string | null
+          owner_id: string
+          project_id: string | null
+          reconciled_balance: number
+          statement_beginning_balance: number
+          statement_date: string
+          statement_ending_balance: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bank_account_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          difference?: number
+          id?: string
+          notes?: string | null
+          owner_id: string
+          project_id?: string | null
+          reconciled_balance?: number
+          statement_beginning_balance: number
+          statement_date: string
+          statement_ending_balance: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bank_account_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          difference?: number
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          project_id?: string | null
+          reconciled_balance?: number
+          statement_beginning_balance?: number
+          statement_date?: string
+          statement_ending_balance?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bill_attachments: {
         Row: {
           bill_id: string | null
@@ -442,6 +496,9 @@ export type Database = {
           owner_id: string
           pay_to: string
           project_id: string | null
+          reconciled: boolean
+          reconciliation_date: string | null
+          reconciliation_id: string | null
           routing_number: string | null
           status: string
           updated_at: string
@@ -463,6 +520,9 @@ export type Database = {
           owner_id: string
           pay_to: string
           project_id?: string | null
+          reconciled?: boolean
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
@@ -484,6 +544,9 @@ export type Database = {
           owner_id?: string
           pay_to?: string
           project_id?: string | null
+          reconciled?: boolean
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
@@ -896,6 +959,9 @@ export type Database = {
           memo: string | null
           owner_id: string
           project_id: string | null
+          reconciled: boolean
+          reconciliation_date: string | null
+          reconciliation_id: string | null
           routing_number: string | null
           status: string
           updated_at: string
@@ -916,6 +982,9 @@ export type Database = {
           memo?: string | null
           owner_id: string
           project_id?: string | null
+          reconciled?: boolean
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
@@ -936,6 +1005,9 @@ export type Database = {
           memo?: string | null
           owner_id?: string
           project_id?: string | null
+          reconciled?: boolean
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string

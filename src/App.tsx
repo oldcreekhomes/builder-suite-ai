@@ -36,6 +36,7 @@ import BalanceSheet from "./pages/BalanceSheet";
 import IncomeStatement from "./pages/IncomeStatement";
 import WriteChecks from "./pages/WriteChecks";
 import MakeDeposits from "./pages/MakeDeposits";
+import BankReconciliation from "./pages/BankReconciliation";
 import JournalEntry from "./pages/JournalEntry";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
@@ -164,6 +165,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting/reports/income-statement" element={<ProtectedRoute><IncomeStatement /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/make-deposits" element={<ProtectedRoute><MakeDeposits /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/banking/reconciliation" element={<ProtectedRoute><BankReconciliation /></ProtectedRoute>} />
           
           
           {/* Messages route - TEMPORARILY DISABLED
