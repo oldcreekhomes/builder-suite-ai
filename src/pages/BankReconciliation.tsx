@@ -404,13 +404,14 @@ const BankReconciliation = () => {
                                         onCheckedChange={() => handleToggleTransaction(check.id)}
                                       />
                                     </td>
-                                    <td className="p-2">
-                                      <InlineEditCell
-                                        value={check.date}
-                                        type="date"
-                                        onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
-                                      />
-                                    </td>
+                  <td className="p-2">
+                    <InlineEditCell
+                      value={check.date}
+                      type="date"
+                      onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
+                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                    />
+                  </td>
                                     <td className="p-2">
                                       <InlineEditCell
                                         value={check.reference_number || ''}
@@ -458,13 +459,14 @@ const BankReconciliation = () => {
                                         onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                       />
                                     </td>
-                                    <td className="p-2">
-                                      <InlineEditCell
-                                        value={deposit.date}
-                                        type="date"
-                                        onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
-                                      />
-                                    </td>
+                  <td className="p-2">
+                    <InlineEditCell
+                      value={deposit.date}
+                      type="date"
+                      onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
+                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                    />
+                  </td>
                                     <td className="p-2">{deposit.source}</td>
                                     <td className="p-2 text-right">
                                       <InlineEditCell
