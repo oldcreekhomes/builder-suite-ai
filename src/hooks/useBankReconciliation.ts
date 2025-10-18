@@ -430,6 +430,29 @@ export const useBankReconciliation = () => {
     });
   };
 
+  // Fetch active in-progress reconciliation for a bank account (no project filter)
+  const useActiveReconciliation = (bankAccountId: string | null) => {
+    return useQuery({
+      queryKey: ['active-reconciliation', bankAccountId],
+      queryFn: async () => {
+        if (!bankAccountId) return null;
+
+        const { data, error } = await supabase
+          .from('bank_reconciliations')
+          .select('*')
+          .eq('bank_account_id', bankAccountId)
+          .eq('status', 'in_progress')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+        return data;
+      },
+      enabled: !!bankAccountId,
+    });
+  };
+
   return {
     useReconciliationTransactions,
     createReconciliation,
@@ -437,5 +460,6 @@ export const useBankReconciliation = () => {
     markTransactionReconciled,
     useReconciliationHistory,
     useLastCompletedReconciliation,
+    useActiveReconciliation,
   };
 };
