@@ -2327,6 +2327,16 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_reconciliation_defaults: {
+        Args: { bank_account_id: string }
+        Returns: {
+          beginning_balance: number
+          mode: string
+          reconciliation_id: string
+          source_completed_id: string
+          statement_date: string
+        }[]
+      }
       get_user_role_and_home_builder: {
         Args: { user_id: string }
         Returns: {

@@ -430,26 +430,29 @@ export const useBankReconciliation = () => {
     });
   };
 
-  // Fetch active in-progress reconciliation for a bank account (no project filter)
-  const useActiveReconciliation = (bankAccountId: string | null) => {
+  // Fetch reconciliation defaults using the RPC
+  const useReconciliationDefaults = (bankAccountId: string | null) => {
     return useQuery({
-      queryKey: ['active-reconciliation', bankAccountId],
-      queryFn: async () => {
-        if (!bankAccountId) return null;
-
-        const { data, error } = await supabase
-          .from('bank_reconciliations')
-          .select('*')
-          .eq('bank_account_id', bankAccountId)
-          .eq('status', 'in_progress')
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) throw error;
-        return data;
-      },
+      queryKey: ['reconciliation-defaults', bankAccountId],
       enabled: !!bankAccountId,
+      queryFn: async () => {
+        console.log('[Reconciliation Defaults] Fetching defaults for bank account:', bankAccountId);
+        
+        const { data, error } = await supabase
+          .rpc('get_reconciliation_defaults', {
+            bank_account_id: bankAccountId!
+          });
+
+        if (error) {
+          console.error('[Reconciliation Defaults] Error:', error);
+          throw error;
+        }
+
+        // The RPC returns an array with one row
+        const defaults = data?.[0] || { mode: 'none', reconciliation_id: null, beginning_balance: 0, statement_date: null };
+        console.log('[Reconciliation Defaults] Result:', defaults);
+        return defaults;
+      }
     });
   };
 
@@ -460,6 +463,6 @@ export const useBankReconciliation = () => {
     markTransactionReconciled,
     useReconciliationHistory,
     useLastCompletedReconciliation,
-    useActiveReconciliation,
+    useReconciliationDefaults,
   };
 };

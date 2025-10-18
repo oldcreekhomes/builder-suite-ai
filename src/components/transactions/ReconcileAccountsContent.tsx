@@ -44,8 +44,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { 
     useReconciliationTransactions,
     useReconciliationHistory,
-    useLastCompletedReconciliation,
-    useActiveReconciliation,
+    useReconciliationDefaults,
     createReconciliation,
     updateReconciliation,
     markTransactionReconciled,
@@ -60,14 +59,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   );
 
   const { 
-    data: lastCompleted, 
-    isLoading: lastLoading 
-  } = useLastCompletedReconciliation(selectedBankAccountId);
-
-  const {
-    data: activeRecon,
-    isLoading: activeLoading
-  } = useActiveReconciliation(selectedBankAccountId);
+    data: defaults, 
+    isLoading: defaultsLoading 
+  } = useReconciliationDefaults(selectedBankAccountId);
 
   const { data: transactions, isLoading: transactionsLoading } = useReconciliationTransactions(
     projectId || null,
@@ -89,8 +83,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   
   const difference = calculatedEndingBalance - parseFloat(endingBalance || "0");
 
-  // Reset form when bank account changes
+  // Reset form when bank account changes (clear once)
   useEffect(() => {
+    if (!selectedBankAccountId) return;
+    
     setStatementDate(undefined);
     setBeginningBalance("");
     setEndingBalance("");
@@ -99,45 +95,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     setCurrentReconciliationId(null);
   }, [selectedBankAccountId]);
 
-  // Auto-populate from last reconciliation
+  // Auto-populate from defaults RPC
   useEffect(() => {
-    console.log('[Reconciliation Auto-populate]', {
-      selectedBankAccountId,
-      activeLoading,
-      lastLoading,
-      activeRecon,
-      lastCompleted,
-    });
+    if (!selectedBankAccountId || defaultsLoading || !defaults) return;
 
-    if (activeLoading || lastLoading) {
-      console.log('[Reconciliation Auto-populate] Still loading, skipping...');
-      return;
-    }
+    console.log('[Recon Defaults] Applying:', { selectedBankAccountId, defaults });
 
-    if (selectedBankAccountId && activeRecon) {
-      console.log('[Reconciliation Auto-populate] Resuming in-progress:', activeRecon.id);
-      setCurrentReconciliationId(activeRecon.id);
-      setBeginningBalance((activeRecon.statement_beginning_balance ?? 0).toString());
-      setStatementDate(new Date(activeRecon.statement_date));
-      setEndingBalance((activeRecon.statement_ending_balance ?? '').toString());
-      return;
-    }
-
-    if (selectedBankAccountId && lastCompleted) {
-      console.log('[Reconciliation Auto-populate] Using last completed:', lastCompleted.id);
+    if (defaults.mode === 'active') {
+      console.log('[Recon] Resuming in-progress reconciliation');
+      setCurrentReconciliationId(defaults.reconciliation_id);
+      setBeginningBalance(String(defaults.beginning_balance || 0));
+      setStatementDate(new Date(defaults.statement_date));
+    } else if (defaults.mode === 'last_completed') {
+      console.log('[Recon] Using last completed reconciliation (next statement)');
       setCurrentReconciliationId(null);
-      setBeginningBalance((lastCompleted.statement_ending_balance ?? 0).toString());
-      setStatementDate(addMonths(new Date(lastCompleted.statement_date), 1));
-      return;
-    }
-
-    if (selectedBankAccountId) {
-      console.log('[Reconciliation Auto-populate] First reconciliation for this account');
+      setBeginningBalance(String(defaults.beginning_balance || 0));
+      setStatementDate(new Date(defaults.statement_date));
+    } else {
+      console.log('[Recon] First reconciliation - defaulting beginning balance to 0');
       setCurrentReconciliationId(null);
       setBeginningBalance("0");
       setStatementDate(undefined);
     }
-  }, [selectedBankAccountId, activeRecon, activeLoading, lastCompleted, lastLoading]);
+  }, [selectedBankAccountId, defaults, defaultsLoading]);
 
   useEffect(() => {
     if (transactions) {
@@ -311,7 +291,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
         {selectedBankAccountId && (
           <>
-            {!activeLoading && !lastLoading && !activeRecon && !lastCompleted && (
+            {!defaultsLoading && defaults?.mode === 'none' && (
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                 <p className="text-sm text-blue-800">
                   <strong>First Reconciliation:</strong> This is the first reconciliation for this account. 
