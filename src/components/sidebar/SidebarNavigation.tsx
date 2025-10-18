@@ -239,31 +239,10 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                     <span>Manage Bills</span>
                   </a>
                   
-                  <Collapsible open={transactionsExpanded} onOpenChange={setTransactionsExpanded}>
-                    <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Transactions</span>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${transactionsExpanded ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="ml-6 space-y-0.5">
-                        <a href={`/project/${projectId}/accounting/transactions/journal-entry`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Journal Entry</span>
-                        </a>
-                        <a href={`/project/${projectId}/accounting/banking/write-checks`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Write Checks</span>
-                        </a>
-                        <a href={`/project/${projectId}/accounting/banking/make-deposits`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Make Deposits</span>
-                        </a>
-                        <a href={`/project/${projectId}/accounting/banking/reconciliation`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Reconcile Accounts</span>
-                        </a>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                  <a href={`/project/${projectId}/accounting/transactions`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span>Transactions</span>
+                  </a>
                   
                   <Collapsible open={reportsExpanded} onOpenChange={setReportsExpanded}>
                     <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">

@@ -38,6 +38,7 @@ import WriteChecks from "./pages/WriteChecks";
 import MakeDeposits from "./pages/MakeDeposits";
 import BankReconciliation from "./pages/BankReconciliation";
 import JournalEntry from "./pages/JournalEntry";
+import Transactions from "./pages/Transactions";
 import BidResponseConfirmation from "./pages/BidResponseConfirmation";
 import ScheduleResponseConfirmation from "./pages/ScheduleResponseConfirmation";
 import POResponseConfirmation from "./pages/POResponseConfirmation";
@@ -163,6 +164,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting/transactions/journal-entry" element={<ProtectedRoute><JournalEntry /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/reports/balance-sheet" element={<ProtectedRoute><BalanceSheet /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/reports/income-statement" element={<ProtectedRoute><IncomeStatement /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/make-deposits" element={<ProtectedRoute><MakeDeposits /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/reconciliation" element={<ProtectedRoute><BankReconciliation /></ProtectedRoute>} />

@@ -1,5 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JournalEntryForm } from "@/components/journal/JournalEntryForm";
+import { WriteChecksContent } from "./WriteChecksContent";
+import { MakeDepositsContent } from "./MakeDepositsContent";
+import { ReconcileAccountsContent } from "./ReconcileAccountsContent";
 
 interface TransactionsTabsProps {
   projectId?: string;
@@ -20,21 +23,15 @@ export function TransactionsTabs({ projectId }: TransactionsTabsProps) {
       </TabsContent>
       
       <TabsContent value="write-checks" className="mt-6">
-        <div className="text-center py-8 text-muted-foreground">
-          Write Checks content - To be implemented
-        </div>
+        <WriteChecksContent projectId={projectId} />
       </TabsContent>
       
       <TabsContent value="make-deposits" className="mt-6">
-        <div className="text-center py-8 text-muted-foreground">
-          Make Deposits content - To be implemented
-        </div>
+        <MakeDepositsContent projectId={projectId} />
       </TabsContent>
       
       <TabsContent value="reconcile-accounts" className="mt-6">
-        <div className="text-center py-8 text-muted-foreground">
-          Reconcile Accounts content - To be implemented
-        </div>
+        <ReconcileAccountsContent projectId={projectId} />
       </TabsContent>
     </Tabs>
   );
