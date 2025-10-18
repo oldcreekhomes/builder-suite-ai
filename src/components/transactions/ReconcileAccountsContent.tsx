@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -95,11 +96,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     setCurrentReconciliationId(null);
   }, [selectedBankAccountId]);
 
-  // Auto-populate from defaults RPC
+  // Auto-populate from defaults RPC (safety fallback)
   useEffect(() => {
     if (!selectedBankAccountId || defaultsLoading || !defaults) return;
+    
+    // Only populate if fields are still empty (prevents overriding immediate population)
+    if (beginningBalance !== "" || statementDate !== undefined) return;
 
-    console.log('[Recon Defaults] Applying:', { selectedBankAccountId, defaults });
+    console.log('[Recon Defaults] Fallback applying:', { selectedBankAccountId, defaults });
 
     if (defaults.mode === 'active') {
       console.log('[Recon] Resuming in-progress reconciliation');
@@ -117,7 +121,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setBeginningBalance("0");
       setStatementDate(undefined);
     }
-  }, [defaults, defaultsLoading]);
+  }, [defaults, defaultsLoading, beginningBalance, statementDate]);
 
   useEffect(() => {
     if (transactions) {
@@ -253,6 +257,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
   };
 
+  const applyDefaults = (row: any) => {
+    console.log('[Recon Defaults] Applying immediately on selection:', row);
+    setCurrentReconciliationId(row?.reconciliation_id || null);
+    setBeginningBalance(String(row?.beginning_balance ?? 0));
+    setStatementDate(row?.statement_date ? new Date(row.statement_date) : undefined);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -267,7 +278,38 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           <Label htmlFor="bank-account">Bank Account</Label>
           <Select
             value={selectedBankAccountId || ""}
-            onValueChange={(value) => setSelectedBankAccountId(value || null)}
+            onValueChange={async (value) => {
+              setSelectedBankAccountId(value || null);
+              
+              // Clear fields immediately
+              setStatementDate(undefined);
+              setBeginningBalance("");
+              setEndingBalance("");
+              setNotes("");
+              setCheckedTransactions(new Set());
+              setCurrentReconciliationId(null);
+
+              if (!value) return;
+
+              // Fetch and apply defaults immediately
+              try {
+                const { data, error } = await supabase.rpc('get_reconciliation_defaults', { 
+                  bank_account_id: value 
+                });
+                
+                if (error) {
+                  console.error('[Recon Defaults] RPC error on selection:', error);
+                  applyDefaults({ beginning_balance: 0, statement_date: null, reconciliation_id: null });
+                  return;
+                }
+                
+                const row = data?.[0] || { mode: 'none', beginning_balance: 0, statement_date: null, reconciliation_id: null };
+                applyDefaults(row);
+              } catch (e) {
+                console.error('[Recon Defaults] Unexpected error on selection:', e);
+                applyDefaults({ beginning_balance: 0, statement_date: null, reconciliation_id: null });
+              }
+            }}
           >
             <SelectTrigger className="w-full mt-1">
               <SelectValue placeholder="Select a bank account..." />
