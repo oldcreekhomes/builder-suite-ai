@@ -265,8 +265,8 @@ const BankReconciliation = () => {
           <div className="flex-1 overflow-y-auto p-6">
             <Card className="p-6">
               {/* All fields in one row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
+                <div className="lg:col-span-5">
                   <Label htmlFor="bank-account">Bank Account</Label>
                   <Select
                     value={selectedBankAccountId || ""}
@@ -290,7 +290,7 @@ const BankReconciliation = () => {
                   </Select>
                 </div>
 
-                <div>
+                <div className="lg:col-span-3">
                   <Label>Statement Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -312,12 +312,13 @@ const BankReconciliation = () => {
                         selected={statementDate}
                         onSelect={setStatementDate}
                         initialFocus
+                        className={cn("p-3 pointer-events-auto")}
                       />
                     </PopoverContent>
                   </Popover>
                 </div>
 
-                <div>
+                <div className="lg:col-span-2">
                   <Label htmlFor="beginning-balance">
                     Beginning Balance
                   </Label>
@@ -331,7 +332,7 @@ const BankReconciliation = () => {
                   />
                 </div>
 
-                <div>
+                <div className="lg:col-span-2">
                   <Label htmlFor="ending-balance">Statement Ending Balance</Label>
                   <Input
                     id="ending-balance"

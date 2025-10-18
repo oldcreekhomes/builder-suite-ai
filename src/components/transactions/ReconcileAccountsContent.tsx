@@ -248,8 +248,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     <div className="space-y-4">
       <Card className="p-6">
         {/* All fields in one row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
+          <div className="lg:col-span-5">
             <Label htmlFor="bank-account">Bank Account</Label>
             <Select
               value={selectedBankAccountId || ""}
@@ -273,7 +273,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             </Select>
           </div>
 
-          <div>
+          <div className="lg:col-span-3">
             <Label>Statement Date</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -295,12 +295,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   selected={statementDate}
                   onSelect={setStatementDate}
                   initialFocus
+                  className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
             </Popover>
           </div>
 
-          <div>
+          <div className="lg:col-span-2">
             <Label htmlFor="beginning-balance">
               Beginning Balance
             </Label>
@@ -314,7 +315,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             />
           </div>
 
-          <div>
+          <div className="lg:col-span-2">
             <Label htmlFor="ending-balance">Statement Ending Balance</Label>
             <Input
               id="ending-balance"
