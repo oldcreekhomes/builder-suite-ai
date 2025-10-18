@@ -156,6 +156,17 @@ export function CostCodeTableRow({
           )}
         </TableCell>
         <TableCell className="py-1">
+          {isLeafSubcategory ? (
+            <span className="text-muted-foreground text-sm">-</span>
+          ) : (
+            <CostCodeInlineEditor
+              costCode={costCode}
+              field="estimate"
+              onUpdate={onUpdate}
+            />
+          )}
+        </TableCell>
+        <TableCell className="py-1">
           <div className="flex gap-1">
             <Button variant="ghost" size="sm" onClick={() => onEdit(costCode)}>
               <Edit className="h-4 w-4" />
@@ -197,7 +208,7 @@ export function CostCodeTableRow({
           {onAddSubcategory && costCode.has_subcategories && (
             <TableRow className="h-8 bg-muted/30">
               <TableCell className="py-1"></TableCell>
-              <TableCell colSpan={9} className="py-1">
+              <TableCell colSpan={10} className="py-1">
                 <Button
                   variant="ghost"
                   size="sm"
