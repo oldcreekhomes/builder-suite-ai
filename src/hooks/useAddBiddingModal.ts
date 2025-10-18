@@ -14,6 +14,7 @@ interface CostCode {
   has_bidding: boolean;
   has_specifications: boolean;
   has_subcategories: boolean;
+  estimate: boolean;
   owner_id: string;
   price: number;
   quantity: string;
