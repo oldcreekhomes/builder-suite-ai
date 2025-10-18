@@ -42,7 +42,6 @@ const BankReconciliation = () => {
   const [notes, setNotes] = useState<string>("");
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
-  const [defaultsLoading, setDefaultsLoading] = useState(false);
 
   const { 
     useReconciliationTransactions,
@@ -221,96 +220,27 @@ const BankReconciliation = () => {
     }
   };
 
-  const loadDefaultsForBank = async (bankAccountId: string) => {
-    try {
-      setDefaultsLoading(true);
-      // 1) Try in-progress first
-      const { data: active, error: activeErr } = await supabase
-        .from('bank_reconciliations')
-        .select('id, statement_date, statement_beginning_balance')
-        .eq('bank_account_id', bankAccountId)
-        .eq('status', 'in_progress')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (activeErr) throw activeErr;
-
-      if (active) {
-        console.debug('[Recon Defaults] Active:', active);
-        setCurrentReconciliationId(active.id);
-        setBeginningBalance(String(active.statement_beginning_balance ?? 0));
-        setStatementDate(active.statement_date ? new Date(active.statement_date) : undefined);
-        return;
-      }
-
-      // 2) Else last completed → next month's EOM, beginning = prior ending
-      const { data: completed, error: compErr } = await supabase
-        .from('bank_reconciliations')
-        .select('id, statement_date, statement_ending_balance')
-        .eq('bank_account_id', bankAccountId)
-        .eq('status', 'completed')
-        .order('statement_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (compErr) throw compErr;
-
-      if (completed) {
-        console.debug('[Recon Defaults] Last completed:', completed);
-        setCurrentReconciliationId(null);
-        setBeginningBalance(String(completed.statement_ending_balance ?? 0));
-        setStatementDate(
-          completed.statement_date
-            ? endOfMonth(addMonths(new Date(completed.statement_date), 1))
-            : undefined
-        );
-        return;
-      }
-
-      // 3) None → default 0
-      console.debug('[Recon Defaults] No history');
-      setCurrentReconciliationId(null);
-      setBeginningBalance('0');
-      setStatementDate(undefined);
-    } catch (error) {
-      console.error('[Recon Defaults] Error loading defaults', error);
-      setCurrentReconciliationId(null);
-      setBeginningBalance('0');
-      setStatementDate(undefined);
-    } finally {
-      setDefaultsLoading(false);
-    }
-  };
-
+  // Auto-populate beginning balance and statement date from reconciliation history
   useEffect(() => {
-    if (!selectedBankAccountId) return;
-    loadDefaultsForBank(selectedBankAccountId);
-  }, [selectedBankAccountId]);
-
-  // Fallback: derive defaults from history if direct fetch didn't set them
-  useEffect(() => {
-    if (!selectedBankAccountId || !reconciliationHistory) return;
-    const hasDate = !!statementDate;
-    const hasBeg = beginningBalance !== "";
-    if (hasDate && hasBeg) return;
-
-    const active = reconciliationHistory.find((r: any) => r.status === 'in_progress');
-    if (active) {
-      setCurrentReconciliationId(active.id);
-      if (!hasBeg) setBeginningBalance(String(active.statement_beginning_balance ?? 0));
-      if (!hasDate) setStatementDate(active.statement_date ? new Date(active.statement_date) : undefined);
+    if (!selectedBankAccountId || !reconciliationHistory || reconciliationHistory.length === 0) {
       return;
     }
-    const completed = reconciliationHistory.find((r: any) => r.status === 'completed');
-    if (completed) {
+
+    // Find in-progress first
+    const inProgress = reconciliationHistory.find((r: any) => r.status === 'in_progress');
+    if (inProgress) {
+      setCurrentReconciliationId(inProgress.id);
+      setBeginningBalance(String(inProgress.statement_beginning_balance ?? 0));
+      setStatementDate(new Date(inProgress.statement_date));
+      return;
+    }
+
+    // Otherwise use last completed
+    const lastCompleted = reconciliationHistory.find((r: any) => r.status === 'completed');
+    if (lastCompleted) {
       setCurrentReconciliationId(null);
-      if (!hasBeg) setBeginningBalance(String(completed.statement_ending_balance ?? 0));
-      if (!hasDate) setStatementDate(
-        completed.statement_date
-          ? endOfMonth(addMonths(new Date(completed.statement_date), 1))
-          : undefined
-      );
+      setBeginningBalance(String(lastCompleted.statement_ending_balance ?? 0));
+      setStatementDate(endOfMonth(addMonths(new Date(lastCompleted.statement_date), 1)));
     }
   }, [selectedBankAccountId, reconciliationHistory]);
 
@@ -342,6 +272,7 @@ const BankReconciliation = () => {
                     setEndingBalance("");
                     setNotes("");
                     setCheckedTransactions(new Set());
+                    // Don't clear beginning/date - let the effect handle them
                   }}
                 >
                   <SelectTrigger className="w-full mt-1">
@@ -355,9 +286,6 @@ const BankReconciliation = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {defaultsLoading && (
-                  <p className="text-sm text-muted-foreground mt-2">Loading defaults…</p>
-                )}
               </div>
  
               {selectedBankAccountId && (
