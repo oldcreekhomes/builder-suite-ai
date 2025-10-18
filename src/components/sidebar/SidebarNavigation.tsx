@@ -100,7 +100,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   
   // State for collapsible sections
   const [transactionsExpanded, setTransactionsExpanded] = useState(false);
-  const [reportsExpanded, setReportsExpanded] = useState(false);
   
   // Calculate total unread count
   const totalUnread = Object.values(unreadCounts).reduce((sum: number, count: number) => sum + count, 0);
@@ -244,25 +243,10 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                     <span>Transactions</span>
                   </a>
                   
-                  <Collapsible open={reportsExpanded} onOpenChange={setReportsExpanded}>
-                    <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                      <div className="flex items-center space-x-2">
-                        <BarChart3 className="h-4 w-4" />
-                        <span>Reports</span>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${reportsExpanded ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="ml-6 space-y-0.5">
-                        <a href={`/project/${projectId}/accounting/reports/balance-sheet`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Balance Sheet</span>
-                        </a>
-                        <a href={`/project/${projectId}/accounting/reports/income-statement`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Income Statement</span>
-                        </a>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                  <a href={`/project/${projectId}/accounting/reports`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <BarChart3 className="h-4 w-4" />
+                    <span>Reports</span>
+                  </a>
                 </div>
               </div>
             )}
