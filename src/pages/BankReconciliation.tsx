@@ -272,6 +272,66 @@ const BankReconciliation = () => {
     setStatementDate(row?.statement_date ? new Date(row.statement_date) : undefined);
   };
 
+  const fetchAndApplyDefaults = async (bankAccountId: string) => {
+    // Try RPC first
+    try {
+      const { data, error } = await supabase.rpc('get_reconciliation_defaults', {
+        bank_account_id: bankAccountId,
+      });
+      const row = !error && data?.[0] ? data[0] : null;
+      if (row && (row.statement_date || row.mode === 'active' || row.mode === 'last_completed')) {
+        console.debug('[Recon Defaults] Using RPC defaults:', row);
+        applyDefaults(row);
+        return;
+      }
+      if (error) {
+        console.warn('[Recon Defaults] RPC error, falling back:', error);
+      }
+    } catch (e) {
+      console.warn('[Recon Defaults] RPC failed, falling back to direct queries:', e);
+    }
+
+    // Fallback: direct queries
+    const { data: active } = await supabase
+      .from('bank_reconciliations')
+      .select('id, statement_date, statement_beginning_balance')
+      .eq('bank_account_id', bankAccountId)
+      .eq('status', 'in_progress')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (active) {
+      console.debug('[Recon Defaults] Using active reconciliation:', active);
+      setCurrentReconciliationId(active.id);
+      setBeginningBalance(String((active as any).statement_beginning_balance ?? 0));
+      setStatementDate((active as any).statement_date ? new Date((active as any).statement_date) : undefined);
+      return;
+    }
+
+    const { data: completed } = await supabase
+      .from('bank_reconciliations')
+      .select('id, statement_date, statement_ending_balance')
+      .eq('bank_account_id', bankAccountId)
+      .eq('status', 'completed')
+      .order('statement_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (completed) {
+      console.debug('[Recon Defaults] Using last completed reconciliation:', completed);
+      setCurrentReconciliationId(null);
+      setBeginningBalance(String((completed as any).statement_ending_balance ?? 0));
+      setStatementDate((completed as any).statement_date ? addMonths(new Date((completed as any).statement_date), 1) : undefined);
+      return;
+    }
+
+    console.debug('[Recon Defaults] No history found, defaulting to zero');
+    setCurrentReconciliationId(null);
+    setBeginningBalance('0');
+    setStatementDate(undefined);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -308,24 +368,8 @@ const BankReconciliation = () => {
 
                     if (!value) return;
 
-                    // Fetch and apply defaults immediately
-                    try {
-                      const { data, error } = await supabase.rpc('get_reconciliation_defaults', { 
-                        bank_account_id: value 
-                      });
-                      
-                      if (error) {
-                        console.error('[Recon Defaults] RPC error on selection:', error);
-                        applyDefaults({ beginning_balance: 0, statement_date: null, reconciliation_id: null });
-                        return;
-                      }
-                      
-                      const row = data?.[0] || { mode: 'none', beginning_balance: 0, statement_date: null, reconciliation_id: null };
-                      applyDefaults(row);
-                    } catch (e) {
-                      console.error('[Recon Defaults] Unexpected error on selection:', e);
-                      applyDefaults({ beginning_balance: 0, statement_date: null, reconciliation_id: null });
-                    }
+                    // Fetch and apply defaults immediately (RPC with direct-query fallback)
+                    await fetchAndApplyDefaults(value);
                   }}
                 >
                   <SelectTrigger className="w-full mt-1">
