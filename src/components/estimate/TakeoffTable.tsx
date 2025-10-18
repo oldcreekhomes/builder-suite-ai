@@ -27,6 +27,12 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Determine correct owner_id (handle employees)
+      const { data: userInfo } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = userInfo?.[0]?.is_employee ? userInfo[0].home_builder_id : user.id;
+
+      if (!ownerId) return [];
+
       // Fetch existing takeoff items
       const { data: existingItems, error: itemsError } = await supabase
         .from('takeoff_items')
@@ -36,38 +42,48 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
 
       if (itemsError) throw itemsError;
 
-      // Fetch estimate-enabled cost codes for this user's company
-      const { data: estimateCostCodes, error: codesError } = await supabase
+      // Fetch all leaf estimate-enabled cost codes (no subcategories)
+      const { data: leafEstimateCodes, error: leafError } = await supabase
         .from('cost_codes')
         .select('*')
-        .eq('owner_id', user.id)
+        .eq('owner_id', ownerId)
         .eq('estimate', true)
+        .eq('has_subcategories', false)
         .order('code', { ascending: true });
 
-      if (codesError) throw codesError;
+      if (leafError) throw leafError;
 
-      // For parent categories with subcategories, fetch their children
-      const parentCategories = estimateCostCodes?.filter(code => code.has_subcategories) || [];
-      let subcategories: any[] = [];
+      // Fetch parent categories that have estimate=true AND have subcategories
+      const { data: estimateParents, error: parentsError } = await supabase
+        .from('cost_codes')
+        .select('name')
+        .eq('owner_id', ownerId)
+        .eq('estimate', true)
+        .eq('has_subcategories', true);
 
-      if (parentCategories.length > 0) {
-        const parentNames = parentCategories.map(c => c.name);
+      if (parentsError) throw parentsError;
+
+      // Fetch children of estimate-enabled parents
+      let parentChildren: any[] = [];
+      if (estimateParents && estimateParents.length > 0) {
+        const parentNames = estimateParents.map(p => p.name);
         const { data: subCodes, error: subCodesError } = await supabase
           .from('cost_codes')
           .select('*')
-          .eq('owner_id', user.id)
+          .eq('owner_id', ownerId)
           .in('category', parentNames)
           .order('code', { ascending: true });
 
         if (subCodesError) throw subCodesError;
-        subcategories = subCodes || [];
+        parentChildren = subCodes || [];
       }
 
-      // Combine parent cost codes (without subcategories) and all subcategories
-      const allRelevantCostCodes = [
-        ...(estimateCostCodes?.filter(code => !code.has_subcategories) || []),
-        ...subcategories
-      ];
+      // Combine and deduplicate all relevant cost codes
+      const allCostCodesMap = new Map();
+      [...(leafEstimateCodes || []), ...parentChildren].forEach(code => {
+        allCostCodesMap.set(code.id, code);
+      });
+      const allRelevantCostCodes = Array.from(allCostCodesMap.values());
 
       // Create a Set of cost_code_ids that already have takeoff items
       const existingCostCodeIds = new Set(
