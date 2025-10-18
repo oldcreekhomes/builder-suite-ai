@@ -1998,6 +1998,220 @@ export type Database = {
         }
         Relationships: []
       }
+      takeoff_annotations: {
+        Row: {
+          annotation_type: string
+          color: string | null
+          created_at: string
+          geometry: Json
+          id: string
+          label: string | null
+          layer_name: string | null
+          owner_id: string
+          takeoff_item_id: string | null
+          takeoff_sheet_id: string
+          updated_at: string
+          visible: boolean | null
+        }
+        Insert: {
+          annotation_type: string
+          color?: string | null
+          created_at?: string
+          geometry: Json
+          id?: string
+          label?: string | null
+          layer_name?: string | null
+          owner_id: string
+          takeoff_item_id?: string | null
+          takeoff_sheet_id: string
+          updated_at?: string
+          visible?: boolean | null
+        }
+        Update: {
+          annotation_type?: string
+          color?: string | null
+          created_at?: string
+          geometry?: Json
+          id?: string
+          label?: string | null
+          layer_name?: string | null
+          owner_id?: string
+          takeoff_item_id?: string | null
+          takeoff_sheet_id?: string
+          updated_at?: string
+          visible?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "takeoff_annotations_takeoff_item_id_fkey"
+            columns: ["takeoff_item_id"]
+            isOneToOne: false
+            referencedRelation: "takeoff_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_annotations_takeoff_sheet_id_fkey"
+            columns: ["takeoff_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "takeoff_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      takeoff_items: {
+        Row: {
+          category: string
+          cost_code_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          item_type: string
+          notes: string | null
+          owner_id: string
+          quantity: number
+          takeoff_sheet_id: string
+          total_cost: number | null
+          unit_of_measure: string | null
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cost_code_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_type: string
+          notes?: string | null
+          owner_id: string
+          quantity?: number
+          takeoff_sheet_id: string
+          total_cost?: number | null
+          unit_of_measure?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost_code_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_type?: string
+          notes?: string | null
+          owner_id?: string
+          quantity?: number
+          takeoff_sheet_id?: string
+          total_cost?: number | null
+          unit_of_measure?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "takeoff_items_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_items_takeoff_sheet_id_fkey"
+            columns: ["takeoff_sheet_id"]
+            isOneToOne: false
+            referencedRelation: "takeoff_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      takeoff_projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "takeoff_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      takeoff_sheets: {
+        Row: {
+          created_at: string
+          drawing_scale: string | null
+          file_name: string
+          file_path: string
+          id: string
+          name: string
+          owner_id: string
+          page_number: number | null
+          scale_ratio: number | null
+          takeoff_project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          drawing_scale?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          name: string
+          owner_id: string
+          page_number?: number | null
+          scale_ratio?: number | null
+          takeoff_project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          drawing_scale?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          page_number?: number | null
+          scale_ratio?: number | null
+          takeoff_project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "takeoff_sheets_takeoff_project_id_fkey"
+            columns: ["takeoff_project_id"]
+            isOneToOne: false
+            referencedRelation: "takeoff_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_chat_messages: {
         Row: {
           created_at: string
