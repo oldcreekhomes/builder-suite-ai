@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
-import { format, addMonths, endOfMonth } from "date-fns";
+import { format, addMonths, endOfMonth, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
@@ -232,6 +232,7 @@ const BankReconciliation = () => {
       setCurrentReconciliationId(inProgress.id);
       setBeginningBalance(String(inProgress.statement_beginning_balance ?? 0));
       setStatementDate(new Date(inProgress.statement_date));
+      setEndingBalance(String(inProgress.statement_ending_balance ?? ""));
       return;
     }
 
@@ -240,7 +241,8 @@ const BankReconciliation = () => {
     if (lastCompleted) {
       setCurrentReconciliationId(null);
       setBeginningBalance(String(lastCompleted.statement_ending_balance ?? 0));
-      setStatementDate(endOfMonth(addMonths(new Date(lastCompleted.statement_date), 1)));
+      setEndingBalance(String(lastCompleted.statement_ending_balance ?? 0));
+      setStatementDate(addDays(new Date(lastCompleted.statement_date), 30));
     }
   }, [selectedBankAccountId, reconciliationHistory]);
 
