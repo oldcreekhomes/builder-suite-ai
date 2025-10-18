@@ -44,10 +44,16 @@ const BankReconciliation = () => {
 
   const {
     useReconciliationTransactions,
+    useReconciliationHistory,
     createReconciliation,
     updateReconciliation,
     markTransactionReconciled,
   } = useBankReconciliation();
+
+  const { data: reconciliationHistory } = useReconciliationHistory(
+    projectId || null,
+    selectedBankAccountId
+  );
 
   const { data: transactions, isLoading: transactionsLoading } = useReconciliationTransactions(
     projectId || null,
@@ -70,6 +76,36 @@ const BankReconciliation = () => {
     parseFloat(beginningBalance || "0") + totalClearedDeposits - totalClearedChecks;
   
   const difference = calculatedEndingBalance - parseFloat(endingBalance || "0");
+
+  // Reset form when bank account changes
+  useEffect(() => {
+    setStatementDate(undefined);
+    setBeginningBalance("");
+    setEndingBalance("");
+    setNotes("");
+    setCheckedTransactions(new Set());
+    setCurrentReconciliationId(null);
+  }, [selectedBankAccountId]);
+
+  // Auto-populate from last reconciliation
+  useEffect(() => {
+    if (selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0) {
+      const lastReconciliation = reconciliationHistory.find(r => r.status === 'completed');
+      
+      if (lastReconciliation) {
+        setBeginningBalance(lastReconciliation.statement_ending_balance.toString());
+        
+        const lastDate = new Date(lastReconciliation.statement_date);
+        const nextStatementDate = new Date(lastDate);
+        nextStatementDate.setDate(nextStatementDate.getDate() + 30);
+        setStatementDate(nextStatementDate);
+      } else {
+        setBeginningBalance("0");
+      }
+    } else if (selectedBankAccountId) {
+      setBeginningBalance("0");
+    }
+  }, [selectedBankAccountId, reconciliationHistory]);
 
   // Load previously reconciled transactions
   useEffect(() => {
@@ -250,6 +286,15 @@ const BankReconciliation = () => {
 
               {selectedBankAccountId && (
                 <>
+                  {reconciliationHistory && reconciliationHistory.length === 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>First Reconciliation:</strong> This is the first reconciliation for this account. 
+                        The beginning balance is set to $0.00. Enter your current bank statement ending balance below.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Statement Information */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
@@ -278,14 +323,21 @@ const BankReconciliation = () => {
                       </Popover>
                     </div>
                     <div>
-                      <Label htmlFor="beginning-balance">Beginning Balance</Label>
+                      <Label htmlFor="beginning-balance">
+                        Beginning Balance
+                        {reconciliationHistory && reconciliationHistory.length > 0 && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (From last reconciliation)
+                          </span>
+                        )}
+                      </Label>
                       <Input
                         id="beginning-balance"
                         type="number"
                         step="0.01"
                         value={beginningBalance}
-                        onChange={(e) => setBeginningBalance(e.target.value)}
-                        className="mt-1"
+                        disabled={true}
+                        className="mt-1 bg-muted cursor-not-allowed"
                       />
                     </div>
                     <div>
