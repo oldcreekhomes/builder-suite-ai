@@ -327,6 +327,9 @@ export type Database = {
           notes: string | null
           owner_id: string
           project_id: string | null
+          reconciled: boolean | null
+          reconciliation_date: string | null
+          reconciliation_id: string | null
           reference_number: string | null
           status: Database["public"]["Enums"]["bill_status"]
           terms: string | null
@@ -343,6 +346,9 @@ export type Database = {
           notes?: string | null
           owner_id: string
           project_id?: string | null
+          reconciled?: boolean | null
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
           reference_number?: string | null
           status?: Database["public"]["Enums"]["bill_status"]
           terms?: string | null
@@ -359,6 +365,9 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           project_id?: string | null
+          reconciled?: boolean | null
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
           reference_number?: string | null
           status?: Database["public"]["Enums"]["bill_status"]
           terms?: string | null
@@ -372,6 +381,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
             referencedColumns: ["id"]
           },
           {

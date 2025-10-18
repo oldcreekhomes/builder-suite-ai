@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 interface ReconciliationTransaction {
   id: string;
   date: string;
-  type: 'check' | 'deposit';
+  type: 'check' | 'deposit' | 'bill_payment';
   payee?: string;
   source?: string;
   reference_number?: string;
@@ -78,6 +78,43 @@ export const useBankReconciliation = () => {
         const { data: deposits, error: depositsError } = await depositsQuery;
         if (depositsError) throw depositsError;
 
+        // Fetch bill payments (journal entries that credit the bank account)
+        let billPaymentsQuery = supabase
+          .from('journal_entries')
+          .select(`
+            id,
+            entry_date,
+            source_id,
+            journal_entry_lines!inner(
+              id,
+              credit,
+              account_id
+            ),
+            bills!inner(
+              id,
+              reference_number,
+              reconciled,
+              reconciliation_date,
+              reconciliation_id,
+              vendor_id,
+              companies!inner(
+                company_name
+              )
+            )
+          `)
+          .eq('source_type', 'bill_payment')
+          .eq('journal_entry_lines.account_id', bankAccountId)
+          .gt('journal_entry_lines.credit', 0);
+
+        if (projectId) {
+          billPaymentsQuery = billPaymentsQuery.eq('bills.project_id', projectId);
+        } else {
+          billPaymentsQuery = billPaymentsQuery.is('bills.project_id', null);
+        }
+
+        const { data: billPayments, error: billPaymentsError } = await billPaymentsQuery;
+        if (billPaymentsError) throw billPaymentsError;
+
         // Transform data into unified format
         const checkTransactions: ReconciliationTransaction[] = (checks || []).map(check => ({
           id: check.id,
@@ -102,8 +139,32 @@ export const useBankReconciliation = () => {
           reconciliation_id: deposit.reconciliation_id || undefined,
         }));
 
+        // Transform bill payments into transactions
+        const billPaymentTransactions: ReconciliationTransaction[] = (billPayments || []).map((je: any) => {
+          const bill = je.bills;
+          const journalLine = je.journal_entry_lines[0];
+          const vendor = bill.companies;
+          
+          return {
+            id: bill.id,
+            date: je.entry_date,
+            type: 'bill_payment' as const,
+            payee: vendor.company_name,
+            reference_number: bill.reference_number || undefined,
+            amount: Number(journalLine.credit),
+            reconciled: bill.reconciled,
+            reconciliation_date: bill.reconciliation_date || undefined,
+            reconciliation_id: bill.reconciliation_id || undefined,
+          };
+        });
+
+        // Combine checks and bill payments, sort by date
+        const allChecks = [...checkTransactions, ...billPaymentTransactions].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
         return {
-          checks: checkTransactions,
+          checks: allChecks,
           deposits: depositTransactions,
         };
       },
@@ -174,23 +235,43 @@ export const useBankReconciliation = () => {
       reconciliationId,
       reconciliationDate,
     }: {
-      type: 'check' | 'deposit';
+      type: 'check' | 'deposit' | 'bill_payment';
       id: string;
       reconciled: boolean;
       reconciliationId?: string;
       reconciliationDate?: string;
     }) => {
-      const table = type === 'check' ? 'checks' : 'deposits';
-      const { error } = await supabase
-        .from(table)
-        .update({
-          reconciled,
-          reconciliation_id: reconciliationId || null,
-          reconciliation_date: reconciliationDate || null,
-        })
-        .eq('id', id);
-
-      if (error) throw error;
+      if (type === 'check') {
+        const { error } = await supabase
+          .from('checks')
+          .update({
+            reconciled,
+            reconciliation_id: reconciliationId || null,
+            reconciliation_date: reconciliationDate || null,
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else if (type === 'deposit') {
+        const { error } = await supabase
+          .from('deposits')
+          .update({
+            reconciled,
+            reconciliation_id: reconciliationId || null,
+            reconciliation_date: reconciliationDate || null,
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else if (type === 'bill_payment') {
+        const { error } = await supabase
+          .from('bills')
+          .update({
+            reconciled,
+            reconciliation_id: reconciliationId || null,
+            reconciliation_date: reconciliationDate || null,
+          })
+          .eq('id', id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });

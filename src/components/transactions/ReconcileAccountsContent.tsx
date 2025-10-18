@@ -170,7 +170,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         if (check.reconciled !== shouldBeReconciled) {
           promises.push(
             markTransactionReconciled.mutateAsync({
-              type: 'check',
+              type: check.type,
               id: check.id,
               reconciled: shouldBeReconciled,
               reconciliationId: shouldBeReconciled ? reconciliationId! : undefined,
@@ -290,14 +290,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             ) : (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Outstanding Checks</h3>
+                  <h3 className="text-lg font-semibold mb-3">Outstanding Checks & Bill Payments</h3>
                   <div className="border rounded-lg overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
                           <th className="p-2 text-left w-12"></th>
                           <th className="p-2 text-left">Date</th>
-                          <th className="p-2 text-left">Check #</th>
+                          <th className="p-2 text-left">Type</th>
+                          <th className="p-2 text-left">Ref #</th>
                           <th className="p-2 text-left">Payee</th>
                           <th className="p-2 text-right">Amount</th>
                         </tr>
@@ -314,6 +315,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 />
                               </td>
                               <td className="p-2">{format(new Date(check.date), "MM/dd/yyyy")}</td>
+                              <td className="p-2">
+                                {check.type === 'bill_payment' ? 'Bill Payment' : 'Check'}
+                              </td>
                               <td className="p-2">{check.reference_number || '-'}</td>
                               <td className="p-2">{check.payee}</td>
                               <td className="p-2 text-right">{formatCurrency(check.amount)}</td>
@@ -368,7 +372,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       <span className="font-semibold">+{formatCurrency(totalClearedDeposits)}</span>
                     </div>
                     <div className="flex justify-between text-red-600">
-                      <span>Minus: Checks Cleared ({clearedChecks.length}):</span>
+                      <span>Minus: Checks & Bill Payments Cleared ({clearedChecks.length}):</span>
                       <span className="font-semibold">-{formatCurrency(totalClearedChecks)}</span>
                     </div>
                     <Separator />
