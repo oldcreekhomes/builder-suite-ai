@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
-import { format } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
@@ -42,9 +42,10 @@ const BankReconciliation = () => {
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
 
-  const {
+  const { 
     useReconciliationTransactions,
     useReconciliationHistory,
+    useLastCompletedReconciliation,
     createReconciliation,
     updateReconciliation,
     markTransactionReconciled,
@@ -57,6 +58,11 @@ const BankReconciliation = () => {
     projectId || null,
     selectedBankAccountId
   );
+
+  const { 
+    data: lastCompleted, 
+    isLoading: lastLoading 
+  } = useLastCompletedReconciliation(selectedBankAccountId);
 
   const { data: transactions, isLoading: transactionsLoading } = useReconciliationTransactions(
     projectId || null,
@@ -94,39 +100,26 @@ const BankReconciliation = () => {
   useEffect(() => {
     console.log('[Reconciliation Auto-populate]', {
       selectedBankAccountId,
-      historyLoading,
-      historyCount: reconciliationHistory?.length,
-      history: reconciliationHistory
+      lastLoading,
+      lastCompleted
     });
     
-    // Don't auto-populate while still loading history
-    if (historyLoading) {
+    // Don't auto-populate while still loading
+    if (lastLoading) {
       console.log('[Reconciliation Auto-populate] Still loading, skipping...');
       return;
     }
     
-    if (selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0) {
-      const lastReconciliation = reconciliationHistory.find(r => r.status === 'completed');
-      
-      if (lastReconciliation) {
-        console.log('[Reconciliation Auto-populate] Found last completed:', lastReconciliation);
-        setBeginningBalance(lastReconciliation.statement_ending_balance.toString());
-        
-        const lastDate = new Date(lastReconciliation.statement_date);
-        const nextStatementDate = new Date(lastDate);
-        nextStatementDate.setDate(nextStatementDate.getDate() + 30);
-        setStatementDate(nextStatementDate);
-      } else {
-        console.log('[Reconciliation Auto-populate] No completed reconciliation found');
-        setBeginningBalance("0");
-        setStatementDate(undefined);
-      }
-    } else if (selectedBankAccountId && !historyLoading) {
-      console.log('[Reconciliation Auto-populate] No history for account');
+    if (selectedBankAccountId && lastCompleted) {
+      console.log('[Reconciliation Auto-populate] Found last completed:', lastCompleted);
+      setBeginningBalance(lastCompleted.statement_ending_balance.toString());
+      setStatementDate(addMonths(new Date(lastCompleted.statement_date), 1));
+    } else if (selectedBankAccountId && !lastLoading) {
+      console.log('[Reconciliation Auto-populate] No completed reconciliation for account');
       setBeginningBalance("0");
       setStatementDate(undefined);
     }
-  }, [selectedBankAccountId, reconciliationHistory, historyLoading]);
+  }, [selectedBankAccountId, lastCompleted, lastLoading]);
 
   // Load previously reconciled transactions
   useEffect(() => {
@@ -307,7 +300,7 @@ const BankReconciliation = () => {
 
               {selectedBankAccountId && (
                 <>
-                  {reconciliationHistory && reconciliationHistory.length === 0 && (
+                  {!lastLoading && !lastCompleted && (
                     <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                       <p className="text-sm text-blue-800">
                         <strong>First Reconciliation:</strong> This is the first reconciliation for this account. 

@@ -407,11 +407,35 @@ export const useBankReconciliation = () => {
     });
   };
 
+  // Fetch last completed reconciliation for a bank account (no project filter)
+  const useLastCompletedReconciliation = (bankAccountId: string | null) => {
+    return useQuery({
+      queryKey: ['last-completed-reconciliation', bankAccountId],
+      queryFn: async () => {
+        if (!bankAccountId) return null;
+
+        const { data, error } = await supabase
+          .from('bank_reconciliations')
+          .select('*')
+          .eq('bank_account_id', bankAccountId)
+          .eq('status', 'completed')
+          .order('statement_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+        return data;
+      },
+      enabled: !!bankAccountId,
+    });
+  };
+
   return {
     useReconciliationTransactions,
     createReconciliation,
     updateReconciliation,
     markTransactionReconciled,
     useReconciliationHistory,
+    useLastCompletedReconciliation,
   };
 };
