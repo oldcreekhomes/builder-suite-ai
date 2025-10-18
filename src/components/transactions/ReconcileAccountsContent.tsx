@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
-import { format, addMonths } from "date-fns";
+import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
@@ -45,7 +45,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { 
     useReconciliationTransactions,
     useReconciliationHistory,
-    useReconciliationDefaults,
     createReconciliation,
     updateReconciliation,
     markTransactionReconciled,
@@ -58,11 +57,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     projectId || null,
     selectedBankAccountId
   );
-
-  const { 
-    data: defaults, 
-    isLoading: defaultsLoading 
-  } = useReconciliationDefaults(selectedBankAccountId);
 
   const { data: transactions, isLoading: transactionsLoading } = useReconciliationTransactions(
     projectId || null,
@@ -83,45 +77,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     parseFloat(beginningBalance || "0") + totalClearedDeposits - totalClearedChecks;
   
   const difference = calculatedEndingBalance - parseFloat(endingBalance || "0");
-
-  // Reset form when bank account changes (clear once)
-  useEffect(() => {
-    if (!selectedBankAccountId) return;
-    
-    setStatementDate(undefined);
-    setBeginningBalance("");
-    setEndingBalance("");
-    setNotes("");
-    setCheckedTransactions(new Set());
-    setCurrentReconciliationId(null);
-  }, [selectedBankAccountId]);
-
-  // Auto-populate from defaults RPC (safety fallback)
-  useEffect(() => {
-    if (!selectedBankAccountId || defaultsLoading || !defaults) return;
-    
-    // Only populate if fields are still empty (prevents overriding immediate population)
-    if (beginningBalance !== "" || statementDate !== undefined) return;
-
-    console.log('[Recon Defaults] Fallback applying:', { selectedBankAccountId, defaults });
-
-    if (defaults.mode === 'active') {
-      console.log('[Recon] Resuming in-progress reconciliation');
-      setCurrentReconciliationId(defaults.reconciliation_id);
-      setBeginningBalance(String(defaults.beginning_balance || 0));
-      setStatementDate(new Date(defaults.statement_date));
-    } else if (defaults.mode === 'last_completed') {
-      console.log('[Recon] Using last completed reconciliation (next statement)');
-      setCurrentReconciliationId(null);
-      setBeginningBalance(String(defaults.beginning_balance || 0));
-      setStatementDate(new Date(defaults.statement_date));
-    } else {
-      console.log('[Recon] First reconciliation - defaulting beginning balance to 0');
-      setCurrentReconciliationId(null);
-      setBeginningBalance("0");
-      setStatementDate(undefined);
-    }
-  }, [defaults, defaultsLoading, beginningBalance, statementDate]);
 
   useEffect(() => {
     if (transactions) {
@@ -257,33 +212,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
   };
 
-  const applyDefaults = (row: any) => {
-    console.log('[Recon Defaults] Applying immediately on selection:', row);
-    setCurrentReconciliationId(row?.reconciliation_id || null);
-    setBeginningBalance(String(row?.beginning_balance ?? 0));
-    setStatementDate(row?.statement_date ? new Date(row.statement_date) : undefined);
-  };
-
-  const fetchAndApplyDefaults = async (bankAccountId: string) => {
-    // Try RPC first
-    try {
-      const { data, error } = await supabase.rpc('get_reconciliation_defaults', {
-        bank_account_id: bankAccountId,
-      });
-      const row = !error && data?.[0] ? data[0] : null;
-      if (row && (row.statement_date || row.mode === 'active' || row.mode === 'last_completed')) {
-        console.debug('[Recon Defaults] Using RPC defaults:', row);
-        applyDefaults(row);
-        return;
-      }
-      if (error) {
-        console.warn('[Recon Defaults] RPC error, falling back:', error);
-      }
-    } catch (e) {
-      console.warn('[Recon Defaults] RPC failed, falling back to direct queries:', e);
-    }
-
-    // Fallback: direct queries
+  const loadDefaultsForBank = async (bankAccountId: string) => {
+    // 1) Try in-progress first
     const { data: active } = await supabase
       .from('bank_reconciliations')
       .select('id, statement_date, statement_beginning_balance')
@@ -294,13 +224,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       .maybeSingle();
 
     if (active) {
-      console.debug('[Recon Defaults] Using active reconciliation:', active);
+      console.debug('[Recon Defaults] Active:', active);
       setCurrentReconciliationId(active.id);
-      setBeginningBalance(String((active as any).statement_beginning_balance ?? 0));
-      setStatementDate((active as any).statement_date ? new Date((active as any).statement_date) : undefined);
+      setBeginningBalance(String(active.statement_beginning_balance ?? 0));
+      setStatementDate(active.statement_date ? new Date(active.statement_date) : undefined);
       return;
     }
 
+    // 2) Else last completed → next month's EOM, beginning = prior ending
     const { data: completed } = await supabase
       .from('bank_reconciliations')
       .select('id, statement_date, statement_ending_balance')
@@ -311,14 +242,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       .maybeSingle();
 
     if (completed) {
-      console.debug('[Recon Defaults] Using last completed reconciliation:', completed);
+      console.debug('[Recon Defaults] Last completed:', completed);
       setCurrentReconciliationId(null);
-      setBeginningBalance(String((completed as any).statement_ending_balance ?? 0));
-      setStatementDate((completed as any).statement_date ? addMonths(new Date((completed as any).statement_date), 1) : undefined);
+      setBeginningBalance(String(completed.statement_ending_balance ?? 0));
+      setStatementDate(completed.statement_date ? endOfMonth(addMonths(new Date(completed.statement_date), 1)) : undefined);
       return;
     }
 
-    console.debug('[Recon Defaults] No history found, defaulting to zero');
+    // 3) None → default 0
+    console.debug('[Recon Defaults] No history');
     setCurrentReconciliationId(null);
     setBeginningBalance('0');
     setStatementDate(undefined);
@@ -340,19 +272,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             value={selectedBankAccountId || ""}
             onValueChange={async (value) => {
               setSelectedBankAccountId(value || null);
-              
-              // Clear fields immediately
               setStatementDate(undefined);
               setBeginningBalance("");
               setEndingBalance("");
               setNotes("");
               setCheckedTransactions(new Set());
               setCurrentReconciliationId(null);
-
               if (!value) return;
-
-              // Fetch and apply defaults immediately (RPC with direct-query fallback)
-              await fetchAndApplyDefaults(value);
+              await loadDefaultsForBank(value);
             }}
           >
             <SelectTrigger className="w-full mt-1">
@@ -375,18 +302,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           )}
         </div>
 
-        {selectedBankAccountId && (
-          <>
-            {!defaultsLoading && defaults?.mode === 'none' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-                <p className="text-sm text-blue-800">
-                  <strong>First Reconciliation:</strong> This is the first reconciliation for this account. 
-                  The beginning balance is set to $0.00. Enter your current bank statement ending balance below.
-                </p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {selectedBankAccountId && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div>
                 <Label>Statement Date</Label>
                 <Popover>
