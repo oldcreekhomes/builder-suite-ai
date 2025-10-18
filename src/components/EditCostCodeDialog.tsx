@@ -40,6 +40,7 @@ export function EditCostCodeDialog({
     has_specifications: "",
     has_bidding: "",
     has_subcategories: "",
+    estimate: "",
   });
 
   useEffect(() => {
@@ -54,6 +55,7 @@ export function EditCostCodeDialog({
         has_specifications: costCode.has_specifications ? "yes" : "no",
         has_bidding: costCode.has_bidding ? "yes" : "no",
         has_subcategories: costCode.has_subcategories ? "yes" : "no",
+        estimate: costCode.estimate ? "yes" : "no",
       });
     }
   }, [costCode]);
@@ -198,7 +200,7 @@ export function EditCostCodeDialog({
               </div>
             </div>
 
-            {/* Row 5: Sub Categories with Buttons */}
+            {/* Row 5: Sub Categories and Estimate */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="has_subcategories">Has Sub Categories</Label>
@@ -213,16 +215,26 @@ export function EditCostCodeDialog({
                 </Select>
               </div>
               
-              {/* Buttons */}
               <div className="space-y-2">
-                <Label className="invisible">Actions</Label>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="flex-1">Update Cost Code</Button>
-                </div>
+                <Label htmlFor="estimate">Estimate</Label>
+                <Select value={formData.estimate} onValueChange={(value) => handleInputChange("estimate", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            {/* Row 6: Buttons */}
+            <div className="flex gap-2 justify-end pt-4">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Cost Code</Button>
             </div>
           </div>
         </form>

@@ -23,14 +23,53 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
     queryFn: async () => {
       if (!sheetId) return [];
       
-      const { data, error } = await supabase
+      // Get current user to fetch their estimate cost codes
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // Fetch existing takeoff items
+      const { data: existingItems, error: itemsError } = await supabase
         .from('takeoff_items')
-        .select('*')
+        .select('*, cost_code_id')
         .eq('takeoff_sheet_id', sheetId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      return data;
+      if (itemsError) throw itemsError;
+
+      // Fetch estimate-enabled cost codes for this user's company
+      const { data: estimateCostCodes, error: codesError } = await supabase
+        .from('cost_codes')
+        .select('*')
+        .eq('owner_id', user.id)
+        .eq('estimate', true)
+        .order('code', { ascending: true });
+
+      if (codesError) throw codesError;
+
+      // Create a Set of cost_code_ids that already have takeoff items
+      const existingCostCodeIds = new Set(
+        existingItems?.map(item => item.cost_code_id).filter(Boolean) || []
+      );
+
+      // Create template rows for estimate cost codes that don't have items yet
+      const templateRows = estimateCostCodes
+        ?.filter(code => !existingCostCodeIds.has(code.id))
+        .map(code => ({
+          id: `template-${code.id}`,
+          takeoff_sheet_id: sheetId,
+          cost_code_id: code.id,
+          category: code.name,
+          quantity: 0,
+          unit_of_measure: code.unit_of_measure,
+          unit_price: code.price || 0,
+          total_cost: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          isTemplate: true, // Flag to identify template rows
+        })) || [];
+
+      // Combine existing items with template rows
+      return [...(existingItems || []), ...templateRows];
     },
     enabled: !!sheetId,
   });

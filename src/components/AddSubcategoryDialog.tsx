@@ -26,6 +26,7 @@ export function AddSubcategoryDialog({ parentCode, parentName, existingCostCodes
     quantity: "",
     price: "",
     unitOfMeasure: "",
+    estimate: "",
   });
 
   // Calculate next available subcategory code
@@ -53,6 +54,7 @@ export function AddSubcategoryDialog({ parentCode, parentName, existingCostCodes
         quantity: "",
         price: "",
         unitOfMeasure: "",
+        estimate: "",
       });
     }
   }, [open, parentCode, existingCostCodes]);
@@ -75,6 +77,7 @@ export function AddSubcategoryDialog({ parentCode, parentName, existingCostCodes
       quantity: "",
       price: "",
       unitOfMeasure: "",
+      estimate: "",
     });
   };
 
@@ -154,6 +157,20 @@ export function AddSubcategoryDialog({ parentCode, parentName, existingCostCodes
                   <SelectItem value="linear-feet">Linear Feet</SelectItem>
                   <SelectItem value="square-yard">Square Yard</SelectItem>
                   <SelectItem value="cubic-yard">Cubic Yard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Estimate */}
+            <div className="space-y-2">
+              <Label htmlFor="estimate">Estimate</Label>
+              <Select value={formData.estimate} onValueChange={(value) => handleInputChange("estimate", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
             </div>

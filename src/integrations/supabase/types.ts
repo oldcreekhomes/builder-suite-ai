@@ -817,6 +817,7 @@ export type Database = {
           category: string | null
           code: string
           created_at: string
+          estimate: boolean | null
           has_bidding: boolean | null
           has_specifications: boolean | null
           has_subcategories: boolean | null
@@ -833,6 +834,7 @@ export type Database = {
           category?: string | null
           code: string
           created_at?: string
+          estimate?: boolean | null
           has_bidding?: boolean | null
           has_specifications?: boolean | null
           has_subcategories?: boolean | null
@@ -849,6 +851,7 @@ export type Database = {
           category?: string | null
           code?: string
           created_at?: string
+          estimate?: boolean | null
           has_bidding?: boolean | null
           has_specifications?: boolean | null
           has_subcategories?: boolean | null
