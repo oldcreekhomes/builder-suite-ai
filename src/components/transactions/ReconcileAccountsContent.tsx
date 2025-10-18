@@ -247,8 +247,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   return (
     <div className="space-y-4">
       <Card className="p-6">
-        {/* Row 1: Bank Account + Statement Date */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* All fields in one row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div>
             <Label htmlFor="bank-account">Bank Account</Label>
             <Select
@@ -274,68 +274,64 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </div>
 
           {selectedBankAccountId && (
-            <div>
-              <Label>Statement Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal mt-1",
-                      !statementDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {statementDate ? format(statementDate, "PP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={statementDate}
-                    onSelect={setStatementDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <>
+              <div>
+                <Label>Statement Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal mt-1",
+                        !statementDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {statementDate ? format(statementDate, "PP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={statementDate}
+                      onSelect={setStatementDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <Label htmlFor="beginning-balance">
+                  Beginning Balance
+                </Label>
+                <Input
+                  id="beginning-balance"
+                  type="number"
+                  step="0.01"
+                  value={beginningBalance}
+                  disabled={true}
+                  className="mt-1 bg-muted cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="ending-balance">Statement Ending Balance</Label>
+                <Input
+                  id="ending-balance"
+                  type="number"
+                  step="0.01"
+                  value={endingBalance}
+                  onChange={(e) => setEndingBalance(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </>
           )}
         </div>
 
           {selectedBankAccountId && (
             <>
-              {/* Row 2: Beginning Balance + Statement Ending Balance */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <Label htmlFor="beginning-balance">
-                    Beginning Balance
-                    {reconciliationHistory && reconciliationHistory.length > 0 && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        (From last reconciliation)
-                      </span>
-                    )}
-                  </Label>
-                  <Input
-                    id="beginning-balance"
-                    type="number"
-                    step="0.01"
-                    value={beginningBalance}
-                    disabled={true}
-                    className="mt-1 bg-muted cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ending-balance">Statement Ending Balance</Label>
-                  <Input
-                    id="ending-balance"
-                    type="number"
-                    step="0.01"
-                    value={endingBalance}
-                    onChange={(e) => setEndingBalance(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
 
             <Separator className="my-6" />
 
