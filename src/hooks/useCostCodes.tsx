@@ -173,6 +173,7 @@ export const useCostCodes = () => {
       if (updates.has_bidding !== undefined) updateData.has_bidding = toBool(updates.has_bidding);
       if (updates.has_subcategories !== undefined)
         updateData.has_subcategories = toBool(updates.has_subcategories);
+      if (updates.estimate !== undefined) updateData.estimate = toBool(updates.estimate);
 
       updateData.updated_at = new Date().toISOString();
 
