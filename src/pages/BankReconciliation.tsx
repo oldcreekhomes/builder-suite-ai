@@ -42,6 +42,7 @@ const BankReconciliation = () => {
   const [notes, setNotes] = useState<string>("");
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
+  const [defaultsLoading, setDefaultsLoading] = useState(false);
 
   const { 
     useReconciliationTransactions,
@@ -221,48 +222,71 @@ const BankReconciliation = () => {
   };
 
   const loadDefaultsForBank = async (bankAccountId: string) => {
-    // 1) Try in-progress first
-    const { data: active } = await supabase
-      .from('bank_reconciliations')
-      .select('id, statement_date, statement_beginning_balance')
-      .eq('bank_account_id', bankAccountId)
-      .eq('status', 'in_progress')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    try {
+      setDefaultsLoading(true);
+      // 1) Try in-progress first
+      const { data: active, error: activeErr } = await supabase
+        .from('bank_reconciliations')
+        .select('id, statement_date, statement_beginning_balance')
+        .eq('bank_account_id', bankAccountId)
+        .eq('status', 'in_progress')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (active) {
-      console.debug('[Recon Defaults] Active:', active);
-      setCurrentReconciliationId(active.id);
-      setBeginningBalance(String(active.statement_beginning_balance ?? 0));
-      setStatementDate(active.statement_date ? new Date(active.statement_date) : undefined);
-      return;
-    }
+      if (activeErr) throw activeErr;
 
-    // 2) Else last completed → next month's EOM, beginning = prior ending
-    const { data: completed } = await supabase
-      .from('bank_reconciliations')
-      .select('id, statement_date, statement_ending_balance')
-      .eq('bank_account_id', bankAccountId)
-      .eq('status', 'completed')
-      .order('statement_date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      if (active) {
+        console.debug('[Recon Defaults] Active:', active);
+        setCurrentReconciliationId(active.id);
+        setBeginningBalance(String(active.statement_beginning_balance ?? 0));
+        setStatementDate(active.statement_date ? new Date(active.statement_date) : undefined);
+        return;
+      }
 
-    if (completed) {
-      console.debug('[Recon Defaults] Last completed:', completed);
+      // 2) Else last completed → next month's EOM, beginning = prior ending
+      const { data: completed, error: compErr } = await supabase
+        .from('bank_reconciliations')
+        .select('id, statement_date, statement_ending_balance')
+        .eq('bank_account_id', bankAccountId)
+        .eq('status', 'completed')
+        .order('statement_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (compErr) throw compErr;
+
+      if (completed) {
+        console.debug('[Recon Defaults] Last completed:', completed);
+        setCurrentReconciliationId(null);
+        setBeginningBalance(String(completed.statement_ending_balance ?? 0));
+        setStatementDate(
+          completed.statement_date
+            ? endOfMonth(addMonths(new Date(completed.statement_date), 1))
+            : undefined
+        );
+        return;
+      }
+
+      // 3) None → default 0
+      console.debug('[Recon Defaults] No history');
       setCurrentReconciliationId(null);
-      setBeginningBalance(String(completed.statement_ending_balance ?? 0));
-      setStatementDate(completed.statement_date ? endOfMonth(addMonths(new Date(completed.statement_date), 1)) : undefined);
-      return;
+      setBeginningBalance('0');
+      setStatementDate(undefined);
+    } catch (error) {
+      console.error('[Recon Defaults] Error loading defaults', error);
+      setCurrentReconciliationId(null);
+      setBeginningBalance('0');
+      setStatementDate(undefined);
+    } finally {
+      setDefaultsLoading(false);
     }
-
-    // 3) None → default 0
-    console.debug('[Recon Defaults] No history');
-    setCurrentReconciliationId(null);
-    setBeginningBalance('0');
-    setStatementDate(undefined);
   };
+
+  useEffect(() => {
+    if (!selectedBankAccountId) return;
+    loadDefaultsForBank(selectedBankAccountId);
+  }, [selectedBankAccountId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -287,16 +311,11 @@ const BankReconciliation = () => {
                 <Label htmlFor="bank-account">Bank Account</Label>
                 <Select
                   value={selectedBankAccountId || ""}
-                  onValueChange={async (value) => {
+                  onValueChange={(value) => {
                     setSelectedBankAccountId(value || null);
-                    setStatementDate(undefined);
-                    setBeginningBalance("");
                     setEndingBalance("");
                     setNotes("");
                     setCheckedTransactions(new Set());
-                    setCurrentReconciliationId(null);
-                    if (!value) return;
-                    await loadDefaultsForBank(value);
                   }}
                 >
                   <SelectTrigger className="w-full mt-1">
@@ -310,8 +329,11 @@ const BankReconciliation = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {defaultsLoading && (
+                  <p className="text-sm text-muted-foreground mt-2">Loading defaults…</p>
+                )}
               </div>
-
+ 
               {selectedBankAccountId && (
                 <>
                   {/* Statement Information */}
