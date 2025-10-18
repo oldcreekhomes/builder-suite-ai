@@ -288,6 +288,32 @@ const BankReconciliation = () => {
     loadDefaultsForBank(selectedBankAccountId);
   }, [selectedBankAccountId]);
 
+  // Fallback: derive defaults from history if direct fetch didn't set them
+  useEffect(() => {
+    if (!selectedBankAccountId || !reconciliationHistory) return;
+    const hasDate = !!statementDate;
+    const hasBeg = beginningBalance !== "";
+    if (hasDate && hasBeg) return;
+
+    const active = reconciliationHistory.find((r: any) => r.status === 'in_progress');
+    if (active) {
+      setCurrentReconciliationId(active.id);
+      if (!hasBeg) setBeginningBalance(String(active.statement_beginning_balance ?? 0));
+      if (!hasDate) setStatementDate(active.statement_date ? new Date(active.statement_date) : undefined);
+      return;
+    }
+    const completed = reconciliationHistory.find((r: any) => r.status === 'completed');
+    if (completed) {
+      setCurrentReconciliationId(null);
+      if (!hasBeg) setBeginningBalance(String(completed.statement_ending_balance ?? 0));
+      if (!hasDate) setStatementDate(
+        completed.statement_date
+          ? endOfMonth(addMonths(new Date(completed.statement_date), 1))
+          : undefined
+      );
+    }
+  }, [selectedBankAccountId, reconciliationHistory]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
