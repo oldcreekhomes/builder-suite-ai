@@ -49,8 +49,8 @@ export const useBankReconciliation = () => {
           return { checks: [], deposits: [] };
         }
 
-        // Fetch checks
-        let checksQuery = supabase
+        // Fetch ALL unreconciled checks for this bank account (no project filter yet)
+        const { data: allChecks, error: checksError } = await supabase
           .from('checks')
           .select('*')
           .eq('bank_account_id', bankAccountId)
@@ -58,15 +58,42 @@ export const useBankReconciliation = () => {
           .eq('reconciled', false)
           .order('check_date', { ascending: true });
 
-        if (projectId) {
-          checksQuery = checksQuery.eq('project_id', projectId);
-        } else {
-          checksQuery = checksQuery.is('project_id', null);
+        if (checksError) throw checksError;
+        console.log('[Reconciliation] All checks fetched:', { count: allChecks?.length });
+
+        // Filter checks by project if projectId is provided
+        let checksToUse = allChecks || [];
+        if (projectId && allChecks && allChecks.length > 0) {
+          // Get checks that match project in header
+          const headerMatchIds = allChecks
+            .filter(c => c.project_id === projectId)
+            .map(c => c.id);
+
+          // Get checks that have lines matching the project
+          const checkIds = allChecks.map(c => c.id);
+          const { data: checkLines } = await supabase
+            .from('check_lines')
+            .select('check_id')
+            .in('check_id', checkIds)
+            .eq('project_id', projectId);
+
+          const lineMatchIds = [...new Set((checkLines || []).map(l => l.check_id))];
+
+          // Combine both sets
+          const allowedIds = new Set([...headerMatchIds, ...lineMatchIds]);
+          checksToUse = allChecks.filter(c => allowedIds.has(c.id));
+          
+          console.log('[Reconciliation] Filtered checks by project:', { 
+            headerMatches: headerMatchIds.length,
+            lineMatches: lineMatchIds.length,
+            total: checksToUse.length 
+          });
+        } else if (!projectId) {
+          // No project filter - show only checks with no project
+          checksToUse = allChecks.filter(c => !c.project_id);
         }
 
-        const { data: checks, error: checksError } = await checksQuery;
-        console.log('[Reconciliation] Checks:', { count: checks?.length, error: checksError, data: checks });
-        if (checksError) throw checksError;
+        console.log('[Reconciliation] Final checks to use:', { count: checksToUse.length });
 
         // Fetch deposits
         let depositsQuery = supabase
@@ -84,59 +111,119 @@ export const useBankReconciliation = () => {
         }
 
         const { data: deposits, error: depositsError } = await depositsQuery;
-        console.log('[Reconciliation] Deposits:', { count: deposits?.length, error: depositsError, data: deposits });
+        console.log('[Reconciliation] Deposits:', { count: deposits?.length, error: depositsError });
         if (depositsError) throw depositsError;
 
-        // Fetch bill payments (journal entries that credit the bank account)
-        let billPaymentsQuery = supabase
+        // Fetch bill payments using two-step approach
+        // Step 1: Get journal entries for bill payments
+        const { data: journalEntries, error: jeError } = await supabase
           .from('journal_entries')
-          .select(`
-            id,
-            entry_date,
-            source_id,
-            journal_entry_lines!left(
-              id,
-              credit,
-              account_id
-            ),
-            bills!left(
-              id,
-              reference_number,
-              reconciled,
-              reconciliation_date,
-              reconciliation_id,
-              vendor_id,
-              project_id,
-              companies!left(
-                company_name
-              )
-            )
-          `)
-          .eq('source_type', 'bill_payment')
-          .eq('journal_entry_lines.account_id', bankAccountId)
-          .gt('journal_entry_lines.credit', 0)
-          .eq('bills.reconciled', false);
+          .select('id, entry_date, source_id')
+          .eq('source_type', 'bill_payment');
 
-        if (projectId) {
-          billPaymentsQuery = billPaymentsQuery.eq('bills.project_id', projectId);
-        } else {
-          billPaymentsQuery = billPaymentsQuery.is('bills.project_id', null);
+        if (jeError) {
+          console.error('[Reconciliation] Journal entries query failed:', jeError);
         }
 
-        const { data: billPayments, error: billPaymentsError } = await billPaymentsQuery;
-        console.log('[Reconciliation] Bill Payments:', { 
-          count: billPayments?.length, 
-          error: billPaymentsError, 
-          data: billPayments 
-        });
+        let billPaymentTransactions: ReconciliationTransaction[] = [];
         
-        // Don't throw on bill payments error - log and continue
-        if (billPaymentsError) {
-          console.error('[Reconciliation] Bill payments query failed:', billPaymentsError);
+        if (journalEntries && journalEntries.length > 0) {
+          const jeIds = journalEntries.map(je => je.id);
+
+          // Step 2: Get journal entry lines that credit this bank account
+          const { data: journalLines, error: jlError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id, credit')
+            .in('journal_entry_id', jeIds)
+            .eq('account_id', bankAccountId)
+            .gt('credit', 0);
+
+          if (jlError) {
+            console.error('[Reconciliation] Journal lines query failed:', jlError);
+          }
+
+          if (journalLines && journalLines.length > 0) {
+            // Map journal entry to credit amount
+            const jeToCredit = new Map();
+            const jeToDate = new Map();
+            journalLines.forEach(jl => {
+              const existing = jeToCredit.get(jl.journal_entry_id) || 0;
+              jeToCredit.set(jl.journal_entry_id, existing + Number(jl.credit));
+            });
+            journalEntries.forEach(je => {
+              jeToDate.set(je.id, je.entry_date);
+            });
+
+            // Get bill IDs from journal entries
+            const billIds = [...new Set(journalEntries.map(je => je.source_id))];
+
+            // Step 3: Fetch bills with project filter
+            let billsQuery = supabase
+              .from('bills')
+              .select('id, reference_number, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
+              .in('id', billIds)
+              .eq('reconciled', false);
+
+            if (projectId) {
+              billsQuery = billsQuery.eq('project_id', projectId);
+            } else {
+              billsQuery = billsQuery.is('project_id', null);
+            }
+
+            const { data: bills, error: billsError } = await billsQuery;
+
+            if (billsError) {
+              console.error('[Reconciliation] Bills query failed:', billsError);
+            }
+
+            if (bills && bills.length > 0) {
+              // Step 4: Fetch vendor names
+              const vendorIds = [...new Set(bills.map(b => b.vendor_id))];
+              const { data: vendors } = await supabase
+                .from('companies')
+                .select('id, company_name')
+                .in('id', vendorIds);
+
+              const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
+
+              // Step 5: Build transactions
+              // For each bill, find the corresponding JE and amount
+              const billToJe = new Map();
+              journalEntries.forEach(je => {
+                if (jeToCredit.has(je.id)) {
+                  billToJe.set(je.source_id, je.id);
+                }
+              });
+
+              billPaymentTransactions = bills
+                .filter(bill => billToJe.has(bill.id))
+                .map(bill => {
+                  const jeId = billToJe.get(bill.id);
+                  return {
+                    id: bill.id,
+                    date: jeToDate.get(jeId) || '',
+                    type: 'bill_payment' as const,
+                    payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
+                    reference_number: bill.reference_number || undefined,
+                    amount: jeToCredit.get(jeId) || 0,
+                    reconciled: bill.reconciled,
+                    reconciliation_date: bill.reconciliation_date || undefined,
+                    reconciliation_id: bill.reconciliation_id || undefined,
+                  };
+                });
+
+              console.log('[Reconciliation] Bill payments processed:', { 
+                count: billPaymentTransactions.length,
+                journalEntries: journalEntries.length,
+                journalLines: journalLines.length,
+                bills: bills.length
+              });
+            }
+          }
         }
 
-        // Transform data into unified format
-        const checkTransactions: ReconciliationTransaction[] = (checks || []).map(check => ({
+        // Transform checks into transactions
+        const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => ({
           id: check.id,
           date: check.check_date,
           type: 'check' as const,
@@ -159,46 +246,20 @@ export const useBankReconciliation = () => {
           reconciliation_id: deposit.reconciliation_id || undefined,
         }));
 
-        // Transform bill payments into transactions
-        let billPaymentTransactions: ReconciliationTransaction[] = [];
-        if (billPayments && !billPaymentsError) {
-          billPaymentTransactions = billPayments
-            .filter((je: any) => je.bills && je.journal_entry_lines && je.journal_entry_lines.length > 0)
-            .map((je: any) => {
-              const bill = je.bills;
-              const journalLine = je.journal_entry_lines[0];
-              const vendor = bill.companies;
-              
-              return {
-                id: bill.id,
-                date: je.entry_date,
-                type: 'bill_payment' as const,
-                payee: vendor?.company_name || 'Unknown Vendor',
-                reference_number: bill.reference_number || undefined,
-                amount: Number(journalLine.credit),
-                reconciled: bill.reconciled,
-                reconciliation_date: bill.reconciliation_date || undefined,
-                reconciliation_id: bill.reconciliation_id || undefined,
-              };
-            });
-        } else {
-          console.warn('[Reconciliation] Skipping bill payments due to query error');
-        }
-
         // Combine checks and bill payments, sort by date
-        const allChecks = [...checkTransactions, ...billPaymentTransactions].sort((a, b) => 
+        const allChecksAndPayments = [...checkTransactions, ...billPaymentTransactions].sort((a, b) => 
           new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
         console.log('[Reconciliation] Final results:', { 
-          checks: allChecks.length,
+          totalChecksAndPayments: allChecksAndPayments.length,
           checkTransactions: checkTransactions.length,
           billPaymentTransactions: billPaymentTransactions.length,
           deposits: depositTransactions.length 
         });
 
         return {
-          checks: allChecks,
+          checks: allChecksAndPayments,
           deposits: depositTransactions,
         };
       },
