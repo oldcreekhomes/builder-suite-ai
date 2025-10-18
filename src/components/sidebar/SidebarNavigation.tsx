@@ -99,7 +99,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
   // State for collapsible sections
-  const [billsExpanded, setBillsExpanded] = useState(false);
   const [transactionsExpanded, setTransactionsExpanded] = useState(false);
   const [reportsExpanded, setReportsExpanded] = useState(false);
   
@@ -235,22 +234,10 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                 
                 {/* Bills and Reports submenu items */}
                 <div className="ml-6 mt-0.5 space-y-0.5">
-                  <Collapsible open={billsExpanded} onOpenChange={setBillsExpanded}>
-                    <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4" />
-                        <span>Bills</span>
-                      </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${billsExpanded ? 'rotate-180' : ''}`} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="ml-6 space-y-0.5">
-                        <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                          <span>Manage Bills</span>
-                        </a>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                  <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span>Manage Bills</span>
+                  </a>
                   
                   <Collapsible open={transactionsExpanded} onOpenChange={setTransactionsExpanded}>
                     <CollapsibleTrigger className="flex items-center justify-between px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
