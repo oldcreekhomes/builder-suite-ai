@@ -19,11 +19,16 @@ type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
 
 export function PlanViewer({ sheetId, takeoffId }: PlanViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('select');
   const [showScaleDialog, setShowScaleDialog] = useState(false);
   const [numPages, setNumPages] = useState<number>(0);
   const [pageWidth, setPageWidth] = useState<number>(800);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   const { data: sheet } = useQuery({
     queryKey: ['takeoff-sheet', sheetId],
@@ -73,12 +78,51 @@ export function PlanViewer({ sheetId, takeoffId }: PlanViewerProps) {
     };
   }, [pageWidth]);
 
+  // Sync Fabric.js canvas zoom with state
+  useEffect(() => {
+    if (fabricCanvas) {
+      fabricCanvas.setViewportTransform([zoom, 0, 0, zoom, pan.x, pan.y]);
+      fabricCanvas.renderAll();
+    }
+  }, [zoom, pan, fabricCanvas]);
+
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
     if (!fabricCanvas) return;
 
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = tool === 'select';
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom(prev => Math.min(Math.max(prev + delta, 0.25), 3));
+  };
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.25));
+  const handleZoomReset = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom <= 1 || activeTool !== 'select') return;
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    setPan({
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
   };
 
   if (!sheetId) {
@@ -106,10 +150,29 @@ export function PlanViewer({ sheetId, takeoffId }: PlanViewerProps) {
         onToolClick={handleToolClick}
         onCalibrateScale={() => setShowScaleDialog(true)}
         scaleRatio={sheet?.scale_ratio}
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
       />
 
-      <div className="flex-1 overflow-auto p-4">
-        <div className="relative inline-block">
+      <div 
+        className="flex-1 overflow-auto p-4"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ cursor: isPanning ? 'grabbing' : zoom > 1 && activeTool === 'select' ? 'grab' : 'default' }}
+      >
+        <div 
+          className="relative inline-block"
+          style={{
+            transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+            transformOrigin: 'top left',
+            transition: isPanning ? 'none' : 'transform 0.1s ease-out',
+          }}
+        >
           {isPDF ? (
             <Document
               file={fileUrl}
