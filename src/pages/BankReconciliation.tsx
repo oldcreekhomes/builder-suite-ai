@@ -290,61 +290,59 @@ const BankReconciliation = () => {
                   </Select>
                 </div>
 
-                {selectedBankAccountId && (
-                  <>
-                    <div>
-                      <Label>Statement Date</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal mt-1",
-                              !statementDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {statementDate ? format(statementDate, "PP") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={statementDate}
-                            onSelect={setStatementDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="beginning-balance">
-                        Beginning Balance
-                      </Label>
-                      <Input
-                        id="beginning-balance"
-                        type="number"
-                        step="0.01"
-                        value={beginningBalance}
-                        disabled={true}
-                        className="mt-1 bg-muted cursor-not-allowed"
+                <div>
+                  <Label>Statement Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        disabled={!selectedBankAccountId}
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1",
+                          !statementDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {statementDate ? format(statementDate, "PP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={statementDate}
+                        onSelect={setStatementDate}
+                        initialFocus
                       />
-                    </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                    <div>
-                      <Label htmlFor="ending-balance">Statement Ending Balance</Label>
-                      <Input
-                        id="ending-balance"
-                        type="number"
-                        step="0.01"
-                        value={endingBalance}
-                        onChange={(e) => setEndingBalance(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  </>
-                )}
+                <div>
+                  <Label htmlFor="beginning-balance">
+                    Beginning Balance
+                  </Label>
+                  <Input
+                    id="beginning-balance"
+                    type="number"
+                    step="0.01"
+                    value={selectedBankAccountId ? beginningBalance : ""}
+                    disabled={true}
+                    className="mt-1 bg-muted cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="ending-balance">Statement Ending Balance</Label>
+                  <Input
+                    id="ending-balance"
+                    type="number"
+                    step="0.01"
+                    value={selectedBankAccountId ? endingBalance : ""}
+                    onChange={(e) => setEndingBalance(e.target.value)}
+                    disabled={!selectedBankAccountId}
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               {selectedBankAccountId && (
