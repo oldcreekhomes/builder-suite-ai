@@ -42,7 +42,12 @@ export const useBankReconciliation = () => {
     return useQuery({
       queryKey: ['reconciliation-transactions', projectId, bankAccountId],
       queryFn: async () => {
-        if (!bankAccountId) return { checks: [], deposits: [] };
+        console.log('[Reconciliation] Starting query with:', { projectId, bankAccountId });
+        
+        if (!bankAccountId) {
+          console.log('[Reconciliation] No bankAccountId, returning empty');
+          return { checks: [], deposits: [] };
+        }
 
         // Fetch checks
         let checksQuery = supabase
@@ -50,6 +55,7 @@ export const useBankReconciliation = () => {
           .select('*')
           .eq('bank_account_id', bankAccountId)
           .eq('status', 'posted')
+          .eq('reconciled', false)
           .order('check_date', { ascending: true });
 
         if (projectId) {
@@ -59,6 +65,7 @@ export const useBankReconciliation = () => {
         }
 
         const { data: checks, error: checksError } = await checksQuery;
+        console.log('[Reconciliation] Checks:', { count: checks?.length, error: checksError, data: checks });
         if (checksError) throw checksError;
 
         // Fetch deposits
@@ -67,6 +74,7 @@ export const useBankReconciliation = () => {
           .select('*')
           .eq('bank_account_id', bankAccountId)
           .eq('status', 'posted')
+          .eq('reconciled', false)
           .order('deposit_date', { ascending: true });
 
         if (projectId) {
@@ -76,6 +84,7 @@ export const useBankReconciliation = () => {
         }
 
         const { data: deposits, error: depositsError } = await depositsQuery;
+        console.log('[Reconciliation] Deposits:', { count: deposits?.length, error: depositsError, data: deposits });
         if (depositsError) throw depositsError;
 
         // Fetch bill payments (journal entries that credit the bank account)
@@ -85,26 +94,28 @@ export const useBankReconciliation = () => {
             id,
             entry_date,
             source_id,
-            journal_entry_lines!inner(
+            journal_entry_lines!left(
               id,
               credit,
               account_id
             ),
-            bills!inner(
+            bills!left(
               id,
               reference_number,
               reconciled,
               reconciliation_date,
               reconciliation_id,
               vendor_id,
-              companies!inner(
+              project_id,
+              companies!left(
                 company_name
               )
             )
           `)
           .eq('source_type', 'bill_payment')
           .eq('journal_entry_lines.account_id', bankAccountId)
-          .gt('journal_entry_lines.credit', 0);
+          .gt('journal_entry_lines.credit', 0)
+          .eq('bills.reconciled', false);
 
         if (projectId) {
           billPaymentsQuery = billPaymentsQuery.eq('bills.project_id', projectId);
@@ -113,7 +124,16 @@ export const useBankReconciliation = () => {
         }
 
         const { data: billPayments, error: billPaymentsError } = await billPaymentsQuery;
-        if (billPaymentsError) throw billPaymentsError;
+        console.log('[Reconciliation] Bill Payments:', { 
+          count: billPayments?.length, 
+          error: billPaymentsError, 
+          data: billPayments 
+        });
+        
+        // Don't throw on bill payments error - log and continue
+        if (billPaymentsError) {
+          console.error('[Reconciliation] Bill payments query failed:', billPaymentsError);
+        }
 
         // Transform data into unified format
         const checkTransactions: ReconciliationTransaction[] = (checks || []).map(check => ({
@@ -140,28 +160,42 @@ export const useBankReconciliation = () => {
         }));
 
         // Transform bill payments into transactions
-        const billPaymentTransactions: ReconciliationTransaction[] = (billPayments || []).map((je: any) => {
-          const bill = je.bills;
-          const journalLine = je.journal_entry_lines[0];
-          const vendor = bill.companies;
-          
-          return {
-            id: bill.id,
-            date: je.entry_date,
-            type: 'bill_payment' as const,
-            payee: vendor.company_name,
-            reference_number: bill.reference_number || undefined,
-            amount: Number(journalLine.credit),
-            reconciled: bill.reconciled,
-            reconciliation_date: bill.reconciliation_date || undefined,
-            reconciliation_id: bill.reconciliation_id || undefined,
-          };
-        });
+        let billPaymentTransactions: ReconciliationTransaction[] = [];
+        if (billPayments && !billPaymentsError) {
+          billPaymentTransactions = billPayments
+            .filter((je: any) => je.bills && je.journal_entry_lines && je.journal_entry_lines.length > 0)
+            .map((je: any) => {
+              const bill = je.bills;
+              const journalLine = je.journal_entry_lines[0];
+              const vendor = bill.companies;
+              
+              return {
+                id: bill.id,
+                date: je.entry_date,
+                type: 'bill_payment' as const,
+                payee: vendor?.company_name || 'Unknown Vendor',
+                reference_number: bill.reference_number || undefined,
+                amount: Number(journalLine.credit),
+                reconciled: bill.reconciled,
+                reconciliation_date: bill.reconciliation_date || undefined,
+                reconciliation_id: bill.reconciliation_id || undefined,
+              };
+            });
+        } else {
+          console.warn('[Reconciliation] Skipping bill payments due to query error');
+        }
 
         // Combine checks and bill payments, sort by date
         const allChecks = [...checkTransactions, ...billPaymentTransactions].sort((a, b) => 
           new Date(a.date).getTime() - new Date(b.date).getTime()
         );
+
+        console.log('[Reconciliation] Final results:', { 
+          checks: allChecks.length,
+          checkTransactions: checkTransactions.length,
+          billPaymentTransactions: billPaymentTransactions.length,
+          deposits: depositTransactions.length 
+        });
 
         return {
           checks: allChecks,

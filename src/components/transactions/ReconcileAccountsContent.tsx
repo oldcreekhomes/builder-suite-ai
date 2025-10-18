@@ -229,6 +229,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               ))}
             </SelectContent>
           </Select>
+          
+          {selectedBankAccountId && (
+            <div className="text-sm text-muted-foreground mt-2 space-y-1">
+              <div>Bank Account ID: {selectedBankAccountId}</div>
+              <div>Project ID: {projectId || 'None (All transactions)'}</div>
+            </div>
+          )}
         </div>
 
         {selectedBankAccountId && (
@@ -286,7 +293,21 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             <Separator className="my-6" />
 
             {transactionsLoading ? (
-              <div>Loading transactions...</div>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading transactions...</p>
+              </div>
+            ) : !transactions || (transactions.checks.length === 0 && transactions.deposits.length === 0) ? (
+              <div className="text-center py-8 border rounded-lg bg-muted/20">
+                <p className="text-muted-foreground mb-2">
+                  No unreconciled transactions found for this account.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Checks/Bill Payments: {transactions?.checks.length || 0}, Deposits: {transactions?.deposits.length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Check the browser console for detailed query information.
+                </p>
+              </div>
             ) : (
               <div className="space-y-6">
                 <div>
