@@ -156,15 +156,11 @@ export function CostCodeTableRow({
           )}
         </TableCell>
         <TableCell className="py-1">
-          {isLeafSubcategory ? (
-            <span className="text-muted-foreground text-sm">-</span>
-          ) : (
-            <CostCodeInlineEditor
-              costCode={costCode}
-              field="estimate"
-              onUpdate={onUpdate}
-            />
-          )}
+          <CostCodeInlineEditor
+            costCode={costCode}
+            field="estimate"
+            onUpdate={onUpdate}
+          />
         </TableCell>
         <TableCell className="py-1">
           <div className="flex gap-1">
