@@ -18,6 +18,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const BankReconciliation = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -224,19 +231,21 @@ const BankReconciliation = () => {
               {/* Bank Account Selection */}
               <div className="mb-6">
                 <Label htmlFor="bank-account">Bank Account</Label>
-                <select
-                  id="bank-account"
-                  className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2"
+                <Select
                   value={selectedBankAccountId || ""}
-                  onChange={(e) => setSelectedBankAccountId(e.target.value || null)}
+                  onValueChange={(value) => setSelectedBankAccountId(value || null)}
                 >
-                  <option value="">Select a bank account...</option>
-                  {bankAccounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.code} - {account.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue placeholder="Select a bank account..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.code} - {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {selectedBankAccountId && (
