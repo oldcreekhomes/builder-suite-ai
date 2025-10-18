@@ -19,6 +19,7 @@ import ProjectSchedule from "./pages/ProjectSchedule";
 import ProjectBidding from "./pages/ProjectBidding";
 import ProjectPurchaseOrders from "./pages/ProjectPurchaseOrders";
 import ProjectEstimate from "./pages/ProjectEstimate";
+import TakeoffEditor from "./pages/TakeoffEditor";
 import EstimatingAI from "./pages/EstimatingAI";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
@@ -146,6 +147,9 @@ const AppContent = () => {
           
           {/* Project Estimate route */}
           <Route path="/project/:projectId/estimate" element={<ProtectedRoute><ProjectEstimate /></ProtectedRoute>} />
+          
+          {/* Project Estimate Editor route */}
+          <Route path="/project/:projectId/estimate/:takeoffId" element={<ProtectedRoute><TakeoffEditor /></ProtectedRoute>} />
           
           {/* Project Budget route */}
           <Route path="/project/:projectId/budget" element={<ProtectedRoute><ProjectBudget /></ProtectedRoute>} />
