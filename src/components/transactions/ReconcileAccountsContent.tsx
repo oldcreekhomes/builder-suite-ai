@@ -117,7 +117,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setBeginningBalance("0");
       setStatementDate(undefined);
     }
-  }, [selectedBankAccountId, defaults, defaultsLoading]);
+  }, [defaults, defaultsLoading]);
 
   useEffect(() => {
     if (transactions) {

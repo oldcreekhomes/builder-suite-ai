@@ -120,7 +120,7 @@ const BankReconciliation = () => {
       setBeginningBalance("0");
       setStatementDate(undefined);
     }
-  }, [selectedBankAccountId, defaults, defaultsLoading]);
+  }, [defaults, defaultsLoading]);
 
   // Load previously reconciled transactions
   useEffect(() => {
