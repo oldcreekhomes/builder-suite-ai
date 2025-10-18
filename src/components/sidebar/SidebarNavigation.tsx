@@ -60,6 +60,12 @@ const navigationItems = [
     enabled: true,
   },
   {
+    title: "Estimate",
+    url: "/estimate",
+    icon: Calculator,
+    enabled: true,
+  },
+  {
     title: "Budget",
     url: "/budget",
     icon: DollarSign,

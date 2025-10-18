@@ -18,6 +18,7 @@ import ProjectBudget from "./pages/ProjectBudget";
 import ProjectSchedule from "./pages/ProjectSchedule";
 import ProjectBidding from "./pages/ProjectBidding";
 import ProjectPurchaseOrders from "./pages/ProjectPurchaseOrders";
+import ProjectEstimate from "./pages/ProjectEstimate";
 import EstimatingAI from "./pages/EstimatingAI";
 import Companies from "./pages/Companies";
 import Settings from "./pages/Settings";
@@ -142,6 +143,9 @@ const AppContent = () => {
           
           {/* Project Files route */}
           <Route path="/project/:projectId/files" element={<ProtectedRoute><ProjectFiles /></ProtectedRoute>} />
+          
+          {/* Project Estimate route */}
+          <Route path="/project/:projectId/estimate" element={<ProtectedRoute><ProjectEstimate /></ProtectedRoute>} />
           
           {/* Project Budget route */}
           <Route path="/project/:projectId/budget" element={<ProtectedRoute><ProjectBudget /></ProtectedRoute>} />
