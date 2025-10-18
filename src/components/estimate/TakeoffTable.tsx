@@ -46,14 +46,37 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
 
       if (codesError) throw codesError;
 
+      // For parent categories with subcategories, fetch their children
+      const parentCategories = estimateCostCodes?.filter(code => code.has_subcategories) || [];
+      let subcategories: any[] = [];
+
+      if (parentCategories.length > 0) {
+        const parentNames = parentCategories.map(c => c.name);
+        const { data: subCodes, error: subCodesError } = await supabase
+          .from('cost_codes')
+          .select('*')
+          .eq('owner_id', user.id)
+          .in('category', parentNames)
+          .order('code', { ascending: true });
+
+        if (subCodesError) throw subCodesError;
+        subcategories = subCodes || [];
+      }
+
+      // Combine parent cost codes (without subcategories) and all subcategories
+      const allRelevantCostCodes = [
+        ...(estimateCostCodes?.filter(code => !code.has_subcategories) || []),
+        ...subcategories
+      ];
+
       // Create a Set of cost_code_ids that already have takeoff items
       const existingCostCodeIds = new Set(
         existingItems?.map(item => item.cost_code_id).filter(Boolean) || []
       );
 
       // Create template rows for estimate cost codes that don't have items yet
-      const templateRows = estimateCostCodes
-        ?.filter(code => !existingCostCodeIds.has(code.id))
+      const templateRows = allRelevantCostCodes
+        .filter(code => !existingCostCodeIds.has(code.id))
         .map(code => ({
           id: `template-${code.id}`,
           takeoff_sheet_id: sheetId,
@@ -66,7 +89,7 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           isTemplate: true, // Flag to identify template rows
-        })) || [];
+        }));
 
       // Combine existing items with template rows
       return [...(existingItems || []), ...templateRows];
