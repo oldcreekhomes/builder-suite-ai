@@ -41,7 +41,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
 
-  const {
+  const { 
     useReconciliationTransactions,
     useReconciliationHistory,
     createReconciliation,
@@ -49,7 +49,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     markTransactionReconciled,
   } = useBankReconciliation();
 
-  const { data: reconciliationHistory } = useReconciliationHistory(
+  const { 
+    data: reconciliationHistory,
+    isLoading: historyLoading 
+  } = useReconciliationHistory(
     projectId || null,
     selectedBankAccountId
   );
@@ -86,10 +89,24 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
   // Auto-populate from last reconciliation
   useEffect(() => {
+    console.log('[Reconciliation Auto-populate]', {
+      selectedBankAccountId,
+      historyLoading,
+      historyCount: reconciliationHistory?.length,
+      history: reconciliationHistory
+    });
+    
+    // Don't auto-populate while still loading history
+    if (historyLoading) {
+      console.log('[Reconciliation Auto-populate] Still loading, skipping...');
+      return;
+    }
+    
     if (selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0) {
       const lastReconciliation = reconciliationHistory.find(r => r.status === 'completed');
       
       if (lastReconciliation) {
+        console.log('[Reconciliation Auto-populate] Found last completed:', lastReconciliation);
         setBeginningBalance(lastReconciliation.statement_ending_balance.toString());
         
         const lastDate = new Date(lastReconciliation.statement_date);
@@ -97,12 +114,16 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         nextStatementDate.setDate(nextStatementDate.getDate() + 30);
         setStatementDate(nextStatementDate);
       } else {
+        console.log('[Reconciliation Auto-populate] No completed reconciliation found');
         setBeginningBalance("0");
+        setStatementDate(undefined);
       }
-    } else if (selectedBankAccountId) {
+    } else if (selectedBankAccountId && !historyLoading) {
+      console.log('[Reconciliation Auto-populate] No history for account');
       setBeginningBalance("0");
+      setStatementDate(undefined);
     }
-  }, [selectedBankAccountId, reconciliationHistory]);
+  }, [selectedBankAccountId, reconciliationHistory, historyLoading]);
 
   useEffect(() => {
     if (transactions) {

@@ -50,7 +50,10 @@ const BankReconciliation = () => {
     markTransactionReconciled,
   } = useBankReconciliation();
 
-  const { data: reconciliationHistory } = useReconciliationHistory(
+  const { 
+    data: reconciliationHistory,
+    isLoading: historyLoading 
+  } = useReconciliationHistory(
     projectId || null,
     selectedBankAccountId
   );
@@ -89,10 +92,24 @@ const BankReconciliation = () => {
 
   // Auto-populate from last reconciliation
   useEffect(() => {
+    console.log('[Reconciliation Auto-populate]', {
+      selectedBankAccountId,
+      historyLoading,
+      historyCount: reconciliationHistory?.length,
+      history: reconciliationHistory
+    });
+    
+    // Don't auto-populate while still loading history
+    if (historyLoading) {
+      console.log('[Reconciliation Auto-populate] Still loading, skipping...');
+      return;
+    }
+    
     if (selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0) {
       const lastReconciliation = reconciliationHistory.find(r => r.status === 'completed');
       
       if (lastReconciliation) {
+        console.log('[Reconciliation Auto-populate] Found last completed:', lastReconciliation);
         setBeginningBalance(lastReconciliation.statement_ending_balance.toString());
         
         const lastDate = new Date(lastReconciliation.statement_date);
@@ -100,12 +117,16 @@ const BankReconciliation = () => {
         nextStatementDate.setDate(nextStatementDate.getDate() + 30);
         setStatementDate(nextStatementDate);
       } else {
+        console.log('[Reconciliation Auto-populate] No completed reconciliation found');
         setBeginningBalance("0");
+        setStatementDate(undefined);
       }
-    } else if (selectedBankAccountId) {
+    } else if (selectedBankAccountId && !historyLoading) {
+      console.log('[Reconciliation Auto-populate] No history for account');
       setBeginningBalance("0");
+      setStatementDate(undefined);
     }
-  }, [selectedBankAccountId, reconciliationHistory]);
+  }, [selectedBankAccountId, reconciliationHistory, historyLoading]);
 
   // Load previously reconciled transactions
   useEffect(() => {
