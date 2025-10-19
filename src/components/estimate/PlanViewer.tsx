@@ -59,6 +59,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [overlayMode, setOverlayMode] = useState<'fabric' | 'dom'>('dom');
   const [forceShow, setForceShow] = useState<boolean>(true);
   const [addProbes, setAddProbes] = useState<boolean>(true);
+  const [testOverlay, setTestOverlay] = useState<boolean>(false);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
   const { toast } = useToast();
@@ -547,6 +548,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     setZoom(prev => Math.min(Math.max(prev + delta, 0.25), 3));
   };
 
+  // Attach native wheel listener with passive:false to avoid console warnings
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (ev: WheelEvent) => {
+      ev.preventDefault();
+      const delta = ev.deltaY > 0 ? -0.1 : 0.1;
+      setZoom(prev => Math.min(Math.max(prev + delta, 0.25), 3));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.25));
   const handleZoomReset = () => {
@@ -608,17 +622,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onForceShowChange={setForceShow}
           addProbes={addProbes}
           onAddProbesChange={setAddProbes}
+          testOverlay={testOverlay}
+          onTestOverlayChange={setTestOverlay}
         />
       </div>
 
       <div 
+        ref={containerRef}
         className="flex-1 overflow-auto p-4"
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ cursor: isPanning ? 'grabbing' : zoom > 1 && activeTool === 'select' ? 'grab' : 'default' }}
+        style={{ cursor: isPanning ? 'grabbing' : (zoom > 1 && activeTool === 'select' ? 'grab' : 'default'), overscrollBehavior: 'contain', touchAction: 'none' }}
       >
         <div 
           className="relative inline-block"
@@ -693,6 +709,16 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           )}
           
           {/* Keep both mounted to avoid DOM thrashing errors; toggle visibility */}
+          {/* Debug HUD */}
+          <div className="absolute top-2 right-2 px-2 py-1 rounded bg-background/80 text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
+            Mode: {overlayMode} • Zoom: {Math.round(zoom * 100)}% • Canvas: {fabricCanvas ? `${fabricCanvas.getWidth()}x${fabricCanvas.getHeight()}` : '0x0'} • Natural: {imgNaturalSize ? `${imgNaturalSize.width}x${imgNaturalSize.height}` : 'n/a'}
+          </div>
+          {/* Empty state banner */}
+          {annotations && annotations.length === 0 && (
+            <div className="absolute top-2 left-2 px-2 py-1 rounded bg-muted text-foreground text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
+              No overlays found for this sheet
+            </div>
+          )}
           <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 pointer-events-auto"
@@ -713,6 +739,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
                 imgNaturalSize={imgNaturalSize}
                 forceShow={forceShow}
                 addProbes={addProbes}
+                testOverlay={testOverlay}
               />
             )}
           </div>

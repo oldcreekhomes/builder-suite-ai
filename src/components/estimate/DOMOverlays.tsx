@@ -13,6 +13,7 @@ interface DOMOverlaysProps {
   imgNaturalSize: Size | null;
   forceShow: boolean;
   addProbes: boolean;
+  testOverlay?: boolean;
 }
 
 // Helper
@@ -32,6 +33,7 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
   imgNaturalSize,
   forceShow,
   addProbes,
+  testOverlay = false,
 }) => {
   const isPDF = sheet?.file_name?.toLowerCase().endsWith('.pdf');
   const pageNum = sheet?.page_number || 1;
@@ -121,8 +123,14 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
   const filtered = annotations.filter((a) => forceShow || visibleAnnotations.size === 0 || visibleAnnotations.has(a.takeoff_item_id || ''));
 
   return (
-    <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 250 }}>
+    <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 500 }}>
       <svg width={canvasW} height={canvasH} viewBox={`0 0 ${canvasW} ${canvasH}`} className="absolute inset-0">
+        {testOverlay && (
+          <g>
+            <rect x={20} y={20} width={120} height={80} fill="rgba(255,0,0,0.15)" stroke="red" strokeWidth={2} />
+            <rect x={16} y={16} width={8} height={8} fill="red" />
+          </g>
+        )}
         {filtered.map((annotation) => {
           try {
             const shape = typeof annotation.geometry === 'string' ? JSON.parse(annotation.geometry) : annotation.geometry;

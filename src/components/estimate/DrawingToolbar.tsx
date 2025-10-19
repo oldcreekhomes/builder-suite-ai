@@ -22,6 +22,8 @@ interface DrawingToolbarProps {
   onForceShowChange?: (val: boolean) => void;
   addProbes?: boolean;
   onAddProbesChange?: (val: boolean) => void;
+  testOverlay?: boolean;
+  onTestOverlayChange?: (val: boolean) => void;
 }
 
 
@@ -40,6 +42,8 @@ export function DrawingToolbar({
   onForceShowChange,
   addProbes = false,
   onAddProbesChange,
+  testOverlay = false,
+  onTestOverlayChange,
 }: DrawingToolbarProps) {
   const tools = [
     { id: 'select' as const, icon: MousePointer2, label: 'Select' },
@@ -154,6 +158,14 @@ export function DrawingToolbar({
           title="Show red probes for alignment"
         >
           Probes
+        </Button>
+        <Button
+          size="sm"
+          variant={testOverlay ? 'default' : 'outline'}
+          onClick={() => onTestOverlayChange?.(!testOverlay)}
+          title="Draw a debug test rectangle"
+        >
+          Test Box
         </Button>
       </div>
     </div>
