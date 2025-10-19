@@ -129,7 +129,7 @@ serve(async (req) => {
       .createSignedUrl(sheet.file_path, 300);
     const imageUrl = signed?.signedUrl || fileData.publicUrl;
 
-    const rfBase = `https://detect.roboflow.com/${roboflow_workspace}/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}`;
+    const rfBase = `https://detect.roboflow.com/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}`;
 
     let roboflowData: any | null = null;
     let lastStatus = 0;
