@@ -357,14 +357,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Cleared</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {bills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
@@ -397,9 +396,6 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
                   <TableCell className="px-2 py-1 text-xs">{formatTerms(bill.terms)}</TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-center">
-                    {bill.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
                   </TableCell>
                   <TableCell className="py-1 text-xs">
                     <Button
