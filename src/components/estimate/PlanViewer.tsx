@@ -5,9 +5,6 @@ import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon, Text, Group } from
 import { DrawingToolbar } from "./DrawingToolbar";
 import { ScaleCalibrationDialog } from "./ScaleCalibrationDialog";
 import { useAnnotations } from "@/hooks/useAnnotations";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -56,7 +53,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [isReviewMode, setIsReviewMode] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const [imgNaturalSize, setImgNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
@@ -168,8 +164,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           ? JSON.parse(annotation.geometry as string) 
           : annotation.geometry;
         
-        // Check visibility: show by default, hide in review mode if not in visibleAnnotations
-        const isVisible = !isReviewMode || visibleAnnotations.has(annotation.takeoff_item_id || '');
+        // Check visibility: eye icons always control visibility
+        const isVisible = visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
@@ -185,8 +181,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               stroke: annotation.color,
               fill: annotation.color,
               opacity: isVisible ? 0.6 : 0,
-              selectable: isReviewMode,
-              evented: isReviewMode,
+              selectable: true,
+              evented: true,
             });
             
             // Add label if present
@@ -215,8 +211,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               });
               
               fabricObject = new Group([circle, labelBg, labelText], {
-                selectable: isReviewMode,
-                evented: isReviewMode,
+                selectable: true,
+                evented: true,
               });
             } else {
               fabricObject = circle;
@@ -259,8 +255,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               fill: hexToRgba(annotation.color, 0.2),
               strokeWidth: scaled.strokeWidth || 2,
               opacity: isVisible ? 1 : 0,
-              selectable: isReviewMode,
-              evented: isReviewMode,
+              selectable: true,
+              evented: true,
             });
             
             // Add label if present
@@ -289,8 +285,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               });
               
               fabricObject = new Group([rect, labelBg, labelText], {
-                selectable: isReviewMode,
-                evented: isReviewMode,
+                selectable: true,
+                evented: true,
               });
             } else {
               fabricObject = rect;
@@ -308,8 +304,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               ...lineFixed,
               stroke: annotation.color,
               opacity: isVisible ? 1 : 0,
-              selectable: isReviewMode,
-              evented: isReviewMode,
+              selectable: true,
+              evented: true,
             });
             break;
             
@@ -326,8 +322,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               stroke: annotation.color,
               fill: 'transparent',
               opacity: isVisible ? 0.6 : 0,
-              selectable: isReviewMode,
-              evented: isReviewMode,
+              selectable: true,
+              evented: true,
             });
             
             // Add label if present - use first point for positioning
@@ -357,8 +353,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               });
               
               fabricObject = new Group([polygon, labelBg, labelText], {
-                selectable: isReviewMode,
-                evented: isReviewMode,
+                selectable: true,
+                evented: true,
               });
             } else {
               fabricObject = polygon;
@@ -381,7 +377,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     }
 
     fabricCanvas.renderAll();
-  }, [annotations, fabricCanvas, isReviewMode, visibleAnnotations, sheetId, canvasReady, imgNaturalSize]);
+  }, [annotations, fabricCanvas, visibleAnnotations, sheetId, canvasReady, imgNaturalSize]);
 
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
@@ -390,8 +386,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = tool === 'select';
 
-    // Only allow drawing in review mode with a selected item
-    if (isReviewMode && selectedTakeoffItem && tool === 'count') {
+    // Allow drawing when a takeoff item is selected
+    if (selectedTakeoffItem && tool === 'count') {
       fabricCanvas.off('mouse:down');
       fabricCanvas.on('mouse:down', (e) => {
         if (!e.pointer || !sheetId) return;
@@ -417,9 +413,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           color: selectedTakeoffItem.color,
         });
       });
-    } else if (!isReviewMode || !selectedTakeoffItem) {
+    } else {
       fabricCanvas.off('mouse:down');
-      if (tool !== 'select' && isReviewMode) {
+      if (tool !== 'select' && !selectedTakeoffItem) {
         toast({
           title: "Select an item first",
           description: "Select a takeoff item from the table to annotate",
@@ -490,25 +486,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onZoomOut={handleZoomOut}
           onZoomReset={handleZoomReset}
         />
-        
-        <div className="flex items-center gap-2 ml-auto">
-          <Switch
-            id="review-mode"
-            checked={isReviewMode}
-            onCheckedChange={setIsReviewMode}
-          />
-          <Label htmlFor="review-mode">Review Mode</Label>
-        </div>
-
-        {isReviewMode && selectedTakeoffItem && (
-          <Badge variant="secondary" className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: selectedTakeoffItem.color }}
-            />
-            {selectedTakeoffItem.category}
-          </Badge>
-        )}
       </div>
 
       <div 
