@@ -284,23 +284,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
 
   const isPDF = sheet?.file_name.toLowerCase().endsWith('.pdf');
 
-  // Fetch takeoff items for visibility panel
-  const { data: annotationItems } = useQuery({
-    queryKey: ['takeoff-items-for-annotations', sheetId],
-    queryFn: async () => {
-      if (!sheetId) return [];
-      
-      const { data, error } = await supabase
-        .from('takeoff_items')
-        .select('id, category, color')
-        .eq('takeoff_sheet_id', sheetId);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!sheetId && isReviewMode,
-  });
-
   return (
     <div className="flex flex-col h-full bg-muted/10">
       <div className="flex items-center gap-4 px-4 py-2 border-b">
@@ -403,9 +386,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
         fabricCanvas={fabricCanvas}
       />
 
-      {isReviewMode && annotationItems && annotationItems.length > 0 && (
+      {isReviewMode && takeoffItems && takeoffItems.length > 0 && (
         <AnnotationVisibilityPanel
-          takeoffItems={annotationItems.map(item => ({
+          takeoffItems={takeoffItems.map(item => ({
             id: item.id,
             category: item.category,
             color: item.color || '#3b82f6',
