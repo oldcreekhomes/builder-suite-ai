@@ -123,26 +123,38 @@ serve(async (req) => {
     const base64Image = arrayBufferToBase64(fileBuffer);
     console.log('Base64 conversion complete, calling Roboflow...');
 
-    // Try Roboflow GET with image URL first, then fallback to POST with raw base64
-    const roboflowBase = `https://detect.roboflow.com/${roboflow_workspace}/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}`;
-    const roboflowGetUrl = `${roboflowBase}&image=${encodeURIComponent(fileData.publicUrl)}`;
+    // Roboflow: POST form-encoded using image URL, then fallback to base64
+    const { data: signed } = await supabase.storage
+      .from('project-files')
+      .createSignedUrl(sheet.file_path, 300);
+    const imageUrl = signed?.signedUrl || fileData.publicUrl;
+
+    const rfBase = `https://detect.roboflow.com/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}`;
 
     let roboflowData: any | null = null;
     let lastStatus = 0;
     let lastText = '';
 
-    // Attempt 1: GET with image URL
-    let rfResp = await fetch(roboflowGetUrl, { method: 'GET' });
+    // Attempt 1: POST x-www-form-urlencoded with image URL
+    let rfResp = await fetch(rfBase, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `image=${encodeURIComponent(imageUrl)}`,
+    });
     if (rfResp.ok) {
       roboflowData = await rfResp.json();
-      console.log('Roboflow GET+image succeeded');
+      console.log('Roboflow POST image URL succeeded');
     } else {
       lastStatus = rfResp.status;
       lastText = await rfResp.text();
-      console.error('Roboflow GET+image failed:', lastStatus, lastText?.slice(0, 200));
+      console.error('Roboflow POST image URL failed:', lastStatus, lastText?.slice(0, 200));
 
-      // Attempt 2: POST raw base64 (no Content-Type header)
-      rfResp = await fetch(roboflowBase, { method: 'POST', body: base64Image as any });
+      // Attempt 2: POST x-www-form-urlencoded with base64
+      rfResp = await fetch(rfBase, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `base64=${encodeURIComponent(base64Image)}`,
+      });
       if (rfResp.ok) {
         roboflowData = await rfResp.json();
         console.log('Roboflow POST base64 succeeded');
@@ -150,6 +162,18 @@ serve(async (req) => {
         lastStatus = rfResp.status;
         lastText = await rfResp.text();
         console.error('Roboflow POST base64 failed:', lastStatus, lastText?.slice(0, 200));
+
+        // Optional Attempt 3: GET with image query param
+        const rfGetUrl = `${rfBase}&image=${encodeURIComponent(imageUrl)}`;
+        rfResp = await fetch(rfGetUrl, { method: 'GET' });
+        if (rfResp.ok) {
+          roboflowData = await rfResp.json();
+          console.log('Roboflow GET image URL succeeded');
+        } else {
+          lastStatus = rfResp.status;
+          lastText = await rfResp.text();
+          console.error('Roboflow GET image URL failed:', lastStatus, lastText?.slice(0, 200));
+        }
       }
     }
 
