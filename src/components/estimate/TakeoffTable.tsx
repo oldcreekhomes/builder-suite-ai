@@ -80,6 +80,22 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     setShowDeleteDialog(false);
   };
 
+  // Select all / deselect all logic
+  const handleSelectAll = (checked: boolean) => {
+    if (!items) return;
+    
+    if (checked) {
+      // Select all non-template items
+      const selectableItems = items
+        .filter((item: any) => !item.isTemplate)
+        .map((item: any) => item.id);
+      
+      selectableItems.forEach(id => handleItemCheckboxChange(id, true));
+    } else {
+      clearSelection();
+    }
+  };
+
   const handleAIExtract = async () => {
     if (!sheetId) {
       toast({
@@ -256,6 +272,13 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     enabled: !!sheetId,
   });
 
+  // Calculate select all checkbox state
+  const selectableItems = items?.filter((item: any) => !item.isTemplate) || [];
+  const allSelectableSelected = selectableItems.length > 0 && 
+    selectableItems.every((item: any) => selectedItems.has(item.id));
+  const someSelectableSelected = selectableItems.some((item: any) => selectedItems.has(item.id)) && 
+    !allSelectableSelected;
+
   if (!sheetId) {
     return (
       <div className="flex items-center justify-center h-full border-l">
@@ -305,7 +328,15 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={allSelectableSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all items"
+                  className={someSelectableSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                  {...(someSelectableSelected ? { "data-state": "indeterminate" } : {})}
+                />
+              </TableHead>
               <TableHead className="w-20">Color</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Qty</TableHead>
