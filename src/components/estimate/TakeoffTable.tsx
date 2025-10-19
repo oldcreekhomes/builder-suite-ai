@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Plus, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AIExtractReviewDialog } from "./AIExtractReviewDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BulkActionBar } from "@/components/settings/BulkActionBar";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { useTakeoffItemSelection } from "@/hooks/useTakeoffItemSelection";
+import { useTakeoffItemMutations } from "@/hooks/useTakeoffItemMutations";
 import {
   Table,
   TableBody,
@@ -25,6 +30,25 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const { selectedItems, handleItemCheckboxChange, clearSelection } = useTakeoffItemSelection();
+  const { handleDeleteItems, isDeleting } = useTakeoffItemMutations(sheetId || '');
+
+  const handleBulkDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    // Filter out template items (only delete actual DB items)
+    const itemsToDelete = Array.from(selectedItems).filter(id => !id.startsWith('template-'));
+    
+    if (itemsToDelete.length > 0) {
+      handleDeleteItems(itemsToDelete);
+      clearSelection();
+    }
+    setShowDeleteDialog(false);
+  };
 
   const handleAIExtract = async () => {
     if (!sheetId) {
@@ -183,7 +207,12 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium">Takeoff Items</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <BulkActionBar
+              selectedCount={selectedItems.size}
+              onBulkDelete={handleBulkDelete}
+              label="Items"
+            />
             <Button 
               size="sm" 
               variant="outline" 
@@ -214,6 +243,7 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12"></TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Qty</TableHead>
               <TableHead>Unit</TableHead>
@@ -224,26 +254,39 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           <TableBody>
             {!items || items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No items measured yet
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item: any) => (
-                <TableRow key={item.id} className={item.isTemplate ? 'opacity-70' : ''}>
-                  <TableCell className="font-medium">
-                    {item.category}
-                  </TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
-                  <TableCell>
-                    {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
-                  </TableCell>
-                </TableRow>
-              ))
+              items.map((item: any) => {
+                const isTemplate = item.isTemplate;
+                const isSelectable = !isTemplate;
+                
+                return (
+                  <TableRow key={item.id} className={item.isTemplate ? 'opacity-70' : ''}>
+                    <TableCell>
+                      {isSelectable && (
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {item.category}
+                    </TableCell>
+                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
+                    <TableCell>
+                      {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -267,6 +310,15 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           }}
         />
       )}
+
+      <DeleteConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Takeoff Items"
+        description={`Are you sure you want to delete ${selectedItems.size} selected item${selectedItems.size > 1 ? 's' : ''}? This action cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
