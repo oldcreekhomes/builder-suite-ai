@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatUnitOfMeasure } from "@/utils/budgetUtils";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -100,20 +101,11 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
       const templateRows = allRelevantCostCodes
         .filter(code => !existingCostCodeIds.has(code.id))
         .map(code => {
-          // Use parent name if parent_group exists in parentMap, else use category or name
-          let displayCategory = code.name;
-          if (code.parent_group && parentMap.has(code.parent_group)) {
-            displayCategory = parentMap.get(code.parent_group) || code.name;
-          } else if (code.category && !/^\d+$/.test(code.category)) {
-            displayCategory = code.category;
-          }
-
           return {
             id: `template-${code.id}`,
             takeoff_sheet_id: sheetId,
             cost_code_id: code.id,
-            category: displayCategory,
-            item_name: code.name, // Keep the specific item name
+            category: code.name,
             quantity: 0,
             unit_of_measure: code.unit_of_measure,
             unit_price: code.price || 0,
@@ -172,15 +164,10 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
               items.map((item: any) => (
                 <TableRow key={item.id} className={item.isTemplate ? 'opacity-70' : ''}>
                   <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span className="text-sm">{item.category}</span>
-                      {item.item_name && item.item_name !== item.category && (
-                        <span className="text-xs text-muted-foreground">{item.item_name}</span>
-                      )}
-                    </div>
+                    {item.category}
                   </TableCell>
                   <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.unit_of_measure || '-'}</TableCell>
+                  <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
                   <TableCell>
                     {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
                   </TableCell>
