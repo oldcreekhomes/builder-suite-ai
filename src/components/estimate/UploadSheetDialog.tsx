@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
+import { getDocument } from "pdfjs-dist";
 
 interface UploadSheetDialogProps {
   open: boolean;
@@ -34,8 +35,8 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
     setIsUploading(true);
     try {
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
+      // Upload file to storage once
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
       const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
@@ -44,20 +45,56 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
       if (uploadError) throw uploadError;
 
-      // Create sheet record
-      const { error: insertError } = await supabase
-        .from('takeoff_sheets')
-        .insert({
+      // Get the public URL for PDF page counting
+      const { data: urlData } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(filePath);
+
+      let pageCount = 1;
+      const isPDF = fileExt === 'pdf';
+
+      // If PDF, count the pages
+      if (isPDF) {
+        try {
+          const loadingTask = getDocument(urlData.publicUrl);
+          const pdf = await loadingTask.promise;
+          pageCount = pdf.numPages;
+        } catch (error) {
+          console.error('Error reading PDF:', error);
+          toast.error('Could not read PDF pages, treating as single page');
+        }
+      }
+
+      // Create sheet records - one per page
+      const baseSheetName = name || file.name.replace(/\.[^/.]+$/, ''); // Remove file extension
+      const sheetsToInsert = [];
+
+      for (let i = 1; i <= pageCount; i++) {
+        const sheetName = pageCount > 1 
+          ? `${baseSheetName} - Page ${i}`
+          : baseSheetName;
+
+        sheetsToInsert.push({
           takeoff_project_id: takeoffId,
           owner_id: user.id,
-          name: name || file.name,
+          name: sheetName,
           file_path: filePath,
           file_name: file.name,
+          page_number: i,
         });
+      }
+
+      const { error: insertError } = await supabase
+        .from('takeoff_sheets')
+        .insert(sheetsToInsert);
 
       if (insertError) throw insertError;
 
-      toast.success('Sheet uploaded successfully');
+      const successMessage = pageCount > 1 
+        ? `Successfully uploaded ${pageCount} pages`
+        : 'Sheet uploaded successfully';
+      
+      toast.success(successMessage);
       setName("");
       setFile(null);
       onSuccess();

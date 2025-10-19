@@ -179,7 +179,7 @@ export function PlanViewer({ sheetId, takeoffId }: PlanViewerProps) {
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
             >
               <Page 
-                pageNumber={1}
+                pageNumber={sheet?.page_number || 1}
                 width={pageWidth}
                 onLoadSuccess={(page) => {
                   setPageWidth(page.width);
