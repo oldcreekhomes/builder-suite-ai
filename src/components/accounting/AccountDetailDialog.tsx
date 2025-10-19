@@ -23,6 +23,7 @@ import { useDeposits } from "@/hooks/useDeposits";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
+import { Check } from "lucide-react";
 
 interface Transaction {
   source_id: string;
@@ -36,6 +37,7 @@ interface Transaction {
   debit: number;
   credit: number;
   created_at: string;
+  reconciled: boolean;
 }
 
 interface AccountDetailDialogProps {
@@ -124,7 +126,8 @@ export function AccountDetailDialog({
             id, 
             memo, 
             pay_to, 
-            check_number
+            check_number,
+            reconciled
           `)
           .in('id', checkIds);
         
@@ -171,6 +174,7 @@ export function AccountDetailDialog({
             memo,
             bank_account_id,
             deposit_source_id,
+            reconciled,
             deposit_sources(customer_name),
             deposit_lines(memo, line_number)
           `)
@@ -197,6 +201,7 @@ export function AccountDetailDialog({
         let memo = line.memo;
         let reference = null;
         let description = line.memo; // Description always comes from the line memo
+        let reconciled = false;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
@@ -204,6 +209,7 @@ export function AccountDetailDialog({
           if (check) {
             memo = check.memo;
             reference = check.vendor_name || check.pay_to;
+            reconciled = check.reconciled || false;
           }
         }
 
@@ -213,6 +219,7 @@ export function AccountDetailDialog({
           if (deposit) {
             memo = deposit.memo;
             reference = deposit.receivedFrom;
+            reconciled = deposit.reconciled || false;
             
             // For the bank line, use the first deposit line memo as description
             if (line.account_id === deposit.bank_account_id) {
@@ -233,6 +240,7 @@ export function AccountDetailDialog({
           debit: line.debit || 0,
           credit: line.credit || 0,
           created_at: line.journal_entries.created_at,
+          reconciled: reconciled,
         };
       });
 
@@ -405,6 +413,7 @@ export function AccountDetailDialog({
               <TableHead className="h-8 px-2 py-1">Description</TableHead>
               <TableHead className="h-8 px-2 py-1">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1">Balance</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
               <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -446,7 +455,10 @@ export function AccountDetailDialog({
                       {formatCurrency(balances[index])}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-center">
-                      {canDeleteBills && (
+                      {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                    </TableCell>
+                    <TableCell className="px-2 py-1 text-center">
+                      {canDeleteBills && !txn.reconciled && (
                         <DeleteButton
                           onDelete={() => handleDelete(txn)}
                           title="Delete Transaction"

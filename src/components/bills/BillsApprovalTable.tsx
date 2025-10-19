@@ -29,7 +29,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check } from 'lucide-react';
 import { EditBillDialog } from './EditBillDialog';
 
 interface BillForApproval {
@@ -43,6 +43,7 @@ interface BillForApproval {
   terms?: string;
   notes?: string;
   status: string;
+  reconciled: boolean;
   companies?: {
     company_name: string;
   };
@@ -146,6 +147,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           terms,
           notes,
           status,
+          reconciled,
           companies:vendor_id (
             company_name
           ),
@@ -408,6 +410,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Cleared</TableHead>
           {showPayBillButton && (
             <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-28">Pay Bill</TableHead>
           )}
@@ -424,7 +427,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -486,6 +489,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 </Button>
               )}
             </TableCell>
+            <TableCell className="px-2 py-1 text-center">
+              {bill.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+            </TableCell>
             {showPayBillButton && (
                 <TableCell className="py-1 text-xs text-center">
                       <Button
@@ -518,27 +524,29 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   )}
                    {canShowDeleteButton && (
                     <TableCell className="py-1 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {showEditButton && (
-                          <Button
-                            variant="ghost"
+                      {!bill.reconciled && (
+                        <div className="flex items-center justify-center gap-1">
+                          {showEditButton && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+                              onClick={() => setEditingBillId(bill.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <DeleteButton
+                            onDelete={() => deleteBill.mutate(bill.id)}
+                            title="Delete Bill"
+                            description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
-                            onClick={() => setEditingBillId(bill.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <DeleteButton
-                          onDelete={() => deleteBill.mutate(bill.id)}
-                          title="Delete Bill"
-                          description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
-                          size="icon"
-                          variant="ghost"
-                          isLoading={deleteBill.isPending}
-                          className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                        />
-                      </div>
+                            variant="ghost"
+                            isLoading={deleteBill.isPending}
+                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                          />
+                        </div>
+                      )}
                     </TableCell>
                    )}
                 </TableRow>
