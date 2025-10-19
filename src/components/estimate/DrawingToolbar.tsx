@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
 
+
 interface DrawingToolbarProps {
   activeTool: DrawingTool;
   onToolClick: (tool: DrawingTool) => void;
@@ -14,7 +15,15 @@ interface DrawingToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  // New controls
+  overlayMode?: 'fabric' | 'dom';
+  onOverlayModeChange?: (mode: 'fabric' | 'dom') => void;
+  forceShow?: boolean;
+  onForceShowChange?: (val: boolean) => void;
+  addProbes?: boolean;
+  onAddProbesChange?: (val: boolean) => void;
 }
+
 
 export function DrawingToolbar({ 
   activeTool, 
@@ -24,7 +33,13 @@ export function DrawingToolbar({
   zoom,
   onZoomIn,
   onZoomOut,
-  onZoomReset 
+  onZoomReset,
+  overlayMode = 'fabric',
+  onOverlayModeChange,
+  forceShow = false,
+  onForceShowChange,
+  addProbes = false,
+  onAddProbesChange,
 }: DrawingToolbarProps) {
   const tools = [
     { id: 'select' as const, icon: MousePointer2, label: 'Select' },
@@ -100,6 +115,48 @@ export function DrawingToolbar({
           {Math.round(zoom * 100)}%
         </div>
       </div>
+
+      <Separator orientation="vertical" className="h-8" />
+
+      <div className="flex items-center gap-1">
+        <div className="text-xs text-muted-foreground mr-1">Layers:</div>
+        <Button
+          size="sm"
+          variant={overlayMode === 'fabric' ? 'default' : 'outline'}
+          onClick={() => onOverlayModeChange?.('fabric')}
+          title="Use Fabric Canvas"
+        >
+          Fabric
+        </Button>
+        <Button
+          size="sm"
+          variant={overlayMode === 'dom' ? 'default' : 'outline'}
+          onClick={() => onOverlayModeChange?.('dom')}
+          title="Use DOM/SVG Overlays"
+        >
+          DOM
+        </Button>
+
+        <Separator orientation="vertical" className="h-8 mx-1" />
+
+        <Button
+          size="sm"
+          variant={forceShow ? 'default' : 'outline'}
+          onClick={() => onForceShowChange?.(!forceShow)}
+          title="Force show all overlays"
+        >
+          Force Show
+        </Button>
+        <Button
+          size="sm"
+          variant={addProbes ? 'default' : 'outline'}
+          onClick={() => onAddProbesChange?.(!addProbes)}
+          title="Show red probes for alignment"
+        >
+          Probes
+        </Button>
+      </div>
     </div>
   );
 }
+

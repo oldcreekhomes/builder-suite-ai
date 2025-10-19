@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon, Text, Group } from "fabric";
 import { DrawingToolbar } from "./DrawingToolbar";
 import { ScaleCalibrationDialog } from "./ScaleCalibrationDialog";
+import { DOMOverlays } from "./DOMOverlays";
 import { useAnnotations } from "@/hooks/useAnnotations";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -55,6 +56,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [canvasReady, setCanvasReady] = useState(false);
   const [imgNaturalSize, setImgNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [overlayMode, setOverlayMode] = useState<'fabric' | 'dom'>('dom');
+  const [forceShow, setForceShow] = useState<boolean>(true);
+  const [addProbes, setAddProbes] = useState<boolean>(true);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
   const { toast } = useToast();
@@ -119,7 +123,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   // Load and display annotations
   useEffect(() => {
-    if (!fabricCanvas || !annotations || !sheetId || !canvasReady) return;
+    if (!fabricCanvas || !annotations || !sheetId || !canvasReady || overlayMode !== 'fabric') return;
 
     // Clear existing annotation objects
     annotationObjectsRef.current.forEach(obj => fabricCanvas.remove(obj));
@@ -231,9 +235,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
     console.debug(`Scaling mode: ${useDisplayScale ? 'displayScale' : 'maximaScale'}, outOfBounds=${outOfBoundsCount}/${annotations.length}`);
 
-    // TEMP DEBUG FLAGS
-    const FORCE_SHOW = true;
-    const ADD_PROBES = true;
+    // Debug flags from state
+    // forceShow: show all overlays regardless of filters
+    // addProbes: draw small red squares for alignment
 
     let scaledCount = 0;
     const coordDebug: number[] = [];
@@ -245,7 +249,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           : annotation.geometry;
         
         // Check visibility: if no filters, show all; otherwise check if item is in the set
-        const isVisible = FORCE_SHOW || visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
+        const isVisible = forceShow || visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
