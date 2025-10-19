@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon } from "fabric";
+import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon, Text, Group } from "fabric";
 import { DrawingToolbar } from "./DrawingToolbar";
 import { ScaleCalibrationDialog } from "./ScaleCalibrationDialog";
 import { AnnotationVisibilityPanel } from "./AnnotationVisibilityPanel";
@@ -23,6 +23,16 @@ interface PlanViewerProps {
 }
 
 type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
+
+// Helper function to choose contrasting text color
+function chooseBlackOrWhite(hexColor: string): string {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 128 ? '#000000' : '#ffffff';
+}
 
 export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -116,6 +126,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
     }
   }, [zoom, pan, fabricCanvas]);
 
+  // Initialize visibleAnnotations when review mode is enabled
+  useEffect(() => {
+    if (isReviewMode && annotations && annotations.length > 0) {
+      const itemIds = new Set(
+        annotations
+          .map(a => a.takeoff_item_id)
+          .filter((id): id is string => id !== null && id !== undefined)
+      );
+      setVisibleAnnotations(itemIds);
+    }
+  }, [isReviewMode, annotations]);
+
+  // Auto-focus on selected takeoff item in review mode
+  useEffect(() => {
+    if (isReviewMode && selectedTakeoffItem) {
+      setVisibleAnnotations(new Set([selectedTakeoffItem.id]));
+    }
+  }, [isReviewMode, selectedTakeoffItem?.id]);
+
   // Load and display annotations
   useEffect(() => {
     if (!fabricCanvas || !annotations || !sheetId) return;
@@ -130,48 +159,154 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
         const shape = typeof annotation.geometry === 'string' 
           ? JSON.parse(annotation.geometry as string) 
           : annotation.geometry;
+        
+        // Check visibility: show by default, hide in review mode if not in visibleAnnotations
+        const isVisible = !isReviewMode || visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
           case 'circle':
-            fabricObject = new Circle({
+            const circle = new Circle({
               ...(shape as any),
               stroke: annotation.color,
               fill: annotation.color,
-              opacity: visibleAnnotations.has(annotation.takeoff_item_id || '') ? 0.6 : 0,
+              opacity: isVisible ? 0.6 : 0,
               selectable: isReviewMode,
               evented: isReviewMode,
             });
+            
+            // Add label if present
+            if (annotation.label && isVisible) {
+              const labelText = new Text(annotation.label, {
+                left: (shape as any).left + 4,
+                top: (shape as any).top + 4,
+                fontSize: 12,
+                fill: chooseBlackOrWhite(annotation.color),
+                fontFamily: 'Inter, sans-serif',
+                selectable: false,
+                evented: false,
+              });
+              
+              const labelBg = new Rect({
+                left: (shape as any).left + 2,
+                top: (shape as any).top + 2,
+                width: labelText.width! + 8,
+                height: labelText.height! + 4,
+                fill: annotation.color,
+                opacity: 0.85,
+                rx: 3,
+                ry: 3,
+                selectable: false,
+                evented: false,
+              });
+              
+              fabricObject = new Group([circle, labelBg, labelText], {
+                selectable: isReviewMode,
+                evented: isReviewMode,
+              });
+            } else {
+              fabricObject = circle;
+            }
             break;
+            
           case 'rectangle':
-            fabricObject = new Rect({
+            const rect = new Rect({
               ...(shape as any),
               stroke: annotation.color,
               fill: 'transparent',
-              opacity: visibleAnnotations.has(annotation.takeoff_item_id || '') ? 0.6 : 0,
+              opacity: isVisible ? 0.6 : 0,
               selectable: isReviewMode,
               evented: isReviewMode,
             });
+            
+            // Add label if present
+            if (annotation.label && isVisible) {
+              const labelText = new Text(annotation.label, {
+                left: (shape as any).left + 4,
+                top: (shape as any).top + 4,
+                fontSize: 12,
+                fill: chooseBlackOrWhite(annotation.color),
+                fontFamily: 'Inter, sans-serif',
+                selectable: false,
+                evented: false,
+              });
+              
+              const labelBg = new Rect({
+                left: (shape as any).left + 2,
+                top: (shape as any).top + 2,
+                width: labelText.width! + 8,
+                height: labelText.height! + 4,
+                fill: annotation.color,
+                opacity: 0.85,
+                rx: 3,
+                ry: 3,
+                selectable: false,
+                evented: false,
+              });
+              
+              fabricObject = new Group([rect, labelBg, labelText], {
+                selectable: isReviewMode,
+                evented: isReviewMode,
+              });
+            } else {
+              fabricObject = rect;
+            }
             break;
+            
           case 'line':
             const lineShape = shape as any;
             fabricObject = new Line([lineShape.x1, lineShape.y1, lineShape.x2, lineShape.y2], {
               ...lineShape,
               stroke: annotation.color,
-              opacity: visibleAnnotations.has(annotation.takeoff_item_id || '') ? 1 : 0,
+              opacity: isVisible ? 1 : 0,
               selectable: isReviewMode,
               evented: isReviewMode,
             });
             break;
+            
           case 'polygon':
-            fabricObject = new Polygon((shape as any).points, {
+            const polygon = new Polygon((shape as any).points, {
               ...(shape as any),
               stroke: annotation.color,
               fill: 'transparent',
-              opacity: visibleAnnotations.has(annotation.takeoff_item_id || '') ? 0.6 : 0,
+              opacity: isVisible ? 0.6 : 0,
               selectable: isReviewMode,
               evented: isReviewMode,
             });
+            
+            // Add label if present - use first point for positioning
+            if (annotation.label && isVisible && (shape as any).points && (shape as any).points.length > 0) {
+              const firstPoint = (shape as any).points[0];
+              const labelText = new Text(annotation.label, {
+                left: firstPoint.x + 4,
+                top: firstPoint.y + 4,
+                fontSize: 12,
+                fill: chooseBlackOrWhite(annotation.color),
+                fontFamily: 'Inter, sans-serif',
+                selectable: false,
+                evented: false,
+              });
+              
+              const labelBg = new Rect({
+                left: firstPoint.x + 2,
+                top: firstPoint.y + 2,
+                width: labelText.width! + 8,
+                height: labelText.height! + 4,
+                fill: annotation.color,
+                opacity: 0.85,
+                rx: 3,
+                ry: 3,
+                selectable: false,
+                evented: false,
+              });
+              
+              fabricObject = new Group([polygon, labelBg, labelText], {
+                selectable: isReviewMode,
+                evented: isReviewMode,
+              });
+            } else {
+              fabricObject = polygon;
+            }
             break;
         }
 
