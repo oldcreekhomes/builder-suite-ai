@@ -123,18 +123,14 @@ serve(async (req) => {
     const base64Image = arrayBufferToBase64(fileBuffer);
     console.log('Base64 conversion complete, calling Roboflow...');
 
-    // Call Roboflow Inference API
-    const roboflowUrl = `https://detect.roboflow.com/${roboflow_workspace}/${roboflow_project}/${roboflow_version}`;
+    // Call Roboflow Inference API with query parameters
+    const roboflowUrl = `https://detect.roboflow.com/${roboflow_workspace}/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}`;
     const roboflowResponse = await fetch(roboflowUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        api_key: roboflowApiKey,
-        image: base64Image,
-        confidence: String(confidence_threshold)
-      })
+      body: base64Image
     });
 
     if (!roboflowResponse.ok) {
