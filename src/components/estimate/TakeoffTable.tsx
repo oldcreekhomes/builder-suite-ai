@@ -36,7 +36,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  const { selectedItems, handleItemCheckboxChange, clearSelection } = useTakeoffItemSelection();
+  const { selectedItems, handleItemCheckboxChange, clearSelection, selectAll } = useTakeoffItemSelection();
   const { handleDeleteItems, isDeleting } = useTakeoffItemMutations(sheetId || '');
 
   // Color update mutation
@@ -86,11 +86,11 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     
     if (checked) {
       // Select all non-template items
-      const selectableItems = items
+      const itemIds = items
         .filter((item: any) => !item.isTemplate)
         .map((item: any) => item.id);
       
-      selectableItems.forEach(id => handleItemCheckboxChange(id, true));
+      selectAll(itemIds);
     } else {
       clearSelection();
     }

@@ -17,9 +17,14 @@ export function useTakeoffItemSelection() {
     setSelectedItems(new Set());
   };
 
+  const selectAll = (itemIds: string[]) => {
+    setSelectedItems(new Set(itemIds));
+  };
+
   return {
     selectedItems,
     handleItemCheckboxChange,
     clearSelection,
+    selectAll,
   };
 }
