@@ -63,10 +63,9 @@ export function AIExtractReviewDialog({
   };
 
   const handleSave = async () => {
-    const itemsToSave = items
+    const itemsToUpdate = items
       .filter(item => item.included && item.quantity > 0)
       .map(item => {
-        // Determine item_type from unit_of_measure
         const unit = item.unit_of_measure?.toLowerCase() || '';
         let itemType = 'count';
         if (unit.includes('linear') || unit === 'lf') itemType = 'length';
@@ -74,10 +73,9 @@ export function AIExtractReviewDialog({
         else if (unit.includes('cubic') || unit === 'cf') itemType = 'volume';
 
         return {
-          takeoff_sheet_id: sheetId,
           cost_code_id: item.cost_code_id,
+          cost_code_name: item.cost_code_name,
           item_type: itemType,
-          category: item.cost_code_name,
           quantity: item.quantity,
           unit_of_measure: item.unit_of_measure,
           unit_price: item.unit_price,
@@ -85,7 +83,7 @@ export function AIExtractReviewDialog({
         };
       });
 
-    if (itemsToSave.length === 0) {
+    if (itemsToUpdate.length === 0) {
       toast({
         title: "No items selected",
         description: "Please select at least one item to save.",
@@ -96,32 +94,36 @@ export function AIExtractReviewDialog({
 
     setIsSaving(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Not authenticated');
-
-      const itemsWithOwner = itemsToSave.map(item => ({
-        ...item,
-        owner_id: userData.user.id,
+      // Update existing takeoff items created by AI for this sheet by matching on category/name
+      const results = await Promise.all(itemsToUpdate.map(async (u) => {
+        const { error } = await supabase
+          .from('takeoff_items')
+          .update({
+            quantity: u.quantity,
+            unit_of_measure: u.unit_of_measure,
+            unit_price: u.unit_price,
+            notes: u.notes,
+          })
+          .eq('takeoff_sheet_id', sheetId)
+          .eq('cost_code_id', u.cost_code_id)
+          .eq('item_type', u.item_type);
+        return { ok: !error, error };
       }));
 
-      const { error } = await supabase
-        .from('takeoff_items')
-        .insert(itemsWithOwner);
-
-      if (error) throw error;
+      const successCount = results.filter(r => r.ok).length;
 
       toast({
-        title: "Success",
-        description: `Saved ${itemsToSave.length} items to takeoff.`,
+        title: "Updated",
+        description: `Updated ${successCount} item${successCount !== 1 ? 's' : ''}.`,
       });
-      
+
       onSaveComplete();
       onClose();
     } catch (error) {
       console.error('Save error:', error);
       toast({
         title: "Error",
-        description: "Failed to save items. Please try again.",
+        description: "Failed to update items. Please try again.",
         variant: "destructive",
       });
     } finally {

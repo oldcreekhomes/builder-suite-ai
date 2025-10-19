@@ -230,6 +230,22 @@ serve(async (req) => {
       return colorMap[category] || '#8b5cf6';
     };
 
+    // Normalize class/name variants to a canonical display category
+    const normalizeCategory = (classOrName: string): string => {
+      if (/^Window-Single$/i.test(classOrName)) return 'Windows - Single';
+      if (/^Window-Double$/i.test(classOrName)) return 'Windows - Double';
+      if (/^Window-Triple$/i.test(classOrName)) return 'Windows - Triple';
+      if (/^GarageDoor-Single$/i.test(classOrName)) return 'Garage Door - Single';
+      if (/^GarageDoor-Double$/i.test(classOrName)) return 'Garage Door - Double';
+      const lower = (classOrName || '').toLowerCase();
+      if (lower.includes('window') && lower.includes('single')) return 'Windows - Single';
+      if (lower.includes('window') && lower.includes('double')) return 'Windows - Double';
+      if (lower.includes('window') && lower.includes('triple')) return 'Windows - Triple';
+      if (lower.includes('garage') && lower.includes('single')) return 'Garage Door - Single';
+      if (lower.includes('garage') && lower.includes('double')) return 'Garage Door - Double';
+      return classOrName;
+    };
+
     // Group detections by class
     const groupedByClass: Record<string, any[]> = {};
     roboflowData.predictions.forEach((pred: any) => {
@@ -242,20 +258,53 @@ serve(async (req) => {
     // Create takeoff items with quantities
     const takeoffItems = Object.entries(groupedByClass).map(([className, preds]) => {
       const costCode = classMapping[className];
+      const displayCategory = normalizeCategory(costCode?.name || className);
+      const color = getColorForCategory(displayCategory);
       const avgConfidence = preds.reduce((sum, p) => sum + p.confidence, 0) / preds.length;
+
+      console.log(`Creating item: class="${className}", name="${costCode?.name}", category="${displayCategory}", color="${color}", count=${preds.length}`);
       
       return {
         cost_code_id: costCode?.id,
-        category: costCode?.name || className,
+        category: displayCategory,
         quantity: preds.length,
         unit_price: costCode?.price || 0,
         notes: `Detected ${preds.length} instances with ${Math.round(avgConfidence * 100)}% avg confidence`,
         detections: preds,
-        color: getColorForCategory(costCode?.name || className)
+        color,
       };
     });
 
     console.log('Takeoff items created:', takeoffItems.length);
+
+    // Delete previous AI-generated items and their annotations for this sheet
+    const { data: oldItems, error: findOldErr } = await supabase
+      .from('takeoff_items')
+      .select('id')
+      .eq('takeoff_sheet_id', sheet_id)
+      .like('notes', '%avg confidence%');
+
+    if (findOldErr) {
+      console.error('Error finding previous AI items:', findOldErr);
+    } else if (oldItems && oldItems.length > 0) {
+      const oldIds = oldItems.map((i: any) => i.id);
+      const { error: delAnnErr } = await supabase
+        .from('takeoff_annotations')
+        .delete()
+        .in('takeoff_item_id', oldIds);
+      if (delAnnErr) {
+        console.error('Error deleting previous annotations:', delAnnErr);
+      }
+      const { error: delItemsErr } = await supabase
+        .from('takeoff_items')
+        .delete()
+        .in('id', oldIds);
+      if (delItemsErr) {
+        console.error('Error deleting previous AI items:', delItemsErr);
+      } else {
+        console.log(`Deleted ${oldIds.length} previous AI items`);
+      }
+    }
 
     // Insert takeoff items into database
     const { data: insertedItems, error: insertError } = await supabase
