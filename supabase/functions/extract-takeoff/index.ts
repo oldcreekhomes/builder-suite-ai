@@ -66,6 +66,19 @@ serve(async (req) => {
       });
     }
 
+    // Filter cost codes for Elevation sheets to only window-related codes
+    const isElevation = /elevations?/i.test(sheet.name || '');
+    const targetCodes = isElevation 
+      ? costCodes.filter(cc => /window/i.test(cc.name))
+      : costCodes;
+
+    if (targetCodes.length === 0) {
+      return new Response(JSON.stringify({ error: 'No relevant cost codes found for this sheet type' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Get public URL for the sheet file
     const { data: fileData } = supabase.storage
       .from('project-files')
@@ -108,19 +121,19 @@ serve(async (req) => {
     console.log('Base64 conversion complete');
 
     // Build cost code instructions
-    const costCodeInstructions = costCodes.map(code => {
+    const costCodeInstructions = targetCodes.map(code => {
       const name = code.name.toLowerCase();
       let instructions = '';
       
       if (name.includes('window')) {
         if (name.includes('single')) {
-          instructions = 'Count single-hung windows (1 sash moves). Look for windows with one movable section.';
+          instructions = 'Count SINGLE WINDOW UNITS - one individual window opening (not about sashes). Do NOT count patio door lites or garage door windows.';
         } else if (name.includes('double')) {
-          instructions = 'Count double-hung windows (both sashes move). Look for windows with two movable sections.';
+          instructions = 'Count DOUBLE WINDOW UNITS - two window units mulled/paired side-by-side as one assembly. Do NOT count patio door lites or garage door windows.';
         } else if (name.includes('triple')) {
-          instructions = 'Count triple windows (3 window units grouped together).';
+          instructions = 'Count TRIPLE WINDOW UNITS - three window units grouped/mulled together as one assembly. Do NOT count patio door lites or garage door windows.';
         } else {
-          instructions = 'Count all visible windows matching this type.';
+          instructions = 'Generic window category. If specific subtypes (Single/Double/Triple) exist, allocate quantities to those subtypes and set this generic category to 0.';
         }
       } else if (name.includes('door')) {
         if (name.includes('entry') || name.includes('front')) {
@@ -154,11 +167,13 @@ ${costCodeInstructions}
 
 Guidelines:
 1. Count only visible, clearly identifiable items
-2. For windows/doors: Count individual units (not pairs unless specified)
-3. If uncertain, set quantity to 0 and note why in comments
-4. Add notes explaining your counts (e.g., "2 on front facade, 1 on side")
-5. Distinguish between similar items (single vs double windows, etc.)
-6. Be precise and conservative - better to undercount than overcount
+2. For windows: Single = 1 unit, Double = 2 units mulled together, Triple = 3 units mulled together
+3. CRITICAL: If window subtypes (Single/Double/Triple) are listed, you MUST allocate quantities across them and set the generic "Windows" category to quantity 0
+4. CRITICAL: Always return one item for EVERY cost code listed, even if quantity is 0 (use low confidence when uncertain)
+5. If any windows are present, always provide a breakdown across Single/Double/Triple subtypes - do NOT put all units only in the generic "Windows" category
+6. Add notes explaining your counts (e.g., "2 on front facade, 1 on side")
+7. Exclude patio door lites and garage door windows from window counts
+8. Be precise and conservative - better to undercount than overcount
 
 Return counts using the structured format provided.`;
 
@@ -171,6 +186,7 @@ Return counts using the structured format provided.`;
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
+        temperature: 0.1,
         messages: [
           { role: 'system', content: systemPrompt },
           { 
@@ -269,7 +285,7 @@ Return counts using the structured format provided.`;
 
     // Enrich with cost code details
     const enrichedItems = extractedItems.map((item: any) => {
-      const costCode = costCodes.find(cc => cc.id === item.cost_code_id);
+      const costCode = targetCodes.find(cc => cc.id === item.cost_code_id);
       return {
         ...item,
         cost_code_name: costCode?.name || 'Unknown',
