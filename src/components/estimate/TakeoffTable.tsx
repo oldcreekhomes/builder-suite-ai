@@ -118,7 +118,28 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         return;
       }
 
-      setExtractedData(data);
+      // Transform items to match dialog expectations
+      const transformedData = {
+        ...data,
+        items: data.items.map((item: any) => {
+          // Extract confidence percentage from notes
+          const confidenceMatch = item.notes?.match(/(\d+)% avg confidence/);
+          const confidencePercent = confidenceMatch ? parseInt(confidenceMatch[1]) : 0;
+          
+          // Map percentage to high/medium/low
+          let confidence: 'high' | 'medium' | 'low' = 'low';
+          if (confidencePercent >= 80) confidence = 'high';
+          else if (confidencePercent >= 60) confidence = 'medium';
+          
+          return {
+            ...item,
+            cost_code_name: item.category,  // Map category to cost_code_name
+            confidence: confidence  // Add confidence field
+          };
+        })
+      };
+
+      setExtractedData(transformedData);
       setShowReviewDialog(true);
     } catch (error) {
       console.error('AI extraction error:', error);
