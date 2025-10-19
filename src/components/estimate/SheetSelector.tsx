@@ -8,6 +8,16 @@ import { Plus, FileText, Trash2 } from "lucide-react";
 import { UploadSheetDialog } from "./UploadSheetDialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SheetSelectorProps {
   takeoffId: string;
@@ -18,6 +28,8 @@ interface SheetSelectorProps {
 export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet }: SheetSelectorProps) {
   const { user } = useAuth();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sheetToDelete, setSheetToDelete] = useState<string | null>(null);
 
   const { data: sheets, refetch } = useQuery({
     queryKey: ['takeoff-sheets', takeoffId],
@@ -34,18 +46,24 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet }: She
     enabled: !!takeoffId && !!user,
   });
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+    setSheetToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!sheetToDelete) return;
+
     try {
       const { error } = await supabase
         .from('takeoff_sheets')
         .delete()
-        .eq('id', id);
+        .eq('id', sheetToDelete);
 
       if (error) throw error;
       
-      if (selectedSheetId === id) {
+      if (selectedSheetId === sheetToDelete) {
         onSelectSheet(null);
       }
       
@@ -54,6 +72,9 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet }: She
     } catch (error) {
       console.error('Error deleting sheet:', error);
       toast.error('Failed to delete sheet');
+    } finally {
+      setDeleteDialogOpen(false);
+      setSheetToDelete(null);
     }
   };
 
@@ -123,6 +144,27 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet }: She
           setUploadDialogOpen(false);
         }}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this sheet?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the sheet
+              and remove it from the project.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
