@@ -135,13 +135,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
     };
   }, [pageWidth]);
 
-  // Sync Fabric.js canvas zoom with state
-  useEffect(() => {
-    if (fabricCanvas) {
-      fabricCanvas.setViewportTransform([zoom, 0, 0, zoom, pan.x, pan.y]);
-      fabricCanvas.renderAll();
-    }
-  }, [zoom, pan, fabricCanvas]);
+  // Note: Zoom and pan are handled by CSS transform on the wrapper div
+  // to keep PDF and canvas overlay synchronized
 
   // Initialize visibleAnnotations when review mode is enabled
   useEffect(() => {
@@ -530,8 +525,27 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
               <Page 
                 pageNumber={sheet?.page_number || 1}
                 width={pageWidth}
-              onLoadSuccess={(page) => {
+                onLoadSuccess={(page) => {
                   setPageWidth(page.width);
+                  
+                  // Get original PDF page dimensions (at scale 1)
+                  const viewport = page.originalWidth && page.originalHeight
+                    ? { width: page.originalWidth, height: page.originalHeight }
+                    : page.view 
+                      ? { width: page.view[2] - page.view[0], height: page.view[3] - page.view[1] }
+                      : null;
+                  
+                  if (viewport) {
+                    setImgNaturalSize({
+                      width: viewport.width,
+                      height: viewport.height,
+                    });
+                    
+                    const scaleX = page.width / viewport.width;
+                    const scaleY = page.height / viewport.height;
+                    console.debug(`PDF: displayed=${page.width}x${page.height}, original=${viewport.width}x${viewport.height}, scale=${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
+                  }
+                  
                   if (fabricCanvas) {
                     fabricCanvas.setDimensions({
                       width: page.width,
