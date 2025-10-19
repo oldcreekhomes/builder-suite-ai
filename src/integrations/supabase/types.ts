@@ -2064,6 +2064,7 @@ export type Database = {
       takeoff_items: {
         Row: {
           category: string
+          color: string | null
           cost_code_id: string | null
           created_at: string
           description: string | null
@@ -2080,6 +2081,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          color?: string | null
           cost_code_id?: string | null
           created_at?: string
           description?: string | null
@@ -2096,6 +2098,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          color?: string | null
           cost_code_id?: string | null
           created_at?: string
           description?: string | null

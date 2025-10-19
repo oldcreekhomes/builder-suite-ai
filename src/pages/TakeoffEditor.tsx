@@ -13,6 +13,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 export default function TakeoffEditor() {
   const { projectId, takeoffId } = useParams();
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
+  const [selectedReviewItem, setSelectedReviewItem] = useState<{ id: string; color: string; category: string } | null>(null);
 
   const { data: takeoff } = useQuery({
     queryKey: ['takeoff-project', takeoffId],
@@ -53,6 +54,7 @@ export default function TakeoffEditor() {
               <PlanViewer 
                 sheetId={selectedSheetId}
                 takeoffId={takeoffId!}
+                selectedTakeoffItem={selectedReviewItem}
               />
             </ResizablePanel>
             
@@ -62,6 +64,8 @@ export default function TakeoffEditor() {
               <TakeoffTable 
                 sheetId={selectedSheetId}
                 takeoffId={takeoffId!}
+                selectedReviewItem={selectedReviewItem}
+                onSelectReviewItem={setSelectedReviewItem}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

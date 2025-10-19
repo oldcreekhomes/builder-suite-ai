@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatUnitOfMeasure } from "@/utils/budgetUtils";
 import { Button } from "@/components/ui/button";
-import { Plus, Sparkles, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Sparkles, Loader2, Palette } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { AIExtractReviewDialog } from "./AIExtractReviewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,9 +26,11 @@ import {
 interface TakeoffTableProps {
   sheetId: string | null;
   takeoffId: string;
+  selectedReviewItem: { id: string; color: string; category: string } | null;
+  onSelectReviewItem: (item: { id: string; color: string; category: string } | null) => void;
 }
 
-export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
+export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectReviewItem }: TakeoffTableProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -34,6 +38,32 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
   
   const { selectedItems, handleItemCheckboxChange, clearSelection } = useTakeoffItemSelection();
   const { handleDeleteItems, isDeleting } = useTakeoffItemMutations(sheetId || '');
+
+  // Color update mutation
+  const updateColorMutation = useMutation({
+    mutationFn: async ({ itemId, color }: { itemId: string; color: string }) => {
+      const { error } = await supabase
+        .from('takeoff_items')
+        .update({ color })
+        .eq('id', itemId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update color",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleColorChange = (itemId: string, color: string) => {
+    updateColorMutation.mutate({ itemId, color });
+  };
 
   const handleBulkDelete = () => {
     setShowDeleteDialog(true);
@@ -109,7 +139,7 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
       // Fetch existing takeoff items
       const { data: existingItems, error: itemsError } = await supabase
         .from('takeoff_items')
-        .select('*, cost_code_id')
+        .select('*, cost_code_id, color')
         .eq('takeoff_sheet_id', sheetId)
         .order('created_at', { ascending: true });
 
@@ -244,6 +274,7 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead className="w-12"></TableHead>
+              <TableHead className="w-20">Color</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Qty</TableHead>
               <TableHead>Unit</TableHead>
@@ -254,7 +285,7 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           <TableBody>
             {!items || items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No items measured yet
                 </TableCell>
               </TableRow>
@@ -262,10 +293,23 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
               items.map((item: any) => {
                 const isTemplate = item.isTemplate;
                 const isSelectable = !isTemplate;
+                const isSelected = selectedReviewItem?.id === item.id;
                 
                 return (
-                  <TableRow key={item.id} className={item.isTemplate ? 'opacity-70' : ''}>
-                    <TableCell>
+                  <TableRow 
+                    key={item.id} 
+                    className={cn(
+                      item.isTemplate ? 'opacity-70' : '',
+                      isSelected && 'bg-accent'
+                    )}
+                    onClick={() => !isTemplate && onSelectReviewItem({
+                      id: item.id,
+                      color: item.color || '#3b82f6',
+                      category: item.category
+                    })}
+                    style={{ cursor: !isTemplate ? 'pointer' : 'default' }}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {isSelectable && (
                         <Checkbox
                           checked={selectedItems.has(item.id)}
@@ -273,9 +317,30 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
                         />
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">
-                      {item.category}
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {!isTemplate && (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-6 h-6 rounded border-2 border-border cursor-pointer"
+                            style={{ backgroundColor: item.color || '#3b82f6' }}
+                          />
+                          <Input
+                            type="color"
+                            value={item.color || '#3b82f6'}
+                            onChange={(e) => handleColorChange(item.id, e.target.value)}
+                            className="w-0 h-0 opacity-0 absolute"
+                            id={`color-${item.id}`}
+                          />
+                          <label 
+                            htmlFor={`color-${item.id}`}
+                            className="cursor-pointer"
+                          >
+                            <Palette className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          </label>
+                        </div>
+                      )}
                     </TableCell>
+                    <TableCell className="font-medium">{item.category}</TableCell>
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
                     <TableCell>
