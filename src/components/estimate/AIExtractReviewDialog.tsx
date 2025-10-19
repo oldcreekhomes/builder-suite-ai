@@ -82,8 +82,6 @@ export function AIExtractReviewDialog({
           unit_of_measure: item.unit_of_measure,
           unit_price: item.unit_price,
           notes: item.notes,
-          ai_extracted: true,
-          ai_confidence: item.confidence,
         };
       });
 
