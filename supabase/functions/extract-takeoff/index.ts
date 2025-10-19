@@ -123,57 +123,51 @@ serve(async (req) => {
     const base64Image = arrayBufferToBase64(fileBuffer);
     console.log('Base64 conversion complete, calling Roboflow...');
 
-    // Roboflow: POST form-encoded using image URL, then fallback to base64
+    // Roboflow: JSON POST to inference API
     const { data: signed } = await supabase.storage
       .from('project-files')
       .createSignedUrl(sheet.file_path, 300);
     const imageUrl = signed?.signedUrl || fileData.publicUrl;
 
-    const rfBase = `https://detect.roboflow.com/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}`;
+    const model_id = `${roboflow_project}/${roboflow_version}`;
+    console.log('Calling Roboflow with model_id:', model_id);
+    console.log('Image URL (truncated):', imageUrl.slice(0, 120));
 
     let roboflowData: any | null = null;
     let lastStatus = 0;
     let lastText = '';
 
-    // Attempt 1: POST x-www-form-urlencoded with image URL
-    let rfResp = await fetch(rfBase, {
+    // Attempt JSON POST to inference API
+    const rfUrl = 'https://detect.roboflow.com/infer/object_detection';
+    let rfResp = await fetch(rfUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `image=${encodeURIComponent(imageUrl)}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model_id: model_id,
+        image: { type: 'url', value: imageUrl },
+        api_key: roboflowApiKey,
+        confidence: confidence_threshold
+      })
     });
+
     if (rfResp.ok) {
       roboflowData = await rfResp.json();
-      console.log('Roboflow POST image URL succeeded');
+      console.log('Roboflow JSON POST succeeded');
     } else {
       lastStatus = rfResp.status;
       lastText = await rfResp.text();
-      console.error('Roboflow POST image URL failed:', lastStatus, lastText?.slice(0, 200));
+      console.error('Roboflow JSON POST failed:', lastStatus, lastText?.slice(0, 300));
 
-      // Attempt 2: POST x-www-form-urlencoded with base64
-      rfResp = await fetch(rfBase, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `base64=${encodeURIComponent(base64Image)}`,
-      });
+      // Fallback: GET with image query param
+      const rfGetUrl = `https://detect.roboflow.com/${roboflow_project}/${roboflow_version}?api_key=${roboflowApiKey}&confidence=${confidence_threshold}&image=${encodeURIComponent(imageUrl)}`;
+      rfResp = await fetch(rfGetUrl, { method: 'GET' });
       if (rfResp.ok) {
         roboflowData = await rfResp.json();
-        console.log('Roboflow POST base64 succeeded');
+        console.log('Roboflow GET fallback succeeded');
       } else {
         lastStatus = rfResp.status;
         lastText = await rfResp.text();
-        console.error('Roboflow POST base64 failed:', lastStatus, lastText?.slice(0, 200));
-
-        // Optional Attempt 3: GET with image query param
-        const rfGetUrl = `${rfBase}&image=${encodeURIComponent(imageUrl)}`;
-        rfResp = await fetch(rfGetUrl, { method: 'GET' });
-        if (rfResp.ok) {
-          roboflowData = await rfResp.json();
-          console.log('Roboflow GET image URL succeeded');
-        } else {
-          lastStatus = rfResp.status;
-          lastText = await rfResp.text();
-          console.error('Roboflow GET image URL failed:', lastStatus, lastText?.slice(0, 200));
-        }
+        console.error('Roboflow GET fallback failed:', lastStatus, lastText?.slice(0, 300));
       }
     }
 
@@ -184,13 +178,13 @@ serve(async (req) => {
           success: false,
           error_code: 403,
           error: 'Roboflow authentication failed. Check API key and project/version access.',
-          details: lastText?.slice(0, 200)
+          details: lastText?.slice(0, 300)
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      return new Response(JSON.stringify({ error: `Roboflow error (${lastStatus})`, details: lastText?.slice(0, 200) }), {
+      return new Response(JSON.stringify({ error: `Roboflow error (${lastStatus})`, details: lastText?.slice(0, 300) }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
