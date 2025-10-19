@@ -34,6 +34,15 @@ function chooseBlackOrWhite(hexColor: string): string {
   return brightness > 128 ? '#000000' : '#ffffff';
 }
 
+// Helper function to convert hex color to rgba
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +58,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [visibleAnnotations, setVisibleAnnotations] = useState<Set<string>>(new Set());
   const [canvasReady, setCanvasReady] = useState(false);
+  const [imgNaturalSize, setImgNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
   const { toast } = useToast();
@@ -57,6 +67,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
   // Reset canvas ready state when sheet changes
   useEffect(() => {
     setCanvasReady(false);
+    setImgNaturalSize(null);
   }, [sheetId]);
 
   // Fetch takeoff items for visibility panel
@@ -159,6 +170,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
     annotationObjectsRef.current.forEach(obj => fabricCanvas.remove(obj));
     annotationObjectsRef.current.clear();
 
+    // Calculate scale factors for AI annotations
+    const canvasW = fabricCanvas.getWidth();
+    const canvasH = fabricCanvas.getHeight();
+    const scaleX = imgNaturalSize ? canvasW / imgNaturalSize.width : 1;
+    const scaleY = imgNaturalSize ? canvasH / imgNaturalSize.height : 1;
+
+    // Helper to detect if annotation needs scaling (AI-generated vs user-drawn)
+    const needsScale = (s: any) =>
+      s.left > canvasW || s.top > canvasH || (s.width && s.width > canvasW) || (s.height && s.height > canvasH);
+
+    let scaledCount = 0;
+    const coordDebug: number[] = [];
+
     // Load annotations from database
     annotations.forEach(annotation => {
       try {
@@ -216,11 +240,28 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             break;
             
           case 'rectangle':
+            const base = shape as any;
+            const shouldScale = needsScale(base);
+            if (shouldScale) scaledCount++;
+
+            const scaled = shouldScale
+              ? {
+                  left: base.left * scaleX,
+                  top: base.top * scaleY,
+                  width: base.width * scaleX,
+                  height: base.height * scaleY,
+                  strokeWidth: Math.max(2, (base.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+                }
+              : base;
+
+            coordDebug.push(scaled.left, scaled.top);
+
             const rect = new Rect({
-              ...(shape as any),
+              ...scaled,
               stroke: annotation.color,
-              fill: 'transparent',
-              opacity: isVisible ? 0.6 : 0,
+              fill: hexToRgba(annotation.color, 0.2),
+              strokeWidth: scaled.strokeWidth || 2,
+              opacity: isVisible ? 1 : 0,
               selectable: isReviewMode,
               evented: isReviewMode,
             });
@@ -228,8 +269,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             // Add label if present
             if (annotation.label && isVisible) {
               const labelText = new Text(annotation.label, {
-                left: (shape as any).left + 4,
-                top: (shape as any).top + 4,
+                left: scaled.left + 4,
+                top: scaled.top + 4,
                 fontSize: 12,
                 fill: chooseBlackOrWhite(annotation.color),
                 fontFamily: 'Inter, sans-serif',
@@ -238,8 +279,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
               });
               
               const labelBg = new Rect({
-                left: (shape as any).left + 2,
-                top: (shape as any).top + 2,
+                left: scaled.left + 2,
+                top: scaled.top + 2,
                 width: labelText.width! + 8,
                 height: labelText.height! + 4,
                 fill: annotation.color,
@@ -325,8 +366,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
       }
     });
 
+    // Debug logging
+    if (coordDebug.length > 0) {
+      console.debug(`Rendered ${annotations.length} annotations (${scaledCount} scaled). Coords: min=${Math.min(...coordDebug).toFixed(1)}, max=${Math.max(...coordDebug).toFixed(1)}`);
+    }
+
     fabricCanvas.renderAll();
-  }, [annotations, fabricCanvas, isReviewMode, visibleAnnotations, sheetId, canvasReady]);
+  }, [annotations, fabricCanvas, isReviewMode, visibleAnnotations, sheetId, canvasReady, imgNaturalSize]);
 
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
@@ -507,6 +553,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
                   fabricCanvas.setDimensions({
                     width: img.width,
                     height: img.height,
+                  });
+                  setImgNaturalSize({
+                    width: img.naturalWidth,
+                    height: img.naturalHeight,
                   });
                   setCanvasReady(true);
                 }
