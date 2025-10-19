@@ -19,14 +19,27 @@ export const useCostCodes = () => {
 
   const normalize = (v: any) => (v ?? '').toString().trim();
 
+  // Get the company owner ID (home builder ID for employees, user ID for owners)
+  const getCompanyOwnerId = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data: userInfo } = await supabase.rpc('get_current_user_home_builder_info');
+    return userInfo?.[0]?.is_employee ? userInfo[0].home_builder_id : user.id;
+  };
+
   // Fetch cost codes from database
   const fetchCostCodes = async () => {
     if (!user) return;
     
     try {
+      const ownerId = await getCompanyOwnerId();
+      if (!ownerId) return;
+
       const { data, error } = await supabase
         .from('cost_codes')
         .select('*')
+        .eq('owner_id', ownerId)
         .order('code');
 
       if (error) throw error;
@@ -80,6 +93,9 @@ export const useCostCodes = () => {
     if (!user) return;
 
     try {
+      const ownerId = await getCompanyOwnerId();
+      if (!ownerId) return;
+
       const parentGroupRaw = costCodeData.parentGroup ?? null;
       const parentGroup = parentGroupRaw ? normalize(parentGroupRaw) : null;
       const name = normalize(costCodeData.name);
@@ -96,7 +112,7 @@ export const useCostCodes = () => {
         has_specifications: costCodeData.hasSpecifications === 'yes',
         has_bidding: costCodeData.hasBidding === 'yes',
         has_subcategories: costCodeData.hasSubcategories === 'yes',
-        owner_id: user.id,
+        owner_id: ownerId,
       } as any;
 
       // Check for an existing child with the same parent + name that has an empty code
@@ -240,6 +256,9 @@ export const useCostCodes = () => {
     if (!user) return;
 
     try {
+      const ownerId = await getCompanyOwnerId();
+      if (!ownerId) return;
+
       const costCodesToInsert = importedCostCodes.map((code) => ({
         code: code.code,
         name: code.name,
@@ -251,7 +270,7 @@ export const useCostCodes = () => {
         has_specifications: code.hasSpecifications === 'yes',
         has_bidding: code.hasBidding === 'yes',
         has_subcategories: code.hasSubcategories === 'yes',
-        owner_id: user.id,
+        owner_id: ownerId,
       }));
 
       const { data, error } = await supabase
