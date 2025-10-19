@@ -125,34 +125,92 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     annotationObjectsRef.current.forEach(obj => fabricCanvas.remove(obj));
     annotationObjectsRef.current.clear();
 
-    // Calculate scale factors for AI annotations
     const canvasW = fabricCanvas.getWidth();
     const canvasH = fabricCanvas.getHeight();
-    const scaleX = imgNaturalSize ? canvasW / imgNaturalSize.width : 1;
-    const scaleY = imgNaturalSize ? canvasH / imgNaturalSize.height : 1;
 
     // Compute per-page vertical offset for PDFs
     const isPDF = sheet?.file_name?.toLowerCase().endsWith(".pdf");
     const pageNum = sheet?.page_number || 1;
     const originalPageH = imgNaturalSize?.height ?? null;
     const pageOffsetY = isPDF && originalPageH ? (pageNum - 1) * originalPageH : 0;
-    
-    if (isPDF && originalPageH) {
-      console.debug(`PDF page fix: page=${pageNum}, offsetY=${pageOffsetY.toFixed(1)}, pageH=${originalPageH.toFixed(1)}`);
-    }
 
     // Helper to normalize Y coordinates (subtract page offset for multi-page PDFs)
     const tol = originalPageH ? Math.max(2, originalPageH * 0.005) : 2;
     const fixY = (y: number) => {
       if (!isPDF || !originalPageH || pageNum <= 1) return y;
-      // If Y looks like absolute (on or below this page band), subtract the band's start
       if (y >= pageOffsetY - tol) return y - pageOffsetY;
-      return y; // already relative to page
+      return y;
     };
 
-    // Helper to detect if annotation needs scaling (AI-generated vs user-drawn)
-    const needsScale = (s: any) =>
-      s.left > canvasW || s.top > canvasH || (s.width && s.width > canvasW) || (s.height && s.height > canvasH);
+    // PRE-SCAN: Find the actual coordinate space of AI annotations
+    let globalMaxX = 0;
+    let globalMaxY = 0;
+    let outOfBoundsCount = 0;
+
+    annotations.forEach(annotation => {
+      try {
+        const shape = typeof annotation.geometry === 'string' 
+          ? JSON.parse(annotation.geometry as string) 
+          : annotation.geometry;
+        
+        let maxX = 0;
+        let maxY = 0;
+
+        switch (annotation.annotation_type) {
+          case 'rectangle':
+            const top = fixY(shape.top);
+            maxX = shape.left + (shape.width || 0);
+            maxY = top + (shape.height || 0);
+            break;
+          case 'circle':
+            const circleTop = fixY(shape.top);
+            maxX = shape.left + (shape.radius || 0) * 2;
+            maxY = circleTop + (shape.radius || 0) * 2;
+            break;
+          case 'line':
+            maxX = Math.max(shape.x1 || 0, shape.x2 || 0);
+            maxY = Math.max(fixY(shape.y1 || 0), fixY(shape.y2 || 0));
+            break;
+          case 'polygon':
+            if (shape.points && Array.isArray(shape.points)) {
+              maxX = Math.max(...shape.points.map((p: any) => p.x || 0));
+              maxY = Math.max(...shape.points.map((p: any) => fixY(p.y || 0)));
+            }
+            break;
+        }
+
+        // Only consider shapes that are clearly out of bounds (AI-generated)
+        if (maxX > canvasW * 1.1 || maxY > canvasH * 1.1) {
+          globalMaxX = Math.max(globalMaxX, maxX);
+          globalMaxY = Math.max(globalMaxY, maxY);
+          outOfBoundsCount++;
+        }
+      } catch (error) {
+        console.error('Error scanning annotation:', error);
+      }
+    });
+
+    // Compute scale-down factors if needed
+    let scaleX = 1;
+    let scaleY = 1;
+
+    if (globalMaxX > canvasW || globalMaxY > canvasH) {
+      scaleX = canvasW / globalMaxX;
+      scaleY = canvasH / globalMaxY;
+      
+      // Safety guard: never scale up
+      scaleX = Math.min(scaleX, 1);
+      scaleY = Math.min(scaleY, 1);
+      
+      console.debug(`AI scaling computed: scaleX=${scaleX.toFixed(3)}, scaleY=${scaleY.toFixed(3)}, globalMax=${globalMaxX.toFixed(1)}x${globalMaxY.toFixed(1)}, canvas=${canvasW}x${canvasH}, outOfBounds=${outOfBoundsCount}`);
+    }
+
+    // Helper to detect if annotation needs scaling
+    const needsScale = (s: any) => {
+      const maxX = s.left + (s.width || 0);
+      const maxY = s.top + (s.height || 0);
+      return maxX > canvasW * 1.1 || maxY > canvasH * 1.1;
+    };
 
     let scaledCount = 0;
     const coordDebug: number[] = [];
@@ -171,13 +229,29 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         switch (annotation.annotation_type) {
           case 'circle':
             const circleShape = shape as any;
-            const circleFixed = {
-              ...circleShape,
-              top: fixY(circleShape.top),
-            };
+            const circleTopFixed = fixY(circleShape.top);
+            const circleMaxX = circleShape.left + (circleShape.radius || 0) * 2;
+            const circleMaxY = circleTopFixed + (circleShape.radius || 0) * 2;
+            const circleNeedsScale = circleMaxX > canvasW * 1.1 || circleMaxY > canvasH * 1.1;
+            
+            if (circleNeedsScale) scaledCount++;
+            
+            const circleScaled = circleNeedsScale
+              ? {
+                  left: circleShape.left * scaleX,
+                  top: circleTopFixed * scaleY,
+                  radius: circleShape.radius * ((scaleX + scaleY) / 2),
+                  strokeWidth: Math.max(1, (circleShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+                }
+              : {
+                  ...circleShape,
+                  top: circleTopFixed,
+                };
+
+            coordDebug.push(circleScaled.left, circleScaled.top);
 
             const circle = new Circle({
-              ...circleFixed,
+              ...circleScaled,
               stroke: annotation.color,
               fill: annotation.color,
               opacity: isVisible ? 0.6 : 0,
@@ -188,8 +262,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             // Add label if present
             if (annotation.label && isVisible) {
               const labelText = new Text(annotation.label, {
-                left: circleFixed.left + 4,
-                top: circleFixed.top + 4,
+                left: circleScaled.left + 4,
+                top: circleScaled.top + 4,
                 fontSize: 12,
                 fill: chooseBlackOrWhite(annotation.color),
                 fontFamily: 'Inter, sans-serif',
@@ -198,8 +272,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               });
               
               const labelBg = new Rect({
-                left: circleFixed.left + 2,
-                top: circleFixed.top + 2,
+                left: circleScaled.left + 2,
+                top: circleScaled.top + 2,
                 width: labelText.width! + 8,
                 height: labelText.height! + 4,
                 fill: annotation.color,
@@ -221,31 +295,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             
           case 'rectangle':
             const base = shape as any;
-            const rawTop = base.top;
-            const fixedTop = fixY(rawTop);
+            const baseTopFixed = fixY(base.top);
+            const rectMaxX = base.left + (base.width || 0);
+            const rectMaxY = baseTopFixed + (base.height || 0);
+            const rectNeedsScale = rectMaxX > canvasW * 1.1 || rectMaxY > canvasH * 1.1;
             
-            // Debug first few annotations
-            if (annotations.indexOf(annotation) < 3) {
-              console.debug(`fixY: rawTop=${rawTop.toFixed(1)} -> fixedTop=${fixedTop.toFixed(1)}`);
-            }
+            if (rectNeedsScale) scaledCount++;
 
-            const baseFixed = {
-              ...base,
-              top: fixedTop,
-            };
-
-            const shouldScale = needsScale(baseFixed);
-            if (shouldScale) scaledCount++;
-
-            const scaled = shouldScale
+            const scaled = rectNeedsScale
               ? {
-                  left: baseFixed.left * scaleX,
-                  top: baseFixed.top * scaleY,
-                  width: baseFixed.width * scaleX,
-                  height: baseFixed.height * scaleY,
-                  strokeWidth: Math.max(2, (baseFixed.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+                  left: base.left * scaleX,
+                  top: baseTopFixed * scaleY,
+                  width: base.width * scaleX,
+                  height: base.height * scaleY,
+                  strokeWidth: Math.max(2, (base.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
                 }
-              : baseFixed;
+              : {
+                  ...base,
+                  top: baseTopFixed,
+                };
 
             coordDebug.push(scaled.left, scaled.top);
 
@@ -295,14 +363,35 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             
           case 'line':
             const lineShape = shape as any;
-            const lineFixed = {
-              ...lineShape,
-              y1: fixY(lineShape.y1),
-              y2: fixY(lineShape.y2),
-            };
-            fabricObject = new Line([lineFixed.x1, lineFixed.y1, lineFixed.x2, lineFixed.y2], {
-              ...lineFixed,
+            const lineY1Fixed = fixY(lineShape.y1);
+            const lineY2Fixed = fixY(lineShape.y2);
+            const lineMaxX = Math.max(lineShape.x1 || 0, lineShape.x2 || 0);
+            const lineMaxY = Math.max(lineY1Fixed, lineY2Fixed);
+            const lineNeedsScale = lineMaxX > canvasW * 1.1 || lineMaxY > canvasH * 1.1;
+            
+            if (lineNeedsScale) scaledCount++;
+            
+            const lineScaled = lineNeedsScale
+              ? {
+                  x1: lineShape.x1 * scaleX,
+                  y1: lineY1Fixed * scaleY,
+                  x2: lineShape.x2 * scaleX,
+                  y2: lineY2Fixed * scaleY,
+                  strokeWidth: Math.max(2, (lineShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+                }
+              : {
+                  x1: lineShape.x1,
+                  y1: lineY1Fixed,
+                  x2: lineShape.x2,
+                  y2: lineY2Fixed,
+                  strokeWidth: lineShape.strokeWidth,
+                };
+
+            coordDebug.push(lineScaled.x1, lineScaled.y1, lineScaled.x2, lineScaled.y2);
+            
+            fabricObject = new Line([lineScaled.x1, lineScaled.y1, lineScaled.x2, lineScaled.y2], {
               stroke: annotation.color,
+              strokeWidth: lineScaled.strokeWidth || 2,
               opacity: isVisible ? 1 : 0,
               selectable: true,
               evented: true,
@@ -315,20 +404,36 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               x: p.x,
               y: fixY(p.y),
             }));
+            
+            const polyMaxX = Math.max(...polygonPointsFixed.map((p: any) => p.x || 0));
+            const polyMaxY = Math.max(...polygonPointsFixed.map((p: any) => p.y || 0));
+            const polyNeedsScale = polyMaxX > canvasW * 1.1 || polyMaxY > canvasH * 1.1;
+            
+            if (polyNeedsScale) scaledCount++;
+            
+            const polygonPointsScaled = polyNeedsScale
+              ? polygonPointsFixed.map((p: any) => ({
+                  x: p.x * scaleX,
+                  y: p.y * scaleY,
+                }))
+              : polygonPointsFixed;
 
-            const polygon = new Polygon(polygonPointsFixed, {
-              ...polygonShape,
-              points: polygonPointsFixed,
+            polygonPointsScaled.forEach((p: any) => coordDebug.push(p.x, p.y));
+
+            const polygon = new Polygon(polygonPointsScaled, {
               stroke: annotation.color,
               fill: 'transparent',
+              strokeWidth: polyNeedsScale 
+                ? Math.max(2, (polygonShape.strokeWidth || 2) * ((scaleX + scaleY) / 2))
+                : polygonShape.strokeWidth || 2,
               opacity: isVisible ? 0.6 : 0,
               selectable: true,
               evented: true,
             });
             
             // Add label if present - use first point for positioning
-            if (annotation.label && isVisible && polygonPointsFixed.length > 0) {
-              const firstPoint = polygonPointsFixed[0];
+            if (annotation.label && isVisible && polygonPointsScaled.length > 0) {
+              const firstPoint = polygonPointsScaled[0];
               const labelText = new Text(annotation.label, {
                 left: firstPoint.x + 4,
                 top: firstPoint.y + 4,
