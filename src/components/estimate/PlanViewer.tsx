@@ -48,10 +48,16 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [visibleAnnotations, setVisibleAnnotations] = useState<Set<string>>(new Set());
+  const [canvasReady, setCanvasReady] = useState(false);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
   const { toast } = useToast();
   const { annotations, saveAnnotation, deleteAnnotation, isSaving } = useAnnotations(sheetId);
+
+  // Reset canvas ready state when sheet changes
+  useEffect(() => {
+    setCanvasReady(false);
+  }, [sheetId]);
 
   // Fetch takeoff items for visibility panel
   const { data: takeoffItems } = useQuery({
@@ -147,7 +153,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
 
   // Load and display annotations
   useEffect(() => {
-    if (!fabricCanvas || !annotations || !sheetId) return;
+    if (!fabricCanvas || !annotations || !sheetId || !canvasReady) return;
 
     // Clear existing annotation objects
     annotationObjectsRef.current.forEach(obj => fabricCanvas.remove(obj));
@@ -320,7 +326,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
     });
 
     fabricCanvas.renderAll();
-  }, [annotations, fabricCanvas, isReviewMode, visibleAnnotations, sheetId]);
+  }, [annotations, fabricCanvas, isReviewMode, visibleAnnotations, sheetId, canvasReady]);
 
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
@@ -478,13 +484,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
               <Page 
                 pageNumber={sheet?.page_number || 1}
                 width={pageWidth}
-                onLoadSuccess={(page) => {
+              onLoadSuccess={(page) => {
                   setPageWidth(page.width);
                   if (fabricCanvas) {
                     fabricCanvas.setDimensions({
                       width: page.width,
                       height: page.height,
                     });
+                    setCanvasReady(true);
                   }
                 }}
               />
@@ -501,6 +508,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
                     width: img.width,
                     height: img.height,
                   });
+                  setCanvasReady(true);
                 }
               }}
             />
