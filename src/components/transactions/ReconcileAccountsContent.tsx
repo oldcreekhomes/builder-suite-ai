@@ -272,7 +272,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       <Card className="p-6">
         {/* All fields in one row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-3">
             <Label htmlFor="bank-account">Bank Account</Label>
             <Select
               value={selectedBankAccountId || ""}
@@ -324,7 +324,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             </Popover>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <Label htmlFor="beginning-balance">
               Beginning Balance
             </Label>
@@ -338,8 +338,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             />
           </div>
 
-          <div className="lg:col-span-2">
-            <Label htmlFor="ending-balance">Statement Ending Balance</Label>
+          <div className="lg:col-span-3">
+            <Label htmlFor="ending-balance">Ending Balance</Label>
             <Input
               id="ending-balance"
               type="number"
