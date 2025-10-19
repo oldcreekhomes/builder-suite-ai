@@ -249,7 +249,6 @@ serve(async (req) => {
         category: costCode?.name || className,
         quantity: preds.length,
         unit_price: costCode?.price || 0,
-        total_cost: preds.length * (costCode?.price || 0),
         notes: `Detected ${preds.length} instances with ${Math.round(avgConfidence * 100)}% avg confidence`,
         detections: preds,
         color: getColorForCategory(costCode?.name || className)
@@ -270,7 +269,6 @@ serve(async (req) => {
           quantity: item.quantity,
           unit_of_measure: 'each',
           unit_price: item.unit_price,
-          total_cost: item.total_cost,
           cost_code_id: item.cost_code_id,
           notes: item.notes,
           color: item.color
