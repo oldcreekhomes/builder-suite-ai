@@ -646,10 +646,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         >
           {isPDF ? (
             <Document
+              key={fileUrl || 'doc'}
               file={fileUrl}
               onLoadSuccess={({ numPages }) => setNumPages(numPages)}
             >
               <Page 
+                key={`${sheet?.page_number || 1}-${pageWidth}`}
                 pageNumber={sheet?.page_number || 1}
                 width={pageWidth}
                 onLoadSuccess={(page) => {
