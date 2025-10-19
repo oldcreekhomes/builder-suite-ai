@@ -153,7 +153,6 @@ export function AIExtractReviewDialog({
                 <TableHead className="w-[100px]">Quantity</TableHead>
                 <TableHead className="w-[80px]">Unit</TableHead>
                 <TableHead className="w-[100px]">Confidence</TableHead>
-                <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,9 +182,6 @@ export function AIExtractReviewDialog({
                     <Badge variant={getConfidenceBadgeVariant(item.confidence)}>
                       {item.confidence}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[300px]">
-                    {item.notes || '-'}
                   </TableCell>
                 </TableRow>
               ))}
