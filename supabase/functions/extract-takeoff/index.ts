@@ -130,7 +130,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: base64Image
+      body: JSON.stringify({ image: base64Image })
     });
 
     if (!roboflowResponse.ok) {
