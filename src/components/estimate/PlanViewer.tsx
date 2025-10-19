@@ -142,6 +142,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       return y;
     };
 
+    // COMPUTE DISPLAY SCALE from PDF's original dimensions
+    const originalW = imgNaturalSize?.width ?? null;
+    const originalH = imgNaturalSize?.height ?? null;
+    const displayScaleX = originalW ? canvasW / originalW : 1;
+    const displayScaleY = originalH ? canvasH / originalH : 1;
+
     // PRE-SCAN: Find the actual coordinate space of AI annotations
     let globalMaxX = 0;
     let globalMaxY = 0;
@@ -179,38 +185,46 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             break;
         }
 
-        // Only consider shapes that are clearly out of bounds (AI-generated)
-        if (maxX > canvasW * 1.1 || maxY > canvasH * 1.1) {
+        // Track max coordinates to determine coordinate space
+        if (maxX > 0 || maxY > 0) {
           globalMaxX = Math.max(globalMaxX, maxX);
           globalMaxY = Math.max(globalMaxY, maxY);
-          outOfBoundsCount++;
+          if (maxX > canvasW * 1.1 || maxY > canvasH * 1.1) {
+            outOfBoundsCount++;
+          }
         }
       } catch (error) {
         console.error('Error scanning annotation:', error);
       }
     });
 
-    // Compute scale-down factors if needed
+    // DECIDE SCALING MODE
+    // If we have original dimensions and annotations are close to that space, use display scale
+    // Otherwise fall back to fitting global maxima to canvas
     let scaleX = 1;
     let scaleY = 1;
+    let useDisplayScale = false;
 
-    if (globalMaxX > canvasW || globalMaxY > canvasH) {
-      scaleX = canvasW / globalMaxX;
-      scaleY = canvasH / globalMaxY;
-      
-      // Safety guard: never scale up
-      scaleX = Math.min(scaleX, 1);
-      scaleY = Math.min(scaleY, 1);
-      
-      console.debug(`AI scaling computed: scaleX=${scaleX.toFixed(3)}, scaleY=${scaleY.toFixed(3)}, globalMax=${globalMaxX.toFixed(1)}x${globalMaxY.toFixed(1)}, canvas=${canvasW}x${canvasH}, outOfBounds=${outOfBoundsCount}`);
+    if (originalW && originalH && globalMaxX > 0 && globalMaxY > 0) {
+      const tolerance = 1.2;
+      if (globalMaxX <= originalW * tolerance && globalMaxY <= originalH * tolerance) {
+        useDisplayScale = true;
+        scaleX = displayScaleX;
+        scaleY = displayScaleY;
+        console.debug(`Using PDF display scale: ${scaleX.toFixed(3)}x${scaleY.toFixed(3)} (original=${originalW}x${originalH}, displayed=${canvasW}x${canvasH})`);
+      }
     }
 
-    // Helper to detect if annotation needs scaling
-    const needsScale = (s: any) => {
-      const maxX = s.left + (s.width || 0);
-      const maxY = s.top + (s.height || 0);
-      return maxX > canvasW * 1.1 || maxY > canvasH * 1.1;
-    };
+    if (!useDisplayScale && outOfBoundsCount > 0) {
+      // Fallback: fit to canvas based on global maxima
+      scaleX = globalMaxX > canvasW ? canvasW / globalMaxX : 1;
+      scaleY = globalMaxY > canvasH ? canvasH / globalMaxY : 1;
+      scaleX = Math.min(scaleX, 1);
+      scaleY = Math.min(scaleY, 1);
+      console.debug(`Using maxima-based scale: ${scaleX.toFixed(3)}x${scaleY.toFixed(3)} (globalMax=${globalMaxX.toFixed(1)}x${globalMaxY.toFixed(1)}, canvas=${canvasW}x${canvasH})`);
+    }
+
+    console.debug(`Scaling mode: ${useDisplayScale ? 'displayScale' : 'maximaScale'}, outOfBounds=${outOfBoundsCount}/${annotations.length}`);
 
     let scaledCount = 0;
     const coordDebug: number[] = [];
@@ -222,31 +236,23 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           ? JSON.parse(annotation.geometry as string) 
           : annotation.geometry;
         
-        // Check visibility: eye icons always control visibility
-        const isVisible = visibleAnnotations.has(annotation.takeoff_item_id || '');
+        // Check visibility: if no filters, show all; otherwise check if item is in the set
+        const isVisible = visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
           case 'circle':
             const circleShape = shape as any;
             const circleTopFixed = fixY(circleShape.top);
-            const circleMaxX = circleShape.left + (circleShape.radius || 0) * 2;
-            const circleMaxY = circleTopFixed + (circleShape.radius || 0) * 2;
-            const circleNeedsScale = circleMaxX > canvasW * 1.1 || circleMaxY > canvasH * 1.1;
             
-            if (circleNeedsScale) scaledCount++;
+            scaledCount++;
             
-            const circleScaled = circleNeedsScale
-              ? {
-                  left: circleShape.left * scaleX,
-                  top: circleTopFixed * scaleY,
-                  radius: circleShape.radius * ((scaleX + scaleY) / 2),
-                  strokeWidth: Math.max(1, (circleShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
-                }
-              : {
-                  ...circleShape,
-                  top: circleTopFixed,
-                };
+            const circleScaled = {
+              left: circleShape.left * scaleX,
+              top: circleTopFixed * scaleY,
+              radius: circleShape.radius * ((scaleX + scaleY) / 2),
+              strokeWidth: Math.max(2, (circleShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+            };
 
             coordDebug.push(circleScaled.left, circleScaled.top);
 
@@ -296,24 +302,16 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           case 'rectangle':
             const base = shape as any;
             const baseTopFixed = fixY(base.top);
-            const rectMaxX = base.left + (base.width || 0);
-            const rectMaxY = baseTopFixed + (base.height || 0);
-            const rectNeedsScale = rectMaxX > canvasW * 1.1 || rectMaxY > canvasH * 1.1;
             
-            if (rectNeedsScale) scaledCount++;
+            scaledCount++;
 
-            const scaled = rectNeedsScale
-              ? {
-                  left: base.left * scaleX,
-                  top: baseTopFixed * scaleY,
-                  width: base.width * scaleX,
-                  height: base.height * scaleY,
-                  strokeWidth: Math.max(2, (base.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
-                }
-              : {
-                  ...base,
-                  top: baseTopFixed,
-                };
+            const scaled = {
+              left: base.left * scaleX,
+              top: baseTopFixed * scaleY,
+              width: base.width * scaleX,
+              height: base.height * scaleY,
+              strokeWidth: Math.max(2, (base.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+            };
 
             coordDebug.push(scaled.left, scaled.top);
 
@@ -365,27 +363,16 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             const lineShape = shape as any;
             const lineY1Fixed = fixY(lineShape.y1);
             const lineY2Fixed = fixY(lineShape.y2);
-            const lineMaxX = Math.max(lineShape.x1 || 0, lineShape.x2 || 0);
-            const lineMaxY = Math.max(lineY1Fixed, lineY2Fixed);
-            const lineNeedsScale = lineMaxX > canvasW * 1.1 || lineMaxY > canvasH * 1.1;
             
-            if (lineNeedsScale) scaledCount++;
+            scaledCount++;
             
-            const lineScaled = lineNeedsScale
-              ? {
-                  x1: lineShape.x1 * scaleX,
-                  y1: lineY1Fixed * scaleY,
-                  x2: lineShape.x2 * scaleX,
-                  y2: lineY2Fixed * scaleY,
-                  strokeWidth: Math.max(2, (lineShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
-                }
-              : {
-                  x1: lineShape.x1,
-                  y1: lineY1Fixed,
-                  x2: lineShape.x2,
-                  y2: lineY2Fixed,
-                  strokeWidth: lineShape.strokeWidth,
-                };
+            const lineScaled = {
+              x1: lineShape.x1 * scaleX,
+              y1: lineY1Fixed * scaleY,
+              x2: lineShape.x2 * scaleX,
+              y2: lineY2Fixed * scaleY,
+              strokeWidth: Math.max(2, (lineShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+            };
 
             coordDebug.push(lineScaled.x1, lineScaled.y1, lineScaled.x2, lineScaled.y2);
             
@@ -405,27 +392,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               y: fixY(p.y),
             }));
             
-            const polyMaxX = Math.max(...polygonPointsFixed.map((p: any) => p.x || 0));
-            const polyMaxY = Math.max(...polygonPointsFixed.map((p: any) => p.y || 0));
-            const polyNeedsScale = polyMaxX > canvasW * 1.1 || polyMaxY > canvasH * 1.1;
+            scaledCount++;
             
-            if (polyNeedsScale) scaledCount++;
-            
-            const polygonPointsScaled = polyNeedsScale
-              ? polygonPointsFixed.map((p: any) => ({
-                  x: p.x * scaleX,
-                  y: p.y * scaleY,
-                }))
-              : polygonPointsFixed;
+            const polygonPointsScaled = polygonPointsFixed.map((p: any) => ({
+              x: p.x * scaleX,
+              y: p.y * scaleY,
+            }));
 
             polygonPointsScaled.forEach((p: any) => coordDebug.push(p.x, p.y));
 
             const polygon = new Polygon(polygonPointsScaled, {
               stroke: annotation.color,
               fill: 'transparent',
-              strokeWidth: polyNeedsScale 
-                ? Math.max(2, (polygonShape.strokeWidth || 2) * ((scaleX + scaleY) / 2))
-                : polygonShape.strokeWidth || 2,
+              strokeWidth: Math.max(2, (polygonShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
               opacity: isVisible ? 0.6 : 0,
               selectable: true,
               evented: true,
@@ -674,7 +653,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 pointer-events-auto"
-            style={{ zIndex: 10 }}
+            style={{ zIndex: 100 }}
           />
         </div>
       </div>
