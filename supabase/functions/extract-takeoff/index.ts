@@ -50,12 +50,13 @@ serve(async (req) => {
       });
     }
 
-    // Fetch all estimate cost codes for this owner
+    // Fetch all estimate cost codes for this owner (excluding parent cost codes with subcategories)
     const { data: costCodes, error: costCodesError } = await supabase
       .from('cost_codes')
       .select('*')
       .eq('owner_id', sheet.owner_id)
       .eq('estimate', true)
+      .neq('has_subcategories', true)
       .order('code');
 
     if (costCodesError || !costCodes || costCodes.length === 0) {
