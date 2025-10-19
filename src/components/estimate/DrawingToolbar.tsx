@@ -24,6 +24,7 @@ interface DrawingToolbarProps {
   onAddProbesChange?: (val: boolean) => void;
   testOverlay?: boolean;
   onTestOverlayChange?: (val: boolean) => void;
+  onShowAll?: () => void;
 }
 
 
@@ -44,6 +45,7 @@ export function DrawingToolbar({
   onAddProbesChange,
   testOverlay = false,
   onTestOverlayChange,
+  onShowAll,
 }: DrawingToolbarProps) {
   const tools = [
     { id: 'select' as const, icon: MousePointer2, label: 'Select' },
@@ -150,6 +152,14 @@ export function DrawingToolbar({
           title="Force show all overlays"
         >
           Force Show
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onShowAll?.()}
+          title="Make all current annotations visible"
+        >
+          Show All
         </Button>
         <Button
           size="sm"

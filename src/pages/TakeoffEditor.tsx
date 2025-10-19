@@ -47,10 +47,14 @@ export default function TakeoffEditor() {
     enabled: !!selectedSheetId,
   });
 
-  // Initialize visibility when items load
+  // Add new items to visibility when they load (don't replace existing visibility state)
   useEffect(() => {
     if (takeoffItems && takeoffItems.length > 0) {
-      setVisibleAnnotations(new Set(takeoffItems.map(item => item.id)));
+      setVisibleAnnotations(prev => {
+        const next = new Set(prev);
+        takeoffItems.forEach(item => next.add(item.id));
+        return next;
+      });
     }
   }, [takeoffItems]);
 
@@ -64,6 +68,12 @@ export default function TakeoffEditor() {
       }
       return next;
     });
+  };
+
+  const handleShowAllAnnotations = () => {
+    if (takeoffItems && takeoffItems.length > 0) {
+      setVisibleAnnotations(new Set(takeoffItems.map(item => item.id)));
+    }
   };
 
   return (
@@ -93,6 +103,7 @@ export default function TakeoffEditor() {
                 selectedTakeoffItem={selectedReviewItem}
                 visibleAnnotations={visibleAnnotations}
                 onToggleVisibility={handleToggleVisibility}
+                onShowAllAnnotations={handleShowAllAnnotations}
               />
             </ResizablePanel>
             

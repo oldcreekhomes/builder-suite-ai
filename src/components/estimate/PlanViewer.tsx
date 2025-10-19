@@ -19,6 +19,7 @@ interface PlanViewerProps {
   selectedTakeoffItem: { id: string; color: string; category: string } | null;
   visibleAnnotations: Set<string>;
   onToggleVisibility: (itemId: string) => void;
+  onShowAllAnnotations: () => void;
 }
 
 type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
@@ -42,7 +43,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnnotations, onToggleVisibility }: PlanViewerProps) {
+export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnnotations, onToggleVisibility, onShowAllAnnotations }: PlanViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -624,6 +625,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onAddProbesChange={setAddProbes}
           testOverlay={testOverlay}
           onTestOverlayChange={setTestOverlay}
+          onShowAll={onShowAllAnnotations}
         />
       </div>
 
