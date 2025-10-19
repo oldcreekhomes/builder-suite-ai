@@ -462,7 +462,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           fabricCanvas.add(fabricObject);
           annotationObjectsRef.current.set(annotation.id, fabricObject);
 
-          if (ADD_PROBES && (fabricObject as any).getBoundingRect) {
+          if (addProbes && (fabricObject as any).getBoundingRect) {
             try {
               const br = (fabricObject as any).getBoundingRect();
               if (br && isFinite(br.left) && isFinite(br.top)) {
@@ -602,6 +602,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onZoomReset={handleZoomReset}
+          overlayMode={overlayMode}
+          onOverlayModeChange={setOverlayMode}
+          forceShow={forceShow}
+          onForceShowChange={setForceShow}
+          addProbes={addProbes}
+          onAddProbesChange={setAddProbes}
         />
       </div>
 
@@ -686,11 +692,29 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             />
           )}
           
-          <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0 pointer-events-auto"
-            style={{ zIndex: 200, width: '100%', height: '100%' }}
-          />
+          {overlayMode === 'fabric' && (
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 pointer-events-auto"
+              style={{ zIndex: 200, width: '100%', height: '100%' }}
+            />
+          )}
+          
+          {overlayMode === 'dom' && canvasReady && imgNaturalSize && (
+            <DOMOverlays
+              annotations={annotations || []}
+              visibleAnnotations={visibleAnnotations}
+              sheet={sheet}
+              canvasSize={
+                fabricCanvas
+                  ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
+                  : { width: 800, height: 600 }
+              }
+              imgNaturalSize={imgNaturalSize}
+              forceShow={forceShow}
+              addProbes={addProbes}
+            />
+          )}
         </div>
       </div>
 
