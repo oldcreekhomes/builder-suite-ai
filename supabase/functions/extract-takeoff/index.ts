@@ -178,6 +178,18 @@ serve(async (req) => {
     }
 
     if (!roboflowData) {
+      // Handle auth errors explicitly
+      if (lastStatus === 401 || lastStatus === 403) {
+        return new Response(JSON.stringify({
+          success: false,
+          error_code: 403,
+          error: 'Roboflow authentication failed. Check API key and project/version access.',
+          details: lastText?.slice(0, 200)
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       return new Response(JSON.stringify({ error: `Roboflow error (${lastStatus})`, details: lastText?.slice(0, 200) }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

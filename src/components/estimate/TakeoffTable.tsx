@@ -95,8 +95,19 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
       const { data, error } = await supabase.functions.invoke('extract-takeoff', {
         body: { sheet_id: sheetId }
       });
-
+      
       if (error) throw error;
+
+      // Handle explicit auth/permission errors from edge function
+      if (data && !data.success && data.error_code) {
+        toast({
+          title: "Extraction Failed",
+          description: data.error || "Authentication or permission issue with Roboflow.",
+          variant: "destructive",
+        });
+        setIsExtracting(false);
+        return;
+      }
 
       if (!data.success || !data.items || data.items.length === 0) {
         toast({
