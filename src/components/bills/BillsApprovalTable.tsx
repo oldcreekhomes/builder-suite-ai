@@ -345,6 +345,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     (isOwner && (status === 'void' || (Array.isArray(status) && status.includes('void')))) ||
     // For posted/paid bills, owners and accountants can delete
     (canDeleteBills && (status === 'posted' || status === 'paid' || (Array.isArray(status) && (status.includes('posted') || status.includes('paid')))));
+  
+  const isPaidTab = status === 'paid' || (Array.isArray(status) && status.includes('paid'));
 
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills...</div>;
@@ -410,7 +412,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Cleared</TableHead>
+              {isPaidTab && (
+                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Cleared</TableHead>
+              )}
           {showPayBillButton && (
             <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-28">Pay Bill</TableHead>
           )}
@@ -427,7 +431,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0) + (isPaidTab ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -489,9 +493,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 </Button>
               )}
             </TableCell>
-            <TableCell className="px-2 py-1 text-center">
-              {bill.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
-            </TableCell>
+            {isPaidTab && (
+              <TableCell className="px-2 py-1 text-center">
+                {bill.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+              </TableCell>
+            )}
             {showPayBillButton && (
                 <TableCell className="py-1 text-xs text-center">
                       <Button
