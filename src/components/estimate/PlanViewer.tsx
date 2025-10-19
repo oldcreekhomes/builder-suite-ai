@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon, Text, Group } from "fabric";
 import { DrawingToolbar } from "./DrawingToolbar";
 import { ScaleCalibrationDialog } from "./ScaleCalibrationDialog";
-import { AnnotationVisibilityPanel } from "./AnnotationVisibilityPanel";
 import { useAnnotations } from "@/hooks/useAnnotations";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -20,6 +19,8 @@ interface PlanViewerProps {
   sheetId: string | null;
   takeoffId: string;
   selectedTakeoffItem: { id: string; color: string; category: string } | null;
+  visibleAnnotations: Set<string>;
+  onToggleVisibility: (itemId: string) => void;
 }
 
 type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
@@ -43,7 +44,7 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanViewerProps) {
+export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnnotations, onToggleVisibility }: PlanViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -56,7 +57,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [isReviewMode, setIsReviewMode] = useState(false);
-  const [visibleAnnotations, setVisibleAnnotations] = useState<Set<string>>(new Set());
   const [canvasReady, setCanvasReady] = useState(false);
   const [imgNaturalSize, setImgNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
@@ -69,23 +69,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
     setCanvasReady(false);
     setImgNaturalSize(null);
   }, [sheetId]);
-
-  // Fetch takeoff items for visibility panel
-  const { data: takeoffItems } = useQuery({
-    queryKey: ['takeoff-items-for-annotations', sheetId],
-    queryFn: async () => {
-      if (!sheetId) return [];
-      
-      const { data, error } = await supabase
-        .from('takeoff_items')
-        .select('id, category, color')
-        .eq('takeoff_sheet_id', sheetId);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!sheetId && isReviewMode,
-  });
 
   const { data: sheet } = useQuery({
     queryKey: ['takeoff-sheet', sheetId],
@@ -137,25 +120,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
 
   // Note: Zoom and pan are handled by CSS transform on the wrapper div
   // to keep PDF and canvas overlay synchronized
-
-  // Initialize visibleAnnotations when review mode is enabled
-  useEffect(() => {
-    if (isReviewMode && annotations && annotations.length > 0) {
-      const itemIds = new Set(
-        annotations
-          .map(a => a.takeoff_item_id)
-          .filter((id): id is string => id !== null && id !== undefined)
-      );
-      setVisibleAnnotations(itemIds);
-    }
-  }, [isReviewMode, annotations]);
-
-  // Auto-focus on selected takeoff item in review mode
-  useEffect(() => {
-    if (isReviewMode && selectedTakeoffItem) {
-      setVisibleAnnotations(new Set([selectedTakeoffItem.id]));
-    }
-  }, [isReviewMode, selectedTakeoffItem?.id]);
 
   // Load and display annotations
   useEffect(() => {
@@ -452,9 +416,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
           geometry: circle.toJSON(),
           color: selectedTakeoffItem.color,
         });
-
-        // Add to visible annotations
-        setVisibleAnnotations(prev => new Set(prev).add(selectedTakeoffItem.id));
       });
     } else if (!isReviewMode || !selectedTakeoffItem) {
       fabricCanvas.off('mouse:down');
@@ -642,27 +603,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
         sheetId={sheetId}
         fabricCanvas={fabricCanvas}
       />
-
-      {isReviewMode && takeoffItems && takeoffItems.length > 0 && (
-        <AnnotationVisibilityPanel
-          takeoffItems={takeoffItems.map(item => ({
-            id: item.id,
-            category: item.category,
-            color: item.color || '#3b82f6',
-            annotationCount: annotations.filter(a => a.takeoff_item_id === item.id).length,
-          }))}
-          visibleAnnotations={visibleAnnotations}
-          onToggle={(itemId) => {
-            const newVisible = new Set(visibleAnnotations);
-            if (newVisible.has(itemId)) {
-              newVisible.delete(itemId);
-            } else {
-              newVisible.add(itemId);
-            }
-            setVisibleAnnotations(newVisible);
-          }}
-        />
-      )}
     </div>
   );
 }

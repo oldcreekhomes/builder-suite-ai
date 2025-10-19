@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatUnitOfMeasure } from "@/utils/budgetUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Sparkles, Loader2, Palette } from "lucide-react";
+import { Plus, Sparkles, Loader2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { AIExtractReviewDialog } from "./AIExtractReviewDialog";
@@ -28,9 +28,11 @@ interface TakeoffTableProps {
   takeoffId: string;
   selectedReviewItem: { id: string; color: string; category: string } | null;
   onSelectReviewItem: (item: { id: string; color: string; category: string } | null) => void;
+  visibleAnnotations: Set<string>;
+  onToggleVisibility: (itemId: string) => void;
 }
 
-export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectReviewItem }: TakeoffTableProps) {
+export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectReviewItem, visibleAnnotations, onToggleVisibility }: TakeoffTableProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -383,10 +385,15 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {!isTemplate && (
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="w-6 h-6 rounded border-2 border-border cursor-pointer"
-                            style={{ backgroundColor: item.color || '#3b82f6' }}
-                          />
+                          <label 
+                            htmlFor={`color-${item.id}`}
+                            className="cursor-pointer"
+                          >
+                            <div 
+                              className="w-6 h-6 rounded border-2 border-border"
+                              style={{ backgroundColor: item.color || '#3b82f6' }}
+                            />
+                          </label>
                           <Input
                             type="color"
                             value={item.color || '#3b82f6'}
@@ -394,12 +401,19 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                             className="w-0 h-0 opacity-0 absolute"
                             id={`color-${item.id}`}
                           />
-                          <label 
-                            htmlFor={`color-${item.id}`}
-                            className="cursor-pointer"
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleVisibility(item.id);
+                            }}
+                            className="cursor-pointer hover:opacity-80"
                           >
-                            <Palette className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </label>
+                            {visibleAnnotations.has(item.id) ? (
+                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            ) : (
+                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </button>
                         </div>
                       )}
                     </TableCell>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ export default function TakeoffEditor() {
   const { projectId, takeoffId } = useParams();
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
   const [selectedReviewItem, setSelectedReviewItem] = useState<{ id: string; color: string; category: string } | null>(null);
+  const [visibleAnnotations, setVisibleAnnotations] = useState<Set<string>>(new Set());
 
   const { data: takeoff } = useQuery({
     queryKey: ['takeoff-project', takeoffId],
@@ -29,6 +30,41 @@ export default function TakeoffEditor() {
     },
     enabled: !!takeoffId,
   });
+
+  // Fetch takeoff items for the selected sheet to initialize visibility
+  const { data: takeoffItems } = useQuery({
+    queryKey: ['takeoff-items-visibility', selectedSheetId],
+    queryFn: async () => {
+      if (!selectedSheetId) return [];
+      const { data, error } = await supabase
+        .from('takeoff_items')
+        .select('id')
+        .eq('takeoff_sheet_id', selectedSheetId);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedSheetId,
+  });
+
+  // Initialize visibility when items load
+  useEffect(() => {
+    if (takeoffItems && takeoffItems.length > 0) {
+      setVisibleAnnotations(new Set(takeoffItems.map(item => item.id)));
+    }
+  }, [takeoffItems]);
+
+  const handleToggleVisibility = (itemId: string) => {
+    setVisibleAnnotations(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
 
   return (
     <SidebarProvider>
@@ -55,6 +91,8 @@ export default function TakeoffEditor() {
                 sheetId={selectedSheetId}
                 takeoffId={takeoffId!}
                 selectedTakeoffItem={selectedReviewItem}
+                visibleAnnotations={visibleAnnotations}
+                onToggleVisibility={handleToggleVisibility}
               />
             </ResizablePanel>
             
@@ -66,6 +104,8 @@ export default function TakeoffEditor() {
                 takeoffId={takeoffId!}
                 selectedReviewItem={selectedReviewItem}
                 onSelectReviewItem={setSelectedReviewItem}
+                visibleAnnotations={visibleAnnotations}
+                onToggleVisibility={handleToggleVisibility}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
