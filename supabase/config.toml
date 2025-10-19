@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.send-bid-reminders]
 verify_jwt = false
+
+[functions.extract-takeoff]
+verify_jwt = true

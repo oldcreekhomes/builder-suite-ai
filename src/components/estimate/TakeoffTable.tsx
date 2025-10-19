@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatUnitOfMeasure } from "@/utils/budgetUtils";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { AIExtractReviewDialog } from "./AIExtractReviewDialog";
 import {
   Table,
   TableBody,
@@ -19,7 +22,52 @@ interface TakeoffTableProps {
 }
 
 export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
-  const { data: items } = useQuery({
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+
+  const handleAIExtract = async () => {
+    if (!sheetId) {
+      toast({
+        title: "No sheet selected",
+        description: "Please select a sheet first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-takeoff', {
+        body: { sheet_id: sheetId }
+      });
+
+      if (error) throw error;
+
+      if (!data.success || !data.items || data.items.length === 0) {
+        toast({
+          title: "No items found",
+          description: "AI couldn't find any items to extract from this drawing.",
+          variant: "default",
+        });
+        return;
+      }
+
+      setExtractedData(data);
+      setShowReviewDialog(true);
+    } catch (error) {
+      console.error('AI extraction error:', error);
+      toast({
+        title: "Extraction failed",
+        description: error instanceof Error ? error.message : "Failed to extract quantities. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const { data: items, refetch } = useQuery({
     queryKey: ['takeoff-items', sheetId],
     queryFn: async () => {
       if (!sheetId) return [];
@@ -135,10 +183,30 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium">Takeoff Items</h3>
-          <Button size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-1" />
-            Add Item
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleAIExtract}
+              disabled={isExtracting}
+            >
+              {isExtracting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  AI Extract
+                </>
+              )}
+            </Button>
+            <Button size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Item
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -180,6 +248,25 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           </TableBody>
         </Table>
       </ScrollArea>
+
+      {extractedData && (
+        <AIExtractReviewDialog
+          open={showReviewDialog}
+          onClose={() => {
+            setShowReviewDialog(false);
+            setExtractedData(null);
+          }}
+          items={extractedData.items}
+          sheetId={sheetId}
+          onSaveComplete={() => {
+            refetch();
+            toast({
+              title: "Items saved",
+              description: "Takeoff items have been added successfully.",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
