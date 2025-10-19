@@ -13,7 +13,13 @@ serve(async (req) => {
   }
 
   try {
-    const { sheet_id } = await req.json();
+    const { 
+      sheet_id,
+      roboflow_workspace = "constructionestimator",
+      roboflow_project = "elevationtakeoff",
+      roboflow_version = 1,
+      confidence_threshold = 0.5
+    } = await req.json();
     
     if (!sheet_id) {
       return new Response(JSON.stringify({ error: 'sheet_id is required' }), {
@@ -24,16 +30,17 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const roboflowApiKey = Deno.env.get('ROBOFLOW_API_KEY');
     
-    if (!lovableApiKey) {
-      return new Response(JSON.stringify({ error: 'LOVABLE_API_KEY not configured' }), {
+    if (!roboflowApiKey) {
+      return new Response(JSON.stringify({ error: 'ROBOFLOW_API_KEY not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('Fetching sheet:', sheet_id);
 
     // Fetch sheet details
     const { data: sheet, error: sheetError } = await supabase
@@ -50,7 +57,7 @@ serve(async (req) => {
       });
     }
 
-    // Fetch all estimate cost codes for this owner (excluding parent cost codes with subcategories)
+    // Fetch all estimate cost codes for this owner
     const { data: costCodes, error: costCodesError } = await supabase
       .from('cost_codes')
       .select('*')
@@ -67,18 +74,13 @@ serve(async (req) => {
       });
     }
 
-    // Filter cost codes for Elevation sheets to only window-related codes
-    const isElevation = /elevations?/i.test(sheet.name || '');
-    const targetCodes = isElevation 
-      ? costCodes.filter(cc => /window/i.test(cc.name))
-      : costCodes;
+    // Filter cost codes for windows and doors
+    const filteredCostCodes = costCodes.filter(cc => {
+      const name = cc.name?.toLowerCase() || '';
+      return name.includes('window') || name.includes('door') || name.includes('garage');
+    });
 
-    if (targetCodes.length === 0) {
-      return new Response(JSON.stringify({ error: 'No relevant cost codes found for this sheet type' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    console.log('Filtered cost codes:', filteredCostCodes.length);
 
     // Get public URL for the sheet file
     const { data: fileData } = supabase.storage
@@ -104,10 +106,10 @@ serve(async (req) => {
     const fileBuffer = await fileResponse.arrayBuffer();
     console.log(`Downloaded file: ${fileBuffer.byteLength} bytes`);
     
-    // Convert large buffer to base64 in chunks to avoid stack overflow
+    // Convert to base64
     function arrayBufferToBase64(buffer: ArrayBuffer): string {
       const bytes = new Uint8Array(buffer);
-      const chunkSize = 8192; // Process 8KB at a time
+      const chunkSize = 8192;
       let binary = '';
       
       for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -119,186 +121,190 @@ serve(async (req) => {
     }
     
     const base64Image = arrayBufferToBase64(fileBuffer);
-    console.log('Base64 conversion complete');
+    console.log('Base64 conversion complete, calling Roboflow...');
 
-    // Build cost code instructions
-    const costCodeInstructions = targetCodes.map(code => {
-      const name = code.name.toLowerCase();
-      let instructions = '';
-      
-      if (name.includes('window')) {
-        if (name.includes('single')) {
-          instructions = 'Count SINGLE WINDOW UNITS - one individual window opening (not about sashes). Do NOT count patio door lites or garage door windows.';
-        } else if (name.includes('double')) {
-          instructions = 'Count DOUBLE WINDOW UNITS - two window units mulled/paired side-by-side as one assembly. Do NOT count patio door lites or garage door windows.';
-        } else if (name.includes('triple')) {
-          instructions = 'Count TRIPLE WINDOW UNITS - three window units grouped/mulled together as one assembly. Do NOT count patio door lites or garage door windows.';
-        } else {
-          instructions = 'Generic window category. If specific subtypes (Single/Double/Triple) exist, allocate quantities to those subtypes and set this generic category to 0.';
-        }
-      } else if (name.includes('door')) {
-        if (name.includes('entry') || name.includes('front')) {
-          instructions = 'Count entry/front doors. Typically larger, decorative doors at main entrance.';
-        } else if (name.includes('garage')) {
-          instructions = 'Count garage door units (single or double wide).';
-        } else {
-          instructions = 'Count all doors visible.';
-        }
-      } else {
-        instructions = `Count visible instances of ${code.name}.`;
-      }
-
-      return `- ${code.name} (Code: ${code.code})
-  - Unit: ${code.unit_of_measure || 'each'}
-  - What to count: ${instructions}
-  - Cost Code ID: ${code.id}`;
-    }).join('\n\n');
-
-    // Build AI prompt
-    const systemPrompt = `You are an expert construction estimator analyzing architectural house drawings.
-
-Context:
-- Drawing Type: ${sheet.name}
-- Scale: ${sheet.drawing_scale || 'Not specified'}
-
-Task: Analyze this construction drawing and count/measure the following items. Only count items you can clearly identify.
-
-Cost Codes to Estimate:
-${costCodeInstructions}
-
-Guidelines:
-1. Count only visible, clearly identifiable items
-2. For windows: Single = 1 unit, Double = 2 units mulled together, Triple = 3 units mulled together
-3. CRITICAL: If window subtypes (Single/Double/Triple) are listed, you MUST allocate quantities across them and set the generic "Windows" category to quantity 0
-4. CRITICAL: Always return one item for EVERY cost code listed, even if quantity is 0 (use low confidence when uncertain)
-5. If any windows are present, always provide a breakdown across Single/Double/Triple subtypes - do NOT put all units only in the generic "Windows" category
-6. Add notes explaining your counts (e.g., "2 on front facade, 1 on side")
-7. Exclude patio door lites and garage door windows from window counts
-8. Be precise and conservative - better to undercount than overcount
-
-Return counts using the structured format provided.`;
-
-    // Call Lovable AI with function calling
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call Roboflow Inference API
+    const roboflowUrl = `https://detect.roboflow.com/${roboflow_workspace}/${roboflow_project}/${roboflow_version}`;
+    const roboflowResponse = await fetch(roboflowUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        temperature: 0.1,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { 
-            role: 'user', 
-            content: [
-              { type: 'text', text: 'Please analyze this construction drawing and extract quantities for all the specified cost codes.' },
-              { 
-                type: 'image_url', 
-                image_url: { 
-                  url: `data:image/png;base64,${base64Image}` 
-                } 
-              }
-            ]
-          }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'extract_quantities',
-            description: 'Extract item quantities from construction drawing',
-            parameters: {
-              type: 'object',
-              properties: {
-                items: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      cost_code_id: { 
-                        type: 'string',
-                        description: 'The UUID of the cost code'
-                      },
-                      quantity: { 
-                        type: 'number',
-                        description: 'The counted/measured quantity'
-                      },
-                      confidence: { 
-                        type: 'string', 
-                        enum: ['high', 'medium', 'low'],
-                        description: 'Confidence level in this count'
-                      },
-                      notes: { 
-                        type: 'string',
-                        description: 'Explanation of the count and location details'
-                      }
-                    },
-                    required: ['cost_code_id', 'quantity', 'confidence', 'notes']
-                  }
-                }
-              },
-              required: ['items']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'extract_quantities' } }
-      }),
+      body: new URLSearchParams({
+        api_key: roboflowApiKey,
+        image: base64Image,
+        confidence: String(confidence_threshold)
+      })
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'Payment required. Please add credits to your Lovable AI workspace.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      return new Response(JSON.stringify({ error: 'AI extraction failed' }), {
+    if (!roboflowResponse.ok) {
+      const errorText = await roboflowResponse.text();
+      console.error('Roboflow API error:', roboflowResponse.status, errorText);
+      return new Response(JSON.stringify({ error: `Roboflow API error: ${roboflowResponse.status}` }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const aiResult = await aiResponse.json();
-    console.log('AI response:', JSON.stringify(aiResult, null, 2));
+    const roboflowData = await roboflowResponse.json();
+    console.log('Roboflow response:', roboflowData.predictions?.length || 0, 'detections');
 
-    // Extract function call results
-    const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== 'extract_quantities') {
-      return new Response(JSON.stringify({ error: 'AI did not return structured data' }), {
+    if (!roboflowData.predictions || !Array.isArray(roboflowData.predictions)) {
+      return new Response(JSON.stringify({ error: 'Invalid Roboflow response structure' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const extractedItems = JSON.parse(toolCall.function.arguments).items;
+    // Map Roboflow class names to cost codes
+    const classMapping: Record<string, any> = {};
+    filteredCostCodes.forEach(cc => {
+      const name = cc.name?.toLowerCase() || '';
+      if (name.includes('window') && name.includes('single')) {
+        classMapping['Window-Single'] = cc;
+      } else if (name.includes('window') && name.includes('double')) {
+        classMapping['Window-Double'] = cc;
+      } else if (name.includes('window') && name.includes('triple')) {
+        classMapping['Window-Triple'] = cc;
+      } else if (name.includes('garage') && name.includes('single')) {
+        classMapping['GarageDoor-Single'] = cc;
+      } else if (name.includes('garage') && name.includes('double')) {
+        classMapping['GarageDoor-Double'] = cc;
+      }
+    });
 
-    // Enrich with cost code details
-    const enrichedItems = extractedItems.map((item: any) => {
-      const costCode = targetCodes.find(cc => cc.id === item.cost_code_id);
+    console.log('Class mapping:', Object.keys(classMapping));
+
+    // Helper function to get color for category
+    const getColorForCategory = (category: string): string => {
+      const colorMap: Record<string, string> = {
+        'Windows - Single': '#f7f13b',
+        'Windows - Double': '#3b82f6',
+        'Windows - Triple': '#10b981',
+        'Garage Door - Single': '#f97316',
+        'Garage Door - Double': '#ef4444',
+      };
+      return colorMap[category] || '#8b5cf6';
+    };
+
+    // Group detections by class
+    const groupedByClass: Record<string, any[]> = {};
+    roboflowData.predictions.forEach((pred: any) => {
+      if (!groupedByClass[pred.class]) {
+        groupedByClass[pred.class] = [];
+      }
+      groupedByClass[pred.class].push(pred);
+    });
+
+    // Create takeoff items with quantities
+    const takeoffItems = Object.entries(groupedByClass).map(([className, preds]) => {
+      const costCode = classMapping[className];
+      const avgConfidence = preds.reduce((sum, p) => sum + p.confidence, 0) / preds.length;
+      
       return {
-        ...item,
-        cost_code_name: costCode?.name || 'Unknown',
-        unit_of_measure: costCode?.unit_of_measure || 'each',
+        cost_code_id: costCode?.id,
+        category: costCode?.name || className,
+        quantity: preds.length,
         unit_price: costCode?.price || 0,
+        total_cost: preds.length * (costCode?.price || 0),
+        notes: `Detected ${preds.length} instances with ${Math.round(avgConfidence * 100)}% avg confidence`,
+        detections: preds,
+        color: getColorForCategory(costCode?.name || className)
       };
     });
 
+    console.log('Takeoff items created:', takeoffItems.length);
+
+    // Insert takeoff items into database
+    const { data: insertedItems, error: insertError } = await supabase
+      .from('takeoff_items')
+      .insert(
+        takeoffItems.map(item => ({
+          takeoff_sheet_id: sheet_id,
+          owner_id: sheet.owner_id,
+          item_type: 'count',
+          category: item.category,
+          quantity: item.quantity,
+          unit_of_measure: 'each',
+          unit_price: item.unit_price,
+          total_cost: item.total_cost,
+          cost_code_id: item.cost_code_id,
+          notes: item.notes,
+          color: item.color
+        }))
+      )
+      .select();
+
+    if (insertError) {
+      console.error('Error inserting items:', insertError);
+      return new Response(JSON.stringify({ error: 'Failed to insert takeoff items' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Successfully created', insertedItems?.length || 0, 'takeoff items');
+
+    // Create annotations with bounding boxes
+    const annotations = [];
+    
+    for (const item of insertedItems) {
+      const takeoffItem = takeoffItems.find(ti => ti.category === item.category);
+      if (!takeoffItem?.detections) continue;
+
+      for (const detection of takeoffItem.detections) {
+        // Convert Roboflow center-based coordinates to top-left based
+        const left = detection.x - detection.width / 2;
+        const top = detection.y - detection.height / 2;
+        
+        annotations.push({
+          takeoff_sheet_id: sheet_id,
+          takeoff_item_id: item.id,
+          owner_id: sheet.owner_id,
+          annotation_type: 'rectangle',
+          geometry: {
+            left: left,
+            top: top,
+            width: detection.width,
+            height: detection.height,
+            strokeWidth: 3
+          },
+          color: item.color,
+          label: `${item.category} (${Math.round(detection.confidence * 100)}%)`,
+          visible: true
+        });
+      }
+    }
+
+    if (annotations.length > 0) {
+      const { error: annotError } = await supabase
+        .from('takeoff_annotations')
+        .insert(annotations);
+
+      if (annotError) {
+        console.error('Error creating annotations:', annotError);
+        // Don't throw - items were created successfully
+      } else {
+        console.log('Created', annotations.length, 'bounding box annotations');
+      }
+    }
+
+    // Calculate average confidence
+    const totalDetections = roboflowData.predictions.length;
+    const avgConfidence = totalDetections > 0
+      ? roboflowData.predictions.reduce((sum: number, p: any) => sum + p.confidence, 0) / totalDetections
+      : 0;
+
     return new Response(JSON.stringify({
       success: true,
-      items: enrichedItems,
+      items: insertedItems,
+      annotations_created: annotations.length,
       sheet_name: sheet.name,
+      detection_summary: {
+        total_detections: totalDetections,
+        avg_confidence: Math.round(avgConfidence * 100),
+        classes_detected: Object.keys(groupedByClass)
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
