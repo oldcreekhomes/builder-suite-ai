@@ -692,29 +692,30 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             />
           )}
           
-          {overlayMode === 'fabric' && (
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 pointer-events-auto"
-              style={{ zIndex: 200, width: '100%', height: '100%' }}
-            />
-          )}
-          
-          {overlayMode === 'dom' && canvasReady && imgNaturalSize && (
-            <DOMOverlays
-              annotations={annotations || []}
-              visibleAnnotations={visibleAnnotations}
-              sheet={sheet}
-              canvasSize={
-                fabricCanvas
-                  ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
-                  : { width: 800, height: 600 }
-              }
-              imgNaturalSize={imgNaturalSize}
-              forceShow={forceShow}
-              addProbes={addProbes}
-            />
-          )}
+          {/* Keep both mounted to avoid DOM thrashing errors; toggle visibility */}
+          <canvas
+            ref={canvasRef}
+            className="absolute top-0 left-0 pointer-events-auto"
+            style={{ display: overlayMode === 'fabric' ? 'block' : 'none', zIndex: 200, width: '100%', height: '100%' }}
+          />
+
+          <div style={{ display: overlayMode === 'dom' ? 'block' : 'none' }}>
+            {canvasReady && imgNaturalSize && (
+              <DOMOverlays
+                annotations={annotations || []}
+                visibleAnnotations={visibleAnnotations}
+                sheet={sheet}
+                canvasSize={
+                  fabricCanvas
+                    ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
+                    : { width: pageWidth, height: imgNaturalSize ? Math.round(pageWidth * (imgNaturalSize.height / imgNaturalSize.width)) : 600 }
+                }
+                imgNaturalSize={imgNaturalSize}
+                forceShow={forceShow}
+                addProbes={addProbes}
+              />
+            )}
+          </div>
         </div>
       </div>
 
