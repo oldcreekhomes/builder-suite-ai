@@ -369,9 +369,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 <p className="text-sm text-muted-foreground">
                   Checks/Bill Payments: {transactions?.checks.length || 0}, Deposits: {transactions?.deposits.length || 0}
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Check the browser console for detailed query information.
-                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
