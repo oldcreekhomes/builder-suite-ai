@@ -180,7 +180,7 @@ Return counts using the structured format provided.`;
               { 
                 type: 'image_url', 
                 image_url: { 
-                  url: `data:image/jpeg;base64,${base64Image}` 
+                  url: `data:image/png;base64,${base64Image}` 
                 } 
               }
             ]

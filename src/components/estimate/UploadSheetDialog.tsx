@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
-import { getDocument } from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist";
 
 interface UploadSheetDialogProps {
   open: boolean;
@@ -35,66 +35,101 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
     setIsUploading(true);
     try {
-      // Upload file to storage once
       const fileExt = file.name.split('.').pop()?.toLowerCase();
-      const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get the public URL for PDF page counting
-      const { data: urlData } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(filePath);
-
-      let pageCount = 1;
       const isPDF = fileExt === 'pdf';
+      const baseSheetName = name || file.name.replace(/\.[^/.]+$/, '');
 
-      // If PDF, count the pages
       if (isPDF) {
-        try {
-          const loadingTask = getDocument(urlData.publicUrl);
-          const pdf = await loadingTask.promise;
-          pageCount = pdf.numPages;
-        } catch (error) {
-          console.error('Error reading PDF:', error);
-          toast.error('Could not read PDF pages, treating as single page');
+        // Convert PDF to PNG images
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const sheetsToInsert = [];
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          
+          // Render to canvas at 2x scale for quality
+          const viewport = page.getViewport({ scale: 2.0 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const context = canvas.getContext('2d');
+          
+          if (!context) throw new Error('Could not get canvas context');
+
+          await page.render({
+            canvasContext: context,
+            viewport: viewport
+          }).promise;
+
+          // Convert canvas to PNG blob
+          const blob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((b) => {
+              if (b) resolve(b);
+              else reject(new Error('Failed to convert canvas to blob'));
+            }, 'image/png', 0.95);
+          });
+
+          // Upload PNG to storage
+          const fileName = `${file.name.replace('.pdf', '')}_page_${pageNum}.png`;
+          const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.png`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(filePath, blob, {
+              contentType: 'image/png',
+              upsert: false
+            });
+
+          if (uploadError) throw uploadError;
+
+          const sheetName = pdf.numPages > 1 
+            ? `${baseSheetName} - Page ${pageNum}`
+            : baseSheetName;
+
+          sheetsToInsert.push({
+            takeoff_project_id: takeoffId,
+            owner_id: user.id,
+            name: sheetName,
+            file_path: filePath,
+            file_name: fileName,
+            page_number: pageNum,
+          });
         }
+
+        const { error: insertError } = await supabase
+          .from('takeoff_sheets')
+          .insert(sheetsToInsert);
+
+        if (insertError) throw insertError;
+
+        toast.success(`Successfully uploaded ${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}`);
+      } else {
+        // Handle image files (PNG, JPG, JPEG)
+        const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { error: insertError } = await supabase
+          .from('takeoff_sheets')
+          .insert({
+            takeoff_project_id: takeoffId,
+            owner_id: user.id,
+            name: baseSheetName,
+            file_path: filePath,
+            file_name: file.name,
+            page_number: 1,
+          });
+
+        if (insertError) throw insertError;
+
+        toast.success('Sheet uploaded successfully');
       }
-
-      // Create sheet records - one per page
-      const baseSheetName = name || file.name.replace(/\.[^/.]+$/, ''); // Remove file extension
-      const sheetsToInsert = [];
-
-      for (let i = 1; i <= pageCount; i++) {
-        const sheetName = pageCount > 1 
-          ? `${baseSheetName} - Page ${i}`
-          : baseSheetName;
-
-        sheetsToInsert.push({
-          takeoff_project_id: takeoffId,
-          owner_id: user.id,
-          name: sheetName,
-          file_path: filePath,
-          file_name: file.name,
-          page_number: i,
-        });
-      }
-
-      const { error: insertError } = await supabase
-        .from('takeoff_sheets')
-        .insert(sheetsToInsert);
-
-      if (insertError) throw insertError;
-
-      const successMessage = pageCount > 1 
-        ? `Successfully uploaded ${pageCount} pages`
-        : 'Sheet uploaded successfully';
       
-      toast.success(successMessage);
       setName("");
       setFile(null);
       onSuccess();
