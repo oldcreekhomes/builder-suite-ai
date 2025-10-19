@@ -199,18 +199,23 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     });
 
     // DECIDE SCALING MODE
-    // If we have original dimensions and annotations are close to that space, use display scale
-    // Otherwise fall back to fitting global maxima to canvas
+    // For images: always use display scale based on natural -> displayed size
+    // For PDFs: prefer display scale when annotation maxima align with original dims; otherwise fallback to maxima-based
     let scaleX = 1;
     let scaleY = 1;
     let useDisplayScale = false;
 
-    if (originalW && originalH && globalMaxX > 0 && globalMaxY > 0) {
+    if (!isPDF && originalW && originalH) {
+      useDisplayScale = true;
+      scaleX = Math.max(0.01, displayScaleX);
+      scaleY = Math.max(0.01, displayScaleY);
+      console.debug(`Using IMAGE display scale: ${scaleX.toFixed(3)}x${scaleY.toFixed(3)} (original=${originalW}x${originalH}, displayed=${canvasW}x${canvasH})`);
+    } else if (originalW && originalH && globalMaxX > 0 && globalMaxY > 0) {
       const tolerance = 1.2;
       if (globalMaxX <= originalW * tolerance && globalMaxY <= originalH * tolerance) {
         useDisplayScale = true;
-        scaleX = displayScaleX;
-        scaleY = displayScaleY;
+        scaleX = Math.max(0.01, displayScaleX);
+        scaleY = Math.max(0.01, displayScaleY);
         console.debug(`Using PDF display scale: ${scaleX.toFixed(3)}x${scaleY.toFixed(3)} (original=${originalW}x${originalH}, displayed=${canvasW}x${canvasH})`);
       }
     }
@@ -219,16 +224,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       // Fallback: fit to canvas based on global maxima
       scaleX = globalMaxX > canvasW ? canvasW / globalMaxX : 1;
       scaleY = globalMaxY > canvasH ? canvasH / globalMaxY : 1;
-      scaleX = Math.min(scaleX, 1);
-      scaleY = Math.min(scaleY, 1);
+      scaleX = Math.min(1, Math.max(0.01, scaleX));
+      scaleY = Math.min(1, Math.max(0.01, scaleY));
       console.debug(`Using maxima-based scale: ${scaleX.toFixed(3)}x${scaleY.toFixed(3)} (globalMax=${globalMaxX.toFixed(1)}x${globalMaxY.toFixed(1)}, canvas=${canvasW}x${canvasH})`);
     }
 
     console.debug(`Scaling mode: ${useDisplayScale ? 'displayScale' : 'maximaScale'}, outOfBounds=${outOfBoundsCount}/${annotations.length}`);
 
+    // TEMP DEBUG FLAGS
+    const FORCE_SHOW = true;
+    const ADD_PROBES = true;
+
     let scaledCount = 0;
     const coordDebug: number[] = [];
-
     // Load annotations from database
     annotations.forEach(annotation => {
       try {
@@ -237,7 +245,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           : annotation.geometry;
         
         // Check visibility: if no filters, show all; otherwise check if item is in the set
-        const isVisible = visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
+        const isVisible = FORCE_SHOW || visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
@@ -449,6 +457,27 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         if (fabricObject) {
           fabricCanvas.add(fabricObject);
           annotationObjectsRef.current.set(annotation.id, fabricObject);
+
+          if (ADD_PROBES && (fabricObject as any).getBoundingRect) {
+            try {
+              const br = (fabricObject as any).getBoundingRect();
+              if (br && isFinite(br.left) && isFinite(br.top)) {
+                const probe = new Rect({
+                  left: br.left - 4,
+                  top: br.top - 4,
+                  width: 8,
+                  height: 8,
+                  fill: 'hsl(0 90% 50%)',
+                  opacity: 0.9,
+                  selectable: false,
+                  evented: false,
+                });
+                fabricCanvas.add(probe);
+              }
+            } catch (e) {
+              console.debug('Probe add error:', e);
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading annotation:', error);
@@ -644,6 +673,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
                     width: img.naturalWidth,
                     height: img.naturalHeight,
                   });
+                  const sx = img.width / img.naturalWidth;
+                  const sy = img.height / img.naturalHeight;
+                  console.debug(`IMAGE: displayed=${img.width}x${img.height}, natural=${img.naturalWidth}x${img.naturalHeight}, scale=${sx.toFixed(2)}x${sy.toFixed(2)}`);
                   setCanvasReady(true);
                 }
               }}
@@ -653,7 +685,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 pointer-events-auto"
-            style={{ zIndex: 100 }}
+            style={{ zIndex: 200, width: '100%', height: '100%' }}
           />
         </div>
       </div>
