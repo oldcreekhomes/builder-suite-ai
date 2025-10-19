@@ -53,7 +53,43 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
 
       if (leafErr) throw leafErr;
 
-      const allRelevantCostCodes = estimateLeafCodes || [];
+      // Fetch parent categories with estimate=true and has_subcategories=true
+      const { data: estimateParents, error: parentsErr } = await supabase
+        .from('cost_codes')
+        .select('*')
+        .eq('owner_id', ownerId)
+        .eq('estimate', true)
+        .eq('has_subcategories', true);
+
+      if (parentsErr) throw parentsErr;
+
+      // Build a parent map (code -> name) for display
+      const parentMap = new Map<string, string>();
+      (estimateParents || []).forEach(parent => {
+        parentMap.set(parent.code, parent.name);
+      });
+
+      // Fetch children of estimate-enabled parents (regardless of children's estimate flag)
+      let parentChildren: any[] = [];
+      if (estimateParents && estimateParents.length > 0) {
+        const parentCodes = estimateParents.map(p => p.code);
+        const { data: subCodes, error: subErr } = await supabase
+          .from('cost_codes')
+          .select('*')
+          .eq('owner_id', ownerId)
+          .in('parent_group', parentCodes)
+          .order('code', { ascending: true });
+
+        if (subErr) throw subErr;
+        parentChildren = subCodes || [];
+      }
+
+      // Combine and deduplicate all relevant cost codes
+      const allCostCodesMap = new Map();
+      [...(estimateLeafCodes || []), ...parentChildren].forEach(code => {
+        allCostCodesMap.set(code.id, code);
+      });
+      const allRelevantCostCodes = Array.from(allCostCodesMap.values());
 
       // Create a Set of cost_code_ids that already have takeoff items
       const existingCostCodeIds = new Set(
@@ -63,19 +99,30 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
       // Create template rows for estimate cost codes that don't have items yet
       const templateRows = allRelevantCostCodes
         .filter(code => !existingCostCodeIds.has(code.id))
-        .map(code => ({
-          id: `template-${code.id}`,
-          takeoff_sheet_id: sheetId,
-          cost_code_id: code.id,
-          category: code.category || code.name,
-          quantity: 0,
-          unit_of_measure: code.unit_of_measure,
-          unit_price: code.price || 0,
-          total_cost: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          isTemplate: true, // Flag to identify template rows
-        }));
+        .map(code => {
+          // Use parent name if parent_group exists in parentMap, else use category or name
+          let displayCategory = code.name;
+          if (code.parent_group && parentMap.has(code.parent_group)) {
+            displayCategory = parentMap.get(code.parent_group) || code.name;
+          } else if (code.category && !/^\d+$/.test(code.category)) {
+            displayCategory = code.category;
+          }
+
+          return {
+            id: `template-${code.id}`,
+            takeoff_sheet_id: sheetId,
+            cost_code_id: code.id,
+            category: displayCategory,
+            item_name: code.name, // Keep the specific item name
+            quantity: 0,
+            unit_of_measure: code.unit_of_measure,
+            unit_price: code.price || 0,
+            total_cost: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            isTemplate: true, // Flag to identify template rows
+          };
+        });
 
       // Combine existing items with template rows
       return [...(existingItems || []), ...templateRows];
@@ -122,16 +169,23 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.category}</TableCell>
+              items.map((item: any) => (
+                <TableRow key={item.id} className={item.isTemplate ? 'opacity-70' : ''}>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span className="text-sm">{item.category}</span>
+                      {item.item_name && item.item_name !== item.category && (
+                        <span className="text-xs text-muted-foreground">{item.item_name}</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{item.quantity}</TableCell>
                   <TableCell>{item.unit_of_measure || '-'}</TableCell>
                   <TableCell>
-                    {item.unit_price ? `$${item.unit_price.toFixed(2)}` : '-'}
+                    {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
                   </TableCell>
                   <TableCell>
-                    {item.total_cost ? `$${item.total_cost.toFixed(2)}` : '-'}
+                    {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
                   </TableCell>
                 </TableRow>
               ))
