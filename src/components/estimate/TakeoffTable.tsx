@@ -42,48 +42,18 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
 
       if (itemsError) throw itemsError;
 
-      // Fetch all leaf estimate-enabled cost codes (no subcategories)
-      const { data: leafEstimateCodes, error: leafError } = await supabase
+      // Fetch estimate-enabled leaf codes (treat NULL as leaf)
+      const { data: estimateLeafCodes, error: leafErr } = await supabase
         .from('cost_codes')
         .select('*')
         .eq('owner_id', ownerId)
         .eq('estimate', true)
-        .eq('has_subcategories', false)
+        .or('has_subcategories.is.null,has_subcategories.eq.false')
         .order('code', { ascending: true });
 
-      if (leafError) throw leafError;
+      if (leafErr) throw leafErr;
 
-      // Fetch parent categories that have estimate=true AND have subcategories
-      const { data: estimateParents, error: parentsError } = await supabase
-        .from('cost_codes')
-        .select('name')
-        .eq('owner_id', ownerId)
-        .eq('estimate', true)
-        .eq('has_subcategories', true);
-
-      if (parentsError) throw parentsError;
-
-      // Fetch children of estimate-enabled parents
-      let parentChildren: any[] = [];
-      if (estimateParents && estimateParents.length > 0) {
-        const parentNames = estimateParents.map(p => p.name);
-        const { data: subCodes, error: subCodesError } = await supabase
-          .from('cost_codes')
-          .select('*')
-          .eq('owner_id', ownerId)
-          .in('category', parentNames)
-          .order('code', { ascending: true });
-
-        if (subCodesError) throw subCodesError;
-        parentChildren = subCodes || [];
-      }
-
-      // Combine and deduplicate all relevant cost codes
-      const allCostCodesMap = new Map();
-      [...(leafEstimateCodes || []), ...parentChildren].forEach(code => {
-        allCostCodesMap.set(code.id, code);
-      });
-      const allRelevantCostCodes = Array.from(allCostCodesMap.values());
+      const allRelevantCostCodes = estimateLeafCodes || [];
 
       // Create a Set of cost_code_ids that already have takeoff items
       const existingCostCodeIds = new Set(
@@ -97,7 +67,7 @@ export function TakeoffTable({ sheetId, takeoffId }: TakeoffTableProps) {
           id: `template-${code.id}`,
           takeoff_sheet_id: sheetId,
           cost_code_id: code.id,
-          category: code.name,
+          category: code.category || code.name,
           quantity: 0,
           unit_of_measure: code.unit_of_measure,
           unit_price: code.price || 0,
