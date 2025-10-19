@@ -203,8 +203,16 @@ export function ProjectsOverview() {
           <Tabs defaultValue="In Design" className="w-full h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-4">
               {statusTabs.map((status) => (
-                <TabsTrigger key={status} value={status} className="text-xs">
-                  {status} ({getProjectCount(status)})
+                <TabsTrigger key={status} value={status} className="text-xs flex items-center gap-2">
+                  {status}
+                  {getProjectCount(status) > 0 && (
+                    <Badge 
+                      variant="secondary" 
+                      className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0 text-xs"
+                    >
+                      {getProjectCount(status)}
+                    </Badge>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>

@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { BillsApprovalTable } from "@/components/bills/BillsApprovalTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
+import { useBillCounts } from "@/hooks/useBillCounts";
 
 interface PendingInvoicesDialogProps {
   open: boolean;
@@ -19,6 +21,7 @@ interface PendingInvoicesDialogProps {
 
 export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: PendingInvoicesDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: billCounts } = useBillCounts(undefined, projectIds);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -34,8 +37,28 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
             <Tabs defaultValue="review" className="w-full">
               <div className="max-w-sm">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="review">Review</TabsTrigger>
-                  <TabsTrigger value="approve">Approved</TabsTrigger>
+                  <TabsTrigger value="review" className="flex items-center gap-2">
+                    Review
+                    {billCounts && billCounts.pendingCount > 0 && (
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                      >
+                        {billCounts.pendingCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="approve" className="flex items-center gap-2">
+                    Approved
+                    {billCounts && billCounts.approvedCount > 0 && (
+                      <Badge 
+                        variant="secondary" 
+                        className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                      >
+                        {billCounts.approvedCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
