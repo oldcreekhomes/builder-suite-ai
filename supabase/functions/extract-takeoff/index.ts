@@ -88,7 +88,24 @@ serve(async (req) => {
     }
 
     const fileBuffer = await fileResponse.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+    console.log(`Downloaded file: ${fileBuffer.byteLength} bytes`);
+    
+    // Convert large buffer to base64 in chunks to avoid stack overflow
+    function arrayBufferToBase64(buffer: ArrayBuffer): string {
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 8192; // Process 8KB at a time
+      let binary = '';
+      
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode(...chunk);
+      }
+      
+      return btoa(binary);
+    }
+    
+    const base64Image = arrayBufferToBase64(fileBuffer);
+    console.log('Base64 conversion complete');
 
     // Build cost code instructions
     const costCodeInstructions = costCodes.map(code => {
