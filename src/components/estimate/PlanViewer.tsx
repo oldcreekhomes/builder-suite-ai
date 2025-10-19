@@ -171,6 +171,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
     const scaleX = imgNaturalSize ? canvasW / imgNaturalSize.width : 1;
     const scaleY = imgNaturalSize ? canvasH / imgNaturalSize.height : 1;
 
+    // Compute per-page vertical offset for PDFs
+    const isPDF = sheet?.file_name?.toLowerCase().endsWith(".pdf");
+    const pageNum = sheet?.page_number || 1;
+    const originalPageH = imgNaturalSize?.height ?? null;
+    const pageOffsetY = isPDF && originalPageH ? (pageNum - 1) * originalPageH : 0;
+    
+    if (isPDF && originalPageH) {
+      console.debug(`PDF page fix: page=${pageNum}, offsetY=${pageOffsetY.toFixed(1)}, pageH=${originalPageH.toFixed(1)}`);
+    }
+
+    // Helper to normalize Y coordinates (subtract page offset for multi-page PDFs)
+    const tol = originalPageH ? Math.max(2, originalPageH * 0.005) : 2;
+    const fixY = (y: number) => {
+      if (!isPDF || !originalPageH || pageNum <= 1) return y;
+      // If Y looks like absolute (on or below this page band), subtract the band's start
+      if (y >= pageOffsetY - tol) return y - pageOffsetY;
+      return y; // already relative to page
+    };
+
     // Helper to detect if annotation needs scaling (AI-generated vs user-drawn)
     const needsScale = (s: any) =>
       s.left > canvasW || s.top > canvasH || (s.width && s.width > canvasW) || (s.height && s.height > canvasH);
@@ -191,8 +210,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
 
         switch (annotation.annotation_type) {
           case 'circle':
+            const circleShape = shape as any;
+            const circleFixed = {
+              ...circleShape,
+              top: fixY(circleShape.top),
+            };
+
             const circle = new Circle({
-              ...(shape as any),
+              ...circleFixed,
               stroke: annotation.color,
               fill: annotation.color,
               opacity: isVisible ? 0.6 : 0,
@@ -203,8 +228,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             // Add label if present
             if (annotation.label && isVisible) {
               const labelText = new Text(annotation.label, {
-                left: (shape as any).left + 4,
-                top: (shape as any).top + 4,
+                left: circleFixed.left + 4,
+                top: circleFixed.top + 4,
                 fontSize: 12,
                 fill: chooseBlackOrWhite(annotation.color),
                 fontFamily: 'Inter, sans-serif',
@@ -213,8 +238,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
               });
               
               const labelBg = new Rect({
-                left: (shape as any).left + 2,
-                top: (shape as any).top + 2,
+                left: circleFixed.left + 2,
+                top: circleFixed.top + 2,
                 width: labelText.width! + 8,
                 height: labelText.height! + 4,
                 fill: annotation.color,
@@ -236,18 +261,31 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             
           case 'rectangle':
             const base = shape as any;
-            const shouldScale = needsScale(base);
+            const rawTop = base.top;
+            const fixedTop = fixY(rawTop);
+            
+            // Debug first few annotations
+            if (annotations.indexOf(annotation) < 3) {
+              console.debug(`fixY: rawTop=${rawTop.toFixed(1)} -> fixedTop=${fixedTop.toFixed(1)}`);
+            }
+
+            const baseFixed = {
+              ...base,
+              top: fixedTop,
+            };
+
+            const shouldScale = needsScale(baseFixed);
             if (shouldScale) scaledCount++;
 
             const scaled = shouldScale
               ? {
-                  left: base.left * scaleX,
-                  top: base.top * scaleY,
-                  width: base.width * scaleX,
-                  height: base.height * scaleY,
-                  strokeWidth: Math.max(2, (base.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+                  left: baseFixed.left * scaleX,
+                  top: baseFixed.top * scaleY,
+                  width: baseFixed.width * scaleX,
+                  height: baseFixed.height * scaleY,
+                  strokeWidth: Math.max(2, (baseFixed.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
                 }
-              : base;
+              : baseFixed;
 
             coordDebug.push(scaled.left, scaled.top);
 
@@ -297,8 +335,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             
           case 'line':
             const lineShape = shape as any;
-            fabricObject = new Line([lineShape.x1, lineShape.y1, lineShape.x2, lineShape.y2], {
+            const lineFixed = {
               ...lineShape,
+              y1: fixY(lineShape.y1),
+              y2: fixY(lineShape.y2),
+            };
+            fabricObject = new Line([lineFixed.x1, lineFixed.y1, lineFixed.x2, lineFixed.y2], {
+              ...lineFixed,
               stroke: annotation.color,
               opacity: isVisible ? 1 : 0,
               selectable: isReviewMode,
@@ -307,8 +350,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             break;
             
           case 'polygon':
-            const polygon = new Polygon((shape as any).points, {
-              ...(shape as any),
+            const polygonShape = shape as any;
+            const polygonPointsFixed = polygonShape.points.map((p: any) => ({
+              x: p.x,
+              y: fixY(p.y),
+            }));
+
+            const polygon = new Polygon(polygonPointsFixed, {
+              ...polygonShape,
+              points: polygonPointsFixed,
               stroke: annotation.color,
               fill: 'transparent',
               opacity: isVisible ? 0.6 : 0,
@@ -317,8 +367,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem }: PlanView
             });
             
             // Add label if present - use first point for positioning
-            if (annotation.label && isVisible && (shape as any).points && (shape as any).points.length > 0) {
-              const firstPoint = (shape as any).points[0];
+            if (annotation.label && isVisible && polygonPointsFixed.length > 0) {
+              const firstPoint = polygonPointsFixed[0];
               const labelText = new Text(annotation.label, {
                 left: firstPoint.x + 4,
                 top: firstPoint.y + 4,
