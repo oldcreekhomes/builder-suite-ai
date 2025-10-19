@@ -385,7 +385,21 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
                     {formatDisplayFromAny(bill.bill_date)}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {bill.due_date ? formatDisplayFromAny(bill.due_date) : '-'}
+                    {bill.due_date ? (
+                      (() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const dueDate = new Date(bill.due_date);
+                        dueDate.setHours(0, 0, 0, 0);
+                        const isOverdue = dueDate < today;
+                        
+                        return (
+                          <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                            {formatDisplayFromAny(bill.due_date)}
+                          </span>
+                        );
+                      })()
+                    ) : '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     {formatCurrency(bill.total_amount)}
