@@ -47,15 +47,20 @@ export function useTakeoffItemMutations(sheetId: string) {
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       // Get current unit_price to calculate new total_cost
-      const { data: item } = await supabase
+      const { data: item, error: fetchError } = await supabase
         .from('takeoff_items')
         .select('unit_price')
         .eq('id', itemId)
-        .single();
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error('Error fetching item for update:', fetchError);
+        throw fetchError;
+      }
       
       const totalCost = (item?.unit_price || 0) * quantity;
       
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('takeoff_items')
         .update({ 
           quantity,
@@ -63,7 +68,11 @@ export function useTakeoffItemMutations(sheetId: string) {
         })
         .eq('id', itemId);
       
-      if (error) throw error;
+      if (updateError) {
+        console.error('Error updating takeoff item:', updateError);
+        throw updateError;
+      }
+      
       return { itemId, quantity };
     },
     onSuccess: () => {
@@ -73,11 +82,12 @@ export function useTakeoffItemMutations(sheetId: string) {
         description: "Quantity updated successfully",
       });
     },
-    onError: (error) => {
-      console.error('Error updating quantity:', error);
+    onError: (error: any) => {
+      console.error('Update quantity mutation error:', error);
+      const errorMessage = error?.message || 'Failed to update quantity';
       toast({
         title: "Error",
-        description: "Failed to update quantity",
+        description: errorMessage,
         variant: "destructive",
       });
     },
