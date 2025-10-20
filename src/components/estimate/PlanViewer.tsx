@@ -57,6 +57,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [canvasReady, setCanvasReady] = useState(false);
   const [imgNaturalSize, setImgNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [docSize, setDocSize] = useState<{ width: number; height: number } | null>(null);
+  const [docLoaded, setDocLoaded] = useState(false);
+  const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
   const [overlayMode, setOverlayMode] = useState<'fabric' | 'dom'>('dom');
   const [forceShow, setForceShow] = useState<boolean>(true);
   const [addProbes, setAddProbes] = useState<boolean>(true);
@@ -70,6 +73,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   useEffect(() => {
     setCanvasReady(false);
     setImgNaturalSize(null);
+    setDocSize(null);
+    setDocLoaded(false);
+    setDisplayedSize(null);
   }, [sheetId]);
 
   const { data: sheet } = useQuery({
@@ -103,13 +109,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     enabled: !!sheet?.file_path,
   });
 
-  // Initialize Fabric.js canvas
+  // Initialize Fabric.js canvas once on mount
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || fabricCanvas) return;
 
     const canvas = new FabricCanvas(canvasRef.current, {
-      width: pageWidth,
-      height: 1000,
+      width: 800,
+      height: 600,
       backgroundColor: 'transparent',
     });
 
@@ -118,7 +124,20 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     return () => {
       canvas.dispose();
     };
-  }, [pageWidth]);
+  }, []);
+
+  // Sync canvas dimensions when document loads
+  useEffect(() => {
+    if (!fabricCanvas || !displayedSize) return;
+    
+    fabricCanvas.setDimensions({
+      width: displayedSize.width,
+      height: displayedSize.height,
+    });
+    setCanvasReady(true);
+    
+    console.debug(`Canvas dimensions set: ${displayedSize.width}x${displayedSize.height}`);
+  }, [fabricCanvas, displayedSize]);
 
   // Note: Zoom and pan are handled by CSS transform on the wrapper div
   // to keep PDF and canvas overlay synchronized
@@ -496,7 +515,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     }
 
     fabricCanvas.renderAll();
-  }, [annotations, fabricCanvas, visibleAnnotations, sheetId, canvasReady, imgNaturalSize]);
+  }, [annotations, fabricCanvas, visibleAnnotations, sheetId, canvasReady, imgNaturalSize, docSize]);
 
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
@@ -603,7 +622,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     );
   }
 
-  const isPDF = sheet?.file_name.toLowerCase().endsWith('.pdf');
+  const isPDF = !!sheet?.file_name?.toLowerCase().endsWith('.pdf');
 
   return (
     <div className="flex flex-col h-full bg-muted/10">
@@ -667,23 +686,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
                       : null;
                   
                   if (viewport) {
-                    setImgNaturalSize({
-                      width: viewport.width,
-                      height: viewport.height,
-                    });
+                    setDocSize(viewport);
+                    setImgNaturalSize(viewport);
+                    setDocLoaded(true);
                     
                     const scaleX = page.width / viewport.width;
                     const scaleY = page.height / viewport.height;
                     console.debug(`PDF: displayed=${page.width}x${page.height}, original=${viewport.width}x${viewport.height}, scale=${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
                   }
                   
-                  if (fabricCanvas) {
-                    fabricCanvas.setDimensions({
-                      width: page.width,
-                      height: page.height,
-                    });
-                    setCanvasReady(true);
-                  }
+                  setDisplayedSize({
+                    width: page.width,
+                    height: page.height,
+                  });
                 }}
               />
             </Document>
@@ -694,20 +709,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               className="max-w-full"
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement;
-                if (fabricCanvas) {
-                  fabricCanvas.setDimensions({
-                    width: img.width,
-                    height: img.height,
-                  });
-                  setImgNaturalSize({
-                    width: img.naturalWidth,
-                    height: img.naturalHeight,
-                  });
-                  const sx = img.width / img.naturalWidth;
-                  const sy = img.height / img.naturalHeight;
-                  console.debug(`IMAGE: displayed=${img.width}x${img.height}, natural=${img.naturalWidth}x${img.naturalHeight}, scale=${sx.toFixed(2)}x${sy.toFixed(2)}`);
-                  setCanvasReady(true);
-                }
+                
+                setDocSize({
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                });
+                setImgNaturalSize({
+                  width: img.naturalWidth,
+                  height: img.naturalHeight,
+                });
+                setDocLoaded(true);
+                
+                setDisplayedSize({
+                  width: img.width,
+                  height: img.height,
+                });
+                
+                const sx = img.width / img.naturalWidth;
+                const sy = img.height / img.naturalHeight;
+                console.debug(`IMAGE: displayed=${img.width}x${img.height}, natural=${img.naturalWidth}x${img.naturalHeight}, scale=${sx.toFixed(2)}x${sy.toFixed(2)}`);
               }}
             />
           )}
@@ -715,7 +735,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           {/* Keep both mounted to avoid DOM thrashing errors; toggle visibility */}
           {/* Debug HUD */}
           <div className="absolute top-2 right-2 px-2 py-1 rounded bg-background/80 text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
-            Mode: {overlayMode} • Zoom: {Math.round(zoom * 100)}% • Canvas: {fabricCanvas ? `${fabricCanvas.getWidth()}x${fabricCanvas.getHeight()}` : '0x0'} • Natural: {imgNaturalSize ? `${imgNaturalSize.width}x${imgNaturalSize.height}` : 'n/a'}
+            <div>Mode: {overlayMode} • Zoom: {Math.round(zoom * 100)}%</div>
+            <div>Canvas: {fabricCanvas ? `${fabricCanvas.getWidth()}x${fabricCanvas.getHeight()}` : '0x0'}</div>
+            <div>Displayed: {displayedSize ? `${displayedSize.width}x${displayedSize.height}` : 'n/a'}</div>
+            <div>Original: {imgNaturalSize ? `${imgNaturalSize.width}x${imgNaturalSize.height}` : 'n/a'}</div>
+            {sheet?.ai_processing_width && sheet?.ai_processing_height && (
+              <div>AI: {sheet.ai_processing_width}x{sheet.ai_processing_height}</div>
+            )}
           </div>
           {/* Empty state banner */}
           {annotations && annotations.length === 0 && (
@@ -730,17 +756,21 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           />
 
           <div style={{ display: overlayMode === 'dom' ? 'block' : 'none' }}>
-            {canvasReady && imgNaturalSize && (
+            {(
+              (canvasReady && imgNaturalSize) || 
+              (sheet?.ai_processing_width && sheet?.ai_processing_height && displayedSize)
+            ) && (
               <DOMOverlays
                 annotations={annotations || []}
                 visibleAnnotations={visibleAnnotations}
                 sheet={sheet}
                 canvasSize={
-                  fabricCanvas
+                  displayedSize || 
+                  (fabricCanvas 
                     ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
-                    : { width: pageWidth, height: imgNaturalSize ? Math.round(pageWidth * (imgNaturalSize.height / imgNaturalSize.width)) : 600 }
+                    : { width: 800, height: 600 })
                 }
-                imgNaturalSize={imgNaturalSize}
+                imgNaturalSize={imgNaturalSize || docSize}
                 aiProcessingSize={
                   sheet?.ai_processing_width && sheet?.ai_processing_height
                     ? { width: sheet.ai_processing_width, height: sheet.ai_processing_height }
