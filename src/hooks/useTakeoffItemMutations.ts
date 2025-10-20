@@ -46,26 +46,10 @@ export function useTakeoffItemMutations(sheetId: string) {
 
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
-      // Get current unit_price to calculate new total_cost
-      const { data: item, error: fetchError } = await supabase
-        .from('takeoff_items')
-        .select('unit_price')
-        .eq('id', itemId)
-        .maybeSingle();
-      
-      if (fetchError) {
-        console.error('Error fetching item for update:', fetchError);
-        throw fetchError;
-      }
-      
-      const totalCost = (item?.unit_price || 0) * quantity;
-      
+      // Simply update quantity - database will auto-calculate total_cost
       const { error: updateError } = await supabase
         .from('takeoff_items')
-        .update({ 
-          quantity,
-          total_cost: totalCost
-        })
+        .update({ quantity })
         .eq('id', itemId);
       
       if (updateError) {
