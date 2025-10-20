@@ -750,14 +750,39 @@ Return ONLY the JSON object, no additional text.`;
       throw new Error('Failed to parse AI response as JSON');
     }
 
+    // CRITICAL: Normalize camelCase to snake_case for all fields
+    console.log('Normalizing field names from camelCase to snake_case...');
+    const normalizeKeys = (data: any) => {
+      return {
+        vendor_name: data.vendor || data.vendor_name,
+        vendor_address: data.vendorAddress || data.vendor_address,
+        vendor_phone: data.vendorPhone || data.vendor_phone,
+        vendor_website: data.vendorWebsite || data.vendor_website,
+        bill_date: data.billDate || data.bill_date,
+        due_date: data.dueDate || data.due_date,
+        reference_number: data.referenceNumber || data.reference_number || data.invoiceNumber || data.invoice_number,
+        total_amount: data.totalAmount || data.total_amount || data.total,
+        terms: data.terms,
+        line_items: (data.lineItems || data.line_items || []).map((item: any) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unit_cost: item.unitPrice || item.unit_cost || item.unitCost,
+          total: item.total,
+          cost_code_name: item.costCodeName || item.cost_code_name,
+          account_name: item.accountName || item.account_name,
+          line_type: item.line_type || item.lineType || 'job_cost'
+        }))
+      };
+    };
+    
+    extractedData = normalizeKeys(extractedData);
+    console.log('Field normalization complete');
+
     // Validate amount - if > $1M, likely a parsing error
-    if (extractedData.total || extractedData.total_amount || extractedData.totalAmount) {
-      const amount = extractedData.total || extractedData.total_amount || extractedData.totalAmount;
-      if (amount && amount > 1000000) {
-        console.warn('⚠️ Suspicious amount detected:', amount, '- setting to null');
-        extractedData.total = null;
+    if (extractedData.total_amount) {
+      if (extractedData.total_amount > 1000000) {
+        console.warn('⚠️ Suspicious amount detected:', extractedData.total_amount, '- setting to null');
         extractedData.total_amount = null;
-        extractedData.totalAmount = null;
       }
     }
 
@@ -897,7 +922,8 @@ Return ONLY the JSON object, no additional text.`;
           let costCodeName = item.cost_code_name || null;
           
           if (item.cost_code_name) {
-            const codeMatch = item.cost_code_name.match(/^(\d+):\s*(.+)$/);
+            // Updated regex to handle decimals like "4010.4: Description"
+            const codeMatch = item.cost_code_name.match(/^([0-9]+(?:\.[0-9]+)?):\s*(.+)$/);
             if (codeMatch) {
               const [_, code, name] = codeMatch;
               // Find matching cost code from our list

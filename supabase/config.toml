@@ -6,9 +6,6 @@ verify_jwt = true
 [functions.extract-bill-data]
 verify_jwt = false
 
-[functions.extract-bill-with-textract]
-verify_jwt = false
-
 [functions.rematch-pending-bill]
 verify_jwt = false
 
