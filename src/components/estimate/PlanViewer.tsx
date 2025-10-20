@@ -60,10 +60,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [docSize, setDocSize] = useState<{ width: number; height: number } | null>(null);
   const [docLoaded, setDocLoaded] = useState(false);
   const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
-  const [overlayMode, setOverlayMode] = useState<'fabric' | 'dom'>('dom');
-  const [forceShow, setForceShow] = useState<boolean>(true);
-  const [addProbes, setAddProbes] = useState<boolean>(true);
-  const [testOverlay, setTestOverlay] = useState<boolean>(false);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
   const { toast } = useToast();
@@ -144,7 +140,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   // Load and display annotations
   useEffect(() => {
-    if (!fabricCanvas || !annotations || !sheetId || !canvasReady || overlayMode !== 'fabric') return;
+    if (!fabricCanvas || !annotations || !sheetId || !canvasReady) return;
 
     // Clear existing annotation objects
     annotationObjectsRef.current.forEach(obj => fabricCanvas.remove(obj));
@@ -270,7 +266,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           : annotation.geometry;
         
         // Check visibility: if no filters, show all; otherwise check if item is in the set
-        const isVisible = forceShow || visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
+        const isVisible = visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
@@ -482,27 +478,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         if (fabricObject) {
           fabricCanvas.add(fabricObject);
           annotationObjectsRef.current.set(annotation.id, fabricObject);
-
-          if (addProbes && (fabricObject as any).getBoundingRect) {
-            try {
-              const br = (fabricObject as any).getBoundingRect();
-              if (br && isFinite(br.left) && isFinite(br.top)) {
-                const probe = new Rect({
-                  left: br.left - 4,
-                  top: br.top - 4,
-                  width: 8,
-                  height: 8,
-                  fill: 'hsl(0 90% 50%)',
-                  opacity: 0.9,
-                  selectable: false,
-                  evented: false,
-                });
-                fabricCanvas.add(probe);
-              }
-            } catch (e) {
-              console.debug('Probe add error:', e);
-            }
-          }
         }
       } catch (error) {
         console.error('Error loading annotation:', error);
@@ -636,15 +611,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onZoomReset={handleZoomReset}
-          overlayMode={overlayMode}
-          onOverlayModeChange={setOverlayMode}
-          forceShow={forceShow}
-          onForceShowChange={setForceShow}
-          addProbes={addProbes}
-          onAddProbesChange={setAddProbes}
-          testOverlay={testOverlay}
-          onTestOverlayChange={setTestOverlay}
-          onShowAll={onShowAllAnnotations}
         />
       </div>
 
@@ -732,56 +698,35 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             />
           )}
           
-          {/* Keep both mounted to avoid DOM thrashing errors; toggle visibility */}
-          {/* Debug HUD */}
-          <div className="absolute top-2 right-2 px-2 py-1 rounded bg-background/80 text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
-            <div>Mode: {overlayMode} • Zoom: {Math.round(zoom * 100)}%</div>
-            <div>Canvas: {fabricCanvas ? `${fabricCanvas.getWidth()}x${fabricCanvas.getHeight()}` : '0x0'}</div>
-            <div>Displayed: {displayedSize ? `${displayedSize.width}x${displayedSize.height}` : 'n/a'}</div>
-            <div>Original: {imgNaturalSize ? `${imgNaturalSize.width}x${imgNaturalSize.height}` : 'n/a'}</div>
-            {sheet?.ai_processing_width && sheet?.ai_processing_height && (
-              <div>AI: {sheet.ai_processing_width}x{sheet.ai_processing_height}</div>
-            )}
-          </div>
           {/* Empty state banner */}
           {annotations && annotations.length === 0 && (
             <div className="absolute top-2 left-2 px-2 py-1 rounded bg-muted text-foreground text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
               No overlays found for this sheet
             </div>
           )}
-          <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0 pointer-events-auto"
-            style={{ display: overlayMode === 'fabric' ? 'block' : 'none', zIndex: 200, width: '100%', height: '100%' }}
-          />
 
-          <div style={{ display: overlayMode === 'dom' ? 'block' : 'none' }}>
-            {(
-              (canvasReady && imgNaturalSize) || 
-              (sheet?.ai_processing_width && sheet?.ai_processing_height && displayedSize)
-            ) && (
-              <DOMOverlays
-                annotations={annotations || []}
-                visibleAnnotations={visibleAnnotations}
-                sheet={sheet}
-                canvasSize={
-                  displayedSize || 
-                  (fabricCanvas 
-                    ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
-                    : { width: 800, height: 600 })
-                }
-                imgNaturalSize={imgNaturalSize || docSize}
-                aiProcessingSize={
-                  sheet?.ai_processing_width && sheet?.ai_processing_height
-                    ? { width: sheet.ai_processing_width, height: sheet.ai_processing_height }
-                    : null
-                }
-                forceShow={forceShow}
-                addProbes={addProbes}
-                testOverlay={testOverlay}
-              />
-            )}
-          </div>
+          {(
+            (canvasReady && imgNaturalSize) || 
+            (sheet?.ai_processing_width && sheet?.ai_processing_height && displayedSize)
+          ) && (
+            <DOMOverlays
+              annotations={annotations || []}
+              visibleAnnotations={visibleAnnotations}
+              sheet={sheet}
+              canvasSize={
+                displayedSize || 
+                (fabricCanvas 
+                  ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
+                  : { width: 800, height: 600 })
+              }
+              imgNaturalSize={imgNaturalSize || docSize}
+              aiProcessingSize={
+                sheet?.ai_processing_width && sheet?.ai_processing_height
+                  ? { width: sheet.ai_processing_width, height: sheet.ai_processing_height }
+                  : null
+              }
+            />
+          )}
         </div>
       </div>
 

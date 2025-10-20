@@ -12,9 +12,6 @@ interface DOMOverlaysProps {
   canvasSize: Size;
   imgNaturalSize: Size | null;
   aiProcessingSize: Size | null;
-  forceShow: boolean;
-  addProbes: boolean;
-  testOverlay?: boolean;
 }
 
 // Helper
@@ -33,9 +30,6 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
   canvasSize,
   imgNaturalSize,
   aiProcessingSize,
-  forceShow,
-  addProbes,
-  testOverlay = false,
 }) => {
   const isPDF = sheet?.file_name?.toLowerCase().endsWith('.pdf');
   const pageNum = sheet?.page_number || 1;
@@ -146,12 +140,6 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
   return (
     <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 500 }}>
       <svg width="100%" height="100%" viewBox={`0 0 ${canvasW} ${canvasH}`} preserveAspectRatio="none" className="absolute inset-0">
-        {testOverlay && (
-          <g>
-            <rect x={20} y={20} width={120} height={80} fill="rgba(255,0,0,0.15)" stroke="red" strokeWidth={2} />
-            <rect x={16} y={16} width={8} height={8} fill="red" />
-          </g>
-        )}
         {filtered.map((annotation) => {
           try {
             const shape = typeof annotation.geometry === 'string' ? JSON.parse(annotation.geometry) : annotation.geometry;
@@ -166,9 +154,6 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
               return (
                 <g key={annotation.id}>
                   <rect x={left} y={top} width={width} height={height} fill={hexToRgba(color, 0.2)} stroke={color} strokeWidth={strokeWidth} />
-                  {addProbes && (
-                    <rect x={left - 4} y={top - 4} width={8} height={8} fill="red" />
-                  )}
                 </g>
               );
             }
@@ -180,7 +165,6 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
               return (
                 <g key={annotation.id}>
                   <circle cx={cx} cy={cy} r={r} fill={hexToRgba(color, 0.6)} stroke={color} strokeWidth={strokeWidth} />
-                  {addProbes && (<rect x={cx - 4} y={cy - 4} width={8} height={8} fill="red" />)}
                 </g>
               );
             }
@@ -193,21 +177,15 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
               return (
                 <g key={annotation.id}>
                   <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={strokeWidth} />
-                  {addProbes && (<rect x={x1 - 4} y={y1 - 4} width={8} height={8} fill="red" />)}
                 </g>
               );
             }
 
             if (annotation.annotation_type === 'polygon') {
               const points = (shape.points || []).map((p: any) => `${(p.x || 0) * scaleX},${fixY(p.y || 0) * scaleY}`).join(' ');
-              const first = (shape.points && shape.points[0]) ? {
-                x: (shape.points[0].x || 0) * scaleX,
-                y: fixY(shape.points[0].y || 0) * scaleY,
-              } : null;
               return (
                 <g key={annotation.id}>
                   <polygon points={points} fill="transparent" stroke={color} strokeWidth={strokeWidth} />
-                  {addProbes && first && (<rect x={first.x - 4} y={first.y - 4} width={8} height={8} fill="red" />)}
                 </g>
               );
             }

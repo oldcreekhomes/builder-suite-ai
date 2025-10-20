@@ -15,16 +15,6 @@ interface DrawingToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
-  // New controls
-  overlayMode?: 'fabric' | 'dom';
-  onOverlayModeChange?: (mode: 'fabric' | 'dom') => void;
-  forceShow?: boolean;
-  onForceShowChange?: (val: boolean) => void;
-  addProbes?: boolean;
-  onAddProbesChange?: (val: boolean) => void;
-  testOverlay?: boolean;
-  onTestOverlayChange?: (val: boolean) => void;
-  onShowAll?: () => void;
 }
 
 
@@ -37,15 +27,6 @@ export function DrawingToolbar({
   onZoomIn,
   onZoomOut,
   onZoomReset,
-  overlayMode = 'fabric',
-  onOverlayModeChange,
-  forceShow = false,
-  onForceShowChange,
-  addProbes = false,
-  onAddProbesChange,
-  testOverlay = false,
-  onTestOverlayChange,
-  onShowAll,
 }: DrawingToolbarProps) {
   const tools = [
     { id: 'select' as const, icon: MousePointer2, label: 'Select' },
@@ -120,63 +101,6 @@ export function DrawingToolbar({
         <div className="text-sm text-muted-foreground ml-2 min-w-[60px]">
           {Math.round(zoom * 100)}%
         </div>
-      </div>
-
-      <Separator orientation="vertical" className="h-8" />
-
-      <div className="flex items-center gap-1">
-        <div className="text-xs text-muted-foreground mr-1">Layers:</div>
-        <Button
-          size="sm"
-          variant={overlayMode === 'fabric' ? 'default' : 'outline'}
-          onClick={() => onOverlayModeChange?.('fabric')}
-          title="Use Fabric Canvas"
-        >
-          Fabric
-        </Button>
-        <Button
-          size="sm"
-          variant={overlayMode === 'dom' ? 'default' : 'outline'}
-          onClick={() => onOverlayModeChange?.('dom')}
-          title="Use DOM/SVG Overlays"
-        >
-          DOM
-        </Button>
-
-        <Separator orientation="vertical" className="h-8 mx-1" />
-
-        <Button
-          size="sm"
-          variant={forceShow ? 'default' : 'outline'}
-          onClick={() => onForceShowChange?.(!forceShow)}
-          title="Force show all overlays"
-        >
-          Force Show
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onShowAll?.()}
-          title="Make all current annotations visible"
-        >
-          Show All
-        </Button>
-        <Button
-          size="sm"
-          variant={addProbes ? 'default' : 'outline'}
-          onClick={() => onAddProbesChange?.(!addProbes)}
-          title="Show red probes for alignment"
-        >
-          Probes
-        </Button>
-        <Button
-          size="sm"
-          variant={testOverlay ? 'default' : 'outline'}
-          onClick={() => onTestOverlayChange?.(!testOverlay)}
-          title="Draw a debug test rectangle"
-        >
-          Test Box
-        </Button>
       </div>
     </div>
   );
