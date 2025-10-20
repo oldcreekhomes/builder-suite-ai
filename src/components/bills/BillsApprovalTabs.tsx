@@ -57,10 +57,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       return;
     }
 
-    // Fetch lines for all bills in parallel
+    // Create an abortable async effect
+    let cancelled = false;
+    
     const fetchAllLines = async () => {
       const billsWithLines = await Promise.all(
         pendingBills.map(async (bill) => {
+          if (cancelled) return { ...bill, lines: [] };
+          
           const { data: lines, error } = await supabase
             .from('pending_bill_lines')
             .select('*')
@@ -76,11 +80,19 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         })
       );
 
-      setBatchBills(billsWithLines);
-      setSelectedBillIds(new Set(billsWithLines.map(b => b.id)));
+      // Only update state if not cancelled
+      if (!cancelled) {
+        setBatchBills(billsWithLines);
+        setSelectedBillIds(new Set(billsWithLines.map(b => b.id)));
+      }
     };
 
     fetchAllLines();
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      cancelled = true;
+    };
   }, [pendingBills]);
 
   const handleExtractionStart = useCallback(() => {
