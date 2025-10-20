@@ -1,16 +1,32 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MousePointer2, Circle, Minus, Square, Pentagon, Ruler, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
 
+const COMMON_SCALES = [
+  "1/16\" = 1'-0\"",
+  "3/32\" = 1'-0\"", 
+  "1/8\" = 1'-0\"",
+  "3/16\" = 1'-0\"",
+  "1/4\" = 1'-0\"",
+  "3/8\" = 1'-0\"",
+  "1/2\" = 1'-0\"",
+  "3/4\" = 1'-0\"",
+  "1\" = 1'-0\"",
+  "1-1/2\" = 1'-0\"",
+  "3\" = 1'-0\"",
+  "Auto-Detect Scale",
+  "Custom..."
+];
 
 interface DrawingToolbarProps {
   activeTool: DrawingTool;
   onToolClick: (tool: DrawingTool) => void;
   onCalibrateScale: () => void;
-  scaleRatio?: number | null;
+  selectedScale?: string | null;
+  onScaleChange: (scale: string) => void;
   zoom: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -22,7 +38,8 @@ export function DrawingToolbar({
   activeTool, 
   onToolClick, 
   onCalibrateScale, 
-  scaleRatio,
+  selectedScale,
+  onScaleChange,
   zoom,
   onZoomIn,
   onZoomOut,
@@ -54,20 +71,24 @@ export function DrawingToolbar({
 
       <Separator orientation="vertical" className="h-8" />
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onCalibrateScale}
+      <Select
+        value={selectedScale || "not-set"}
+        onValueChange={onScaleChange}
       >
-        <Ruler className="mr-2 h-4 w-4" />
-        {scaleRatio ? 'Adjust Scale' : 'Set Scale'}
-      </Button>
-
-      {scaleRatio && (
-        <div className="text-sm text-muted-foreground ml-2">
-          Scale: {scaleRatio.toFixed(4)} units/pixel
-        </div>
-      )}
+        <SelectTrigger className="w-[180px] h-9">
+          <Ruler className="mr-2 h-4 w-4 shrink-0" />
+          <SelectValue>
+            {selectedScale || "Set Scale"}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="bg-background border-border z-50">
+          {COMMON_SCALES.map(scale => (
+            <SelectItem key={scale} value={scale}>
+              {scale}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <Separator orientation="vertical" className="h-8" />
 

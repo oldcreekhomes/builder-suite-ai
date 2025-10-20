@@ -135,6 +135,30 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     console.debug(`Canvas dimensions set: ${displayedSize.width}x${displayedSize.height}`);
   }, [fabricCanvas, displayedSize]);
 
+  // Handle scale selection from dropdown
+  const handleScaleSelect = async (scale: string) => {
+    if (scale === "Auto-Detect Scale" || scale === "Custom...") {
+      setShowScaleDialog(true);
+      return;
+    }
+    
+    // Directly save common scale
+    try {
+      const { error } = await supabase
+        .from('takeoff_sheets')
+        .update({ 
+          drawing_scale: scale,
+        })
+        .eq('id', sheetId);
+        
+      if (error) throw error;
+      toast({ title: "Success", description: `Scale set to ${scale}` });
+    } catch (error) {
+      console.error('Error saving scale:', error);
+      toast({ title: "Error", description: "Failed to save scale", variant: "destructive" });
+    }
+  };
+
   // Note: Zoom and pan are handled by CSS transform on the wrapper div
   // to keep PDF and canvas overlay synchronized
 
@@ -606,7 +630,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           activeTool={activeTool}
           onToolClick={handleToolClick}
           onCalibrateScale={() => setShowScaleDialog(true)}
-          scaleRatio={sheet?.scale_ratio}
+          selectedScale={sheet?.drawing_scale}
+          onScaleChange={handleScaleSelect}
           zoom={zoom}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
