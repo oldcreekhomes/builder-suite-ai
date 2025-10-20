@@ -145,7 +145,7 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
 
   return (
     <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 500 }}>
-      <svg width={canvasW} height={canvasH} viewBox={`0 0 ${canvasW} ${canvasH}`} className="absolute inset-0">
+      <svg width="100%" height="100%" viewBox={`0 0 ${canvasW} ${canvasH}`} preserveAspectRatio="none" className="absolute inset-0">
         {testOverlay && (
           <g>
             <rect x={20} y={20} width={120} height={80} fill="rgba(255,0,0,0.15)" stroke="red" strokeWidth={2} />
