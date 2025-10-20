@@ -166,9 +166,6 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
               return (
                 <g key={annotation.id}>
                   <rect x={left} y={top} width={width} height={height} fill={hexToRgba(color, 0.2)} stroke={color} strokeWidth={strokeWidth} />
-                  {annotation.label && (
-                    <text x={left + 6} y={top + 16} fontSize={12} fill="#111" style={{ fontFamily: 'Inter, sans-serif' }}>{annotation.label}</text>
-                  )}
                   {addProbes && (
                     <rect x={left - 4} y={top - 4} width={8} height={8} fill="red" />
                   )}
@@ -210,9 +207,6 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
               return (
                 <g key={annotation.id}>
                   <polygon points={points} fill="transparent" stroke={color} strokeWidth={strokeWidth} />
-                  {annotation.label && first && (
-                    <text x={first.x + 6} y={first.y + 16} fontSize={12} fill="#111" style={{ fontFamily: 'Inter, sans-serif' }}>{annotation.label}</text>
-                  )}
                   {addProbes && first && (<rect x={first.x - 4} y={first.y - 4} width={8} height={8} fill="red" />)}
                 </g>
               );
