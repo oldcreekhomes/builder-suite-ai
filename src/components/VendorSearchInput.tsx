@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCompanySearch } from "@/hooks/useCompanySearch";
+import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
+import { Plus } from "lucide-react";
 
 interface VendorSearchInputProps {
   value: string;
@@ -20,6 +23,7 @@ export function VendorSearchInput({
 }: VendorSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const { companies, loading } = useCompanySearch();
 
   useEffect(() => {
@@ -98,12 +102,49 @@ export function VendorSearchInput({
               </button>
             ))
           ) : searchQuery && (
-            <div className="p-3 text-sm text-muted-foreground">
-              No vendors found matching "{searchQuery}"
+            <div className="p-2">
+              <div className="p-2 text-sm text-muted-foreground mb-2">
+                No vendors found matching "{searchQuery}"
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowAddDialog(true);
+                  setShowResults(false);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Vendor "{searchQuery}"
+              </Button>
             </div>
           )}
         </div>
       )}
+      
+      <AddCompanyDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        initialCompanyName={searchQuery}
+        onCompanyCreated={(companyId, companyName) => {
+          // Auto-select the newly created vendor
+          setSearchQuery(companyName);
+          onChange(companyId);
+          setShowAddDialog(false);
+          
+          // Call the parent callback if provided
+          if (onCompanySelect) {
+            onCompanySelect({
+              company_name: companyName,
+              address: undefined
+            });
+          }
+        }}
+      />
     </div>
   );
 }
