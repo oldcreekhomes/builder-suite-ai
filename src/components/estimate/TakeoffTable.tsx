@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatUnitOfMeasure } from "@/utils/budgetUtils";
@@ -38,6 +38,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
+  const queryClient = useQueryClient();
   const { selectedItems, handleItemCheckboxChange, clearSelection, selectAll } = useTakeoffItemSelection();
   const { handleDeleteItems, isDeleting } = useTakeoffItemMutations(sheetId || '');
 
@@ -445,6 +446,11 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           sheetId={sheetId}
           onSaveComplete={() => {
             refetch();
+            
+            // Invalidate all related queries to update overlays and visibility
+            queryClient.invalidateQueries({ queryKey: ['takeoff-annotations'] });
+            queryClient.invalidateQueries({ queryKey: ['takeoff-items-visibility'] });
+            
             toast({
               title: "Items saved",
               description: "Takeoff items have been added successfully.",
