@@ -49,19 +49,38 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
 
-  // Sync pending bills to batch bills
+  // Fetch and sync pending bills with their lines
   useEffect(() => {
-    if (pendingBills && pendingBills.length > 0) {
-      const newBatchBills = pendingBills.map(bill => ({
-        ...bill,
-        lines: [],
-      }));
-      setBatchBills(newBatchBills);
-      setSelectedBillIds(new Set(newBatchBills.map(b => b.id)));
-    } else {
+    if (!pendingBills || pendingBills.length === 0) {
       setBatchBills([]);
       setSelectedBillIds(new Set());
+      return;
     }
+
+    // Fetch lines for all bills in parallel
+    const fetchAllLines = async () => {
+      const billsWithLines = await Promise.all(
+        pendingBills.map(async (bill) => {
+          const { data: lines, error } = await supabase
+            .from('pending_bill_lines')
+            .select('*')
+            .eq('pending_upload_id', bill.id)
+            .order('line_number');
+
+          if (error) {
+            console.error(`Error fetching lines for bill ${bill.id}:`, error);
+            return { ...bill, lines: [] };
+          }
+
+          return { ...bill, lines: (lines || []) as PendingBillLine[] };
+        })
+      );
+
+      setBatchBills(billsWithLines);
+      setSelectedBillIds(new Set(billsWithLines.map(b => b.id)));
+    };
+
+    fetchAllLines();
   }, [pendingBills]);
 
   const handleExtractionStart = useCallback(() => {
