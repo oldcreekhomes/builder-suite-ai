@@ -193,7 +193,8 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         .from('takeoff_items')
         .select('*, cost_code_id, color')
         .eq('takeoff_sheet_id', sheetId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
 
       if (itemsError) throw itemsError;
 
