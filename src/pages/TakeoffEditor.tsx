@@ -58,6 +58,11 @@ export default function TakeoffEditor() {
     }
   }, [takeoffItems]);
 
+  // Reset visibility state when switching sheets
+  useEffect(() => {
+    setVisibleAnnotations(new Set());
+  }, [selectedSheetId]);
+
   const handleToggleVisibility = (itemId: string) => {
     setVisibleAnnotations(prev => {
       const next = new Set(prev);
