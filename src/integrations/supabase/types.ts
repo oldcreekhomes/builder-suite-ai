@@ -2170,6 +2170,8 @@ export type Database = {
       }
       takeoff_sheets: {
         Row: {
+          ai_processing_height: number | null
+          ai_processing_width: number | null
           created_at: string
           drawing_scale: string | null
           file_name: string
@@ -2183,6 +2185,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_processing_height?: number | null
+          ai_processing_width?: number | null
           created_at?: string
           drawing_scale?: string | null
           file_name: string
@@ -2196,6 +2200,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_processing_height?: number | null
+          ai_processing_width?: number | null
           created_at?: string
           drawing_scale?: string | null
           file_name?: string

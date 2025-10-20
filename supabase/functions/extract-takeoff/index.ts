@@ -199,6 +199,27 @@ serve(async (req) => {
       });
     }
 
+    // Extract and store image dimensions used by Roboflow for accurate coordinate system
+    const aiProcessingWidth = roboflowData.image?.width || null;
+    const aiProcessingHeight = roboflowData.image?.height || null;
+    console.log('Roboflow processing dimensions:', aiProcessingWidth, 'x', aiProcessingHeight);
+
+    if (aiProcessingWidth && aiProcessingHeight) {
+      const { error: updateSheetError } = await supabase
+        .from('takeoff_sheets')
+        .update({
+          ai_processing_width: aiProcessingWidth,
+          ai_processing_height: aiProcessingHeight
+        })
+        .eq('id', sheet_id);
+
+      if (updateSheetError) {
+        console.error('Error updating sheet dimensions:', updateSheetError);
+      } else {
+        console.log('Stored AI processing dimensions in sheet metadata');
+      }
+    }
+
     // Map Roboflow class names to cost codes
     const classMapping: Record<string, any> = {};
     filteredCostCodes.forEach(cc => {

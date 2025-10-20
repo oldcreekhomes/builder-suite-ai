@@ -8,9 +8,10 @@ interface Size {
 interface DOMOverlaysProps {
   annotations: any[];
   visibleAnnotations: Set<string>;
-  sheet: { file_name?: string; page_number?: number } | null;
+  sheet: { file_name?: string; page_number?: number; ai_processing_width?: number; ai_processing_height?: number } | null;
   canvasSize: Size;
   imgNaturalSize: Size | null;
+  aiProcessingSize: Size | null;
   forceShow: boolean;
   addProbes: boolean;
   testOverlay?: boolean;
@@ -31,26 +32,38 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
   sheet,
   canvasSize,
   imgNaturalSize,
+  aiProcessingSize,
   forceShow,
   addProbes,
   testOverlay = false,
 }) => {
   const isPDF = sheet?.file_name?.toLowerCase().endsWith('.pdf');
   const pageNum = sheet?.page_number || 1;
-  const originalW = imgNaturalSize?.width ?? null;
-  const originalH = imgNaturalSize?.height ?? null;
+  
+  // Use AI processing dimensions if available, otherwise fall back to natural dimensions
+  const referenceW = aiProcessingSize?.width ?? imgNaturalSize?.width ?? null;
+  const referenceH = aiProcessingSize?.height ?? imgNaturalSize?.height ?? null;
+  
   const canvasW = canvasSize.width;
   const canvasH = canvasSize.height;
 
-  // Compute display scale
-  const displayScaleX = originalW ? canvasW / originalW : 1;
-  const displayScaleY = originalH ? canvasH / originalH : 1;
+  // Compute display scale from reference dimensions (AI processing or natural)
+  const displayScaleX = referenceW ? canvasW / referenceW : 1;
+  const displayScaleY = referenceH ? canvasH / referenceH : 1;
+
+  console.log('DOMOverlays scaling:', {
+    aiProcessing: aiProcessingSize,
+    imgNatural: imgNaturalSize,
+    reference: { width: referenceW, height: referenceH },
+    canvas: { width: canvasW, height: canvasH },
+    scale: { x: displayScaleX, y: displayScaleY }
+  });
 
   // Page offset for multi-page PDFs
-  const pageOffsetY = isPDF && originalH ? (pageNum - 1) * originalH : 0;
-  const tol = originalH ? Math.max(2, originalH * 0.005) : 2;
+  const pageOffsetY = isPDF && referenceH ? (pageNum - 1) * referenceH : 0;
+  const tol = referenceH ? Math.max(2, referenceH * 0.005) : 2;
   const fixY = (y: number) => {
-    if (!isPDF || !originalH || pageNum <= 1) return y;
+    if (!isPDF || !referenceH || pageNum <= 1) return y;
     if (y >= pageOffsetY - tol) return y - pageOffsetY;
     return y;
   };
@@ -95,22 +108,30 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
     }
   });
 
-  // Decide scaling
+  // Decide scaling - if AI processing dimensions are available, always use them
   let scaleX = 1;
   let scaleY = 1;
   let useDisplayScale = false;
-  if (!isPDF && originalW && originalH) {
+  
+  if (aiProcessingSize) {
+    // AI processing dimensions are the source of truth - use them directly
     useDisplayScale = true;
     scaleX = Math.max(0.01, displayScaleX);
     scaleY = Math.max(0.01, displayScaleY);
-  } else if (originalW && originalH && globalMaxX > 0 && globalMaxY > 0) {
+    console.log('Using AI processing dimensions for scaling');
+  } else if (!isPDF && referenceW && referenceH) {
+    useDisplayScale = true;
+    scaleX = Math.max(0.01, displayScaleX);
+    scaleY = Math.max(0.01, displayScaleY);
+  } else if (referenceW && referenceH && globalMaxX > 0 && globalMaxY > 0) {
     const tolerance = 1.2;
-    if (globalMaxX <= originalW * tolerance && globalMaxY <= originalH * tolerance) {
+    if (globalMaxX <= referenceW * tolerance && globalMaxY <= referenceH * tolerance) {
       useDisplayScale = true;
       scaleX = Math.max(0.01, displayScaleX);
       scaleY = Math.max(0.01, displayScaleY);
     }
   }
+  
   if (!useDisplayScale && outOfBoundsCount > 0) {
     scaleX = globalMaxX > canvasW ? canvasW / globalMaxX : 1;
     scaleY = globalMaxY > canvasH ? canvasH / globalMaxY : 1;

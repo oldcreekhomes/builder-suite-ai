@@ -741,6 +741,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
                     : { width: pageWidth, height: imgNaturalSize ? Math.round(pageWidth * (imgNaturalSize.height / imgNaturalSize.width)) : 600 }
                 }
                 imgNaturalSize={imgNaturalSize}
+                aiProcessingSize={
+                  sheet?.ai_processing_width && sheet?.ai_processing_height
+                    ? { width: sheet.ai_processing_width, height: sheet.ai_processing_height }
+                    : null
+                }
                 forceShow={forceShow}
                 addProbes={addProbes}
                 testOverlay={testOverlay}
