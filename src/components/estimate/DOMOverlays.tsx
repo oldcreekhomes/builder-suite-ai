@@ -141,7 +141,7 @@ export const DOMOverlays: React.FC<DOMOverlaysProps> = ({
 
   const avgScale = (scaleX + scaleY) / 2;
 
-  const filtered = annotations.filter((a) => forceShow || visibleAnnotations.size === 0 || visibleAnnotations.has(a.takeoff_item_id || ''));
+  const filtered = annotations.filter((a) => visibleAnnotations.size === 0 || visibleAnnotations.has(a.takeoff_item_id || ''));
 
   return (
     <div className="absolute inset-0" style={{ pointerEvents: 'none', zIndex: 500 }}>
