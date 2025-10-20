@@ -289,8 +289,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           ? JSON.parse(annotation.geometry as string) 
           : annotation.geometry;
         
-        // Check visibility: if no filters, show all; otherwise check if item is in the set
-        const isVisible = visibleAnnotations.size === 0 || visibleAnnotations.has(annotation.takeoff_item_id || '');
+        // Check visibility based on explicit set membership
+        const isVisible = visibleAnnotations.has(annotation.takeoff_item_id || '');
         let fabricObject;
 
         switch (annotation.annotation_type) {
