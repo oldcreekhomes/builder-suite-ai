@@ -61,7 +61,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [docLoaded, setDocLoaded] = useState(false);
   const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
   const [overlayMode, setOverlayMode] = useState<'fabric' | 'dom'>('dom');
-  const [forceShow, setForceShow] = useState<boolean>(true);
+  const [forceShow, setForceShow] = useState<boolean>(false);
   const [addProbes, setAddProbes] = useState<boolean>(true);
   const [testOverlay, setTestOverlay] = useState<boolean>(false);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
