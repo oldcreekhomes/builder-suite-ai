@@ -17,7 +17,14 @@ export function useTakeoffItemMutations(sheetId: string) {
       return itemIds;
     },
     onSuccess: (itemIds) => {
+      // Invalidate items query
       queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
+      
+      // IMPORTANT: Also invalidate annotations query
+      // When items are deleted, their annotations are CASCADE deleted in the database
+      // We need to refresh the cache so the overlays disappear
+      queryClient.invalidateQueries({ queryKey: ['takeoff-annotations', sheetId] });
+      
       toast({
         title: "Success",
         description: `${itemIds.length} item${itemIds.length > 1 ? 's' : ''} deleted successfully`,
