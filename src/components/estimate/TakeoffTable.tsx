@@ -14,6 +14,7 @@ import { BulkActionBar } from "@/components/settings/BulkActionBar";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useTakeoffItemSelection } from "@/hooks/useTakeoffItemSelection";
 import { useTakeoffItemMutations } from "@/hooks/useTakeoffItemMutations";
+import { InlineEditCell } from "@/components/schedule/InlineEditCell";
 import {
   Table,
   TableBody,
@@ -40,7 +41,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
   
   const queryClient = useQueryClient();
   const { selectedItems, handleItemCheckboxChange, clearSelection, selectAll } = useTakeoffItemSelection();
-  const { handleDeleteItems, isDeleting } = useTakeoffItemMutations(sheetId || '');
+  const { handleDeleteItems, isDeleting, handleUpdateQuantity } = useTakeoffItemMutations(sheetId || '');
 
   // Color update mutation
   const updateColorMutation = useMutation({
@@ -426,7 +427,23 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{item.category}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {isTemplate ? (
+                        <span className="text-muted-foreground">{item.quantity}</span>
+                      ) : (
+                        <InlineEditCell
+                          value={item.quantity}
+                          type="number"
+                          onSave={(newValue) => {
+                            const qty = Number(newValue);
+                            if (qty >= 0 && !isNaN(qty)) {
+                              handleUpdateQuantity(item.id, qty);
+                            }
+                          }}
+                          className="text-left"
+                        />
+                      )}
+                    </TableCell>
                     <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
                     <TableCell>
                       {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}

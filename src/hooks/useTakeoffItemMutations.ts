@@ -44,8 +44,53 @@ export function useTakeoffItemMutations(sheetId: string) {
     deleteMutation.mutate(itemIds);
   };
 
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+      // Get current unit_price to calculate new total_cost
+      const { data: item } = await supabase
+        .from('takeoff_items')
+        .select('unit_price')
+        .eq('id', itemId)
+        .single();
+      
+      const totalCost = (item?.unit_price || 0) * quantity;
+      
+      const { error } = await supabase
+        .from('takeoff_items')
+        .update({ 
+          quantity,
+          total_cost: totalCost
+        })
+        .eq('id', itemId);
+      
+      if (error) throw error;
+      return { itemId, quantity };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
+      toast({
+        title: "Success",
+        description: "Quantity updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating quantity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quantity",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    updateQuantityMutation.mutate({ itemId, quantity });
+  };
+
   return {
     handleDeleteItems,
     isDeleting: deleteMutation.isPending,
+    handleUpdateQuantity,
+    isUpdating: updateQuantityMutation.isPending,
   };
 }
