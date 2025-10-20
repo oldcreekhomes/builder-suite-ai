@@ -64,6 +64,11 @@ export default function TakeoffEditor() {
   }, [selectedSheetId]);
 
   const handleToggleVisibility = (itemId: string) => {
+    console.log('🎯 handleToggleVisibility called:', {
+      itemId,
+      visibleBefore: Array.from(visibleAnnotations),
+    });
+    
     setVisibleAnnotations(prev => {
       const next = new Set(prev);
       if (next.has(itemId)) {
@@ -71,6 +76,14 @@ export default function TakeoffEditor() {
       } else {
         next.add(itemId);
       }
+      
+      console.log('✅ Visibility toggled:', {
+        itemId,
+        visibleAfter: Array.from(next),
+        wasVisible: prev.has(itemId),
+        nowVisible: next.has(itemId)
+      });
+      
       return next;
     });
   };

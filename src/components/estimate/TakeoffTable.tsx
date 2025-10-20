@@ -405,9 +405,16 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              console.log('🔍 Eye icon clicked:', { 
+                                itemId: item.id, 
+                                category: item.category,
+                                isVisible: visibleAnnotations.has(item.id),
+                                visibleSet: Array.from(visibleAnnotations)
+                              });
                               onToggleVisibility(item.id);
                             }}
                             className="cursor-pointer hover:opacity-80"
+                            aria-label={`Toggle visibility for ${item.category}`}
                           >
                             {visibleAnnotations.has(item.id) ? (
                               <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
