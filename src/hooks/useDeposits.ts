@@ -252,8 +252,8 @@ export const useDeposits = () => {
 
       if (depositError) throw depositError;
 
-      // If amount OR memo changed, update journal entry lines
-      if (updates.amount !== undefined || updates.memo !== undefined) {
+      // If amount changed, update journal entry lines
+      if (updates.amount !== undefined) {
         // Find the journal entry for this deposit
         const { data: journalEntry } = await supabase
           .from("journal_entries")
@@ -271,34 +271,21 @@ export const useDeposits = () => {
             .order("line_number");
 
           if (lines && lines.length > 0) {
-            // Update amounts if provided
-            if (updates.amount !== undefined) {
-              const bankLine = lines.find(l => l.account_id === depositData.bank_account_id && l.debit > 0);
-              const creditLine = lines.find(l => l.credit > 0);
+            const bankLine = lines.find(l => l.account_id === depositData.bank_account_id && l.debit > 0);
+            const creditLine = lines.find(l => l.credit > 0);
 
-              if (bankLine) {
-                await supabase
-                  .from("journal_entry_lines")
-                  .update({ debit: updates.amount })
-                  .eq("id", bankLine.id);
-              }
-
-              if (creditLine) {
-                await supabase
-                  .from("journal_entry_lines")
-                  .update({ credit: updates.amount })
-                  .eq("id", creditLine.id);
-              }
+            if (bankLine) {
+              await supabase
+                .from("journal_entry_lines")
+                .update({ debit: updates.amount })
+                .eq("id", bankLine.id);
             }
 
-            // Update all journal line memos if memo changed
-            if (updates.memo !== undefined) {
-              for (const line of lines) {
-                await supabase
-                  .from("journal_entry_lines")
-                  .update({ memo: updates.memo })
-                  .eq("id", line.id);
-              }
+            if (creditLine) {
+              await supabase
+                .from("journal_entry_lines")
+                .update({ credit: updates.amount })
+                .eq("id", creditLine.id);
             }
           }
         }
