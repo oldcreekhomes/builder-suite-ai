@@ -445,11 +445,12 @@ export function AccountDetailDialog({
                       />
                     </TableCell>
                     <TableCell className="px-2 py-1">
-                      {txn.credit > 0 
-                        ? `(${formatCurrency(txn.credit)})` 
-                        : txn.debit > 0 
-                        ? formatCurrency(txn.debit) 
-                        : '-'}
+                      <AccountTransactionInlineEditor
+                        value={txn.credit > 0 ? txn.credit : txn.debit}
+                        field="amount"
+                        onSave={(value) => handleUpdate(txn, "amount", value)}
+                        readOnly={!canDeleteBills || txn.reconciled}
+                      />
                     </TableCell>
                     <TableCell className="px-2 py-1 font-medium">
                       {formatCurrency(balances[index])}
