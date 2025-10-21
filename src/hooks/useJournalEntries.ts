@@ -401,11 +401,21 @@ export const useJournalEntries = () => {
       const updateData: any = {};
       if (updates.memo !== undefined) updateData.memo = updates.memo;
 
-      // Update the journal entry line
+      // First, get the journal_entry_id for this line
+      const { data: lineData, error: fetchError } = await supabase
+        .from("journal_entry_lines")
+        .select("journal_entry_id")
+        .eq("id", lineId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!lineData) throw new Error("Journal entry line not found");
+
+      // Update ALL lines in the same journal entry to sync descriptions
       const { error } = await supabase
         .from("journal_entry_lines")
         .update(updateData)
-        .eq("id", lineId);
+        .eq("journal_entry_id", lineData.journal_entry_id);
 
       if (error) throw error;
     },
