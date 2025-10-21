@@ -523,44 +523,56 @@ export function EditExtractedBillDialog({
 
         <div className="space-y-6 overflow-y-auto overflow-x-visible flex-1 px-2">
           {/* Header Info */}
-          <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-6">
+          <div className="grid grid-cols-[1.5fr_1fr] gap-6">
             <div className="space-y-2 min-w-0">
               <Label>Vendor *</Label>
               <VendorSearchInput value={vendorId} onChange={setVendorId} />
             </div>
-            <div className="space-y-2">
-              <Label>Bill Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !billDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {billDate ? format(billDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={billDate}
-                    onSelect={(date) => date && setBillDate(date)}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label>Reference No.</Label>
-              <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Bill Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !billDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {billDate ? format(billDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={billDate}
+                      onSelect={(date) => date && setBillDate(date)}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Terms</Label>
+                <Select value={terms} onValueChange={setTerms}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="net-15">Net 15</SelectItem>
+                    <SelectItem value="net-30">Net 30</SelectItem>
+                    <SelectItem value="net-60">Net 60</SelectItem>
+                    <SelectItem value="due-on-receipt">On Receipt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
@@ -587,53 +599,45 @@ export function EditExtractedBillDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label>Terms</Label>
-              <Select value={terms} onValueChange={setTerms}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="net-15">Net 15</SelectItem>
-                  <SelectItem value="net-30">Net 30</SelectItem>
-                  <SelectItem value="net-60">Net 60</SelectItem>
-                  <SelectItem value="due-on-receipt">On Receipt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Attachment</Label>
-              <div>
-                <div className="relative group inline-block">
-                  <button
-                    onClick={() => {
-                      const displayName = fileName.split('/').pop() || fileName;
-                      openBillAttachment(filePath, displayName);
-                    }}
-                    className={`${getFileIconColor(fileName)} transition-colors p-1`}
-                    title={fileName}
-                    type="button"
-                  >
-                    {(() => {
-                      const IconComponent = getFileIcon(fileName);
-                      return <IconComponent className="h-4 w-4" />;
-                    })()}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Note: This deletes the entire pending bill upload
-                      if (confirm('Delete this bill attachment? This will remove the entire bill from the queue.')) {
-                        onOpenChange(false);
-                        // Trigger deletion through parent component if needed
-                      }
-                    }}
-                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
-                    title="Delete file"
-                    type="button"
-                  >
-                    <span className="text-xs font-bold leading-none">×</span>
-                  </button>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Reference No.</Label>
+                <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Attachment</Label>
+                <div>
+                  <div className="relative group inline-block">
+                    <button
+                      onClick={() => {
+                        const displayName = fileName.split('/').pop() || fileName;
+                        openBillAttachment(filePath, displayName);
+                      }}
+                      className={`${getFileIconColor(fileName)} transition-colors p-1`}
+                      title={fileName}
+                      type="button"
+                    >
+                      {(() => {
+                        const IconComponent = getFileIcon(fileName);
+                        return <IconComponent className="h-4 w-4" />;
+                      })()}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Note: This deletes the entire pending bill upload
+                        if (confirm('Delete this bill attachment? This will remove the entire bill from the queue.')) {
+                          onOpenChange(false);
+                          // Trigger deletion through parent component if needed
+                        }
+                      }}
+                      className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                      title="Delete file"
+                      type="button"
+                    >
+                      <span className="text-xs font-bold leading-none">×</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
