@@ -336,23 +336,16 @@ async function autoAssignSingleCostCode(
     
     console.log(`✅ Vendor has exactly 1 cost code: ${costCode.code}: ${costCode.name}`);
     
-    // Auto-assign to all lines without a cost code
-    let assignedCount = 0;
+    // Force-assign to ALL lines (no choice when vendor has exactly one cost code)
     const updatedItems = lineItems.map((item: any) => {
-      if (!item.cost_code_name || item.cost_code_name === '') {
-        assignedCount++;
-        console.log(`  → Auto-assigning to line ${item.line_number}: "${item.description || item.memo}"`);
-        return {
-          ...item,
-          cost_code_name: `${costCode.code}: ${costCode.name}`
-        };
-      }
-      return item;
+      console.log(`  → Forcing single vendor cost code on line ${item.line_number}: "${item.description || item.memo}"`);
+      return {
+        ...item,
+        cost_code_name: `${costCode.code}: ${costCode.name}`
+      };
     });
     
-    if (assignedCount > 0) {
-      console.log(`✅ Auto-assigned cost code to ${assignedCount} line item(s)`);
-    }
+    console.log(`✅ Forced single cost code on ${updatedItems.length} line item(s)`);
     
     return updatedItems;
   } catch (e) {
@@ -626,7 +619,7 @@ EXAMPLE OUTPUT (note the exact field names):
       "amount": 225,
       "memo": null,
       "account_name": "Job Costs",
-      "cost_code_name": "Project Management"
+      "cost_code_name": "4020: Project Manager"
     }
   ],
   "total_amount": 225
@@ -650,7 +643,7 @@ Extract the following information and return as valid JSON:
       "amount": number,
       "memo": "string or null",
       "account_name": "string - exact match from available accounts, or null",
-      "cost_code_name": "string - exact match from available cost codes, or null"
+      "cost_code_name": "string - MUST be in format 'CODE: NAME' (e.g., '4020: Project Manager'), or null"
     }
   ],
   "total_amount": number
@@ -689,7 +682,7 @@ IMPORTANT PAYMENT TERMS:
 
 IMPORTANT CATEGORIZATION: For each line item, analyze the description and match it to the most appropriate account and cost code from the lists above. 
 - For "account_name", return the exact account name from the available accounts list
-- For "cost_code_name", return the exact cost code name from the available cost codes list
+- For "cost_code_name", return the cost code in format "CODE: NAME" exactly as shown in the available cost codes list (e.g., "4020: Project Manager")
 - If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
 - Common patterns: "Job Costs" account is typically for project-related expenses like materials, labor, subcontractors, project management, etc.
 
@@ -698,7 +691,7 @@ SMART COST CODE ASSIGNMENT RULES:
 2. Check if this vendor is listed in the COMPANY-SPECIFIC COST CODES section above
 3. If the company has ONLY ONE cost code associated:
    - Automatically assign that cost code to ALL line items
-   - Set cost_code_name for every line item to that code's name
+   - Set cost_code_name for every line item to the FULL format "CODE: NAME" (e.g., "4020: Project Manager")
 4. If the company has MULTIPLE cost codes:
    - Review each line item description carefully
    - Match the line item to the MOST APPROPRIATE cost code from that company's specific list
@@ -709,6 +702,13 @@ SMART COST CODE ASSIGNMENT RULES:
 
 IMPORTANT: Prioritize using company-specific cost codes over general cost codes when the vendor is found in the company list.
 
+CRITICAL COST CODE FORMAT RULE:
+- cost_code_name MUST include BOTH the code number AND the name
+- Required format: "CODE: NAME" (e.g., "4020: Project Manager")
+- WRONG: "Project Manager"
+- CORRECT: "4020: Project Manager"
+- If vendor has exactly one cost code, ALWAYS use it and ignore description-based suggestions.
+
 🔍 FINAL VALIDATION CHECKLIST (before returning JSON):
 ✓ All field names use snake_case (vendor_name, bill_date, NOT vendorName, billDate)
 ✓ vendor_name is populated
@@ -716,7 +716,7 @@ IMPORTANT: Prioritize using company-specific cost codes over general cost codes 
 ✓ Dates are in YYYY-MM-DD format
 ✓ terms field contains exact text from invoice (or null if not found)
 ✓ line_items array contains all invoice line items
-✓ account_name and cost_code_name match exact names from available lists (or null)
+✓ account_name matches available accounts (or null); cost_code_name matches FULL format "CODE: NAME" from cost codes list (or null)
 ✓ All amounts are numeric (not strings)
 
 Return ONLY the JSON object, no additional text.`;

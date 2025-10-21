@@ -158,11 +158,61 @@ serve(async (req) => {
 
     // Update the pending upload if we found a match
     if (vendorId && matchedCompanyName) {
-      const updatedData = {
+      let updatedData = {
         ...upload.extracted_data,
         vendor_id: vendorId,
         vendor: matchedCompanyName
       };
+
+      // If vendor has exactly one cost code, force-assign it across extracted_data and pending_bill_lines
+      try {
+        const { data: ccLinks, error: ccErr } = await supabase
+          .from('company_cost_codes')
+          .select(`
+            cost_code_id,
+            cost_codes (
+              id,
+              code,
+              name
+            )
+          `)
+          .eq('company_id', vendorId);
+
+        if (ccErr) {
+          console.error('Error loading vendor cost codes:', ccErr);
+        } else if (ccLinks && ccLinks.length === 1 && ccLinks[0].cost_codes) {
+          const ccId = ccLinks[0].cost_code_id;
+          const cc = ccLinks[0].cost_codes;
+          const ccDisplay = `${cc.code}: ${cc.name}`;
+          console.log(`Forcing single vendor cost code after rematch: ${ccDisplay}`);
+
+          // Update extracted_data line_items
+          if (Array.isArray(updatedData.line_items)) {
+            updatedData = {
+              ...updatedData,
+              line_items: updatedData.line_items.map((li: any) => ({
+                ...li,
+                cost_code_name: ccDisplay,
+              })),
+            };
+          }
+
+          // Update pending_bill_lines rows in DB for this pending upload
+          const { error: lineUpdateErr } = await supabase
+            .from('pending_bill_lines')
+            .update({ cost_code_id: ccId, cost_code_name: ccDisplay })
+            .eq('pending_upload_id', pendingUploadId)
+            .eq('line_type', 'job_cost');
+
+          if (lineUpdateErr) {
+            console.error('Failed to update pending_bill_lines with single cost code:', lineUpdateErr);
+          } else {
+            console.log('✅ Updated pending_bill_lines with single vendor cost code');
+          }
+        }
+      } catch (e) {
+        console.error('Error enforcing single cost code after rematch:', e);
+      }
 
       const { error: updateError } = await supabase
         .from('pending_bill_uploads')
@@ -176,10 +226,10 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          vendor_id: vendorId, 
-          company_name: matchedCompanyName 
+        JSON.stringify({
+          success: true,
+          vendor_id: vendorId,
+          company_name: matchedCompanyName
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
