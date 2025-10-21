@@ -516,14 +516,14 @@ export function EditExtractedBillDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8">
         <DialogHeader>
           <DialogTitle>Edit Extracted Bill</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 overflow-y-auto flex-1">
+        <div className="space-y-6 overflow-y-auto overflow-x-visible flex-1 px-2">
           {/* Header Info */}
-          <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-4">
+          <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-6">
             <div className="space-y-2 min-w-0">
               <Label>Vendor *</Label>
               <VendorSearchInput value={vendorId} onChange={setVendorId} />
@@ -560,7 +560,7 @@ export function EditExtractedBillDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-6">
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
