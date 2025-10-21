@@ -143,7 +143,8 @@ export function BatchBillReviewTable({
       }
     }
     
-    if (!bill.bill_date) issues.push("Bill date required");
+    const billDate = getExtractedValue(bill, 'bill_date', 'billDate');
+    if (!billDate) issues.push("Bill date required");
     if (!bill.lines || bill.lines.length === 0) issues.push("At least one line item required");
     
     // Check line items
