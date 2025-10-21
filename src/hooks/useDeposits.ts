@@ -134,7 +134,7 @@ export const useDeposits = () => {
         project_id: depositData.project_id || null,
         debit: depositData.amount,
         credit: 0,
-        memo: depositData.memo || 'Deposit'
+        memo: depositLines[0]?.memo || 'Deposit'
       };
 
       // Remaining lines: CREDIT source accounts (revenue/customer payments)
