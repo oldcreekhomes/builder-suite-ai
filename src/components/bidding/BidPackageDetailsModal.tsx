@@ -134,6 +134,58 @@ export function BidPackageDetailsModal({
         </DialogHeader>
         
         <div className="flex-1 overflow-auto space-y-4">
+          {/* Upload Progress for this Bid Package */}
+          {bidPackageUploads.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Uploading Files</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2 max-h-32 overflow-auto">
+                  {bidPackageUploads.map((upload) => (
+                    <div key={upload.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                      <div className="flex-1 min-w-0 mr-3">
+                        <p className="text-sm font-medium truncate">{upload.file.name}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Progress value={upload.progress} className="flex-1 h-2" />
+                          <span className="text-xs text-muted-foreground min-w-0">
+                            {upload.progress}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        {upload.uploading ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => cancelUpload?.(upload.id)}
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                            title="Cancel upload"
+                          >
+                            <XCircle className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeUpload?.(upload.id)}
+                            className="h-6 w-6 p-0"
+                            title="Remove from list"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Maximum file size: 50MB
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Bid Package Management Section */}
           <div className="border rounded-lg">
             <table className="w-full">
@@ -214,58 +266,6 @@ export function BidPackageDetailsModal({
               </tbody>
             </table>
           </div>
-
-          {/* Upload Progress for this Bid Package */}
-          {bidPackageUploads.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Uploading Files</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2 max-h-32 overflow-auto">
-                  {bidPackageUploads.map((upload) => (
-                    <div key={upload.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <div className="flex-1 min-w-0 mr-3">
-                        <p className="text-sm font-medium truncate">{upload.file.name}</p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Progress value={upload.progress} className="flex-1 h-2" />
-                          <span className="text-xs text-muted-foreground min-w-0">
-                            {upload.progress}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        {upload.uploading ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => cancelUpload?.(upload.id)}
-                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                            title="Cancel upload"
-                          >
-                            <XCircle className="h-3 w-3" />
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeUpload?.(upload.id)}
-                            className="h-6 w-6 p-0"
-                            title="Remove from list"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Maximum file size: 50MB
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Distance Filter Bar */}
           <DistanceFilterBar
