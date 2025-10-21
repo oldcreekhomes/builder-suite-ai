@@ -458,17 +458,19 @@ export function AccountDetailDialog({
                     <TableCell className="px-2 py-1 text-center">
                       {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-center">
-                      {canDeleteBills && !txn.reconciled && (
-                        <DeleteButton
-                          onDelete={() => handleDelete(txn)}
-                          title="Delete Transaction"
-                          description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                        />
-                      )}
+                    <TableCell className="px-2 py-1">
+                      <div className="flex items-center justify-center">
+                        {canDeleteBills && !txn.reconciled && (
+                          <DeleteButton
+                            onDelete={() => handleDelete(txn)}
+                            title="Delete Transaction"
+                            description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                          />
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
