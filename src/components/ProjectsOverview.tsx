@@ -208,7 +208,7 @@ export function ProjectsOverview() {
                   {getProjectCount(status) > 0 && (
                     <Badge 
                       variant="secondary" 
-                      className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0 text-xs"
+                      className="ml-auto rounded-full border-2 border-black h-6 w-6 min-w-6 !px-0 !py-0 items-center justify-center text-xs font-semibold"
                     >
                       {getProjectCount(status)}
                     </Badge>
