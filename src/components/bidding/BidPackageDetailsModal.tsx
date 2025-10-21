@@ -118,7 +118,7 @@ export function BidPackageDetailsModal({
   };
 
   // Filter uploading files for this specific bid package
-  const bidPackageUploads = uploadingFiles.filter(upload => upload.biddingItemId === item.id);
+  const bidPackageUploads = uploadingFiles.filter(upload => upload.itemId === item.id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
