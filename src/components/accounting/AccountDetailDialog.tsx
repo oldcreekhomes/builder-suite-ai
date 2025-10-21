@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import {
@@ -64,6 +64,8 @@ export function AccountDetailDialog({
   const { deleteDeposit, updateDeposit } = useDeposits();
   const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
+  const queryClient = useQueryClient();
+  const prevOpenRef = useRef(open);
 
   // Helper to parse date-only strings as local midnight (avoids timezone shift)
   const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
@@ -287,6 +289,21 @@ export function AccountDetailDialog({
       onOpenChange(false);
     }
   }, [transactions, open, onOpenChange]);
+
+  // Refetch reports when dialog closes to ensure immediate updates
+  useEffect(() => {
+    if (prevOpenRef.current && !open) {
+      // Dialog just closed => refresh reports and transactions
+      queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["balance-sheet"] });
+      queryClient.invalidateQueries({ queryKey: ["income-statement"] });
+
+      // Force immediate refetch to ensure UI updates without waiting
+      queryClient.refetchQueries({ queryKey: ["balance-sheet"] });
+      queryClient.refetchQueries({ queryKey: ["income-statement"] });
+    }
+    prevOpenRef.current = open;
+  }, [open, queryClient]);
 
   const handleDelete = async (transaction: Transaction) => {
     if (!canDeleteBills) return;
