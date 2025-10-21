@@ -291,23 +291,75 @@ export const useChecks = () => {
       if (updates.memo !== undefined) updateData.memo = updates.memo;
       if (updates.amount !== undefined) updateData.amount = updates.amount;
 
-      // Update the check
-      const { error: checkError } = await supabase
+      // Update the check with provided fields
+      const { error: checkError, data: checkData } = await supabase
         .from("checks")
         .update(updateData)
-        .eq("id", checkId);
+        .eq("id", checkId)
+        .select("bank_account_id")
+        .single();
 
       if (checkError) throw checkError;
 
+      // If amount OR pay_to changed, update journal entry lines
+      if (updates.amount !== undefined || updates.pay_to !== undefined) {
+        // Find the journal entry for this check
+        const { data: journalEntry } = await supabase
+          .from("journal_entries")
+          .select("id")
+          .eq("source_type", "check")
+          .eq("source_id", checkId)
+          .single();
+
+        if (journalEntry) {
+          // Get all lines for this journal entry
+          const { data: lines } = await supabase
+            .from("journal_entry_lines")
+            .select("*")
+            .eq("journal_entry_id", journalEntry.id)
+            .order("line_number");
+
+          if (lines && lines.length > 0) {
+            // Update amounts if provided
+            if (updates.amount !== undefined) {
+              const bankLine = lines.find(l => l.account_id === checkData.bank_account_id && l.credit > 0);
+              const debitLine = lines.find(l => l.debit > 0);
+
+              if (bankLine) {
+                await supabase
+                  .from("journal_entry_lines")
+                  .update({ credit: updates.amount })
+                  .eq("id", bankLine.id);
+              }
+
+              if (debitLine) {
+                await supabase
+                  .from("journal_entry_lines")
+                  .update({ debit: updates.amount })
+                  .eq("id", debitLine.id);
+              }
+            }
+
+            // Update all journal line memos if pay_to changed
+            if (updates.pay_to !== undefined) {
+              for (const line of lines) {
+                await supabase
+                  .from("journal_entry_lines")
+                  .update({ memo: updates.pay_to })
+                  .eq("id", line.id);
+              }
+            }
+          }
+        }
+      }
+
       // If date changed, update the journal entry date too
       if (updates.check_date !== undefined) {
-        const { error: journalError } = await supabase
+        await supabase
           .from("journal_entries")
           .update({ entry_date: updates.check_date })
           .eq("source_type", "check")
           .eq("source_id", checkId);
-
-        if (journalError) throw journalError;
       }
     },
     onSuccess: () => {
