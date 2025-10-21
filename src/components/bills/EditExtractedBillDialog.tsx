@@ -523,8 +523,8 @@ export function EditExtractedBillDialog({
 
         <div className="space-y-6 overflow-y-auto overflow-x-visible flex-1 px-2">
           {/* Header Info */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Row 1: Vendor | Bill Date */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Row 1: Vendor | Bill Date | Terms */}
             <div className="space-y-2 min-w-0">
               <Label>Vendor *</Label>
               <VendorSearchInput value={vendorId} onChange={setVendorId} />
@@ -555,8 +555,22 @@ export function EditExtractedBillDialog({
                 </PopoverContent>
               </Popover>
             </div>
+            <div className="space-y-2">
+              <Label>Terms</Label>
+              <Select value={terms} onValueChange={setTerms}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="net-15">Net 15</SelectItem>
+                  <SelectItem value="net-30">Net 30</SelectItem>
+                  <SelectItem value="net-60">Net 60</SelectItem>
+                  <SelectItem value="due-on-receipt">On Receipt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            {/* Row 2: Due Date | Terms */}
+            {/* Row 2: Due Date | Reference No. | Attachment */}
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
@@ -583,22 +597,6 @@ export function EditExtractedBillDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label>Terms</Label>
-              <Select value={terms} onValueChange={setTerms}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="net-15">Net 15</SelectItem>
-                  <SelectItem value="net-30">Net 30</SelectItem>
-                  <SelectItem value="net-60">Net 60</SelectItem>
-                  <SelectItem value="due-on-receipt">On Receipt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Row 3: Reference No. | Attachment */}
             <div className="space-y-2">
               <Label>Reference No.</Label>
               <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
