@@ -312,8 +312,11 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
                        onSelectAllCompanies={handleSelectAllCompanies}
                        onBulkDeleteCompanies={onBulkDeleteCompanies}
                        isDeletingCompanies={false}
+                       uploadingFiles={uploadingFiles}
+                       cancelUpload={cancelUpload}
+                       removeUpload={removeUpload}
                      />
-                  )) : [])
+                   )) : [])
                 ]).flat()}
               </>
             )}

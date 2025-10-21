@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
@@ -9,6 +12,7 @@ import { BiddingTableRowFiles } from './components/BiddingTableRowFiles';
 import { BiddingTableRowActions } from './components/BiddingTableRowActions';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
+import { X, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useDistanceFilter } from '@/hooks/useDistanceFilter';
 import { DistanceFilterBar } from './components/DistanceFilterBar';
@@ -47,6 +51,9 @@ interface BidPackageDetailsModalProps {
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
   onBulkDeleteCompanies?: (biddingItemId: string, companyIds: string[]) => void;
   isDeletingCompanies?: boolean;
+  uploadingFiles?: any[];
+  cancelUpload?: (uploadId: string) => void;
+  removeUpload?: (uploadId: string) => void;
 }
 
 export function BidPackageDetailsModal({
@@ -79,7 +86,10 @@ export function BidPackageDetailsModal({
   onCompanyCheckboxChange,
   onSelectAllCompanies,
   onBulkDeleteCompanies,
-  isDeletingCompanies = false
+  isDeletingCompanies = false,
+  uploadingFiles = [],
+  cancelUpload,
+  removeUpload
 }: BidPackageDetailsModalProps) {
   const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(true);
   const [distanceRadius, setDistanceRadius] = useState(50);
@@ -106,6 +116,9 @@ export function BidPackageDetailsModal({
       onBulkDeleteCompanies(item.id, selectedIds);
     }
   };
+
+  // Filter uploading files for this specific bid package
+  const bidPackageUploads = uploadingFiles.filter(upload => upload.biddingItemId === item.id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,6 +214,58 @@ export function BidPackageDetailsModal({
               </tbody>
             </table>
           </div>
+
+          {/* Upload Progress for this Bid Package */}
+          {bidPackageUploads.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Uploading Files</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2 max-h-32 overflow-auto">
+                  {bidPackageUploads.map((upload) => (
+                    <div key={upload.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                      <div className="flex-1 min-w-0 mr-3">
+                        <p className="text-sm font-medium truncate">{upload.file.name}</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Progress value={upload.progress} className="flex-1 h-2" />
+                          <span className="text-xs text-muted-foreground min-w-0">
+                            {upload.progress}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        {upload.uploading ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => cancelUpload?.(upload.id)}
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                            title="Cancel upload"
+                          >
+                            <XCircle className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeUpload?.(upload.id)}
+                            className="h-6 w-6 p-0"
+                            title="Remove from list"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Maximum file size: 50MB
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Distance Filter Bar */}
           <DistanceFilterBar

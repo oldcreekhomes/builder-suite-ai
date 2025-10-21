@@ -37,6 +37,9 @@ interface BiddingTableRowProps {
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
   onBulkDeleteCompanies?: (biddingItemId: string, companyIds: string[]) => void;
   isDeletingCompanies?: boolean;
+  uploadingFiles?: any[];
+  cancelUpload?: (uploadId: string) => void;
+  removeUpload?: (uploadId: string) => void;
 }
 
 export function BiddingTableRow({
@@ -65,7 +68,10 @@ export function BiddingTableRow({
   onCompanyCheckboxChange,
   onSelectAllCompanies,
   onBulkDeleteCompanies,
-  isDeletingCompanies = false
+  isDeletingCompanies = false,
+  uploadingFiles = [],
+  cancelUpload,
+  removeUpload
 }: BiddingTableRowProps) {
   const [showSendModal, setShowSendModal] = useState(false);
   const [showSingleCompanyModal, setShowSingleCompanyModal] = useState(false);
@@ -154,6 +160,9 @@ export function BiddingTableRow({
         onSelectAllCompanies={onSelectAllCompanies}
         onBulkDeleteCompanies={onBulkDeleteCompanies}
         isDeletingCompanies={isDeletingCompanies}
+        uploadingFiles={uploadingFiles}
+        cancelUpload={cancelUpload}
+        removeUpload={removeUpload}
       />
       
       <AddCompaniesToBidPackageModal
