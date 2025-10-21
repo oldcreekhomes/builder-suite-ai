@@ -422,6 +422,7 @@ export const useJournalEntries = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["journal-entries"] });
       queryClient.invalidateQueries({ queryKey: ["account-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["balance-sheet"] });
       toast({ title: "Transaction updated successfully" });
     },
     onError: (error: Error) => {
