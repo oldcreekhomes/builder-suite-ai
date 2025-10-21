@@ -91,7 +91,7 @@ export function EditExtractedBillDialog({
       const extractedVendorId = extractedData.vendor_id || extractedData.vendorId || "";
       
       setVendorId(extractedVendorId);
-      setRefNo(extractedData.referenceNumber || "");
+      setRefNo(extractedData.reference_number || extractedData.referenceNumber || "");
       setTerms(normalizeTermsForUI(extractedData.terms));
       setFileName(bill.file_name);
       setFilePath(bill.file_path);
@@ -523,8 +523,8 @@ export function EditExtractedBillDialog({
 
         <div className="space-y-6 overflow-y-auto flex-1">
           {/* Header Info */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-4">
+            <div className="space-y-2 min-w-0">
               <Label>Vendor *</Label>
               <VendorSearchInput value={vendorId} onChange={setVendorId} />
             </div>
