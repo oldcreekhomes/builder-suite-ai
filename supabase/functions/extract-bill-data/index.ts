@@ -21,6 +21,39 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+// Helper function to extract keywords from description for similarity matching
+function extractKeywords(description: string): string[] {
+  if (!description) return [];
+  
+  // Convert to lowercase and split into words
+  const words = description.toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .split(/\s+/)
+    .filter(word => word.length > 3); // Only words longer than 3 chars
+  
+  // Remove common construction stop words
+  const stopWords = new Set([
+    'the', 'and', 'for', 'with', 'from', 'this', 'that', 'have', 'been',
+    'work', 'invoice', 'bill', 'payment', 'total', 'amount'
+  ]);
+  
+  return words.filter(word => !stopWords.has(word));
+}
+
+// Helper function to calculate similarity between descriptions
+function descriptionSimilarity(desc1: string, desc2: string): number {
+  const keywords1 = new Set(extractKeywords(desc1));
+  const keywords2 = new Set(extractKeywords(desc2));
+  
+  if (keywords1.size === 0 || keywords2.size === 0) return 0;
+  
+  // Calculate Jaccard similarity (intersection / union)
+  const intersection = new Set([...keywords1].filter(k => keywords2.has(k)));
+  const union = new Set([...keywords1, ...keywords2]);
+  
+  return intersection.size / union.size;
+}
+
 // Normalize vendor name for comparison
 function normalizeVendorName(name: string): string {
   if (!name) return '';
@@ -410,13 +443,69 @@ serve(async (req) => {
       `)
       .eq('home_builder_id', effectiveOwnerId);
 
-    // Fetch recent categorization examples for AI learning (using effectiveOwnerId)
-    const { data: learningExamples } = await supabase
+    // Fetch categorization examples for AI learning with smart prioritization
+    // Strategy: Get more examples and let the AI see vendor-specific patterns
+    const { data: allLearningExamples } = await supabase
       .from('bill_categorization_examples')
-      .select('vendor_name, description, account_name, cost_code_name')
+      .select('vendor_name, description, account_name, cost_code_name, created_at')
       .eq('owner_id', effectiveOwnerId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100); // Fetch more to allow smart filtering
+
+    // Smart prioritization: Group by vendor and description similarity
+    const learningExamples = allLearningExamples?.slice(0, 50) || []; // Will use top 50 in prompt
+    
+    // Create vendor-specific learning summary for the AI
+    const vendorPatterns = new Map<string, Array<any>>();
+    allLearningExamples?.forEach(example => {
+      const vendor = example.vendor_name?.toLowerCase() || 'unknown';
+      if (!vendorPatterns.has(vendor)) {
+        vendorPatterns.set(vendor, []);
+      }
+      vendorPatterns.get(vendor)!.push(example);
+    });
+
+    // Build vendor learning summary with cost codes AND description patterns
+    let vendorLearningSummary = '';
+    if (vendorPatterns.size > 0) {
+      vendorLearningSummary = '\n\n🎯 VENDOR-SPECIFIC PATTERNS (learned from past approvals):\n';
+      for (const [vendor, examples] of vendorPatterns.entries()) {
+        if (examples.length >= 2) { // Only show patterns with 2+ examples
+          vendorLearningSummary += `\n${vendor.toUpperCase()}:\n`;
+          
+          // Show most common cost codes for this vendor
+          const costCodeCounts = new Map<string, number>();
+          examples.forEach(ex => {
+            if (ex.cost_code_name) {
+              costCodeCounts.set(ex.cost_code_name, (costCodeCounts.get(ex.cost_code_name) || 0) + 1);
+            }
+          });
+          const sortedCodes = Array.from(costCodeCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+          
+          vendorLearningSummary += `  Cost Codes:\n`;
+          sortedCodes.forEach(([code, count]) => {
+            vendorLearningSummary += `    • ${code} (used ${count}x)\n`;
+          });
+          
+          // Show common description keywords
+          const allKeywords = new Set<string>();
+          examples.forEach(ex => {
+            if (ex.description) {
+              extractKeywords(ex.description).forEach(kw => allKeywords.add(kw));
+            }
+          });
+          
+          if (allKeywords.size > 0) {
+            const topKeywords = Array.from(allKeywords).slice(0, 5);
+            vendorLearningSummary += `  Common terms: ${topKeywords.join(', ')}\n`;
+          }
+        }
+      }
+      
+      vendorLearningSummary += '\n💡 When you see these vendors, strongly prefer their historical cost codes!\n';
+    }
 
     console.log(`Found ${accounts?.length || 0} accounts, ${costCodes?.length || 0} cost codes, and ${learningExamples?.length || 0} past categorizations for AI learning`);
 
@@ -513,7 +602,7 @@ VENDOR CONTACT EXTRACTION RULES:
 - DO NOT fabricate or guess
 
 Return ONLY the JSON object with these 4 fields, no additional text.`
-      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}
+      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}${vendorLearningSummary}
 
 ⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
 ALL field names MUST use snake_case (e.g., vendor_name, bill_date).
