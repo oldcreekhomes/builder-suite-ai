@@ -59,7 +59,7 @@ export function AccountDetailDialog({
   open,
   onOpenChange,
 }: AccountDetailDialogProps) {
-  const [sortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOrder] = useState<'asc' | 'desc'>('asc');
   const { deleteCheck, updateCheck } = useChecks();
   const { deleteDeposit, updateDeposit } = useDeposits();
   const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine } = useJournalEntries();
