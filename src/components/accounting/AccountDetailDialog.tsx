@@ -220,11 +220,6 @@ export function AccountDetailDialog({
             memo = deposit.memo;
             reference = deposit.receivedFrom;
             reconciled = deposit.reconciled || false;
-            
-            // For the bank line, use the first deposit line memo as description
-            if (line.account_id === deposit.bank_account_id) {
-              description = deposit.firstLineMemo || line.memo;
-            }
           }
         }
 
