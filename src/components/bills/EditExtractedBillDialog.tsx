@@ -516,91 +516,97 @@ export function EditExtractedBillDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-8">
         <DialogHeader>
           <DialogTitle>Edit Extracted Bill</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 overflow-y-auto overflow-x-visible flex-1 px-2">
           {/* Header Info */}
-          <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-6">
+          <div className="grid grid-cols-[1.5fr_1fr] gap-6">
             <div className="space-y-2 min-w-0">
               <Label>Vendor *</Label>
               <VendorSearchInput value={vendorId} onChange={setVendorId} />
             </div>
-            <div className="space-y-2">
-              <Label>Bill Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !billDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {billDate ? format(billDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={billDate}
-                    onSelect={(date) => date && setBillDate(date)}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label>Reference No.</Label>
-              <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Bill Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !billDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {billDate ? format(billDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={billDate}
+                      onSelect={(date) => date && setBillDate(date)}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Terms</Label>
+                <Select value={terms} onValueChange={setTerms}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="net-15">Net 15</SelectItem>
+                    <SelectItem value="net-30">Net 30</SelectItem>
+                    <SelectItem value="net-60">Net 60</SelectItem>
+                    <SelectItem value="due-on-receipt">On Receipt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
-            <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dueDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={setDueDate}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dueDate}
+                      onSelect={setDueDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Reference No.</Label>
+                <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Terms</Label>
-              <Select value={terms} onValueChange={setTerms}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="net-15">Net 15</SelectItem>
-                  <SelectItem value="net-30">Net 30</SelectItem>
-                  <SelectItem value="net-60">Net 60</SelectItem>
-                  <SelectItem value="due-on-receipt">On Receipt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            
             <div className="space-y-2">
               <Label>Attachment</Label>
               <div>
