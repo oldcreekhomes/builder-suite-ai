@@ -866,6 +866,116 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_card_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          cost_code_id: string | null
+          created_at: string
+          credit_card_id: string
+          id: string
+          line_number: number
+          line_type: string
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          cost_code_id?: string | null
+          created_at?: string
+          credit_card_id: string
+          id?: string
+          line_number?: number
+          line_type: string
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          cost_code_id?: string | null
+          created_at?: string
+          credit_card_id?: string
+          id?: string
+          line_number?: number
+          line_type?: string
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_lines_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_cards: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          credit_card_account_id: string
+          id: string
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          reconciled: boolean
+          reconciliation_date: string | null
+          reconciliation_id: string | null
+          status: string
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+          vendor: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by: string
+          credit_card_account_id: string
+          id?: string
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          reconciled?: boolean
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
+          status?: string
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+          vendor: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          credit_card_account_id?: string
+          id?: string
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          reconciled?: boolean
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
+          status?: string
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+          vendor?: string
+        }
+        Relationships: []
+      }
       deposit_lines: {
         Row: {
           account_id: string | null
@@ -2497,6 +2607,10 @@ export type Database = {
       }
       delete_check_with_journal_entries: {
         Args: { check_id_param: string }
+        Returns: boolean
+      }
+      delete_credit_card_with_journal_entries: {
+        Args: { credit_card_id_param: string }
         Returns: boolean
       }
       delete_deposit_with_journal_entries: {
