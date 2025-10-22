@@ -147,7 +147,7 @@ export function BudgetDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Budget Details
@@ -286,7 +286,7 @@ export function BudgetDetailsModal({
           </TabsContent>
 
           <TabsContent value="vendor-bid" className="flex-1 overflow-auto mt-4">
-            <div className="space-y-3">
+            <div className="space-y-3 max-w-full">
               {availableBids.length === 0 ? (
                 <div className="text-center py-8 space-y-2">
                   <p className="text-sm text-muted-foreground">
