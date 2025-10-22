@@ -70,20 +70,13 @@ export function DepositSourceSearchInput({
           ) : filteredSources.length > 0 ? (
             <div>
               {filteredSources.map((source) => (
-                <div
-                  key={source.id}
-                  onClick={() => handleSelectSource(source.id, source.customer_name)}
-                  className="p-2 hover:bg-accent cursor-pointer"
-                >
-                  <div className="font-medium">{source.customer_name}</div>
-                  {(source.city || source.phone_number) && (
-                    <div className="text-xs text-muted-foreground">
-                      {source.city && source.state ? `${source.city}, ${source.state}` : ''}
-                      {source.city && source.state && source.phone_number ? ' • ' : ''}
-                      {source.phone_number || ''}
-                    </div>
-                  )}
-                </div>
+              <div
+                key={source.id}
+                onClick={() => handleSelectSource(source.id, source.customer_name)}
+                className="p-2 hover:bg-accent cursor-pointer"
+              >
+                <div className="font-medium">{source.customer_name}</div>
+              </div>
               ))}
             </div>
           ) : (
