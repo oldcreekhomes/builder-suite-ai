@@ -101,6 +101,7 @@ export default function TakeoffEditor() {
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title={takeoff?.name || "Takeoff Editor"}
+            projectId={projectId}
           />
           
           <ResizablePanelGroup direction="horizontal" className="flex-1">
