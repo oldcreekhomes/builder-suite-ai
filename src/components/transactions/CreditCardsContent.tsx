@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { useCreditCards, type CreditCardLineData } from "@/hooks/useCreditCards";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 interface CreditCardRow {
@@ -119,7 +122,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         lines.push({
           line_type: 'expense',
           account_id: row.accountId,
-          project_id: row.projectId,
+          project_id: projectId,
           amount,
           memo: row.memo,
         });
@@ -132,7 +135,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         lines.push({
           line_type: 'job_cost',
           cost_code_id: row.costCodeId,
-          project_id: row.projectId,
+          project_id: projectId,
           amount,
           memo: row.memo,
         });
@@ -236,19 +239,36 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 value={transactionType} 
                 onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
               >
-                <ToggleGroupItem value="purchase">Purchase</ToggleGroupItem>
-                <ToggleGroupItem value="refund">Refund</ToggleGroupItem>
+                <ToggleGroupItem value="purchase" className="data-[state=on]:bg-black data-[state=on]:text-white">Purchase</ToggleGroupItem>
+                <ToggleGroupItem value="refund" className="data-[state=on]:bg-black data-[state=on]:text-white">Refund</ToggleGroupItem>
               </ToggleGroup>
             </div>
-            <div className="flex flex-col">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={transactionDate}
-                onChange={(e) => setTransactionDate(e.target.value)}
-                className="w-40"
-              />
+            <div className="flex items-center gap-2">
+              <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !transactionDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={new Date(transactionDate)}
+                    onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
@@ -297,7 +317,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             <div className="space-y-2">
               {expenseRows.map((row) => (
                 <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4">
+                  <div className="col-span-5">
                     <Label>Account</Label>
                     <AccountSearchInput
                       value={row.account || ''}
@@ -310,14 +330,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     />
                   </div>
                   <div className="col-span-3">
-                    <Label>Project (Optional)</Label>
-                    <JobSearchInput
-                      value={row.projectId || ''}
-                      onChange={(value) => updateExpenseRow(row.id, 'projectId', value)}
-                      placeholder="Select project"
-                    />
-                  </div>
-                  <div className="col-span-2">
                     <Label>Amount</Label>
                     <Input
                       type="number"
@@ -327,7 +339,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       placeholder="0.00"
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-3">
                     <Label>Memo</Label>
                     <Input
                       value={row.memo || ''}
@@ -357,7 +369,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             <div className="space-y-2">
               {jobCostRows.map((row) => (
                 <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-4">
+                  <div className="col-span-5">
                     <Label>Cost Code</Label>
                     <CostCodeSearchInput
                       value={row.costCode || ''}
@@ -370,14 +382,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     />
                   </div>
                   <div className="col-span-3">
-                    <Label>Project (Optional)</Label>
-                    <JobSearchInput
-                      value={row.projectId || ''}
-                      onChange={(value) => updateJobCostRow(row.id, 'projectId', value)}
-                      placeholder="Select project"
-                    />
-                  </div>
-                  <div className="col-span-2">
                     <Label>Amount</Label>
                     <Input
                       type="number"
@@ -387,7 +391,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       placeholder="0.00"
                     />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-3">
                     <Label>Memo</Label>
                     <Input
                       value={row.memo || ''}
