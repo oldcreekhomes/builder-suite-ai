@@ -239,18 +239,13 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-32">
         <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
-            <div className="text-xs space-y-0.5">
-              <div className="flex items-center gap-1">
-                <span className="text-black font-medium">
-                  ${Math.round(bidPrice).toLocaleString()}
-                </span>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0">
-                  BID
-                </Badge>
-              </div>
-              <div className="text-[10px] text-muted-foreground truncate">
-                {bidCompanyName}
-              </div>
+            <div className="flex items-center gap-1 text-xs">
+              <span className="text-black font-medium">
+                ${Math.round(bidPrice).toLocaleString()}
+              </span>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0">
+                BID
+              </Badge>
             </div>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
@@ -279,7 +274,11 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {(hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
+          {hasSelectedBid ? (
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+              {bidCompanyName}
+            </span>
+          ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
             {selectedCount === 1 && singleSelectedSubcategory
               ? formatUnitOfMeasure(
@@ -332,7 +331,7 @@ export function BudgetTableRow({
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-muted-foreground whitespace-nowrap">
-              Vendor BID
+              N/A
             </span>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
