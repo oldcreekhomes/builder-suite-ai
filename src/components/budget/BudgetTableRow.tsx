@@ -215,7 +215,7 @@ export function BudgetTableRow({
           className="h-3 w-3"
         />
       </TableCell>
-      <TableCell className="px-1 py-0 w-20">
+      <TableCell className="px-1 py-0 w-20" style={{ paddingLeft: '24px' }}>
         <div className="text-xs font-medium">
           {costCode?.code}
         </div>
