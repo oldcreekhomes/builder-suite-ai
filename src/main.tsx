@@ -8,10 +8,10 @@ import { ImpersonationProvider } from "./contexts/ImpersonationContext";
 
 createRoot(document.getElementById("root")!).render(
   // <StrictMode>
-    <AuthProvider>
-      <ImpersonationProvider>
+    <ImpersonationProvider>
+      <AuthProvider>
         <App />
-      </ImpersonationProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </ImpersonationProvider>
   // </StrictMode>
 );

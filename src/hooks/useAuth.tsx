@@ -31,16 +31,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Get impersonation state - this will be undefined initially until ImpersonationProvider wraps this
-  let impersonationState;
-  try {
-    impersonationState = useImpersonation();
-  } catch {
-    // ImpersonationProvider not yet wrapping - will be undefined
-    impersonationState = { isImpersonating: false, impersonatedProfile: null };
-  }
-  
-  const { isImpersonating, impersonatedProfile } = impersonationState;
+  // Get impersonation state from context
+  const { isImpersonating, impersonatedProfile } = useImpersonation();
   
   // Return impersonated user if impersonating, otherwise return real user
   const user = isImpersonating && impersonatedProfile && realUser
