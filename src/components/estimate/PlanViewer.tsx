@@ -162,7 +162,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   // Note: Zoom and pan are handled by CSS transform on the wrapper div
   // to keep PDF and canvas overlay synchronized
 
-  // Load and display annotations
+  // Load and display annotations (visibility handled separately for efficiency)
   useEffect(() => {
     if (!fabricCanvas || !annotations || !sheetId || !canvasReady) return;
 
@@ -289,8 +289,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           ? JSON.parse(annotation.geometry as string) 
           : annotation.geometry;
         
-        // Check visibility based on explicit set membership
-        const isVisible = visibleAnnotations.has(annotation.takeoff_item_id || '');
+        // Initial visibility - will be updated by separate effect
+        const isVisible = true;
         let fabricObject;
 
         switch (annotation.annotation_type) {
@@ -514,7 +514,23 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     }
 
     fabricCanvas.renderAll();
-  }, [annotations, fabricCanvas, visibleAnnotations, sheetId, canvasReady, imgNaturalSize, docSize]);
+  }, [annotations, fabricCanvas, sheetId, canvasReady, imgNaturalSize, docSize]);
+
+  // Separate effect to handle visibility changes efficiently
+  useEffect(() => {
+    if (!fabricCanvas || !annotations) return;
+
+    // Update opacity of existing annotation objects based on visibility
+    annotations.forEach(annotation => {
+      const fabricObject = annotationObjectsRef.current.get(annotation.id);
+      if (fabricObject) {
+        const isVisible = visibleAnnotations.has(annotation.takeoff_item_id || '');
+        fabricObject.set('opacity', isVisible ? (annotation.annotation_type === 'rectangle' ? 1 : 0.6) : 0);
+      }
+    });
+
+    fabricCanvas.renderAll();
+  }, [visibleAnnotations, fabricCanvas, annotations]);
 
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
