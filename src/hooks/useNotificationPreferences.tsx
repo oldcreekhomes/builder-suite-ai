@@ -9,12 +9,20 @@ export interface NotificationPreferences {
   sound_notifications_enabled: boolean;
   toast_notifications_enabled: boolean;
   receive_bill_payment_alerts: boolean;
+  can_access_accounting: boolean;
+  can_access_manage_bills: boolean;
+  can_access_transactions: boolean;
+  can_access_reports: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   sound_notifications_enabled: true,
   toast_notifications_enabled: true,
   receive_bill_payment_alerts: false,
+  can_access_accounting: true,
+  can_access_manage_bills: true,
+  can_access_transactions: true,
+  can_access_reports: true,
 };
 
 export const useNotificationPreferences = (userId?: string) => {

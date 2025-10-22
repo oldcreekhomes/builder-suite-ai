@@ -7,6 +7,9 @@ import {
 } from "@/components/ui/dialog";
 import { BillsApprovalTabs } from "@/components/bills/BillsApprovalTabs";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
+import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ManageBillsDialogProps {
   open: boolean;
@@ -16,6 +19,24 @@ interface ManageBillsDialogProps {
 }
 
 export function ManageBillsDialog({ open, onOpenChange, projectId, projectIds }: ManageBillsDialogProps) {
+  const { canAccessManageBills } = useAccountingPermissions();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (open && !canAccessManageBills) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to manage bills.",
+        variant: "destructive",
+      });
+      onOpenChange(false);
+    }
+  }, [open, canAccessManageBills, onOpenChange, toast]);
+
+  if (!canAccessManageBills) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">

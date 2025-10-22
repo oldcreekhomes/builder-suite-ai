@@ -2262,6 +2262,10 @@ export type Database = {
       }
       user_notification_preferences: {
         Row: {
+          can_access_accounting: boolean
+          can_access_manage_bills: boolean
+          can_access_reports: boolean
+          can_access_transactions: boolean
           created_at: string
           id: string
           receive_bill_payment_alerts: boolean
@@ -2271,6 +2275,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_access_accounting?: boolean
+          can_access_manage_bills?: boolean
+          can_access_reports?: boolean
+          can_access_transactions?: boolean
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
@@ -2280,6 +2288,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_access_accounting?: boolean
+          can_access_manage_bills?: boolean
+          can_access_reports?: boolean
+          can_access_transactions?: boolean
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
@@ -2410,13 +2422,10 @@ export type Database = {
         }
         Returns: string
       }
-      approve_employee: {
-        Args: { employee_id: string }
-        Returns: undefined
-      }
-      approve_pending_bill: {
-        Args:
-          | {
+      approve_employee: { Args: { employee_id: string }; Returns: undefined }
+      approve_pending_bill:
+        | {
+            Args: {
               bill_date_param: string
               due_date_param: string
               notes_param?: string
@@ -2426,7 +2435,10 @@ export type Database = {
               terms_param?: string
               vendor_id_param: string
             }
-          | {
+            Returns: string
+          }
+        | {
+            Args: {
               bill_date_param: string
               due_date_param?: string
               notes_param?: string
@@ -2437,11 +2449,11 @@ export type Database = {
               terms_param?: string
               vendor_id_param: string
             }
-        Returns: string
-      }
-      create_project_task: {
-        Args:
-          | {
+            Returns: string
+          }
+      create_project_task:
+        | {
+            Args: {
               duration_param?: number
               end_date_param: string
               hierarchy_number_param?: string
@@ -2452,7 +2464,10 @@ export type Database = {
               start_date_param: string
               task_name_param: string
             }
-          | {
+            Returns: string
+          }
+        | {
+            Args: {
               duration_param?: number
               end_date_param: string
               order_index_param?: number
@@ -2464,8 +2479,8 @@ export type Database = {
               start_date_param: string
               task_name_param: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
       delete_bill_with_journal_entries: {
         Args: { bill_id_param: string }
         Returns: boolean
@@ -2486,39 +2501,24 @@ export type Database = {
         Args: { upload_id_param: string }
         Returns: boolean
       }
-      delete_project_task: {
-        Args: { task_id_param: string }
-        Returns: boolean
-      }
-      extract_address_code: {
-        Args: { address_text: string }
-        Returns: string
-      }
-      generate_po_number: {
-        Args: { p_project_id: string }
-        Returns: string
-      }
+      delete_project_task: { Args: { task_id_param: string }; Returns: boolean }
+      extract_address_code: { Args: { address_text: string }; Returns: string }
+      generate_po_number: { Args: { p_project_id: string }; Returns: string }
       get_conversation_unread_count: {
         Args: { other_user_id_param: string }
         Returns: number
       }
-      get_current_user_company: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_home_builder_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_company: { Args: never; Returns: string }
+      get_current_user_home_builder_id: { Args: never; Returns: string }
       get_current_user_home_builder_info: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           home_builder_id: string
           is_employee: boolean
         }[]
       }
       get_home_builders: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_name: string
           email: string
@@ -2526,7 +2526,7 @@ export type Database = {
         }[]
       }
       get_pending_employee_approvals: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           company_name: string
           created_at: string
@@ -2602,9 +2602,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      update_project_task: {
-        Args:
-          | {
+      update_project_task:
+        | {
+            Args: {
               duration_param?: number
               end_date_param?: string
               hierarchy_number_param?: string
@@ -2615,7 +2615,10 @@ export type Database = {
               start_date_param?: string
               task_name_param?: string
             }
-          | {
+            Returns: boolean
+          }
+        | {
+            Args: {
               duration_param?: number
               end_date_param?: string
               id_param: string
@@ -2627,8 +2630,8 @@ export type Database = {
               start_date_param?: string
               task_name_param?: string
             }
-        Returns: boolean
-      }
+            Returns: boolean
+          }
       update_project_task_by_number: {
         Args: {
           duration_param?: number

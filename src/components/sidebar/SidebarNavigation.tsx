@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 
 import { 
   DollarSign, 
@@ -98,6 +99,12 @@ interface SidebarNavigationProps {
 export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const location = useLocation();
   const { users } = useCompanyUsers();
+  const { 
+    canAccessAccounting, 
+    canAccessManageBills, 
+    canAccessTransactions, 
+    canAccessReports 
+  } = useAccountingPermissions();
   // Removed useUnreadCounts hook call since it's now passed as props
   // const userIds = users?.map(user => user.id) || [];
   // const { unreadCounts } = useUnreadCounts(userIds);
@@ -227,7 +234,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
             ))}
             
             {/* Accounting Section - Direct navigation (only show for project pages) */}
-            {projectId && (
+            {projectId && canAccessAccounting && (
               <div>
                 <a 
                   href={`/project/${projectId}/accounting`}
@@ -239,20 +246,26 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                 
                 {/* Bills and Reports submenu items */}
                 <div className="ml-6 mt-0.5 space-y-0.5">
-                  <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <FileText className="h-4 w-4" />
-                    <span>Manage Bills</span>
-                  </a>
+                  {canAccessManageBills && (
+                    <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                      <FileText className="h-4 w-4" />
+                      <span>Manage Bills</span>
+                    </a>
+                  )}
                   
-                  <a href={`/project/${projectId}/accounting/transactions`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <FileText className="h-4 w-4" />
-                    <span>Transactions</span>
-                  </a>
+                  {canAccessTransactions && (
+                    <a href={`/project/${projectId}/accounting/transactions`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                      <FileText className="h-4 w-4" />
+                      <span>Transactions</span>
+                    </a>
+                  )}
                   
-                  <a href={`/project/${projectId}/accounting/reports`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Reports</span>
-                  </a>
+                  {canAccessReports && (
+                    <a href={`/project/${projectId}/accounting/reports`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Reports</span>
+                    </a>
+                  )}
                 </div>
               </div>
             )}

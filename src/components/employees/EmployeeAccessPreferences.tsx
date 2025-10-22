@@ -49,6 +49,78 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-accounting" className="text-sm font-normal cursor-pointer">
+                Access Accounting Menu
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and access the main accounting dashboard
+              </p>
+            </div>
+            <Switch
+              id="access-accounting"
+              checked={preferences.can_access_accounting}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_accounting: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-manage-bills" className="text-sm font-normal cursor-pointer">
+                Access Manage Bills
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Review, approve, and manage bills
+              </p>
+            </div>
+            <Switch
+              id="access-manage-bills"
+              checked={preferences.can_access_manage_bills}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_manage_bills: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-transactions" className="text-sm font-normal cursor-pointer">
+                Access Transactions
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Create journal entries, write checks, make deposits, and reconcile accounts
+              </p>
+            </div>
+            <Switch
+              id="access-transactions"
+              checked={preferences.can_access_transactions}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_transactions: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-reports" className="text-sm font-normal cursor-pointer">
+                Access Reports
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and generate financial reports
+              </p>
+            </div>
+            <Switch
+              id="access-reports"
+              checked={preferences.can_access_reports}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_reports: checked })
+              }
+            />
+          </div>
         </div>
       </div>
     </div>
