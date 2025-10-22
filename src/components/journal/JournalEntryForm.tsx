@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +46,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1); // -1 means new entry
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
-  const [justSaved, setJustSaved] = useState(false);
+  
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -65,6 +65,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     currentEntryIndex,
     isViewingMode
   });
+  const hasInitializedRef = useRef(false);
 
   // Format number with commas
   const formatNumber = (value: string | number): string => {
@@ -306,30 +307,32 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
 
-  // Auto-load most recent entry on mount or after save
-  // Auto-load entries with justSaved guard
+  // Initialize only once: load most recent entry on first mount
   useEffect(() => {
-    if (!isLoading && filteredEntries.length > 0 && !justSaved) {
-      if (currentEntryIndex === -1 && !isViewingMode) {
-        // Initial load - load most recent entry for this project
+    if (hasInitializedRef.current) return;
+    if (!isLoading) {
+      if (filteredEntries.length > 0) {
         console.debug('Initial load: loading most recent entry');
         setCurrentEntryIndex(0);
         loadJournalEntry(filteredEntries[0]);
-      } else if (currentEntryIndex === 0 && isViewingMode) {
-        // Refresh current entry after save (entry list was updated)
-        console.debug('Refreshing current entry after save');
-        loadJournalEntry(filteredEntries[0]);
       }
+      hasInitializedRef.current = true;
     }
-  }, [isLoading, filteredEntries.length, justSaved]);
+  }, [isLoading, filteredEntries.length]);
 
-  // Reset justSaved flag after entries list updates
+  // Keep currently viewed entry in sync by id without breaking "New" state
   useEffect(() => {
-    if (justSaved && !isLoading) {
-      const timer = setTimeout(() => setJustSaved(false), 100);
-      return () => clearTimeout(timer);
+    if (isLoading) return;
+    if (!isViewingMode) return;
+    if (!currentJournalEntryId) return;
+
+    const idx = filteredEntries.findIndex((e: any) => e.id === currentJournalEntryId);
+    if (idx !== -1 && idx !== currentEntryIndex) {
+      console.debug('Syncing viewed entry to index:', idx);
+      setCurrentEntryIndex(idx);
+      loadJournalEntry(filteredEntries[idx]);
     }
-  }, [justSaved, isLoading, filteredEntries.length]);
+  }, [filteredEntries, isLoading, isViewingMode, currentJournalEntryId, currentEntryIndex]);
 
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
@@ -374,7 +377,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         project_id: projectId,
       });
       // After save, clear form and prepare for next entry
-      setJustSaved(true);
       createNewEntry();
     }
   };
