@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useState } from "react";
 import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 
@@ -190,48 +190,48 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
           <div className="space-y-0.5">
             {filteredItems.map((item) => (
               <div key={item.title}>
-                <a 
-                  href={item.url} 
+                <Link
+                  to={item.url} 
                   className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
                 >
                   <item.icon className="h-4 w-4" />
                   <span className="flex-1">{item.title}</span>
-                </a>
+                </Link>
               </div>
             ))}
             
             {/* Accounting Section - Direct navigation (only show for project pages when permissions loaded and granted) */}
             {projectId && !permissionsLoading && canAccessAccounting && (
               <div>
-                <a 
-                  href={`/project/${projectId}/accounting`}
+                <Link
+                  to={`/project/${projectId}/accounting`}
                   className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
                 >
                   <Calculator className="h-4 w-4" />
                   <span className="flex-1">Accounting</span>
-                </a>
+                </Link>
                 
                 {/* Bills and Reports submenu items */}
                 <div className="ml-6 mt-0.5 space-y-0.5">
                   {canAccessManageBills && (
-                    <a href={`/project/${projectId}/accounting/bills/approve`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <Link to={`/project/${projectId}/accounting/bills/approve`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                       <FileText className="h-4 w-4" />
                       <span>Manage Bills</span>
-                    </a>
+                    </Link>
                   )}
                   
                   {canAccessTransactions && (
-                    <a href={`/project/${projectId}/accounting/transactions`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <Link to={`/project/${projectId}/accounting/transactions`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                       <FileText className="h-4 w-4" />
                       <span>Transactions</span>
-                    </a>
+                    </Link>
                   )}
                   
                   {canAccessReports && (
-                    <a href={`/project/${projectId}/accounting/reports`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                    <Link to={`/project/${projectId}/accounting/reports`} className="flex items-center space-x-2 px-2 py-1 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                       <BarChart3 className="h-4 w-4" />
                       <span>Reports</span>
-                    </a>
+                    </Link>
                   )}
                 </div>
               </div>
@@ -242,7 +242,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
           {!isIssuesPage && (
             <div className="pt-2 mt-2 border-t border-gray-200">
               <div>
-                <a href="/issues" className="flex items-center px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
+                <Link to="/issues" className="flex items-center px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                   <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
                   <span className="whitespace-nowrap">Software Issues</span>
                   <div className="flex items-center gap-1 ml-auto">
@@ -257,7 +257,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                       </span>
                     )}
                   </div>
-                </a>
+                </Link>
               </div>
             </div>
           )}

@@ -22,14 +22,8 @@ const Issues = () => {
     "Authentication"
   ];
 
-  // Filter categories to only show those with issues
-  const categoriesWithIssues = categories.filter(category => {
-    const categoryCount = issueCounts[category];
-    return categoryCount && (categoryCount.normal > 0 || categoryCount.high > 0);
-  });
-
-  // Use the first category with issues as default, or fallback to "Messages"
-  const defaultCategory = categoriesWithIssues.length > 0 ? categoriesWithIssues[0] : "Messages";
+  // Always show all categories, default to "Messages"
+  const defaultCategory = "Messages";
 
   return (
     <SidebarProvider>
@@ -40,8 +34,8 @@ const Issues = () => {
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Tabs defaultValue={defaultCategory} className="w-full">
-              <TabsList className={`grid w-full ${categoriesWithIssues.length <= 3 ? 'grid-cols-3' : categoriesWithIssues.length <= 4 ? 'grid-cols-4' : categoriesWithIssues.length <= 5 ? 'grid-cols-5' : categoriesWithIssues.length <= 6 ? 'grid-cols-6' : 'grid-cols-7'}`}>
-                {categoriesWithIssues.map((category) => (
+              <TabsList className="grid w-full grid-cols-7">
+                {categories.map((category) => (
                   <TabsTrigger key={category} value={category} className="relative">
                     <span>{category}</span>
                     <div className="ml-2 flex gap-1">
@@ -60,7 +54,7 @@ const Issues = () => {
                 ))}
               </TabsList>
               
-              {categoriesWithIssues.map((category) => (
+              {categories.map((category) => (
                 <TabsContent key={category} value={category} className="space-y-4">
                   <IssuesList category={category} />
                 </TabsContent>
