@@ -1,7 +1,6 @@
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { DeleteButton } from '@/components/ui/delete-button';
 import { DollarSign, Eye } from 'lucide-react';
 
 interface BudgetTableRowActionsProps {
@@ -46,15 +45,6 @@ export function BudgetTableRowActions({
         >
           <Eye className="h-4 w-4 text-muted-foreground" />
         </Button>
-        <DeleteButton
-          onDelete={() => onDelete(item.id)}
-          title="Delete Budget Item"
-          description={`Are you sure you want to delete the budget item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
-          size="sm"
-          variant="ghost"
-          isLoading={isDeleting}
-          showIcon={true}
-        />
       </div>
     </TableCell>
   );
