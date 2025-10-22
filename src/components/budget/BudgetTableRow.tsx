@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { Button } from '@/components/ui/button';
 import { Eye, Lock, Unlock } from 'lucide-react';
 import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
+import { SelectVendorBidModal } from './SelectVendorBidModal';
+import { BudgetTableRowActions } from './components/BudgetTableRowActions';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -54,6 +55,7 @@ export function BudgetTableRow({
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showBidSelectionModal, setShowBidSelectionModal] = useState(false);
   const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
@@ -76,14 +78,25 @@ export function BudgetTableRow({
   // Check if manual values have been saved
   const hasManualValues = item.quantity !== null && item.quantity !== 0 && item.unit_price !== null && item.unit_price !== 0;
   
-  // Use subcategory total if available (unless manual override is enabled or manual values exist), otherwise calculate normally
-  const total = (hasSubcategories && !manualOverrideEnabled && !hasManualValues)
-    ? subcategoryTotal 
-    : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  // Get selected bid details
+  const selectedBid = item.selected_bid as any;
+  const hasSelectedBid = !!item.selected_bid_id && selectedBid;
+  const bidPrice = hasSelectedBid ? (selectedBid.price || 0) : 0;
+  const bidCompanyName = hasSelectedBid ? (selectedBid.companies?.company_name || 'Unknown') : '';
   
-  // For display purposes, show the unit price (Cost column)
-  // If has subcategories and no manual override and no manual values, show the calculated total (which represents the aggregated cost)
-  const displayUnitPrice = (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? subcategoryTotal : parseFloat(unitPrice) || 0;
+  // Use bid price if selected, otherwise subcategory total if available (unless manual override is enabled or manual values exist), otherwise calculate normally
+  const total = hasSelectedBid
+    ? bidPrice
+    : (hasSubcategories && !manualOverrideEnabled && !hasManualValues)
+      ? subcategoryTotal 
+      : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  
+  // For display purposes in Cost column
+  const displayUnitPrice = hasSelectedBid 
+    ? bidPrice 
+    : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) 
+      ? subcategoryTotal 
+      : parseFloat(unitPrice) || 0;
     
   const historicalActual = costCode?.code ? (historicalActualCosts[costCode.code] || null) : null;
   
@@ -227,7 +240,21 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
         <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {(hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
+          {hasSelectedBid ? (
+            <div className="text-xs space-y-0.5">
+              <div className="flex items-center gap-1">
+                <span className="text-black font-medium">
+                  ${Math.round(bidPrice).toLocaleString()}
+                </span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0">
+                  BID
+                </Badge>
+              </div>
+              <div className="text-[10px] text-muted-foreground truncate">
+                {bidCompanyName}
+              </div>
+            </div>
+          ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               ${Math.round(displayUnitPrice).toLocaleString()}
             </span>
@@ -305,7 +332,11 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-24">
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {(hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
+          {hasSelectedBid ? (
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-muted-foreground whitespace-nowrap">
+              Vendor BID
+            </span>
+          ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               {selectedCount === 1 && singleSelectedSubcategory
                 ? (singleSelectedSubcategory.quantity || 0)
@@ -347,41 +378,15 @@ export function BudgetTableRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <TableCell className={`px-1 py-0 w-32 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDetailsModal(true)}
-            className="h-6 w-6 p-0 text-primary hover:text-primary/80"
-          >
-            <Eye className="h-icon-sm w-icon-sm" />
-          </Button>
-          {hasSubcategories && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setManualOverrideEnabled(!manualOverrideEnabled)}
-                    className={`h-6 w-6 p-0 ${manualOverrideEnabled ? 'text-red-600 hover:text-red-700' : 'text-muted-foreground hover:text-foreground'}`}
-                  >
-                    {manualOverrideEnabled ? (
-                      <Unlock className="h-icon-sm w-icon-sm" />
-                    ) : (
-                      <Lock className="h-icon-sm w-icon-sm" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{manualOverrideEnabled ? 'Manual Edit Enabled' : 'Click to Enable Manual Edit'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
-      </TableCell>
+      <BudgetTableRowActions
+        item={item}
+        costCode={costCode}
+        onDelete={onDelete}
+        onSelectBidClick={() => setShowBidSelectionModal(true)}
+        onViewDetailsClick={() => setShowDetailsModal(true)}
+        isDeleting={isDeleting}
+        hasSelectedBid={hasSelectedBid}
+      />
     </TableRow>
     
     {showDetailsModal && costCode && (
@@ -390,6 +395,20 @@ export function BudgetTableRow({
         onClose={() => setShowDetailsModal(false)}
         budgetItem={item}
         projectId={item.project_id}
+      />
+    )}
+    
+    {showBidSelectionModal && (
+      <SelectVendorBidModal
+        isOpen={showBidSelectionModal}
+        onClose={() => setShowBidSelectionModal(false)}
+        budgetItem={item}
+        costCode={costCode}
+        projectId={item.project_id}
+        currentSelectedBidId={item.selected_bid_id}
+        onBidSelected={() => {
+          setShowBidSelectionModal(false);
+        }}
       />
     )}
     </>

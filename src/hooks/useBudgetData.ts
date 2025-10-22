@@ -13,7 +13,14 @@ export function useBudgetData(projectId: string) {
         .from('project_budgets')
         .select(`
           *,
-          cost_codes (*)
+          cost_codes (*),
+          selected_bid:project_bids!selected_bid_id (
+            id,
+            price,
+            companies (
+              company_name
+            )
+          )
         `)
         .eq('project_id', projectId);
       

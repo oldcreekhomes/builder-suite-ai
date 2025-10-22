@@ -1561,6 +1561,7 @@ export type Database = {
           id: string
           project_id: string
           quantity: number | null
+          selected_bid_id: string | null
           unit_price: number | null
           updated_at: string
         }
@@ -1571,6 +1572,7 @@ export type Database = {
           id?: string
           project_id: string
           quantity?: number | null
+          selected_bid_id?: string | null
           unit_price?: number | null
           updated_at?: string
         }
@@ -1581,6 +1583,7 @@ export type Database = {
           id?: string
           project_id?: string
           quantity?: number | null
+          selected_bid_id?: string | null
           unit_price?: number | null
           updated_at?: string
         }
@@ -1597,6 +1600,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_selected_bid_id_fkey"
+            columns: ["selected_bid_id"]
+            isOneToOne: false
+            referencedRelation: "project_bids"
             referencedColumns: ["id"]
           },
         ]
