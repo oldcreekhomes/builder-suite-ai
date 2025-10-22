@@ -20,6 +20,7 @@ interface JournalLine {
   id: string;
   line_type: 'expense' | 'job_cost';
   account_id?: string;
+  account_display?: string; // For displaying the formatted account text
   cost_code_id?: string;
   cost_code_display?: string; // For displaying the formatted cost code text
   debit: string;
@@ -37,7 +38,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<'job_cost' | 'expense'>('job_cost');
   const [expenseLines, setExpenseLines] = useState<JournalLine[]>([
-    { id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" },
+    { id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" },
   ]);
   const [jobCostLines, setJobCostLines] = useState<JournalLine[]>([
     { id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", debit: "", credit: "", memo: "" },
@@ -131,7 +132,8 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setExpenseLines([...expenseLines, { 
       id: crypto.randomUUID(), 
       line_type: 'expense',
-      account_id: "", 
+      account_id: "",
+      account_display: "",
       debit: "", 
       credit: "", 
       memo: "" 
@@ -155,7 +157,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       setExpenseLines(expenseLines.filter(line => line.id !== id));
     } else {
       // Reset the line to empty if it's the last one
-      setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
+      setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }]);
     }
   };
 
@@ -180,10 +182,22 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
           updated.debit = "";
         }
         
+        // Clear account_id when display is cleared
+        if (field === "account_display" && !value) {
+          updated.account_id = "";
+        }
+        
         return updated;
       }
       return line;
     }));
+  };
+
+  // Helper to update multiple expense line fields at once
+  const updateExpenseLineFields = (id: string, updates: Partial<JournalLine>) => {
+    setExpenseLines(prev => prev.map(line => 
+      line.id === id ? { ...line, ...updates } : line
+    ));
   };
 
   const updateJobCostLine = (id: string, field: keyof JournalLine, value: string) => {
@@ -230,6 +244,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         id: crypto.randomUUID(),
         line_type: line.cost_code_id ? 'job_cost' : 'expense' as 'expense' | 'job_cost',
         account_id: line.account_id || "",
+        account_display: line.accounts ? `${line.accounts.code} - ${line.accounts.name}` : "",
         cost_code_id: line.cost_code_id || "",
         cost_code_display: line.cost_codes ? `${line.cost_codes.code} - ${line.cost_codes.name}` : "",
         debit: line.debit?.toString() || "",
@@ -245,7 +260,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     });
     
     setExpenseLines(expLines.length > 0 ? expLines : [
-      { id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }
+      { id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }
     ]);
     setJobCostLines(jobLines.length > 0 ? jobLines : [
       { id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }
@@ -286,7 +301,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     setIsViewingMode(false);
     setEntryDate(new Date());
     setDescription("");
-    setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
+    setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }]);
     setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
 
@@ -571,8 +586,15 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                         <tr key={line.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/30"}>
                           <td className="p-3">
                             <AccountSearchInput
-                              value={line.account_id || ""}
-                              onChange={(value) => updateExpenseLine(line.id, "account_id", value)}
+                              value={line.account_display || ""}
+                              onChange={(value) => updateExpenseLine(line.id, "account_display", value)}
+                              onAccountSelect={(account) => {
+                                updateExpenseLineFields(line.id, {
+                                  account_id: account.id,
+                                  account_display: `${account.code} - ${account.name}`
+                                });
+                                console.debug('Account selected:', { id: account.id, display: `${account.code} - ${account.name}` });
+                              }}
                               placeholder="Select account"
                               className="w-full"
                             />
@@ -692,7 +714,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
             onClick={() => {
               setEntryDate(new Date());
               setDescription("");
-              setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", debit: "", credit: "", memo: "" }]);
+              setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }]);
               setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
             }}
           >
