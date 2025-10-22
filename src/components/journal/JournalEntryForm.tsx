@@ -366,8 +366,8 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         lines: journalLines,
         project_id: projectId,
       });
-      // Stay in viewing mode with same entry
-      setIsViewingMode(true);
+      // After save, clear form and prepare for next entry
+      createNewEntry();
     } else {
       // Creating new entry
       await createManualJournalEntry.mutateAsync({
@@ -723,20 +723,15 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         <div className="flex justify-end gap-3">
           <Button
             variant="outline"
-            onClick={() => {
-              setEntryDate(new Date());
-              setDescription("");
-              setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }]);
-              setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
-            }}
+            onClick={createNewEntry}
           >
             Clear
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!isValid || createManualJournalEntry.isPending}
+            disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
           >
-            {createManualJournalEntry.isPending ? "Saving..." : "Save Entry"}
+            {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save Entry"}
           </Button>
         </div>
       </CardContent>
