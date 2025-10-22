@@ -243,9 +243,18 @@ export function BudgetTableRow({
               <span className="text-black">
                 ${Math.round(bidPrice).toLocaleString()}
               </span>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0">
-                BID
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0 cursor-help">
+                      BID
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{bidCompanyName}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
