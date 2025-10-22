@@ -1,11 +1,9 @@
 import { useNotificationPreferences } from "./useNotificationPreferences";
-import { useUserRole } from "./useUserRole";
 
 export const useAccountingPermissions = () => {
-  const { isOwner, isLoading: rolesLoading } = useUserRole();
   const { preferences, isLoading: prefsLoading } = useNotificationPreferences();
 
-  const isLoading = rolesLoading || prefsLoading;
+  const isLoading = prefsLoading;
 
   // While loading, deny access (secure by default)
   if (isLoading) {
@@ -18,18 +16,7 @@ export const useAccountingPermissions = () => {
     };
   }
 
-  // Owners always have full access
-  if (isOwner) {
-    return {
-      canAccessAccounting: true,
-      canAccessManageBills: true,
-      canAccessTransactions: true,
-      canAccessReports: true,
-      isLoading,
-    };
-  }
-
-  // For non-owners, use their preference settings (default to false if not set)
+  // Permissions are strictly driven by user preferences
   return {
     canAccessAccounting: preferences.can_access_accounting ?? false,
     canAccessManageBills: preferences.can_access_manage_bills ?? false,
