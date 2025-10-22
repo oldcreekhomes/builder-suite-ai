@@ -46,6 +46,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1); // -1 means new entry
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -307,7 +308,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
   // Auto-load most recent entry on mount or after save
   useEffect(() => {
-    if (!isLoading && filteredEntries.length > 0) {
+    if (!isLoading && filteredEntries.length > 0 && !justSaved) {
       if (currentEntryIndex === -1 && !isViewingMode) {
         // Initial load - load most recent entry for this project
         console.debug('Initial load: loading most recent entry');
@@ -319,7 +320,12 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         loadJournalEntry(filteredEntries[0]);
       }
     }
-  }, [isLoading, filteredEntries.length]);
+    
+    // Reset the justSaved flag after the effect runs
+    if (justSaved) {
+      setJustSaved(false);
+    }
+  }, [isLoading, filteredEntries.length, justSaved]);
 
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
@@ -363,9 +369,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         lines: journalLines,
         project_id: projectId,
       });
-      // After save, prepare to view the newly created entry
-      setCurrentEntryIndex(0);
-      setIsViewingMode(true);
+      // After save, clear form and prepare for next entry
+      setJustSaved(true);
+      createNewEntry();
     }
   };
 
