@@ -103,7 +103,8 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     canAccessAccounting, 
     canAccessManageBills, 
     canAccessTransactions, 
-    canAccessReports 
+    canAccessReports,
+    isLoading: permissionsLoading
   } = useAccountingPermissions();
   // Removed useUnreadCounts hook call since it's now passed as props
   // const userIds = users?.map(user => user.id) || [];
@@ -233,8 +234,8 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
               </div>
             ))}
             
-            {/* Accounting Section - Direct navigation (only show for project pages) */}
-            {projectId && canAccessAccounting && (
+            {/* Accounting Section - Direct navigation (only show for project pages when permissions loaded and granted) */}
+            {projectId && !permissionsLoading && canAccessAccounting && (
               <div>
                 <a 
                   href={`/project/${projectId}/accounting`}

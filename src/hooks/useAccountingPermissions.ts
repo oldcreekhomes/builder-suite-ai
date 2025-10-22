@@ -7,6 +7,17 @@ export const useAccountingPermissions = () => {
 
   const isLoading = rolesLoading || prefsLoading;
 
+  // While loading, deny access (secure by default)
+  if (isLoading) {
+    return {
+      canAccessAccounting: false,
+      canAccessManageBills: false,
+      canAccessTransactions: false,
+      canAccessReports: false,
+      isLoading,
+    };
+  }
+
   // Owners always have full access
   if (isOwner) {
     return {
@@ -18,12 +29,12 @@ export const useAccountingPermissions = () => {
     };
   }
 
-  // For non-owners, use their preference settings
+  // For non-owners, use their preference settings (default to false if not set)
   return {
-    canAccessAccounting: preferences.can_access_accounting ?? true,
-    canAccessManageBills: preferences.can_access_manage_bills ?? true,
-    canAccessTransactions: preferences.can_access_transactions ?? true,
-    canAccessReports: preferences.can_access_reports ?? true,
+    canAccessAccounting: preferences.can_access_accounting ?? false,
+    canAccessManageBills: preferences.can_access_manage_bills ?? false,
+    canAccessTransactions: preferences.can_access_transactions ?? false,
+    canAccessReports: preferences.can_access_reports ?? false,
     isLoading,
   };
 };

@@ -6,43 +6,46 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
+import { ManageBillsGuard } from "@/components/guards/ManageBillsGuard";
 
 const ReviewBills = () => {
   const navigate = useNavigate();
 
   return (
-    <UniversalFilePreviewProvider>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar />
-          <div className="flex-1">
-            <DashboardHeader />
-            <main className="container mx-auto p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/enter-bills')}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-1" />
-                      Back to Enter Bills
-                    </Button>
+    <ManageBillsGuard>
+      <UniversalFilePreviewProvider>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-background">
+            <AppSidebar />
+            <div className="flex-1">
+              <DashboardHeader />
+              <main className="container mx-auto p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate('/enter-bills')}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-1" />
+                        Back to Enter Bills
+                      </Button>
+                    </div>
+                    <h1 className="text-3xl font-bold">Review Bills</h1>
+                    <p className="text-muted-foreground">
+                      Review and approve AI-extracted bills before adding them to your accounting system
+                    </p>
                   </div>
-                  <h1 className="text-3xl font-bold">Review Bills</h1>
-                  <p className="text-muted-foreground">
-                    Review and approve AI-extracted bills before adding them to your accounting system
-                  </p>
                 </div>
-              </div>
 
-              <BillsReviewTable />
-            </main>
+                <BillsReviewTable />
+              </main>
+            </div>
           </div>
-        </div>
-      </SidebarProvider>
-    </UniversalFilePreviewProvider>
+        </SidebarProvider>
+      </UniversalFilePreviewProvider>
+    </ManageBillsGuard>
   );
 };
 
