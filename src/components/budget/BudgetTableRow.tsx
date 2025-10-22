@@ -240,7 +240,7 @@ export function BudgetTableRow({
         <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
             <div className="flex items-center gap-1 text-xs">
-              <span className="text-black font-medium">
+              <span className="text-black">
                 ${Math.round(bidPrice).toLocaleString()}
               </span>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0">
@@ -275,7 +275,7 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-muted-foreground whitespace-nowrap">
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               N/A
             </span>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
@@ -330,7 +330,7 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-24">
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-muted-foreground whitespace-nowrap">
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               N/A
             </span>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
