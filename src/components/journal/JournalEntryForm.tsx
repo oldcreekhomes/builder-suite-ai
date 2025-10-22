@@ -67,6 +67,10 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   });
   const hasInitializedRef = useRef(false);
 
+  // Calculate position counter (includes "new" entry in count)
+  const totalCount = isViewingMode ? filteredEntries.length : filteredEntries.length + 1;
+  const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
+
   // Format number with commas
   const formatNumber = (value: string | number): string => {
     if (!value) return "";
@@ -458,9 +462,9 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-            {isViewingMode && filteredEntries.length > 0 && (
+            {totalCount > 0 && (
               <Badge variant="secondary" className="ml-2 whitespace-nowrap">
-                {currentEntryIndex + 1}/{filteredEntries.length}
+                {currentPosition}/{totalCount}
               </Badge>
             )}
           </div>
