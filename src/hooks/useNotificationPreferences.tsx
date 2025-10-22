@@ -114,8 +114,7 @@ export const useNotificationPreferences = (userId?: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-preferences', targetUserId] });
       toast({
-        title: "Preferences updated",
-        description: "Notification preferences have been saved.",
+        title: "Access Level Saved",
       });
     },
     onError: (error) => {
