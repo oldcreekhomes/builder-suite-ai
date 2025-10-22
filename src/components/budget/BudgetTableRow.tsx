@@ -73,14 +73,17 @@ export function BudgetTableRow({
     ? subcategories.find(sub => selections[sub.cost_codes.id])
     : null;
   
-  // Use subcategory total if available (unless manual override is enabled), otherwise calculate normally
-  const total = (hasSubcategories && !manualOverrideEnabled)
+  // Check if manual values have been saved
+  const hasManualValues = item.quantity !== null && item.quantity !== 0 && item.unit_price !== null && item.unit_price !== 0;
+  
+  // Use subcategory total if available (unless manual override is enabled or manual values exist), otherwise calculate normally
+  const total = (hasSubcategories && !manualOverrideEnabled && !hasManualValues)
     ? subcategoryTotal 
     : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
   
   // For display purposes, show the unit price (Cost column)
-  // If has subcategories and no manual override, show the calculated total (which represents the aggregated cost)
-  const displayUnitPrice = (hasSubcategories && !manualOverrideEnabled) ? subcategoryTotal : parseFloat(unitPrice) || 0;
+  // If has subcategories and no manual override and no manual values, show the calculated total (which represents the aggregated cost)
+  const displayUnitPrice = (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? subcategoryTotal : parseFloat(unitPrice) || 0;
     
   const historicalActual = costCode?.code ? (historicalActualCosts[costCode.code] || null) : null;
   
@@ -224,7 +227,7 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
         <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {(hasSubcategories && !manualOverrideEnabled) ? (
+          {(hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               ${Math.round(displayUnitPrice).toLocaleString()}
             </span>
@@ -251,7 +254,7 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {(hasSubcategories && !manualOverrideEnabled) ? (
+          {(hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
             {selectedCount === 1 && singleSelectedSubcategory
               ? formatUnitOfMeasure(
@@ -302,7 +305,7 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-24">
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {(hasSubcategories && !manualOverrideEnabled) ? (
+          {(hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               {selectedCount === 1 && singleSelectedSubcategory
                 ? (singleSelectedSubcategory.quantity || 0)
@@ -362,7 +365,7 @@ export function BudgetTableRow({
                     variant="ghost"
                     size="sm"
                     onClick={() => setManualOverrideEnabled(!manualOverrideEnabled)}
-                    className={`h-6 w-6 p-0 ${manualOverrideEnabled ? 'text-orange-500 hover:text-orange-600' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`h-6 w-6 p-0 ${manualOverrideEnabled ? 'text-red-600 hover:text-red-700' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     {manualOverrideEnabled ? (
                       <Unlock className="h-icon-sm w-icon-sm" />
