@@ -275,8 +275,8 @@ export function BudgetTableRow({
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
-            <span className="rounded px-1 py-0.5 inline-block text-[10px] text-muted-foreground truncate">
-              {bidCompanyName}
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-muted-foreground whitespace-nowrap">
+              N/A
             </span>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
