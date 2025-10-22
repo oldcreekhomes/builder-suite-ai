@@ -447,18 +447,18 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={goToNext}
-              disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
-              title="Newer entry"
+              onClick={goToPrevious}
+              disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
+              title="Older entry"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={goToPrevious}
-              disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
-              title="Older entry"
+              onClick={goToNext}
+              disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
+              title="Newer entry"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
