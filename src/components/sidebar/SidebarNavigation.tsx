@@ -173,26 +173,11 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     ? dynamicNavigationItems // Show all navigation items on company dashboard in Menus tab
     : isMessagesPage
       ? [] // No navigation items on messages page
-      : isIssuesPage
-        ? dynamicNavigationItems.filter(item => item.title === "Company Dashboard") // Show only Company Dashboard on issues page
+      : isIssuesPage || isGlobalPage
+        ? dynamicNavigationItems.filter(item => item.title === "Company Dashboard") // Show only Company Dashboard on issues page and global pages
         : projectId 
           ? dynamicNavigationItems // Show all items for project pages
-          : [];
-
-  // Don't show navigation items if no project is selected and not on dashboard, messages, or issues
-  if (!projectId && !isCompanyDashboard && !isMessagesPage && !isIssuesPage) {
-    return (
-      <SidebarContent className="px-3 py-4">
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-500">Select a project to see navigation options</p>
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    );
-  }
+          : dynamicNavigationItems.filter(item => item.title === "Company Dashboard"); // Show Company Dashboard when no project selected
   
   // On messages page, don't show any navigation items - the page handles its own sidebar content
   if (isMessagesPage) {
