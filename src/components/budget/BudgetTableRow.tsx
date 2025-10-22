@@ -8,6 +8,8 @@ import { Eye } from 'lucide-react';
 import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 import {
   Select,
@@ -53,6 +55,7 @@ export function BudgetTableRow({
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
   
@@ -71,14 +74,14 @@ export function BudgetTableRow({
     ? subcategories.find(sub => selections[sub.cost_codes.id])
     : null;
   
-  // Use subcategory total if available, otherwise calculate normally
-  const total = hasSubcategories 
+  // Use subcategory total if available (unless manual override is enabled), otherwise calculate normally
+  const total = (hasSubcategories && !manualOverrideEnabled)
     ? subcategoryTotal 
     : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
   
   // For display purposes, show the unit price (Cost column)
-  // If has subcategories, show the calculated total (which represents the aggregated cost)
-  const displayUnitPrice = hasSubcategories ? subcategoryTotal : parseFloat(unitPrice) || 0;
+  // If has subcategories and no manual override, show the calculated total (which represents the aggregated cost)
+  const displayUnitPrice = (hasSubcategories && !manualOverrideEnabled) ? subcategoryTotal : parseFloat(unitPrice) || 0;
     
   const historicalActual = costCode?.code ? (historicalActualCosts[costCode.code] || null) : null;
   
@@ -201,7 +204,7 @@ export function BudgetTableRow({
 
   return (
     <>
-      <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
+      <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''} ${hasSubcategories && manualOverrideEnabled ? 'border-l-2 border-l-orange-500' : ''}`}>
       <TableCell className="px-1 py-0 w-12">
         <Checkbox
           checked={isSelected}
@@ -222,7 +225,11 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-32">
         <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {!hasSubcategories && isEditingPrice ? (
+          {(hasSubcategories && !manualOverrideEnabled) ? (
+            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+              ${Math.round(displayUnitPrice).toLocaleString()}
+            </span>
+          ) : isEditingPrice ? (
             <input
               type="number"
               value={unitPrice}
@@ -235,8 +242,8 @@ export function BudgetTableRow({
             />
           ) : (
             <span 
-              className={`${hasSubcategories ? '' : 'cursor-text hover:bg-muted'} rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap`}
-              onClick={hasSubcategories ? undefined : handlePriceClick}
+              className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+              onClick={handlePriceClick}
             >
               ${Math.round(displayUnitPrice).toLocaleString()}
             </span>
@@ -245,7 +252,7 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-20">
         <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {hasSubcategories ? (
+          {(hasSubcategories && !manualOverrideEnabled) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
             {selectedCount === 1 && singleSelectedSubcategory
               ? formatUnitOfMeasure(
@@ -296,7 +303,7 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-3 py-0 w-24">
         <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
-          {hasSubcategories ? (
+          {(hasSubcategories && !manualOverrideEnabled) ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               {selectedCount === 1 && singleSelectedSubcategory
                 ? (singleSelectedSubcategory.quantity || 0)
@@ -338,8 +345,8 @@ export function BudgetTableRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <TableCell className={`px-1 py-0 w-20 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
-        <div className="flex items-center justify-center">
+      <TableCell className={`px-1 py-0 w-32 sticky right-0 ${isSelected ? 'bg-blue-50' : 'bg-background'}`}>
+        <div className="flex items-center justify-center gap-2">
           <Button
             variant="ghost"
             size="sm"
@@ -348,6 +355,24 @@ export function BudgetTableRow({
           >
             <Eye className="h-icon-sm w-icon-sm" />
           </Button>
+          {hasSubcategories && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center">
+                    <Switch
+                      checked={manualOverrideEnabled}
+                      onCheckedChange={setManualOverrideEnabled}
+                      className="h-4 w-8 data-[state=checked]:bg-orange-500"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Manual Edit Mode</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </TableCell>
     </TableRow>
