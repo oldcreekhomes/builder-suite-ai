@@ -3,8 +3,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, Lock, Unlock } from 'lucide-react';
-import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
-import { SelectVendorBidModal } from './SelectVendorBidModal';
+import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetTableRowActions } from './components/BudgetTableRowActions';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
@@ -55,7 +54,6 @@ export function BudgetTableRow({
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showBidSelectionModal, setShowBidSelectionModal] = useState(false);
   const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
@@ -382,7 +380,6 @@ export function BudgetTableRow({
         item={item}
         costCode={costCode}
         onDelete={onDelete}
-        onSelectBidClick={() => setShowBidSelectionModal(true)}
         onViewDetailsClick={() => setShowDetailsModal(true)}
         isDeleting={isDeleting}
         hasSelectedBid={hasSelectedBid}
@@ -390,24 +387,14 @@ export function BudgetTableRow({
     </TableRow>
     
     {showDetailsModal && costCode && (
-      <ViewBudgetDetailsModal
+      <BudgetDetailsModal
         isOpen={showDetailsModal}
         onClose={() => setShowDetailsModal(false)}
         budgetItem={item}
         projectId={item.project_id}
-      />
-    )}
-    
-    {showBidSelectionModal && (
-      <SelectVendorBidModal
-        isOpen={showBidSelectionModal}
-        onClose={() => setShowBidSelectionModal(false)}
-        budgetItem={item}
-        costCode={costCode}
-        projectId={item.project_id}
         currentSelectedBidId={item.selected_bid_id}
         onBidSelected={() => {
-          setShowBidSelectionModal(false);
+          setShowDetailsModal(false);
         }}
       />
     )}
