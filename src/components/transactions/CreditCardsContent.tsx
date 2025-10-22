@@ -39,7 +39,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [creditCardAccountId, setCreditCardAccountId] = useState('');
   const [vendor, setVendor] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [memo, setMemo] = useState('');
 
   const [expenseRows, setExpenseRows] = useState<CreditCardRow[]>([
     { id: crypto.randomUUID(), amount: '0.00' }
@@ -96,7 +95,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setCreditCardAccountId('');
     setVendor('');
     setSelectedProjectId('');
-    setMemo('');
     setExpenseRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
     setJobCostRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
     setCurrentIndex(-1);
@@ -154,7 +152,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       vendor,
       project_id: selectedProjectId || undefined,
       amount: calculateTotal(),
-      memo,
       lines,
     });
 
@@ -174,7 +171,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setCreditCardAccountId(card.credit_card_account_id);
     setVendor(card.vendor);
     setSelectedProjectId(card.project_id || '');
-    setMemo(card.memo || '');
 
     const expenseLines: CreditCardRow[] = [];
     const jobCostLines: CreditCardRow[] = [];
@@ -274,7 +270,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         </div>
 
         {/* Transaction Details */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Credit Card Account *</Label>
             <AccountSearchInput
@@ -294,14 +290,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
               placeholder="Enter vendor name"
-            />
-          </div>
-          <div>
-            <Label>Project (Optional)</Label>
-            <JobSearchInput
-              value={selectedProjectId}
-              onChange={setSelectedProjectId}
-              placeholder="Select project"
             />
           </div>
         </div>
@@ -329,7 +317,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       placeholder="Select account"
                     />
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-4">
+                    <Label>Memo</Label>
+                    <Input
+                      value={row.memo || ''}
+                      onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
+                      placeholder="Description"
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <Label>Amount</Label>
                     <Input
                       type="number"
@@ -337,14 +333,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       value={row.amount}
                       onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
                       placeholder="0.00"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Label>Memo</Label>
-                    <Input
-                      value={row.memo || ''}
-                      onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
-                      placeholder="Description"
                     />
                   </div>
                   <Button
@@ -381,7 +369,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       placeholder="Select cost code"
                     />
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-4">
+                    <Label>Memo</Label>
+                    <Input
+                      value={row.memo || ''}
+                      onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
+                      placeholder="Description"
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <Label>Amount</Label>
                     <Input
                       type="number"
@@ -389,14 +385,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       value={row.amount}
                       onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
                       placeholder="0.00"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Label>Memo</Label>
-                    <Input
-                      value={row.memo || ''}
-                      onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
-                      placeholder="Description"
                     />
                   </div>
                   <Button
@@ -417,17 +405,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </Button>
           </TabsContent>
         </Tabs>
-
-        {/* Memo */}
-        <div>
-          <Label htmlFor="memo">Memo (Optional)</Label>
-          <Input
-            id="memo"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder="Additional notes"
-          />
-        </div>
 
         {/* Total */}
         <div className="flex justify-end">
