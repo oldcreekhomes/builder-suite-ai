@@ -307,6 +307,7 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   };
 
   // Auto-load most recent entry on mount or after save
+  // Auto-load entries with justSaved guard
   useEffect(() => {
     if (!isLoading && filteredEntries.length > 0 && !justSaved) {
       if (currentEntryIndex === -1 && !isViewingMode) {
@@ -320,12 +321,15 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         loadJournalEntry(filteredEntries[0]);
       }
     }
-    
-    // Reset the justSaved flag after the effect runs
-    if (justSaved) {
-      setJustSaved(false);
-    }
   }, [isLoading, filteredEntries.length, justSaved]);
+
+  // Reset justSaved flag after entries list updates
+  useEffect(() => {
+    if (justSaved && !isLoading) {
+      const timer = setTimeout(() => setJustSaved(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [justSaved, isLoading, filteredEntries.length]);
 
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
