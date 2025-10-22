@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   ShoppingCart,
   Calculator,
-  ArrowLeft,
   ChevronDown,
   BarChart3
 } from "lucide-react";
@@ -188,24 +187,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     <TooltipProvider>
       <div className="flex-1 overflow-y-auto">
         <div className="px-3 py-0">
-          {/* Show recent project section on global pages */}
-          {isGlobalPage && hasProjectContext && projectContext && (
-            <div className="mb-2 pb-2 border-b border-gray-200">
-              <button
-                onClick={goBackToProject}
-                className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <div className="flex-1 text-left">
-                  <div className="font-medium">Back to Project</div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {projectContext.projectName}
-                  </div>
-                </div>
-              </button>
-            </div>
-          )}
-          
           <div className="space-y-0.5">
             {filteredItems.map((item) => (
               <div key={item.title}>
