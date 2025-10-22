@@ -4,11 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
+import { Eye, Lock, Unlock } from 'lucide-react';
 import { ViewBudgetDetailsModal } from './ViewBudgetDetailsModal';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import type { Tables } from '@/integrations/supabase/types';
-import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 import {
@@ -204,7 +203,7 @@ export function BudgetTableRow({
 
   return (
     <>
-      <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''} ${hasSubcategories && manualOverrideEnabled ? 'border-l-2 border-l-orange-500' : ''}`}>
+      <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell className="px-1 py-0 w-12">
         <Checkbox
           checked={isSelected}
@@ -359,16 +358,21 @@ export function BudgetTableRow({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center">
-                    <Switch
-                      checked={manualOverrideEnabled}
-                      onCheckedChange={setManualOverrideEnabled}
-                      className="h-4 w-8 data-[state=checked]:bg-orange-500"
-                    />
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setManualOverrideEnabled(!manualOverrideEnabled)}
+                    className={`h-6 w-6 p-0 ${manualOverrideEnabled ? 'text-orange-500 hover:text-orange-600' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    {manualOverrideEnabled ? (
+                      <Unlock className="h-icon-sm w-icon-sm" />
+                    ) : (
+                      <Lock className="h-icon-sm w-icon-sm" />
+                    )}
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs">Manual Edit Mode</p>
+                  <p className="text-xs">{manualOverrideEnabled ? 'Manual Edit Enabled' : 'Click to Enable Manual Edit'}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
