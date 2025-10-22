@@ -158,7 +158,7 @@ export function BudgetDetailsModal({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="w-full justify-start">
+          <TabsList className="justify-start">
             <TabsTrigger value="estimate">Estimate</TabsTrigger>
             <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
           </TabsList>
