@@ -19,10 +19,10 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   sound_notifications_enabled: true,
   toast_notifications_enabled: true,
   receive_bill_payment_alerts: false,
-  can_access_accounting: true,
-  can_access_manage_bills: true,
-  can_access_transactions: true,
-  can_access_reports: true,
+  can_access_accounting: false,
+  can_access_manage_bills: false,
+  can_access_transactions: false,
+  can_access_reports: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {
