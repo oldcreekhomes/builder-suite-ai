@@ -31,8 +31,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Get impersonation state from context
-  const { isImpersonating, impersonatedProfile } = useImpersonation();
+  // Get impersonation state from context (with safety check for initialization)
+  let isImpersonating = false;
+  let impersonatedProfile = null;
+  
+  try {
+    const impersonation = useImpersonation();
+    isImpersonating = impersonation.isImpersonating;
+    impersonatedProfile = impersonation.impersonatedProfile;
+  } catch (error) {
+    // Context not yet available during initial render - use defaults
+    console.log("🔑 Impersonation context not yet available, using defaults");
+  }
   
   // Return impersonated user if impersonating, otherwise return real user
   const user = isImpersonating && impersonatedProfile && realUser
