@@ -218,7 +218,7 @@ export function BudgetTableRow({
   };
 
   return (
-    <>
+    <React.Fragment>
       <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell className="px-1 py-0 w-12">
         <Checkbox
@@ -411,6 +411,6 @@ export function BudgetTableRow({
         }}
       />
     )}
-    </>
+    </React.Fragment>
   );
 }
