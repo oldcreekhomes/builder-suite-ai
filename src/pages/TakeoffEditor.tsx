@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -11,24 +12,50 @@ import { SheetSelector } from "@/components/estimate/SheetSelector";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
 export default function TakeoffEditor() {
-  const { projectId, takeoffId } = useParams();
+  const { projectId } = useParams();
+  const { user } = useAuth();
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
   const [selectedReviewItem, setSelectedReviewItem] = useState<{ id: string; color: string; category: string } | null>(null);
   const [visibleAnnotations, setVisibleAnnotations] = useState<Set<string>>(new Set());
 
+  // Fetch or create takeoff project for this project
   const { data: takeoff } = useQuery({
-    queryKey: ['takeoff-project', takeoffId],
+    queryKey: ['takeoff-project', projectId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!projectId || !user) return null;
+
+      // First, try to fetch existing takeoff project
+      const { data: existingTakeoff, error: fetchError } = await supabase
         .from('takeoff_projects')
         .select('*')
-        .eq('id', takeoffId)
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      // If exists, return it
+      if (existingTakeoff) {
+        return existingTakeoff;
+      }
+
+      // If not, create a default one
+      const { data: newTakeoff, error: createError } = await supabase
+        .from('takeoff_projects')
+        .insert({
+          project_id: projectId,
+          owner_id: user.id,
+          name: 'Sheet Elevations',
+          description: null,
+        })
+        .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (createError) throw createError;
+      return newTakeoff;
     },
-    enabled: !!takeoffId,
+    enabled: !!projectId && !!user,
   });
 
   // Fetch takeoff items for the selected sheet to initialize visibility
@@ -94,20 +121,42 @@ export default function TakeoffEditor() {
     }
   };
 
+  // Show loading state while takeoff is being fetched/created
+  if (!takeoff) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <DashboardHeader 
+              title="Estimate & Takeoff"
+              projectId={projectId}
+            />
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="text-center">
+                <div className="text-lg text-muted-foreground">Loading...</div>
+              </div>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
-            title={takeoff?.name || "Takeoff Editor"}
+            title={takeoff.name || "Estimate & Takeoff"}
             projectId={projectId}
           />
           
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             <ResizablePanel defaultSize={20} minSize={15}>
               <SheetSelector 
-                takeoffId={takeoffId!}
+                takeoffId={takeoff.id}
                 selectedSheetId={selectedSheetId}
                 onSelectSheet={setSelectedSheetId}
               />
@@ -118,7 +167,7 @@ export default function TakeoffEditor() {
             <ResizablePanel defaultSize={50} minSize={30}>
               <PlanViewer 
                 sheetId={selectedSheetId}
-                takeoffId={takeoffId!}
+                takeoffId={takeoff.id}
                 selectedTakeoffItem={selectedReviewItem}
                 visibleAnnotations={visibleAnnotations}
                 onToggleVisibility={handleToggleVisibility}
@@ -131,7 +180,7 @@ export default function TakeoffEditor() {
             <ResizablePanel defaultSize={30} minSize={20}>
               <TakeoffTable 
                 sheetId={selectedSheetId}
-                takeoffId={takeoffId!}
+                takeoffId={takeoff.id}
                 selectedReviewItem={selectedReviewItem}
                 onSelectReviewItem={setSelectedReviewItem}
                 visibleAnnotations={visibleAnnotations}
