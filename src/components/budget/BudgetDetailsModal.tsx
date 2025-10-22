@@ -286,7 +286,7 @@ export function BudgetDetailsModal({
           </TabsContent>
 
           <TabsContent value="vendor-bid" className="flex-1 overflow-auto mt-4">
-            <div className="space-y-3 max-w-full">
+            <div className="space-y-3 max-w-2xl mx-auto">
               {availableBids.length === 0 ? (
                 <div className="text-center py-8 space-y-2">
                   <p className="text-sm text-muted-foreground">
