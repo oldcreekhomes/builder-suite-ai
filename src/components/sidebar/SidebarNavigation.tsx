@@ -272,8 +272,8 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
             )}
           </div>
 
-          {/* Software Issues Section - Show on company dashboard and project pages */}
-          {(isCompanyDashboard || (projectId && !isIssuesPage)) && (
+          {/* Software Issues Section - Show for all authenticated users except when on issues page */}
+          {!isIssuesPage && (
             <div className="pt-2 mt-2 border-t border-gray-200">
               <div>
                 <a href="/issues" className="flex items-center px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
