@@ -31,9 +31,10 @@ interface TakeoffTableProps {
   onSelectReviewItem: (item: { id: string; color: string; category: string } | null) => void;
   visibleAnnotations: Set<string>;
   onToggleVisibility: (itemId: string) => void;
+  onItemsAdded?: (itemIds: string[]) => void;
 }
 
-export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectReviewItem, visibleAnnotations, onToggleVisibility }: TakeoffTableProps) {
+export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectReviewItem, visibleAnnotations, onToggleVisibility, onItemsAdded }: TakeoffTableProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -469,12 +470,17 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           }}
           items={extractedData.items}
           sheetId={sheetId}
-          onSaveComplete={() => {
+          onSaveComplete={(newItemIds) => {
             refetch();
             
             // Invalidate all related queries to update overlays and visibility
             queryClient.invalidateQueries({ queryKey: ['takeoff-annotations'] });
             queryClient.invalidateQueries({ queryKey: ['takeoff-items-visibility'] });
+            
+            // Immediately make the new items visible
+            if (onItemsAdded && newItemIds.length > 0) {
+              onItemsAdded(newItemIds);
+            }
             
             toast({
               title: "Items saved",

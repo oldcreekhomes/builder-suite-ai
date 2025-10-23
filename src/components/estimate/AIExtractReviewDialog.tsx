@@ -25,7 +25,7 @@ interface AIExtractReviewDialogProps {
   onClose: () => void;
   items: ExtractedItem[];
   sheetId: string;
-  onSaveComplete: () => void;
+  onSaveComplete: (newItemIds: string[]) => void;
 }
 
 export function AIExtractReviewDialog({ 
@@ -112,12 +112,21 @@ export function AIExtractReviewDialog({
 
       const successCount = results.filter(r => r.ok).length;
 
+      // Fetch the IDs of the updated items
+      const { data: updatedItems } = await supabase
+        .from('takeoff_items')
+        .select('id')
+        .eq('takeoff_sheet_id', sheetId)
+        .in('cost_code_id', itemsToUpdate.map(u => u.cost_code_id));
+
+      const newItemIds = updatedItems?.map(item => item.id) || [];
+
       toast({
         title: "Updated",
         description: `Updated ${successCount} item${successCount !== 1 ? 's' : ''}.`,
       });
 
-      onSaveComplete();
+      onSaveComplete(newItemIds);
       onClose();
     } catch (error) {
       console.error('Save error:', error);

@@ -121,6 +121,15 @@ export default function TakeoffEditor() {
     }
   };
 
+  const handleItemsAdded = (itemIds: string[]) => {
+    console.log('🎉 New items added, making them visible:', itemIds);
+    setVisibleAnnotations(prev => {
+      const next = new Set(prev);
+      itemIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
   // Show loading state while takeoff is being fetched/created
   if (!takeoff) {
     return (
@@ -185,6 +194,7 @@ export default function TakeoffEditor() {
                 onSelectReviewItem={setSelectedReviewItem}
                 visibleAnnotations={visibleAnnotations}
                 onToggleVisibility={handleToggleVisibility}
+                onItemsAdded={handleItemsAdded}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
