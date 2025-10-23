@@ -115,6 +115,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       backgroundColor: 'transparent',
     });
 
+    // Diagnostics: confirm presence of lower/upper layers after init
+    const hasLower = !!((canvas as any).lowerCanvasEl || (canvas as any).lower?.el);
+    const hasUpper = !!((canvas as any).upperCanvasEl || (canvas as any).upper?.el);
+    console.info('Fabric initialized', { hasLower, hasUpper });
+
     setFabricCanvas(canvas);
 
     return () => {
@@ -128,6 +133,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
     const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
     const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
+    const wrapper =
+      (fabricCanvas as any).wrapperEl ||
+      (upper?.parentElement as HTMLElement | null) ||
+      (lower?.parentElement as HTMLElement | null);
 
     if (lower && upper) {
       // Position both canvases absolutely
@@ -143,7 +152,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       upper.style.zIndex = '1000';
       upper.style.pointerEvents = 'auto';
 
-      console.info('Fabric canvas layers styled: upper z-index 1000 (events), lower z-index 900 (rendering)');
+      if (wrapper) {
+        wrapper.style.position = 'absolute';
+        wrapper.style.top = '0';
+        wrapper.style.left = '0';
+        wrapper.style.zIndex = '1000';
+        wrapper.style.pointerEvents = 'auto';
+      }
+
+      console.info('Fabric canvas layers styled: wrapper/upper z-index 1000 (events), lower z-index 900 (rendering)');
     }
   }, [fabricCanvas]);
 
@@ -169,15 +186,24 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       height: displayedSize.height,
     });
 
-    // Also sync style dimensions for upper/lower canvases
+    // Also sync style dimensions for upper/lower canvases and wrapper
     const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
     const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
+    const wrapper =
+      (fabricCanvas as any).wrapperEl ||
+      (upper?.parentElement as HTMLElement | null) ||
+      (lower?.parentElement as HTMLElement | null);
     
     if (lower && upper) {
       lower.style.width = `${displayedSize.width}px`;
       lower.style.height = `${displayedSize.height}px`;
       upper.style.width = `${displayedSize.width}px`;
       upper.style.height = `${displayedSize.height}px`;
+    }
+
+    if (wrapper) {
+      wrapper.style.width = `${displayedSize.width}px`;
+      wrapper.style.height = `${displayedSize.height}px`;
     }
 
     setCanvasReady(true);

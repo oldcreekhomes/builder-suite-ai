@@ -170,9 +170,10 @@
     list-style-type: square;
   }
 
-  /* Ensure PDF overlay layers never block Fabric interactions */
+  /* Ensure PDF layers never block Fabric interactions */
   .react-pdf__Page__textContent,
-  .react-pdf__Page__annotations {
+  .react-pdf__Page__annotations,
+  .react-pdf__Page canvas {
     pointer-events: none !important;
   }
 }
