@@ -43,7 +43,7 @@ export function FilePreviewModal({ file, isOpen, onClose, onFileDeleted }: FileP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-full max-h-[95vh] p-0 flex flex-col border-0">
+      <DialogContent className="max-w-[98vw] w-full max-h-[95vh] p-0 flex flex-col border-0">
         <DialogTitle className="sr-only">
           {file.description || file.name}
         </DialogTitle>
