@@ -221,7 +221,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
               </div>
             }
           >
-            {baseScale !== null && Array.from(new Array(numPages), (_, index) => {
+            {Array.from(new Array(numPages), (_, index) => {
               const pageNum = index + 1;
               const isVisible = visiblePages.has(pageNum);
               
