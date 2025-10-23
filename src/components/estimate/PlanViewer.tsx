@@ -1139,6 +1139,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             />
           )}
           
+          {/* Fabric.js canvas for drawing */}
+          <canvas 
+            ref={canvasRef}
+            className="absolute top-0 left-0 pointer-events-auto"
+            style={{ zIndex: 500 }}
+          />
+          
           {/* Empty state banner */}
           {annotations && annotations.length === 0 && (
             <div className="absolute top-2 left-2 px-2 py-1 rounded bg-muted text-foreground text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
