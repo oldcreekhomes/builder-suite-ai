@@ -39,10 +39,11 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
   // Track container size with initial measurement + ResizeObserver + window resize
   useEffect(() => {
     const el = containerRef.current;
-    if (!open || !el) return;
+    if (!open || loading || !el) return;
 
     const setFromRect = () => {
       const rect = el.getBoundingClientRect();
+      console.debug('price-history:init-measure');
       setSize({
         width: Math.max(0, rect.width),
         height: Math.max(0, rect.height),
@@ -69,16 +70,17 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
       observer.disconnect();
       window.removeEventListener('resize', setFromRect);
     };
-  }, [open]);
+  }, [open, loading]);
 
-  // Delay chart render until dialog is open and layout has settled
+  // Set ready when we have a valid size
   useEffect(() => {
-    if (open) {
-      setReady(false);
-      const id = requestAnimationFrame(() => setReady(true));
-      return () => cancelAnimationFrame(id);
-    }
-    setReady(false);
+    if (!open) return;
+    if (size.width > 0) setReady(true);
+  }, [open, size.width]);
+
+  // Reset ready when dialog closes
+  useEffect(() => {
+    if (!open) setReady(false);
   }, [open]);
 
   // Debug: log size changes while modal is open
