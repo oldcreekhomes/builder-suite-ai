@@ -137,15 +137,21 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
     
+    // Get the earliest price from history
+    const earliestPrice = Number(sortedHistory[0].price || 0);
+    
     // For each month, find the most recent price at or before that month
     return yearMonths.map(({ monthName, monthDate, fullDate }) => {
-      let activePrice = currentPrice; // Default to current price
+      // Start with the earliest price (for months before first history entry)
+      let activePrice = earliestPrice;
       
       // Find the most recent price change before or on this month
       for (const record of sortedHistory) {
         const recordDate = new Date(record.changed_at);
         if (recordDate <= monthDate) {
           activePrice = Number(record.price || 0);
+        } else {
+          break; // Stop once we pass this month
         }
       }
       
