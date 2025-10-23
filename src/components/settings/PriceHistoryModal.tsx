@@ -52,29 +52,36 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
 
   const generateYearChartData = () => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = 2025;
     const currentPrice = Number(costCode.price || 0);
+    
+    // Generate last 12 months from today
+    const today = new Date();
+    const last12Months = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(today.getFullYear(), today.getMonth() - (11 - i), 15);
+      return {
+        monthName: format(date, 'MMM'),
+        monthDate: date,
+        fullDate: format(date, 'MMM yyyy')
+      };
+    });
     
     // If no history, show current price across all months
     if (history.length === 0) {
-      return months.map(month => ({
-        date: month,
+      return last12Months.map(({ monthName, fullDate }) => ({
+        date: monthName,
         price: currentPrice,
-        fullDate: `${month} ${currentYear}`
+        fullDate
       }));
     }
     
-    // If we have history, calculate price for each month
     // Sort history by date (oldest first)
     const sortedHistory = [...history].sort((a, b) => 
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
     
-    return months.map((month, index) => {
-      const monthDate = new Date(currentYear, index, 15); // Middle of month
-      
-      // Find the most recent price change before or on this month
-      let activePrice = currentPrice;
+    // For each month, find the active price
+    return last12Months.map(({ monthName, monthDate, fullDate }) => {
+      let activePrice = sortedHistory[0] ? Number(sortedHistory[0].price) : currentPrice;
       
       for (const record of sortedHistory) {
         const recordDate = new Date(record.changed_at);
@@ -86,9 +93,9 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
       }
       
       return {
-        date: month,
+        date: monthName,
         price: activePrice,
-        fullDate: `${month} ${currentYear}`
+        fullDate
       };
     });
   };
@@ -97,15 +104,23 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     const currentPrice = Number(costCode.price || 0);
     
     if (history.length === 0) {
-      return { min: currentPrice, max: currentPrice, volatility: 0 };
+      return { min: currentPrice, max: currentPrice, volatility: 0, priceChange: 0, isNegative: false };
     }
 
     const prices = history.map(h => Number(h.price));
     const min = Math.min(...prices, currentPrice);
     const max = Math.max(...prices, currentPrice);
     const volatility = max - min;
+    
+    // Calculate price change from first to last
+    const sortedHistory = [...history].sort((a, b) => 
+      new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
+    );
+    const firstPrice = sortedHistory[0] ? Number(sortedHistory[0].price) : currentPrice;
+    const priceChange = currentPrice - firstPrice;
+    const isNegative = priceChange < 0;
 
-    return { min, max, volatility };
+    return { min, max, volatility, priceChange, isNegative };
   };
 
   const stats = calculateVolatility();
@@ -195,8 +210,10 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className="text-lg font-semibold">${stats.max.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Volatility</p>
-            <p className="text-lg font-semibold">${stats.volatility.toFixed(2)}</p>
+            <p className="text-sm text-muted-foreground">Price Change</p>
+            <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
+              {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toFixed(2)}
+            </p>
           </div>
         </div>
       </DialogContent>
