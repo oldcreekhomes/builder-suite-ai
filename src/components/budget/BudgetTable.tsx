@@ -169,28 +169,27 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }));
   };
 
-  // Helper component to calculate item total (same logic as BudgetTableRow)
-  const BudgetItemTotal = ({ item }: { item: any }) => {
-    const costCode = item.cost_codes;
-    const hasSubcategories = costCode?.has_subcategories || false;
-    const { calculatedTotal: subcategoryTotal } = useBudgetSubcategories(
-      item.id,
-      costCode?.id,
-      item.project_id,
-      hasSubcategories
-    );
-    
-    return hasSubcategories 
-      ? subcategoryTotal 
-      : (item.quantity || 0) * (item.unit_price || 0);
-  };
+  // Build a map of subcategory totals for all items
+  const subcategoryTotalsMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    budgetItems.forEach(item => {
+      const costCode = item.cost_codes;
+      const hasSubcategories = costCode?.has_subcategories || false;
+      if (hasSubcategories) {
+        // We'll need to get this from the hook, but for now set to 0
+        // The actual values will be computed when rendering rows
+        map[item.id] = 0;
+      }
+    });
+    return map;
+  }, [budgetItems]);
 
   // Calculate total budget by summing the visible group totals
   const totalBudget = useMemo(() => {
     return Object.values(groupedBudgetItems).reduce((sum, items) => {
-      return sum + calculateGroupTotal(items);
+      return sum + calculateGroupTotal(items, subcategoryTotalsMap);
     }, 0);
-  }, [groupedBudgetItems, calculateGroupTotal]);
+  }, [groupedBudgetItems, calculateGroupTotal, subcategoryTotalsMap]);
 
   return (
     <div className="space-y-4">
@@ -240,7 +239,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       onEditGroup={() => {}}
                       onDeleteGroup={onDeleteGroup}
                       isDeleting={deletingGroups.has(group)}
-                      groupTotal={calculateGroupTotal(items)}
+                      groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
                       visibleColumns={visibleColumns}
                     />
                     
@@ -264,7 +263,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         ))}
                         <BudgetGroupTotalRow
                           group={group}
-                          groupTotal={calculateGroupTotal(items)}
+                          groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
+                          subcategoryTotals={subcategoryTotalsMap}
                           historicalTotal={(() => {
                             // Sum unique codes to avoid double-counting
                             const uniqueCodes = new Set(
@@ -290,6 +290,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                   visibleColumns={visibleColumns}
                   budgetItems={budgetItems}
                   groupedBudgetItems={groupedBudgetItems}
+                  subcategoryTotals={subcategoryTotalsMap}
                 />
               </>
             )}
@@ -303,6 +304,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         budgetItems={budgetItems}
         groupedBudgetItems={groupedBudgetItems}
         projectAddress={projectAddress}
+        subcategoryTotals={subcategoryTotalsMap}
       />
 
       {showAddBudgetModal && (

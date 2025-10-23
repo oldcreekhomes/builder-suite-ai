@@ -1,7 +1,7 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
-import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
+import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 interface BudgetGroupTotalRowProps {
   group: string;
@@ -10,6 +10,7 @@ interface BudgetGroupTotalRowProps {
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
   groupItems?: any[];
+  subcategoryTotals?: Record<string, number>;
 }
 
 export function BudgetGroupTotalRow({ 
@@ -18,22 +19,16 @@ export function BudgetGroupTotalRow({
   historicalTotal,
   showVarianceAsPercentage = false,
   visibleColumns,
-  groupItems = []
+  groupItems = [],
+  subcategoryTotals = {}
 }: BudgetGroupTotalRowProps) {
   // Calculate actual displayed total using same logic as rows
   const displayedTotal = React.useMemo(() => {
     return groupItems.reduce((sum, item) => {
-      const costCode = item.cost_codes;
-      const hasSubcategories = costCode?.has_subcategories || false;
-      
-      if (hasSubcategories) {
-        // For subcategory items, use quantity * unit_price as it represents the calculated total
-        return sum + ((item.quantity || 0) * (item.unit_price || 0));
-      }
-      
-      return sum + ((item.quantity || 0) * (item.unit_price || 0));
+      const subcategoryTotal = subcategoryTotals[item.id];
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
     }, 0);
-  }, [groupItems]);
+  }, [groupItems, subcategoryTotals]);
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };

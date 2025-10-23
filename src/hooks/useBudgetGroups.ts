@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
+import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -51,11 +52,11 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
     return selectedInGroup.length > 0 && selectedInGroup.length < groupItems.length;
   };
 
-  const calculateGroupTotal = (groupItems: any[]) => {
-    return groupItems.reduce(
-      (sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 
-      0
-    );
+  const calculateGroupTotal = (groupItems: any[], subcategoryTotals: Record<string, number> = {}) => {
+    return groupItems.reduce((sum, item) => {
+      const subcategoryTotal = subcategoryTotals[item.id];
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+    }, 0);
   };
 
   const removeDeletedItemsFromSelection = (groupItems: any[]) => {

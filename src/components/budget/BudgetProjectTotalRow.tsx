@@ -1,5 +1,6 @@
 import { TableRow, TableCell } from '@/components/ui/table';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 interface BudgetProjectTotalRowProps {
   totalBudget: number;
@@ -8,6 +9,7 @@ interface BudgetProjectTotalRowProps {
   visibleColumns: VisibleColumns;
   budgetItems?: any[];
   groupedBudgetItems?: Record<string, any[]>;
+  subcategoryTotals?: Record<string, number>;
 }
 
 export function BudgetProjectTotalRow({ 

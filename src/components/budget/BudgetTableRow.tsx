@@ -6,6 +6,7 @@ import { Eye, Lock, Unlock } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetTableRowActions } from './components/BudgetTableRowActions';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
+import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
@@ -82,12 +83,8 @@ export function BudgetTableRow({
   const bidPrice = hasSelectedBid ? (selectedBid.price || 0) : 0;
   const bidCompanyName = hasSelectedBid ? (selectedBid.companies?.company_name || 'Unknown') : '';
   
-  // Use bid price if selected, otherwise subcategory total if available (unless manual override is enabled or manual values exist), otherwise calculate normally
-  const total = hasSelectedBid
-    ? bidPrice
-    : (hasSubcategories && !manualOverrideEnabled && !hasManualValues)
-      ? subcategoryTotal 
-      : (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
+  // Use the shared calculation utility for consistency
+  const total = calculateBudgetItemTotal(item, subcategoryTotal, manualOverrideEnabled);
   
   // For display purposes in Cost column
   const displayUnitPrice = hasSelectedBid 

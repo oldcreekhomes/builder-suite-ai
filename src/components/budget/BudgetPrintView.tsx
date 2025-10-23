@@ -1,25 +1,32 @@
 
 import React from 'react';
-import { formatUnitOfMeasure } from '@/utils/budgetUtils';
+import { formatUnitOfMeasure, calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 interface BudgetPrintViewProps {
   budgetItems: any[];
   groupedBudgetItems: Record<string, any[]>;
   projectAddress?: string;
+  subcategoryTotals?: Record<string, number>;
 }
 
-export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddress }: BudgetPrintViewProps) {
+export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddress, subcategoryTotals = {} }: BudgetPrintViewProps) {
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
   const totalBudget = budgetItems.reduce(
-    (sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 
+    (sum, item) => {
+      const subcategoryTotal = subcategoryTotals[item.id];
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+    }, 
     0
   );
 
   const calculateGroupTotal = (items: any[]) => {
-    return items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0);
+    return items.reduce((sum, item) => {
+      const subcategoryTotal = subcategoryTotals[item.id];
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+    }, 0);
   };
 
   return (
@@ -45,18 +52,22 @@ export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddres
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.code}</td>
-                  <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.name}</td>
-                  <td className="border border-gray-300 p-1 text-right text-sm">{item.quantity || 0}</td>
-                  <td className="border border-gray-300 p-1 text-sm">{formatUnitOfMeasure(item.cost_codes?.unit_of_measure)}</td>
-                  <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(item.unit_price || 0)}</td>
-                  <td className="border border-gray-300 p-1 text-right text-sm">
-                    {formatCurrency((item.quantity || 0) * (item.unit_price || 0))}
-                  </td>
-                </tr>
-              ))}
+              {items.map((item) => {
+                const subcategoryTotal = subcategoryTotals[item.id];
+                const itemTotal = calculateBudgetItemTotal(item, subcategoryTotal, false);
+                return (
+                  <tr key={item.id}>
+                    <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.code}</td>
+                    <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.name}</td>
+                    <td className="border border-gray-300 p-1 text-right text-sm">{item.quantity || 0}</td>
+                    <td className="border border-gray-300 p-1 text-sm">{formatUnitOfMeasure(item.cost_codes?.unit_of_measure)}</td>
+                    <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(item.unit_price || 0)}</td>
+                    <td className="border border-gray-300 p-1 text-right text-sm">
+                      {formatCurrency(itemTotal)}
+                    </td>
+                  </tr>
+                );
+              })}
               <tr className="bg-gray-50 font-semibold">
                 <td colSpan={5} className="border border-gray-300 p-1 text-right text-sm">Group Total:</td>
                 <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(calculateGroupTotal(items))}</td>
