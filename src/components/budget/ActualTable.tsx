@@ -61,8 +61,10 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     isGroupPartiallySelected,
     calculateGroupTotal,
     removeDeletedItemsFromSelection,
-    removeGroupFromExpanded
-  } = useBudgetGroups();
+    removeGroupFromExpanded,
+    expandAllGroups,
+    collapseAllGroups
+  } = useBudgetGroups(groupedBudgetItems);
   
   const { deletingGroups, deletingItems, handleUpdateActual, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
 
@@ -173,6 +175,8 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
         onPrint={handlePrint} 
         budgetItems={budgetItems}
         onUpdateActual={handleUpdateActual}
+        onExpandAll={expandAllGroups}
+        onCollapseAll={collapseAllGroups}
       />
 
       {selectedCount > 0 && (

@@ -65,7 +65,7 @@ export function BudgetGroupTotalRow({
   };
 
   return (
-    <TableRow className="bg-white h-8 border-b border-gray-200">
+    <TableRow className="bg-background h-9 border-b border-border">
       <TableCell className="px-1 py-0 w-12">
         {/* Empty checkbox cell */}
       </TableCell>
@@ -73,7 +73,7 @@ export function BudgetGroupTotalRow({
         {/* Empty code cell */}
       </TableCell>
       <TableCell className="px-1 py-0 w-40">
-        <div className="text-xs">
+        <div className="text-xs font-semibold text-foreground">
           Total Budget
         </div>
       </TableCell>

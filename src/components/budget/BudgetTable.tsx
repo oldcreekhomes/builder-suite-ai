@@ -60,8 +60,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     isGroupPartiallySelected,
     calculateGroupTotal,
     removeDeletedItemsFromSelection,
-    removeGroupFromExpanded
-  } = useBudgetGroups();
+    removeGroupFromExpanded,
+    expandAllGroups,
+    collapseAllGroups
+  } = useBudgetGroups(groupedBudgetItems);
   
   const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
 
@@ -188,6 +190,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         onAddBudget={() => setShowAddBudgetModal(true)}
         visibleColumns={visibleColumns}
         onToggleColumn={handleToggleColumn}
+        onExpandAll={expandAllGroups}
+        onCollapseAll={collapseAllGroups}
       />
 
       {selectedCount > 0 && (

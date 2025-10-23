@@ -44,7 +44,7 @@ export function BudgetGroupHeader({
   }, [isPartiallySelected, isSelected]);
 
   return (
-    <TableRow className="bg-gray-50 h-8">
+    <TableRow className="bg-muted/50 border-b border-muted h-9 hover:bg-muted/70 transition-colors">
       <TableCell className="px-1 py-0 w-12">
         <Checkbox
           ref={checkboxRef}
@@ -55,12 +55,12 @@ export function BudgetGroupHeader({
       </TableCell>
       <TableCell 
         colSpan={5} 
-        className="px-1 py-0 cursor-pointer hover:bg-gray-100"
+        className="px-1 py-0 cursor-pointer"
         onClick={() => onToggle(group)}
       >
-        <div className="flex items-center text-xs font-medium">
+        <div className="flex items-center text-xs font-semibold text-foreground">
           <ChevronDown 
-            className={`h-3 w-3 mr-2 transition-transform ${
+            className={`h-4 w-4 mr-2 transition-transform ${
               isExpanded ? 'rotate-0' : '-rotate-90'
             }`} 
           />
@@ -76,7 +76,7 @@ export function BudgetGroupHeader({
       <TableCell className="px-3 py-0 w-32">
         {/* Empty cell for Variance column in group header */}
       </TableCell>
-      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-gray-50 z-20">
+      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-muted/50 z-20">
         <div className="flex justify-center">
           {isSelected && (
             <DeleteButton

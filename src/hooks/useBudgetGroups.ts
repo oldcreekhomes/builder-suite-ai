@@ -71,6 +71,16 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
     setExpandedGroups(newExpanded);
   };
 
+  const expandAllGroups = () => {
+    if (groupedBiddingItems) {
+      setExpandedGroups(new Set(Object.keys(groupedBiddingItems)));
+    }
+  };
+
+  const collapseAllGroups = () => {
+    setExpandedGroups(new Set());
+  };
+
   // Initialize groups as expanded only on first load
   useEffect(() => {
     if (groupedBiddingItems && Object.keys(groupedBiddingItems).length > 0 && !initializedRef.current) {
@@ -89,6 +99,8 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
     isGroupPartiallySelected,
     calculateGroupTotal,
     removeDeletedItemsFromSelection,
-    removeGroupFromExpanded
+    removeGroupFromExpanded,
+    expandAllGroups,
+    collapseAllGroups
   };
 }
