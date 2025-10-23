@@ -343,6 +343,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                   {...(someSelectableSelected ? { "data-state": "indeterminate" } : {})}
                 />
               </TableHead>
+              <TableHead className="w-16"></TableHead>
               <TableHead className="w-20">Color</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Qty</TableHead>
@@ -354,7 +355,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           <TableBody>
             {!items || items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No items measured yet
                 </TableCell>
               </TableRow>
@@ -369,7 +370,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                     key={item.id} 
                     className={cn(
                       item.isTemplate ? 'opacity-70' : '',
-                      isSelected && 'bg-accent'
+                      isSelected && 'bg-primary/10 ring-2 ring-primary'
                     )}
                     onClick={() => !isTemplate && onSelectReviewItem({
                       id: item.id,
@@ -384,6 +385,15 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                           checked={selectedItems.has(item.id)}
                           onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
                         />
+                      )}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {isSelected && !isTemplate && (
+                        <div className="flex items-center justify-center">
+                          <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                            DRAW
+                          </div>
+                        </div>
                       )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>

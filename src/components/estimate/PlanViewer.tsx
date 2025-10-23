@@ -368,11 +368,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
             coordDebug.push(scaled.left, scaled.top);
 
+            const isManualAnnotation = annotation.label?.includes('Manual');
             const rect = new Rect({
               ...scaled,
               stroke: annotation.color,
               fill: hexToRgba(annotation.color, 0.2),
               strokeWidth: scaled.strokeWidth || 2,
+              strokeDashArray: isManualAnnotation ? [5, 5] : undefined,
               opacity: isVisible ? 1 : 0,
               selectable: true,
               evented: true,
@@ -429,9 +431,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
             coordDebug.push(lineScaled.x1, lineScaled.y1, lineScaled.x2, lineScaled.y2);
             
+            const isManualLine = annotation.label?.includes('Manual');
             fabricObject = new Line([lineScaled.x1, lineScaled.y1, lineScaled.x2, lineScaled.y2], {
               stroke: annotation.color,
               strokeWidth: lineScaled.strokeWidth || 2,
+              strokeDashArray: isManualLine ? [5, 5] : undefined,
               opacity: isVisible ? 1 : 0,
               selectable: true,
               evented: true,
@@ -454,10 +458,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
             polygonPointsScaled.forEach((p: any) => coordDebug.push(p.x, p.y));
 
+            const isManualPolygon = annotation.label?.includes('Manual');
             const polygon = new Polygon(polygonPointsScaled, {
               stroke: annotation.color,
-              fill: 'transparent',
+              fill: hexToRgba(annotation.color, 0.2),
               strokeWidth: Math.max(2, (polygonShape.strokeWidth || 2) * ((scaleX + scaleY) / 2)),
+              strokeDashArray: isManualPolygon ? [5, 5] : undefined,
               opacity: isVisible ? 0.6 : 0,
               selectable: true,
               evented: true,
@@ -532,16 +538,131 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     fabricCanvas.renderAll();
   }, [visibleAnnotations, fabricCanvas, annotations]);
 
+  // Keyboard handler for deleting manual annotations
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && activeTool === 'select') {
+        const activeObject = fabricCanvas.getActiveObject();
+        if (activeObject) {
+          // Find the annotation ID from annotationObjectsRef
+          let annotationId: string | null = null;
+          annotationObjectsRef.current.forEach((obj, id) => {
+            if (obj === activeObject) annotationId = id;
+          });
+          
+          if (annotationId) {
+            // Check if it's a manual annotation before deleting
+            const annotation = annotations?.find(a => a.id === annotationId);
+            if (annotation && annotation.label?.includes('Manual')) {
+              deleteAnnotation(annotationId);
+              fabricCanvas.remove(activeObject);
+              
+              // Decrement quantity
+              decrementQuantity(annotation.takeoff_item_id);
+            } else {
+              toast({
+                title: "Cannot delete AI annotation",
+                description: "Only manually added annotations can be deleted. Use Re-extract to refresh AI annotations.",
+                variant: "destructive",
+              });
+            }
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fabricCanvas, activeTool, annotations, deleteAnnotation]);
+
+  // Quantity update functions
+  const incrementQuantity = async (itemId: string) => {
+    const { data: item } = await supabase
+      .from('takeoff_items')
+      .select('quantity')
+      .eq('id', itemId)
+      .single();
+    
+    if (item) {
+      await supabase
+        .from('takeoff_items')
+        .update({ quantity: (item.quantity || 0) + 1 })
+        .eq('id', itemId);
+      
+      toast({
+        title: "Quantity updated",
+        description: "+1 added to item",
+      });
+    }
+  };
+
+  const incrementQuantityBy = async (itemId: string, amount: number) => {
+    const { data: item } = await supabase
+      .from('takeoff_items')
+      .select('quantity')
+      .eq('id', itemId)
+      .single();
+    
+    if (item) {
+      await supabase
+        .from('takeoff_items')
+        .update({ quantity: (item.quantity || 0) + amount })
+        .eq('id', itemId);
+      
+      toast({
+        title: "Quantity updated",
+        description: `+${amount.toFixed(2)} added to item`,
+      });
+    }
+  };
+
+  const decrementQuantity = async (itemId: string) => {
+    const { data: item } = await supabase
+      .from('takeoff_items')
+      .select('quantity')
+      .eq('id', itemId)
+      .single();
+    
+    if (item) {
+      const newQty = Math.max(0, (item.quantity || 0) - 1);
+      await supabase
+        .from('takeoff_items')
+        .update({ quantity: newQty })
+        .eq('id', itemId);
+      
+      toast({
+        title: "Quantity updated",
+        description: "-1 from item",
+      });
+    }
+  };
+
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
     if (!fabricCanvas) return;
 
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = tool === 'select';
+    
+    // Clear all event listeners
+    fabricCanvas.off('mouse:down');
+    fabricCanvas.off('mouse:move');
+    fabricCanvas.off('mouse:up');
 
-    // Allow drawing when a takeoff item is selected
-    if (selectedTakeoffItem && tool === 'count') {
-      fabricCanvas.off('mouse:down');
+    if (!selectedTakeoffItem && tool !== 'select') {
+      toast({
+        title: "Select an item first",
+        description: "Select a takeoff item from the table to annotate",
+      });
+      return;
+    }
+
+    if (!selectedTakeoffItem) return;
+
+    // COUNT TOOL - click to place markers
+    if (tool === 'count') {
       fabricCanvas.on('mouse:down', (e) => {
         if (!e.pointer || !sheetId) return;
         
@@ -557,22 +678,272 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         
         fabricCanvas.add(circle);
         
-        // Save to database
+        // Save to database with Manual label
         saveAnnotation({
           takeoff_item_id: selectedTakeoffItem.id,
           takeoff_sheet_id: sheetId,
           annotation_type: 'circle',
           geometry: circle.toJSON(),
           color: selectedTakeoffItem.color,
-        });
+        } as any);
+
+        // Increment quantity
+        incrementQuantity(selectedTakeoffItem.id);
       });
-    } else {
-      fabricCanvas.off('mouse:down');
-      if (tool !== 'select' && !selectedTakeoffItem) {
-        toast({
-          title: "Select an item first",
-          description: "Select a takeoff item from the table to annotate",
+    }
+
+    // RECTANGLE TOOL - click and drag
+    if (tool === 'rectangle') {
+      let rect: Rect | null = null;
+      let isDrawing = false;
+      let origX = 0, origY = 0;
+
+      fabricCanvas.on('mouse:down', (e) => {
+        if (!e.pointer || !sheetId) return;
+        isDrawing = true;
+        origX = e.pointer.x;
+        origY = e.pointer.y;
+        
+        rect = new Rect({
+          left: origX,
+          top: origY,
+          width: 0,
+          height: 0,
+          fill: hexToRgba(selectedTakeoffItem.color, 0.2),
+          stroke: selectedTakeoffItem.color,
+          strokeWidth: 2,
+          strokeDashArray: [5, 5],
         });
+        fabricCanvas.add(rect);
+      });
+
+      fabricCanvas.on('mouse:move', (e) => {
+        if (!isDrawing || !rect || !e.pointer) return;
+        const width = Math.abs(e.pointer.x - origX);
+        const height = Math.abs(e.pointer.y - origY);
+        rect.set({
+          width,
+          height,
+          left: Math.min(e.pointer.x, origX),
+          top: Math.min(e.pointer.y, origY),
+        });
+        fabricCanvas.renderAll();
+      });
+
+      fabricCanvas.on('mouse:up', (e) => {
+        if (!isDrawing || !rect || !sheetId) return;
+        isDrawing = false;
+        
+        // Only save if rectangle has meaningful size
+        if ((rect.width || 0) > 5 && (rect.height || 0) > 5) {
+          saveAnnotation({
+            takeoff_item_id: selectedTakeoffItem.id,
+            takeoff_sheet_id: sheetId,
+            annotation_type: 'rectangle',
+            geometry: rect.toJSON(),
+            color: selectedTakeoffItem.color,
+          } as any);
+          
+          // Increment quantity by 1
+          incrementQuantity(selectedTakeoffItem.id);
+        } else {
+          fabricCanvas.remove(rect);
+        }
+        
+        rect = null;
+      });
+    }
+
+    // LINE TOOL - click and drag
+    if (tool === 'line') {
+      let line: Line | null = null;
+      let isDrawing = false;
+
+      fabricCanvas.on('mouse:down', (e) => {
+        if (!e.pointer || !sheetId) return;
+        isDrawing = true;
+        
+        line = new Line([e.pointer.x, e.pointer.y, e.pointer.x, e.pointer.y], {
+          stroke: selectedTakeoffItem.color,
+          strokeWidth: 3,
+          strokeDashArray: [5, 5],
+        });
+        fabricCanvas.add(line);
+      });
+
+      fabricCanvas.on('mouse:move', (e) => {
+        if (!isDrawing || !line || !e.pointer) return;
+        line.set({ x2: e.pointer.x, y2: e.pointer.y });
+        fabricCanvas.renderAll();
+      });
+
+      fabricCanvas.on('mouse:up', (e) => {
+        if (!isDrawing || !line || !sheetId) return;
+        isDrawing = false;
+        
+        // Calculate line length in pixels
+        const x1 = line.x1 || 0;
+        const y1 = line.y1 || 0;
+        const x2 = line.x2 || 0;
+        const y2 = line.y2 || 0;
+        const pixelLength = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        
+        // Only save if line has meaningful length
+        if (pixelLength > 10) {
+          saveAnnotation({
+            takeoff_item_id: selectedTakeoffItem.id,
+            takeoff_sheet_id: sheetId,
+            annotation_type: 'line',
+            geometry: line.toJSON(),
+            color: selectedTakeoffItem.color,
+          } as any);
+          
+          // Increment quantity by 1 (user can adjust manually if needed)
+          incrementQuantity(selectedTakeoffItem.id);
+        } else {
+          fabricCanvas.remove(line);
+        }
+        
+        line = null;
+      });
+    }
+
+    // POLYGON TOOL - multi-click
+    if (tool === 'polygon') {
+      const points: { x: number; y: number }[] = [];
+      const tempCircles: Circle[] = [];
+      const tempLines: Line[] = [];
+      let previewLine: Line | null = null;
+
+      fabricCanvas.on('mouse:down', (e) => {
+        if (!e.pointer || !sheetId) return;
+        
+        // Check for double-click timing to finish
+        const now = Date.now();
+        const lastClickTime = (fabricCanvas as any)._lastPolygonClick || 0;
+        if (now - lastClickTime < 300 && points.length >= 3) {
+          // Finish polygon
+          finishPolygon();
+          return;
+        }
+        (fabricCanvas as any)._lastPolygonClick = now;
+        
+        points.push({ x: e.pointer.x, y: e.pointer.y });
+        
+        // Draw point marker
+        const circle = new Circle({
+          left: e.pointer.x - 4,
+          top: e.pointer.y - 4,
+          radius: 4,
+          fill: selectedTakeoffItem.color,
+          selectable: false,
+        });
+        fabricCanvas.add(circle);
+        tempCircles.push(circle);
+        
+        // Draw line to previous point
+        if (points.length > 1) {
+          const prevPoint = points[points.length - 2];
+          const line = new Line([prevPoint.x, prevPoint.y, e.pointer.x, e.pointer.y], {
+            stroke: selectedTakeoffItem.color,
+            strokeWidth: 2,
+            strokeDashArray: [5, 5],
+            selectable: false,
+          });
+          fabricCanvas.add(line);
+          tempLines.push(line);
+        }
+        
+        fabricCanvas.renderAll();
+      });
+
+      fabricCanvas.on('mouse:move', (e) => {
+        if (!e.pointer || points.length === 0) return;
+        
+        // Show preview line from last point to cursor
+        if (previewLine) {
+          fabricCanvas.remove(previewLine);
+        }
+        
+        const lastPoint = points[points.length - 1];
+        previewLine = new Line([lastPoint.x, lastPoint.y, e.pointer.x, e.pointer.y], {
+          stroke: selectedTakeoffItem.color,
+          strokeWidth: 1,
+          strokeDashArray: [3, 3],
+          opacity: 0.5,
+          selectable: false,
+        });
+        fabricCanvas.add(previewLine);
+        fabricCanvas.renderAll();
+      });
+
+      const finishPolygon = () => {
+        if (points.length < 3) return;
+        
+        // Remove temporary objects
+        tempCircles.forEach(c => fabricCanvas.remove(c));
+        tempLines.forEach(l => fabricCanvas.remove(l));
+        if (previewLine) fabricCanvas.remove(previewLine);
+        
+        // Create final polygon
+        const polygon = new Polygon(points, {
+          fill: hexToRgba(selectedTakeoffItem.color, 0.2),
+          stroke: selectedTakeoffItem.color,
+          strokeWidth: 2,
+          strokeDashArray: [5, 5],
+        });
+        fabricCanvas.add(polygon);
+        fabricCanvas.renderAll();
+        
+        // Save to database
+        if (sheetId) {
+          saveAnnotation({
+            takeoff_item_id: selectedTakeoffItem.id,
+            takeoff_sheet_id: sheetId,
+            annotation_type: 'polygon',
+            geometry: { points },
+            color: selectedTakeoffItem.color,
+          } as any);
+          
+          // Increment quantity by 1
+          incrementQuantity(selectedTakeoffItem.id);
+        }
+        
+        // Reset
+        points.length = 0;
+        tempCircles.length = 0;
+        tempLines.length = 0;
+        previewLine = null;
+        
+        // Switch back to select tool
+        setActiveTool('select');
+        handleToolClick('select');
+      };
+
+      // Listen for Escape key to cancel polygon
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && points.length > 0) {
+          tempCircles.forEach(c => fabricCanvas.remove(c));
+          tempLines.forEach(l => fabricCanvas.remove(l));
+          if (previewLine) fabricCanvas.remove(previewLine);
+          points.length = 0;
+          tempCircles.length = 0;
+          tempLines.length = 0;
+          previewLine = null;
+          fabricCanvas.renderAll();
+        } else if (e.key === 'Enter' && points.length >= 3) {
+          finishPolygon();
+        }
+      };
+      
+      window.addEventListener('keydown', handleKeyDown);
+      (fabricCanvas as any)._polygonKeyHandler = handleKeyDown;
+    } else {
+      // Clean up polygon key handler
+      const handler = (fabricCanvas as any)._polygonKeyHandler;
+      if (handler) {
+        window.removeEventListener('keydown', handler);
+        delete (fabricCanvas as any)._polygonKeyHandler;
       }
     }
   };
@@ -654,6 +1025,35 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onZoomReset={handleZoomReset}
         />
       </div>
+
+      {/* Drawing Instructions Panel */}
+      {activeTool !== 'select' && selectedTakeoffItem && (
+        <div className="absolute top-20 left-4 bg-background border rounded-lg p-3 shadow-lg z-50 max-w-xs">
+          <h4 className="font-semibold text-sm mb-2">Drawing Mode Active</h4>
+          <div className="text-xs text-muted-foreground space-y-1">
+            {activeTool === 'count' && <p>Click on the plan to place count markers</p>}
+            {activeTool === 'line' && <p>Click and drag to draw a line</p>}
+            {activeTool === 'rectangle' && <p>Click and drag to draw a rectangle</p>}
+            {activeTool === 'polygon' && (
+              <>
+                <p>Click to place points</p>
+                <p>Double-click or press Enter to finish</p>
+                <p>Press Escape to cancel</p>
+              </>
+            )}
+            <p className="mt-2 pt-2 border-t">
+              <span className="font-medium">Selected:</span> {selectedTakeoffItem.category}
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <div 
+                className="w-4 h-4 rounded border" 
+                style={{ backgroundColor: selectedTakeoffItem.color }}
+              />
+              <span>Drawing in this color</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div 
         ref={containerRef}

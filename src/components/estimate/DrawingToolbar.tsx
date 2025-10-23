@@ -46,11 +46,11 @@ export function DrawingToolbar({
   onZoomReset,
 }: DrawingToolbarProps) {
   const tools = [
-    { id: 'select' as const, icon: MousePointer2, label: 'Select' },
-    { id: 'count' as const, icon: Circle, label: 'Count' },
-    { id: 'line' as const, icon: Minus, label: 'Measure Line' },
-    { id: 'rectangle' as const, icon: Square, label: 'Measure Area (Rectangle)' },
-    { id: 'polygon' as const, icon: Pentagon, label: 'Measure Area (Polygon)' },
+    { id: 'select' as const, icon: MousePointer2, label: 'Select', tooltip: 'Select and move annotations (or press Delete to remove)' },
+    { id: 'count' as const, icon: Circle, label: 'Count', tooltip: 'Click to place count markers' },
+    { id: 'line' as const, icon: Minus, label: 'Measure Line', tooltip: 'Click and drag to measure linear items' },
+    { id: 'rectangle' as const, icon: Square, label: 'Measure Area (Rectangle)', tooltip: 'Click and drag to draw rectangles' },
+    { id: 'polygon' as const, icon: Pentagon, label: 'Measure Area (Polygon)', tooltip: 'Click points to trace shapes (double-click to finish)' },
   ];
 
   return (
@@ -62,7 +62,7 @@ export function DrawingToolbar({
             variant={activeTool === tool.id ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onToolClick(tool.id)}
-            title={tool.label}
+            title={tool.tooltip}
           >
             <tool.icon className="h-4 w-4" />
           </Button>
