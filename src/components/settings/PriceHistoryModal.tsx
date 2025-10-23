@@ -173,7 +173,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     const currentPrice = Number(costCode.price || 0);
     
     if (history.length === 0) {
-      return { min: currentPrice, max: currentPrice, volatility: 0, priceChange: 0, isNegative: false };
+      return { min: currentPrice, max: currentPrice, volatility: 0, priceChange: 0, percentChange: 0, isNegative: false };
     }
 
     const prices = history.map(h => Number(h.price));
@@ -187,9 +187,10 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     );
     const firstPrice = sortedHistory[0] ? Number(sortedHistory[0].price) : currentPrice;
     const priceChange = currentPrice - firstPrice;
+    const percentChange = firstPrice > 0 ? ((priceChange / firstPrice) * 100) : 0;
     const isNegative = priceChange < 0;
 
-    return { min, max, volatility, priceChange, isNegative };
+    return { min, max, volatility, priceChange, percentChange, isNegative };
   };
 
   const stats = calculateVolatility();
@@ -271,7 +272,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
             <p className="text-lg font-semibold">${costCode.price?.toFixed(2) || '0.00'}/{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
@@ -288,6 +289,12 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className="text-sm text-muted-foreground">Price Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
               {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">% Change</p>
+            <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
+              {stats.isNegative ? '-' : '+'}${Math.abs(stats.percentChange).toFixed(1)}%
             </p>
           </div>
         </div>
