@@ -13,10 +13,9 @@ interface PDFViewerProps {
   onDownload: () => void;
   onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
   onPageCountChange?: (count: number, isLoading: boolean) => void;
-  isPanEnabled?: boolean;
 }
 
-export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange, isPanEnabled = false }: PDFViewerProps) {
+export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
@@ -31,7 +30,6 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
   const pageWidthSet = React.useRef(false);
   
   // Pan state
-  const [isPanning, setIsPanning] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
   
@@ -142,25 +140,6 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
     };
   }, [zoomMultiplier]);
 
-  // Listen for pan toggle events
-  React.useEffect(() => {
-    const handleTogglePan = (e: Event) => {
-      const customEvent = e as CustomEvent<{ enabled: boolean }>;
-      setIsPanning(customEvent.detail.enabled);
-      if (!customEvent.detail.enabled) {
-        setIsDragging(false); // Cancel drag when pan disabled
-      }
-    };
-
-    window.addEventListener('pdf-toggle-pan', handleTogglePan);
-    return () => window.removeEventListener('pdf-toggle-pan', handleTogglePan);
-  }, []);
-
-  // Update isPanning from prop
-  React.useEffect(() => {
-    setIsPanning(isPanEnabled);
-  }, [isPanEnabled]);
-
   // Mouse wheel zoom
   React.useEffect(() => {
     const container = containerRef.current;
@@ -188,7 +167,6 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
 
   // Pan handlers
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!isPanning) return;
     setIsDragging(true);
     setDragStart({
       x: e.clientX,
@@ -236,8 +214,8 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
         ref={containerRef}
         className="flex-1 overflow-y-auto bg-muted/20 p-2 min-h-0" 
         style={{ 
-          cursor: isPanning ? (isDragging ? 'grabbing' : 'grab') : 'default',
-          userSelect: isPanning ? 'none' : 'auto'
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none'
         }}
         tabIndex={0} 
         role="region" 

@@ -13,18 +13,16 @@ interface FilePreviewContentProps {
   onDownload: () => void;
   onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
   onPageCountChange?: (count: number, isLoading: boolean) => void;
-  isPanEnabled?: boolean;
 }
 
 export function FilePreviewContent({ 
   file, 
   fileUrl, 
   isLoading, 
-  error, 
+  error,
   onDownload,
   onZoomChange,
-  onPageCountChange,
-  isPanEnabled = false
+  onPageCountChange
 }: FilePreviewContentProps) {
   const [imageZoom, setImageZoom] = useState(1);
   const [pdfError, setPdfError] = useState(false);
@@ -126,11 +124,10 @@ export function FilePreviewContent({
       <PDFViewer
         fileUrl={fileUrl}
         fileName={file.name}
-        onDownload={onDownload}
-        onZoomChange={onZoomChange}
-        onPageCountChange={onPageCountChange}
-        isPanEnabled={isPanEnabled}
-      />
+          onDownload={onDownload}
+          onZoomChange={onZoomChange}
+          onPageCountChange={onPageCountChange}
+        />
     );
   }
 
