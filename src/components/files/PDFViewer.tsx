@@ -44,21 +44,24 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
     setIsLoading(false);
   };
 
-  // Dynamic scale calculation for fit-to-width
+  // Dynamic scale calculation for fit-to-screen (entire page visible)
   React.useEffect(() => {
-    if (!containerRef.current || !numPages || pageWidth === 0 || pageHeight === 0 || baseScale === null) return;
+    if (!containerRef.current || !numPages || pageWidth === 0 || pageHeight === 0) return;
     
     const updateScale = () => {
       const containerWidth = containerRef.current?.offsetWidth || 800;
+      const containerHeight = containerRef.current?.offsetHeight || 600;
       
-      if (!containerWidth) return;
+      if (!containerWidth || !containerHeight) return;
       
       const horizontalPad = 16;
+      const verticalPad = 16;
       const widthScale = (containerWidth - horizontalPad) / pageWidth;
-      const newBase = Math.max(0.1, Math.min(widthScale, 5.0));
+      const heightScale = (containerHeight - verticalPad) / pageHeight;
+      const newBase = Math.max(0.1, Math.min(Math.min(widthScale, heightScale), 5.0));
       
       // Only update if changed significantly (prevent micro-updates)
-      setBaseScale(prev => Math.abs(prev - newBase) > 0.01 ? newBase : prev);
+      setBaseScale(prev => prev === null || Math.abs(prev - newBase) > 0.01 ? newBase : prev);
     };
     
     updateScale();
@@ -110,10 +113,10 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
     setZoomMultiplier(prev => Math.max(0.5, prev - 0.25));
   };
 
-  // Notify parent of zoom changes
+  // Notify parent of zoom changes (report relative multiplier so initial shows 100%)
   React.useEffect(() => {
     if (baseScale === null) return;
-    const currentZoom = baseScale * zoomMultiplier;
+    const currentZoom = zoomMultiplier;
     const canZoomIn = zoomMultiplier < 3.0;
     const canZoomOut = zoomMultiplier > 0.5;
     onZoomChange?.(currentZoom, canZoomIn, canZoomOut);
@@ -198,10 +201,12 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                           setPageWidth(width);
                           setPageHeight(height);
                           
-                          // Calculate initial scale immediately
+                          // Calculate initial scale to fit entire page on screen
                           const containerWidth = containerRef.current?.offsetWidth || 800;
+                          const containerHeight = containerRef.current?.offsetHeight || 600;
                           const widthScale = (containerWidth - 16) / width;
-                          const initialScale = Math.max(0.1, Math.min(widthScale, 5.0));
+                          const heightScale = (containerHeight - 16) / height;
+                          const initialScale = Math.max(0.1, Math.min(Math.min(widthScale, heightScale), 5.0));
                           setBaseScale(initialScale);
                           
                           pageWidthSet.current = true;
