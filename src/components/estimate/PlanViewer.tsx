@@ -1143,7 +1143,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           <canvas 
             ref={canvasRef}
             className="absolute top-0 left-0 pointer-events-auto"
-            style={{ zIndex: 500 }}
+            style={{ 
+              zIndex: 400,
+              width: displayedSize?.width || 800,
+              height: displayedSize?.height || 600
+            }}
           />
           
           {/* Empty state banner */}
