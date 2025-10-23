@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 type PriceHistory = Tables<'cost_code_price_history'>;
 type CostCode = Tables<'cost_codes'>;
@@ -36,18 +36,39 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     }
   }, [open, costCode.id]);
 
-  // Track container size with ResizeObserver
+  // Track container size with initial measurement + ResizeObserver + window resize
   useEffect(() => {
     const el = containerRef.current;
     if (!open || !el) return;
+
+    const setFromRect = () => {
+      const rect = el.getBoundingClientRect();
+      setSize({
+        width: Math.max(0, rect.width),
+        height: Math.max(0, rect.height),
+      });
+    };
+
+    // Initial measurement so size isn't stuck at 0
+    setFromRect();
+
     const observer = new ResizeObserver((entries) => {
       const cr = entries[0]?.contentRect;
       if (cr) {
-        setSize({ width: Math.max(0, cr.width), height: Math.max(0, cr.height) });
+        setSize({
+          width: Math.max(0, cr.width),
+          height: Math.max(0, cr.height),
+        });
       }
     });
+
     observer.observe(el);
-    return () => observer.disconnect();
+    window.addEventListener('resize', setFromRect);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', setFromRect);
+    };
   }, [open]);
 
   // Delay chart render until dialog is open and layout has settled
@@ -59,6 +80,13 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     }
     setReady(false);
   }, [open]);
+
+  // Debug: log size changes while modal is open
+  useEffect(() => {
+    if (open) {
+      console.debug('price-history:size', size);
+    }
+  }, [size, open]);
 
   const fetchPriceHistory = async () => {
     try {
@@ -184,7 +212,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className="text-muted-foreground">Loading chart...</p>
           </div>
         ) : chartData.length > 0 ? (
-          <div ref={containerRef} className="relative z-10 h-[300px] w-full">
+          <div ref={containerRef} className="relative z-10 h-[300px] w-full min-w-0">
             {ready && size.width > 0 ? (
               <LineChart
                 key={`${open}-${size.width}-${size.height}`}
