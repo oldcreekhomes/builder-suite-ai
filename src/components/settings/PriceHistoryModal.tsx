@@ -50,40 +50,66 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     }
   };
 
-  const calculateVolatility = () => {
-    if (history.length < 2) return { min: 0, max: 0, volatility: 0, changes: 0 };
-
-    const prices = history.map(h => Number(h.price)).reverse();
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    const volatility = max - min;
-    const changes = history.length - 1;
-
-    return { min, max, volatility, changes };
+  const generateYearChartData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = 2025;
+    const currentPrice = Number(costCode.price || 0);
+    
+    // If no history, show current price across all months
+    if (history.length === 0) {
+      return months.map(month => ({
+        date: month,
+        price: currentPrice,
+        fullDate: `${month} ${currentYear}`
+      }));
+    }
+    
+    // If we have history, calculate price for each month
+    // Sort history by date (oldest first)
+    const sortedHistory = [...history].sort((a, b) => 
+      new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
+    );
+    
+    return months.map((month, index) => {
+      const monthDate = new Date(currentYear, index, 15); // Middle of month
+      
+      // Find the most recent price change before or on this month
+      let activePrice = currentPrice;
+      
+      for (const record of sortedHistory) {
+        const recordDate = new Date(record.changed_at);
+        if (recordDate <= monthDate) {
+          activePrice = Number(record.price);
+        } else {
+          break;
+        }
+      }
+      
+      return {
+        date: month,
+        price: activePrice,
+        fullDate: `${month} ${currentYear}`
+      };
+    });
   };
 
-  const getChangeIndicator = (currentPrice: number, previousPrice: number) => {
-    if (currentPrice > previousPrice) {
-      return <TrendingUp className="h-4 w-4 text-green-600" />;
-    } else if (currentPrice < previousPrice) {
-      return <TrendingDown className="h-4 w-4 text-red-600" />;
+  const calculateVolatility = () => {
+    const currentPrice = Number(costCode.price || 0);
+    
+    if (history.length === 0) {
+      return { min: currentPrice, max: currentPrice, volatility: 0 };
     }
-    return <Minus className="h-4 w-4 text-muted-foreground" />;
+
+    const prices = history.map(h => Number(h.price));
+    const min = Math.min(...prices, currentPrice);
+    const max = Math.max(...prices, currentPrice);
+    const volatility = max - min;
+
+    return { min, max, volatility };
   };
 
   const stats = calculateVolatility();
-
-  // Prepare chart data - reverse so oldest is on the left
-  const chartData = [...history]
-    .reverse()
-    .map(record => {
-      const date = new Date(record.changed_at);
-      return {
-        date: format(date, 'MMM'),
-        price: Number(record.price),
-        fullDate: format(date, 'MMM dd, yyyy'),
-      };
-    });
+  const chartData = generateYearChartData();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
