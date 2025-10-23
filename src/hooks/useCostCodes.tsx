@@ -170,6 +170,48 @@ export const useCostCodes = () => {
   // Update cost code - improved to prevent UI flickering
   const updateCostCode = async (id: string, updates: any) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Get the owner_id for this cost code
+      const ownerId = await getCompanyOwnerId();
+
+      // If price is being updated, check if it's different
+      if ('price' in updates && updates.price !== undefined) {
+        // Get the current price
+        const { data: currentCostCode } = await supabase
+          .from('cost_codes')
+          .select('price')
+          .eq('id', id)
+          .single();
+
+        const oldPrice = currentCostCode?.price;
+        const newPrice = updates.price ? parseFloat(updates.price.toString()) : null;
+
+        // Only log if price actually changed
+        if (oldPrice !== newPrice) {
+          // Insert into price history BEFORE updating the cost code
+          const { error: historyError } = await supabase
+            .from('cost_code_price_history')
+            .insert({
+              cost_code_id: id,
+              price: newPrice || 0,
+              changed_by: user.id,
+              owner_id: ownerId || user.id,
+              notes: `Price changed from $${oldPrice || 0} to $${newPrice || 0}`
+            });
+
+          if (historyError) {
+            console.error('Error logging price history:', historyError);
+            toast({
+              title: "Warning",
+              description: "Price updated but history tracking failed",
+              variant: "destructive",
+            });
+          }
+        }
+      }
+
       // Helper to normalize boolean values from 'yes'/'no' strings or actual booleans
       const toBool = (v: any) => (typeof v === 'string' ? v === 'yes' : Boolean(v));
 

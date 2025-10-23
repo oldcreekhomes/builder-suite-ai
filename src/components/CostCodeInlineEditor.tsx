@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Edit, History } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -11,9 +12,10 @@ interface CostCodeInlineEditorProps {
   costCode: CostCode;
   field: 'quantity' | 'price' | 'unit_of_measure' | 'has_specifications' | 'has_bidding' | 'has_subcategories' | 'estimate';
   onUpdate: (costCodeId: string, updates: any) => void;
+  onViewPriceHistory?: () => void;
 }
 
-export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInlineEditorProps) {
+export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHistory }: CostCodeInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(() => {
     switch (field) {
@@ -141,6 +143,22 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate }: CostCodeInli
       >
         <span className="text-sm">{displayValue()}</span>
         <Edit className="h-3 w-3 opacity-0 group-hover:opacity-50" />
+        
+        {/* Add history button for price field */}
+        {field === 'price' && onViewPriceHistory && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewPriceHistory();
+            }}
+            title="View price history"
+          >
+            <History className="h-3 w-3" />
+          </Button>
+        )}
       </div>
     );
   }

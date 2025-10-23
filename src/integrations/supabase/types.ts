@@ -777,6 +777,54 @@ export type Database = {
           },
         ]
       }
+      cost_code_price_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          cost_code_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          owner_id: string
+          price: number
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          cost_code_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          price: number
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          cost_code_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_code_price_history_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_code_price_history_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_code_specifications: {
         Row: {
           cost_code_id: string

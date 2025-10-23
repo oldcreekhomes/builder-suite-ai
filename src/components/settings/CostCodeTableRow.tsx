@@ -16,6 +16,7 @@ interface CostCodeTableRowProps {
   onEdit: (costCode: CostCode) => void;
   onDelete: (costCode: CostCode) => void;
   onUpdate: (costCodeId: string, updates: any) => void;
+  onViewPriceHistory: (costCode: CostCode) => void;
   isGrouped?: boolean;
   isExpanded?: boolean;
   onToggleExpand?: (code: string) => void;
@@ -33,6 +34,7 @@ export function CostCodeTableRow({
   onEdit,
   onDelete,
   onUpdate,
+  onViewPriceHistory,
   isGrouped = false,
   isExpanded = false,
   onToggleExpand,
@@ -113,6 +115,7 @@ export function CostCodeTableRow({
             costCode={costCode}
             field="price"
             onUpdate={onUpdate}
+            onViewPriceHistory={() => onViewPriceHistory(costCode)}
           />
         </TableCell>
         <TableCell className="py-1">
@@ -191,6 +194,7 @@ export function CostCodeTableRow({
               onEdit={onEdit}
               onDelete={onDelete}
               onUpdate={onUpdate}
+              onViewPriceHistory={onViewPriceHistory}
               isGrouped={false}
               level={level + 1}
               onToggleExpand={onToggleExpand}

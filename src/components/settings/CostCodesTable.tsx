@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CostCodeTableRow } from './CostCodeTableRow';
 import { CostCodeGroupRow } from './CostCodeGroupRow';
+import { PriceHistoryModal } from './PriceHistoryModal';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -42,7 +43,24 @@ export function CostCodesTable({
   onAddCostCode,
   onAddSubcategory
 }: CostCodesTableProps) {
+  const [priceHistoryModal, setPriceHistoryModal] = useState<{
+    open: boolean;
+    costCode: CostCode | null;
+  }>({ open: false, costCode: null });
+
+  const handleViewPriceHistory = (costCode: CostCode) => {
+    setPriceHistoryModal({ open: true, costCode });
+  };
+
   return (
+    <>
+      {priceHistoryModal.costCode && (
+        <PriceHistoryModal
+          costCode={priceHistoryModal.costCode}
+          open={priceHistoryModal.open}
+          onOpenChange={(open) => setPriceHistoryModal({ open, costCode: null })}
+        />
+      )}
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
@@ -112,6 +130,7 @@ export function CostCodesTable({
                         onEdit={onEditCostCode}
                         onDelete={onDeleteCostCode}
                         onUpdate={onUpdateCostCode}
+                        onViewPriceHistory={handleViewPriceHistory}
                         isGrouped={groupKey !== 'ungrouped'}
                         isExpanded={!collapsedGroups.has(costCode.code)}
                         onToggleExpand={onToggleGroupCollapse}
@@ -127,5 +146,6 @@ export function CostCodesTable({
         </TableBody>
       </Table>
     </div>
+    </>
   );
 }
