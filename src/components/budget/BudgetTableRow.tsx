@@ -382,7 +382,7 @@ export function BudgetTableRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-24 sticky right-0 bg-background z-30">
+      <TableCell className="px-1 py-0 w-36 sticky right-0 bg-background z-30">
         <div className="flex items-center gap-1 justify-center">
           <BudgetSourceBadge item={item} />
           <BudgetTableRowActions
