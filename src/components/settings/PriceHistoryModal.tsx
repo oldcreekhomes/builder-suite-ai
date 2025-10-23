@@ -11,7 +11,6 @@ import type { Tables } from '@/integrations/supabase/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ChartContainer } from '@/components/ui/chart';
 
 type PriceHistory = Tables<'cost_code_price_history'>;
 type CostCode = Tables<'cost_codes'>;
@@ -51,13 +50,13 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
   };
 
   const generateYearChartData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentPrice = Number(costCode.price || 0);
-    
-    // Generate last 12 months from today
     const today = new Date();
-    const last12Months = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date(today.getFullYear(), today.getMonth() - (11 - i), 15);
+    const currentYear = today.getFullYear();
+    
+    // Generate all 12 months of the current year (Jan-Dec)
+    const yearMonths = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(currentYear, i, 15); // 15th of each month
       return {
         monthName: format(date, 'MMM'),
         monthDate: date,
@@ -65,9 +64,9 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
       };
     });
     
-    // If no history, show current price across all months
+    // If no history, show current price for all months
     if (history.length === 0) {
-      return last12Months.map(({ monthName, fullDate }) => ({
+      return yearMonths.map(({ monthName, fullDate }) => ({
         date: monthName,
         price: currentPrice,
         fullDate
@@ -79,17 +78,21 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
     
-    // For each month, find the active price
-    return last12Months.map(({ monthName, monthDate, fullDate }) => {
-      let activePrice = sortedHistory[0] ? Number(sortedHistory[0].price) : currentPrice;
+    // For each month, find the most recent price at or before that month
+    return yearMonths.map(({ monthName, monthDate, fullDate }) => {
+      let activePrice = currentPrice; // Default to current price
       
+      // Find the most recent price change before or on this month
       for (const record of sortedHistory) {
         const recordDate = new Date(record.changed_at);
         if (recordDate <= monthDate) {
-          activePrice = Number(record.price);
-        } else {
-          break;
+          activePrice = Number(record.price || 0);
         }
+      }
+      
+      // If we're in a future month, use current price
+      if (monthDate > today) {
+        activePrice = currentPrice;
       }
       
       return {
@@ -125,6 +128,14 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
 
   const stats = calculateVolatility();
   const chartData = generateYearChartData();
+  
+  // Calculate safe Y-axis domain
+  const prices = chartData.map(d => d.price);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const yDomain = minPrice === maxPrice 
+    ? [Math.max(0, minPrice - Math.max(1, minPrice * 0.1)), maxPrice + Math.max(1, maxPrice * 0.1)]
+    : ['auto', 'auto'];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,28 +156,20 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
           </div>
         ) : chartData.length > 0 ? (
           <div className="h-[300px] w-full">
-            <ChartContainer
-              config={{
-                price: {
-                  label: "Price",
-                  color: "hsl(var(--primary))",
-                },
-              }}
-            >
-              <LineChart data={chartData}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
                   dataKey="date" 
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
                 <YAxis 
-                  tickFormatter={(value) => `$${value.toFixed(2)}`}
-                  className="text-xs"
-                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  domain={yDomain}
+                  tickFormatter={(value) => `$${Number(value ?? 0).toFixed(2)}`}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
                 <Tooltip 
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+                  formatter={(value: any) => [`$${Number(value ?? 0).toFixed(2)}`, 'Price']}
                   labelFormatter={(label, payload) => 
                     payload?.[0]?.payload?.fullDate || label
                   }
@@ -185,7 +188,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
                   activeDot={{ r: 6 }}
                 />
               </LineChart>
-            </ChartContainer>
+            </ResponsiveContainer>
           </div>
         ) : (
           <div className="h-[300px] flex items-center justify-center">
