@@ -169,4 +169,10 @@
   .ql-editor ul ul ul {
     list-style-type: square;
   }
+
+  /* Ensure PDF overlay layers never block Fabric interactions */
+  .react-pdf__Page__textContent,
+  .react-pdf__Page__annotations {
+    pointer-events: none !important;
+  }
 }

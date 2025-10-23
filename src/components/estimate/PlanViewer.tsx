@@ -134,17 +134,30 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       lower.style.position = 'absolute';
       lower.style.top = '0';
       lower.style.left = '0';
-      lower.style.zIndex = '400';
+      lower.style.zIndex = '900';
       lower.style.pointerEvents = 'none';
 
       upper.style.position = 'absolute';
       upper.style.top = '0';
       upper.style.left = '0';
-      upper.style.zIndex = '450';
+      upper.style.zIndex = '1000';
       upper.style.pointerEvents = 'auto';
 
-      console.info('Fabric canvas layers styled: upper z-index 450 (events), lower z-index 400 (rendering)');
+      console.info('Fabric canvas layers styled: upper z-index 1000 (events), lower z-index 900 (rendering)');
     }
+  }, [fabricCanvas]);
+
+  // Global Fabric event logger for diagnostics
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    const logMouseDown = (e: any) => {
+      const p = e?.absolutePointer || e?.pointer;
+      console.info('Fabric global mouse:down', p ? `(${p.x?.toFixed?.(1)}, ${p.y?.toFixed?.(1)})` : '(no pointer)');
+    };
+    fabricCanvas.on('mouse:down', logMouseDown);
+    return () => {
+      fabricCanvas.off('mouse:down', logMouseDown);
+    };
   }, [fabricCanvas]);
 
   // Sync canvas dimensions when document loads
@@ -1163,6 +1176,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               src={fileUrl} 
               alt="Drawing sheet" 
               className="max-w-full"
+              style={{ pointerEvents: 'none' }}
               onLoad={(e) => {
                 const img = e.target as HTMLImageElement;
                 
@@ -1194,7 +1208,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             width={displayedSize?.width || 800}
             height={displayedSize?.height || 600}
             className="absolute top-0 left-0 pointer-events-auto"
-            style={{ zIndex: 400 }}
+            style={{ zIndex: 900 }}
           />
           
           {/* Empty state banner */}
