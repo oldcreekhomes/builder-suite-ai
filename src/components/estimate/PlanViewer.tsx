@@ -105,23 +105,22 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     enabled: !!sheet?.file_path,
   });
 
-  // Initialize Fabric.js canvas once on mount (with dynamic dimensions)
+  // Initialize Fabric.js canvas once on mount
   useEffect(() => {
-    if (!canvasRef.current || fabricCanvas || !displayedSize) return;
+    if (!canvasRef.current || fabricCanvas) return;
 
     const canvas = new FabricCanvas(canvasRef.current, {
-      width: displayedSize.width,
-      height: displayedSize.height,
+      width: 800,
+      height: 600,
       backgroundColor: 'transparent',
     });
 
     setFabricCanvas(canvas);
-    setCanvasReady(true);
 
     return () => {
       canvas.dispose();
     };
-  }, [displayedSize]);
+  }, []);
 
   // Sync canvas dimensions when document loads
   useEffect(() => {
