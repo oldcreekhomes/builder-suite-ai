@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Edit, History } from 'lucide-react';
+import { Edit, LineChart } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -156,7 +156,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHis
             }}
             title="View price history"
           >
-            <History className="h-3 w-3" />
+            <LineChart className="h-3 w-3" />
           </Button>
         )}
       </div>
