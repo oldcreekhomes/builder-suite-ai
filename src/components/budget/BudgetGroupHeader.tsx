@@ -76,7 +76,7 @@ export function BudgetGroupHeader({
       <TableCell className="px-3 py-0 w-32">
         {/* Empty cell for Variance column in group header */}
       </TableCell>
-      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-muted/50 z-20">
+      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-muted/50 z-30">
         <div className="flex justify-center">
           {isSelected && (
             <DeleteButton

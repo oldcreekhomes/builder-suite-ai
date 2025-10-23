@@ -104,7 +104,7 @@ export function BudgetProjectTotalRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-gray-50">
+      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-background z-30">
         {/* Empty actions cell */}
       </TableCell>
     </TableRow>

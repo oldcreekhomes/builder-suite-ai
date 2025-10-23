@@ -104,7 +104,7 @@ export function ActualGroupHeader({
             {formatCurrency(variance)}
           </div>
         </TableCell>
-        <TableCell className="px-1 py-0 w-20 sticky right-0 bg-gray-50 z-20">
+        <TableCell className="px-1 py-0 w-20 sticky right-0 bg-muted/50 z-30">
           <div className="flex justify-center">
             {isSelected && (
               <DeleteButton
