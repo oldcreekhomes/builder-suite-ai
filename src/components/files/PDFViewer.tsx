@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from '@/components/ui/button';
-import { Download, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Download, ZoomIn, ZoomOut, RotateCcw, Maximize2, Maximize, Percent } from 'lucide-react';
 
 // Set up PDF.js worker using local import to avoid CDN blocking
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -17,6 +17,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [baseScale, setBaseScale] = useState<number>(0.5);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
+  const [fitMode, setFitMode] = useState<'width' | 'page' | 'actual'>('width');
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1, 2, 3]));
@@ -41,28 +42,37 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     setIsLoading(false);
   };
 
-  // Dynamic width calculation
+  // Dynamic scale calculation based on fit mode
   React.useEffect(() => {
-    if (!containerRef.current || !numPages) return;
+    if (!containerRef.current || !numPages || pageWidth === 0 || pageHeight === 0) return;
     
     const updateScale = () => {
       const containerWidth = containerRef.current?.offsetWidth || 800;
       const containerHeight = containerRef.current?.offsetHeight || 600;
       
-      if (!containerWidth || !containerHeight || pageWidth === 0 || pageHeight === 0) return;
+      if (!containerWidth || !containerHeight) return;
       
-      // Calculate scale to fit BOTH width and height
-      const scaleToFitWidth = (containerWidth - 48) / pageWidth;
-      const scaleToFitHeight = (containerHeight - 100) / pageHeight;
+      const horizontalPad = 16;
+      const verticalPad = 16;
       
-      // Use the SMALLER scale to ensure entire page fits in viewport
-      const optimalScale = Math.min(scaleToFitWidth, scaleToFitHeight);
+      const widthScale = (containerWidth - horizontalPad) / pageWidth;
+      const heightScale = (containerHeight - verticalPad) / pageHeight;
       
-      // Allow scaling down to 0.1 (10%) for very large drawings, up to 2.0 (200%) for small ones
-      const newScale = Math.max(0.1, Math.min(optimalScale, 2.0));
+      let newBase: number;
+      
+      if (fitMode === 'width') {
+        // Fill width, allow vertical scrolling
+        newBase = Math.max(0.1, Math.min(widthScale, 5.0));
+      } else if (fitMode === 'page') {
+        // Fit entire page in viewport
+        newBase = Math.max(0.1, Math.min(Math.min(widthScale, heightScale), 5.0));
+      } else {
+        // Actual size (100%)
+        newBase = 1.0;
+      }
       
       // Only update if changed significantly (prevent micro-updates)
-      setBaseScale(prev => Math.abs(prev - newScale) > 0.01 ? newScale : prev);
+      setBaseScale(prev => Math.abs(prev - newBase) > 0.01 ? newBase : prev);
     };
     
     updateScale();
@@ -70,7 +80,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     resizeObserver.observe(containerRef.current);
     
     return () => resizeObserver.disconnect();
-  }, [numPages]);
+  }, [numPages, pageWidth, pageHeight, fitMode]);
 
   // Virtual scrolling with Intersection Observer
   React.useEffect(() => {
@@ -147,11 +157,38 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
         </div>
         
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 mr-2 border-r pr-2">
+            <Button 
+              variant={fitMode === 'width' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              onClick={() => { setFitMode('width'); setZoomMultiplier(1); }}
+              title="Fit width"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={fitMode === 'page' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              onClick={() => { setFitMode('page'); setZoomMultiplier(1); }}
+              title="Fit page"
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={fitMode === 'actual' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              onClick={() => { setFitMode('actual'); setZoomMultiplier(1); }}
+              title="100%"
+            >
+              <Percent className="h-4 w-4" />
+            </Button>
+          </div>
+          
           <Button variant="ghost" size="sm" onClick={zoomOut} disabled={zoomMultiplier <= 0.5}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium min-w-[50px] text-center">
-            {Math.round(zoomMultiplier * 100)}%
+            {Math.round(baseScale * zoomMultiplier * 100)}%
           </span>
           <Button variant="ghost" size="sm" onClick={zoomIn} disabled={zoomMultiplier >= 3.0}>
             <ZoomIn className="h-4 w-4" />
