@@ -13,14 +13,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
+import { autoExtractAndSave } from "@/utils/autoExtractTakeoff";
+import { Progress } from "@/components/ui/progress";
 
 interface UploadSheetDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   takeoffId: string;
-  onSuccess: () => void;
+  onSuccess: (sheetIds: string[], itemIds: string[]) => void;
+}
+
+interface SheetProgress {
+  sheetId: string;
+  name: string;
+  status: 'uploading' | 'extracting' | 'complete' | 'failed';
+  itemCount?: number;
+  error?: string;
 }
 
 export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: UploadSheetDialogProps) {
@@ -28,12 +38,18 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [sheetProgress, setSheetProgress] = useState<SheetProgress[]>([]);
+  const [showProgress, setShowProgress] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !user) return;
 
     setIsUploading(true);
+    setShowProgress(true);
+    const allSheetIds: string[] = [];
+    const allItemIds: string[] = [];
+    
     try {
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const isPDF = fileExt === 'pdf';
@@ -44,7 +60,23 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const sheetsToInsert = [];
+        const progressEntries: SheetProgress[] = [];
 
+        // Initialize progress for all pages
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const sheetName = pdf.numPages > 1 
+            ? `${baseSheetName} - Page ${pageNum}`
+            : baseSheetName;
+          
+          progressEntries.push({
+            sheetId: `temp-${pageNum}`,
+            name: sheetName,
+            status: 'uploading',
+          });
+        }
+        setSheetProgress(progressEntries);
+
+        // Process each page
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           const page = await pdf.getPage(pageNum);
           
@@ -87,25 +119,62 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             ? `${baseSheetName} - Page ${pageNum}`
             : baseSheetName;
 
-          sheetsToInsert.push({
-            takeoff_project_id: takeoffId,
-            owner_id: user.id,
-            name: sheetName,
-            file_path: filePath,
-            file_name: fileName,
-            page_number: pageNum,
-          });
+          // Insert sheet and get its ID
+          const { data: insertedSheet, error: insertError } = await supabase
+            .from('takeoff_sheets')
+            .insert({
+              takeoff_project_id: takeoffId,
+              owner_id: user.id,
+              name: sheetName,
+              file_path: filePath,
+              file_name: fileName,
+              page_number: pageNum,
+            })
+            .select('id')
+            .single();
+
+          if (insertError) throw insertError;
+          
+          const sheetId = insertedSheet.id;
+          allSheetIds.push(sheetId);
+
+          // Update progress - extraction starting
+          setSheetProgress(prev => prev.map((p, idx) => 
+            idx === pageNum - 1 ? { ...p, sheetId, status: 'extracting' } : p
+          ));
+
+          // Auto-extract AI items
+          const extractResult = await autoExtractAndSave(sheetId);
+          
+          if (extractResult.success) {
+            allItemIds.push(...extractResult.itemIds);
+            setSheetProgress(prev => prev.map(p => 
+              p.sheetId === sheetId 
+                ? { ...p, status: 'complete', itemCount: extractResult.itemCount } 
+                : p
+            ));
+          } else {
+            setSheetProgress(prev => prev.map(p => 
+              p.sheetId === sheetId 
+                ? { ...p, status: 'failed', error: extractResult.error } 
+                : p
+            ));
+          }
         }
 
-        const { error: insertError } = await supabase
-          .from('takeoff_sheets')
-          .insert(sheetsToInsert);
-
-        if (insertError) throw insertError;
-
-        toast.success(`Successfully uploaded ${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}`);
+        const successCount = sheetProgress.filter(p => p.status === 'complete').length;
+        const totalItems = sheetProgress.reduce((sum, p) => sum + (p.itemCount || 0), 0);
+        
+        toast.success(`✓ ${successCount} sheet${successCount !== 1 ? 's' : ''} uploaded, ${totalItems} items extracted`);
+        
       } else {
-        // Handle image files (PNG, JPG, JPEG)
+        // Handle single image files (PNG, JPG, JPEG)
+        setSheetProgress([{
+          sheetId: 'temp-1',
+          name: baseSheetName,
+          status: 'uploading',
+        }]);
+
         const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
@@ -114,7 +183,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
         if (uploadError) throw uploadError;
 
-        const { error: insertError } = await supabase
+        const { data: insertedSheet, error: insertError } = await supabase
           .from('takeoff_sheets')
           .insert({
             takeoff_project_id: takeoffId,
@@ -123,21 +192,60 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             file_path: filePath,
             file_name: file.name,
             page_number: 1,
-          });
+          })
+          .select('id')
+          .single();
 
         if (insertError) throw insertError;
 
-        toast.success('Sheet uploaded successfully');
+        const sheetId = insertedSheet.id;
+        allSheetIds.push(sheetId);
+
+        // Update progress - extraction starting
+        setSheetProgress([{
+          sheetId,
+          name: baseSheetName,
+          status: 'extracting',
+        }]);
+
+        // Auto-extract AI items
+        const extractResult = await autoExtractAndSave(sheetId);
+        
+        if (extractResult.success) {
+          allItemIds.push(...extractResult.itemIds);
+          setSheetProgress([{
+            sheetId,
+            name: baseSheetName,
+            status: 'complete',
+            itemCount: extractResult.itemCount,
+          }]);
+          toast.success(`✓ Sheet uploaded, ${extractResult.itemCount} items extracted`);
+        } else {
+          setSheetProgress([{
+            sheetId,
+            name: baseSheetName,
+            status: 'failed',
+            error: extractResult.error,
+          }]);
+          toast.success('Sheet uploaded (extraction failed - use Re-extract)');
+        }
       }
       
-      setName("");
-      setFile(null);
-      onSuccess();
+      // Wait 1.5 seconds to show complete status, then close
+      setTimeout(() => {
+        setName("");
+        setFile(null);
+        setShowProgress(false);
+        setSheetProgress([]);
+        onSuccess(allSheetIds, allItemIds);
+        onOpenChange(false);
+      }, 1500);
+      
     } catch (error) {
       console.error('Error uploading sheet:', error);
       toast.error('Failed to upload sheet');
-    } finally {
       setIsUploading(false);
+      setShowProgress(false);
     }
   };
 
@@ -153,44 +261,104 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="file">File *</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="file"
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
+            {!showProgress ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="file">File *</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="file"
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      required
+                    />
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Supported formats: PDF, PNG, JPG
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="name">Sheet Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g., Front Elevation, Floor Plan"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to use filename
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">Processing sheets...</span>
+                  <span className="text-muted-foreground">
+                    {sheetProgress.filter(s => s.status === 'complete').length} / {sheetProgress.length}
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  {sheetProgress.map((sheet, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm">
+                        {sheet.status === 'uploading' && (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        )}
+                        {sheet.status === 'extracting' && (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        )}
+                        {sheet.status === 'complete' && (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        )}
+                        {sheet.status === 'failed' && (
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        )}
+                        
+                        <span className="flex-1 truncate">{sheet.name}</span>
+                        
+                        {sheet.status === 'uploading' && (
+                          <span className="text-xs text-muted-foreground">Uploading...</span>
+                        )}
+                        {sheet.status === 'extracting' && (
+                          <span className="text-xs text-muted-foreground">Extracting...</span>
+                        )}
+                        {sheet.status === 'complete' && sheet.itemCount !== undefined && (
+                          <span className="text-xs text-green-600">
+                            {sheet.itemCount} item{sheet.itemCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {sheet.status === 'failed' && (
+                          <span className="text-xs text-destructive">Failed</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <Progress 
+                  value={(sheetProgress.filter(s => s.status === 'complete').length / sheetProgress.length) * 100} 
+                  className="h-2"
                 />
-                <Upload className="h-4 w-4 text-muted-foreground" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Supported formats: PDF, PNG, JPG
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="name">Sheet Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Front Elevation, Floor Plan"
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave blank to use filename
-              </p>
-            </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isUploading || !file}>
-              {isUploading ? 'Uploading...' : 'Upload'}
-            </Button>
+            {!showProgress && (
+              <>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isUploading || !file}>
+                  {isUploading ? 'Processing...' : 'Upload & Extract'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

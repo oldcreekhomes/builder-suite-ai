@@ -130,6 +130,22 @@ export default function TakeoffEditor() {
     });
   };
 
+  const handleItemsExtracted = (sheetIds: string[], itemIds: string[]) => {
+    console.log('🎉 Items extracted from upload:', { sheetIds, itemIds });
+    
+    // Make all extracted items visible immediately
+    setVisibleAnnotations(prev => {
+      const next = new Set(prev);
+      itemIds.forEach(id => next.add(id));
+      return next;
+    });
+    
+    // If no sheet is selected, auto-select the first uploaded sheet
+    if (!selectedSheetId && sheetIds.length > 0) {
+      setSelectedSheetId(sheetIds[0]);
+    }
+  };
+
   // Show loading state while takeoff is being fetched/created
   if (!takeoff) {
     return (
@@ -164,11 +180,12 @@ export default function TakeoffEditor() {
           
           <ResizablePanelGroup direction="horizontal" className="flex-1">
             <ResizablePanel defaultSize={20} minSize={15}>
-              <SheetSelector 
-                takeoffId={takeoff.id}
-                selectedSheetId={selectedSheetId}
-                onSelectSheet={setSelectedSheetId}
-              />
+            <SheetSelector 
+              takeoffId={takeoff.id} 
+              selectedSheetId={selectedSheetId}
+              onSelectSheet={setSelectedSheetId}
+              onItemsExtracted={handleItemsExtracted}
+            />
             </ResizablePanel>
             
             <ResizableHandle />

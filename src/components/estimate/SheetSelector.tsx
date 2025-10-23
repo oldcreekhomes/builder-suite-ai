@@ -23,9 +23,10 @@ interface SheetSelectorProps {
   takeoffId: string;
   selectedSheetId: string | null;
   onSelectSheet: (sheetId: string | null) => void;
+  onItemsExtracted?: (sheetIds: string[], itemIds: string[]) => void;
 }
 
-export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet }: SheetSelectorProps) {
+export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onItemsExtracted }: SheetSelectorProps) {
   const { user } = useAuth();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -139,9 +140,12 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet }: She
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
         takeoffId={takeoffId}
-        onSuccess={() => {
+        onSuccess={(sheetIds, itemIds) => {
+          console.log('📤 Upload success callback:', { sheetIds, itemIds });
           refetch();
-          setUploadDialogOpen(false);
+          if (onItemsExtracted && itemIds.length > 0) {
+            onItemsExtracted(sheetIds, itemIds);
+          }
         }}
       />
 

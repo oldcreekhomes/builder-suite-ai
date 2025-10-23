@@ -313,12 +313,12 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
               {isExtracting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
+                  Re-extracting...
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  AI Extract
+                  Re-extract
                 </>
               )}
             </Button>
