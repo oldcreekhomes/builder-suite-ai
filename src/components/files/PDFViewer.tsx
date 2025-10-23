@@ -24,6 +24,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pageRefs = React.useRef<Map<number, HTMLDivElement>>(new Map());
+  const pageWidthSet = React.useRef(false);
   
   const scale = baseScale * zoomMultiplier;
 
@@ -45,9 +46,14 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     
     const updateScale = () => {
       const containerWidth = containerRef.current?.offsetWidth || 800;
+      if (!containerWidth || pageWidth === 0) return;
+      
       // Calculate scale to fit container width with padding
       const optimalScale = (containerWidth - 32) / pageWidth;
-      setBaseScale(Math.min(optimalScale, 2.0)); // Cap at 200% for base scale
+      const newScale = Math.min(optimalScale, 2.0); // Cap at 200% for base scale
+      
+      // Only update if changed significantly (prevent micro-updates)
+      setBaseScale(prev => Math.abs(prev - newScale) > 0.01 ? newScale : prev);
     };
     
     updateScale();
@@ -55,7 +61,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     resizeObserver.observe(containerRef.current);
     
     return () => resizeObserver.disconnect();
-  }, [numPages, pageWidth]);
+  }, [numPages]);
 
   // Virtual scrolling with Intersection Observer
   React.useEffect(() => {
@@ -82,11 +88,14 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
       { rootMargin: '500px' } // Start loading 500px before visible
     );
 
-    // Observe all placeholder divs
-    pageRefs.current.forEach(ref => observer.observe(ref));
+    // Observe all page container divs
+    const currentRefs = Array.from(pageRefs.current.values());
+    currentRefs.forEach(ref => {
+      if (ref) observer.observe(ref);
+    });
     
     return () => observer.disconnect();
-  }, [numPages]);
+  }, [numPages, visiblePages.size]);
 
   const zoomIn = () => {
     setZoomMultiplier(prev => Math.min(3.0, prev + 0.25));
@@ -183,8 +192,9 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
                       scale={scale}
                       className="shadow-lg border bg-white max-w-full"
                       onLoadSuccess={(page) => {
-                        if (pageNum === 1) {
+                        if (pageNum === 1 && !pageWidthSet.current) {
                           setPageWidth(page.width);
+                          pageWidthSet.current = true;
                         }
                       }}
                       loading={
