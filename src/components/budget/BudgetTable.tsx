@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { AddBudgetModal } from './AddBudgetModal';
+import { BudgetCreationModal } from './BudgetCreationModal';
 import { BudgetTableHeader } from './BudgetTableHeader';
 import { BudgetGroupHeader } from './BudgetGroupHeader';
 import { BudgetTableRow } from './BudgetTableRow';
@@ -32,12 +32,12 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
-    cost: true,
-    unit: true,
-    quantity: true,
+    cost: false,
+    unit: false,
+    quantity: false,
     totalBudget: true,
-    historicalCosts: true,
-    variance: true,
+    historicalCosts: false,
+    variance: false,
   });
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
@@ -298,7 +298,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       />
 
       {showAddBudgetModal && (
-        <AddBudgetModal
+        <BudgetCreationModal
           projectId={projectId}
           open={showAddBudgetModal}
           onOpenChange={setShowAddBudgetModal}

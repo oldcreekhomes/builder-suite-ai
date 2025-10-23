@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, Lock, Unlock } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetTableRowActions } from './components/BudgetTableRowActions';
+import { BudgetSourceBadge } from './BudgetSourceBadge';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
@@ -381,14 +382,19 @@ export function BudgetTableRow({
           {formatVariance(variance)}
         </div>
       </TableCell>
-      <BudgetTableRowActions
-        item={item}
-        costCode={costCode}
-        onDelete={onDelete}
-        onViewDetailsClick={() => setShowDetailsModal(true)}
-        isDeleting={isDeleting}
-        hasSelectedBid={hasSelectedBid}
-      />
+      <TableCell className="px-1 py-0 w-24 sticky right-0 bg-background z-30">
+        <div className="flex items-center gap-1 justify-center">
+          <BudgetSourceBadge item={item} />
+          <BudgetTableRowActions
+            item={item}
+            costCode={costCode}
+            onDelete={onDelete}
+            onViewDetailsClick={() => setShowDetailsModal(true)}
+            isDeleting={isDeleting}
+            hasSelectedBid={hasSelectedBid}
+          />
+        </div>
+      </TableCell>
     </TableRow>
     
     {showDetailsModal && costCode && (
