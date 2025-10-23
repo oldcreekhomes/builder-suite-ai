@@ -105,22 +105,23 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     enabled: !!sheet?.file_path,
   });
 
-  // Initialize Fabric.js canvas once on mount
+  // Initialize Fabric.js canvas once on mount (with dynamic dimensions)
   useEffect(() => {
-    if (!canvasRef.current || fabricCanvas) return;
+    if (!canvasRef.current || fabricCanvas || !displayedSize) return;
 
     const canvas = new FabricCanvas(canvasRef.current, {
-      width: 800,
-      height: 600,
+      width: displayedSize.width,
+      height: displayedSize.height,
       backgroundColor: 'transparent',
     });
 
     setFabricCanvas(canvas);
+    setCanvasReady(true);
 
     return () => {
       canvas.dispose();
     };
-  }, []);
+  }, [displayedSize]);
 
   // Sync canvas dimensions when document loads
   useEffect(() => {
@@ -1142,8 +1143,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           {/* Fabric.js canvas for drawing */}
           <canvas 
             ref={canvasRef}
-            width={800}
-            height={600}
+            width={displayedSize?.width || 800}
+            height={displayedSize?.height || 600}
             className="absolute top-0 left-0 pointer-events-auto"
             style={{ zIndex: 400 }}
           />
