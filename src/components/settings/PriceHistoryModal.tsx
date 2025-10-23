@@ -11,6 +11,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 
 type PriceHistory = Tables<'cost_code_price_history'>;
 type CostCode = Tables<'cost_codes'>;
@@ -240,7 +241,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(value: any) => [`$${Number(value ?? 0).toFixed(2)}`, 'Price']}
+                  formatter={(value: any) => [`$${Number(value ?? 0).toFixed(2)}/${formatUnitOfMeasure(costCode.unit_of_measure)}`, 'Price']}
                   labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--background))',
@@ -270,7 +271,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
             <p className="text-lg font-semibold">${costCode.price?.toFixed(2) || '0.00'}</p>
@@ -288,6 +289,10 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
               {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toFixed(2)}
             </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Unit Type</p>
+            <p className="text-lg font-semibold">{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
           </div>
         </div>
       </DialogContent>
