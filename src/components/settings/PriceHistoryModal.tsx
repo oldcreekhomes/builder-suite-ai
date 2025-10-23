@@ -76,11 +76,14 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
   // Prepare chart data - reverse so oldest is on the left
   const chartData = [...history]
     .reverse()
-    .map(record => ({
-      date: format(new Date(record.changed_at), 'MMM yyyy'),
-      price: Number(record.price),
-      fullDate: new Date(record.changed_at).toLocaleDateString(),
-    }));
+    .map(record => {
+      const date = new Date(record.changed_at);
+      return {
+        date: format(date, 'MMM'),
+        price: Number(record.price),
+        fullDate: format(date, 'MMM dd, yyyy'),
+      };
+    });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -169,50 +172,6 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className="text-sm text-muted-foreground">Volatility</p>
             <p className="text-lg font-semibold">${stats.volatility.toFixed(2)}</p>
           </div>
-        </div>
-
-        {/* Price History Timeline */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">Price Changes ({stats.changes} total)</h3>
-          
-          {loading ? (
-            <p className="text-center text-muted-foreground py-8">Loading history...</p>
-          ) : history.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No price history available</p>
-          ) : (
-            <div className="space-y-2">
-              {history.map((record, index) => {
-                const previousPrice = index < history.length - 1 ? Number(history[index + 1].price) : null;
-                const currentPrice = Number(record.price);
-                
-                return (
-                  <div
-                    key={record.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {previousPrice !== null && getChangeIndicator(currentPrice, previousPrice)}
-                      <div>
-                        <p className="font-medium">${currentPrice.toFixed(2)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(record.changed_at).toLocaleDateString()} at{' '}
-                          {new Date(record.changed_at).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(record.changed_at), { addSuffix: true })}
-                      </p>
-                      {record.notes && (
-                        <p className="text-xs text-muted-foreground italic mt-1">{record.notes}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       </DialogContent>
     </Dialog>
