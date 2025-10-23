@@ -67,13 +67,15 @@ export function CostCodesTable({
           <TableRow className="h-10">
             <TableHead className="font-bold py-2 text-sm w-12">
               <Checkbox
-                checked={selectedCostCodes.size === costCodes.length && costCodes.length > 0}
-                onCheckedChange={onSelectAllCostCodes}
-                ref={(el) => {
-                  if (el && 'indeterminate' in el) {
-                    (el as any).indeterminate = selectedCostCodes.size > 0 && selectedCostCodes.size < costCodes.length;
-                  }
-                }}
+                checked={
+                  selectedCostCodes.size === costCodes.length && costCodes.length > 0
+                    ? true
+                    : selectedCostCodes.size === 0
+                    ? false
+                    : "indeterminate"
+                }
+                onCheckedChange={(checked) => onSelectAllCostCodes(!!checked)}
+                aria-label="Select all cost codes"
               />
             </TableHead>
             <TableHead className="font-bold py-2 text-sm text-right">Code</TableHead>
