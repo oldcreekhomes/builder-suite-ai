@@ -15,12 +15,13 @@ interface PDFViewerProps {
 
 export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [baseScale, setBaseScale] = useState<number>(1.0);
+  const [baseScale, setBaseScale] = useState<number>(0.5);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1, 2, 3]));
-  const [pageWidth, setPageWidth] = useState<number>(612); // Standard PDF page width in points
+  const [pageWidth, setPageWidth] = useState<number>(0);
+  const [pageHeight, setPageHeight] = useState<number>(0);
   
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pageRefs = React.useRef<Map<number, HTMLDivElement>>(new Map());
@@ -46,11 +47,19 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     
     const updateScale = () => {
       const containerWidth = containerRef.current?.offsetWidth || 800;
-      if (!containerWidth || pageWidth === 0) return;
+      const containerHeight = containerRef.current?.offsetHeight || 600;
       
-      // Calculate scale to fit container width with padding
-      const optimalScale = (containerWidth - 32) / pageWidth;
-      const newScale = Math.min(optimalScale, 2.0); // Cap at 200% for base scale
+      if (!containerWidth || !containerHeight || pageWidth === 0 || pageHeight === 0) return;
+      
+      // Calculate scale to fit BOTH width and height
+      const scaleToFitWidth = (containerWidth - 48) / pageWidth;
+      const scaleToFitHeight = (containerHeight - 100) / pageHeight;
+      
+      // Use the SMALLER scale to ensure entire page fits in viewport
+      const optimalScale = Math.min(scaleToFitWidth, scaleToFitHeight);
+      
+      // Allow scaling down to 0.1 (10%) for very large drawings, up to 2.0 (200%) for small ones
+      const newScale = Math.max(0.1, Math.min(optimalScale, 2.0));
       
       // Only update if changed significantly (prevent micro-updates)
       setBaseScale(prev => Math.abs(prev - newScale) > 0.01 ? newScale : prev);
@@ -194,6 +203,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
                       onLoadSuccess={(page) => {
                         if (pageNum === 1 && !pageWidthSet.current) {
                           setPageWidth(page.width);
+                          setPageHeight(page.height);
                           pageWidthSet.current = true;
                         }
                       }}
