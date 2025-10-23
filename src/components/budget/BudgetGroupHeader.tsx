@@ -32,20 +32,23 @@ export function BudgetGroupHeader({
   groupTotal,
   visibleColumns
 }: BudgetGroupHeaderProps) {
+  const checkboxRef = React.useRef<HTMLButtonElement>(null);
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };
+
+  React.useEffect(() => {
+    if (checkboxRef.current && 'indeterminate' in checkboxRef.current) {
+      (checkboxRef.current as any).indeterminate = isPartiallySelected && !isSelected;
+    }
+  }, [isPartiallySelected, isSelected]);
 
   return (
     <TableRow className="bg-gray-50 h-8">
       <TableCell className="px-1 py-0 w-12">
         <Checkbox
+          ref={checkboxRef}
           checked={isSelected}
-          ref={(el) => {
-            if (el && 'indeterminate' in el) {
-              (el as any).indeterminate = isPartiallySelected && !isSelected;
-            }
-          }}
           onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
           className="h-3 w-3"
         />

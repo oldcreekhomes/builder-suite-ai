@@ -170,19 +170,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   };
 
   // Build a map of subcategory totals for all items
-  const subcategoryTotalsMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    budgetItems.forEach(item => {
-      const costCode = item.cost_codes;
-      const hasSubcategories = costCode?.has_subcategories || false;
-      if (hasSubcategories) {
-        // We'll need to get this from the hook, but for now set to 0
-        // The actual values will be computed when rendering rows
-        map[item.id] = 0;
-      }
-    });
-    return map;
-  }, [budgetItems]);
+  // Note: This is initialized as empty and will be populated by child components
+  // We keep it stable to prevent unnecessary re-renders
+  const subcategoryTotalsMap = useMemo(() => ({}), []);
 
   // Calculate total budget by summing the visible group totals
   const totalBudget = useMemo(() => {
