@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, FileText } from "lucide-react";
+import { Trash2, X, FileText, Download, ZoomIn, ZoomOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { formatFileSize } from "./utils/simplifiedFileUtils";
@@ -13,6 +13,14 @@ interface FilePreviewHeaderProps {
   onDelete: () => void;
   onClose: () => void;
   showDelete?: boolean;
+  isPDF?: boolean;
+  pageCount?: number;
+  isLoadingPages?: boolean;
+  zoom?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  canZoomIn?: boolean;
+  canZoomOut?: boolean;
 }
 
 export function FilePreviewHeader({
@@ -21,31 +29,71 @@ export function FilePreviewHeader({
   onDownload,
   onDelete,
   onClose,
-  showDelete = false
+  showDelete = false,
+  isPDF = false,
+  pageCount,
+  isLoadingPages = false,
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  canZoomIn = true,
+  canZoomOut = true
 }: FilePreviewHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-4 border-b bg-background">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-          <h3 className="font-medium text-foreground truncate">
-            {file.name}
-          </h3>
-        </div>
-        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-          {file.size && (
-            <span>{formatFileSize(file.size)}</span>
-          )}
-          {file.uploadedAt && (
-            <span>{formatDistanceToNow(new Date(file.uploadedAt), { addSuffix: true })}</span>
-          )}
-          {file.uploadedBy && (
-            <span>by {file.uploadedBy}</span>
-          )}
-        </div>
+    <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        <h3 className="font-medium text-foreground truncate text-sm">
+          {file.name}
+        </h3>
+        {isPDF && pageCount && (
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {isLoadingPages ? 'Loading...' : `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`}
+          </span>
+        )}
       </div>
       
-      <div className="flex items-center space-x-2 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onDownload}
+          className="text-muted-foreground hover:text-foreground h-9 w-9"
+          title="Download file"
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+        
+        {isPDF && onZoomOut && onZoomIn && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onZoomOut}
+              disabled={!canZoomOut}
+              className="text-muted-foreground hover:text-foreground h-9 w-9"
+              title="Zoom out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            {zoom !== undefined && (
+              <span className="text-sm font-medium text-muted-foreground min-w-[50px] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onZoomIn}
+              disabled={!canZoomIn}
+              className="text-muted-foreground hover:text-foreground h-9 w-9"
+              title="Zoom in"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+        
         {showDelete && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -53,7 +101,7 @@ export function FilePreviewHeader({
                 variant="ghost"
                 size="icon"
                 disabled={isDeleting}
-                className="text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive h-9 w-9"
                 title="Delete file"
               >
                 <Trash2 className="h-4 w-4" />
@@ -83,7 +131,7 @@ export function FilePreviewHeader({
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-9 w-9"
           title="Close preview"
         >
           <X className="h-4 w-4" />

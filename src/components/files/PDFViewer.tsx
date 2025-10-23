@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from '@/components/ui/button';
-import { Download, ZoomIn, ZoomOut, RotateCcw, Maximize2, Maximize, Percent } from 'lucide-react';
+import { Download } from 'lucide-react';
 
 // Set up PDF.js worker using local import to avoid CDN blocking
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -11,13 +11,14 @@ interface PDFViewerProps {
   fileUrl: string;
   fileName: string;
   onDownload: () => void;
+  onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
+  onPageCountChange?: (count: number, isLoading: boolean) => void;
 }
 
-export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
+export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
-  const [fitMode, setFitMode] = useState<'width' | 'page' | 'actual'>('width');
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1, 2, 3]));
@@ -34,6 +35,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     setNumPages(numPages);
     setIsLoading(false);
     setHasError(false);
+    onPageCountChange?.(numPages, false);
   };
 
   const onDocumentLoadError = (error: Error) => {
@@ -42,34 +44,18 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     setIsLoading(false);
   };
 
-  // Dynamic scale calculation based on fit mode
+  // Dynamic scale calculation for fit-to-width
   React.useEffect(() => {
     if (!containerRef.current || !numPages || pageWidth === 0 || pageHeight === 0 || baseScale === null) return;
     
     const updateScale = () => {
       const containerWidth = containerRef.current?.offsetWidth || 800;
-      const containerHeight = containerRef.current?.offsetHeight || 600;
       
-      if (!containerWidth || !containerHeight) return;
+      if (!containerWidth) return;
       
       const horizontalPad = 16;
-      const verticalPad = 16;
-      
       const widthScale = (containerWidth - horizontalPad) / pageWidth;
-      const heightScale = (containerHeight - verticalPad) / pageHeight;
-      
-      let newBase: number;
-      
-      if (fitMode === 'width') {
-        // Fill width, allow vertical scrolling
-        newBase = Math.max(0.1, Math.min(widthScale, 5.0));
-      } else if (fitMode === 'page') {
-        // Fit entire page in viewport
-        newBase = Math.max(0.1, Math.min(Math.min(widthScale, heightScale), 5.0));
-      } else {
-        // Actual size (100%)
-        newBase = 1.0;
-      }
+      const newBase = Math.max(0.1, Math.min(widthScale, 5.0));
       
       // Only update if changed significantly (prevent micro-updates)
       setBaseScale(prev => Math.abs(prev - newBase) > 0.01 ? newBase : prev);
@@ -80,7 +66,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     resizeObserver.observe(containerRef.current);
     
     return () => resizeObserver.disconnect();
-  }, [numPages, pageWidth, pageHeight, fitMode]);
+  }, [numPages, pageWidth, pageHeight]);
 
   // Virtual scrolling with Intersection Observer
   React.useEffect(() => {
@@ -124,9 +110,28 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
     setZoomMultiplier(prev => Math.max(0.5, prev - 0.25));
   };
 
-  const resetZoom = () => {
-    setZoomMultiplier(1.0);
-  };
+  // Notify parent of zoom changes
+  React.useEffect(() => {
+    if (baseScale === null) return;
+    const currentZoom = baseScale * zoomMultiplier;
+    const canZoomIn = zoomMultiplier < 3.0;
+    const canZoomOut = zoomMultiplier > 0.5;
+    onZoomChange?.(currentZoom, canZoomIn, canZoomOut);
+  }, [baseScale, zoomMultiplier, onZoomChange]);
+
+  // Listen for zoom events from header
+  React.useEffect(() => {
+    const handleZoomInEvent = () => zoomIn();
+    const handleZoomOutEvent = () => zoomOut();
+    
+    window.addEventListener('pdf-zoom-in', handleZoomInEvent);
+    window.addEventListener('pdf-zoom-out', handleZoomOutEvent);
+    
+    return () => {
+      window.removeEventListener('pdf-zoom-in', handleZoomInEvent);
+      window.removeEventListener('pdf-zoom-out', handleZoomOutEvent);
+    };
+  }, [zoomMultiplier]);
 
   if (hasError) {
     return (
@@ -148,57 +153,6 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Controls */}
-      <div className="flex items-center justify-between gap-2 p-2 border-b bg-muted/50">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">
-            {isLoading ? 'Loading...' : `${numPages} ${numPages === 1 ? 'page' : 'pages'}`}
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 mr-2 border-r pr-2">
-            <Button 
-              variant={fitMode === 'width' ? 'secondary' : 'ghost'} 
-              size="sm" 
-              onClick={() => { setFitMode('width'); setZoomMultiplier(1); }}
-              title="Fit width"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant={fitMode === 'page' ? 'secondary' : 'ghost'} 
-              size="sm" 
-              onClick={() => { setFitMode('page'); setZoomMultiplier(1); }}
-              title="Fit page"
-            >
-              <Maximize className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant={fitMode === 'actual' ? 'secondary' : 'ghost'} 
-              size="sm" 
-              onClick={() => { setFitMode('actual'); setZoomMultiplier(1); }}
-              title="100%"
-            >
-              <Percent className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <Button variant="ghost" size="sm" onClick={zoomOut} disabled={zoomMultiplier <= 0.5}>
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[50px] text-center">
-            {Math.round(baseScale * zoomMultiplier * 100)}%
-          </span>
-          <Button variant="ghost" size="sm" onClick={zoomIn} disabled={zoomMultiplier >= 3.0}>
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={resetZoom}>
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
       {/* PDF Viewer */}
       <div 
         ref={containerRef}

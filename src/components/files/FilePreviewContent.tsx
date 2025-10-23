@@ -11,6 +11,8 @@ interface FilePreviewContentProps {
   isLoading: boolean;
   error: string | null;
   onDownload: () => void;
+  onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
+  onPageCountChange?: (count: number, isLoading: boolean) => void;
 }
 
 export function FilePreviewContent({ 
@@ -18,7 +20,9 @@ export function FilePreviewContent({
   fileUrl, 
   isLoading, 
   error, 
-  onDownload 
+  onDownload,
+  onZoomChange,
+  onPageCountChange
 }: FilePreviewContentProps) {
   const [imageZoom, setImageZoom] = useState(1);
   const [pdfError, setPdfError] = useState(false);
@@ -117,22 +121,13 @@ export function FilePreviewContent({
   // PDF preview with PDF.js
   if (fileType === FileType.PDF) {
     return (
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {/* Download button */}
-        <div className="flex items-center justify-center p-3 border-b bg-background/50">
-          <Button onClick={onDownload} variant="default" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-        </div>
-        
-        {/* Embedded PDF viewer */}
-        <PDFViewer
-          fileUrl={fileUrl}
-          fileName={file.name}
-          onDownload={onDownload}
-        />
-      </div>
+      <PDFViewer
+        fileUrl={fileUrl}
+        fileName={file.name}
+        onDownload={onDownload}
+        onZoomChange={onZoomChange}
+        onPageCountChange={onPageCountChange}
+      />
     );
   }
 
