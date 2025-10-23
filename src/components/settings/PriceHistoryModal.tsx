@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -25,11 +25,40 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
   const [history, setHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Chart sizing and mount readiness
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     if (open && costCode.id) {
       fetchPriceHistory();
     }
   }, [open, costCode.id]);
+
+  // Track container size with ResizeObserver
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!open || !el) return;
+    const observer = new ResizeObserver((entries) => {
+      const cr = entries[0]?.contentRect;
+      if (cr) {
+        setSize({ width: Math.max(0, cr.width), height: Math.max(0, cr.height) });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [open]);
+
+  // Delay chart render until dialog is open and layout has settled
+  useEffect(() => {
+    if (open) {
+      setReady(false);
+      const id = requestAnimationFrame(() => setReady(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setReady(false);
+  }, [open]);
 
   const fetchPriceHistory = async () => {
     try {
@@ -155,40 +184,48 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className="text-muted-foreground">Loading chart...</p>
           </div>
         ) : chartData.length > 0 ? (
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
+          <div ref={containerRef} className="relative z-10 h-[300px] w-full">
+            {ready && size.width > 0 ? (
+              <LineChart
+                key={`${open}-${size.width}-${size.height}`}
+                width={Math.max(0, size.width)}
+                height={Math.max(0, size.height || 300)}
+                data={chartData}
+                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                <XAxis
+                  dataKey="date"
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
-                <YAxis 
+                <YAxis
                   domain={yDomain}
                   tickFormatter={(value) => `$${Number(value ?? 0).toFixed(2)}`}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: any) => [`$${Number(value ?? 0).toFixed(2)}`, 'Price']}
-                  labelFormatter={(label, payload) => 
-                    payload?.[0]?.payload?.fullDate || label
-                  }
+                  labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--background))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '6px',
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="price" 
-                  stroke="hsl(var(--primary))" 
+                <Line
+                  type="monotone"
+                  dataKey="price"
+                  stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   dot={{ fill: 'hsl(var(--primary))', r: 4 }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>
-            </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-muted-foreground">Preparing chart...</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="h-[300px] flex items-center justify-center">
