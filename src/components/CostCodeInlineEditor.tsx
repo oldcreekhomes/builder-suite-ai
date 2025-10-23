@@ -146,18 +146,15 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHis
         
         {/* Add history button for price field */}
         {field === 'price' && onViewPriceHistory && costCode.price && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewPriceHistory();
-            }}
-            title="View price history"
-          >
-            <LineChart className="h-3 w-3 text-primary" />
-          </Button>
+          <div title="View price history">
+            <LineChart 
+              className="h-3 w-3 text-primary cursor-pointer hover:text-primary/80" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewPriceHistory();
+              }}
+            />
+          </div>
         )}
       </div>
     );
