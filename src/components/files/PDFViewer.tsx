@@ -15,7 +15,7 @@ interface PDFViewerProps {
 
 export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
-  const [baseScale, setBaseScale] = useState<number>(0.5);
+  const [baseScale, setBaseScale] = useState<number | null>(null);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
   const [fitMode, setFitMode] = useState<'width' | 'page' | 'actual'>('width');
   const [isLoading, setIsLoading] = useState(true);
@@ -28,7 +28,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
   const pageRefs = React.useRef<Map<number, HTMLDivElement>>(new Map());
   const pageWidthSet = React.useRef(false);
   
-  const scale = baseScale * zoomMultiplier;
+  const scale = (baseScale || 0.5) * zoomMultiplier;
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -44,7 +44,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
 
   // Dynamic scale calculation based on fit mode
   React.useEffect(() => {
-    if (!containerRef.current || !numPages || pageWidth === 0 || pageHeight === 0) return;
+    if (!containerRef.current || !numPages || pageWidth === 0 || pageHeight === 0 || baseScale === null) return;
     
     const updateScale = () => {
       const containerWidth = containerRef.current?.offsetWidth || 800;
@@ -221,7 +221,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
               </div>
             }
           >
-            {Array.from(new Array(numPages), (_, index) => {
+            {baseScale !== null && Array.from(new Array(numPages), (_, index) => {
               const pageNum = index + 1;
               const isVisible = visiblePages.has(pageNum);
               
@@ -239,8 +239,17 @@ export function PDFViewer({ fileUrl, fileName, onDownload }: PDFViewerProps) {
                       className="shadow-lg border bg-white max-w-full"
                       onLoadSuccess={(page) => {
                         if (pageNum === 1 && !pageWidthSet.current) {
-                          setPageWidth(page.width);
-                          setPageHeight(page.height);
+                          const width = page.width;
+                          const height = page.height;
+                          setPageWidth(width);
+                          setPageHeight(height);
+                          
+                          // Calculate initial scale immediately
+                          const containerWidth = containerRef.current?.offsetWidth || 800;
+                          const widthScale = (containerWidth - 16) / width;
+                          const initialScale = Math.max(0.1, Math.min(widthScale, 5.0));
+                          setBaseScale(initialScale);
+                          
                           pageWidthSet.current = true;
                         }
                       }}
