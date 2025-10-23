@@ -11,7 +11,7 @@ type CostCode = Tables<'cost_codes'>;
 
 interface CostCodeTableRowProps {
   costCode: CostCode;
-  isSelected: boolean;
+  selectedCostCodes: Set<string>;
   onSelect: (id: string, checked: boolean) => void;
   onEdit: (costCode: CostCode) => void;
   onDelete: (costCode: CostCode) => void;
@@ -29,7 +29,7 @@ interface CostCodeTableRowProps {
 
 export function CostCodeTableRow({
   costCode,
-  isSelected,
+  selectedCostCodes,
   onSelect,
   onEdit,
   onDelete,
@@ -63,6 +63,8 @@ export function CostCodeTableRow({
   
   // Use isCodeExpanded if provided, otherwise fall back to isExpanded
   const expanded = isCodeExpanded ? isCodeExpanded(costCode.code) : isExpanded;
+
+  const isSelected = selectedCostCodes.has(costCode.id);
 
   const handleAddSubcategory = (newCostCode: any) => {
     if (onAddSubcategory) {
@@ -189,7 +191,7 @@ export function CostCodeTableRow({
             <CostCodeTableRow
               key={childCode.id}
               costCode={childCode}
-              isSelected={isSelected}
+              selectedCostCodes={selectedCostCodes}
               onSelect={onSelect}
               onEdit={onEdit}
               onDelete={onDelete}

@@ -127,7 +127,7 @@ export function CostCodesTable({
                       <CostCodeTableRow
                         key={`row-${costCode.id}`}
                         costCode={costCode}
-                        isSelected={selectedCostCodes.has(costCode.id)}
+                        selectedCostCodes={selectedCostCodes}
                         onSelect={onCostCodeSelect}
                         onEdit={onEditCostCode}
                         onDelete={onDeleteCostCode}
