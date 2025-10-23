@@ -13,9 +13,10 @@ interface PDFViewerProps {
   onDownload: () => void;
   onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
   onPageCountChange?: (count: number, isLoading: boolean) => void;
+  isPanEnabled?: boolean;
 }
 
-export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange }: PDFViewerProps) {
+export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange, isPanEnabled = false }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
@@ -28,6 +29,11 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
   const containerRef = React.useRef<HTMLDivElement>(null);
   const pageRefs = React.useRef<Map<number, HTMLDivElement>>(new Map());
   const pageWidthSet = React.useRef(false);
+  
+  // Pan state
+  const [isPanning, setIsPanning] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
   
   const scale = (baseScale || 0.5) * zoomMultiplier;
 
@@ -136,6 +142,75 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
     };
   }, [zoomMultiplier]);
 
+  // Listen for pan toggle events
+  React.useEffect(() => {
+    const handleTogglePan = (e: Event) => {
+      const customEvent = e as CustomEvent<{ enabled: boolean }>;
+      setIsPanning(customEvent.detail.enabled);
+      if (!customEvent.detail.enabled) {
+        setIsDragging(false); // Cancel drag when pan disabled
+      }
+    };
+
+    window.addEventListener('pdf-toggle-pan', handleTogglePan);
+    return () => window.removeEventListener('pdf-toggle-pan', handleTogglePan);
+  }, []);
+
+  // Update isPanning from prop
+  React.useEffect(() => {
+    setIsPanning(isPanEnabled);
+  }, [isPanEnabled]);
+
+  // Mouse wheel zoom
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Allow wheel zoom without modifier key for better UX
+      if (Math.abs(e.deltaY) > 0) {
+        e.preventDefault();
+        
+        const delta = e.deltaY;
+        if (delta < 0) {
+          // Wheel up = zoom in
+          setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
+        } else {
+          // Wheel down = zoom out
+          setZoomMultiplier(prev => Math.max(prev - 0.25, 0.5));
+        }
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Pan handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: containerRef.current?.scrollLeft || 0,
+      scrollTop: containerRef.current?.scrollTop || 0,
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !containerRef.current) return;
+    e.preventDefault();
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    containerRef.current.scrollLeft = dragStart.scrollLeft - deltaX;
+    containerRef.current.scrollTop = dragStart.scrollTop - deltaY;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
   if (hasError) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -160,9 +235,17 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
       <div 
         ref={containerRef}
         className="flex-1 overflow-y-auto bg-muted/20 p-2 min-h-0" 
+        style={{ 
+          cursor: isPanning ? (isDragging ? 'grabbing' : 'grab') : 'default',
+          userSelect: isPanning ? 'none' : 'auto'
+        }}
         tabIndex={0} 
         role="region" 
         aria-label="PDF pages"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <div className="flex flex-col items-center gap-2 w-full mx-auto">
           <Document

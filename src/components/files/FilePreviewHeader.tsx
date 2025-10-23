@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, X, FileText, Download, ZoomIn, ZoomOut } from "lucide-react";
+import { Trash2, X, FileText, Download, ZoomIn, ZoomOut, Hand } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { formatFileSize } from "./utils/simplifiedFileUtils";
@@ -21,6 +21,8 @@ interface FilePreviewHeaderProps {
   onZoomOut?: () => void;
   canZoomIn?: boolean;
   canZoomOut?: boolean;
+  isPanEnabled?: boolean;
+  onTogglePan?: () => void;
 }
 
 export function FilePreviewHeader({
@@ -37,7 +39,9 @@ export function FilePreviewHeader({
   onZoomIn,
   onZoomOut,
   canZoomIn = true,
-  canZoomOut = true
+  canZoomOut = true,
+  isPanEnabled = false,
+  onTogglePan
 }: FilePreviewHeaderProps) {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
@@ -92,6 +96,21 @@ export function FilePreviewHeader({
               <ZoomIn className="h-4 w-4" />
             </Button>
           </>
+        )}
+        
+        {isPDF && onTogglePan && (
+          <Button
+            variant={isPanEnabled ? "secondary" : "ghost"}
+            size="icon"
+            onClick={onTogglePan}
+            className={isPanEnabled 
+              ? "text-foreground h-9 w-9" 
+              : "text-muted-foreground hover:text-foreground h-9 w-9"
+            }
+            title="Pan tool (drag to move)"
+          >
+            <Hand className="h-4 w-4" />
+          </Button>
         )}
         
         {showDelete && (

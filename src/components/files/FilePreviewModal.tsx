@@ -46,6 +46,7 @@ export function FilePreviewModal({ file, isOpen, onClose, onFileDeleted }: FileP
   const [pdfZoom, setPdfZoom] = useState<number>(1);
   const [canZoomIn, setCanZoomIn] = useState(true);
   const [canZoomOut, setCanZoomOut] = useState(true);
+  const [isPanEnabled, setIsPanEnabled] = useState(false);
 
   const handleZoomChange = useCallback((zoom: number, canZoomInVal: boolean, canZoomOutVal: boolean) => {
     setPdfZoom(zoom);
@@ -56,6 +57,14 @@ export function FilePreviewModal({ file, isOpen, onClose, onFileDeleted }: FileP
   const handlePageCountChange = useCallback((count: number, isLoadingPages: boolean) => {
     setPdfPageCount(count);
     setPdfIsLoading(isLoadingPages);
+  }, []);
+
+  const handleTogglePan = useCallback(() => {
+    setIsPanEnabled(prev => {
+      const newValue = !prev;
+      window.dispatchEvent(new CustomEvent('pdf-toggle-pan', { detail: { enabled: newValue } }));
+      return newValue;
+    });
   }, []);
 
   if (!file) return null;
@@ -97,6 +106,8 @@ export function FilePreviewModal({ file, isOpen, onClose, onFileDeleted }: FileP
             }}
             canZoomIn={canZoomIn}
             canZoomOut={canZoomOut}
+            isPanEnabled={isPanEnabled}
+            onTogglePan={handleTogglePan}
           />
 
           <FilePreviewContent 
@@ -107,6 +118,7 @@ export function FilePreviewModal({ file, isOpen, onClose, onFileDeleted }: FileP
             onDownload={handleDownload}
             onZoomChange={handleZoomChange}
             onPageCountChange={handlePageCountChange}
+            isPanEnabled={isPanEnabled}
           />
         </div>
       </DialogContent>
