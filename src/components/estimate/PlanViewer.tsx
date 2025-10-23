@@ -1142,12 +1142,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           {/* Fabric.js canvas for drawing */}
           <canvas 
             ref={canvasRef}
+            width={800}
+            height={600}
             className="absolute top-0 left-0 pointer-events-auto"
-            style={{ 
-              zIndex: 400,
-              width: displayedSize?.width || 800,
-              height: displayedSize?.height || 600
-            }}
+            style={{ zIndex: 400 }}
           />
           
           {/* Empty state banner */}
