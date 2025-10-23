@@ -271,10 +271,10 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
-            <p className="text-lg font-semibold">${costCode.price?.toFixed(2) || '0.00'}</p>
+            <p className="text-lg font-semibold">${costCode.price?.toFixed(2) || '0.00'}/{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Min Price</p>
@@ -289,10 +289,6 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
               {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toFixed(2)}
             </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Unit Type</p>
-            <p className="text-lg font-semibold">{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
           </div>
         </div>
       </DialogContent>
