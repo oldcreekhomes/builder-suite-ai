@@ -122,6 +122,31 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     };
   }, []);
 
+  // Style upper/lower canvas for proper z-index and event handling
+  useEffect(() => {
+    if (!fabricCanvas) return;
+
+    const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
+    const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
+
+    if (lower && upper) {
+      // Position both canvases absolutely
+      lower.style.position = 'absolute';
+      lower.style.top = '0';
+      lower.style.left = '0';
+      lower.style.zIndex = '400';
+      lower.style.pointerEvents = 'none';
+
+      upper.style.position = 'absolute';
+      upper.style.top = '0';
+      upper.style.left = '0';
+      upper.style.zIndex = '450';
+      upper.style.pointerEvents = 'auto';
+
+      console.info('Fabric canvas layers styled: upper z-index 450 (events), lower z-index 400 (rendering)');
+    }
+  }, [fabricCanvas]);
+
   // Sync canvas dimensions when document loads
   useEffect(() => {
     if (!fabricCanvas || !displayedSize) return;
@@ -130,6 +155,18 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       width: displayedSize.width,
       height: displayedSize.height,
     });
+
+    // Also sync style dimensions for upper/lower canvases
+    const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
+    const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
+    
+    if (lower && upper) {
+      lower.style.width = `${displayedSize.width}px`;
+      lower.style.height = `${displayedSize.height}px`;
+      upper.style.width = `${displayedSize.width}px`;
+      upper.style.height = `${displayedSize.height}px`;
+    }
+
     setCanvasReady(true);
     
     console.debug(`Canvas dimensions set: ${displayedSize.width}x${displayedSize.height}`);
@@ -641,6 +678,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
+    console.info(`Tool activated: ${tool}`);
     if (!fabricCanvas) return;
 
     fabricCanvas.isDrawingMode = false;
@@ -664,11 +702,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     // COUNT TOOL - click to place markers
     if (tool === 'count') {
       fabricCanvas.on('mouse:down', (e) => {
-        if (!e.pointer || !sheetId) return;
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!p || !sheetId) return;
+        console.info(`Count tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
         
         const circle = new Circle({
-          left: e.pointer.x,
-          top: e.pointer.y,
+          left: p.x,
+          top: p.y,
           radius: 15,
           fill: selectedTakeoffItem.color,
           stroke: selectedTakeoffItem.color,
@@ -699,10 +739,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let origX = 0, origY = 0;
 
       fabricCanvas.on('mouse:down', (e) => {
-        if (!e.pointer || !sheetId) return;
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!p || !sheetId) return;
+        console.info(`Rectangle tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
         isDrawing = true;
-        origX = e.pointer.x;
-        origY = e.pointer.y;
+        origX = p.x;
+        origY = p.y;
         
         rect = new Rect({
           left: origX,
@@ -718,14 +760,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
 
       fabricCanvas.on('mouse:move', (e) => {
-        if (!isDrawing || !rect || !e.pointer) return;
-        const width = Math.abs(e.pointer.x - origX);
-        const height = Math.abs(e.pointer.y - origY);
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!isDrawing || !rect || !p) return;
+        const width = Math.abs(p.x - origX);
+        const height = Math.abs(p.y - origY);
         rect.set({
           width,
           height,
-          left: Math.min(e.pointer.x, origX),
-          top: Math.min(e.pointer.y, origY),
+          left: Math.min(p.x, origX),
+          top: Math.min(p.y, origY),
         });
         fabricCanvas.renderAll();
       });
@@ -760,10 +803,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let isDrawing = false;
 
       fabricCanvas.on('mouse:down', (e) => {
-        if (!e.pointer || !sheetId) return;
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!p || !sheetId) return;
+        console.info(`Line tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
         isDrawing = true;
         
-        line = new Line([e.pointer.x, e.pointer.y, e.pointer.x, e.pointer.y], {
+        line = new Line([p.x, p.y, p.x, p.y], {
           stroke: selectedTakeoffItem.color,
           strokeWidth: 3,
           strokeDashArray: [5, 5],
@@ -772,8 +817,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
 
       fabricCanvas.on('mouse:move', (e) => {
-        if (!isDrawing || !line || !e.pointer) return;
-        line.set({ x2: e.pointer.x, y2: e.pointer.y });
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!isDrawing || !line || !p) return;
+        line.set({ x2: p.x, y2: p.y });
         fabricCanvas.renderAll();
       });
 
@@ -816,7 +862,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let previewLine: Line | null = null;
 
       fabricCanvas.on('mouse:down', (e) => {
-        if (!e.pointer || !sheetId) return;
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!p || !sheetId) return;
+        console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}), points: ${points.length}`);
         
         // Check for double-click timing to finish
         const now = Date.now();
@@ -828,12 +876,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         }
         (fabricCanvas as any)._lastPolygonClick = now;
         
-        points.push({ x: e.pointer.x, y: e.pointer.y });
+        points.push({ x: p.x, y: p.y });
         
         // Draw point marker
         const circle = new Circle({
-          left: e.pointer.x - 4,
-          top: e.pointer.y - 4,
+          left: p.x - 4,
+          top: p.y - 4,
           radius: 4,
           fill: selectedTakeoffItem.color,
           selectable: false,
@@ -844,7 +892,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         // Draw line to previous point
         if (points.length > 1) {
           const prevPoint = points[points.length - 2];
-          const line = new Line([prevPoint.x, prevPoint.y, e.pointer.x, e.pointer.y], {
+          const line = new Line([prevPoint.x, prevPoint.y, p.x, p.y], {
             stroke: selectedTakeoffItem.color,
             strokeWidth: 2,
             strokeDashArray: [5, 5],
@@ -858,7 +906,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
 
       fabricCanvas.on('mouse:move', (e) => {
-        if (!e.pointer || points.length === 0) return;
+        const p = (e as any).absolutePointer || (e as any).pointer;
+        if (!p || points.length === 0) return;
         
         // Show preview line from last point to cursor
         if (previewLine) {
@@ -866,7 +915,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         }
         
         const lastPoint = points[points.length - 1];
-        previewLine = new Line([lastPoint.x, lastPoint.y, e.pointer.x, e.pointer.y], {
+        previewLine = new Line([lastPoint.x, lastPoint.y, p.x, p.y], {
           stroke: selectedTakeoffItem.color,
           strokeWidth: 1,
           strokeDashArray: [3, 3],
