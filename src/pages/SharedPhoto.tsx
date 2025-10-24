@@ -63,7 +63,7 @@ export default function SharedPhoto() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex-1 w-full min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
       </div>
     );
@@ -71,7 +71,7 @@ export default function SharedPhoto() {
 
   if (!photo) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex-1 w-full min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Photo Not Found</h1>
           <p className="text-gray-600">The shared photo could not be found or may have expired.</p>
@@ -81,7 +81,7 @@ export default function SharedPhoto() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 w-full min-h-screen bg-background">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-black">Shared Photo</h1>

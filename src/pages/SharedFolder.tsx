@@ -292,7 +292,7 @@ export default function SharedFolder() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading shared content...</p>
@@ -303,7 +303,7 @@ export default function SharedFolder() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-destructive text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold mb-2">Error</h1>
@@ -315,7 +315,7 @@ export default function SharedFolder() {
 
   if (expired) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-yellow-500 text-6xl mb-4">⏰</div>
           <h1 className="text-2xl font-bold mb-2">Link Expired</h1>
@@ -328,7 +328,7 @@ export default function SharedFolder() {
 
   if (shareType === 'files' && files.length === 0) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">No Files Found</h1>
           <p className="text-muted-foreground">The shared folder is empty.</p>
@@ -339,7 +339,7 @@ export default function SharedFolder() {
 
   if (shareType === 'photos' && photos.length === 0) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">No Photos Found</h1>
           <p className="text-muted-foreground">The shared folder is empty.</p>
@@ -352,7 +352,7 @@ export default function SharedFolder() {
   const itemType = shareType === 'files' ? 'file' : 'photo';
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
       <div className="w-full max-w-2xl px-4 py-8">
         <div className="bg-card rounded-lg shadow-lg p-6 mb-6">
           <h1 className="text-2xl font-bold mb-2">
