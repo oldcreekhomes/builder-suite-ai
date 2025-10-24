@@ -292,10 +292,10 @@ export default function SharedFolder() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading shared content...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading shared content...</p>
         </div>
       </div>
     );
@@ -303,11 +303,11 @@ export default function SharedFolder() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
-          <p className="text-gray-600">{error}</p>
+          <div className="text-destructive text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold mb-2">Error</h1>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );
@@ -315,12 +315,12 @@ export default function SharedFolder() {
 
   if (expired) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="text-yellow-500 text-6xl mb-4">⏰</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Expired</h1>
-          <p className="text-gray-600 mb-4">This share link has expired and is no longer accessible.</p>
-          <p className="text-sm text-gray-500">Share links are valid for 7 days from creation.</p>
+          <h1 className="text-2xl font-bold mb-2">Link Expired</h1>
+          <p className="text-muted-foreground mb-4">This share link has expired and is no longer accessible.</p>
+          <p className="text-sm text-muted-foreground">Share links are valid for 7 days from creation.</p>
         </div>
       </div>
     );
@@ -328,10 +328,10 @@ export default function SharedFolder() {
 
   if (shareType === 'files' && files.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">No Files Found</h1>
-          <p className="text-gray-600">The shared folder is empty.</p>
+          <h1 className="text-2xl font-bold mb-2">No Files Found</h1>
+          <p className="text-muted-foreground">The shared folder is empty.</p>
         </div>
       </div>
     );
@@ -339,10 +339,10 @@ export default function SharedFolder() {
 
   if (shareType === 'photos' && photos.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">No Photos Found</h1>
-          <p className="text-gray-600">The shared folder is empty.</p>
+          <h1 className="text-2xl font-bold mb-2">No Photos Found</h1>
+          <p className="text-muted-foreground">The shared folder is empty.</p>
         </div>
       </div>
     );
@@ -352,13 +352,13 @@ export default function SharedFolder() {
   const itemType = shareType === 'files' ? 'file' : 'photo';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-full max-w-2xl px-4 py-8">
+        <div className="bg-card rounded-lg shadow-lg p-6 mb-6">
+          <h1 className="text-2xl font-bold mb-2">
             {folderName}
           </h1>
-          <p className="text-gray-600 mb-3">
+          <p className="text-muted-foreground mb-3">
             {files.length} file{files.length !== 1 ? 's' : ''} shared with you
           </p>
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -370,12 +370,12 @@ export default function SharedFolder() {
 
         <div className="grid grid-cols-1 gap-4">
           {files.map((file) => (
-            <div key={file.id} className="bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
+            <div key={file.id} className="bg-card rounded-lg shadow-sm p-4 flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900">
+                <h3 className="font-medium">
                   {file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename}
                 </h3>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
                 </p>
               </div>
