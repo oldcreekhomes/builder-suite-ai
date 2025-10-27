@@ -300,17 +300,25 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   };
 
   const navigateToPrevious = () => {
-    if (!isViewingMode || currentEntryIndex <= 0) return;
-    const newIndex = currentEntryIndex - 1;
-    setCurrentEntryIndex(newIndex);
-    loadCheckData(filteredChecks[newIndex]);
+    // Navigate to older checks (right arrow, higher index)
+    if (currentEntryIndex === -1 && filteredChecks.length > 0) {
+      // From "New" state, load the most recent check
+      setCurrentEntryIndex(0);
+      loadCheckData(filteredChecks[0]);
+    } else if (currentEntryIndex < filteredChecks.length - 1) {
+      const newIndex = currentEntryIndex + 1;
+      setCurrentEntryIndex(newIndex);
+      loadCheckData(filteredChecks[newIndex]);
+    }
   };
 
   const navigateToNext = () => {
-    if (!isViewingMode || currentEntryIndex >= filteredChecks.length - 1) return;
-    const newIndex = currentEntryIndex + 1;
-    setCurrentEntryIndex(newIndex);
-    loadCheckData(filteredChecks[newIndex]);
+    // Navigate to newer checks (left arrow, lower index)
+    if (currentEntryIndex > 0) {
+      const newIndex = currentEntryIndex - 1;
+      setCurrentEntryIndex(newIndex);
+      loadCheckData(filteredChecks[newIndex]);
+    }
   };
 
   const loadCheckData = (check: any) => {
@@ -661,27 +669,27 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           
           <div className="flex items-center gap-1">
             <Button
-              onClick={navigateToPrevious}
+              onClick={navigateToNext}
               size="sm"
-              variant="ghost"
-              disabled={!isViewingMode || currentEntryIndex <= 0}
+              variant="outline"
+              disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
               className="h-8 w-8 p-0"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             
             <Button
-              onClick={navigateToNext}
+              onClick={navigateToPrevious}
               size="sm"
-              variant="ghost"
-              disabled={!isViewingMode || currentEntryIndex >= filteredChecks.length - 1}
+              variant="outline"
+              disabled={(currentEntryIndex >= filteredChecks.length - 1 && currentEntryIndex !== -1) || filteredChecks.length === 0}
               className="h-8 w-8 p-0"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
             
             {totalCount > 0 && (
-              <Badge variant="outline" className="ml-2">
+              <Badge variant="secondary" className="ml-2">
                 {currentPosition}/{totalCount}
               </Badge>
             )}
