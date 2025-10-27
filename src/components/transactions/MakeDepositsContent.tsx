@@ -116,16 +116,14 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       hasInitiallyLoaded.current = true;
       const mostRecent = sortedDeposits[0];
       setCurrentEntryIndex(0);
-      loadDepositData(mostRecent);
+      void loadDepositData(mostRecent);
     }
   }, [depositsLoading, sortedDeposits]);
 
-  const loadDepositData = (deposit: any) => {
+  const loadDepositData = async (deposit: any) => {
     setCurrentDepositId(deposit.id);
     setIsViewingMode(true);
     setDepositDate(new Date(deposit.deposit_date));
-    setDepositSourceName(deposit.memo || "");
-    setDepositSourceId(deposit.deposit_source_id || "");
     setCheckNumber(deposit.check_number || "");
     
     const bankAcct = accounts.find(a => a.id === deposit.bank_account_id);
@@ -133,16 +131,106 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       setBankAccountId(bankAcct.id);
       setBankAccount(`${bankAcct.code} - ${bankAcct.name}`);
     }
+
+    // Fetch deposit source name if exists
+    if (deposit.deposit_source_id) {
+      const { data: depositSource } = await supabase
+        .from('deposit_sources')
+        .select('customer_name')
+        .eq('id', deposit.deposit_source_id)
+        .single();
+      
+      if (depositSource) {
+        setDepositSourceName(depositSource.customer_name);
+        setDepositSourceId(deposit.deposit_source_id);
+      }
+    } else {
+      setDepositSourceName(deposit.memo || "");
+      setDepositSourceId("");
+    }
     
-    setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
-    setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    // Fetch deposit lines
+    const { data: depositLines, error } = await supabase
+      .from('deposit_lines')
+      .select('*')
+      .eq('deposit_id', deposit.id)
+      .order('line_number');
+    
+    if (error) {
+      console.error('Error fetching deposit lines:', error);
+      setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+      setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+      return;
+    }
+    
+    if (!depositLines || depositLines.length === 0) {
+      setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+      setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+      return;
+    }
+    
+    // Fetch all projects if needed
+    const projectIds = [...new Set(depositLines.map(l => l.project_id).filter(Boolean))];
+    let projectsMap: Record<string, any> = {};
+    if (projectIds.length > 0) {
+      const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .in('id', projectIds);
+      if (projects) {
+        projectsMap = Object.fromEntries(projects.map(p => [p.id, p]));
+      }
+    }
+    
+    // Map deposit lines to form rows
+    const newRevenueRows: DepositRow[] = [];
+    const newOtherRows: DepositRow[] = [];
+    
+    for (const line of depositLines) {
+      const row: DepositRow = {
+        id: line.id,
+        account: "",
+        accountId: line.account_id || "",
+        project: "",
+        projectId: line.project_id || projectId || "",
+        quantity: "1", // Deposits always use quantity of 1
+        amount: String(line.amount || 0),
+        memo: line.memo || ""
+      };
+      
+      // Set account display text
+      if (line.line_type === 'customer_payment') {
+        // This is a Job Cost line - find the cost code
+        const costCode = costCodes.find(cc => cc.id === line.account_id);
+        if (costCode) {
+          row.account = `${costCode.code} - ${costCode.name}`;
+        }
+        newRevenueRows.push(row);
+      } else {
+        // This is a Chart of Accounts line - find the account
+        const account = accounts.find(a => a.id === line.account_id);
+        if (account) {
+          row.account = `${account.code} - ${account.name}`;
+        }
+        newOtherRows.push(row);
+      }
+      
+      // Set project display text
+      if (line.project_id && projectsMap[line.project_id]) {
+        row.project = projectsMap[line.project_id].name;
+      }
+    }
+    
+    // Set rows with at least one empty row as default
+    setRevenueRows(newRevenueRows.length > 0 ? newRevenueRows : [{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    setOtherRows(newOtherRows.length > 0 ? newOtherRows : [{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
   };
 
   const navigateToPrevious = () => {
     if (currentEntryIndex < sortedDeposits.length - 1) {
       const newIndex = currentEntryIndex + 1;
       setCurrentEntryIndex(newIndex);
-      loadDepositData(sortedDeposits[newIndex]);
+      void loadDepositData(sortedDeposits[newIndex]);
     }
   };
 
@@ -150,7 +238,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
     if (currentEntryIndex > 0) {
       const newIndex = currentEntryIndex - 1;
       setCurrentEntryIndex(newIndex);
-      loadDepositData(sortedDeposits[newIndex]);
+      void loadDepositData(sortedDeposits[newIndex]);
     }
   };
 
@@ -176,7 +264,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       const newIndex = Math.max(0, currentEntryIndex - 1);
       setCurrentEntryIndex(newIndex);
       if (sortedDeposits[newIndex]) {
-        loadDepositData(sortedDeposits[newIndex]);
+        void loadDepositData(sortedDeposits[newIndex]);
       }
     } else {
       createNewDeposit();
