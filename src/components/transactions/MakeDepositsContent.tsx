@@ -467,7 +467,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <Card className="max-w-6xl mx-auto">
+        <Card>
           <CardContent className="p-8">
             <div className="border-b pb-4 mb-6">
               <div className="flex items-center justify-between gap-4">
