@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -29,6 +29,45 @@ export interface CheckData {
 
 export const useChecks = () => {
   const queryClient = useQueryClient();
+
+  const { data: checks = [], isLoading } = useQuery({
+    queryKey: ['checks'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const owner_id = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
+
+      const { data, error } = await supabase
+        .from('checks')
+        .select(`
+          *,
+          check_lines (
+            id,
+            line_number,
+            line_type,
+            account_id,
+            cost_code_id,
+            project_id,
+            amount,
+            memo
+          )
+        `)
+        .eq('owner_id', owner_id)
+        .order('check_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      return data || [];
+    },
+  });
 
   const createCheck = useMutation({
     mutationFn: async ({ checkData, checkLines }: { checkData: CheckData; checkLines: CheckLineData[] }) => {
@@ -365,6 +404,8 @@ export const useChecks = () => {
   });
 
   return {
+    checks,
+    isLoading,
     createCheck,
     deleteCheck,
     updateCheck,

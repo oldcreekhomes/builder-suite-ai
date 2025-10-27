@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
+import { Badge } from "@/components/ui/badge";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
@@ -62,14 +64,26 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
   ]);
 
+  const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1);
+  const [isViewingMode, setIsViewingMode] = useState(false);
+  const [currentCheckId, setCurrentCheckId] = useState<string | null>(null);
+
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const { createCheck } = useChecks();
+  const { checks = [], isLoading: checksLoading, createCheck, deleteCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
   const {
     settings,
     getNextCheckNumber,
   } = useProjectCheckSettings(projectId);
+
+  const filteredChecks = useMemo(() => {
+    if (!projectId) return checks;
+    return checks.filter(check => check.project_id === projectId);
+  }, [checks, projectId]);
+
+  const totalCount = isViewingMode ? filteredChecks.length : filteredChecks.length + 1;
+  const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
 
   useEffect(() => {
     if (settings) {
@@ -80,10 +94,17 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   }, [settings]);
 
   useEffect(() => {
-    if (settings && !checkNumber) {
+    if (settings && !checkNumber && !isViewingMode) {
       setCheckNumber(getNextCheckNumber());
     }
-  }, [settings, checkNumber, getNextCheckNumber]);
+  }, [settings, checkNumber, getNextCheckNumber, isViewingMode]);
+
+  useEffect(() => {
+    if (!checksLoading && filteredChecks.length > 0 && currentEntryIndex === -1 && !isViewingMode) {
+      setCurrentEntryIndex(0);
+      loadCheckData(filteredChecks[0]);
+    }
+  }, [filteredChecks, checksLoading, currentEntryIndex, isViewingMode]);
 
   const addJobCostRow = () => {
     const newRow: CheckRow = {
@@ -266,6 +287,82 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
   const amountOfRow = (row: CheckRow) => ((parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0));
 
+  const createNewCheck = () => {
+    setIsViewingMode(false);
+    setCurrentEntryIndex(-1);
+    setCurrentCheckId(null);
+    handleClear();
+  };
+
+  const navigateToPrevious = () => {
+    if (!isViewingMode || currentEntryIndex <= 0) return;
+    const newIndex = currentEntryIndex - 1;
+    setCurrentEntryIndex(newIndex);
+    loadCheckData(filteredChecks[newIndex]);
+  };
+
+  const navigateToNext = () => {
+    if (!isViewingMode || currentEntryIndex >= filteredChecks.length - 1) return;
+    const newIndex = currentEntryIndex + 1;
+    setCurrentEntryIndex(newIndex);
+    loadCheckData(filteredChecks[newIndex]);
+  };
+
+  const loadCheckData = (check: any) => {
+    if (!check) return;
+    
+    setCurrentCheckId(check.id);
+    setIsViewingMode(true);
+    
+    setCheckDate(new Date(check.check_date));
+    setPayTo(check.pay_to || "");
+    setCheckNumber(check.check_number || "");
+    setBankAccount(check.bank_account_id || "");
+    setCompanyName(check.company_name || "Your Company Name");
+    setCompanyAddress(check.company_address || "123 Business Street");
+    setCompanyCityState(check.company_city_state || "City, State 12345");
+    setBankName(check.bank_name || "Your Bank Name");
+    setRoutingNumber(check.routing_number || "123456789");
+    setAccountNumber(check.account_number || "1234567890");
+    
+    const jobCostLinesData: CheckRow[] = [];
+    const expenseLinesData: CheckRow[] = [];
+    
+    (check.check_lines || []).forEach((line: any) => {
+      const row: CheckRow = {
+        id: line.id,
+        account: line.line_type === 'job_cost' ? line.cost_code_id : line.account_id,
+        accountId: line.line_type === 'job_cost' ? line.cost_code_id : line.account_id,
+        project: line.project_id || "",
+        projectId: line.project_id || "",
+        quantity: "1",
+        amount: line.amount?.toString() || "",
+        memo: line.memo || ""
+      };
+      
+      if (line.line_type === 'job_cost') {
+        jobCostLinesData.push(row);
+      } else {
+        expenseLinesData.push(row);
+      }
+    });
+    
+    setJobCostRows(jobCostLinesData.length > 0 ? jobCostLinesData : [
+      { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
+    ]);
+    setExpenseRows(expenseLinesData.length > 0 ? expenseLinesData : [
+      { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
+    ]);
+  };
+
+  const handleDelete = async () => {
+    if (!currentCheckId) return;
+    
+    await deleteCheck.mutateAsync(currentCheckId);
+    
+    createNewCheck();
+  };
+
   const resolveRowsForSave = (rows: CheckRow[], kind: 'job' | 'exp'): CheckRow[] => {
     return rows.map(row => {
       const amt = amountOfRow(row);
@@ -380,6 +477,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
     try {
       await createCheck.mutateAsync({ checkData, checkLines });
+      createNewCheck();
       navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
     } catch (error) {
       console.error('Error creating check:', error);
@@ -494,7 +592,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         title: "Success",
         description: "Check saved successfully",
       });
-      handleClear();
+      createNewCheck();
     } catch (error) {
       console.error('Error creating check:', error);
       toast({
@@ -524,6 +622,60 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={createNewCheck}
+            size="sm"
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New
+          </Button>
+          
+          <div className="flex items-center gap-1">
+            <Button
+              onClick={navigateToPrevious}
+              size="sm"
+              variant="ghost"
+              disabled={!isViewingMode || currentEntryIndex <= 0}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              onClick={navigateToNext}
+              size="sm"
+              variant="ghost"
+              disabled={!isViewingMode || currentEntryIndex >= filteredChecks.length - 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            {totalCount > 0 && (
+              <Badge variant="outline" className="ml-2">
+                {currentPosition}/{totalCount}
+              </Badge>
+            )}
+            
+            {currentCheckId && isViewingMode && (
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete Check"
+                description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={deleteCheck.isPending}
+                className="ml-2"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+      
       <Card>
         <CardContent className="space-y-4 pt-4">
           <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-2">
