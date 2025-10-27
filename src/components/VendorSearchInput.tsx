@@ -27,11 +27,23 @@ export function VendorSearchInput({
   const { companies, loading } = useCompanySearch();
 
   useEffect(() => {
-    // Find company name by ID for display
     if (value) {
-      const company = companies.find(c => c.id === value);
-      if (company) {
-        setSearchQuery(company.company_name);
+      // First, try to find by ID (UUID)
+      const companyById = companies.find(c => c.id === value);
+      if (companyById) {
+        setSearchQuery(companyById.company_name);
+      } else {
+        // If not found by ID, treat value as a plain text name
+        // This handles legacy data or free-form text entries
+        const companyByName = companies.find(c => 
+          c.company_name.toLowerCase() === value.toLowerCase()
+        );
+        if (companyByName) {
+          setSearchQuery(companyByName.company_name);
+        } else {
+          // No matching company found - display as free-form text
+          setSearchQuery(value);
+        }
       }
     } else {
       setSearchQuery("");
