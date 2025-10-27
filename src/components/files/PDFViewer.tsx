@@ -152,11 +152,11 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
         
         const delta = e.deltaY;
         if (delta < 0) {
-          // Ctrl + Wheel up = zoom in
-          setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
-        } else {
-          // Ctrl + Wheel down = zoom out
+          // Ctrl + Wheel up = zoom out
           setZoomMultiplier(prev => Math.max(prev - 0.25, 0.5));
+        } else {
+          // Ctrl + Wheel down = zoom in
+          setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
         }
       }
       // Without Ctrl, allow normal scrolling (don't preventDefault)
