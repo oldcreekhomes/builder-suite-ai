@@ -151,12 +151,22 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
         e.preventDefault();
         
         const delta = e.deltaY;
-        if (delta < 0) {
-          // Ctrl + Wheel up = zoom out
-          setZoomMultiplier(prev => Math.max(prev - 0.25, 0.5));
+        const isTrackpad = Math.abs(delta) < 50; // Trackpad has smaller delta values
+        
+        if (isTrackpad) {
+          // Trackpad: pinch out (delta < 0) = zoom in, pinch in (delta > 0) = zoom out
+          if (delta < 0) {
+            setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
+          } else {
+            setZoomMultiplier(prev => Math.max(prev - 0.25, 0.5));
+          }
         } else {
-          // Ctrl + Wheel down = zoom in
-          setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
+          // Mouse wheel: scroll up (delta < 0) = zoom out, scroll down (delta > 0) = zoom in
+          if (delta < 0) {
+            setZoomMultiplier(prev => Math.max(prev - 0.25, 0.5));
+          } else {
+            setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
+          }
         }
       }
       // Without Ctrl, allow normal scrolling (don't preventDefault)
