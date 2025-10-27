@@ -129,7 +129,8 @@ export function AccountDetailDialog({
             memo, 
             pay_to, 
             check_number,
-            reconciled
+            reconciled,
+            check_lines(memo, line_number)
           `)
           .in('id', checkIds);
         
@@ -158,9 +159,14 @@ export function AccountDetailDialog({
           // If pay_to is a UUID, try to get company name; otherwise use pay_to as is
           const vendorName = companiesMap.get(check.pay_to) || check.pay_to;
           
+          // Get first line memo (similar to deposits)
+          const sortedLines = (check.check_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+          const firstLineMemo = sortedLines.find((line: any) => line.memo)?.memo || null;
+          
           checksMap.set(check.id, {
             ...check,
-            vendor_name: vendorName
+            vendor_name: vendorName,
+            firstLineMemo
           });
         });
       }
@@ -212,6 +218,8 @@ export function AccountDetailDialog({
             memo = check.memo;
             reference = check.vendor_name || check.pay_to;
             reconciled = check.reconciled || false;
+            // Use first check line memo as description (e.g., "Testing")
+            description = check.firstLineMemo || description;
           }
         }
 
@@ -222,6 +230,8 @@ export function AccountDetailDialog({
             memo = deposit.memo;
             reference = deposit.receivedFrom;
             reconciled = deposit.reconciled || false;
+            // Use first deposit line memo as description
+            description = deposit.firstLineMemo || description;
           }
         }
 
