@@ -264,11 +264,6 @@ export const useChecks = () => {
       queryClient.invalidateQueries({ queryKey: ['checks'] });
       queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-      
-      toast({
-        title: "Check Created",
-        description: "Check has been created and journal entries posted successfully",
-      });
     },
     onError: (error) => {
       console.error('Error creating check:', error);

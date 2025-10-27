@@ -104,12 +104,12 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   }, [settings, checkNumber, getNextCheckNumber, isViewingMode]);
 
   useEffect(() => {
-    if (!checksLoading && filteredChecks.length > 0 && !hasInitiallyLoaded.current) {
+    if (!checksLoading && filteredChecks.length > 0 && !hasInitiallyLoaded.current && currentEntryIndex !== -1) {
       setCurrentEntryIndex(0);
       loadCheckData(filteredChecks[0]);
       hasInitiallyLoaded.current = true;
     }
-  }, [filteredChecks, checksLoading]);
+  }, [filteredChecks, checksLoading, currentEntryIndex]);
 
   const addJobCostRow = () => {
     const newRow: CheckRow = {
@@ -641,8 +641,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setRoutingNumber("123456789");
     setAccountNumber("1234567890");
     setBankName("Your Bank Name");
-    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
-    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "1", amount: "", memo: "" }]);
+    setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "1", amount: "", memo: "" }]);
   };
 
   return (
