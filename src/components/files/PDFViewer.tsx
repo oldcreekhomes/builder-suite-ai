@@ -140,6 +140,31 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
     };
   }, [zoomMultiplier]);
 
+  // Ctrl + Mouse wheel zoom
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Only zoom when Ctrl key is pressed
+      if (e.ctrlKey && Math.abs(e.deltaY) > 0) {
+        e.preventDefault();
+        
+        const delta = e.deltaY;
+        if (delta < 0) {
+          // Ctrl + Wheel up = zoom in
+          setZoomMultiplier(prev => Math.min(prev + 0.25, 3.0));
+        } else {
+          // Ctrl + Wheel down = zoom out
+          setZoomMultiplier(prev => Math.max(prev - 0.25, 0.5));
+        }
+      }
+      // Without Ctrl, allow normal scrolling (don't preventDefault)
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   // Pan handlers
   const handleMouseDown = (e: React.MouseEvent) => {
