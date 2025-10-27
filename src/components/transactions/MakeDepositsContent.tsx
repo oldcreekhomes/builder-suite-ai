@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -19,6 +22,7 @@ import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DepositRow {
   id: string;
@@ -45,6 +49,11 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("other");
   
+  const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1);
+  const [isViewingMode, setIsViewingMode] = useState(false);
+  const [currentDepositId, setCurrentDepositId] = useState<string | null>(null);
+  const hasInitiallyLoaded = useRef(false);
+  
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
   const [companyCityState, setCompanyCityState] = useState<string>("City, State 12345");
@@ -63,9 +72,36 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const { createDeposit } = useDeposits();
+  const { createDeposit, deleteDeposit } = useDeposits();
   const { settings } = useProjectCheckSettings(projectId);
   const { costCodes } = useCostCodeSearch();
+
+  const { data: deposits = [], isLoading: depositsLoading } = useQuery({
+    queryKey: ['deposits'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('deposits')
+        .select('*')
+        .order('deposit_date', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const filteredDeposits = useMemo(() => {
+    if (!projectId) return deposits;
+    return deposits.filter(d => d.project_id === projectId);
+  }, [deposits, projectId]);
+
+  const sortedDeposits = useMemo(() => {
+    return [...filteredDeposits].sort((a, b) => 
+      new Date(b.deposit_date).getTime() - new Date(a.deposit_date).getTime()
+    );
+  }, [filteredDeposits]);
+
+  const totalCount = sortedDeposits.length;
+  const currentPosition = currentEntryIndex >= 0 ? currentEntryIndex + 1 : 0;
 
   useEffect(() => {
     if (settings) {
@@ -74,6 +110,78 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       if (settings.company_city_state) setCompanyCityState(settings.company_city_state);
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (!depositsLoading && sortedDeposits.length > 0 && !hasInitiallyLoaded.current) {
+      hasInitiallyLoaded.current = true;
+      const mostRecent = sortedDeposits[0];
+      setCurrentEntryIndex(0);
+      loadDepositData(mostRecent);
+    }
+  }, [depositsLoading, sortedDeposits]);
+
+  const loadDepositData = (deposit: any) => {
+    setCurrentDepositId(deposit.id);
+    setIsViewingMode(true);
+    setDepositDate(new Date(deposit.deposit_date));
+    setDepositSourceName(deposit.memo || "");
+    setDepositSourceId(deposit.deposit_source_id || "");
+    setCheckNumber(deposit.check_number || "");
+    
+    const bankAcct = accounts.find(a => a.id === deposit.bank_account_id);
+    if (bankAcct) {
+      setBankAccountId(bankAcct.id);
+      setBankAccount(`${bankAcct.code} - ${bankAcct.name}`);
+    }
+    
+    setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+  };
+
+  const navigateToPrevious = () => {
+    if (currentEntryIndex < sortedDeposits.length - 1) {
+      const newIndex = currentEntryIndex + 1;
+      setCurrentEntryIndex(newIndex);
+      loadDepositData(sortedDeposits[newIndex]);
+    }
+  };
+
+  const navigateToNext = () => {
+    if (currentEntryIndex > 0) {
+      const newIndex = currentEntryIndex - 1;
+      setCurrentEntryIndex(newIndex);
+      loadDepositData(sortedDeposits[newIndex]);
+    }
+  };
+
+  const createNewDeposit = () => {
+    setCurrentEntryIndex(-1);
+    setIsViewingMode(false);
+    setCurrentDepositId(null);
+    setDepositDate(new Date());
+    setDepositSourceId("");
+    setDepositSourceName("");
+    setBankAccount("");
+    setBankAccountId("");
+    setCheckNumber("");
+    handleClear();
+  };
+
+  const handleDelete = async () => {
+    if (!currentDepositId) return;
+    
+    await deleteDeposit.mutateAsync(currentDepositId);
+    
+    if (sortedDeposits.length > 1) {
+      const newIndex = Math.max(0, currentEntryIndex - 1);
+      setCurrentEntryIndex(newIndex);
+      if (sortedDeposits[newIndex]) {
+        loadDepositData(sortedDeposits[newIndex]);
+      }
+    } else {
+      createNewDeposit();
+    }
+  };
 
   const addRevenueRow = () => {
     const newRow: DepositRow = {
@@ -338,9 +446,12 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
     };
 
     try {
-      await createDeposit.mutateAsync({ depositData, depositLines });
+      const result = await createDeposit.mutateAsync({ depositData, depositLines });
       
       if (saveAndNew) {
+        setCurrentDepositId(result.id);
+        setIsViewingMode(true);
+        setCurrentEntryIndex(0);
         setDepositSourceId("");
         setDepositSourceName("");
         setCheckNumber("");
@@ -354,40 +465,103 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="max-w-6xl mx-auto">
-        <CardContent className="p-8">
-          <div className="border-b pb-4 mb-6">
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-3xl font-bold">DEPOSIT</h1>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="depositDate" className="text-sm whitespace-nowrap">Date:</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
+    <TooltipProvider>
+      <div className="space-y-4">
+        <Card className="max-w-6xl mx-auto">
+          <CardContent className="p-8">
+            <div className="border-b pb-4 mb-6">
+              <div className="flex items-center justify-between gap-4">
+                <h1 className="text-3xl font-bold">DEPOSIT</h1>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant="outline"
+                      onClick={createNewDeposit}
                       size="sm"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !depositDate && "text-muted-foreground"
-                      )}
+                      variant="outline"
+                      className="flex items-center gap-2"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {depositDate ? format(depositDate, "PPP") : "Pick a date"}
+                      <Plus className="h-4 w-4" />
+                      New
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={depositDate}
-                      onSelect={(date) => date && setDepositDate(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                    
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={navigateToPrevious}
+                            size="sm"
+                            variant="outline"
+                            disabled={currentEntryIndex >= sortedDeposits.length - 1 || sortedDeposits.length === 0}
+                            className="h-8 w-8 p-0"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Older deposit</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={navigateToNext}
+                            size="sm"
+                            variant="outline"
+                            disabled={currentEntryIndex <= 0 || sortedDeposits.length === 0}
+                            className="h-8 w-8 p-0"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Newer deposit</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      {currentDepositId && isViewingMode && (
+                        <DeleteButton
+                          onDelete={handleDelete}
+                          title="Delete Deposit"
+                          description="Are you sure you want to delete this deposit? This action cannot be undone."
+                          size="sm"
+                          variant="ghost"
+                          isLoading={deleteDeposit.isPending}
+                          className="ml-2"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="depositDate" className="text-sm whitespace-nowrap">Date:</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={cn(
+                            "justify-start text-left font-normal",
+                            !depositDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {depositDate ? format(depositDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="single"
+                          selected={depositDate}
+                          onSelect={(date) => date && setDepositDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
             <div className="md:col-span-5 space-y-2">
@@ -646,5 +820,6 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }
