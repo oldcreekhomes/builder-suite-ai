@@ -213,7 +213,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
       {/* PDF Viewer */}
       <div 
         ref={containerRef}
-        className="flex-1 overflow-y-auto bg-muted/20 p-2 min-h-0" 
+        className="flex-1 overflow-auto bg-muted/20 p-2 min-h-0" 
         style={{ 
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none'
@@ -226,7 +226,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <div className="flex flex-col items-center gap-2 w-full mx-auto">
+        <div className={`flex flex-col gap-2 w-full mx-auto ${zoomMultiplier === 1.0 ? 'items-center' : 'items-start'}`}>
           <Document
             file={fileUrl}
             onLoadSuccess={onDocumentLoadSuccess}
@@ -255,7 +255,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                     <Page
                       pageNumber={pageNum}
                       scale={scale}
-                      className="shadow-lg border bg-white max-w-full"
+                      className="shadow-lg border bg-white"
                       onLoadSuccess={(page) => {
                         if (pageNum === 1 && !pageWidthSet.current) {
                           const width = page.width;
