@@ -642,8 +642,21 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
                   <div className="p-3 bg-muted border-t">
                     <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-8 font-medium">Total:</div>
-                      <div className="col-span-1 font-medium">
+                      <div className="col-span-8 font-medium">
+                        {jobCostRows.reduce((total, row) => {
+                          const q = parseFloat(row.quantity) || 0;
+                          const c = parseFloat(row.amount) || 0;
+                          return total + q * c;
+                        }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
+                      </div>
+                      <div className={cn(
+                        "col-span-1 font-medium",
+                        jobCostRows.reduce((total, row) => {
+                          const q = parseFloat(row.quantity) || 0;
+                          const c = parseFloat(row.amount) || 0;
+                          return total + q * c;
+                        }, 0) < 0 && "text-green-600"
+                      )}>
                         ${jobCostRows.reduce((total, row) => {
                           const q = parseFloat(row.quantity) || 0;
                           const c = parseFloat(row.amount) || 0;
@@ -746,8 +759,21 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
                   <div className="p-3 bg-muted border-t">
                     <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-8 font-medium">Total:</div>
-                      <div className="col-span-1 font-medium">
+                      <div className="col-span-8 font-medium">
+                        {expenseRows.reduce((total, row) => {
+                          const q = parseFloat(row.quantity) || 0;
+                          const c = parseFloat(row.amount) || 0;
+                          return total + q * c;
+                        }, 0) < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
+                      </div>
+                      <div className={cn(
+                        "col-span-1 font-medium",
+                        expenseRows.reduce((total, row) => {
+                          const q = parseFloat(row.quantity) || 0;
+                          const c = parseFloat(row.amount) || 0;
+                          return total + q * c;
+                        }, 0) < 0 && "text-green-600"
+                      )}>
                         ${expenseRows.reduce((total, row) => {
                           const q = parseFloat(row.quantity) || 0;
                           const c = parseFloat(row.amount) || 0;

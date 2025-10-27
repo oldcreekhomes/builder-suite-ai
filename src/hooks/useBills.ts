@@ -132,7 +132,7 @@ export const useBills = () => {
           source_type: 'bill',
           source_id: bill.id,
           entry_date: bill.bill_date,
-          description: `Bill from vendor - Ref: ${bill.reference_number || 'N/A'}`
+          description: `${bill.total_amount < 0 ? 'Bill Credit' : 'Bill'} from vendor - Ref: ${bill.reference_number || 'N/A'}`
         })
         .select()
         .single();
@@ -145,8 +145,11 @@ export const useBills = () => {
 
       // Process each bill line
       for (const line of bill.bill_lines) {
+        const lineAmount = Math.abs(line.amount);
+        const isCredit = line.amount < 0;
+        
         if (line.line_type === 'job_cost') {
-          // Job Cost: Debit WIP, Credit AP
+          // Job Cost: Debit WIP (or Credit for credits), Credit AP (or Debit for credits)
           if (!settings.wip_account_id) {
             throw new Error("Work in Progress account not configured in Accounting Settings");
           }
@@ -155,15 +158,15 @@ export const useBills = () => {
             journal_entry_id: journalEntry.id,
             line_number: lineNumber++,
             account_id: settings.wip_account_id,
-            debit: line.amount,
-            credit: 0,
+            debit: isCredit ? 0 : lineAmount,
+            credit: isCredit ? lineAmount : 0,
             project_id: line.project_id || bill.project_id,
             cost_code_id: line.cost_code_id,
             memo: line.memo,
             owner_id: bill.owner_id
           });
         } else {
-          // Expense: Debit Expense Account, Credit AP
+          // Expense: Debit Expense Account (or Credit for credits), Credit AP (or Debit for credits)
           if (!line.account_id) {
             throw new Error("Expense account not selected for expense line");
           }
@@ -172,8 +175,8 @@ export const useBills = () => {
             journal_entry_id: journalEntry.id,
             line_number: lineNumber++,
             account_id: line.account_id,
-            debit: line.amount,
-            credit: 0,
+            debit: isCredit ? 0 : lineAmount,
+            credit: isCredit ? lineAmount : 0,
             project_id: line.project_id || bill.project_id,
             cost_code_id: line.cost_code_id,
             memo: line.memo,
@@ -182,14 +185,17 @@ export const useBills = () => {
         }
       }
 
-      // Credit AP for total amount
+      // Credit AP for normal bills, Debit AP for credits
+      const totalAmount = Math.abs(bill.total_amount);
+      const isBillCredit = bill.total_amount < 0;
+      
       journalLines.push({
         journal_entry_id: journalEntry.id,
         line_number: lineNumber,
         account_id: settings.ap_account_id,
-        debit: 0,
-        credit: bill.total_amount,
-        memo: `AP - ${bill.reference_number || 'Bill'}`,
+        debit: isBillCredit ? totalAmount : 0,
+        credit: isBillCredit ? 0 : totalAmount,
+        memo: `AP - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
         owner_id: bill.owner_id,
         project_id: bill.project_id || null
       });
@@ -356,25 +362,28 @@ export const useBills = () => {
       if (jeError) throw jeError;
 
       // Create journal entry lines for payment
+      const totalAmount = Math.abs(bill.total_amount);
+      const isBillCredit = bill.total_amount < 0;
+      
       const journalLines = [
-        // Debit AP (reduces liability)
+        // Debit AP (normal bills) or Credit AP (for credits)
         {
           journal_entry_id: journalEntry.id,
           line_number: 1,
           account_id: settings.ap_account_id,
-          debit: bill.total_amount,
-          credit: 0,
-          memo: `Payment - ${bill.reference_number || 'Bill'}`,
+          debit: isBillCredit ? 0 : totalAmount,
+          credit: isBillCredit ? totalAmount : 0,
+          memo: `Payment - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
           owner_id: bill.owner_id,
           project_id: bill.project_id || null,
         },
-        // Credit payment method account
+        // Credit payment account (normal bills) or Debit payment account (for credits - receive money back)
         {
           journal_entry_id: journalEntry.id,
           line_number: 2,
           account_id: paymentAccountId,
-          debit: 0,
-          credit: bill.total_amount,
+          debit: isBillCredit ? totalAmount : 0,
+          credit: isBillCredit ? 0 : totalAmount,
           memo: memo || `Payment for bill ${bill.reference_number || ''}`,
           owner_id: bill.owner_id,
           project_id: bill.project_id || null,

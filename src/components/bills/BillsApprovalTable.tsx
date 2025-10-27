@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -301,10 +302,16 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount);
+    }).format(absAmount);
+    
+    if (amount < 0) {
+      return <span className="text-green-600 font-medium">({formatted})</span>;
+    }
+    return formatted;
   };
 
   const formatTerms = (terms: string | null | undefined) => {
@@ -470,7 +477,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               ) : '-'}
             </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
-                    {formatCurrency(bill.total_amount)}
+                    <div className="flex items-center gap-2">
+                      {formatCurrency(bill.total_amount)}
+                      {bill.total_amount < 0 && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Credit
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {bill.reference_number || '-'}

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { Check } from "lucide-react";
@@ -298,10 +299,16 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount);
+    }).format(absAmount);
+    
+    if (amount < 0) {
+      return <span className="text-green-600 font-medium">({formatted})</span>;
+    }
+    return formatted;
   };
 
   const formatTerms = (terms: string | null | undefined) => {
@@ -402,7 +409,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
                     ) : '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs font-medium">
-                    {formatCurrency(bill.total_amount)}
+                    <div className="flex items-center gap-2">
+                      {formatCurrency(bill.total_amount)}
+                      {bill.total_amount < 0 && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Credit
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {bill.reference_number || '-'}
