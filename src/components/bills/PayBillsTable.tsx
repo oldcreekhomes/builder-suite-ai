@@ -552,7 +552,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   <TableCell className="px-2 py-1 text-xs">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
-                  <TableCell className="py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs">
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
