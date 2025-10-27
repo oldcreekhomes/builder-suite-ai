@@ -1125,6 +1125,7 @@ export type Database = {
           amount: number
           bank_account_id: string
           bank_name: string | null
+          check_number: string | null
           company_address: string | null
           company_city_state: string | null
           company_name: string | null
@@ -1148,6 +1149,7 @@ export type Database = {
           amount?: number
           bank_account_id: string
           bank_name?: string | null
+          check_number?: string | null
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
@@ -1171,6 +1173,7 @@ export type Database = {
           amount?: number
           bank_account_id?: string
           bank_name?: string | null
+          check_number?: string | null
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null

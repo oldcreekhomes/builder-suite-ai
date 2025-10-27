@@ -42,6 +42,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
   const [depositSourceName, setDepositSourceName] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>("");
+  const [checkNumber, setCheckNumber] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("other");
   
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
@@ -129,6 +130,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
   const handleClear = () => {
     setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
     setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    setCheckNumber("");
   };
 
   const calculateTotal = () => {
@@ -326,6 +328,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       amount: depositAmount,
       memo: depositSourceName,
       deposit_source_id: depositSourceId || undefined,
+      check_number: checkNumber || undefined,
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
@@ -340,6 +343,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       if (saveAndNew) {
         setDepositSourceId("");
         setDepositSourceName("");
+        setCheckNumber("");
         handleClear();
       } else {
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
@@ -385,8 +389,8 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+            <div className="md:col-span-5 space-y-2">
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
               <AccountSearchInputInline
                 value={bankAccount}
@@ -400,7 +404,7 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="md:col-span-5 space-y-2">
               <Label htmlFor="receivedFrom">Received From</Label>
               <DepositSourceSearchInput
                 value={depositSourceName}
@@ -410,6 +414,18 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
                   setDepositSourceName(sourceName);
                 }}
                 placeholder="Search or add customer"
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="checkNumber">Check #</Label>
+              <Input
+                id="checkNumber"
+                value={checkNumber}
+                onChange={(e) => setCheckNumber(e.target.value)}
+                placeholder="Optional"
+                maxLength={10}
+                className="h-10"
               />
             </div>
           </div>
