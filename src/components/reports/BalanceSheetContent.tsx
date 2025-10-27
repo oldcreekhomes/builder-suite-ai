@@ -5,6 +5,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 interface AccountBalance {
   id: string;
@@ -36,9 +41,10 @@ interface BalanceSheetContentProps {
 export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
+  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
-    queryKey: ['balance-sheet', user?.id, projectId],
+    queryKey: ['balance-sheet', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
     queryFn: async (): Promise<BalanceSheetData> => {
       console.log("🔍 Balance Sheet: Starting query with user:", user?.email, "project:", projectId || 'Old Creek Homes');
       const { data: accounts, error: accountsError } = await supabase
@@ -55,7 +61,13 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
       
       let journalLinesQuery = supabase
         .from('journal_entry_lines')
-        .select('account_id, debit, credit');
+        .select(`
+          account_id,
+          debit,
+          credit,
+          journal_entries!inner(entry_date)
+        `)
+        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
       
       if (projectId) {
         journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
@@ -200,10 +212,8 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
   if (authLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Balance Sheet <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
-          </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -239,10 +249,8 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
     console.error("🔍 Balance Sheet: Query error:", error);
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Balance Sheet <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
-          </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
         </div>
         <Card>
           <CardContent className="p-6">
@@ -269,9 +277,24 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Balance Sheet <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
-        </h2>
+        <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              As of {format(asOfDate, "PPP")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={asOfDate}
+              onSelect={(date) => date && setAsOfDate(date)}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {isLoading ? (
