@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>("");
+  
+  const hasInitiallyLoaded = useRef(false);
 
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
@@ -101,11 +103,12 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   }, [settings, checkNumber, getNextCheckNumber, isViewingMode]);
 
   useEffect(() => {
-    if (!checksLoading && filteredChecks.length > 0 && currentEntryIndex === -1 && !isViewingMode) {
+    if (!checksLoading && filteredChecks.length > 0 && !hasInitiallyLoaded.current) {
       setCurrentEntryIndex(0);
       loadCheckData(filteredChecks[0]);
+      hasInitiallyLoaded.current = true;
     }
-  }, [filteredChecks, checksLoading, currentEntryIndex, isViewingMode]);
+  }, [filteredChecks, checksLoading]);
 
   const addJobCostRow = () => {
     const newRow: CheckRow = {
