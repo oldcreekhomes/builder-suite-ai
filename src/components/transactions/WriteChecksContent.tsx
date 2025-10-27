@@ -44,6 +44,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   const [bankAccountId, setBankAccountId] = useState<string>("");
+  const [payToName, setPayToName] = useState<string>("");
   
   const hasInitiallyLoaded = useRef(false);
 
@@ -319,7 +320,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setIsViewingMode(true);
     
     setCheckDate(new Date(check.check_date));
-    setPayTo(check.pay_to || "");
+    setPayTo("");
+    setPayToName(check.pay_to || "");
     setCheckNumber(check.check_number || "");
     
     // Set bank account display value and ID
@@ -338,9 +340,21 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     const expenseLinesData: CheckRow[] = [];
     
     (check.check_lines || []).forEach((line: any) => {
+      let displayAccount = "";
+      
+      if (line.line_type === 'job_cost') {
+        // Look up cost code and format as "code - name"
+        const costCode = costCodes.find(cc => cc.id === line.cost_code_id);
+        displayAccount = costCode ? `${costCode.code} - ${costCode.name}` : "";
+      } else {
+        // Look up account and format as "code - name"
+        const account = accounts.find(a => a.id === line.account_id);
+        displayAccount = account ? `${account.code} - ${account.name}` : "";
+      }
+      
       const row: CheckRow = {
         id: line.id,
-        account: line.line_type === 'job_cost' ? line.cost_code_id : line.account_id,
+        account: displayAccount,
         accountId: line.line_type === 'job_cost' ? line.cost_code_id : line.account_id,
         project: line.project_id || "",
         projectId: line.project_id || "",
@@ -472,7 +486,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
-      pay_to: payTo,
+      pay_to: payToName || payTo,
       bank_account_id: bankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
@@ -583,7 +597,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
-      pay_to: payTo,
+      pay_to: payToName || payTo,
       bank_account_id: bankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
@@ -615,6 +629,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const handleClear = () => {
     setCheckDate(new Date());
     setPayTo("");
+    setPayToName("");
     setCheckNumber(getNextCheckNumber());
     setBankAccount("");
     setBankAccountId("");
@@ -756,6 +771,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                     <VendorSearchInput
                       value={payTo}
                       onChange={setPayTo}
+                      onCompanySelect={(company) => setPayToName(company.company_name)}
                       placeholder="Payee name..."
                       className="border-0 bg-transparent h-6 text-sm font-medium"
                     />
