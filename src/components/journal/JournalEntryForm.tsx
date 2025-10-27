@@ -11,6 +11,7 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { Badge } from "@/components/ui/badge";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -33,7 +34,7 @@ interface JournalEntryFormProps {
 }
 
 export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
-  const { createManualJournalEntry, updateManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
+  const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<'job_cost' | 'expense'>('job_cost');
@@ -338,6 +339,15 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
     }
   }, [filteredEntries, isLoading, isViewingMode, currentJournalEntryId, currentEntryIndex]);
 
+  const handleDelete = async () => {
+    if (!currentJournalEntryId) return;
+    
+    await deleteManualJournalEntry.mutateAsync(currentJournalEntryId);
+    
+    // After successful deletion, reset to new entry mode
+    createNewEntry();
+  };
+
   const handleSubmit = async () => {
     // Check for missing selections before submitting (safety check, button should be disabled)
     if (totals.missingSelections > 0) {
@@ -466,6 +476,17 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
               <Badge variant="secondary" className="ml-2 whitespace-nowrap">
                 {currentPosition}/{totalCount}
               </Badge>
+            )}
+            {currentJournalEntryId && isViewingMode && (
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete Journal Entry"
+                description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={deleteManualJournalEntry.isPending}
+                className="ml-2"
+              />
             )}
           </div>
         </div>
