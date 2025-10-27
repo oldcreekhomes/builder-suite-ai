@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Search } from "lucide-react";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
 import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
@@ -30,6 +31,7 @@ interface BatchBill extends PendingBill {
 
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
   const [activeTab, setActiveTab] = useState(reviewOnly ? "review" : "upload");
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const effectiveProjectId = projectId || (projectIds && projectIds.length === 1 ? projectIds[0] : undefined);
@@ -401,40 +403,88 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       )}
 
       <TabsContent value="review" className="mt-6">
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search bills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
         <BillsApprovalTable 
           status="draft"
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          searchQuery={searchQuery}
         />
       </TabsContent>
 
       <TabsContent value="rejected" className="mt-6">
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search bills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
         <BillsApprovalTable 
           status="void"
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          searchQuery={searchQuery}
         />
       </TabsContent>
 
       <TabsContent value="approve" className="mt-6">
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search bills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
         <PayBillsTable 
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
+          searchQuery={searchQuery}
         />
       </TabsContent>
 
       <TabsContent value="pay" className="mt-6">
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search bills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
         <BillsApprovalTable 
           status="paid"
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          searchQuery={searchQuery}
         />
       </TabsContent>
     </Tabs>

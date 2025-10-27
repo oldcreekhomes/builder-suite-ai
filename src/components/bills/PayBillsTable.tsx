@@ -63,9 +63,10 @@ interface PayBillsTableProps {
   projectId?: string;
   projectIds?: string[];
   showProjectColumn?: boolean;
+  searchQuery?: string;
 }
 
-export function PayBillsTable({ projectId, projectIds, showProjectColumn = true }: PayBillsTableProps) {
+export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery }: PayBillsTableProps) {
   const { payBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -321,6 +322,40 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
     });
   }, [bills, sortColumn, sortDirection]);
 
+  const filteredBills = useMemo(() => {
+    if (!searchQuery || !sortedBills) return sortedBills;
+
+    const query = searchQuery.toLowerCase();
+    return sortedBills.filter(bill => {
+      // Search by vendor name
+      const vendorName = (bill.companies?.company_name || '').toLowerCase();
+      if (vendorName.includes(query)) return true;
+
+      // Search by reference number
+      const refNumber = (bill.reference_number || '').toLowerCase();
+      if (refNumber.includes(query)) return true;
+
+      // Search by project address
+      const projectAddress = (bill.projects?.address || '').toLowerCase();
+      if (projectAddress.includes(query)) return true;
+
+      // Search by cost codes
+      if (bill.bill_lines) {
+        const matchesCostCode = bill.bill_lines.some(line => {
+          if (line.cost_codes) {
+            const code = (line.cost_codes.code || '').toLowerCase();
+            const name = (line.cost_codes.name || '').toLowerCase();
+            return code.includes(query) || name.includes(query);
+          }
+          return false;
+        });
+        if (matchesCostCode) return true;
+      }
+
+      return false;
+    });
+  }, [sortedBills, searchQuery]);
+
   const handlePayBill = (bill: BillForPayment) => {
     setSelectedBill(bill);
     setDialogOpen(true);
@@ -459,14 +494,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedBills.length === 0 ? (
+            {filteredBills.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
             ) : (
-              sortedBills.map((bill) => (
+              filteredBills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.companies?.company_name || 'Unknown Vendor'}
