@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
-import { formatDisplayFromAny } from "@/utils/dateOnly";
+import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
-import { Check } from "lucide-react";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -69,6 +69,17 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
   const { payBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (column: 'vendor' | 'bill_date') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
 
   // Fetch bills that are approved and ready for payment (status = 'posted')
   const { data: bills = [], isLoading } = useQuery({
@@ -281,6 +292,28 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
     },
   });
 
+  const sortedBills = useMemo(() => {
+    if (!bills || bills.length === 0) return bills;
+    if (!sortColumn) return bills;
+
+    const arr = [...bills];
+    const toYMD = (d?: string) => normalizeToYMD(d || '');
+
+    return arr.sort((a, b) => {
+      let cmp = 0;
+
+      if (sortColumn === 'vendor') {
+        const aVendor = (a.companies?.company_name || '').toLowerCase();
+        const bVendor = (b.companies?.company_name || '').toLowerCase();
+        cmp = aVendor.localeCompare(bVendor);
+      } else if (sortColumn === 'bill_date') {
+        cmp = toYMD(a.bill_date).localeCompare(toYMD(b.bill_date));
+      }
+
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [bills, sortColumn, sortDirection]);
+
   const handlePayBill = (bill: BillForPayment) => {
     setSelectedBill(bill);
     setDialogOpen(true);
@@ -353,12 +386,46 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('vendor')}
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <span>Vendor</span>
+                  {sortColumn === 'vendor' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
               {showProjectColumn && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
               )}
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('bill_date')}
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <span>Bill Date</span>
+                  {sortColumn === 'bill_date' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
@@ -368,14 +435,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bills.length === 0 ? (
+            {sortedBills.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
             ) : (
-              bills.map((bill) => (
+              sortedBills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.companies?.company_name || 'Unknown Vendor'}

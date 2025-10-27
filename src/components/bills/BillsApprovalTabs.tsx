@@ -406,6 +406,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
+          enableSorting={true}
         />
       </TabsContent>
 
@@ -415,6 +416,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
+          enableSorting={true}
         />
       </TabsContent>
 
@@ -432,6 +434,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
+          enableSorting={true}
         />
       </TabsContent>
     </Tabs>

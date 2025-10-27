@@ -89,7 +89,7 @@ interface BillsApprovalTableProps {
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
-  const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | null>(
+  const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
     defaultSortBy === 'due_date' ? 'due_date' : null
   );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(sortOrder || 'asc');
@@ -117,7 +117,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
-  const handleSort = (column: 'project' | 'due_date') => {
+  const handleSort = (column: 'project' | 'due_date' | 'vendor' | 'bill_date') => {
     if (sortColumn === column) {
       // Toggle direction if same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -200,7 +200,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     const arr = [...bills];
     if (arr.length === 0) return arr;
 
-    const activeColumn: 'project' | 'due_date' | 'bill_date' =
+    const activeColumn: 'project' | 'due_date' | 'bill_date' | 'vendor' =
       enableSorting && sortColumn ? sortColumn : (defaultSortBy === 'due_date' ? 'due_date' : 'bill_date');
 
     const activeDirection: 'asc' | 'desc' =
@@ -215,6 +215,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         const aAddr = (a.projects?.address || '').toLowerCase();
         const bAddr = (b.projects?.address || '').toLowerCase();
         cmp = aAddr.localeCompare(bAddr);
+      } else if (activeColumn === 'vendor') {
+        const aVendor = (a.companies?.company_name || '').toLowerCase();
+        const bVendor = (b.companies?.company_name || '').toLowerCase();
+        cmp = aVendor.localeCompare(bVendor);
       } else if (activeColumn === 'due_date') {
         const aD = a.due_date || '';
         const bD = b.due_date || '';
@@ -389,9 +393,51 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 )}
               </TableHead>
             )}
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Vendor</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+              {enableSorting ? (
+                <button
+                  type="button"
+                  onClick={() => handleSort('vendor')}
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <span>Vendor</span>
+                  {sortColumn === 'vendor' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              ) : (
+                'Vendor'
+              )}
+            </TableHead>
             <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Bill Date</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+              {enableSorting ? (
+                <button
+                  type="button"
+                  onClick={() => handleSort('bill_date')}
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <span>Bill Date</span>
+                  {sortColumn === 'bill_date' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              ) : (
+                'Bill Date'
+              )}
+            </TableHead>
             <TableHead className="h-8 px-2 py-1 text-xs font-medium">
               {enableSorting ? (
                 <button
