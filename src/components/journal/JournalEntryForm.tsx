@@ -486,11 +486,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
                 <p>Newer entry</p>
               </TooltipContent>
             </Tooltip>
-            {totalCount > 0 && (
-              <Badge variant="secondary" className="ml-2 whitespace-nowrap">
-                {currentPosition}/{totalCount}
-              </Badge>
-            )}
             {currentJournalEntryId && isViewingMode && (
               <DeleteButton
                 onDelete={handleDelete}

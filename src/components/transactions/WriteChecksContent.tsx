@@ -704,12 +704,6 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </TooltipContent>
             </Tooltip>
             
-            {totalCount > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {currentPosition}/{totalCount}
-              </Badge>
-            )}
-            
             {currentCheckId && isViewingMode && (
               <DeleteButton
                 onDelete={handleDelete}
