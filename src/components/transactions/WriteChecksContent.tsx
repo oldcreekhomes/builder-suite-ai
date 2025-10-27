@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
@@ -654,7 +655,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <TooltipProvider>
+      <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Button
@@ -668,27 +670,39 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           </Button>
           
           <div className="flex items-center gap-1">
-            <Button
-              onClick={navigateToPrevious}
-              size="sm"
-              variant="outline"
-              disabled={(currentEntryIndex >= filteredChecks.length - 1 && currentEntryIndex !== -1) || filteredChecks.length === 0}
-              className="h-8 w-8 p-0"
-              title="Older check"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={navigateToPrevious}
+                  size="sm"
+                  variant="outline"
+                  disabled={(currentEntryIndex >= filteredChecks.length - 1 && currentEntryIndex !== -1) || filteredChecks.length === 0}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Older check</p>
+              </TooltipContent>
+            </Tooltip>
             
-            <Button
-              onClick={navigateToNext}
-              size="sm"
-              variant="outline"
-              disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
-              className="h-8 w-8 p-0"
-              title="Newer check"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={navigateToNext}
+                  size="sm"
+                  variant="outline"
+                  disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Newer check</p>
+              </TooltipContent>
+            </Tooltip>
             
             {totalCount > 0 && (
               <Badge variant="secondary" className="ml-2">
@@ -804,16 +818,22 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                     placeholder="0.00"
                   />
                   {useManualAmount && (
-                    <button
-                      onClick={() => {
-                        setUseManualAmount(false);
-                        setManualAmount("");
-                      }}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 text-[10px] flex items-center justify-center hover:bg-red-600"
-                      title="Reset to calculated"
-                    >
-                      ×
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => {
+                            setUseManualAmount(false);
+                            setManualAmount("");
+                          }}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 text-[10px] flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Reset to calculated</p>
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
@@ -1065,5 +1085,6 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         </CardContent>
       </Card>
     </div>
+    </TooltipProvider>
   );
 }

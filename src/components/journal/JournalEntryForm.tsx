@@ -7,6 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
@@ -398,7 +399,8 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
   const isValid = totals.isBalanced && totals.missingSelections === 0;
 
   return (
-    <Card>
+    <TooltipProvider>
+      <Card>
       <CardContent className="space-y-6 pt-6">
         {/* Compact Header with Navigation and Entry Fields */}
         <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-start">
@@ -454,24 +456,36 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
 
           {/* Navigation Arrows */}
           <div className="flex items-center gap-1 pt-8">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToPrevious}
-              disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
-              title="Older entry"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToNext}
-              disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
-              title="Newer entry"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPrevious}
+                  disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Older entry</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNext}
+                  disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Newer entry</p>
+              </TooltipContent>
+            </Tooltip>
             {totalCount > 0 && (
               <Badge variant="secondary" className="ml-2 whitespace-nowrap">
                 {currentPosition}/{totalCount}
@@ -761,5 +775,6 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 };
