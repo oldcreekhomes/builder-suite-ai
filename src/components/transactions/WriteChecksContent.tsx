@@ -669,21 +669,23 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           
           <div className="flex items-center gap-1">
             <Button
-              onClick={navigateToNext}
-              size="sm"
-              variant="outline"
-              disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <Button
               onClick={navigateToPrevious}
               size="sm"
               variant="outline"
               disabled={(currentEntryIndex >= filteredChecks.length - 1 && currentEntryIndex !== -1) || filteredChecks.length === 0}
               className="h-8 w-8 p-0"
+              title="Older check"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              onClick={navigateToNext}
+              size="sm"
+              variant="outline"
+              disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
+              className="h-8 w-8 p-0"
+              title="Newer check"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
