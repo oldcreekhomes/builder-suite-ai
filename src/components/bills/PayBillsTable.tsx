@@ -69,10 +69,10 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
   const { payBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | null>(null);
+  const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const handleSort = (column: 'vendor' | 'bill_date') => {
+  const handleSort = (column: 'vendor' | 'bill_date' | 'due_date') => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -308,6 +308,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
         cmp = aVendor.localeCompare(bVendor);
       } else if (sortColumn === 'bill_date') {
         cmp = toYMD(a.bill_date).localeCompare(toYMD(b.bill_date));
+      } else if (sortColumn === 'due_date') {
+        const aD = a.due_date || '';
+        const bD = b.due_date || '';
+        if (!aD && bD) cmp = 1;
+        else if (aD && !bD) cmp = -1;
+        else if (!aD && !bD) cmp = 0;
+        else cmp = toYMD(aD).localeCompare(toYMD(bD));
       }
 
       return sortDirection === 'asc' ? cmp : -cmp;
@@ -426,7 +433,24 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true 
                   )}
                 </button>
               </TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Due Date</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('due_date')}
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <span>Due Date</span>
+                  {sortColumn === 'due_date' ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-3 w-3" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </button>
+              </TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
