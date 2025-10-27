@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { Check, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Table,
@@ -67,7 +68,7 @@ interface PayBillsTableProps {
 }
 
 export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery }: PayBillsTableProps) {
-  const { payBill } = useBills();
+  const { payBill, deleteBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>(null);
@@ -552,14 +553,24 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
                   <TableCell className="py-1 text-xs">
-                    <Button
-                      size="sm"
-                      onClick={() => handlePayBill(bill)}
-                      disabled={payBill.isPending}
-                      className="h-7 text-xs px-3"
-                    >
-                      {payBill.isPending ? "Processing..." : "Pay Bill"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handlePayBill(bill)}
+                        disabled={payBill.isPending}
+                        className="h-7 text-xs px-3"
+                      >
+                        {payBill.isPending ? "Processing..." : "Pay Bill"}
+                      </Button>
+                      <DeleteButton
+                        onDelete={() => deleteBill.mutate(bill.id)}
+                        title="Delete Bill"
+                        description={`Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`}
+                        size="icon"
+                        variant="ghost"
+                        isLoading={deleteBill.isPending}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
