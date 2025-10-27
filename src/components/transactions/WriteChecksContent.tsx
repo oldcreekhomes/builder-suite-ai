@@ -328,7 +328,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setIsViewingMode(true);
     
     setCheckDate(new Date(check.check_date));
-    setPayTo("");
+    setPayTo(check.pay_to || "");
     setPayToName(check.pay_to || "");
     setCheckNumber(check.check_number || "");
     
