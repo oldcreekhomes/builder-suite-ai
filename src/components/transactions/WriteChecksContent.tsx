@@ -43,6 +43,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const [payTo, setPayTo] = useState<string>("");
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
+  const [bankAccountId, setBankAccountId] = useState<string>("");
 
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
@@ -317,7 +318,12 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setCheckDate(new Date(check.check_date));
     setPayTo(check.pay_to || "");
     setCheckNumber(check.check_number || "");
-    setBankAccount(check.bank_account_id || "");
+    
+    // Set bank account display value and ID
+    const bankAcct = accounts.find(a => a.id === check.bank_account_id);
+    setBankAccount(bankAcct ? `${bankAcct.code} - ${bankAcct.name}` : "");
+    setBankAccountId(check.bank_account_id || "");
+    
     setCompanyName(check.company_name || "Your Company Name");
     setCompanyAddress(check.company_address || "123 Business Street");
     setCompanyCityState(check.company_city_state || "City, State 12345");
@@ -397,7 +403,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
       return;
     }
 
-    if (!bankAccount) {
+    if (!bankAccountId) {
       toast({
         title: "Validation Error",
         description: "Please select a bank account",
@@ -464,7 +470,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
       pay_to: payTo,
-      bank_account_id: bankAccount,
+      bank_account_id: bankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
       company_name: companyName,
@@ -508,7 +514,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
       return;
     }
 
-    if (!bankAccount) {
+    if (!bankAccountId) {
       toast({
         title: "Validation Error",
         description: "Please select a bank account",
@@ -575,7 +581,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
       pay_to: payTo,
-      bank_account_id: bankAccount,
+      bank_account_id: bankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
       company_name: companyName,
@@ -608,6 +614,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setPayTo("");
     setCheckNumber(getNextCheckNumber());
     setBankAccount("");
+    setBankAccountId("");
     setCompanyName("Your Company Name");
     setCompanyAddress("123 Business Street");
     setCompanyCityState("City, State 12345");
@@ -793,14 +800,15 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">BANK ACCOUNT</span>
                   <div className="w-64 border-b-2 border-gray-400">
-                    <AccountSearchInput
-                      value={bankAccount}
-                      onChange={setBankAccount}
-                      placeholder="Select bank account..."
-                      className="border-0 bg-transparent h-8 text-sm"
-                      accountType="asset"
-                      bankAccountsOnly={true}
-                    />
+                  <AccountSearchInput
+                    value={bankAccount}
+                    onChange={setBankAccount}
+                    onAccountSelect={(account) => setBankAccountId(account.id)}
+                    placeholder="Select bank account..."
+                    className="border-0 bg-transparent h-8 text-sm"
+                    accountType="asset"
+                    bankAccountsOnly={true}
+                  />
                   </div>
                 </div>
                 <div className="w-80 text-center relative">
