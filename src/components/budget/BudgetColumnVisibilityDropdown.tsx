@@ -9,7 +9,6 @@ import {
 import { Eye, EyeOff } from 'lucide-react';
 
 export interface VisibleColumns {
-  totalBudget: boolean;
   historicalCosts: boolean;
   variance: boolean;
 }
@@ -24,7 +23,6 @@ export function BudgetColumnVisibilityDropdown({
   onToggleColumn 
 }: BudgetColumnVisibilityDropdownProps) {
   const columns: { key: keyof VisibleColumns; label: string }[] = [
-    { key: 'totalBudget', label: 'Total Budget' },
     { key: 'historicalCosts', label: 'Historical Job Costs' },
     { key: 'variance', label: 'Historical Variance' },
   ];
