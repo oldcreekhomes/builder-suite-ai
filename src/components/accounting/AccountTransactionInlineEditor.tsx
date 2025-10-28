@@ -26,6 +26,14 @@ export function AccountTransactionInlineEditor({
   const [showCalendar, setShowCalendar] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
   useEffect(() => {
     if (isEditing && inputRef.current && field !== "date") {
       inputRef.current.focus();
@@ -66,7 +74,7 @@ export function AccountTransactionInlineEditor({
           ? format(value, "MM/dd/yyyy")
           : field === "amount"
           ? typeof value === "number"
-            ? `$${value.toFixed(2)}`
+            ? formatCurrency(Number(value))
             : String(value)
           : String(value)}
       </span>
@@ -126,7 +134,7 @@ export function AccountTransactionInlineEditor({
     >
       <span className="text-xs">
         {field === "amount" && typeof value === "number"
-          ? `$${value.toFixed(2)}`
+          ? formatCurrency(Number(value))
           : String(value)}
       </span>
       <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
