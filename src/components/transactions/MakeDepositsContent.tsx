@@ -607,17 +607,25 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         </TooltipContent>
                       </Tooltip>
                       
-                      {currentDepositId && isViewingMode && (
-                        <DeleteButton
-                          onDelete={handleDelete}
-                          title="Delete Deposit"
-                          description="Are you sure you want to delete this deposit? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteDeposit.isPending}
-                          className="ml-2"
-                        />
-                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <DeleteButton
+                              onDelete={handleDelete}
+                              title="Delete Deposit"
+                              description="Are you sure you want to delete this deposit? This action cannot be undone."
+                              size="sm"
+                              variant="ghost"
+                              isLoading={deleteDeposit.isPending}
+                              disabled={!currentDepositId || !isViewingMode}
+                              className="ml-2"
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete deposit</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                   
