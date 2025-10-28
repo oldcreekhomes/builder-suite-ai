@@ -893,9 +893,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Send Bill Back for Review?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This bill will be sent back for review with your updates. Please explain what you fixed or changed.
-          </AlertDialogDescription>
         </AlertDialogHeader>
         
         <div className="space-y-2">
