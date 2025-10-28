@@ -32,9 +32,10 @@ interface JournalLine {
 
 interface JournalEntryFormProps {
   projectId?: string;
+  activeTab?: string;
 }
 
-export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
+export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: JournalEntryFormProps) => {
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
@@ -339,6 +340,14 @@ export const JournalEntryForm = ({ projectId }: JournalEntryFormProps) => {
       loadJournalEntry(filteredEntries[idx]);
     }
   }, [filteredEntries, isLoading, isViewingMode, currentJournalEntryId, currentEntryIndex]);
+
+  // Reset to "new" mode when journal-entry tab becomes active
+  useEffect(() => {
+    if (parentActiveTab === 'journal-entry') {
+      console.debug('Journal Entry tab activated, resetting to new entry mode');
+      createNewEntry();
+    }
+  }, [parentActiveTab]);
 
   const handleDelete = async () => {
     if (!currentJournalEntryId) return;

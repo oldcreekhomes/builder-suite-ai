@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { JournalEntryForm } from "@/components/journal/JournalEntryForm";
 import { WriteChecksContent } from "./WriteChecksContent";
@@ -10,8 +11,10 @@ interface TransactionsTabsProps {
 }
 
 export function TransactionsTabs({ projectId }: TransactionsTabsProps) {
+  const [activeTab, setActiveTab] = useState("journal-entry");
+
   return (
-    <Tabs defaultValue="journal-entry" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="journal-entry">Journal Entry</TabsTrigger>
         <TabsTrigger value="write-checks">Write Checks</TabsTrigger>
@@ -21,7 +24,7 @@ export function TransactionsTabs({ projectId }: TransactionsTabsProps) {
       </TabsList>
       
       <TabsContent value="journal-entry" className="mt-6">
-        <JournalEntryForm projectId={projectId} />
+        <JournalEntryForm projectId={projectId} activeTab={activeTab} />
       </TabsContent>
       
       <TabsContent value="write-checks" className="mt-6">
