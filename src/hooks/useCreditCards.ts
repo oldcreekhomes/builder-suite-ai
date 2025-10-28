@@ -216,6 +216,8 @@ export function useCreditCards() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       toast.success("Credit card transaction created successfully");
     },
     onError: (error: Error) => {
@@ -241,6 +243,8 @@ export function useCreditCards() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       toast.success("Credit card transaction deleted successfully");
     },
     onError: (error: Error) => {
