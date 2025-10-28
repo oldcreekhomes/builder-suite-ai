@@ -13,6 +13,7 @@ import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon } from "lucide-re
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
+import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useCreditCards, type CreditCardLineData } from "@/hooks/useCreditCards";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -40,6 +41,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [creditCardAccount, setCreditCardAccount] = useState('');
   const [creditCardAccountId, setCreditCardAccountId] = useState('');
   const [vendor, setVendor] = useState('');
+  const [vendorId, setVendorId] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
 
   const [expenseRows, setExpenseRows] = useState<CreditCardRow[]>([
@@ -97,6 +99,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setCreditCardAccount('');
     setCreditCardAccountId('');
     setVendor('');
+    setVendorId('');
     setSelectedProjectId('');
     setExpenseRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
     setJobCostRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
@@ -379,11 +382,13 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           </div>
           <div>
             <Label htmlFor="vendor">Vendor *</Label>
-            <Input
-              id="vendor"
-              value={vendor}
-              onChange={(e) => setVendor(e.target.value)}
-              placeholder="Enter vendor name"
+            <VendorSearchInput
+              value={vendorId}
+              onChange={setVendorId}
+              onCompanySelect={(company) => {
+                setVendor(company.company_name);
+              }}
+              placeholder="Search vendors..."
             />
           </div>
         </div>
