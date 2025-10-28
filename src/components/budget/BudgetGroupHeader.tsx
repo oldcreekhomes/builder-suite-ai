@@ -44,24 +44,30 @@ export function BudgetGroupHeader({
   return (
     <TableRow className="bg-muted/40 hover:bg-muted/60 sticky top-0 z-20 border-b">
       <TableCell className="py-3 px-3">
-        <Checkbox
-          checked={isSelected}
-          ref={checkboxRef}
-          onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
-        />
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={isSelected}
+            ref={checkboxRef}
+            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+          />
+          <button
+            type="button"
+            aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+            onClick={() => onToggle(group)}
+            className="p-0.5 rounded hover:bg-muted"
+          >
+            <ChevronDown 
+              className={`h-4 w-4 transition-transform ${
+                isExpanded ? 'rotate-0' : '-rotate-90'
+              }`} 
+            />
+          </button>
+        </div>
       </TableCell>
       <TableCell 
-        className="w-40 font-bold text-sm py-3 pl-12 cursor-pointer" 
-        onClick={() => onToggle(group)}
+        className="w-40 font-bold text-sm py-3 pl-12"
       >
-        <div className="flex items-center gap-2">
-          <ChevronDown 
-            className={`h-4 w-4 transition-transform ${
-              isExpanded ? 'rotate-0' : '-rotate-90'
-            }`} 
-          />
-          {group}
-        </div>
+        {group}
       </TableCell>
       <TableCell className="flex-1 min-w-[250px] py-3 px-3"></TableCell>
       <TableCell className="w-48 py-1"></TableCell>
