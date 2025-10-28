@@ -216,6 +216,11 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       return row;
     });
 
+    // Update state with resolved cost codes so UI reflects the matches
+    if (updatedJobCostRows.some((row, idx) => row.costCodeId !== jobCostRows[idx].costCodeId)) {
+      setJobCostRows(updatedJobCostRows);
+    }
+
     const lines: CreditCardLineData[] = [];
 
     expenseRows.forEach(row => {
@@ -250,6 +255,13 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       
       const invalidExpense = expenseRows.find(r => parseFloat(r.amount) > 0 && !r.accountId);
       const invalidJobCost = updatedJobCostRows.find(r => parseFloat(r.amount) > 0 && !r.costCodeId);
+      
+      const hasEmptyAmounts = [...expenseRows, ...updatedJobCostRows].some(r => 
+        !r.amount || parseFloat(r.amount) === 0
+      );
+      if (hasEmptyAmounts && !invalidExpense && !invalidJobCost) {
+        errorDetail += "Please enter amounts for your line items.";
+      }
       
       if (invalidExpense) {
         errorDetail += "You have an expense row with an amount but no account selected. ";
@@ -563,7 +575,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         onChange={(value) => updateJobCostRow(row.id, 'costCode', value)}
                         onCostCodeSelect={(costCode) => {
                           updateJobCostRow(row.id, 'costCodeId', costCode.id);
-                          updateJobCostRow(row.id, 'costCode', costCode.name);
+                          updateJobCostRow(row.id, 'costCode', `${costCode.code} - ${costCode.name}`);
                         }}
                         placeholder="Select cost code"
                         className={isInvalid ? "ring-1 ring-destructive" : ""}
