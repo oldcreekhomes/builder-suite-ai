@@ -70,9 +70,9 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     }
   };
 
-  const updateExpenseRow = (id: string, field: keyof CreditCardRow, value: string) => {
+  const updateExpenseRow = (id: string, updates: Partial<CreditCardRow>) => {
     setExpenseRows(expenseRows.map(row => 
-      row.id === id ? { ...row, [field]: value } : row
+      row.id === id ? { ...row, ...updates } : row
     ));
   };
 
@@ -86,9 +86,9 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     }
   };
 
-  const updateJobCostRow = (id: string, field: keyof CreditCardRow, value: string) => {
+  const updateJobCostRow = (id: string, updates: Partial<CreditCardRow>) => {
     setJobCostRows(jobCostRows.map(row => 
-      row.id === id ? { ...row, [field]: value } : row
+      row.id === id ? { ...row, ...updates } : row
     ));
   };
 
@@ -526,10 +526,12 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     <Label>Account</Label>
                     <AccountSearchInput
                       value={row.account || ''}
-                      onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+                      onChange={(value) => updateExpenseRow(row.id, { account: value })}
                       onAccountSelect={(account) => {
-                        updateExpenseRow(row.id, 'accountId', account.id);
-                        updateExpenseRow(row.id, 'account', account.name);
+                        updateExpenseRow(row.id, {
+                          accountId: account.id,
+                          account: account.name
+                        });
                       }}
                       placeholder="Select account"
                     />
@@ -538,7 +540,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     <Label>Memo</Label>
                     <Input
                       value={row.memo || ''}
-                      onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
+                      onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
                       placeholder="Description"
                     />
                   </div>
@@ -548,7 +550,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       type="number"
                       step="0.01"
                       value={row.amount}
-                      onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
+                      onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
                       placeholder="0.00"
                     />
                   </div>
@@ -582,10 +584,12 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       <Label>Cost Code</Label>
                       <CostCodeSearchInput
                         value={row.costCode || ''}
-                        onChange={(value) => updateJobCostRow(row.id, 'costCode', value)}
+                        onChange={(value) => updateJobCostRow(row.id, { costCode: value })}
                         onCostCodeSelect={(costCode) => {
-                          updateJobCostRow(row.id, 'costCodeId', costCode.id);
-                          updateJobCostRow(row.id, 'costCode', `${costCode.code} - ${costCode.name}`);
+                          updateJobCostRow(row.id, {
+                            costCodeId: costCode.id,
+                            costCode: `${costCode.code} - ${costCode.name}`
+                          });
                         }}
                         placeholder="Select cost code"
                         className={isInvalid ? "ring-1 ring-destructive" : ""}
@@ -600,7 +604,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     <Label>Memo</Label>
                     <Input
                       value={row.memo || ''}
-                      onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
+                      onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
                       placeholder="Description"
                     />
                   </div>
@@ -610,7 +614,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       type="number"
                       step="0.01"
                       value={row.amount}
-                      onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
+                      onChange={(e) => updateJobCostRow(row.id, { amount: e.target.value })}
                       placeholder="0.00"
                     />
                   </div>
