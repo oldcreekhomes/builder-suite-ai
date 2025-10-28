@@ -501,8 +501,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           <div>
             <Label htmlFor="vendor">Vendor *</Label>
             <VendorSearchInput
-              value={vendorId}
-              onChange={setVendorId}
+              value={vendor}
+              onChange={setVendor}
               onCompanySelect={(company) => {
                 setVendor(company.company_name);
               }}
