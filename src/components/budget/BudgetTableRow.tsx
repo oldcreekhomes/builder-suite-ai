@@ -234,6 +234,9 @@ export function BudgetTableRow({
           {costCode?.name}
         </div>
       </TableCell>
+      <TableCell className="px-1 py-0 w-24">
+        <BudgetSourceBadge item={item} />
+      </TableCell>
       <TableCell className="px-3 py-0 w-32">
         <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
           {hasSelectedBid ? (
@@ -384,7 +387,6 @@ export function BudgetTableRow({
       </TableCell>
       <TableCell className="px-1 py-0 w-36 sticky right-0 bg-background z-30">
         <div className="flex items-center gap-1 justify-center">
-          <BudgetSourceBadge item={item} />
           <BudgetTableRowActions
             item={item}
             costCode={costCode}
