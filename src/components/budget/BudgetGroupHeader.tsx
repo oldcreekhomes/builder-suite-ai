@@ -53,7 +53,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={2 + (visibleColumns.cost ? 1 : 0) + (visibleColumns.unit ? 1 : 0) + (visibleColumns.quantity ? 1 : 0)} 
+        colSpan={2} 
         className="font-bold text-sm py-3 px-3 cursor-pointer" 
         onClick={() => onToggle(group)}
       >
@@ -66,10 +66,10 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="bg-muted/40" />
-      {visibleColumns.historicalCosts && <TableCell className="bg-muted/40" />}
-      {visibleColumns.variance && <TableCell className="bg-muted/40" />}
-      <TableCell className="sticky right-0 bg-muted/40 z-20 py-3 px-3">
+      <TableCell className="bg-muted/40 w-48" />
+      {visibleColumns.historicalCosts && <TableCell className="bg-muted/40 w-48" />}
+      {visibleColumns.variance && <TableCell className="bg-muted/40 w-40" />}
+      <TableCell className="sticky right-0 bg-muted/40 z-20 py-3 px-3 w-40">
         {isSelected && (
           <DeleteButton
             onDelete={() => onDeleteGroup(group)}

@@ -32,9 +32,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
-    cost: false,
-    unit: false,
-    quantity: false,
     totalBudget: true,
     historicalCosts: false,
     variance: false,
@@ -216,7 +213,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             {budgetItems.length === 0 ? (
               <TableRow>
                 <TableCell 
-                  colSpan={6 + (visibleColumns.cost ? 1 : 0) + (visibleColumns.unit ? 1 : 0) + (visibleColumns.quantity ? 1 : 0) + (visibleColumns.historicalCosts ? 1 : 0) + (visibleColumns.variance ? 1 : 0)} 
+                  colSpan={6 + (visibleColumns.historicalCosts ? 1 : 0) + (visibleColumns.variance ? 1 : 0)} 
                   className="text-center py-8 text-gray-500"
                 >
                   No budget items added yet.

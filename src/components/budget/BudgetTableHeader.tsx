@@ -26,21 +26,12 @@ export function BudgetTableHeader({
     <TableHeader>
       <TableRow className="h-10 border-b-2">
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-12"></TableHead>
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-24">Cost Code</TableHead>
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold">Name</TableHead>
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-32">Source</TableHead>
-        {visibleColumns.cost && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-28 text-right">Cost</TableHead>
-        )}
-        {visibleColumns.unit && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-20">Unit</TableHead>
-        )}
-        {visibleColumns.quantity && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-24 text-right">Quantity</TableHead>
-        )}
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-40 text-right">Total Budget</TableHead>
+        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-32">Cost Code</TableHead>
+        <TableHead className="h-10 px-3 py-2 text-xs font-semibold flex-1 min-w-[200px]">Name</TableHead>
+        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-40">Source</TableHead>
+        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-48 text-right">Total Budget</TableHead>
         {visibleColumns.historicalCosts && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-40 text-right">
+          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-48 text-right">
             {historicalProjects.length > 0 ? (
               <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
                 <SelectTrigger className="h-6 -ml-3 text-xs font-semibold border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">
@@ -62,7 +53,7 @@ export function BudgetTableHeader({
           </TableHead>
         )}
         {visibleColumns.variance && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-32 text-right">
+          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-40 text-right">
             <button
               onClick={onToggleVarianceMode}
               className="-ml-3 text-xs font-semibold rounded px-1 py-0.5 whitespace-nowrap hover:bg-muted"
@@ -71,7 +62,7 @@ export function BudgetTableHeader({
             </button>
           </TableHead>
         )}
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-32 sticky right-0 bg-background z-30 text-center">Actions</TableHead>
+        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-40 sticky right-0 bg-background z-30 text-center">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );

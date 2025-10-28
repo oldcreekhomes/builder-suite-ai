@@ -66,14 +66,14 @@ export function BudgetGroupTotalRow({
 
   return (
     <TableRow className="bg-muted/20 font-semibold border-t">
-      <TableCell colSpan={3 + (visibleColumns.cost ? 1 : 0) + (visibleColumns.unit ? 1 : 0) + (visibleColumns.quantity ? 1 : 0)} className="text-right py-2 px-3">
+      <TableCell colSpan={3} className="text-right py-2 px-3">
         <span className="text-sm font-semibold">{group} Subtotal:</span>
       </TableCell>
-      <TableCell className="text-right py-2 px-3 text-sm font-semibold bg-muted/20">
+      <TableCell className="text-right py-2 px-3 text-sm font-semibold bg-muted/20 w-48">
         ${displayedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="text-right py-2 px-3 text-sm bg-muted/20">
+        <TableCell className="text-right py-2 px-3 text-sm bg-muted/20 w-48">
           {historicalTotal !== null && historicalTotal !== undefined 
             ? `$${historicalTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : '-'
@@ -81,7 +81,7 @@ export function BudgetGroupTotalRow({
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="text-right py-2 px-3 text-sm font-medium bg-muted/20">
+        <TableCell className="text-right py-2 px-3 text-sm font-medium bg-muted/20 w-40">
           {variance !== null ? (
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
@@ -89,7 +89,7 @@ export function BudgetGroupTotalRow({
           ) : '-'}
         </TableCell>
       )}
-      <TableCell className="sticky right-0 bg-muted/20 z-20 py-2 px-3" />
+      <TableCell className="sticky right-0 bg-muted/20 z-20 py-2 px-3 w-40" />
     </TableRow>
   );
 }

@@ -63,14 +63,14 @@ export function BudgetProjectTotalRow({
 
   return (
     <TableRow className="bg-muted/50 font-bold border-t-2 border-primary/30">
-      <TableCell colSpan={3 + (visibleColumns.cost ? 1 : 0) + (visibleColumns.unit ? 1 : 0) + (visibleColumns.quantity ? 1 : 0)} className="text-right py-3 px-3">
+      <TableCell colSpan={3} className="text-right py-3 px-3">
         <span className="text-base font-bold">Project Total:</span>
       </TableCell>
-      <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50">
+      <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50 w-48">
         ${totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="text-right py-3 px-3 text-base bg-muted/50">
+        <TableCell className="text-right py-3 px-3 text-base bg-muted/50 w-48">
           {totalHistorical !== null && totalHistorical !== undefined 
             ? `$${totalHistorical.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             : '-'
@@ -78,7 +78,7 @@ export function BudgetProjectTotalRow({
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50">
+        <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50 w-40">
           {variance !== null ? (
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
@@ -86,7 +86,7 @@ export function BudgetProjectTotalRow({
           ) : '-'}
         </TableCell>
       )}
-      <TableCell className="sticky right-0 bg-muted/50 z-20 py-3 px-3" />
+      <TableCell className="sticky right-0 bg-muted/50 z-20 py-3 px-3 w-40" />
     </TableRow>
   );
 }
