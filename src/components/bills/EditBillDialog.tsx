@@ -892,7 +892,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         <AlertDialog open={showSaveConfirmation} onOpenChange={setShowSaveConfirmation}>
           <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Send Bill Back for Review?</AlertDialogTitle>
+          <AlertDialogTitle>Send Bill Back for Review</AlertDialogTitle>
         </AlertDialogHeader>
         
         <div className="space-y-2">
