@@ -233,6 +233,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       onDeleteGroup={onDeleteGroup}
                       isDeleting={deletingGroups.has(group)}
                       groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
+                      visibleColumns={visibleColumns}
                     />
                     
                     {expandedGroups.has(group) && (
@@ -254,24 +255,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             projectId={projectId}
                           />
                         ))}
-                        <BudgetGroupTotalRow
-                          group={group}
-                          groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
-                          subcategoryTotals={subcategoryTotalsMap}
-                          historicalTotal={(() => {
-                            // Sum unique codes to avoid double-counting
-                            const uniqueCodes = new Set(
-                              items.map(i => i.cost_codes?.code).filter(Boolean)
-                            );
-                            return Array.from(uniqueCodes).reduce(
-                              (sum, code) => sum + (historicalActualCosts[code] || 0),
-                              0
-                            );
-                          })()}
-                          showVarianceAsPercentage={showVarianceAsPercentage}
-                          visibleColumns={visibleColumns}
-                          groupItems={items}
-                        />
                       </>
                     )}
                   </React.Fragment>

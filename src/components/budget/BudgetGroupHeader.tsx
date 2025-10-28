@@ -15,6 +15,7 @@ interface BudgetGroupHeaderProps {
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
   groupTotal: number;
+  visibleColumns?: { historicalCosts: boolean; variance: boolean };
 }
 
 export function BudgetGroupHeader({ 
@@ -26,7 +27,8 @@ export function BudgetGroupHeader({
   onCheckboxChange,
   onDeleteGroup,
   isDeleting = false,
-  groupTotal
+  groupTotal,
+  visibleColumns = { historicalCosts: true, variance: true }
 }: BudgetGroupHeaderProps) {
   const checkboxRef = React.useRef<HTMLButtonElement>(null);
   const formatCurrency = (amount: number) => {
@@ -49,8 +51,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={2} 
-        className="font-bold text-sm py-3 px-3 cursor-pointer" 
+        className="w-40 font-bold text-sm py-3 px-3 cursor-pointer" 
         onClick={() => onToggle(group)}
       >
         <div className="flex items-center gap-2">
@@ -62,12 +63,13 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
+      <TableCell className="flex-1 min-w-[250px] py-3 px-3"></TableCell>
       <TableCell className="w-48 py-1"></TableCell>
       <TableCell className="w-52 py-1 text-sm text-right font-semibold">
         {formatCurrency(groupTotal)}
       </TableCell>
-      <TableCell className="w-52 py-1"></TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
+      {visibleColumns.historicalCosts && <TableCell className="w-52 py-1"></TableCell>}
+      {visibleColumns.variance && <TableCell className="w-48 py-1"></TableCell>}
     </TableRow>
   );
 }
