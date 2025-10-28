@@ -697,8 +697,25 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           </DialogHeader>
           
           <div className="space-y-2">
-            <div className="rounded-md border border-input bg-muted/50 p-3 text-sm whitespace-pre-wrap">
-              {notesDialog.billInfo?.notes || "No notes available"}
+            <div className="rounded-md border border-input bg-muted/50 p-3 text-sm">
+              {notesDialog.billInfo?.notes ? (
+                notesDialog.billInfo.notes.split('\n').map((line, idx) => {
+                  const colonIndex = line.indexOf(':');
+                  if (colonIndex > 0 && colonIndex < 50) {
+                    const name = line.substring(0, colonIndex);
+                    const note = line.substring(colonIndex + 1);
+                    return (
+                      <div key={idx} className="mb-2 last:mb-0">
+                        <span className="font-semibold text-foreground">{name}:</span>
+                        <span>{note}</span>
+                      </div>
+                    );
+                  }
+                  return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
+                }).filter(Boolean)
+              ) : (
+                "No notes available"
+              )}
             </div>
           </div>
 

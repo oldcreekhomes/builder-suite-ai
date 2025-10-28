@@ -525,6 +525,28 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 </div>
               </div>
             )}
+
+            {billData?.notes && (
+              <div className="space-y-2">
+                <Label>Review Notes</Label>
+                <div className="rounded-md border border-input bg-muted/50 p-3 text-sm">
+                  {billData.notes.split('\n').map((line, idx) => {
+                    const colonIndex = line.indexOf(':');
+                    if (colonIndex > 0 && colonIndex < 50) {
+                      const name = line.substring(0, colonIndex);
+                      const note = line.substring(colonIndex + 1);
+                      return (
+                        <div key={idx} className="mb-2 last:mb-0">
+                          <span className="font-semibold text-foreground">{name}:</span>
+                          <span>{note}</span>
+                        </div>
+                      );
+                    }
+                    return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
+                  }).filter(Boolean)}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">

@@ -243,10 +243,36 @@ export const useBills = () => {
 
       // Update bill notes if provided
       if (notes && notes.trim()) {
+        // Get current bill notes
+        const { data: billData } = await supabase
+          .from('bills')
+          .select('notes')
+          .eq('id', billId)
+          .single();
+        
+        // Get user profile for attribution
+        const { data: userData } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        const userName = userData 
+          ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() 
+          : 'Unknown User';
+        
+        // Format: "First Last: Note\n\n" + existing notes
+        const newNote = `${userName}: ${notes.trim()}`;
+        let finalNotes = newNote;
+        
+        if (billData?.notes && billData.notes.trim()) {
+          finalNotes = `${newNote}\n\n${billData.notes}`;
+        }
+        
         const { error: notesError } = await supabase
           .from('bills')
           .update({ 
-            notes: notes.trim(),
+            notes: finalNotes,
             updated_at: new Date().toISOString()
           })
           .eq('id', billId);
@@ -280,12 +306,44 @@ export const useBills = () => {
     mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Update bill status to void (rejected) and add notes if provided
+      let finalNotes = null;
+      
+      if (notes && notes.trim()) {
+        // Get current bill notes
+        const { data: billData } = await supabase
+          .from('bills')
+          .select('notes')
+          .eq('id', billId)
+          .single();
+        
+        // Get user profile for attribution
+        const { data: userData } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        const userName = userData 
+          ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() 
+          : 'Unknown User';
+        
+        // Format: "First Last: Note\n\n" + existing notes
+        const newNote = `${userName}: ${notes.trim()}`;
+        
+        if (billData?.notes && billData.notes.trim()) {
+          // Prepend new note to existing notes (most recent first)
+          finalNotes = `${newNote}\n\n${billData.notes}`;
+        } else {
+          finalNotes = newNote;
+        }
+      }
+
+      // Update bill status to void (rejected) and set notes
       const { error } = await supabase
         .from('bills')
         .update({ 
           status: 'void',
-          notes: notes && notes.trim() ? notes.trim() : null,
+          notes: finalNotes,
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
