@@ -545,13 +545,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       const result = await createDeposit.mutateAsync({ depositData, depositLines });
       
       if (saveAndNew) {
-        setCurrentDepositId(result.id);
-        setIsViewingMode(true);
-        setCurrentEntryIndex(0);
-        setDepositSourceId("");
-        setDepositSourceName("");
-        setCheckNumber("");
-        handleClear();
+        createNewDeposit();
       } else {
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
       }
