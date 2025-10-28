@@ -59,6 +59,18 @@ export function useCreditCards() {
 
       const ownerId = user.id;
 
+      // Fetch WIP account for job cost lines
+      const { data: settings, error: settingsError } = await supabase
+        .from('accounting_settings')
+        .select('wip_account_id')
+        .eq('owner_id', ownerId)
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+      if (!settings?.wip_account_id) {
+        throw new Error("WIP account not configured. Please set it in Settings > Accounting.");
+      }
+
       // Validate lines
       if (!data.lines || data.lines.length === 0) {
         throw new Error("At least one line item is required");
@@ -127,11 +139,19 @@ export function useCreditCards() {
       if (data.transaction_type === 'purchase') {
         // For purchase: DEBIT expenses/WIP, CREDIT credit card
         for (const line of data.lines) {
+          const debitAccountId = line.line_type === 'job_cost' 
+            ? settings.wip_account_id 
+            : line.account_id;
+          
+          if (line.line_type === 'expense' && !line.account_id) {
+            throw new Error("Select an account for each expense line.");
+          }
+
           journalLines.push({
             journal_entry_id: journalEntry.id,
             owner_id: ownerId,
             line_number: lineNumber++,
-            account_id: line.account_id || null,
+            account_id: debitAccountId,
             debit: line.amount,
             credit: 0,
             project_id: line.project_id,
@@ -163,11 +183,19 @@ export function useCreditCards() {
         });
 
         for (const line of data.lines) {
+          const creditAccountId = line.line_type === 'job_cost' 
+            ? settings.wip_account_id 
+            : line.account_id;
+          
+          if (line.line_type === 'expense' && !line.account_id) {
+            throw new Error("Select an account for each expense line.");
+          }
+
           journalLines.push({
             journal_entry_id: journalEntry.id,
             owner_id: ownerId,
             line_number: lineNumber++,
-            account_id: line.account_id || null,
+            account_id: creditAccountId,
             debit: 0,
             credit: line.amount,
             project_id: line.project_id,
@@ -191,7 +219,13 @@ export function useCreditCards() {
       toast.success("Credit card transaction created successfully");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create credit card transaction");
+      let errorMessage = error.message || "Failed to create credit card transaction";
+      
+      if (error.message?.includes('null value in column "account_id"')) {
+        errorMessage = "Could not save: a journal line was missing an account. For Job Cost, we automatically use your WIP account. Please check Settings > Accounting.";
+      }
+      
+      toast.error(errorMessage);
     },
   });
 
