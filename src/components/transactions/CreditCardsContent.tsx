@@ -239,23 +239,21 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       <TooltipProvider>
         <div className="space-y-6">
           {/* Header with Navigation */}
-          <div className="space-y-4">
-            {/* Row 1: Title and Navigation Controls */}
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Credit Card Transaction</h2>
-              
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Credit Card Transaction</h2>
+            
+            <div className="flex items-center gap-4">
+              {/* Navigation Controls Group */}
               <div className="flex items-center gap-2">
-                {/* New Button */}
                 <Button 
                   onClick={createNewTransaction} 
                   size="sm" 
-                  variant={!isViewingMode ? "default" : "outline"}
+                  variant="outline"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New
                 </Button>
                 
-                {/* Navigation Arrows */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -290,7 +288,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   </TooltipContent>
                 </Tooltip>
                 
-                {/* Delete Button */}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
@@ -310,47 +307,58 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   </TooltipContent>
                 </Tooltip>
               </div>
-            </div>
-            
-            {/* Row 2: Type and Date Controls */}
-            <div className="flex items-center justify-end gap-4">
-              <div className="flex items-center gap-2">
-                <Label>Type:</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={transactionType} 
-                  onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
-                >
-                  <ToggleGroupItem value="purchase" className="data-[state=on]:bg-black data-[state=on]:text-white">Purchase</ToggleGroupItem>
-                  <ToggleGroupItem value="refund" className="data-[state=on]:bg-black data-[state=on]:text-white">Refund</ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "justify-start text-left font-normal",
-                        !transactionDate && "text-muted-foreground"
-                      )}
+              
+              {/* Type and Date Controls Group */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label>Type:</Label>
+                  <ToggleGroup 
+                    type="single" 
+                    value={transactionType} 
+                    onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
+                    className="bg-muted p-1 rounded-md"
+                  >
+                    <ToggleGroupItem 
+                      value="purchase" 
+                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={new Date(transactionDate)}
-                      onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                      Purchase
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="refund"
+                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    >
+                      Refund
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "justify-start text-left font-normal",
+                          !transactionDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={new Date(transactionDate)}
+                        onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
           </div>
