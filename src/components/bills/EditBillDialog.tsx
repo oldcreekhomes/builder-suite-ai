@@ -505,11 +505,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             size: attachment.file_size,
                             mimeType: attachment.content_type
                           })}
-                          className={`${iconColorClass} transition-colors p-2 rounded hover:bg-muted/50`}
+                          className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
                           title={attachment.file_name}
                           type="button"
                         >
-                          <IconComponent className="h-8 w-8" />
+                          <IconComponent className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleDeleteAttachment(attachment)}
