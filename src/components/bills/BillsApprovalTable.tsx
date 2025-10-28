@@ -352,8 +352,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
   const canShowActions = status === 'draft';
   const canShowDeleteButton = 
-    // For rejected bills (void status), only owners can delete
-    (isOwner && (status === 'void' || (Array.isArray(status) && status.includes('void')))) ||
+    // For rejected bills (void status), owners and accountants can edit
+    ((isOwner || canDeleteBills) && (status === 'void' || (Array.isArray(status) && status.includes('void')))) ||
     // For posted/paid bills, owners and accountants can delete
     (canDeleteBills && (status === 'posted' || status === 'paid' || (Array.isArray(status) && (status.includes('posted') || status.includes('paid')))));
   
