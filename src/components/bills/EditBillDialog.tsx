@@ -21,6 +21,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface EditBillDialogProps {
   open: boolean;
@@ -70,6 +81,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([]);
   const [deletedLineIds, setDeletedLineIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<BillAttachment[]>([]);
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [responseNote, setResponseNote] = useState('');
   
   const { updateBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
@@ -345,6 +358,62 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
+    // Validation passed, show confirmation dialog
+    setShowSaveConfirmation(true);
+  };
+
+  const handleConfirmedSave = async () => {
+    let finalNotes = billData.notes || undefined;
+    
+    if (responseNote && responseNote.trim()) {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        
+        const userName = userData 
+          ? `${userData.first_name} ${userData.last_name}`.trim() 
+          : 'Unknown User';
+        
+        const newNote = `${userName}: ${responseNote.trim()}`;
+        
+        if (billData.notes && billData.notes.trim()) {
+          finalNotes = `${newNote}\n\n${billData.notes}`;
+        } else {
+          finalNotes = newNote;
+        }
+      }
+    }
+
+    const billLines: BillLineData[] = [
+      ...jobCostRows
+        .filter(row => row.accountId || row.amount)
+        .map(row => ({
+          line_type: 'job_cost' as const,
+          cost_code_id: row.accountId || undefined,
+          project_id: row.projectId || billData.project_id || undefined,
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.amount) || 0,
+          amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
+          memo: row.memo || undefined
+        })),
+      ...expenseRows
+        .filter(row => row.accountId || row.amount)
+        .map(row => ({
+          line_type: 'expense' as const,
+          account_id: row.accountId || undefined,
+          project_id: row.projectId || billData.project_id || undefined,
+          quantity: parseFloat(row.quantity) || 1,
+          unit_cost: parseFloat(row.amount) || 0,
+          amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
+          memo: row.memo || undefined
+        }))
+    ];
+
     const updateData = {
       vendor_id: vendor,
       project_id: billData.project_id,
@@ -352,7 +421,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       due_date: billDueDate?.toISOString().split('T')[0],
       terms,
       reference_number: referenceNumber || undefined,
-      notes: billData.notes || undefined
+      notes: finalNotes
     };
 
     try {
@@ -363,6 +432,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         deletedLineIds
       });
       
+      setShowSaveConfirmation(false);
+      setResponseNote('');
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating bill:', error);
@@ -817,6 +888,46 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </Button>
           </div>
         </div>
+
+        <AlertDialog open={showSaveConfirmation} onOpenChange={setShowSaveConfirmation}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Send Bill Back for Review?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This bill will be sent back for review with your updates. You can add a note to explain what you fixed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            <div className="space-y-2">
+              <Label htmlFor="response-note">Response Note (Optional)</Label>
+              <Textarea
+                id="response-note"
+                placeholder="Explain what you fixed or changed..."
+                value={responseNote}
+                onChange={(e) => setResponseNote(e.target.value)}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                This note will be visible to the reviewer to help them understand your changes.
+              </p>
+            </div>
+            
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowSaveConfirmation(false);
+                setResponseNote('');
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmedSave}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Save & Send for Review
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
