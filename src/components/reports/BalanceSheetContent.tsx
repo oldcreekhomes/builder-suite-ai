@@ -70,8 +70,10 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
       
       if (projectId) {
-        journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
+        // For project-specific reports, include both project lines AND company-wide lines (null project_id)
+        journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
       } else {
+        // For company-wide reports, only show lines with no project
         journalLinesQuery = journalLinesQuery.is('project_id', null);
       }
 

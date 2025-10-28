@@ -160,7 +160,7 @@ export function useCreditCards() {
           });
         }
 
-        // Credit the credit card account
+        // Credit the credit card account (no project_id - it's a company-wide liability)
         journalLines.push({
           journal_entry_id: journalEntry.id,
           owner_id: ownerId,
@@ -168,11 +168,10 @@ export function useCreditCards() {
           account_id: data.credit_card_account_id,
           debit: 0,
           credit: total,
-          project_id: data.project_id,
           memo: data.memo,
         });
       } else {
-        // For refund: DEBIT credit card, CREDIT expenses/WIP
+        // For refund: DEBIT credit card, CREDIT expenses/WIP (no project_id - it's a company-wide liability)
         journalLines.push({
           journal_entry_id: journalEntry.id,
           owner_id: ownerId,
@@ -180,7 +179,6 @@ export function useCreditCards() {
           account_id: data.credit_card_account_id,
           debit: total,
           credit: 0,
-          project_id: data.project_id,
           memo: data.memo,
         });
 
