@@ -54,7 +54,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={5} 
+        colSpan={2 + (visibleColumns.cost ? 1 : 0) + (visibleColumns.unit ? 1 : 0) + (visibleColumns.quantity ? 1 : 0)} 
         className="px-1 py-0 cursor-pointer"
         onClick={() => onToggle(group)}
       >
@@ -70,12 +70,16 @@ export function BudgetGroupHeader({
       <TableCell className="px-3 py-0 w-32">
         {/* Total moved to group total row */}
       </TableCell>
-      <TableCell className="px-3 py-0 w-48">
-        {/* Historical costs column - empty in group header */}
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        {/* Empty cell for Variance column in group header */}
-      </TableCell>
+      {visibleColumns.historicalCosts && (
+        <TableCell className="px-3 py-0 w-48">
+          {/* Historical costs column - empty in group header */}
+        </TableCell>
+      )}
+      {visibleColumns.variance && (
+        <TableCell className="px-3 py-0 w-32">
+          {/* Empty cell for Variance column in group header */}
+        </TableCell>
+      )}
       <TableCell className="px-1 py-0 w-20 sticky right-0 bg-muted/50 z-30">
         <div className="flex justify-center">
           {isSelected && (

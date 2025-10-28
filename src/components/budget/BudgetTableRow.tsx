@@ -237,8 +237,8 @@ export function BudgetTableRow({
       <TableCell className="px-1 py-0 w-24">
         <BudgetSourceBadge item={item} />
       </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className={visibleColumns.cost ? '' : 'opacity-0 pointer-events-none select-none'}>
+      {visibleColumns.cost && (
+        <TableCell className="px-3 py-0 w-32">
           {hasSelectedBid ? (
             <div className="flex items-center gap-1 text-xs">
               <span className="text-black">
@@ -280,10 +280,10 @@ export function BudgetTableRow({
               ${Math.round(displayUnitPrice).toLocaleString()}
             </span>
           )}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-20">
-        <div className={visibleColumns.unit ? '' : 'opacity-0 pointer-events-none select-none'}>
+        </TableCell>
+      )}
+      {visibleColumns.unit && (
+        <TableCell className="px-3 py-0 w-20">
           {hasSelectedBid ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               N/A
@@ -335,10 +335,10 @@ export function BudgetTableRow({
               {formatUnitOfMeasure(costCode?.unit_of_measure)}
             </span>
           )}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-24">
-        <div className={visibleColumns.quantity ? '' : 'opacity-0 pointer-events-none select-none'}>
+        </TableCell>
+      )}
+      {visibleColumns.quantity && (
+        <TableCell className="px-3 py-0 w-24">
           {hasSelectedBid ? (
             <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
               N/A
@@ -368,23 +368,27 @@ export function BudgetTableRow({
               {parseFloat(quantity) || 0}
             </span>
           )}
-        </div>
-      </TableCell>
+        </TableCell>
+      )}
       <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs ${visibleColumns.totalBudget ? '' : 'opacity-0 select-none'}`}>
+        <div className="text-xs">
           {formatCurrency(total)}
         </div>
       </TableCell>
-      <TableCell className="px-3 py-0 w-48">
-        <div className={`text-xs -ml-3 ${visibleColumns.historicalCosts ? '' : 'opacity-0 select-none pointer-events-none'}`}>
-          {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
-        </div>
-      </TableCell>
-      <TableCell className="px-3 py-0 w-32">
-        <div className={`text-xs -ml-3 font-medium ${getVarianceColor(variance)} ${visibleColumns.variance ? '' : 'opacity-0 select-none'}`}>
-          {formatVariance(variance)}
-        </div>
-      </TableCell>
+      {visibleColumns.historicalCosts && (
+        <TableCell className="px-3 py-0 w-48">
+          <div className="text-xs -ml-3">
+            {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
+          </div>
+        </TableCell>
+      )}
+      {visibleColumns.variance && (
+        <TableCell className="px-3 py-0 w-32">
+          <div className={`text-xs -ml-3 font-medium ${getVarianceColor(variance)}`}>
+            {formatVariance(variance)}
+          </div>
+        </TableCell>
+      )}
       <TableCell className="px-1 py-0 w-36 sticky right-0 bg-background z-30">
         <div className="flex items-center gap-1 justify-center">
           <BudgetTableRowActions
