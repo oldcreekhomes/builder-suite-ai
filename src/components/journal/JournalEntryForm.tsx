@@ -495,17 +495,27 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 <p>Newer entry</p>
               </TooltipContent>
             </Tooltip>
-            {currentJournalEntryId && isViewingMode && (
-              <DeleteButton
-                onDelete={handleDelete}
-                title="Delete Journal Entry"
-                description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
-                size="sm"
-                variant="ghost"
-                isLoading={deleteManualJournalEntry.isPending}
-                className="ml-2"
-              />
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <DeleteButton
+                    onDelete={handleDelete}
+                    title="Delete Journal Entry"
+                    description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
+                    size="sm"
+                    variant="ghost"
+                    isLoading={deleteManualJournalEntry.isPending}
+                    disabled={!currentJournalEntryId || !isViewingMode}
+                    className="ml-2"
+                  />
+                </div>
+              </TooltipTrigger>
+              {(!currentJournalEntryId || !isViewingMode) && (
+                <TooltipContent>
+                  <p>Navigate to a saved entry to delete</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
           </div>
         </div>
 

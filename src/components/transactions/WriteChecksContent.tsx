@@ -704,17 +704,27 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </TooltipContent>
             </Tooltip>
             
-            {currentCheckId && isViewingMode && (
-              <DeleteButton
-                onDelete={handleDelete}
-                title="Delete Check"
-                description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
-                size="sm"
-                variant="ghost"
-                isLoading={deleteCheck.isPending}
-                className="ml-2"
-              />
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <DeleteButton
+                    onDelete={handleDelete}
+                    title="Delete Check"
+                    description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
+                    size="sm"
+                    variant="ghost"
+                    isLoading={deleteCheck.isPending}
+                    disabled={!currentCheckId || !isViewingMode}
+                    className="ml-2"
+                  />
+                </div>
+              </TooltipTrigger>
+              {(!currentCheckId || !isViewingMode) && (
+                <TooltipContent>
+                  <p>Navigate to a saved check to delete</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
           </div>
         </div>
       </div>

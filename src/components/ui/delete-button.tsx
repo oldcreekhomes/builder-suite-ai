@@ -13,6 +13,7 @@ interface DeleteButtonProps {
   isLoading?: boolean;
   className?: string;
   showIcon?: boolean;
+  disabled?: boolean;
   children?: React.ReactNode;
 }
 
@@ -25,6 +26,7 @@ export function DeleteButton({
   isLoading = false,
   className = "",
   showIcon = true,
+  disabled = false,
   children
 }: DeleteButtonProps) {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -44,8 +46,8 @@ export function DeleteButton({
       <Button
         variant={variant}
         size={size}
-        onClick={() => setShowConfirmation(true)}
-        disabled={isLoading}
+        onClick={() => !disabled && setShowConfirmation(true)}
+        disabled={isLoading || disabled}
         className={`text-destructive hover:text-destructive/90 hover:bg-destructive/10 flex items-center gap-2 ${className}`}
       >
         {showIcon && <Trash2 className="h-icon-sm w-icon-sm" />}
