@@ -50,20 +50,19 @@ export function BudgetGroupHeader({
           onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
         />
       </TableCell>
+      <TableCell className="w-40 font-bold text-sm py-3 px-3">
+        {group}
+      </TableCell>
       <TableCell 
-        className="w-40 font-bold text-sm py-3 px-3 cursor-pointer" 
+        className="flex-1 min-w-[250px] py-3 px-3 cursor-pointer" 
         onClick={() => onToggle(group)}
       >
-        <div className="flex items-center gap-2">
-          <ChevronDown 
-            className={`h-4 w-4 transition-transform ${
-              isExpanded ? 'rotate-0' : '-rotate-90'
-            }`} 
-          />
-          {group}
-        </div>
+        <ChevronDown 
+          className={`h-4 w-4 transition-transform ${
+            isExpanded ? 'rotate-0' : '-rotate-90'
+          }`} 
+        />
       </TableCell>
-      <TableCell className="flex-1 min-w-[250px] py-3 px-3"></TableCell>
       <TableCell className="w-48 py-1"></TableCell>
       <TableCell className="w-52 py-1 text-sm text-right font-semibold">
         {formatCurrency(groupTotal)}

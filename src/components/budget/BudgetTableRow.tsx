@@ -226,7 +226,7 @@ export function BudgetTableRow({
             onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
           />
         </TableCell>
-        <TableCell className="w-40 py-1 text-sm font-medium pl-8">
+        <TableCell className="w-40 py-1 text-sm font-medium">
           {costCode?.code || '-'}
         </TableCell>
         <TableCell className="flex-1 min-w-[250px] py-1 text-sm" title={costCode?.name || '-'}>
