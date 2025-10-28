@@ -493,7 +493,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               onChange={setCreditCardAccount}
               onAccountSelect={(account) => {
                 setCreditCardAccountId(account.id);
-                setCreditCardAccount(account.name);
+                setCreditCardAccount(`${account.code} - ${account.name}`);
               }}
               placeholder="Select credit card account"
             />
@@ -530,7 +530,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       onAccountSelect={(account) => {
                         updateExpenseRow(row.id, {
                           accountId: account.id,
-                          account: account.name
+                          account: `${account.code} - ${account.name}`
                         });
                       }}
                       placeholder="Select account"
