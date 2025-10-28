@@ -215,39 +215,33 @@ export function BudgetTableRow({
 
   return (
     <React.Fragment>
-      <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell className="px-1 py-0 w-12">
+      <TableRow className={`h-12 hover:bg-muted/30 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
+      <TableCell className="h-12 px-3 py-2">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
-          tabIndex={-1}
-          className="h-3 w-3"
         />
       </TableCell>
-      <TableCell className="px-1 py-0 w-20" style={{ paddingLeft: '24px' }}>
-        <div className="text-xs font-medium">
-          {costCode?.code}
-        </div>
+      <TableCell className="h-12 px-3 py-2 text-sm font-medium">
+        {costCode?.code || '-'}
       </TableCell>
-      <TableCell className="px-1 py-0 w-40">
-        <div className="text-xs">
-          {costCode?.name}
-        </div>
+      <TableCell className="h-12 px-3 py-2 text-sm" title={costCode?.name || '-'}>
+        {costCode?.name || '-'}
       </TableCell>
-      <TableCell className="px-1 py-0 w-24">
+      <TableCell className="h-12 px-3 py-2">
         <BudgetSourceBadge item={item} />
       </TableCell>
       {visibleColumns.cost && (
-        <TableCell className="px-3 py-0 w-32">
+        <TableCell className="h-12 px-3 py-2 text-sm text-right">
           {hasSelectedBid ? (
-            <div className="flex items-center gap-1 text-xs">
-              <span className="text-black">
+            <div className="flex items-center gap-1 justify-end text-sm">
+              <span>
                 ${Math.round(bidPrice).toLocaleString()}
               </span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1 py-0 cursor-help">
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] px-1 py-0 cursor-help">
                       BID
                     </Badge>
                   </TooltipTrigger>
@@ -258,7 +252,7 @@ export function BudgetTableRow({
               </TooltipProvider>
             </div>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+            <span className="rounded px-2 py-1 inline-block text-sm whitespace-nowrap">
               ${Math.round(displayUnitPrice).toLocaleString()}
             </span>
           ) : isEditingPrice ? (
@@ -268,28 +262,27 @@ export function BudgetTableRow({
               onChange={(e) => setUnitPrice(e.target.value)}
               onBlur={handleUnitPriceBlur}
               onKeyDown={handleUnitPriceKeyDown}
-              className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
+              className="w-full text-right border rounded px-2 py-1 bg-background text-sm"
               autoFocus
             />
           ) : (
-            <span 
-              className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            <button 
               onClick={handlePriceClick}
+              className="w-full text-right hover:bg-muted px-2 py-1 rounded transition-colors text-sm"
             >
               ${Math.round(displayUnitPrice).toLocaleString()}
-            </span>
+            </button>
           )}
         </TableCell>
       )}
       {visibleColumns.unit && (
-        <TableCell className="px-3 py-0 w-20">
+        <TableCell className="h-12 px-3 py-2 text-sm text-center">
           {hasSelectedBid ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+            <span className="rounded px-2 py-1 inline-block text-sm whitespace-nowrap">
               N/A
             </span>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+            <span className="rounded px-2 py-1 inline-block text-sm whitespace-nowrap">
             {selectedCount === 1 && singleSelectedSubcategory
               ? formatUnitOfMeasure(
                   singleSelectedSubcategory.cost_codes?.unit_of_measure || costCode?.unit_of_measure
@@ -311,8 +304,8 @@ export function BudgetTableRow({
                 }
               }}
             >
-              <SelectTrigger className="h-6 w-20 text-xs border-none shadow-none focus:ring-0 p-0 px-1 [&>svg]:hidden">
-                <span className="text-xs">
+              <SelectTrigger className="h-8 w-full text-sm border-none shadow-none focus:ring-0 p-0 px-2 [&>svg]:hidden">
+                <span className="text-sm">
                   {formatUnitOfMeasure(tempUnit || costCode?.unit_of_measure)}
                 </span>
               </SelectTrigger>
@@ -328,23 +321,23 @@ export function BudgetTableRow({
               </SelectContent>
             </Select>
           ) : (
-            <span 
-              className="cursor-pointer hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            <button 
               onClick={handleUnitClick}
+              className="w-full text-center hover:bg-muted px-2 py-1 rounded transition-colors text-sm"
             >
               {formatUnitOfMeasure(costCode?.unit_of_measure)}
-            </span>
+            </button>
           )}
         </TableCell>
       )}
       {visibleColumns.quantity && (
-        <TableCell className="px-3 py-0 w-24">
+        <TableCell className="h-12 px-3 py-2 text-sm text-right">
           {hasSelectedBid ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+            <span className="rounded px-2 py-1 inline-block text-sm whitespace-nowrap">
               N/A
             </span>
           ) : (hasSubcategories && !manualOverrideEnabled && !hasManualValues) ? (
-            <span className="rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap">
+            <span className="rounded px-2 py-1 inline-block text-sm whitespace-nowrap">
               {selectedCount === 1 && singleSelectedSubcategory
                 ? (singleSelectedSubcategory.quantity || 0)
                 : "N/A"}
@@ -356,50 +349,48 @@ export function BudgetTableRow({
               onChange={(e) => setQuantity(e.target.value)}
               onBlur={handleQuantityBlur}
               onKeyDown={handleQuantityKeyDown}
-              className="bg-transparent border-none outline-none text-xs w-full p-0 focus:ring-0 focus:border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              style={{ caretColor: "black", fontSize: "inherit", fontFamily: "inherit" }}
+              className="w-full text-right border rounded px-2 py-1 bg-background text-sm"
               autoFocus
             />
           ) : (
-            <span 
-              className="cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-xs text-black whitespace-nowrap"
+            <button 
               onClick={handleQuantityClick}
+              className="w-full text-right hover:bg-muted px-2 py-1 rounded transition-colors text-sm"
             >
               {parseFloat(quantity) || 0}
-            </span>
+            </button>
           )}
         </TableCell>
       )}
-      <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs">
-          {formatCurrency(total)}
-        </div>
+      <TableCell className="h-12 px-3 py-2 text-sm text-right font-semibold">
+        ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="px-3 py-0 w-48">
-          <div className="text-xs -ml-3">
-            {historicalActual !== null ? formatCurrency(historicalActual) : '-'}
-          </div>
+        <TableCell className="h-12 px-3 py-2 text-sm text-right">
+          {historicalActual !== null && historicalActual !== undefined 
+            ? `$${historicalActual.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : '-'
+          }
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="px-3 py-0 w-32">
-          <div className={`text-xs -ml-3 font-medium ${getVarianceColor(variance)}`}>
-            {formatVariance(variance)}
-          </div>
+        <TableCell className="h-12 px-3 py-2 text-sm text-right font-medium">
+          {variance !== null && variance !== undefined ? (
+            <span className={getVarianceColor(variance)}>
+              {formatVariance(variance)}
+            </span>
+          ) : '-'}
         </TableCell>
       )}
-      <TableCell className="px-1 py-0 w-36 sticky right-0 bg-background z-30">
-        <div className="flex items-center gap-1 justify-center">
-          <BudgetTableRowActions
-            item={item}
-            costCode={costCode}
-            onDelete={onDelete}
-            onViewDetailsClick={() => setShowDetailsModal(true)}
-            isDeleting={isDeleting}
-            hasSelectedBid={hasSelectedBid}
-          />
-        </div>
+      <TableCell className="h-12 px-3 py-2 sticky right-0 bg-background z-20">
+        <BudgetTableRowActions
+          item={item}
+          costCode={costCode}
+          onDelete={onDelete}
+          onViewDetailsClick={() => setShowDetailsModal(true)}
+          isDeleting={isDeleting}
+          hasSelectedBid={hasSelectedBid}
+        />
       </TableCell>
     </TableRow>
     

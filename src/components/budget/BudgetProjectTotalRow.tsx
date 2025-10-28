@@ -62,58 +62,31 @@ export function BudgetProjectTotalRow({
   };
 
   return (
-    <TableRow className="bg-gray-50 h-8 border-b border-gray-200">
-      <TableCell className="px-1 py-0 w-12">
-        {/* Empty checkbox cell */}
+    <TableRow className="bg-muted/50 font-bold border-t-2 border-primary/30">
+      <TableCell colSpan={3 + (visibleColumns.cost ? 1 : 0) + (visibleColumns.unit ? 1 : 0) + (visibleColumns.quantity ? 1 : 0)} className="text-right py-3 px-3">
+        <span className="text-base font-bold">Project Total:</span>
       </TableCell>
-      <TableCell className="px-1 py-0 w-20" style={{ paddingLeft: '50px' }}>
-        {/* Empty code cell */}
-      </TableCell>
-      <TableCell className="px-1 py-0 w-40">
-        <div className="text-xs font-medium">
-          Total Project Costs
-        </div>
-      </TableCell>
-      <TableCell className="px-1 py-0 w-24">
-        {/* Empty source cell */}
-      </TableCell>
-      {visibleColumns.cost && (
-        <TableCell className="px-3 py-0 w-32">
-          {/* Empty price cell */}
-        </TableCell>
-      )}
-      {visibleColumns.unit && (
-        <TableCell className="px-3 py-0 w-20">
-          {/* Empty unit cell */}
-        </TableCell>
-      )}
-      {visibleColumns.quantity && (
-        <TableCell className="px-3 py-0 w-24">
-          {/* Empty quantity cell */}
-        </TableCell>
-      )}
-      <TableCell className="px-3 py-0 w-32">
-        <div className="text-xs font-medium">
-          {formatCurrency(totalBudget)}
-        </div>
+      <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50">
+        ${totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="px-3 py-0 w-48">
-          <div className="text-xs -ml-3">
-            {formatCurrency(totalHistorical)}
-          </div>
+        <TableCell className="text-right py-3 px-3 text-base bg-muted/50">
+          {totalHistorical !== null && totalHistorical !== undefined 
+            ? `$${totalHistorical.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : '-'
+          }
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="px-3 py-0 w-32">
-          <div className={`text-xs -ml-3 font-medium ${getVarianceColor(variance)}`}>
-            {formatVariance(variance)}
-          </div>
+        <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50">
+          {variance !== null ? (
+            <span className={getVarianceColor(variance)}>
+              {formatVariance(variance)}
+            </span>
+          ) : '-'}
         </TableCell>
       )}
-      <TableCell className="px-1 py-0 w-20 sticky right-0 bg-background z-30">
-        {/* Empty actions cell */}
-      </TableCell>
+      <TableCell className="sticky right-0 bg-muted/50 z-20 py-3 px-3" />
     </TableRow>
   );
 }
