@@ -15,6 +15,8 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useCreditCards, type CreditCardLineData } from "@/hooks/useCreditCards";
+import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -35,6 +37,7 @@ interface CreditCardsContentProps {
 
 export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const { creditCards, createCreditCard, deleteCreditCard } = useCreditCards();
+  const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
 
   const [transactionType, setTransactionType] = useState<'purchase' | 'refund'>('purchase');
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -143,14 +146,73 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   const handleSave = async (saveAndNew: boolean) => {
     if (!creditCardAccountId) {
-      alert('Please select a credit card account');
+      toast({
+        title: "Validation Error",
+        description: "Please select a credit card account",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!vendor.trim()) {
-      alert('Please enter a vendor');
+      toast({
+        title: "Validation Error",
+        description: "Please enter a vendor",
+        variant: "destructive",
+      });
       return;
     }
+
+    // Check if cost codes are still loading
+    if (costCodesLoading) {
+      toast({
+        title: "Please Wait",
+        description: "Cost codes are still loading. Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Auto-resolve typed cost codes before validation
+    const updatedJobCostRows = jobCostRows.map(row => {
+      const amount = parseFloat(row.amount) || 0;
+      if (amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim()) {
+        const typed = row.costCode.trim();
+        
+        // Try exact code match (case-insensitive)
+        let match = costCodes.find(cc => 
+          cc.code.toLowerCase() === typed.split(' - ')[0].toLowerCase()
+        );
+        
+        // Try full "code - name" match
+        if (!match) {
+          match = costCodes.find(cc => 
+            `${cc.code} - ${cc.name}`.toLowerCase() === typed.toLowerCase() ||
+            `${cc.code}${cc.name}`.toLowerCase() === typed.toLowerCase()
+          );
+        }
+        
+        // Try partial match if unique
+        if (!match) {
+          const partialMatches = costCodes.filter(cc =>
+            cc.code.toLowerCase().includes(typed.toLowerCase()) ||
+            cc.name.toLowerCase().includes(typed.toLowerCase())
+          );
+          if (partialMatches.length === 1) {
+            match = partialMatches[0];
+          }
+        }
+        
+        if (match) {
+          return {
+            ...row,
+            costCodeId: match.id,
+            costCode: `${match.code} - ${match.name}`
+          };
+        }
+      }
+      return row;
+    });
 
     const lines: CreditCardLineData[] = [];
 
@@ -167,7 +229,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       }
     });
 
-    jobCostRows.forEach(row => {
+    updatedJobCostRows.forEach(row => {
       const amount = parseFloat(row.amount) || 0;
       if (amount > 0 && row.costCodeId) {
         lines.push({
@@ -181,7 +243,24 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     });
 
     if (lines.length === 0) {
-      alert('Please add at least one line item with an amount');
+      // Find first invalid row for better error message
+      let errorDetail = "Please add at least one line item with an amount. ";
+      
+      const invalidExpense = expenseRows.find(r => parseFloat(r.amount) > 0 && !r.accountId);
+      const invalidJobCost = updatedJobCostRows.find(r => parseFloat(r.amount) > 0 && !r.costCodeId);
+      
+      if (invalidExpense) {
+        errorDetail += "You have an expense row with an amount but no account selected. ";
+      }
+      if (invalidJobCost) {
+        errorDetail += "You have a job cost row with an amount but the cost code wasn't selected from the dropdown. ";
+      }
+      
+      toast({
+        title: "Validation Error",
+        description: errorDetail + "Make sure to SELECT items from the dropdown list, not just type them.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -454,20 +533,30 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           <TabsContent value="job-cost" className="space-y-4">
             <div className="space-y-2">
-              {jobCostRows.map((row) => (
-                <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <Label>Cost Code</Label>
-                    <CostCodeSearchInput
-                      value={row.costCode || ''}
-                      onChange={(value) => updateJobCostRow(row.id, 'costCode', value)}
-                      onCostCodeSelect={(costCode) => {
-                        updateJobCostRow(row.id, 'costCodeId', costCode.id);
-                        updateJobCostRow(row.id, 'costCode', costCode.name);
-                      }}
-                      placeholder="Select cost code"
-                    />
-                  </div>
+              {jobCostRows.map((row) => {
+                const amount = parseFloat(row.amount) || 0;
+                const isInvalid = amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim();
+                
+                return (
+                  <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-5">
+                      <Label>Cost Code</Label>
+                      <CostCodeSearchInput
+                        value={row.costCode || ''}
+                        onChange={(value) => updateJobCostRow(row.id, 'costCode', value)}
+                        onCostCodeSelect={(costCode) => {
+                          updateJobCostRow(row.id, 'costCodeId', costCode.id);
+                          updateJobCostRow(row.id, 'costCode', costCode.name);
+                        }}
+                        placeholder="Select cost code"
+                        className={isInvalid ? "ring-1 ring-destructive" : ""}
+                      />
+                      {isInvalid && (
+                        <p className="text-xs text-destructive mt-1">
+                          Select a cost code from the dropdown list
+                        </p>
+                      )}
+                    </div>
                   <div className="col-span-4">
                     <Label>Memo</Label>
                     <Input
@@ -496,7 +585,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              ))}
+              );
+            })}
             </div>
             <Button onClick={addJobCostRow} variant="outline" size="sm">
               <Plus className="h-4 w-4 mr-2" />
