@@ -302,7 +302,17 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setCurrentCreditCardId(card.id);
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
     setTransactionDate(format(new Date(card.transaction_date), 'yyyy-MM-dd'));
-    setCreditCardAccountId(card.credit_card_account_id);
+    // Set credit card account ID and display text
+    const creditCardAcct = accounts.find(a => a.id === card.credit_card_account_id);
+    if (creditCardAcct) {
+      setCreditCardAccountId(creditCardAcct.id);
+      setCreditCardAccount(`${creditCardAcct.code} - ${creditCardAcct.name}`);
+    } else {
+      setCreditCardAccountId('');
+      setCreditCardAccount('');
+    }
+
+    // Set vendor
     setVendor(card.vendor);
     setVendorId(''); // Vendor is stored as text, not a company ID
     setSelectedProjectId(card.project_id || '');
