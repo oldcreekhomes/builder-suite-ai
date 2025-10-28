@@ -113,17 +113,14 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   }, [settings]);
 
   useEffect(() => {
-    if (!depositsLoading && sortedDeposits.length > 0 && !hasInitiallyLoaded.current) {
-      hasInitiallyLoaded.current = true;
-      const mostRecent = sortedDeposits[0];
-      setCurrentEntryIndex(0);
-      void loadDepositData(mostRecent);
-    }
-  }, [depositsLoading, sortedDeposits]);
+    // Start with a fresh blank form by default; do not auto-load the most recent deposit.
+    hasInitiallyLoaded.current = true;
+  }, []);
 
   // Reset to new deposit when tab becomes active
   useEffect(() => {
     if (parentActiveTab === 'make-deposits') {
+      hasInitiallyLoaded.current = true;
       createNewDeposit();
     }
   }, [parentActiveTab]);
@@ -251,6 +248,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   };
 
   const createNewDeposit = () => {
+    hasInitiallyLoaded.current = true;
     setCurrentEntryIndex(-1);
     setIsViewingMode(false);
     setCurrentDepositId(null);
