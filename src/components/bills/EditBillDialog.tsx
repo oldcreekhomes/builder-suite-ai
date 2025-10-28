@@ -11,7 +11,8 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, Plus, Trash2, Download } from "lucide-react";
+import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillLineData } from "@/hooks/useBills";
@@ -19,6 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface EditBillDialogProps {
   open: boolean;
@@ -43,6 +45,7 @@ interface BillAttachment {
   file_name: string;
   file_path: string;
   file_size: number;
+  content_type: string;
 }
 
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -69,6 +72,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [attachments, setAttachments] = useState<BillAttachment[]>([]);
   
   const { updateBill } = useBills();
+  const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Load bill data
   const { data: billData, isLoading } = useQuery({
@@ -228,31 +232,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     ));
   };
 
-  const handleDownloadAttachment = async (attachment: BillAttachment) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('bill-attachments')
-        .download(attachment.file_path);
-
-      if (error) throw error;
-
-      const url = window.URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download file",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleDeleteAttachment = async (attachment: BillAttachment) => {
     try {
@@ -514,27 +493,35 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             {attachments.length > 0 && (
               <div className="space-y-2">
                 <Label>Attachments</Label>
-                <div className="space-y-1">
-                  {attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center gap-2 text-sm">
-                      <span className="truncate flex-1">{attachment.file_name}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDownloadAttachment(attachment)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive"
-                        onClick={() => handleDeleteAttachment(attachment)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2">
+                  {attachments.map((attachment) => {
+                    const IconComponent = getFileIcon(attachment.file_name);
+                    const iconColorClass = getFileIconColor(attachment.file_name);
+                    return (
+                      <div key={attachment.id} className="relative group">
+                        <button
+                          onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
+                            id: attachment.id,
+                            size: attachment.file_size,
+                            mimeType: attachment.content_type
+                          })}
+                          className={`${iconColorClass} transition-colors p-2 rounded hover:bg-muted/50`}
+                          title={attachment.file_name}
+                          type="button"
+                        >
+                          <IconComponent className="h-8 w-8" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAttachment(attachment)}
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                          title="Remove attachment"
+                          type="button"
+                        >
+                          <span className="text-xs font-bold leading-none">×</span>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
