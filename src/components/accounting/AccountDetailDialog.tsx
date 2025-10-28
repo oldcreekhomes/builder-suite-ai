@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useChecks } from "@/hooks/useChecks";
 import { useDeposits } from "@/hooks/useDeposits";
+import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
@@ -62,6 +63,7 @@ export function AccountDetailDialog({
   const [sortOrder] = useState<'asc' | 'desc'>('asc');
   const { deleteCheck, updateCheck } = useChecks();
   const { deleteDeposit, updateDeposit } = useDeposits();
+  const { deleteCreditCard } = useCreditCards();
   const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
   const queryClient = useQueryClient();
@@ -365,11 +367,24 @@ export function AccountDetailDialog({
   const handleDelete = async (transaction: Transaction) => {
     if (!canDeleteBills) return;
 
+    // Compute query key for optimistic update
+    const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
+    
+    // Snapshot current data
+    const previous = queryClient.getQueryData<Transaction[]>(queryKey);
+    
+    // Optimistically remove the row
+    queryClient.setQueryData<Transaction[]>(queryKey, (old) => 
+      (old || []).filter(t => t.line_id !== transaction.line_id)
+    );
+
     try {
       if (transaction.source_type === 'check') {
         await deleteCheck.mutateAsync(transaction.source_id);
       } else if (transaction.source_type === 'deposit') {
         await deleteDeposit.mutateAsync(transaction.source_id);
+      } else if (transaction.source_type === 'credit_card') {
+        await deleteCreditCard.mutateAsync(transaction.source_id);
       } else if (transaction.source_type === 'manual') {
         await deleteManualJournalEntry.mutateAsync(transaction.source_id);
       } else if (transaction.source_type === 'bill' || transaction.source_type === 'bill_payment') {
@@ -378,8 +393,17 @@ export function AccountDetailDialog({
         });
         if (error) throw error;
       }
+      
+      // On success, invalidate and refetch all related queries
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.refetchQueries({ queryKey: ['account-transactions'] });
     } catch (error) {
       console.error('Error deleting transaction:', error);
+      // Roll back optimistic update on error
+      queryClient.setQueryData(queryKey, previous);
     }
   };
 
