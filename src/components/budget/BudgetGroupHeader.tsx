@@ -42,7 +42,7 @@ export function BudgetGroupHeader({
   }, [isPartiallySelected, isSelected]);
 
   return (
-    <TableRow className="bg-muted/40 hover:bg-muted/60 sticky top-10 z-10 border-b">
+    <TableRow className="bg-muted/40 hover:bg-muted/60 border-b">
       <TableCell className="py-3 px-3">
         <div className="flex items-center gap-2">
           <Checkbox
