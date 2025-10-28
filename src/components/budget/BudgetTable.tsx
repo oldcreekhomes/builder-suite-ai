@@ -208,8 +208,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             selectedHistoricalProject={selectedHistoricalProject}
             onHistoricalProjectChange={setSelectedHistoricalProject}
           />
-          <TableBody>
-            {budgetItems.length === 0 ? (
+
+          {budgetItems.length === 0 ? (
+            <tbody>
               <TableRow>
                 <TableCell 
                   colSpan={5 + (visibleColumns.historicalCosts ? 1 : 0) + (visibleColumns.variance ? 1 : 0)}
@@ -218,47 +219,50 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                   No budget items added yet.
                 </TableCell>
               </TableRow>
-            ) : (
-              <>
-                {Object.entries(groupedBudgetItems).map(([group, items]) => (
-                  <React.Fragment key={group}>
-                    <BudgetGroupHeader
-                      group={group}
-                      isExpanded={expandedGroups.has(group)}
-                      onToggle={handleGroupToggle}
-                      isSelected={isGroupSelected(items)}
-                      isPartiallySelected={isGroupPartiallySelected(items)}
-                      onCheckboxChange={onGroupCheckboxChange}
-                      onEditGroup={() => {}}
-                      onDeleteGroup={onDeleteGroup}
-                      isDeleting={deletingGroups.has(group)}
-                      groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
-                      visibleColumns={visibleColumns}
-                    />
-                    
-                    {expandedGroups.has(group) && (
-                      <>
-                        {items.map((item) => (
-                          <BudgetTableRow
-                            key={item.id}
-                            item={item}
-                            onUpdate={handleUpdateItem}
-                            onUpdateUnit={handleUpdateUnit}
-                            onDelete={onDeleteItem}
-                            formatUnitOfMeasure={formatUnitOfMeasure}
-                            isSelected={selectedItems.has(item.id)}
-                            onCheckboxChange={handleItemCheckboxChange}
-                            isDeleting={deletingItems.has(item.id)}
-                            historicalActualCosts={historicalActualCosts}
-                            showVarianceAsPercentage={showVarianceAsPercentage}
-                            visibleColumns={visibleColumns}
-                            projectId={projectId}
-                          />
-                        ))}
-                      </>
-                    )}
-                  </React.Fragment>
-                ))}
+            </tbody>
+          ) : (
+            <>
+              {Object.entries(groupedBudgetItems).map(([group, items]) => (
+                <tbody key={group} className="relative">
+                  <BudgetGroupHeader
+                    group={group}
+                    isExpanded={expandedGroups.has(group)}
+                    onToggle={handleGroupToggle}
+                    isSelected={isGroupSelected(items)}
+                    isPartiallySelected={isGroupPartiallySelected(items)}
+                    onCheckboxChange={onGroupCheckboxChange}
+                    onEditGroup={() => {}}
+                    onDeleteGroup={onDeleteGroup}
+                    isDeleting={deletingGroups.has(group)}
+                    groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
+                    visibleColumns={visibleColumns}
+                  />
+
+                  {expandedGroups.has(group) && (
+                    <>
+                      {items.map((item) => (
+                        <BudgetTableRow
+                          key={item.id}
+                          item={item}
+                          onUpdate={handleUpdateItem}
+                          onUpdateUnit={handleUpdateUnit}
+                          onDelete={onDeleteItem}
+                          formatUnitOfMeasure={formatUnitOfMeasure}
+                          isSelected={selectedItems.has(item.id)}
+                          onCheckboxChange={handleItemCheckboxChange}
+                          isDeleting={deletingItems.has(item.id)}
+                          historicalActualCosts={historicalActualCosts}
+                          showVarianceAsPercentage={showVarianceAsPercentage}
+                          visibleColumns={visibleColumns}
+                          projectId={projectId}
+                        />
+                      ))}
+                    </>
+                  )}
+                </tbody>
+              ))}
+
+              <tbody>
                 <BudgetProjectTotalRow
                   totalBudget={totalBudget}
                   totalHistorical={historicalTotal}
@@ -268,9 +272,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                   groupedBudgetItems={groupedBudgetItems}
                   subcategoryTotals={subcategoryTotalsMap}
                 />
-              </>
-            )}
-          </TableBody>
+              </tbody>
+            </>
+          )}
         </Table>
       </div>
 
