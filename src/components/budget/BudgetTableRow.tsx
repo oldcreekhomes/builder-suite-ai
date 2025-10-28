@@ -4,13 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, Lock, Unlock } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
-import { BudgetTableRowActions } from './components/BudgetTableRowActions';
 import { BudgetSourceBadge } from './BudgetSourceBadge';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -33,7 +31,7 @@ interface BudgetTableRowProps {
   isDeleting?: boolean;
   historicalActualCosts?: Record<string, number>;
   showVarianceAsPercentage?: boolean;
-  visibleColumns: VisibleColumns;
+  projectId?: string;
 }
 
 export function BudgetTableRow({ 
@@ -47,7 +45,7 @@ export function BudgetTableRow({
   isDeleting = false,
   historicalActualCosts = {},
   showVarianceAsPercentage = false,
-  visibleColumns
+  projectId
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -215,53 +213,40 @@ export function BudgetTableRow({
 
   return (
     <React.Fragment>
-      <TableRow className={`h-12 hover:bg-muted/30 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
-      <TableCell className="h-12 px-3 py-2">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
-        />
-      </TableCell>
-      <TableCell className="h-12 px-3 py-2 text-sm font-medium w-32">
-        {costCode?.code || '-'}
-      </TableCell>
-      <TableCell className="h-12 px-3 py-2 text-sm flex-1 min-w-[200px]" title={costCode?.name || '-'}>
-        {costCode?.name || '-'}
-      </TableCell>
-      <TableCell className="h-12 px-3 py-2 w-40">
-        <BudgetSourceBadge item={item} />
-      </TableCell>
-      <TableCell className="h-12 px-3 py-2 text-sm text-right font-semibold w-48">
-        ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </TableCell>
-      {visibleColumns.historicalCosts && (
-        <TableCell className="h-12 px-3 py-2 text-sm text-right w-48">
+      <TableRow 
+        className={`h-10 hover:bg-muted/50 border-b cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
+        onClick={() => setShowDetailsModal(true)}
+      >
+        <TableCell className="w-12 py-1" onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
+          />
+        </TableCell>
+        <TableCell className="w-40 py-1 text-sm font-medium">
+          {costCode?.code || '-'}
+        </TableCell>
+        <TableCell className="flex-1 min-w-[250px] py-1 text-sm" title={costCode?.name || '-'}>
+          {costCode?.name || '-'}
+        </TableCell>
+        <TableCell className="w-48 py-1 text-sm">
+          <BudgetSourceBadge item={item} />
+        </TableCell>
+        <TableCell className="w-52 py-1 text-sm text-right font-semibold">
+          {formatCurrency(total)}
+        </TableCell>
+        <TableCell className="w-52 py-1 text-sm text-right">
           {historicalActual !== null && historicalActual !== undefined 
-            ? `$${historicalActual.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            ? formatCurrency(historicalActual)
             : '-'
           }
         </TableCell>
-      )}
-      {visibleColumns.variance && (
-        <TableCell className="h-12 px-3 py-2 text-sm text-right font-medium w-40">
-          {variance !== null && variance !== undefined ? (
-            <span className={getVarianceColor(variance)}>
-              {formatVariance(variance)}
-            </span>
-          ) : '-'}
+        <TableCell className="w-48 py-1 text-sm text-right">
+          <span className={getVarianceColor(variance)}>
+            {formatVariance(variance)}
+          </span>
         </TableCell>
-      )}
-      <TableCell className="h-12 px-3 py-2 sticky right-0 bg-background z-20 w-40">
-        <BudgetTableRowActions
-          item={item}
-          costCode={costCode}
-          onDelete={onDelete}
-          onViewDetailsClick={() => setShowDetailsModal(true)}
-          isDeleting={isDeleting}
-          hasSelectedBid={hasSelectedBid}
-        />
-      </TableCell>
-    </TableRow>
+      </TableRow>
     
     {showDetailsModal && costCode && (
       <BudgetDetailsModal

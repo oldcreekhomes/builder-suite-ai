@@ -1,12 +1,10 @@
 import { TableRow, TableCell } from '@/components/ui/table';
-import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 interface BudgetProjectTotalRowProps {
   totalBudget: number;
   totalHistorical: number;
   showVarianceAsPercentage?: boolean;
-  visibleColumns: VisibleColumns;
   budgetItems?: any[];
   groupedBudgetItems?: Record<string, any[]>;
   subcategoryTotals?: Record<string, number>;
@@ -16,7 +14,6 @@ export function BudgetProjectTotalRow({
   totalBudget, 
   totalHistorical,
   showVarianceAsPercentage = false,
-  visibleColumns,
   budgetItems,
   groupedBudgetItems
 }: BudgetProjectTotalRowProps) {
@@ -62,31 +59,24 @@ export function BudgetProjectTotalRow({
   };
 
   return (
-    <TableRow className="bg-muted/50 font-bold border-t-2 border-primary/30">
-      <TableCell colSpan={3} className="text-right py-3 px-3">
-        <span className="text-base font-bold">Project Total:</span>
+    <TableRow className="font-bold bg-primary/10 h-10 border-t-4 border-primary">
+      <TableCell colSpan={3} className="py-1 text-sm">Total Project Budget</TableCell>
+      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-52 py-1 text-sm text-right">
+        {formatCurrency(totalBudget)}
       </TableCell>
-      <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50 w-48">
-        ${totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      <TableCell className="w-52 py-1 text-sm text-right">
+        {totalHistorical > 0 ? formatCurrency(totalHistorical) : '-'}
       </TableCell>
-      {visibleColumns.historicalCosts && (
-        <TableCell className="text-right py-3 px-3 text-base bg-muted/50 w-48">
-          {totalHistorical !== null && totalHistorical !== undefined 
-            ? `$${totalHistorical.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : '-'
-          }
-        </TableCell>
-      )}
-      {visibleColumns.variance && (
-        <TableCell className="text-right py-3 px-3 text-base font-bold bg-muted/50 w-40">
-          {variance !== null ? (
-            <span className={getVarianceColor(variance)}>
-              {formatVariance(variance)}
-            </span>
-          ) : '-'}
-        </TableCell>
-      )}
-      <TableCell className="sticky right-0 bg-muted/50 z-20 py-3 px-3 w-40" />
+      <TableCell className="w-48 py-1 text-sm text-right">
+        {totalHistorical > 0 ? (
+          <span className={getVarianceColor(variance)}>
+            {formatVariance(variance)}
+          </span>
+        ) : (
+          '-'
+        )}
+      </TableCell>
     </TableRow>
   );
 }

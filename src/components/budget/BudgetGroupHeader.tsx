@@ -3,8 +3,6 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChevronDown } from 'lucide-react';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetGroupHeaderProps {
   group: string;
@@ -17,7 +15,6 @@ interface BudgetGroupHeaderProps {
   onDeleteGroup: (group: string) => void;
   isDeleting?: boolean;
   groupTotal: number;
-  visibleColumns: VisibleColumns;
 }
 
 export function BudgetGroupHeader({ 
@@ -29,8 +26,7 @@ export function BudgetGroupHeader({
   onCheckboxChange,
   onDeleteGroup,
   isDeleting = false,
-  groupTotal,
-  visibleColumns
+  groupTotal
 }: BudgetGroupHeaderProps) {
   const checkboxRef = React.useRef<HTMLButtonElement>(null);
   const formatCurrency = (amount: number) => {
@@ -66,22 +62,12 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="bg-muted/40 w-48" />
-      {visibleColumns.historicalCosts && <TableCell className="bg-muted/40 w-48" />}
-      {visibleColumns.variance && <TableCell className="bg-muted/40 w-40" />}
-      <TableCell className="sticky right-0 bg-muted/40 z-20 py-3 px-3 w-40">
-        {isSelected && (
-          <DeleteButton
-            onDelete={() => onDeleteGroup(group)}
-            title="Delete Group"
-            description={`Are you sure you want to delete all budget items in the "${group}" group? This action cannot be undone.`}
-            size="sm"
-            variant="ghost"
-            isLoading={isDeleting}
-            showIcon={true}
-          />
-        )}
+      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-52 py-1 text-sm text-right font-semibold">
+        {formatCurrency(groupTotal)}
       </TableCell>
+      <TableCell className="w-52 py-1"></TableCell>
+      <TableCell className="w-48 py-1"></TableCell>
     </TableRow>
   );
 }
