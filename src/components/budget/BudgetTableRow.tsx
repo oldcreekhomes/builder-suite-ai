@@ -226,17 +226,17 @@ export function BudgetTableRow({
             onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
           />
         </TableCell>
-        <TableCell className="w-40 py-1 text-sm font-medium pl-12">
-          {costCode?.code || '-'}
-        </TableCell>
-        <TableCell className="flex-1 min-w-[250px] py-1 text-sm" title={costCode?.name || '-'}>
-          {costCode?.name || '-'}
-        </TableCell>
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-52 py-1 text-sm text-right font-semibold">
           {formatCurrency(total)}
+        </TableCell>
+        <TableCell className="w-40 py-1 text-sm font-medium pl-12">
+          {costCode?.code || '-'}
+        </TableCell>
+        <TableCell className="flex-1 min-w-[250px] py-1 text-sm" title={costCode?.name || '-'}>
+          {costCode?.name || '-'}
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 py-1 text-sm text-right">
