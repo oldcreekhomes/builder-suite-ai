@@ -27,9 +27,9 @@ export function BudgetTableHeader({
       <TableRow className="h-10 border-b-2">
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-12"></TableHead>
         <TableHead className="h-10 pl-12 pr-3 py-2 text-xs font-semibold w-40">Cost Code</TableHead>
+        <TableHead className="h-10 px-3 py-2 text-xs font-semibold flex-1 min-w-[250px]">Name</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-48">Source</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52 text-right">Total Budget</TableHead>
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold flex-1 min-w-[250px]">Name</TableHead>
         {visibleColumns.historicalCosts && (
           <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52 text-right">
             {historicalProjects.length > 0 ? (
