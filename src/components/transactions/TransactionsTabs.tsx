@@ -32,7 +32,7 @@ export function TransactionsTabs({ projectId }: TransactionsTabsProps) {
       </TabsContent>
       
       <TabsContent value="make-deposits" className="mt-6">
-        <MakeDepositsContent projectId={projectId} />
+        <MakeDepositsContent projectId={projectId} activeTab={activeTab} />
       </TabsContent>
       
       <TabsContent value="credit-cards" className="mt-6">

@@ -37,9 +37,10 @@ interface DepositRow {
 
 interface MakeDepositsContentProps {
   projectId?: string;
+  activeTab?: string;
 }
 
-export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
+export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: MakeDepositsContentProps) {
   const navigate = useNavigate();
   const [depositDate, setDepositDate] = useState<Date>(new Date());
   const [depositSourceId, setDepositSourceId] = useState<string>("");
@@ -119,6 +120,13 @@ export function MakeDepositsContent({ projectId }: MakeDepositsContentProps) {
       void loadDepositData(mostRecent);
     }
   }, [depositsLoading, sortedDeposits]);
+
+  // Reset to new deposit when tab becomes active
+  useEffect(() => {
+    if (parentActiveTab === 'make-deposits') {
+      createNewDeposit();
+    }
+  }, [parentActiveTab]);
 
   const loadDepositData = async (deposit: any) => {
     setCurrentDepositId(deposit.id);
