@@ -119,6 +119,11 @@ export function AccountDetailDialog({
         .filter((line: any) => line.journal_entries.source_type === 'deposit')
         .map((line: any) => line.journal_entries.source_id);
 
+      // Get credit card transaction IDs
+      const creditCardIds = (data || [])
+        .filter((line: any) => line.journal_entries.source_type === 'credit_card')
+        .map((line: any) => line.journal_entries.source_id);
+
       // Fetch check details with vendor names if we have any checks
       let checksMap = new Map();
       
@@ -206,6 +211,35 @@ export function AccountDetailDialog({
         });
       }
 
+      // Fetch credit card transaction details if we have any
+      let creditCardsMap = new Map();
+      
+      if (creditCardIds.length > 0) {
+        const { data: creditCardsData } = await supabase
+          .from('credit_cards')
+          .select(`
+            id,
+            vendor,
+            memo,
+            reconciled,
+            credit_card_lines(memo, line_number)
+          `)
+          .in('id', creditCardIds);
+        
+        creditCardsData?.forEach((cc: any) => {
+          // Get first line memo as description
+          const sortedLines = (cc.credit_card_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+          const firstLineMemo = sortedLines.find((line: any) => line.memo)?.memo || null;
+          
+          creditCardsMap.set(cc.id, {
+            ...cc,
+            vendor: cc.vendor,
+            firstLineMemo,
+            reconciled: cc.reconciled || false
+          });
+        });
+      }
+
       const transactions: Transaction[] = (data || []).map((line: any) => {
         let memo = line.memo;
         let reference = null;
@@ -233,6 +267,18 @@ export function AccountDetailDialog({
             reconciled = deposit.reconciled || false;
             // Use first deposit line memo as description
             description = deposit.firstLineMemo || description;
+          }
+        }
+
+        // If this is a credit card transaction, get reference from credit_card_transactions table
+        if (line.journal_entries.source_type === 'credit_card') {
+          const cc = creditCardsMap.get(line.journal_entries.source_id);
+          if (cc) {
+            memo = cc.memo;
+            reference = cc.vendor;
+            reconciled = cc.reconciled || false;
+            // Use first credit card line memo as description
+            description = cc.firstLineMemo || description;
           }
         }
 
