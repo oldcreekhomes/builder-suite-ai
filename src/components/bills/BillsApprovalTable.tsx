@@ -638,7 +638,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           
           <div className="space-y-2 py-4">
             <label htmlFor="approval-notes" className="text-sm font-medium">
-              {confirmDialog.action === 'approve' ? 'Approval Notes (Optional)' : 'Rejection Notes (Optional)'}
+              {confirmDialog.action === 'approve' 
+                ? 'Approval Notes (Optional)' 
+                : <>Rejection Notes <span className="text-destructive">*</span></>
+              }
             </label>
             <Textarea
               id="approval-notes"
@@ -651,12 +654,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               rows={3}
               className="resize-none"
             />
+            {confirmDialog.action === 'reject' && (
+              <p className="text-xs text-muted-foreground">
+                This note will be visible to the accountant to help them understand the rejection.
+              </p>
+            )}
           </div>
           
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelAction}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmedAction}
+              disabled={confirmDialog.action === 'reject' && !confirmDialog.notes?.trim()}
               className={confirmDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
               {confirmDialog.action === 'approve' ? 'Approve Bill' : 'Reject Bill'}
