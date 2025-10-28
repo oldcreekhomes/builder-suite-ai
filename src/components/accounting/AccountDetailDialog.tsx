@@ -95,7 +95,8 @@ export function AccountDetailDialog({
         .eq('account_id', accountId);
 
       if (projectId) {
-        query = query.eq('project_id', projectId);
+        // For project-specific reports, include both project lines AND company-wide lines (null project_id)
+        query = query.or(`project_id.eq.${projectId},project_id.is.null`);
       }
 
       // Apply stable server-side ordering to reduce reshuffling
