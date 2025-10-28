@@ -64,14 +64,14 @@ export function BudgetGroupHeader({
           </button>
         </div>
       </TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
-      <TableCell className="w-52 py-1 text-sm text-right font-semibold">
-        {formatCurrency(groupTotal)}
-      </TableCell>
       <TableCell 
         className="w-40 font-bold text-sm py-3 pl-12"
       >
         {group}
+      </TableCell>
+      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-52 py-1 text-sm text-right font-semibold">
+        {formatCurrency(groupTotal)}
       </TableCell>
       <TableCell className="flex-1 min-w-[250px] py-3 px-3"></TableCell>
       {visibleColumns.historicalCosts && <TableCell className="w-52 py-1"></TableCell>}
