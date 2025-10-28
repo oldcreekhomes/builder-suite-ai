@@ -16,6 +16,7 @@ import { JobSearchInput } from "@/components/JobSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useCreditCards, type CreditCardLineData } from "@/hooks/useCreditCards";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { useAccounts } from "@/hooks/useAccounts";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -38,6 +39,7 @@ interface CreditCardsContentProps {
 export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const { creditCards, createCreditCard, deleteCreditCard } = useCreditCards();
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
+  const { accounts } = useAccounts();
 
   const [transactionType, setTransactionType] = useState<'purchase' | 'refund'>('purchase');
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -290,6 +292,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setTransactionDate(format(new Date(card.transaction_date), 'yyyy-MM-dd'));
     setCreditCardAccountId(card.credit_card_account_id);
     setVendor(card.vendor);
+    setVendorId(''); // Vendor is stored as text, not a company ID
     setSelectedProjectId(card.project_id || '');
 
     const expenseLines: CreditCardRow[] = [];
@@ -305,9 +308,23 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
       if (line.line_type === 'expense') {
         row.accountId = line.account_id;
+        // Populate account display text from accounts data
+        if (line.account_id) {
+          const account = accounts.find(a => a.id === line.account_id);
+          if (account) {
+            row.account = `${account.code} - ${account.name}`;
+          }
+        }
         expenseLines.push(row);
       } else {
         row.costCodeId = line.cost_code_id;
+        // Populate cost code display text from costCodes data
+        if (line.cost_code_id) {
+          const costCode = costCodes.find(cc => cc.id === line.cost_code_id);
+          if (costCode) {
+            row.costCode = `${costCode.code} - ${costCode.name}`;
+          }
+        }
         jobCostLines.push(row);
       }
     });
