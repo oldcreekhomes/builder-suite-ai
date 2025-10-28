@@ -20,6 +20,7 @@ import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetTableProps {
   projectId: string;
@@ -30,6 +31,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
+    historicalCosts: true,
+    variance: true,
+  });
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
   const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
@@ -155,6 +160,13 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
+  const handleToggleColumn = (column: keyof VisibleColumns) => {
+    setVisibleColumns(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }));
+  };
+
   // Build a map of subcategory totals for all items
   // Note: This is initialized as empty and will be populated by child components
   // We keep it stable to prevent unnecessary re-renders
@@ -172,6 +184,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       <BudgetPrintToolbar 
         onPrint={handlePrint} 
         onAddBudget={() => setShowAddBudgetModal(true)}
+        visibleColumns={visibleColumns}
+        onToggleColumn={handleToggleColumn}
         onExpandAll={expandAllGroups}
         onCollapseAll={collapseAllGroups}
       />
@@ -190,6 +204,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           <BudgetTableHeader 
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
+            visibleColumns={visibleColumns}
             selectedHistoricalProject={selectedHistoricalProject}
             onHistoricalProjectChange={setSelectedHistoricalProject}
           />
@@ -197,7 +212,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             {budgetItems.length === 0 ? (
               <TableRow>
                 <TableCell 
-                  colSpan={7}
+                  colSpan={5 + (visibleColumns.historicalCosts ? 1 : 0) + (visibleColumns.variance ? 1 : 0)}
                   className="text-center py-8 text-gray-500"
                 >
                   No budget items added yet.
@@ -235,6 +250,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             isDeleting={deletingItems.has(item.id)}
                             historicalActualCosts={historicalActualCosts}
                             showVarianceAsPercentage={showVarianceAsPercentage}
+                            visibleColumns={visibleColumns}
                             projectId={projectId}
                           />
                         ))}
@@ -253,6 +269,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                             );
                           })()}
                           showVarianceAsPercentage={showVarianceAsPercentage}
+                          visibleColumns={visibleColumns}
                           groupItems={items}
                         />
                       </>
@@ -263,6 +280,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                   totalBudget={totalBudget}
                   totalHistorical={historicalTotal}
                   showVarianceAsPercentage={showVarianceAsPercentage}
+                  visibleColumns={visibleColumns}
                   budgetItems={budgetItems}
                   groupedBudgetItems={groupedBudgetItems}
                   subcategoryTotals={subcategoryTotalsMap}

@@ -10,6 +10,7 @@ import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ interface BudgetTableRowProps {
   isDeleting?: boolean;
   historicalActualCosts?: Record<string, number>;
   showVarianceAsPercentage?: boolean;
+  visibleColumns: VisibleColumns;
   projectId?: string;
 }
 
@@ -45,6 +47,7 @@ export function BudgetTableRow({
   isDeleting = false,
   historicalActualCosts = {},
   showVarianceAsPercentage = false,
+  visibleColumns,
   projectId
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
@@ -235,17 +238,21 @@ export function BudgetTableRow({
         <TableCell className="w-52 py-1 text-sm text-right font-semibold">
           {formatCurrency(total)}
         </TableCell>
-        <TableCell className="w-52 py-1 text-sm text-right">
-          {historicalActual !== null && historicalActual !== undefined 
-            ? formatCurrency(historicalActual)
-            : '-'
-          }
-        </TableCell>
-        <TableCell className="w-48 py-1 text-sm text-right">
-          <span className={getVarianceColor(variance)}>
-            {formatVariance(variance)}
-          </span>
-        </TableCell>
+        {visibleColumns.historicalCosts && (
+          <TableCell className="w-52 py-1 text-sm text-right">
+            {historicalActual !== null && historicalActual !== undefined 
+              ? formatCurrency(historicalActual)
+              : '-'
+            }
+          </TableCell>
+        )}
+        {visibleColumns.variance && (
+          <TableCell className="w-48 py-1 text-sm text-right">
+            <span className={getVarianceColor(variance)}>
+              {formatVariance(variance)}
+            </span>
+          </TableCell>
+        )}
       </TableRow>
     
     {showDetailsModal && costCode && (

@@ -1,12 +1,14 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
+import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetGroupTotalRowProps {
   group: string;
   groupTotal: number;
   historicalTotal?: number;
   showVarianceAsPercentage?: boolean;
+  visibleColumns: VisibleColumns;
   groupItems?: any[];
   subcategoryTotals?: Record<string, number>;
 }
@@ -16,6 +18,7 @@ export function BudgetGroupTotalRow({
   groupTotal,
   historicalTotal,
   showVarianceAsPercentage = false,
+  visibleColumns,
   groupItems = [],
   subcategoryTotals = {}
 }: BudgetGroupTotalRowProps) {
@@ -68,18 +71,22 @@ export function BudgetGroupTotalRow({
       <TableCell className="w-52 py-1 text-sm text-right">
         {formatCurrency(displayedTotal)}
       </TableCell>
-      <TableCell className="w-52 py-1 text-sm text-right">
-        {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
-      </TableCell>
-      <TableCell className="w-48 py-1 text-sm text-right">
-        {historicalTotal > 0 ? (
-          <span className={getVarianceColor(variance)}>
-            {formatVariance(variance)}
-          </span>
-        ) : (
-          '-'
-        )}
-      </TableCell>
+      {visibleColumns.historicalCosts && (
+        <TableCell className="w-52 py-1 text-sm text-right">
+          {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
+        </TableCell>
+      )}
+      {visibleColumns.variance && (
+        <TableCell className="w-48 py-1 text-sm text-right">
+          {historicalTotal > 0 ? (
+            <span className={getVarianceColor(variance)}>
+              {formatVariance(variance)}
+            </span>
+          ) : (
+            '-'
+          )}
+        </TableCell>
+      )}
     </TableRow>
   );
 }
