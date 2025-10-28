@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { BudgetTabs } from "@/components/budget/BudgetTabs";
+import { BudgetTable } from "@/components/budget/BudgetTable";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectBudget() {
@@ -49,12 +49,21 @@ export default function ProjectBudget() {
             projectId={projectId}
           />
           
-          <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <BudgetTabs 
+          <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+            <div className="flex items-center justify-between space-y-2">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Budget</h1>
+                <p className="text-muted-foreground">
+                  Manage budget for this project
+                </p>
+              </div>
+            </div>
+            
+            <BudgetTable 
               projectId={projectId} 
               projectAddress={project?.address}
             />
-          </div>
+          </main>
         </SidebarInset>
       </div>
     </SidebarProvider>
