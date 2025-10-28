@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
@@ -49,6 +51,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isViewingMode, setIsViewingMode] = useState(false);
+  const [currentCreditCardId, setCurrentCreditCardId] = useState<string | null>(null);
 
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00' }]);
@@ -99,6 +102,40 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setJobCostRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
     setCurrentIndex(-1);
     setIsViewingMode(false);
+    setCurrentCreditCardId(null);
+  };
+
+  const createNewTransaction = () => {
+    setCurrentIndex(-1);
+    setIsViewingMode(false);
+    setCurrentCreditCardId(null);
+    clearForm();
+  };
+
+  const goToPrevious = () => {
+    if (currentIndex === -1) {
+      // Currently viewing "new", go to most recent
+      if (creditCards.length > 0) {
+        navigateToTransaction(0);
+      }
+    } else if (currentIndex < creditCards.length - 1) {
+      navigateToTransaction(currentIndex + 1);
+    }
+  };
+
+  const goToNext = () => {
+    if (currentIndex > 0) {
+      navigateToTransaction(currentIndex - 1);
+    } else if (currentIndex === 0) {
+      createNewTransaction();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentCreditCardId) return;
+    
+    await deleteCreditCard.mutateAsync(currentCreditCardId);
+    createNewTransaction();
   };
 
   const handleSave = async (saveAndNew: boolean) => {
@@ -156,7 +193,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     });
 
     if (saveAndNew) {
-      clearForm();
+      createNewTransaction();
     }
   };
 
@@ -166,6 +203,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     const card = creditCards[index];
     setCurrentIndex(index);
     setIsViewingMode(true);
+    setCurrentCreditCardId(card.id);
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
     setTransactionDate(format(new Date(card.transaction_date), 'yyyy-MM-dd'));
     setCreditCardAccountId(card.credit_card_account_id);
@@ -198,76 +236,124 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   return (
     <Card className="p-6">
-      <div className="space-y-6">
-        {/* Header with Navigation */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold">Credit Card Transaction</h2>
-            {creditCards.length > 0 && (
+      <TooltipProvider>
+        <div className="space-y-6">
+          {/* Header with Navigation */}
+          <div className="space-y-4">
+            {/* Row 1: Title and Navigation Controls */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Credit Card Transaction</h2>
+              
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigateToTransaction(currentIndex - 1)}
-                  disabled={currentIndex <= 0}
+                {/* New Button */}
+                <Button 
+                  onClick={createNewTransaction} 
+                  size="sm" 
+                  variant={!isViewingMode ? "default" : "outline"}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <Plus className="h-4 w-4 mr-2" />
+                  New
                 </Button>
-                <span className="text-sm text-muted-foreground">
-                  {isViewingMode ? `${currentIndex + 1}/${creditCards.length}` : 'New'}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigateToTransaction(currentIndex + 1)}
-                  disabled={currentIndex >= creditCards.length - 1}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                
+                {/* Navigation Arrows */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={goToPrevious} 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={(currentIndex >= creditCards.length - 1 && currentIndex !== -1) || creditCards.length === 0}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Older transaction</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={goToNext} 
+                      size="sm" 
+                      variant="outline" 
+                      disabled={currentIndex <= 0 || creditCards.length === 0}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Newer transaction</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                {/* Delete Button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <DeleteButton
+                        onDelete={handleDelete}
+                        title="Delete Credit Card Transaction"
+                        description="Are you sure you want to delete this credit card transaction? This action cannot be undone."
+                        size="sm"
+                        variant="ghost"
+                        isLoading={deleteCreditCard.isPending}
+                        disabled={!currentCreditCardId || !isViewingMode}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Delete credit card transaction</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label>Type:</Label>
-              <ToggleGroup 
-                type="single" 
-                value={transactionType} 
-                onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
-              >
-                <ToggleGroupItem value="purchase" className="data-[state=on]:bg-black data-[state=on]:text-white">Purchase</ToggleGroupItem>
-                <ToggleGroupItem value="refund" className="data-[state=on]:bg-black data-[state=on]:text-white">Refund</ToggleGroupItem>
-              </ToggleGroup>
             </div>
-            <div className="flex items-center gap-2">
-              <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "justify-start text-left font-normal",
-                      !transactionDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={new Date(transactionDate)}
-                    onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+            
+            {/* Row 2: Type and Date Controls */}
+            <div className="flex items-center justify-end gap-4">
+              <div className="flex items-center gap-2">
+                <Label>Type:</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={transactionType} 
+                  onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
+                >
+                  <ToggleGroupItem value="purchase" className="data-[state=on]:bg-black data-[state=on]:text-white">Purchase</ToggleGroupItem>
+                  <ToggleGroupItem value="refund" className="data-[state=on]:bg-black data-[state=on]:text-white">Refund</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !transactionDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={new Date(transactionDate)}
+                      onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Transaction Details */}
         <div className="grid grid-cols-2 gap-4">
@@ -429,6 +515,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           </div>
         </div>
       </div>
+      </TooltipProvider>
     </Card>
   );
 }
