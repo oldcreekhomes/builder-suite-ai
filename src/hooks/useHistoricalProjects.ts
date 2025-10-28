@@ -9,7 +9,7 @@ export function useHistoricalProjects() {
         .from('project_budgets')
         .select(`
           project_id,
-          projects!inner(id, address)
+          projects!project_budgets_project_id_fkey(id, address)
         `)
         .not('actual_amount', 'is', null)
         .neq('actual_amount', 0);

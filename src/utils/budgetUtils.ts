@@ -19,9 +19,44 @@ export const formatUnitOfMeasure = (unit: string | null) => {
 export const calculateBudgetItemTotal = (
   item: any,
   subcategoryTotal?: number,
-  manualOverrideEnabled: boolean = false
+  manualOverrideEnabled: boolean = false,
+  historicalActualCost?: number
 ): number => {
   const costCode = item.cost_codes;
+  
+  // Use budget_source if available
+  if (item.budget_source) {
+    switch (item.budget_source) {
+      case 'vendor-bid':
+        const selectedBid = item.selected_bid as any;
+        if (selectedBid?.price) return selectedBid.price;
+        break;
+      
+      case 'estimate':
+        const hasSubcategories = costCode?.has_subcategories || false;
+        if (hasSubcategories && subcategoryTotal !== undefined) {
+          return subcategoryTotal;
+        }
+        break;
+      
+      case 'historical':
+        if (historicalActualCost !== undefined && historicalActualCost !== null) {
+          return historicalActualCost;
+        }
+        break;
+      
+      case 'settings':
+        if (costCode?.price) {
+          return (costCode.price || 0) * (item.quantity || 1);
+        }
+        break;
+      
+      case 'manual':
+        return (item.quantity || 0) * (item.unit_price || 0);
+    }
+  }
+  
+  // Legacy fallback logic (for items without budget_source set)
   const hasSubcategories = costCode?.has_subcategories || false;
   const hasManualValues = item.quantity !== null && item.quantity !== 0 && 
                           item.unit_price !== null && item.unit_price !== 0;

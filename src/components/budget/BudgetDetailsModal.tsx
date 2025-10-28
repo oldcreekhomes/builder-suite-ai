@@ -3,10 +3,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
+import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
+import { useHistoricalProjects } from "@/hooks/useHistoricalProjects";
+import { useHistoricalActualCosts } from "@/hooks/useHistoricalActualCosts";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -35,7 +40,16 @@ export function BudgetDetailsModal({
   onBidSelected,
 }: BudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
-  const [activeTab, setActiveTab] = useState("estimate");
+  
+  // Determine initial tab based on budget_source
+  const getInitialTab = () => {
+    if (budgetItem.budget_source) {
+      return budgetItem.budget_source === 'vendor-bid' ? 'vendor-bid' : budgetItem.budget_source;
+    }
+    return 'estimate';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   
   // Estimate tab state and logic
   const { 
@@ -52,12 +66,30 @@ export function BudgetDetailsModal({
   const [editingValue, setEditingValue] = useState<string>('');
 
   // Vendor Bid tab state and logic
-  const { availableBids, selectBid, isLoading } = useBudgetBidSelection(projectId, costCode.id);
+  const { availableBids, selectBid, isLoading: isBidLoading } = useBudgetBidSelection(projectId, costCode.id);
   const [selectedBidId, setSelectedBidId] = useState<string | null>(currentSelectedBidId || null);
+
+  // Manual tab state
+  const [manualQuantity, setManualQuantity] = useState<number>(budgetItem.quantity || 0);
+  const [manualUnitPrice, setManualUnitPrice] = useState<number>(budgetItem.unit_price || 0);
+
+  // Historical tab state
+  const { data: historicalProjects = [] } = useHistoricalProjects();
+  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(
+    budgetItem.historical_project_id || null
+  );
+  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
+
+  // Budget source update hook
+  const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
 
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
   }, [currentSelectedBidId]);
+
+  useEffect(() => {
+    setActiveTab(getInitialTab());
+  }, [budgetItem.budget_source]);
 
   const formatCurrency = (value: number | null | undefined) => {
     if (!value) return '$0';
@@ -111,28 +143,45 @@ export function BudgetDetailsModal({
     }
   };
 
-  const handleApplyBid = () => {
-    selectBid(
-      { budgetItemId: budgetItem.id, bidId: selectedBidId },
-      {
-        onSuccess: () => {
-          onBidSelected(selectedBidId);
-          onClose();
+  const handleApply = () => {
+    const source = activeTab as 'estimate' | 'vendor-bid' | 'manual' | 'historical' | 'settings';
+    
+    if (source === 'vendor-bid') {
+      selectBid(
+        { budgetItemId: budgetItem.id, bidId: selectedBidId },
+        {
+          onSuccess: () => {
+            updateSource({
+              budgetItemId: budgetItem.id,
+              source: 'vendor-bid',
+            });
+            onBidSelected(selectedBidId);
+            onClose();
+          }
         }
-      }
-    );
-  };
-
-  const handleClearBid = () => {
-    selectBid(
-      { budgetItemId: budgetItem.id, bidId: null },
-      {
-        onSuccess: () => {
-          onBidSelected(null);
-          onClose();
-        }
-      }
-    );
+      );
+    } else if (source === 'historical') {
+      updateSource({
+        budgetItemId: budgetItem.id,
+        source: 'historical',
+        historicalProjectId: selectedHistoricalProjectId,
+      });
+      onClose();
+    } else if (source === 'manual') {
+      updateSource({
+        budgetItemId: budgetItem.id,
+        source: 'manual',
+        manualQuantity,
+        manualUnitPrice,
+      });
+      onClose();
+    } else {
+      updateSource({
+        budgetItemId: budgetItem.id,
+        source,
+      });
+      onClose();
+    }
   };
 
   const calculateEstimateTotal = () => {
@@ -143,6 +192,21 @@ export function BudgetDetailsModal({
     }
 
     return calculatedTotal;
+  };
+
+  const getHistoricalCost = () => {
+    if (!historicalCosts || !costCode.code) return 0;
+    return historicalCosts.mapByCode[costCode.code] || 0;
+  };
+
+  const getSettingsPrice = () => {
+    if (!costCode.price) return 0;
+    return costCode.price * (budgetItem.quantity || 1);
+  };
+
+  const hasChanges = () => {
+    const currentSource = budgetItem.budget_source || 'estimate';
+    return currentSource !== activeTab;
   };
 
   return (
@@ -161,8 +225,12 @@ export function BudgetDetailsModal({
           <TabsList className="justify-start">
             <TabsTrigger value="estimate">Estimate</TabsTrigger>
             <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
+            <TabsTrigger value="manual">Manual</TabsTrigger>
+            <TabsTrigger value="historical">Historical</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
+          {/* Estimate Tab */}
           <TabsContent value="estimate" className="flex-1 overflow-auto mt-4">
             {!hasSubcategories ? (
               <div className="space-y-4">
@@ -285,6 +353,7 @@ export function BudgetDetailsModal({
             )}
           </TabsContent>
 
+          {/* Vendor Bid Tab */}
           <TabsContent value="vendor-bid" className="flex-1 overflow-auto mt-4">
             <div className="space-y-3 max-w-2xl mx-auto">
               {availableBids.length === 0 ? (
@@ -346,29 +415,127 @@ export function BudgetDetailsModal({
               )}
             </div>
           </TabsContent>
+
+          {/* Manual Tab */}
+          <TabsContent value="manual" className="flex-1 overflow-auto mt-4">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="manual-quantity">Quantity</Label>
+                  <Input
+                    id="manual-quantity"
+                    type="number"
+                    value={manualQuantity}
+                    onChange={(e) => setManualQuantity(parseFloat(e.target.value) || 0)}
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manual-unit-price">Unit Price</Label>
+                  <Input
+                    id="manual-unit-price"
+                    type="number"
+                    value={manualUnitPrice}
+                    onChange={(e) => setManualUnitPrice(parseFloat(e.target.value) || 0)}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t">
+                <span className="text-sm font-medium">Total:</span>
+                <span className="text-lg font-semibold">
+                  {formatCurrency(manualQuantity * manualUnitPrice)}
+                </span>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Historical Tab */}
+          <TabsContent value="historical" className="flex-1 overflow-auto mt-4">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="historical-project">Select Historical Project</Label>
+                  <Select
+                    value={selectedHistoricalProjectId || ''}
+                    onValueChange={setSelectedHistoricalProjectId}
+                  >
+                    <SelectTrigger id="historical-project" className="mt-1.5">
+                      <SelectValue placeholder="Choose a project..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {historicalProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.address}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {selectedHistoricalProjectId && (
+                  <div className="border rounded-lg p-4 space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      Actual cost from selected project:
+                    </div>
+                    <div className="text-2xl font-semibold">
+                      {formatCurrency(getHistoricalCost())}
+                    </div>
+                    {getHistoricalCost() === 0 && (
+                      <div className="text-xs text-muted-foreground mt-2">
+                        No historical data available for this cost code
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="flex-1 overflow-auto mt-4">
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="border rounded-lg p-4 space-y-4">
+                <div>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Default price from settings:
+                  </div>
+                  <div className="text-xl font-semibold">
+                    {formatCurrency(costCode.price)} <span className="text-sm text-muted-foreground">per {truncateUnit(costCode.unit_of_measure)}</span>
+                  </div>
+                </div>
+                
+                {costCode.price && budgetItem.quantity ? (
+                  <div className="pt-4 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">
+                        {budgetItem.quantity} {truncateUnit(costCode.unit_of_measure)} × {formatCurrency(costCode.price)}
+                      </span>
+                      <span className="text-lg font-semibold">
+                        {formatCurrency(getSettingsPrice())}
+                      </span>
+                    </div>
+                  </div>
+                ) : !costCode.price ? (
+                  <div className="text-xs text-muted-foreground">
+                    No default price set in settings for this cost code
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
 
         <DialogFooter className="gap-2">
-          {activeTab === "vendor-bid" && currentSelectedBidId && (
-            <Button
-              variant="outline"
-              onClick={handleClearBid}
-              disabled={isLoading}
-            >
-              Clear Selection
-            </Button>
-          )}
           <Button variant="outline" onClick={onClose}>
-            {activeTab === "estimate" ? "Close" : "Cancel"}
+            Cancel
           </Button>
-          {activeTab === "vendor-bid" && (
-            <Button 
-              onClick={handleApplyBid} 
-              disabled={!selectedBidId || isLoading || selectedBidId === currentSelectedBidId}
-            >
-              {isLoading ? 'Applying...' : 'Apply'}
-            </Button>
-          )}
+          <Button 
+            onClick={handleApply} 
+            disabled={isUpdating || isBidLoading || !hasChanges()}
+          >
+            {isUpdating || isBidLoading ? 'Applying...' : 'Apply'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

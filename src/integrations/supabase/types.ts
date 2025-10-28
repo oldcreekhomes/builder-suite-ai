@@ -1717,8 +1717,10 @@ export type Database = {
       project_budgets: {
         Row: {
           actual_amount: number | null
+          budget_source: string | null
           cost_code_id: string
           created_at: string
+          historical_project_id: string | null
           id: string
           project_id: string
           quantity: number | null
@@ -1728,8 +1730,10 @@ export type Database = {
         }
         Insert: {
           actual_amount?: number | null
+          budget_source?: string | null
           cost_code_id: string
           created_at?: string
+          historical_project_id?: string | null
           id?: string
           project_id: string
           quantity?: number | null
@@ -1739,8 +1743,10 @@ export type Database = {
         }
         Update: {
           actual_amount?: number | null
+          budget_source?: string | null
           cost_code_id?: string
           created_at?: string
+          historical_project_id?: string | null
           id?: string
           project_id?: string
           quantity?: number | null
@@ -1754,6 +1760,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_historical_project_id_fkey"
+            columns: ["historical_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
