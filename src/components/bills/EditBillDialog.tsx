@@ -891,41 +891,43 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
         <AlertDialog open={showSaveConfirmation} onOpenChange={setShowSaveConfirmation}>
           <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Send Bill Back for Review?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This bill will be sent back for review with your updates. You can add a note to explain what you fixed.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            
-            <div className="space-y-2">
-              <Label htmlFor="response-note">Response Note (Optional)</Label>
-              <Textarea
-                id="response-note"
-                placeholder="Explain what you fixed or changed..."
-                value={responseNote}
-                onChange={(e) => setResponseNote(e.target.value)}
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                This note will be visible to the reviewer to help them understand your changes.
-              </p>
-            </div>
-            
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => {
-                setShowSaveConfirmation(false);
-                setResponseNote('');
-              }}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleConfirmedSave}
-                className="bg-primary hover:bg-primary/90"
-              >
-                Save & Send for Review
-              </AlertDialogAction>
-            </AlertDialogFooter>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Send Bill Back for Review?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This bill will be sent back for review with your updates. Please explain what you fixed or changed.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        
+        <div className="space-y-2">
+          <Label htmlFor="response-note">Response Note *</Label>
+          <Textarea
+            id="response-note"
+            placeholder="Explain what you fixed or changed..."
+            value={responseNote}
+            onChange={(e) => setResponseNote(e.target.value)}
+            rows={3}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Required: This note will be visible to the reviewer to help them understand your changes.
+          </p>
+        </div>
+        
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => {
+            setShowSaveConfirmation(false);
+            setResponseNote('');
+          }}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleConfirmedSave}
+            className="bg-primary hover:bg-primary/90"
+            disabled={!responseNote.trim()}
+          >
+            Save & Send for Review
+          </AlertDialogAction>
+        </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </DialogContent>
