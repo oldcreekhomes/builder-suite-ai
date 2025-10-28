@@ -168,6 +168,7 @@ export function useCreditCards() {
           account_id: data.credit_card_account_id,
           debit: 0,
           credit: total,
+          project_id: data.project_id,
           memo: data.memo,
         });
       } else {
@@ -179,6 +180,7 @@ export function useCreditCards() {
           account_id: data.credit_card_account_id,
           debit: total,
           credit: 0,
+          project_id: data.project_id,
           memo: data.memo,
         });
 
