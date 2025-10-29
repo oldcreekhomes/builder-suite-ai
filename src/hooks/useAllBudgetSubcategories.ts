@@ -22,7 +22,7 @@ export function useAllBudgetSubcategories(budgetItems: any[], projectId: string)
       // Fetch all child cost codes where parent_group matches any parent code
       const { data: childCostCodes, error: childError } = await supabase
         .from('cost_codes')
-        .select('id, code, parent_group')
+        .select('id, code, parent_group, price, quantity')
         .in('parent_group', parentCostCodes);
 
       if (childError) throw childError;
@@ -82,15 +82,14 @@ export function useAllBudgetSubcategories(budgetItems: any[], projectId: string)
         
         for (const childCode of childCodes) {
           const selection = itemSelections.find(s => s.cost_code_id === childCode.id);
-          const isIncluded = selection?.included ?? false;
+          const isIncluded = selection?.included ?? true; // Default to included
           
           if (isIncluded) {
             const budgetItem = budgetItemsByCostCode[childCode.id];
-            if (budgetItem) {
-              const quantity = budgetItem.quantity || 0;
-              const unitPrice = budgetItem.unit_price || 0;
-              total += quantity * unitPrice;
-            }
+            // Use budget item values if they exist, otherwise fall back to cost code defaults
+            const quantity = budgetItem?.quantity ?? (childCode.quantity ? parseFloat(childCode.quantity) : 1);
+            const unitPrice = budgetItem?.unit_price ?? (childCode.price || 0);
+            total += (quantity || 0) * (unitPrice || 0);
           }
         }
         

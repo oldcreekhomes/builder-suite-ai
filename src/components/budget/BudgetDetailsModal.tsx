@@ -13,6 +13,9 @@ import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 type CostCode = Tables<'cost_codes'>;
 type BudgetItem = Tables<'project_budgets'> & {
@@ -82,6 +85,8 @@ export function BudgetDetailsModal({
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
@@ -143,7 +148,7 @@ export function BudgetDetailsModal({
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const source = activeTab as 'estimate' | 'vendor-bid' | 'manual';
     
     if (source === 'vendor-bid') {
@@ -168,6 +173,65 @@ export function BudgetDetailsModal({
         manualUnitPrice,
       });
       onClose();
+    } else if (source === 'estimate') {
+      // Persist all selections and child budget items
+      try {
+        // 1. Upsert all selections
+        const selectionsToUpsert = subcategories.map(sub => ({
+          project_budget_id: budgetItem.id,
+          cost_code_id: sub.cost_codes.id,
+          included: selections[sub.cost_codes.id] !== false, // Default to true
+        }));
+
+        const { error: selectionsError } = await supabase
+          .from('budget_subcategory_selections')
+          .upsert(selectionsToUpsert, { 
+            onConflict: 'project_budget_id,cost_code_id' 
+          });
+
+        if (selectionsError) throw selectionsError;
+
+        // 2. Upsert child budget items for included subcategories
+        const childBudgetItems = subcategories
+          .filter(sub => selections[sub.cost_codes.id] !== false)
+          .map(sub => ({
+            project_id: projectId,
+            cost_code_id: sub.cost_codes.id,
+            quantity: parseFloat(sub.quantity?.toString() || '1'),
+            unit_price: parseFloat(sub.unit_price?.toString() || '0'),
+          }));
+
+        if (childBudgetItems.length > 0) {
+          const { error: budgetError } = await supabase
+            .from('project_budgets')
+            .upsert(childBudgetItems, { 
+              onConflict: 'project_id,cost_code_id',
+              ignoreDuplicates: false 
+            });
+
+          if (budgetError) throw budgetError;
+        }
+
+        // 3. Update the source
+        updateSource({
+          budgetItemId: budgetItem.id,
+          source: 'estimate',
+        });
+
+        // 4. Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['all-budget-subcategories', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['budget-subcategories', budgetItem.id] });
+        queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+
+        onClose();
+      } catch (error) {
+        console.error('Error saving estimate:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save estimate selections",
+          variant: "destructive",
+        });
+      }
     } else {
       updateSource({
         budgetItemId: budgetItem.id,
