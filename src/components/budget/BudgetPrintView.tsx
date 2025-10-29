@@ -40,7 +40,15 @@ export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddres
 
       {Object.entries(groupedBudgetItems).map(([group, items]) => (
         <div key={group} className="mb-6">
-          <table className="w-full border-collapse border border-gray-300 mb-2">
+          <table className="w-full border-collapse border border-gray-300 mb-2" style={{ tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '200px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '60px' }} />
+              <col style={{ width: '100px' }} />
+              <col style={{ width: '100px' }} />
+            </colgroup>
             <thead>
               <tr className="bg-gray-50">
                 <th className="border border-gray-300 p-1 text-left text-sm">Cost Code</th>
