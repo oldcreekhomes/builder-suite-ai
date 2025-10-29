@@ -171,6 +171,13 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               @page {
                 margin-top: 20px;
                 margin-bottom: 40px;
+                /* Override browser's default headers/footers */
+                @top-left { content: ""; }
+                @top-center { content: ""; }
+                @top-right { content: ""; }
+                @bottom-left { content: ""; }
+                @bottom-center { content: ""; }
+                @bottom-right { content: ""; }
               }
               
               .print-header {
