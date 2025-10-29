@@ -170,7 +170,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               .page-break { page-break-before: always; }
               @page {
                 margin-top: 20px;
-                margin-bottom: 20px;
+                margin-bottom: 40px;
               }
               
               .print-header {
@@ -180,6 +180,24 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               
               table thead {
                 display: table-row-group;
+              }
+              
+              body::before {
+                content: "${printDate}";
+                position: fixed;
+                bottom: 10px;
+                left: 15px;
+                font-size: 10px;
+                color: #000;
+              }
+              
+              body::after {
+                content: "Page " counter(page);
+                position: fixed;
+                bottom: 10px;
+                right: 15px;
+                font-size: 10px;
+                color: #000;
               }
             }
           </style>
