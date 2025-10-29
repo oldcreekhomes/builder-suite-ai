@@ -310,7 +310,7 @@ export function BudgetDetailsModal({
                       <tr>
                         <th className="w-12 p-3"></th>
                         <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                        <th className="text-left p-3 text-sm font-medium">Description</th>
+                        <th className="text-left p-3 text-sm font-medium">Vendor</th>
                         <th className="text-left p-3 text-sm font-medium">Unit Price</th>
                         <th className="text-center p-3 text-sm font-medium">Unit</th>
                         <th className="text-left p-3 text-sm font-medium">Quantity</th>
@@ -318,7 +318,6 @@ export function BudgetDetailsModal({
                       </tr>
                     </thead>
                     <tbody>
-                      <RadioGroup value={selectedBidId || ''} onValueChange={setSelectedBidId}>
                         {availableBids.map((bid) => {
                           const quantity = budgetItem.quantity || 1;
                           const subtotal = (bid.price || 0) * quantity;
@@ -332,19 +331,14 @@ export function BudgetDetailsModal({
                               onClick={() => setSelectedBidId(bid.id)}
                             >
                               <td className="p-3">
-                                <RadioGroupItem value={bid.id} id={bid.id} />
+                                <Checkbox
+                                  checked={selectedBidId === bid.id}
+                                  onCheckedChange={(checked) => checked && setSelectedBidId(bid.id)}
+                                />
                               </td>
                               <td className="p-3 text-sm">{costCode.code}</td>
                               <td className="p-3 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span>{bid.companies?.company_name || 'Unknown Company'}</span>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs ${getStatusColor(bid.packageStatus || 'pending')}`}
-                                  >
-                                    {bid.packageStatus || 'Pending'}
-                                  </Badge>
-                                </div>
+                                {bid.companies?.company_name || 'Unknown Company'}
                               </td>
                               <td className="p-3 text-sm text-left">
                                 {formatCurrency(bid.price)}
@@ -361,7 +355,6 @@ export function BudgetDetailsModal({
                             </tr>
                           );
                         })}
-                      </RadioGroup>
                     </tbody>
                   </table>
                 </div>
