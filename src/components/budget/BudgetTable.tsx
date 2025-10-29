@@ -176,10 +176,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 display: table-header-group;
               }
               
-              tfoot {
-                display: table-footer-group;
-              }
-              
               tbody tr {
                 break-inside: avoid;
                 page-break-inside: avoid;
