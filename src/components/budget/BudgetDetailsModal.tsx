@@ -10,9 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
 import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
-import { useHistoricalProjects } from "@/hooks/useHistoricalProjects";
-import { useHistoricalActualCosts } from "@/hooks/useHistoricalActualCosts";
-import { BudgetDetailsPurchaseOrderTab } from "./BudgetDetailsPurchaseOrderTab";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -45,7 +42,11 @@ export function BudgetDetailsModal({
   // Determine initial tab based on budget_source
   const getInitialTab = () => {
     if (budgetItem.budget_source) {
-      return budgetItem.budget_source === 'vendor-bid' ? 'vendor-bid' : budgetItem.budget_source;
+      const source = budgetItem.budget_source;
+      // Only return valid tabs: estimate, vendor-bid, or manual
+      if (source === 'vendor-bid' || source === 'manual') {
+        return source;
+      }
     }
     return 'estimate';
   };
@@ -73,13 +74,6 @@ export function BudgetDetailsModal({
   // Manual tab state
   const [manualQuantity, setManualQuantity] = useState<number>(budgetItem.quantity || 0);
   const [manualUnitPrice, setManualUnitPrice] = useState<number>(budgetItem.unit_price || 0);
-
-  // Historical tab state
-  const { data: historicalProjects = [] } = useHistoricalProjects();
-  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(
-    budgetItem.historical_project_id || null
-  );
-  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
@@ -145,7 +139,7 @@ export function BudgetDetailsModal({
   };
 
   const handleApply = () => {
-    const source = activeTab as 'estimate' | 'vendor-bid' | 'manual' | 'historical' | 'settings';
+    const source = activeTab as 'estimate' | 'vendor-bid' | 'manual';
     
     if (source === 'vendor-bid') {
       selectBid(
@@ -161,13 +155,6 @@ export function BudgetDetailsModal({
           }
         }
       );
-    } else if (source === 'historical') {
-      updateSource({
-        budgetItemId: budgetItem.id,
-        source: 'historical',
-        historicalProjectId: selectedHistoricalProjectId,
-      });
-      onClose();
     } else if (source === 'manual') {
       updateSource({
         budgetItemId: budgetItem.id,
@@ -195,16 +182,6 @@ export function BudgetDetailsModal({
     return calculatedTotal;
   };
 
-  const getHistoricalCost = () => {
-    if (!historicalCosts || !costCode.code) return 0;
-    return historicalCosts.mapByCode[costCode.code] || 0;
-  };
-
-  const getSettingsPrice = () => {
-    if (!costCode.price) return 0;
-    return costCode.price * (budgetItem.quantity || 1);
-  };
-
   const hasChanges = () => {
     const currentSource = budgetItem.budget_source || 'estimate';
     return currentSource !== activeTab;
@@ -227,9 +204,6 @@ export function BudgetDetailsModal({
             <TabsTrigger value="estimate">Estimate</TabsTrigger>
             <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
             <TabsTrigger value="manual">Manual</TabsTrigger>
-            <TabsTrigger value="historical">Historical</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="purchase-order">Purchase Order</TabsTrigger>
           </TabsList>
 
           {/* Estimate Tab */}
@@ -500,139 +474,6 @@ export function BudgetDetailsModal({
                 </span>
               </div>
             </div>
-          </TabsContent>
-
-          {/* Historical Tab */}
-          <TabsContent value="historical" className="flex-1 overflow-auto mt-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="historical-project">Select Historical Project</Label>
-                <Select
-                  value={selectedHistoricalProjectId || ''}
-                  onValueChange={setSelectedHistoricalProjectId}
-                >
-                  <SelectTrigger id="historical-project" className="mt-1.5">
-                    <SelectValue placeholder="Choose a project..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {historicalProjects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.address}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedHistoricalProjectId && (
-                <>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                          <th className="text-left p-3 text-sm font-medium">Description</th>
-                          <th className="text-right p-3 text-sm font-medium">Unit Price</th>
-                          <th className="text-center p-3 text-sm font-medium">Unit</th>
-                          <th className="text-right p-3 text-sm font-medium">Quantity</th>
-                          <th className="text-right p-3 text-sm font-medium">Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-t">
-                          <td className="p-3 text-sm">{costCode.code}</td>
-                          <td className="p-3 text-sm">{costCode.name}</td>
-                          <td className="p-3 text-sm text-right">
-                            {getHistoricalCost() > 0 && budgetItem.quantity
-                              ? formatCurrency(getHistoricalCost() / budgetItem.quantity)
-                              : '$0'
-                            }
-                          </td>
-                          <td className="p-3 text-sm text-center">
-                            {truncateUnit(costCode.unit_of_measure)}
-                          </td>
-                          <td className="p-3 text-sm text-right">
-                            {budgetItem.quantity || 0}
-                          </td>
-                          <td className="p-3 text-sm text-right font-medium">
-                            {formatCurrency(getHistoricalCost())}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  {getHistoricalCost() === 0 && (
-                    <div className="text-xs text-muted-foreground text-center py-2">
-                      No historical data available for this cost code
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <span className="text-sm font-medium">Total Budget:</span>
-                <span className="text-lg font-semibold">
-                  {selectedHistoricalProjectId ? formatCurrency(getHistoricalCost()) : '$0'}
-                </span>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="flex-1 overflow-auto mt-4">
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                      <th className="text-left p-3 text-sm font-medium">Description</th>
-                      <th className="text-right p-3 text-sm font-medium">Unit Price</th>
-                      <th className="text-center p-3 text-sm font-medium">Unit</th>
-                      <th className="text-right p-3 text-sm font-medium">Quantity</th>
-                      <th className="text-right p-3 text-sm font-medium">Subtotal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t">
-                      <td className="p-3 text-sm">{costCode.code}</td>
-                      <td className="p-3 text-sm">{costCode.name}</td>
-                      <td className="p-3 text-sm text-right">
-                        {formatCurrency(costCode.price)}
-                      </td>
-                      <td className="p-3 text-sm text-center">
-                        {truncateUnit(costCode.unit_of_measure)}
-                      </td>
-                      <td className="p-3 text-sm text-right">
-                        {budgetItem.quantity || 0}
-                      </td>
-                      <td className="p-3 text-sm text-right font-medium">
-                        {formatCurrency(getSettingsPrice())}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              {!costCode.price && (
-                <div className="text-xs text-muted-foreground text-center py-2">
-                  No default price set in settings for this cost code
-                </div>
-              )}
-              <div className="flex justify-between items-center pt-4 border-t">
-                <span className="text-sm font-medium">Total Budget:</span>
-                <span className="text-lg font-semibold">
-                  {formatCurrency(getSettingsPrice())}
-                </span>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Purchase Order Tab */}
-          <TabsContent value="purchase-order" className="flex-1 overflow-auto mt-4">
-            <BudgetDetailsPurchaseOrderTab 
-              projectId={projectId} 
-              costCodeId={costCode.id} 
-            />
           </TabsContent>
         </Tabs>
 
