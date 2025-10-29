@@ -309,7 +309,7 @@ export function BudgetDetailsModal({
                         <th className="text-left p-3 text-sm font-medium">Unit Price</th>
                         <th className="text-center p-3 text-sm font-medium">Unit</th>
                         <th className="text-left p-3 text-sm font-medium">Quantity</th>
-                        <th className="text-left p-3 text-sm font-medium">Subtotal</th>
+                        <th className="text-left p-3 text-sm font-medium">Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -403,7 +403,7 @@ export function BudgetDetailsModal({
                         <th className="text-left p-3 text-sm font-medium">Cost Code</th>
                         <th className="text-left p-3 text-sm font-medium">Vendor</th>
                         <th className="text-left p-3 text-sm font-medium">Proposal</th>
-                        <th className="text-left p-3 text-sm font-medium">Subtotal</th>
+                        <th className="text-left p-3 text-sm font-medium">Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -488,7 +488,7 @@ export function BudgetDetailsModal({
                       <th className="text-left p-3 text-sm font-medium">Unit Price</th>
                       <th className="text-center p-3 text-sm font-medium">Unit</th>
                       <th className="text-left p-3 text-sm font-medium">Quantity</th>
-                      <th className="text-left p-3 text-sm font-medium">Subtotal</th>
+                      <th className="text-left p-3 text-sm font-medium">Total</th>
                     </tr>
                   </thead>
                   <tbody>
