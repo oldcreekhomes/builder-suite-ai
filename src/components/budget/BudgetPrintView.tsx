@@ -119,12 +119,8 @@ export function BudgetPrintView({
 
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-  const currentTime = new Date().toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+    month: '2-digit', 
+    day: '2-digit' 
   });
 
   return (
@@ -151,9 +147,9 @@ export function BudgetPrintView({
           <tr>
             <th colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} className="border border-gray-300 p-2">
               <div className="flex justify-between items-center text-sm text-gray-600">
-                <span>{currentDate} {currentTime}</span>
+                <span>{currentDate}</span>
                 <span className="font-normal">{projectAddress}</span>
-                <span>Page <span className="page-number"></span> of <span className="total-pages"></span></span>
+                <span><span className="page-number"></span>/<span className="total-pages"></span></span>
               </div>
             </th>
           </tr>

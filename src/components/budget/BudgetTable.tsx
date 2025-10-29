@@ -168,6 +168,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             @media print {
               body { 
                 margin: 0;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
               }
               
               thead { 
@@ -184,9 +186,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               }
               
               @page {
-                margin-top: 20px;
-                margin-bottom: 72px;
-                counter-increment: page;
+                margin: 0;
+                size: auto;
               }
               
               .page-number::after {
