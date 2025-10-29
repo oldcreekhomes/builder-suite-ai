@@ -127,15 +127,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      const printDate = new Date().toLocaleString('en-US', { 
-        month: '2-digit', 
-        day: '2-digit', 
-        year: '2-digit', 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
-      });
-      
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
