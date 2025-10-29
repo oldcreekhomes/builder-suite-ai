@@ -16,6 +16,7 @@ import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
+import { useAllBudgetSubcategories } from '@/hooks/useAllBudgetSubcategories';
 import { useAutoAddMissingCostCodes } from '@/hooks/useAutoAddMissingCostCodes';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
@@ -178,10 +179,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
-  // Build a map of subcategory totals for all items
-  // Note: This is initialized as empty and will be populated by child components
-  // We keep it stable to prevent unnecessary re-renders
-  const subcategoryTotalsMap = useMemo(() => ({}), []);
+  // Fetch all subcategory totals for items with subcategories
+  const { data: subcategoryTotalsMap = {} } = useAllBudgetSubcategories(budgetItems, projectId);
 
   // Calculate total budget by summing the visible group totals
   const totalBudget = useMemo(() => {
