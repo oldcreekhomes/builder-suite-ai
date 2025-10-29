@@ -221,10 +221,12 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   // Calculate all item totals once using the centralized hook
   const itemTotalsMap = useBudgetItemTotals(budgetItems, subcategoryTotalsMap);
 
-  // Calculate total budget by summing all pre-calculated item totals
+  // Calculate total budget by summing GROUP SUBTOTALS only (not individual items)
   const totalBudget = useMemo(() => {
-    return Object.values(itemTotalsMap).reduce((sum, total) => sum + total, 0);
-  }, [itemTotalsMap]);
+    return Object.entries(groupedBudgetItems).reduce((sum, [group, items]) => {
+      return sum + calculateGroupTotal(items, itemTotalsMap);
+    }, 0);
+  }, [groupedBudgetItems, itemTotalsMap, calculateGroupTotal]);
 
   const allGroupsExpanded = expandedGroups.size === Object.keys(groupedBudgetItems).length;
   
