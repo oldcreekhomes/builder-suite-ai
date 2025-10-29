@@ -47,8 +47,13 @@ export function BudgetDetailsModal({
       if (source === 'vendor-bid' || source === 'manual') {
         return source;
       }
+      // If source is 'estimate' but no subcategories, default to vendor-bid
+      if (source === 'estimate' && !hasSubcategories) {
+        return 'vendor-bid';
+      }
     }
-    return 'estimate';
+    // Default to vendor-bid if no subcategories, otherwise estimate
+    return hasSubcategories ? 'estimate' : 'vendor-bid';
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
@@ -173,12 +178,6 @@ export function BudgetDetailsModal({
   };
 
   const calculateEstimateTotal = () => {
-    if (!hasSubcategories || subcategories.length === 0) {
-      const quantity = parseFloat(budgetItem.quantity?.toString() || '0');
-      const unitPrice = parseFloat(budgetItem.unit_price?.toString() || '0');
-      return quantity * unitPrice;
-    }
-
     return calculatedTotal;
   };
 
@@ -201,56 +200,14 @@ export function BudgetDetailsModal({
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="justify-start">
-            <TabsTrigger value="estimate">Estimate</TabsTrigger>
+            {hasSubcategories && <TabsTrigger value="estimate">Estimate</TabsTrigger>}
             <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
             <TabsTrigger value="manual">Manual</TabsTrigger>
           </TabsList>
 
           {/* Estimate Tab */}
           <TabsContent value="estimate" className="flex-1 overflow-auto mt-4">
-            {!hasSubcategories ? (
-              <div className="space-y-4">
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                        <th className="text-left p-3 text-sm font-medium">Description</th>
-                        <th className="text-right p-3 text-sm font-medium">Unit Price</th>
-                        <th className="text-center p-3 text-sm font-medium">Unit</th>
-                        <th className="text-right p-3 text-sm font-medium">Quantity</th>
-                        <th className="text-right p-3 text-sm font-medium">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-t">
-                        <td className="p-3 text-sm">{costCode.code}</td>
-                        <td className="p-3 text-sm">{costCode.name}</td>
-                        <td className="p-3 text-sm text-right">
-                          {formatCurrency(budgetItem.unit_price)}
-                        </td>
-                        <td className="p-3 text-sm text-center">
-                          {truncateUnit(costCode.unit_of_measure)}
-                        </td>
-                        <td className="p-3 text-sm text-right">
-                          {budgetItem.quantity || 0}
-                        </td>
-                        <td className="p-3 text-sm text-right font-medium">
-                          {formatCurrency(calculateEstimateTotal())}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex justify-between items-center pt-4 border-t">
-                  <span className="text-sm font-medium">Total Budget:</span>
-                  <span className="text-lg font-semibold">
-                    {formatCurrency(calculateEstimateTotal())}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-muted">
@@ -258,10 +215,10 @@ export function BudgetDetailsModal({
                         <th className="w-12 p-3"></th>
                         <th className="text-left p-3 text-sm font-medium">Cost Code</th>
                         <th className="text-left p-3 text-sm font-medium">Description</th>
-                        <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                        <th className="text-left p-3 text-sm font-medium">Unit Price</th>
                         <th className="text-center p-3 text-sm font-medium">Unit</th>
-                        <th className="text-right p-3 text-sm font-medium">Quantity</th>
-                        <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                        <th className="text-left p-3 text-sm font-medium">Quantity</th>
+                        <th className="text-left p-3 text-sm font-medium">Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -284,13 +241,13 @@ export function BudgetDetailsModal({
                             </td>
                             <td className="p-3 text-sm">{subcategory.cost_codes?.code}</td>
                             <td className="p-3 text-sm">{subcategory.cost_codes?.name}</td>
-                            <td className="p-3 text-sm text-right">
+                            <td className="p-3 text-sm text-left">
                               {formatCurrency(unitPrice)}
                             </td>
                             <td className="p-3 text-sm text-center">
                               {truncateUnit(subcategory.cost_codes?.unit_of_measure)}
                             </td>
-                            <td className="p-3 text-sm text-right">
+                            <td className="p-3 text-sm text-left">
                               {editingQuantityId === subcategory.id ? (
                                 <input
                                   type="number"
@@ -298,7 +255,7 @@ export function BudgetDetailsModal({
                                   onChange={(e) => setEditingValue(e.target.value)}
                                   onBlur={() => handleQuantityBlur(subcategory)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, subcategory)}
-                                  className="w-20 px-2 py-1 text-right border rounded"
+                                  className="w-20 px-2 py-1 text-left border rounded"
                                   autoFocus
                                 />
                               ) : (
@@ -310,7 +267,7 @@ export function BudgetDetailsModal({
                                 </span>
                               )}
                             </td>
-                            <td className="p-3 text-sm text-right font-medium">
+                            <td className="p-3 text-sm text-left font-medium">
                               {formatCurrency(subtotal)}
                             </td>
                           </tr>
@@ -326,7 +283,6 @@ export function BudgetDetailsModal({
                   </span>
                 </div>
               </div>
-            )}
           </TabsContent>
 
           {/* Vendor Bid Tab */}
@@ -355,10 +311,10 @@ export function BudgetDetailsModal({
                         <th className="w-12 p-3"></th>
                         <th className="text-left p-3 text-sm font-medium">Cost Code</th>
                         <th className="text-left p-3 text-sm font-medium">Description</th>
-                        <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                        <th className="text-left p-3 text-sm font-medium">Unit Price</th>
                         <th className="text-center p-3 text-sm font-medium">Unit</th>
-                        <th className="text-right p-3 text-sm font-medium">Quantity</th>
-                        <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                        <th className="text-left p-3 text-sm font-medium">Quantity</th>
+                        <th className="text-left p-3 text-sm font-medium">Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -390,16 +346,16 @@ export function BudgetDetailsModal({
                                   </Badge>
                                 </div>
                               </td>
-                              <td className="p-3 text-sm text-right">
+                              <td className="p-3 text-sm text-left">
                                 {formatCurrency(bid.price)}
                               </td>
                               <td className="p-3 text-sm text-center">
                                 {truncateUnit(costCode.unit_of_measure)}
                               </td>
-                              <td className="p-3 text-sm text-right">
+                              <td className="p-3 text-sm text-left">
                                 {quantity}
                               </td>
-                              <td className="p-3 text-sm text-right font-medium">
+                              <td className="p-3 text-sm text-left font-medium">
                                 {formatCurrency(subtotal)}
                               </td>
                             </tr>
@@ -431,36 +387,36 @@ export function BudgetDetailsModal({
                     <tr>
                       <th className="text-left p-3 text-sm font-medium">Cost Code</th>
                       <th className="text-left p-3 text-sm font-medium">Description</th>
-                      <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                      <th className="text-left p-3 text-sm font-medium">Unit Price</th>
                       <th className="text-center p-3 text-sm font-medium">Unit</th>
-                      <th className="text-right p-3 text-sm font-medium">Quantity</th>
-                      <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                      <th className="text-left p-3 text-sm font-medium">Quantity</th>
+                      <th className="text-left p-3 text-sm font-medium">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-t">
                       <td className="p-3 text-sm">{costCode.code}</td>
                       <td className="p-3 text-sm">{costCode.name}</td>
-                      <td className="p-3 text-sm text-right">
+                      <td className="p-3 text-sm text-left">
                         <Input
                           type="number"
                           value={manualUnitPrice}
                           onChange={(e) => setManualUnitPrice(parseFloat(e.target.value) || 0)}
-                          className="w-28 h-8 text-right"
+                          className="w-28 h-8 text-left"
                         />
                       </td>
                       <td className="p-3 text-sm text-center">
                         {truncateUnit(costCode.unit_of_measure)}
                       </td>
-                      <td className="p-3 text-sm text-right">
+                      <td className="p-3 text-sm text-left">
                         <Input
                           type="number"
                           value={manualQuantity}
                           onChange={(e) => setManualQuantity(parseFloat(e.target.value) || 0)}
-                          className="w-28 h-8 text-right"
+                          className="w-28 h-8 text-left"
                         />
                       </td>
-                      <td className="p-3 text-sm text-right font-medium">
+                      <td className="p-3 text-sm text-left font-medium">
                         {formatCurrency(manualQuantity * manualUnitPrice)}
                       </td>
                     </tr>
