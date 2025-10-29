@@ -39,6 +39,17 @@ export function BudgetDetailsModal({
 }: BudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
   
+  // Estimate tab state and logic
+  const { 
+    subcategories, 
+    selections,
+    toggleSubcategory, 
+    updateQuantity,
+    calculatedTotal
+  } = useBudgetSubcategories(budgetItem.id, costCode.id, projectId);
+  
+  const hasSubcategories = subcategories.length > 0;
+  
   // Determine initial tab based on budget_source
   const getInitialTab = () => {
     if (budgetItem.budget_source) {
@@ -57,17 +68,6 @@ export function BudgetDetailsModal({
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
-  
-  // Estimate tab state and logic
-  const { 
-    subcategories, 
-    selections,
-    toggleSubcategory, 
-    updateQuantity,
-    calculatedTotal
-  } = useBudgetSubcategories(budgetItem.id, costCode.id, projectId);
-  
-  const hasSubcategories = subcategories.length > 0;
 
   const [editingQuantityId, setEditingQuantityId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
