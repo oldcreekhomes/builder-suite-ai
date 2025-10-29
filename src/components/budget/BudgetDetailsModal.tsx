@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText } from "lucide-react";
+import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
 import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
@@ -42,6 +43,7 @@ export function BudgetDetailsModal({
   onBidSelected,
 }: BudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
+  const { openProposalFile } = useUniversalFilePreviewContext();
   
   // Estimate tab state and logic
   const { 
@@ -428,20 +430,24 @@ export function BudgetDetailsModal({
                               </td>
                               <td className="p-3 text-sm">
                                 {bid.proposals && bid.proposals.length > 0 ? (
-                                  <div className="flex flex-wrap gap-2">
-                                    {bid.proposals.map((proposal, idx) => (
-                                      <a
-                                        key={idx}
-                                        href={proposal}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <FileText className="h-3 w-3" />
-                                        Proposal {idx + 1}
-                                      </a>
-                                    ))}
+                                  <div className="flex items-center space-x-2">
+                                    {bid.proposals.map((fileName, idx) => {
+                                      const IconComponent = getFileIcon(fileName);
+                                      const iconColorClass = getFileIconColor(fileName);
+                                      return (
+                                        <button
+                                          key={idx}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openProposalFile(fileName);
+                                          }}
+                                          className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
+                                          title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
+                                        >
+                                          <IconComponent className="h-4 w-4" />
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
