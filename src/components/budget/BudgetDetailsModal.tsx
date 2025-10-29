@@ -355,8 +355,8 @@ export function BudgetDetailsModal({
 
           {/* Vendor Bid Tab */}
           <TabsContent value="vendor-bid" className="flex-1 overflow-auto mt-4">
-            <div className="space-y-3 max-w-2xl mx-auto">
-              {availableBids.length === 0 ? (
+            {availableBids.length === 0 ? (
+              <div className="space-y-4">
                 <div className="text-center py-8 space-y-2">
                   <p className="text-sm text-muted-foreground">
                     No bids available for this cost code yet.
@@ -365,84 +365,134 @@ export function BudgetDetailsModal({
                     You can still enter manual pricing in the budget table.
                   </p>
                 </div>
-              ) : (
-                <RadioGroup value={selectedBidId || ''} onValueChange={setSelectedBidId}>
-                  <div className="space-y-2">
-                    {availableBids.map((bid) => (
-                      <div
-                        key={bid.id}
-                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                          selectedBidId === bid.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() => setSelectedBidId(bid.id)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <RadioGroupItem value={bid.id} id={bid.id} className="mt-1" />
-                          <Label htmlFor={bid.id} className="flex-1 cursor-pointer">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="space-y-1 flex-1">
-                                <div className="font-medium text-sm">
-                                  {bid.companies?.company_name || 'Unknown Company'}
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <span className="text-sm font-medium">Total Budget:</span>
+                  <span className="text-lg font-semibold">$0</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="w-12 p-3"></th>
+                        <th className="text-left p-3 text-sm font-medium">Cost Code</th>
+                        <th className="text-left p-3 text-sm font-medium">Description</th>
+                        <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                        <th className="text-center p-3 text-sm font-medium">Unit</th>
+                        <th className="text-right p-3 text-sm font-medium">Quantity</th>
+                        <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <RadioGroup value={selectedBidId || ''} onValueChange={setSelectedBidId}>
+                        {availableBids.map((bid) => {
+                          const quantity = budgetItem.quantity || 1;
+                          const subtotal = (bid.price || 0) * quantity;
+                          
+                          return (
+                            <tr 
+                              key={bid.id}
+                              className={`border-t cursor-pointer ${
+                                selectedBidId === bid.id ? 'bg-blue-50' : 'hover:bg-muted/50'
+                              }`}
+                              onClick={() => setSelectedBidId(bid.id)}
+                            >
+                              <td className="p-3">
+                                <RadioGroupItem value={bid.id} id={bid.id} />
+                              </td>
+                              <td className="p-3 text-sm">{costCode.code}</td>
+                              <td className="p-3 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span>{bid.companies?.company_name || 'Unknown Company'}</span>
                                   <Badge 
                                     variant="outline" 
                                     className={`text-xs ${getStatusColor(bid.packageStatus || 'pending')}`}
                                   >
                                     {bid.packageStatus || 'Pending'}
                                   </Badge>
-                                  {bid.packageDueDate && (
-                                    <span className="text-xs text-muted-foreground">
-                                      Due: {format(new Date(bid.packageDueDate), 'MMM d, yyyy')}
-                                    </span>
-                                  )}
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="font-semibold text-base">
-                                  {formatCurrency(bid.price)}
-                                </div>
-                              </div>
-                            </div>
-                          </Label>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </RadioGroup>
-              )}
-            </div>
+                              </td>
+                              <td className="p-3 text-sm text-right">
+                                {formatCurrency(bid.price)}
+                              </td>
+                              <td className="p-3 text-sm text-center">
+                                {truncateUnit(costCode.unit_of_measure)}
+                              </td>
+                              <td className="p-3 text-sm text-right">
+                                {quantity}
+                              </td>
+                              <td className="p-3 text-sm text-right font-medium">
+                                {formatCurrency(subtotal)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </RadioGroup>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <span className="text-sm font-medium">Total Budget:</span>
+                  <span className="text-lg font-semibold">
+                    {selectedBidId 
+                      ? formatCurrency((availableBids.find(b => b.id === selectedBidId)?.price || 0) * (budgetItem.quantity || 1))
+                      : '$0'
+                    }
+                  </span>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Manual Tab */}
           <TabsContent value="manual" className="flex-1 overflow-auto mt-4">
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="manual-quantity">Quantity</Label>
-                  <Input
-                    id="manual-quantity"
-                    type="number"
-                    value={manualQuantity}
-                    onChange={(e) => setManualQuantity(parseFloat(e.target.value) || 0)}
-                    className="mt-1.5"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="manual-unit-price">Unit Price</Label>
-                  <Input
-                    id="manual-unit-price"
-                    type="number"
-                    value={manualUnitPrice}
-                    onChange={(e) => setManualUnitPrice(parseFloat(e.target.value) || 0)}
-                    className="mt-1.5"
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-3 text-sm font-medium">Cost Code</th>
+                      <th className="text-left p-3 text-sm font-medium">Description</th>
+                      <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                      <th className="text-center p-3 text-sm font-medium">Unit</th>
+                      <th className="text-right p-3 text-sm font-medium">Quantity</th>
+                      <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="p-3 text-sm">{costCode.code}</td>
+                      <td className="p-3 text-sm">{costCode.name}</td>
+                      <td className="p-3 text-sm text-right">
+                        <Input
+                          type="number"
+                          value={manualUnitPrice}
+                          onChange={(e) => setManualUnitPrice(parseFloat(e.target.value) || 0)}
+                          className="w-28 h-8 text-right"
+                        />
+                      </td>
+                      <td className="p-3 text-sm text-center">
+                        {truncateUnit(costCode.unit_of_measure)}
+                      </td>
+                      <td className="p-3 text-sm text-right">
+                        <Input
+                          type="number"
+                          value={manualQuantity}
+                          onChange={(e) => setManualQuantity(parseFloat(e.target.value) || 0)}
+                          className="w-28 h-8 text-right"
+                        />
+                      </td>
+                      <td className="p-3 text-sm text-right font-medium">
+                        {formatCurrency(manualQuantity * manualUnitPrice)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
               <div className="flex justify-between items-center pt-4 border-t">
-                <span className="text-sm font-medium">Total:</span>
+                <span className="text-sm font-medium">Total Budget:</span>
                 <span className="text-lg font-semibold">
                   {formatCurrency(manualQuantity * manualUnitPrice)}
                 </span>
@@ -452,75 +502,125 @@ export function BudgetDetailsModal({
 
           {/* Historical Tab */}
           <TabsContent value="historical" className="flex-1 overflow-auto mt-4">
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="historical-project">Select Historical Project</Label>
-                  <Select
-                    value={selectedHistoricalProjectId || ''}
-                    onValueChange={setSelectedHistoricalProjectId}
-                  >
-                    <SelectTrigger id="historical-project" className="mt-1.5">
-                      <SelectValue placeholder="Choose a project..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {historicalProjects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>
-                          {project.address}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {selectedHistoricalProjectId && (
-                  <div className="border rounded-lg p-4 space-y-2">
-                    <div className="text-sm text-muted-foreground">
-                      Actual cost from selected project:
-                    </div>
-                    <div className="text-2xl font-semibold">
-                      {formatCurrency(getHistoricalCost())}
-                    </div>
-                    {getHistoricalCost() === 0 && (
-                      <div className="text-xs text-muted-foreground mt-2">
-                        No historical data available for this cost code
-                      </div>
-                    )}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="historical-project">Select Historical Project</Label>
+                <Select
+                  value={selectedHistoricalProjectId || ''}
+                  onValueChange={setSelectedHistoricalProjectId}
+                >
+                  <SelectTrigger id="historical-project" className="mt-1.5">
+                    <SelectValue placeholder="Choose a project..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {historicalProjects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.address}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedHistoricalProjectId && (
+                <>
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="text-left p-3 text-sm font-medium">Cost Code</th>
+                          <th className="text-left p-3 text-sm font-medium">Description</th>
+                          <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                          <th className="text-center p-3 text-sm font-medium">Unit</th>
+                          <th className="text-right p-3 text-sm font-medium">Quantity</th>
+                          <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-t">
+                          <td className="p-3 text-sm">{costCode.code}</td>
+                          <td className="p-3 text-sm">{costCode.name}</td>
+                          <td className="p-3 text-sm text-right">
+                            {getHistoricalCost() > 0 && budgetItem.quantity
+                              ? formatCurrency(getHistoricalCost() / budgetItem.quantity)
+                              : '$0'
+                            }
+                          </td>
+                          <td className="p-3 text-sm text-center">
+                            {truncateUnit(costCode.unit_of_measure)}
+                          </td>
+                          <td className="p-3 text-sm text-right">
+                            {budgetItem.quantity || 0}
+                          </td>
+                          <td className="p-3 text-sm text-right font-medium">
+                            {formatCurrency(getHistoricalCost())}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
-                )}
+                  {getHistoricalCost() === 0 && (
+                    <div className="text-xs text-muted-foreground text-center py-2">
+                      No historical data available for this cost code
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <span className="text-sm font-medium">Total Budget:</span>
+                <span className="text-lg font-semibold">
+                  {selectedHistoricalProjectId ? formatCurrency(getHistoricalCost()) : '$0'}
+                </span>
               </div>
             </div>
           </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="flex-1 overflow-auto mt-4">
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="border rounded-lg p-4 space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Default price from settings:
-                  </div>
-                  <div className="text-xl font-semibold">
-                    {formatCurrency(costCode.price)} <span className="text-sm text-muted-foreground">per {truncateUnit(costCode.unit_of_measure)}</span>
-                  </div>
-                </div>
-                
-                {costCode.price && budgetItem.quantity ? (
-                  <div className="pt-4 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        {budgetItem.quantity} {truncateUnit(costCode.unit_of_measure)} × {formatCurrency(costCode.price)}
-                      </span>
-                      <span className="text-lg font-semibold">
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-3 text-sm font-medium">Cost Code</th>
+                      <th className="text-left p-3 text-sm font-medium">Description</th>
+                      <th className="text-right p-3 text-sm font-medium">Unit Price</th>
+                      <th className="text-center p-3 text-sm font-medium">Unit</th>
+                      <th className="text-right p-3 text-sm font-medium">Quantity</th>
+                      <th className="text-right p-3 text-sm font-medium">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="p-3 text-sm">{costCode.code}</td>
+                      <td className="p-3 text-sm">{costCode.name}</td>
+                      <td className="p-3 text-sm text-right">
+                        {formatCurrency(costCode.price)}
+                      </td>
+                      <td className="p-3 text-sm text-center">
+                        {truncateUnit(costCode.unit_of_measure)}
+                      </td>
+                      <td className="p-3 text-sm text-right">
+                        {budgetItem.quantity || 0}
+                      </td>
+                      <td className="p-3 text-sm text-right font-medium">
                         {formatCurrency(getSettingsPrice())}
-                      </span>
-                    </div>
-                  </div>
-                ) : !costCode.price ? (
-                  <div className="text-xs text-muted-foreground">
-                    No default price set in settings for this cost code
-                  </div>
-                ) : null}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              {!costCode.price && (
+                <div className="text-xs text-muted-foreground text-center py-2">
+                  No default price set in settings for this cost code
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-4 border-t">
+                <span className="text-sm font-medium">Total Budget:</span>
+                <span className="text-lg font-semibold">
+                  {formatCurrency(getSettingsPrice())}
+                </span>
               </div>
             </div>
           </TabsContent>
