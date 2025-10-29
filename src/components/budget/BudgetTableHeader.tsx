@@ -31,12 +31,12 @@ export function BudgetTableHeader({
         <TableHead className="h-10 pl-12 pr-3 py-2 text-xs font-semibold w-40">Cost Code</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-[320px]">Name</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-48">Source</TableHead>
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52">Total Budget</TableHead>
-        <TableHead className="h-10 px-0 py-2 text-xs font-semibold w-16">
+        <TableHead className="h-10 pl-3 pr-0 py-2 text-xs font-semibold w-52">Total Budget</TableHead>
+        <TableHead className="h-10 px-0 py-2 text-xs font-semibold w-12 text-center">
           <span className="sr-only">Warnings</span>
         </TableHead>
         {visibleColumns.historicalCosts && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52">
+          <TableHead className="h-10 pl-0 pr-3 py-2 text-xs font-semibold w-52">
             {historicalProjects.length > 0 ? (
               <Select value={selectedHistoricalProject || "none"} onValueChange={(value) => onHistoricalProjectChange(value === "none" ? "" : value)}>
                 <SelectTrigger className="h-6 text-xs font-semibold border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">

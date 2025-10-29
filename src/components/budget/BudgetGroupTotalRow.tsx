@@ -55,12 +55,12 @@ export function BudgetGroupTotalRow({
     <TableRow className="font-semibold bg-gray-100 h-10 border-t-2">
       <TableCell colSpan={3} className="py-1 text-sm">Subtotal for {group}</TableCell>
       <TableCell className="w-48 py-1"></TableCell>
-      <TableCell className="w-52 py-1 text-sm">
+      <TableCell className="w-52 pr-0 py-1 text-sm">
         {formatCurrency(groupTotal)}
       </TableCell>
-      <TableCell className="w-16 px-0 py-1"></TableCell>
+      <TableCell className="w-12 px-0 py-1"></TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="w-52 py-1 text-sm">
+        <TableCell className="w-52 pl-0 py-1 text-sm">
           {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
         </TableCell>
       )}

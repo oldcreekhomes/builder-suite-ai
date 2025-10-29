@@ -264,7 +264,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             <col style={{ width: '320px' }} />
             <col style={{ width: '192px' }} />
             <col style={{ width: '208px' }} />
-            <col style={{ width: '64px' }} />
+            <col style={{ width: '48px' }} />
             {visibleColumns.historicalCosts && <col style={{ width: '208px' }} />}
             {visibleColumns.variance && <col style={{ width: '192px' }} />}
           </colgroup>

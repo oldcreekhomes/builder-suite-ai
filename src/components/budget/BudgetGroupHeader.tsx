@@ -75,9 +75,9 @@ export function BudgetGroupHeader({
       </TableCell>
       <TableCell className="w-[320px] py-3 px-3"></TableCell>
       <TableCell className="w-48 py-1"></TableCell>
-      <TableCell className="w-52 py-1"></TableCell>
-      <TableCell className="w-16 px-0 py-1"></TableCell>
-      {visibleColumns.historicalCosts && <TableCell className="w-52 py-1"></TableCell>}
+      <TableCell className="w-52 pr-0 py-1"></TableCell>
+      <TableCell className="w-12 px-0 py-1"></TableCell>
+      {visibleColumns.historicalCosts && <TableCell className="w-52 pl-0 py-1"></TableCell>}
       {visibleColumns.variance && <TableCell className="w-48 py-1"></TableCell>}
     </TableRow>
   );
