@@ -117,41 +117,65 @@ export function BudgetPrintView({
     }, 0);
   };
 
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  const currentTime = new Date().toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+
   return (
     <div className="print-content hidden">
-      <div className="print-header mb-6">
-        <h1 className="text-2xl font-bold text-center mb-2">Project Budget</h1>
-        {projectAddress && (
-          <p className="text-center text-gray-600 mb-4">{projectAddress}</p>
-        )}
-      </div>
-
-      {Object.entries(groupedBudgetItems).map(([group, items]) => {
-        const groupTotal = calculateGroupTotal(items);
-        const groupHistorical = calculateGroupHistorical(items);
+      <table className="w-full border-collapse border border-gray-300" style={{ tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '80px' }} />
+          <col style={{ width: '250px' }} />
+          <col style={{ width: '100px' }} />
+          <col style={{ width: '120px' }} />
+          {showHistorical && <col style={{ width: '120px' }} />}
+          {showVariance && <col style={{ width: '100px' }} />}
+        </colgroup>
         
-        return (
-          <div key={group} className="mb-6">
-            <table className="w-full border-collapse border border-gray-300 mb-2" style={{ tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '80px' }} />
-                <col style={{ width: '250px' }} />
-                <col style={{ width: '100px' }} />
-                <col style={{ width: '120px' }} />
-                {showHistorical && <col style={{ width: '120px' }} />}
-                {showVariance && <col style={{ width: '100px' }} />}
-              </colgroup>
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-300 p-1 text-left text-sm">Cost Code</th>
-                  <th className="border border-gray-300 p-1 text-left text-sm">Name</th>
-                  <th className="border border-gray-300 p-1 text-left text-sm">Source</th>
-                  <th className="border border-gray-300 p-1 text-right text-sm">Total Budget</th>
-                  {showHistorical && <th className="border border-gray-300 p-1 text-right text-sm">Historical</th>}
-                  {showVariance && <th className="border border-gray-300 p-1 text-right text-sm">Variance</th>}
-                </tr>
-              </thead>
-              <tbody>
+        <thead>
+          {/* Title Row */}
+          <tr>
+            <th colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} className="border border-gray-300 p-2 text-center text-xl font-bold">
+              Project Budget
+            </th>
+          </tr>
+          
+          {/* Date/Time, Address, Page Numbers Row */}
+          <tr>
+            <th colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} className="border border-gray-300 p-2">
+              <div className="flex justify-between items-center text-sm text-gray-600">
+                <span>{currentDate} {currentTime}</span>
+                <span className="font-normal">{projectAddress}</span>
+                <span>Page <span className="page-number"></span> of <span className="total-pages"></span></span>
+              </div>
+            </th>
+          </tr>
+          
+          {/* Column Headers Row */}
+          <tr className="bg-gray-50">
+            <th className="border border-gray-300 p-1 text-left text-sm">Cost Code</th>
+            <th className="border border-gray-300 p-1 text-left text-sm">Name</th>
+            <th className="border border-gray-300 p-1 text-left text-sm">Source</th>
+            <th className="border border-gray-300 p-1 text-right text-sm">Total Budget</th>
+            {showHistorical && <th className="border border-gray-300 p-1 text-right text-sm">Historical</th>}
+            {showVariance && <th className="border border-gray-300 p-1 text-right text-sm">Variance</th>}
+          </tr>
+        </thead>
+        
+        <tbody>
+          {Object.entries(groupedBudgetItems).map(([group, items]) => {
+            const groupTotal = calculateGroupTotal(items);
+            const groupHistorical = calculateGroupHistorical(items);
+            
+            return (
+              <React.Fragment key={group}>
                 {items.map((item) => {
                   const subcategoryTotal = subcategoryTotals[item.id];
                   const historicalCost = getHistoricalCost(item);
@@ -174,6 +198,8 @@ export function BudgetPrintView({
                     </tr>
                   );
                 })}
+                
+                {/* Group Total Row */}
                 <tr className="bg-gray-50 font-semibold">
                   <td colSpan={3} className="border border-gray-300 p-1"></td>
                   <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupTotal)}</td>
@@ -184,36 +210,24 @@ export function BudgetPrintView({
                     </td>
                   )}
                 </tr>
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
-
-      <div className="print-footer mt-6 pt-4 border-t-2 border-gray-300">
-        <table className="w-full border-collapse border border-gray-300" style={{ tableLayout: 'fixed' }}>
-          <colgroup>
-            <col style={{ width: '80px' }} />
-            <col style={{ width: '250px' }} />
-            <col style={{ width: '100px' }} />
-            <col style={{ width: '120px' }} />
-            {showHistorical && <col style={{ width: '120px' }} />}
-            {showVariance && <col style={{ width: '100px' }} />}
-          </colgroup>
-          <tbody>
-            <tr className="bg-gray-100 font-bold">
-              <td colSpan={3} className="border border-gray-300 p-2 text-right text-lg">Project Total:</td>
-              <td className="border border-gray-300 p-2 text-right text-lg">{formatCurrency(totalBudget)}</td>
-              {showHistorical && <td className="border border-gray-300 p-2 text-right text-lg">{formatCurrency(totalHistorical)}</td>}
-              {showVariance && (
-                <td className="border border-gray-300 p-2 text-right text-lg" style={getVarianceColor(totalBudget, totalHistorical)}>
-                  {calculateVariance(totalBudget, totalHistorical)}
-                </td>
-              )}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+        
+        <tfoot>
+          <tr className="bg-gray-100 font-bold">
+            <td colSpan={3} className="border border-gray-300 p-2 text-right text-lg">Project Total:</td>
+            <td className="border border-gray-300 p-2 text-right text-lg">{formatCurrency(totalBudget)}</td>
+            {showHistorical && <td className="border border-gray-300 p-2 text-right text-lg">{formatCurrency(totalHistorical)}</td>}
+            {showVariance && (
+              <td className="border border-gray-300 p-2 text-right text-lg" style={getVarianceColor(totalBudget, totalHistorical)}>
+                {calculateVariance(totalBudget, totalHistorical)}
+              </td>
+            )}
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

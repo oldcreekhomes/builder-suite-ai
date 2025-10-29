@@ -167,51 +167,34 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .pt-4 { padding-top: 16px; }
             @media print {
               body { 
-                margin: 0; 
-                padding-bottom: 110px;
+                margin: 0;
               }
-              .page-break { page-break-before: always; }
+              
+              thead { 
+                display: table-header-group;
+              }
+              
+              tfoot {
+                display: table-footer-group;
+              }
+              
               tbody tr {
                 break-inside: avoid;
                 page-break-inside: avoid;
               }
+              
               @page {
                 margin-top: 20px;
-                margin-bottom: 70px;
-                /* Override browser's default headers/footers */
-                @top-left { content: ""; }
-                @top-center { content: ""; }
-                @top-right { content: ""; }
-                @bottom-left { content: ""; }
-                @bottom-center { content: ""; }
-                @bottom-right { content: ""; }
+                margin-bottom: 72px;
+                counter-increment: page;
               }
               
-              .print-header {
-                display: block;
-                page-break-after: avoid;
+              .page-number::after {
+                content: counter(page);
               }
               
-              table thead {
-                display: table-row-group;
-              }
-              
-              body::before {
-                content: "${printDate}";
-                position: fixed;
-                bottom: 10px;
-                left: 15px;
-                font-size: 10px;
-                color: #000;
-              }
-              
-              body::after {
-                content: "Page " counter(page);
-                position: fixed;
-                bottom: 10px;
-                right: 15px;
-                font-size: 10px;
-                color: #000;
+              .total-pages::after {
+                content: counter(pages);
               }
             }
           </style>
