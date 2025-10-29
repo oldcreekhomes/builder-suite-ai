@@ -1,6 +1,7 @@
 import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
+import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetGroupTotalRowProps {
@@ -22,13 +23,34 @@ export function BudgetGroupTotalRow({
   groupItems = [],
   subcategoryTotals = {}
 }: BudgetGroupTotalRowProps) {
+  // Get the first historical project ID if any items use historical source
+  // Note: This assumes all historical items in a group reference the same project
+  // which is the typical use case
+  const historicalProjectId = React.useMemo(() => {
+    const item = groupItems.find(item => 
+      item.budget_source === 'historical' && item.historical_project_id
+    );
+    return item?.historical_project_id || null;
+  }, [groupItems]);
+
+  // Fetch historical costs if needed
+  const { data: historicalData } = useHistoricalActualCosts(historicalProjectId);
+
   // Calculate actual displayed total using same logic as rows
   const displayedTotal = React.useMemo(() => {
     return groupItems.reduce((sum, item) => {
       const subcategoryTotal = subcategoryTotals[item.id];
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+      const costCode = item.cost_codes as any;
+      
+      // Get historical cost if this item uses historical source
+      let historicalCostForItem: number | undefined = undefined;
+      if (item.budget_source === 'historical' && item.historical_project_id && costCode?.code) {
+        historicalCostForItem = historicalData?.mapByCode[costCode.code] || 0;
+      }
+      
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCostForItem);
     }, 0);
-  }, [groupItems, subcategoryTotals]);
+  }, [groupItems, subcategoryTotals, historicalData]);
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
   };

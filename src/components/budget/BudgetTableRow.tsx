@@ -6,6 +6,7 @@ import { Eye, Lock, Unlock } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetSourceBadge } from './BudgetSourceBadge';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
+import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -61,6 +62,17 @@ export function BudgetTableRow({
   
   const costCode = item.cost_codes as CostCode;
   
+  // Fetch historical costs if this item uses historical source
+  const shouldFetchHistorical = item.budget_source === 'historical' && !!item.historical_project_id;
+  const { data: historicalData } = useHistoricalActualCosts(
+    shouldFetchHistorical ? item.historical_project_id : null
+  );
+  
+  // Extract historical cost for this specific cost code
+  const historicalCostForItem = shouldFetchHistorical && costCode?.code 
+    ? (historicalData?.mapByCode[costCode.code] || 0)
+    : undefined;
+  
   // Use subcategories hook to get calculated total if cost code has subcategories
   const hasSubcategories = costCode?.has_subcategories || false;
   const { calculatedTotal: subcategoryTotal, selections, subcategories } = useBudgetSubcategories(
@@ -86,7 +98,7 @@ export function BudgetTableRow({
   const bidCompanyName = hasSelectedBid ? (selectedBid.companies?.company_name || 'Unknown') : '';
   
   // Use the shared calculation utility for consistency
-  const total = calculateBudgetItemTotal(item, subcategoryTotal, manualOverrideEnabled);
+  const total = calculateBudgetItemTotal(item, subcategoryTotal, manualOverrideEnabled, historicalCostForItem);
   
   // For display purposes in Cost column
   const displayUnitPrice = hasSelectedBid 
