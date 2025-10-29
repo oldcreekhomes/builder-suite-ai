@@ -35,6 +35,7 @@ interface BudgetTableRowProps {
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
   projectId?: string;
+  itemTotal?: number; // Pre-calculated total from itemTotalsMap
 }
 
 export function BudgetTableRow({ 
@@ -49,7 +50,8 @@ export function BudgetTableRow({
   historicalActualCosts = {},
   showVarianceAsPercentage = false,
   visibleColumns,
-  projectId
+  projectId,
+  itemTotal
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
@@ -97,8 +99,8 @@ export function BudgetTableRow({
   const bidPrice = hasSelectedBid ? (selectedBid.price || 0) : 0;
   const bidCompanyName = hasSelectedBid ? (selectedBid.companies?.company_name || 'Unknown') : '';
   
-  // Use the shared calculation utility for consistency
-  const total = calculateBudgetItemTotal(item, subcategoryTotal, manualOverrideEnabled, historicalCostForItem);
+  // Use pre-calculated total if provided (from itemTotalsMap), otherwise calculate
+  const total = itemTotal ?? calculateBudgetItemTotal(item, subcategoryTotal, manualOverrideEnabled, historicalCostForItem);
   
   // For display purposes in Cost column
   const displayUnitPrice = hasSelectedBid 

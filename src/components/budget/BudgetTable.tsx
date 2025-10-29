@@ -309,6 +309,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         <BudgetTableRow
                           key={item.id}
                           item={item}
+                          itemTotal={itemTotalsMap[item.id]}
                           onUpdate={handleUpdateItem}
                           onUpdateUnit={handleUpdateUnit}
                           onDelete={onDeleteItem}
