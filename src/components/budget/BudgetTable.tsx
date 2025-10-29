@@ -182,7 +182,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               }
               
               @page {
-                margin: 0.5in 0.5in 1in 0.5in;
+                margin: 0.5in;
                 size: auto;
               }
               
