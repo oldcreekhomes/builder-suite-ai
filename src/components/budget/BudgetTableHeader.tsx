@@ -33,7 +33,7 @@ export function BudgetTableHeader({
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-48">Source</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52">Total Budget</TableHead>
         {visibleColumns.historicalCosts && (
-          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52 text-right">
+          <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52">
             {historicalProjects.length > 0 ? (
               <Select value={selectedHistoricalProject} onValueChange={onHistoricalProjectChange}>
                 <SelectTrigger className="h-6 -ml-3 text-xs font-semibold border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 pl-0 gap-1">

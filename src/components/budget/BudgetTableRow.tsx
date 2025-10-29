@@ -251,7 +251,7 @@ export function BudgetTableRow({
           {formatCurrency(total)}
         </TableCell>
         {visibleColumns.historicalCosts && (
-          <TableCell className="w-52 py-1 text-sm text-right pr-4">
+          <TableCell className="w-52 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
               ? formatCurrency(historicalActual)
               : '-'
