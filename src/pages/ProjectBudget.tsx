@@ -45,7 +45,6 @@ export default function ProjectBudget() {
         <AppSidebar onStartChat={openFloatingChat} />
         <SidebarInset className="flex-1">
           <DashboardHeader 
-            title="Project Budget" 
             projectId={projectId}
           />
           
