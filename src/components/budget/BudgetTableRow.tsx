@@ -253,7 +253,7 @@ export function BudgetTableRow({
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
-        <TableCell className="w-52 pr-0 py-1 text-sm">
+        <TableCell className="w-52 pr-3 py-1 text-sm">
           {formatCurrency(total)}
         </TableCell>
         <TableCell className="w-12 px-0 py-1 text-center" onClick={(e) => e.stopPropagation()}>
@@ -278,7 +278,7 @@ export function BudgetTableRow({
           )}
         </TableCell>
         {visibleColumns.historicalCosts && (
-          <TableCell className="w-52 pl-0 py-1 text-sm">
+          <TableCell className="w-52 pl-3 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
               ? formatCurrency(historicalActual)
               : '-'
