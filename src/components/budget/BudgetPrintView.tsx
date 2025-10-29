@@ -121,6 +121,9 @@ export function BudgetPrintView({
     <div className="print-content hidden">
       <div className="print-header mb-6">
         <h1 className="text-2xl font-bold text-center mb-2">Project Budget</h1>
+        {projectAddress && (
+          <p className="text-center text-gray-600 mb-4">{projectAddress}</p>
+        )}
       </div>
 
       {Object.entries(groupedBudgetItems).map(([group, items]) => {

@@ -169,28 +169,45 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               body { margin: 0; }
               .page-break { page-break-before: always; }
               @page {
-                margin-bottom: 30px;
+                margin-bottom: 40px;
               }
-              @page :first {
-                margin-top: 0;
-              }
+              
+              /* Show header only on first page */
               .print-header {
                 display: block;
               }
+              
+              /* Hide header on subsequent pages */
+              body { counter-reset: page; }
+              @page :not(:first) {
+                margin-top: 20px;
+              }
+              @page :first ~ * .print-header {
+                display: none;
+              }
+              
               table thead {
                 display: table-row-group;
               }
-            }
-            @media print {
-              body::after {
+              
+              /* Footer with timestamp on left and page number on right */
+              body::before {
                 content: "${printDate}";
                 position: fixed;
                 bottom: 10px;
-                left: 0;
-                right: 0;
-                text-align: center;
+                left: 15px;
                 font-size: 10px;
-                color: #666;
+                color: #000;
+              }
+              
+              body::after {
+                content: "Page " counter(page);
+                position: fixed;
+                bottom: 10px;
+                right: 15px;
+                font-size: 10px;
+                color: #000;
+                counter-increment: page;
               }
             }
           </style>
