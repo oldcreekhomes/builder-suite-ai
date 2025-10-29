@@ -15,31 +15,41 @@ interface BudgetPrintToolbarProps {
 
 export function BudgetPrintToolbar({ onPrint, onAddBudget, visibleColumns, onToggleColumn, onExpandAll, onCollapseAll }: BudgetPrintToolbarProps) {
   return (
-    <div className="flex items-center justify-end border-b pb-4 mb-4 gap-2">
-        {onExpandAll && onCollapseAll && (
-          <>
-            <Button onClick={onExpandAll} variant="outline" size="sm">
-              <ChevronsDownUp className="h-4 w-4 mr-2" />
-              Expand All
-            </Button>
-            <Button onClick={onCollapseAll} variant="outline" size="sm">
-              <ChevronsUpDown className="h-4 w-4 mr-2" />
-              Collapse All
-            </Button>
-          </>
-        )}
-        <BudgetColumnVisibilityDropdown 
-          visibleColumns={visibleColumns}
-          onToggleColumn={onToggleColumn}
-        />
-        <Button onClick={onAddBudget} variant="outline" size="sm">
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Budget
-        </Button>
-        <Button onClick={onPrint} variant="outline" size="sm">
-          <Printer className="h-4 w-4 mr-2" />
-          Print
-        </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Budget</h1>
+          <p className="text-muted-foreground">
+            Manage budget for this project
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {onExpandAll && onCollapseAll && (
+            <>
+              <Button onClick={onExpandAll} variant="outline" size="sm">
+                <ChevronsDownUp className="h-4 w-4 mr-2" />
+                Expand All
+              </Button>
+              <Button onClick={onCollapseAll} variant="outline" size="sm">
+                <ChevronsUpDown className="h-4 w-4 mr-2" />
+                Collapse All
+              </Button>
+            </>
+          )}
+          <BudgetColumnVisibilityDropdown 
+            visibleColumns={visibleColumns}
+            onToggleColumn={onToggleColumn}
+          />
+          <Button onClick={onAddBudget} variant="outline" size="sm">
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Budget
+          </Button>
+          <Button onClick={onPrint} variant="outline" size="sm">
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

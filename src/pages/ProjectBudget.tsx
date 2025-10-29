@@ -50,15 +50,6 @@ export default function ProjectBudget() {
           />
           
           <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Budget</h1>
-                <p className="text-muted-foreground">
-                  Manage budget for this project
-                </p>
-              </div>
-            </div>
-            
             <BudgetTable 
               projectId={projectId} 
               projectAddress={project?.address}
