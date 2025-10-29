@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText } from "lucide-react";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
 import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
@@ -399,16 +400,13 @@ export function BudgetDetailsModal({
                         <th className="w-12 p-3"></th>
                         <th className="text-left p-3 text-sm font-medium">Cost Code</th>
                         <th className="text-left p-3 text-sm font-medium">Vendor</th>
-                        <th className="text-left p-3 text-sm font-medium">Unit Price</th>
-                        <th className="text-center p-3 text-sm font-medium">Unit</th>
-                        <th className="text-left p-3 text-sm font-medium">Quantity</th>
+                        <th className="text-left p-3 text-sm font-medium">Proposal</th>
                         <th className="text-left p-3 text-sm font-medium">Subtotal</th>
                       </tr>
                     </thead>
                     <tbody>
                         {availableBids.map((bid) => {
-                          const quantity = budgetItem.quantity || 1;
-                          const subtotal = (bid.price || 0) * quantity;
+                          const subtotal = bid.price || 0;
                           
                           return (
                             <tr 
@@ -428,14 +426,26 @@ export function BudgetDetailsModal({
                               <td className="p-3 text-sm">
                                 {bid.companies?.company_name || 'Unknown Company'}
                               </td>
-                              <td className="p-3 text-sm text-left">
-                                {formatCurrency(bid.price)}
-                              </td>
-                              <td className="p-3 text-sm text-center">
-                                {truncateUnit(costCode.unit_of_measure)}
-                              </td>
-                              <td className="p-3 text-sm text-left">
-                                {quantity}
+                              <td className="p-3 text-sm">
+                                {bid.proposals && bid.proposals.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {bid.proposals.map((proposal, idx) => (
+                                      <a
+                                        key={idx}
+                                        href={proposal}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <FileText className="h-3 w-3" />
+                                        Proposal {idx + 1}
+                                      </a>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
                               </td>
                               <td className="p-3 text-sm text-left font-medium">
                                 {formatCurrency(subtotal)}
@@ -450,7 +460,7 @@ export function BudgetDetailsModal({
                   <span className="text-sm font-medium">Total Budget:</span>
                   <span className="text-lg font-semibold">
                     {selectedBidId 
-                      ? formatCurrency((availableBids.find(b => b.id === selectedBidId)?.price || 0) * (budgetItem.quantity || 1))
+                      ? formatCurrency(availableBids.find(b => b.id === selectedBidId)?.price || 0)
                       : '$0'
                     }
                   </span>
