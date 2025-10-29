@@ -353,6 +353,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     isDeleting={deletingGroups.has(group)}
                     groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
                     visibleColumns={visibleColumns}
+                    rowClassName={group === activeGroup ? 'invisible' : ''}
                   />
 
                   {expandedGroups.has(group) && (
