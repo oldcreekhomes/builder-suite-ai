@@ -264,6 +264,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             <col style={{ width: '320px' }} />
             <col style={{ width: '192px' }} />
             <col style={{ width: '208px' }} />
+            <col style={{ width: '128px' }} />
             {visibleColumns.historicalCosts && <col style={{ width: '208px' }} />}
             {visibleColumns.variance && <col style={{ width: '192px' }} />}
           </colgroup>
@@ -280,7 +281,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             <tbody>
               <TableRow>
                 <TableCell 
-                  colSpan={5 + (visibleColumns.historicalCosts ? 1 : 0) + (visibleColumns.variance ? 1 : 0)}
+                  colSpan={6 + (visibleColumns.historicalCosts ? 1 : 0) + (visibleColumns.variance ? 1 : 0)}
                   className="text-center py-8 text-gray-500"
                 >
                   No budget items added yet.
