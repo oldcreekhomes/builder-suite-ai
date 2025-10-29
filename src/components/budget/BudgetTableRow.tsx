@@ -253,13 +253,16 @@ export function BudgetTableRow({
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
+        <TableCell className="w-52 py-1 text-sm">
+          {formatCurrency(total)}
+        </TableCell>
         <TableCell className="w-10 py-1" onClick={(e) => e.stopPropagation()}>
           {warnings.length > 0 && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center justify-center cursor-help">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-sm">
@@ -273,9 +276,6 @@ export function BudgetTableRow({
               </Tooltip>
             </TooltipProvider>
           )}
-        </TableCell>
-        <TableCell className="w-52 py-1 text-sm">
-          {formatCurrency(total)}
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 py-1 text-sm">
