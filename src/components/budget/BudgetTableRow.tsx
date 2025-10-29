@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, Lock, Unlock } from 'lucide-react';
+import { Eye, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetSourceBadge } from './BudgetSourceBadge';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
+import { useBudgetWarnings } from '@/hooks/useBudgetWarnings';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -228,6 +229,9 @@ export function BudgetTableRow({
     return `$${Math.round(amount).toLocaleString()}`;
   };
 
+  // Get budget warnings
+  const warnings = useBudgetWarnings(item, total, costCode);
+
   return (
     <React.Fragment>
       <TableRow 
@@ -248,6 +252,27 @@ export function BudgetTableRow({
         </TableCell>
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
+        </TableCell>
+        <TableCell className="w-10 py-1" onClick={(e) => e.stopPropagation()}>
+          {warnings.length > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-center cursor-help">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-sm">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-xs">Budget Warnings:</p>
+                    {warnings.map((warning, idx) => (
+                      <p key={idx} className="text-xs">• {warning.message}</p>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </TableCell>
         <TableCell className="w-52 py-1 text-sm">
           {formatCurrency(total)}
