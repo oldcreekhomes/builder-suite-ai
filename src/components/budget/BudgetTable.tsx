@@ -169,21 +169,13 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               body { margin: 0; }
               .page-break { page-break-before: always; }
               @page {
+                margin-top: 20px;
                 margin-bottom: 40px;
               }
               
-              /* Show header only on first page */
               .print-header {
                 display: block;
-              }
-              
-              /* Hide header on subsequent pages */
-              body { counter-reset: page; }
-              @page :not(:first) {
-                margin-top: 20px;
-              }
-              @page :first ~ * .print-header {
-                display: none;
+                page-break-after: avoid;
               }
               
               table thead {
@@ -207,7 +199,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 right: 15px;
                 font-size: 10px;
                 color: #000;
-                counter-increment: page;
               }
             }
           </style>
