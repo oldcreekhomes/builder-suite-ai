@@ -38,6 +38,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [headerHeight, setHeaderHeight] = useState(40);
   
+  const lastActiveGroupRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<string, HTMLTableSectionElement | null>>({});
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
@@ -202,38 +203,50 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     return () => window.removeEventListener('resize', measureHeader);
   }, [visibleColumns]);
 
+  // Sync ref with current activeGroup to avoid thrash
+  useEffect(() => {
+    lastActiveGroupRef.current = activeGroup;
+  }, [activeGroup]);
+
   // Determine active group on scroll
   useEffect(() => {
     let rafId: number;
     
     const updateActiveGroup = () => {
       if (!headerRef.current) return;
-      
       const headerRow = headerRef.current.querySelector('tr');
       if (!headerRow) return;
-      
+
       const headerBottom = headerRow.getBoundingClientRect().bottom;
       const groups = Object.keys(groupedBudgetItems);
-      
-      let newActiveGroup: string | null = null;
-      
+
+      let candidate: string | null = null;
+
       for (const group of groups) {
         const tbody = groupRefs.current[group];
         if (!tbody) continue;
-        
+
         const rect = tbody.getBoundingClientRect();
-        
-        // If this group's bottom is above the header, skip it
-        if (rect.bottom <= headerBottom) continue;
-        
-        // If this group's top is at or above the header bottom, it's the active one
+        if (rect.bottom <= headerBottom) continue; // skip fully above
         if (rect.top <= headerBottom) {
-          newActiveGroup = group;
+          candidate = group;
           break;
         }
       }
-      
-      setActiveGroup(newActiveGroup);
+
+      // Hysteresis: if candidate is null but previous active group is still intersecting
+      if (candidate === null && lastActiveGroupRef.current) {
+        const currentTbody = groupRefs.current[lastActiveGroupRef.current];
+        if (currentTbody) {
+          const r = currentTbody.getBoundingClientRect();
+          if (r.top <= headerBottom + 2 && r.bottom > headerBottom) {
+            candidate = lastActiveGroupRef.current;
+          }
+        }
+      }
+
+      // Only update when value changes
+      setActiveGroup((prev) => (prev === candidate ? prev : candidate));
     };
     
     const handleScroll = () => {
