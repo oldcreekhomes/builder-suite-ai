@@ -32,7 +32,9 @@ export function BudgetTableHeader({
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-[320px]">Name</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-48">Source</TableHead>
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52">Total Budget</TableHead>
-        <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-12"></TableHead>
+        <TableHead className="h-10 px-0 py-2 text-xs font-semibold w-16">
+          <span className="sr-only">Warnings</span>
+        </TableHead>
         {visibleColumns.historicalCosts && (
           <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-52">
             {historicalProjects.length > 0 ? (
