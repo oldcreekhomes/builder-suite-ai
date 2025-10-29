@@ -261,8 +261,8 @@ export function BudgetTableRow({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="inline-flex items-center justify-center cursor-help">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <div className="flex items-center justify-center w-full mx-auto cursor-help">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-sm">
