@@ -324,6 +324,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         projectAddress={projectAddress}
         subcategoryTotals={subcategoryTotalsMap}
         historicalCostsMap={historicalCostsMap}
+        visibleColumns={visibleColumns}
+        selectedHistoricalProject={selectedHistoricalProject}
+        showVarianceAsPercentage={showVarianceAsPercentage}
+        historicalActualCosts={historicalActualCosts}
       />
 
       {showAddBudgetModal && (
