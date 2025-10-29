@@ -99,7 +99,7 @@ export function BudgetGroupTotalRow({
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="w-48 py-1 text-sm text-right">
+        <TableCell className="w-48 py-1 text-sm">
           {historicalTotal > 0 ? (
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
