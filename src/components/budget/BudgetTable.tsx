@@ -30,12 +30,12 @@ interface BudgetTableProps {
 
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
-  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
+  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('none');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
-    historicalCosts: false,
-    variance: false,
-  });
+  const visibleColumns: VisibleColumns = {
+    historicalCosts: true,
+    variance: true,
+  };
   
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
@@ -178,13 +178,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
-  const handleToggleColumn = (column: keyof VisibleColumns) => {
-    setVisibleColumns(prev => ({
-      ...prev,
-      [column]: !prev[column]
-    }));
-  };
-
   // Build a map of subcategory totals for all items
   // Note: This is initialized as empty and will be populated by child components
   // We keep it stable to prevent unnecessary re-renders
@@ -202,8 +195,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       <BudgetPrintToolbar 
         onPrint={handlePrint} 
         onAddBudget={() => setShowAddBudgetModal(true)}
-        visibleColumns={visibleColumns}
-        onToggleColumn={handleToggleColumn}
         onExpandAll={expandAllGroups}
         onCollapseAll={collapseAllGroups}
       />
