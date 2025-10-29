@@ -254,14 +254,14 @@ export function BudgetTableRow({
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-52 py-1 text-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-6">
             <span>{formatCurrency(total)}</span>
             {warnings.length > 0 && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="cursor-help" onClick={(e) => e.stopPropagation()}>
-                      <AlertTriangle className="h-16 w-16 text-red-600" />
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="max-w-sm">
