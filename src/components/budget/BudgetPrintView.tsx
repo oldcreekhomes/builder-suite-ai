@@ -40,14 +40,33 @@ export function BudgetPrintView({
     return undefined;
   };
 
-  const getSourceLabel = (source: string) => {
-    switch (source) {
-      case 'estimate': return 'Estimate';
-      case 'manual': return 'Manual';
-      case 'vendor_bid': return 'Vendor Bid';
-      case 'historical': return 'Historical';
-      default: return 'Settings';
+  const getSourceLabel = (item: any) => {
+    // Check budget_source field first (new system)
+    if (item.budget_source) {
+      switch (item.budget_source) {
+        case 'vendor-bid': return 'Vendor Bid';
+        case 'estimate': return 'Estimate';
+        case 'historical': return 'Historical';
+        case 'settings': return 'Settings';
+        case 'manual': return 'Manual';
+      }
     }
+
+    // Legacy logic for items without budget_source set
+    if (item.selected_bid_id && item.selected_bid) {
+      return 'Vendor Bid';
+    }
+    
+    const costCode = item.cost_codes;
+    if (costCode?.has_subcategories) {
+      return 'Estimate';
+    }
+    
+    if ((item.quantity !== null && item.quantity > 0) || (item.unit_price !== null && item.unit_price > 0)) {
+      return 'Manual';
+    }
+    
+    return 'Manual';
   };
 
   const calculateVariance = (budgetTotal: number, historicalValue: number) => {
@@ -144,7 +163,7 @@ export function BudgetPrintView({
                     <tr key={item.id}>
                       <td className="border border-gray-300 p-1 text-sm">{costCode}</td>
                       <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.name}</td>
-                      <td className="border border-gray-300 p-1 text-sm">{getSourceLabel(item.budget_source)}</td>
+                      <td className="border border-gray-300 p-1 text-sm">{getSourceLabel(item)}</td>
                       <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(itemTotal)}</td>
                       {showHistorical && <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(historicalValue)}</td>}
                       {showVariance && (
@@ -155,16 +174,6 @@ export function BudgetPrintView({
                     </tr>
                   );
                 })}
-                <tr className="bg-gray-50 font-semibold">
-                  <td colSpan={3} className="border border-gray-300 p-1 text-right text-sm">Group Total:</td>
-                  <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupTotal)}</td>
-                  {showHistorical && <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupHistorical)}</td>}
-                  {showVariance && (
-                    <td className="border border-gray-300 p-1 text-right text-sm" style={getVarianceColor(groupTotal, groupHistorical)}>
-                      {calculateVariance(groupTotal, groupHistorical)}
-                    </td>
-                  )}
-                </tr>
               </tbody>
             </table>
           </div>
