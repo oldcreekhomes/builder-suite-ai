@@ -235,7 +235,7 @@ export function BudgetTableRow({
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
-        <TableCell className="w-52 py-1 text-sm font-semibold">
+        <TableCell className="w-52 py-1 text-sm">
           {formatCurrency(total)}
         </TableCell>
         {visibleColumns.historicalCosts && (
