@@ -21,6 +21,7 @@ import {
 import { CostCodesTab } from "@/components/settings/CostCodesTab";
 import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
+import { BudgetWarningsTab } from "@/components/settings/BudgetWarningsTab";
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
 import { useCostCodeHandlers } from "@/hooks/useCostCodeHandlers";
@@ -121,11 +122,12 @@ const Settings = () => {
               </div>
 
         <Tabs defaultValue="cost-codes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="cost-codes">Cost Codes</TabsTrigger>
-            <TabsTrigger value="specifications">Specifications</TabsTrigger>
-            <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
-          </TabsList>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="cost-codes">Cost Codes</TabsTrigger>
+              <TabsTrigger value="specifications">Specifications</TabsTrigger>
+              <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
+              <TabsTrigger value="budget">Budget</TabsTrigger>
+            </TabsList>
                 
                 <TabsContent value="cost-codes" className="mt-6">
                   <CostCodesTab
@@ -164,11 +166,15 @@ const Settings = () => {
                   />
                 </TabsContent>
 
-                <TabsContent value="chart-of-accounts" className="mt-6">
-                  <ChartOfAccountsTab />
-                </TabsContent>
-              </Tabs>
-            </div>
+            <TabsContent value="chart-of-accounts" className="mt-6">
+              <ChartOfAccountsTab />
+            </TabsContent>
+
+            <TabsContent value="budget" className="mt-6">
+              <BudgetWarningsTab />
+            </TabsContent>
+          </Tabs>
+        </div>
           </div>
         </main>
 
