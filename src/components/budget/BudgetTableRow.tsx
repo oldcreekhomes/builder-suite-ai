@@ -232,11 +232,11 @@ export function BudgetTableRow({
         <TableCell className="flex-1 min-w-[250px] py-1 text-sm" title={costCode?.name || '-'}>
           {costCode?.name || '-'}
         </TableCell>
-        <TableCell className="w-52 py-1 text-sm text-right font-semibold">
-          {formatCurrency(total)}
-        </TableCell>
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
+        </TableCell>
+        <TableCell className="w-52 py-1 text-sm font-semibold">
+          {formatCurrency(total)}
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 py-1 text-sm text-right">

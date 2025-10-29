@@ -208,8 +208,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             <col style={{ width: '3rem' }} />
             <col style={{ width: '10rem' }} />
             <col />
-            <col style={{ width: '13rem' }} />
             <col style={{ width: '12rem' }} />
+            <col style={{ width: '13rem' }} />
             {visibleColumns.historicalCosts && <col style={{ width: '13rem' }} />}
             {visibleColumns.variance && <col style={{ width: '12rem' }} />}
           </colgroup>
