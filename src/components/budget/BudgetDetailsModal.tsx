@@ -12,6 +12,7 @@ import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
 import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
 import { useHistoricalProjects } from "@/hooks/useHistoricalProjects";
 import { useHistoricalActualCosts } from "@/hooks/useHistoricalActualCosts";
+import { BudgetDetailsPurchaseOrderTab } from "./BudgetDetailsPurchaseOrderTab";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
@@ -228,6 +229,7 @@ export function BudgetDetailsModal({
             <TabsTrigger value="manual">Manual</TabsTrigger>
             <TabsTrigger value="historical">Historical</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="purchase-order">Purchase Order</TabsTrigger>
           </TabsList>
 
           {/* Estimate Tab */}
@@ -623,6 +625,14 @@ export function BudgetDetailsModal({
                 </span>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Purchase Order Tab */}
+          <TabsContent value="purchase-order" className="flex-1 overflow-auto mt-4">
+            <BudgetDetailsPurchaseOrderTab 
+              projectId={projectId} 
+              costCodeId={costCode.id} 
+            />
           </TabsContent>
         </Tabs>
 
