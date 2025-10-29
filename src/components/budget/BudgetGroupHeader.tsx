@@ -30,25 +30,15 @@ export function BudgetGroupHeader({
   groupTotal,
   visibleColumns = { historicalCosts: true, variance: true }
 }: BudgetGroupHeaderProps) {
-  const checkboxRef = React.useRef<HTMLButtonElement>(null);
-  const formatCurrency = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
-  };
-
-  React.useEffect(() => {
-    if (checkboxRef.current && 'indeterminate' in checkboxRef.current) {
-      (checkboxRef.current as any).indeterminate = isPartiallySelected && !isSelected;
-    }
-  }, [isPartiallySelected, isSelected]);
+  const formatCurrency = (amount: number) => `$${Math.round(amount).toLocaleString()}`;
 
   return (
     <TableRow className="bg-muted/40 hover:bg-muted/60 border-b">
       <TableCell className="py-3 px-3">
         <div className="flex items-center gap-2">
           <Checkbox
-            checked={isSelected}
-            ref={checkboxRef}
-            onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+            checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
+            onCheckedChange={(checked) => onCheckboxChange(group, checked === true)}
           />
           <button
             type="button"

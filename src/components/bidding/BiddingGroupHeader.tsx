@@ -33,13 +33,8 @@ export function BiddingGroupHeader({
     <TableRow className="bg-gray-50 h-10">
       <TableCell className="w-12 py-1">
         <Checkbox
-          checked={isSelected}
-          ref={(el) => {
-            if (el && 'indeterminate' in el) {
-              (el as any).indeterminate = isPartiallySelected && !isSelected;
-            }
-          }}
-          onCheckedChange={(checked) => onCheckboxChange(group, checked as boolean)}
+          checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
+          onCheckedChange={(checked) => onCheckboxChange(group, checked === true)}
         />
       </TableCell>
       <TableCell 
