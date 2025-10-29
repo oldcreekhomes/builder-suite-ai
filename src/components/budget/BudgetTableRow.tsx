@@ -254,7 +254,7 @@ export function BudgetTableRow({
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-52 py-1 text-sm">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-12">
             <span>{formatCurrency(total)}</span>
             {warnings.length > 0 && (
               <TooltipProvider>
