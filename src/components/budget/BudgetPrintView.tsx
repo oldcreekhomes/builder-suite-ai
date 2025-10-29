@@ -7,17 +7,29 @@ interface BudgetPrintViewProps {
   groupedBudgetItems: Record<string, any[]>;
   projectAddress?: string;
   subcategoryTotals?: Record<string, number>;
+  historicalCostsMap?: Record<string, Record<string, number>>;
 }
 
-export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddress, subcategoryTotals = {} }: BudgetPrintViewProps) {
+export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddress, subcategoryTotals = {}, historicalCostsMap = {} }: BudgetPrintViewProps) {
   const formatCurrency = (amount: number) => {
     return `$${Math.round(amount).toLocaleString()}`;
+  };
+
+  const getHistoricalCost = (item: any) => {
+    if (item.budget_source === 'historical' && item.historical_project_id) {
+      const costCode = item.cost_codes?.code;
+      if (costCode && historicalCostsMap[item.historical_project_id]) {
+        return historicalCostsMap[item.historical_project_id][costCode];
+      }
+    }
+    return undefined;
   };
 
   const totalBudget = budgetItems.reduce(
     (sum, item) => {
       const subcategoryTotal = subcategoryTotals[item.id];
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+      const historicalCost = getHistoricalCost(item);
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCost);
     }, 
     0
   );
@@ -25,7 +37,8 @@ export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddres
   const calculateGroupTotal = (items: any[]) => {
     return items.reduce((sum, item) => {
       const subcategoryTotal = subcategoryTotals[item.id];
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+      const historicalCost = getHistoricalCost(item);
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCost);
     }, 0);
   };
 
@@ -62,7 +75,8 @@ export function BudgetPrintView({ budgetItems, groupedBudgetItems, projectAddres
             <tbody>
               {items.map((item) => {
                 const subcategoryTotal = subcategoryTotals[item.id];
-                const itemTotal = calculateBudgetItemTotal(item, subcategoryTotal, false);
+                const historicalCost = getHistoricalCost(item);
+                const itemTotal = calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCost);
                 return (
                   <tr key={item.id}>
                     <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.code}</td>

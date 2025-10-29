@@ -324,6 +324,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         groupedBudgetItems={groupedBudgetItems}
         projectAddress={projectAddress}
         subcategoryTotals={subcategoryTotalsMap}
+        historicalCostsMap={historicalCostsMap}
       />
 
       {showAddBudgetModal && (
