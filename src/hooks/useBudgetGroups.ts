@@ -52,10 +52,23 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
     return selectedInGroup.length > 0 && selectedInGroup.length < groupItems.length;
   };
 
-  const calculateGroupTotal = (groupItems: any[], subcategoryTotals: Record<string, number> = {}) => {
+  const calculateGroupTotal = (
+    groupItems: any[], 
+    subcategoryTotals: Record<string, number> = {},
+    historicalCostsMap: Record<string, Record<string, number>> = {}
+  ) => {
     return groupItems.reduce((sum, item) => {
       const subcategoryTotal = subcategoryTotals[item.id];
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false);
+      const costCode = item.cost_codes as any;
+      
+      // Get historical cost if this item uses historical source
+      let historicalCostForItem: number | undefined = undefined;
+      if (item.budget_source === 'historical' && item.historical_project_id && costCode?.code) {
+        const projectHistoricalCosts = historicalCostsMap[item.historical_project_id];
+        historicalCostForItem = projectHistoricalCosts?.[costCode.code] || 0;
+      }
+      
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCostForItem);
     }, 0);
   };
 

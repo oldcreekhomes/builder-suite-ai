@@ -15,6 +15,7 @@ import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
+import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { useAutoAddMissingCostCodes } from '@/hooks/useAutoAddMissingCostCodes';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
@@ -45,6 +46,20 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const historicalActualCosts = historicalData?.mapByCode || {};
   const historicalTotal = historicalData?.total || 0;
   const historicalCostCodes = historicalData?.costCodes || [];
+  
+  // Collect all unique historical project IDs from budget items
+  const historicalProjectIds = useMemo(() => {
+    const ids = new Set<string>();
+    budgetItems.forEach(item => {
+      if (item.budget_source === 'historical' && item.historical_project_id) {
+        ids.add(item.historical_project_id);
+      }
+    });
+    return Array.from(ids);
+  }, [budgetItems]);
+  
+  // Fetch historical costs for all historical projects used in budget items
+  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalProjectIds);
   
   // Auto-add missing cost codes from historical project
   useAutoAddMissingCostCodes(projectId, historicalCostCodes, budgetItems);
@@ -178,9 +193,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   // Calculate total budget by summing the visible group totals
   const totalBudget = useMemo(() => {
     return Object.values(groupedBudgetItems).reduce((sum, items) => {
-      return sum + calculateGroupTotal(items, subcategoryTotalsMap);
+      return sum + calculateGroupTotal(items, subcategoryTotalsMap, historicalCostsMap);
     }, 0);
-  }, [groupedBudgetItems, calculateGroupTotal, subcategoryTotalsMap]);
+  }, [groupedBudgetItems, calculateGroupTotal, subcategoryTotalsMap, historicalCostsMap]);
 
   return (
     <div className="space-y-4">
@@ -247,7 +262,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     onEditGroup={() => {}}
                     onDeleteGroup={onDeleteGroup}
                     isDeleting={deletingGroups.has(group)}
-                    groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
+                    groupTotal={calculateGroupTotal(items, subcategoryTotalsMap, historicalCostsMap)}
                     visibleColumns={visibleColumns}
                   />
 
@@ -272,7 +287,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       ))}
                       <BudgetGroupTotalRow
                         group={group}
-                        groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
+                        groupTotal={calculateGroupTotal(items, subcategoryTotalsMap, historicalCostsMap)}
                         historicalTotal={items.reduce((sum, item) => {
                           const costCode = item.cost_codes?.code;
                           return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
