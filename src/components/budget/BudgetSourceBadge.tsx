@@ -91,20 +91,11 @@ export function BudgetSourceBadge({ item }: BudgetSourceBadgeProps) {
   const source = getSourceInfo();
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge 
-            variant="outline" 
-            className={`${source.className} cursor-help text-xs`}
-          >
-            {source.label}
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-xs">{source.tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Badge 
+      variant="outline" 
+      className={`${source.className} text-xs`}
+    >
+      {source.label}
+    </Badge>
   );
 }
