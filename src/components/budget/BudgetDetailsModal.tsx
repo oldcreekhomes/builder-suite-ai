@@ -191,22 +191,46 @@ export function BudgetDetailsModal({
 
         if (selectionsError) throw selectionsError;
 
-        // 2. Upsert child budget items for included subcategories
-        const childBudgetItems = subcategories
+        // 2. Query existing child budget items and upsert by primary key
+        const includedCostCodeIds = subcategories
           .filter(sub => selections[sub.cost_codes.id] !== false)
-          .map(sub => ({
-            project_id: projectId,
-            cost_code_id: sub.cost_codes.id,
-            quantity: parseFloat(sub.quantity?.toString() || '1'),
-            unit_price: parseFloat(sub.unit_price?.toString() || '0'),
-          }));
+          .map(sub => sub.cost_codes.id);
 
-        if (childBudgetItems.length > 0) {
+        if (includedCostCodeIds.length > 0) {
+          // Fetch existing rows to get their IDs
+          const { data: existingRows, error: existingErr } = await supabase
+            .from('project_budgets')
+            .select('id, cost_code_id')
+            .eq('project_id', projectId)
+            .in('cost_code_id', includedCostCodeIds);
+
+          if (existingErr) throw existingErr;
+
+          // Build upsert payload with IDs for existing items
+          const childBudgetItems = subcategories
+            .filter(sub => selections[sub.cost_codes.id] !== false)
+            .map(sub => {
+              const existingItem = existingRows?.find(r => r.cost_code_id === sub.cost_codes.id);
+              const qty = Number.isFinite(parseFloat(String(sub.quantity))) 
+                ? parseFloat(String(sub.quantity)) 
+                : 1;
+              const price = Number.isFinite(parseFloat(String(sub.unit_price))) 
+                ? parseFloat(String(sub.unit_price)) 
+                : 0;
+
+              return {
+                ...(existingItem ? { id: existingItem.id } : {}),
+                project_id: projectId,
+                cost_code_id: sub.cost_codes.id,
+                quantity: qty,
+                unit_price: price,
+              };
+            });
+
           const { error: budgetError } = await supabase
             .from('project_budgets')
             .upsert(childBudgetItems, { 
-              onConflict: 'project_id,cost_code_id',
-              ignoreDuplicates: false 
+              onConflict: 'id'
             });
 
           if (budgetError) throw budgetError;
@@ -224,11 +248,11 @@ export function BudgetDetailsModal({
         queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
 
         onClose();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error saving estimate:', error);
         toast({
           title: "Error",
-          description: "Failed to save estimate selections",
+          description: error?.message || "Failed to save estimate selections",
           variant: "destructive",
         });
       }
