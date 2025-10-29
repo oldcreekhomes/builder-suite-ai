@@ -174,6 +174,16 @@ export function BudgetPrintView({
                     </tr>
                   );
                 })}
+                <tr className="bg-gray-50 font-semibold">
+                  <td colSpan={3} className="border border-gray-300 p-1"></td>
+                  <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupTotal)}</td>
+                  {showHistorical && <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupHistorical)}</td>}
+                  {showVariance && (
+                    <td className="border border-gray-300 p-1 text-right text-sm" style={getVarianceColor(groupTotal, groupHistorical)}>
+                      {calculateVariance(groupTotal, groupHistorical)}
+                    </td>
+                  )}
+                </tr>
               </tbody>
             </table>
           </div>
