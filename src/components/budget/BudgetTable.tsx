@@ -170,7 +170,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               .page-break { page-break-before: always; }
               @page {
                 margin-top: 20px;
-                margin-bottom: 40px;
+                margin-bottom: 70px;
                 /* Override browser's default headers/footers */
                 @top-left { content: ""; }
                 @top-center { content: ""; }
