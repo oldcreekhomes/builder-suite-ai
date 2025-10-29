@@ -169,7 +169,7 @@ export function useBudgetSubcategories(
   const calculatedTotal = subcategories.reduce((sum, sub) => {
     const isSelected = selections[sub.cost_codes.id] !== false;
     if (isSelected) {
-      return sum + ((sub.unit_price || 0) * (sub.quantity || 1));
+      return sum + ((sub.unit_price || 0) * (sub.quantity || 0));
     }
     return sum;
   }, 0);
