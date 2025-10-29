@@ -127,11 +127,20 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (printWindow) {
+      const printDate = new Date().toLocaleString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: '2-digit', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+      });
+      
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Project Budget - ${projectAddress || 'Budget'}</title>
+          <title>Project Budget</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 15px; font-size: 12px; }
             table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
@@ -143,6 +152,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .bg-gray-50 { background-color: #f9f9f9; }
             .border-t-2 { border-top: 2px solid #ccc; }
             .print-footer { margin-top: 20px; padding-top: 15px; }
+            .print-header { page-break-after: avoid; }
             .text-sm { font-size: 11px; }
             .text-lg { font-size: 14px; }
             .text-xl { font-size: 16px; }
@@ -158,6 +168,30 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             @media print {
               body { margin: 0; }
               .page-break { page-break-before: always; }
+              @page {
+                margin-bottom: 30px;
+              }
+              @page :first {
+                margin-top: 0;
+              }
+              .print-header {
+                display: block;
+              }
+              table thead {
+                display: table-row-group;
+              }
+            }
+            @media print {
+              body::after {
+                content: "${printDate}";
+                position: fixed;
+                bottom: 10px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 10px;
+                color: #666;
+              }
             }
           </style>
         </head>
