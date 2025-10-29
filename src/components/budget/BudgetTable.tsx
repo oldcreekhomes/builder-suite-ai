@@ -318,7 +318,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         </Table>
       </div>
 
-      <BudgetTableFooter budgetItems={budgetItems} />
+        <BudgetTableFooter 
+          budgetItems={budgetItems} 
+          subcategoryTotals={subcategoryTotalsMap}
+        />
 
       <BudgetPrintView 
         budgetItems={budgetItems}
