@@ -33,8 +33,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<VisibleColumns>({
-    historicalCosts: true,
-    variance: true,
+    historicalCosts: false,
+    variance: false,
   });
   
   const containerRef = useRef<HTMLDivElement>(null);
