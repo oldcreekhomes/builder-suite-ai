@@ -271,7 +271,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       <div ref={containerRef} className="border rounded-lg overflow-hidden">
         <Table className="table-fixed">
           <BudgetTableHeader 
-            ref={headerRef}
+            headerRef={headerRef}
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
             visibleColumns={visibleColumns}
