@@ -166,8 +166,15 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .p-2 { padding: 8px; }
             .pt-4 { padding-top: 16px; }
             @media print {
-              body { margin: 0; }
+              body { 
+                margin: 0; 
+                padding-bottom: 110px;
+              }
               .page-break { page-break-before: always; }
+              tbody tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+              }
               @page {
                 margin-top: 20px;
                 margin-bottom: 70px;
