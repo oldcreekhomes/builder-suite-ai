@@ -136,13 +136,6 @@ export function BudgetPrintView({
         </colgroup>
         
         <thead>
-          {/* Title Row */}
-          <tr>
-            <th colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} className="border border-gray-300 p-2 text-center text-xl font-bold">
-              Project Budget
-            </th>
-          </tr>
-          
           {/* Date/Time, Address, Page Numbers Row */}
           <tr>
             <th colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} className="border border-gray-300 p-2">
