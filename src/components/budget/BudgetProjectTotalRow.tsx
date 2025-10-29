@@ -63,7 +63,6 @@ export function BudgetProjectTotalRow({
       <TableCell className="w-52 py-1 text-sm">
         {formatCurrency(totalBudget)}
       </TableCell>
-      <TableCell className="w-10 py-1"></TableCell>
       {visibleColumns.historicalCosts && (
         <TableCell className="w-52 py-1 text-sm">
           {totalHistorical > 0 ? formatCurrency(totalHistorical) : '-'}

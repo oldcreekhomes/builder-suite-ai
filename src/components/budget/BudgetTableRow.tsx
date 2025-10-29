@@ -254,28 +254,28 @@ export function BudgetTableRow({
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-52 py-1 text-sm">
-          {formatCurrency(total)}
-        </TableCell>
-        <TableCell className="w-10 py-1" onClick={(e) => e.stopPropagation()}>
-          {warnings.length > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center justify-center cursor-help">
-                    <AlertTriangle className="h-8 w-8 text-red-600" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-sm">
-                  <div className="space-y-1">
-                    <p className="font-semibold text-xs">Budget Warnings:</p>
-                    {warnings.map((warning, idx) => (
-                      <p key={idx} className="text-xs">• {warning.message}</p>
-                    ))}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <div className="flex items-center gap-2">
+            <span>{formatCurrency(total)}</span>
+            {warnings.length > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="cursor-help" onClick={(e) => e.stopPropagation()}>
+                      <AlertTriangle className="h-16 w-16 text-red-600" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-sm">
+                    <div className="space-y-1">
+                      <p className="font-semibold text-xs">Budget Warnings:</p>
+                      {warnings.map((warning, idx) => (
+                        <p key={idx} className="text-xs">• {warning.message}</p>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 py-1 text-sm">
