@@ -190,13 +190,23 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }, 0);
   }, [groupedBudgetItems, calculateGroupTotal, subcategoryTotalsMap, historicalCostsMap]);
 
+  const allGroupsExpanded = expandedGroups.size === Object.keys(groupedBudgetItems).length;
+  
+  const handleToggleExpandCollapse = () => {
+    if (allGroupsExpanded) {
+      collapseAllGroups();
+    } else {
+      expandAllGroups();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar 
         onPrint={handlePrint} 
         onAddBudget={() => setShowAddBudgetModal(true)}
-        onExpandAll={expandAllGroups}
-        onCollapseAll={collapseAllGroups}
+        onToggleExpandCollapse={handleToggleExpandCollapse}
+        allExpanded={allGroupsExpanded}
       />
 
       {selectedCount > 0 && (

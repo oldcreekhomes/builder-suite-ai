@@ -1,15 +1,15 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus as PlusIcon, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
 
 interface BudgetPrintToolbarProps {
   onPrint: () => void;
   onAddBudget: () => void;
-  onExpandAll?: () => void;
-  onCollapseAll?: () => void;
+  onToggleExpandCollapse?: () => void;
+  allExpanded?: boolean;
 }
 
-export function BudgetPrintToolbar({ onPrint, onAddBudget, onExpandAll, onCollapseAll }: BudgetPrintToolbarProps) {
+export function BudgetPrintToolbar({ onPrint, onAddBudget, onToggleExpandCollapse, allExpanded }: BudgetPrintToolbarProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -20,17 +20,14 @@ export function BudgetPrintToolbar({ onPrint, onAddBudget, onExpandAll, onCollap
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {onExpandAll && onCollapseAll && (
-            <>
-              <Button onClick={onExpandAll} variant="outline" size="sm">
-                <ChevronsDownUp className="h-4 w-4 mr-2" />
-                Expand All
-              </Button>
-              <Button onClick={onCollapseAll} variant="outline" size="sm">
-                <ChevronsUpDown className="h-4 w-4 mr-2" />
-                Collapse All
-              </Button>
-            </>
+          {onToggleExpandCollapse && (
+            <Button onClick={onToggleExpandCollapse} variant="outline" size="sm">
+              {allExpanded ? (
+                <ChevronsUpDown className="h-4 w-4" />
+              ) : (
+                <ChevronsDownUp className="h-4 w-4" />
+              )}
+            </Button>
           )}
           <Button onClick={onAddBudget} variant="outline" size="sm">
             <PlusIcon className="h-4 w-4 mr-2" />
