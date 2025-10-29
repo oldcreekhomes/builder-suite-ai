@@ -256,7 +256,7 @@ export function BudgetTableRow({
         <TableCell className="w-52 py-1 text-sm">
           {formatCurrency(total)}
         </TableCell>
-        <TableCell className="w-32 py-1 text-center" onClick={(e) => e.stopPropagation()}>
+        <TableCell className="w-12 py-1 text-center" onClick={(e) => e.stopPropagation()}>
           {warnings.length > 0 && (
             <TooltipProvider>
               <Tooltip>
