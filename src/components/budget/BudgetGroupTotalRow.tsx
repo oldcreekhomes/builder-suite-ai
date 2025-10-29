@@ -58,7 +58,7 @@ export function BudgetGroupTotalRow({
       <TableCell className="w-52 pr-3 py-1 text-sm">
         {formatCurrency(groupTotal)}
       </TableCell>
-      <TableCell className="w-12 px-0 py-1"></TableCell>
+      <TableCell className="w-10 px-0 py-1"></TableCell>
       {visibleColumns.historicalCosts && (
         <TableCell className="w-52 pl-3 py-1 text-sm">
           {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
