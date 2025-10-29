@@ -110,16 +110,16 @@ export function BudgetTableRow({
   const historicalActual = costCode?.code ? (historicalActualCosts[costCode.code] || null) : null;
   
   const calculateVariance = () => {
-    // Only show no variance if BOTH are 0 or null
-    if ((historicalActual === null || historicalActual === 0) && total === 0) return null;
+    // Don't show variance if no historical data available
+    if (historicalActual === null || historicalActual === undefined) return null;
     
-    // Treat null historical as 0 for calculation
-    const historical = historicalActual || 0;
+    // Only show no variance if BOTH are 0
+    if (historicalActual === 0 && total === 0) return null;
     
     if (showVarianceAsPercentage && total !== 0) {
-      return ((historical - total) / total) * 100;
+      return ((historicalActual - total) / total) * 100;
     }
-    return historical - total;
+    return historicalActual - total;
   };
   
   const variance = calculateVariance();

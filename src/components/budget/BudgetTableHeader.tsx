@@ -40,6 +40,9 @@ export function BudgetTableHeader({
                   <span>Historical</span>
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-lg z-50">
+                  <SelectItem value="" className="text-xs">
+                    None
+                  </SelectItem>
                   {historicalProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id} className="text-xs">
                       {project.address}
