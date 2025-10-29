@@ -441,6 +441,36 @@ export type Database = {
           },
         ]
       }
+      budget_warning_rules: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          rule_type: string
+          threshold_value: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          rule_type: string
+          threshold_value?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          rule_type?: string
+          threshold_value?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       check_lines: {
         Row: {
           account_id: string | null
