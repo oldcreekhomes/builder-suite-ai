@@ -12,6 +12,7 @@ const DEFAULT_RULES = [
   { rule_type: 'budget_zero_or_null', enabled: true },
   { rule_type: 'no_bid_selected', enabled: false },
   { rule_type: 'missing_specifications', enabled: false },
+  { rule_type: 'budget_below_threshold', enabled: false, threshold_value: 10000 },
 ];
 
 export function useBudgetWarningRules() {
@@ -52,7 +53,15 @@ export function useBudgetWarningRules() {
   });
 
   const updateRule = useMutation({
-    mutationFn: async ({ rule_type, enabled }: { rule_type: string; enabled: boolean }) => {
+    mutationFn: async ({ 
+      rule_type, 
+      enabled, 
+      threshold_value 
+    }: { 
+      rule_type: string; 
+      enabled: boolean; 
+      threshold_value?: number;
+    }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
@@ -63,6 +72,7 @@ export function useBudgetWarningRules() {
             user_id: user.id,
             rule_type,
             enabled,
+            threshold_value: threshold_value !== undefined ? threshold_value : null,
             updated_at: new Date().toISOString(),
           },
           {

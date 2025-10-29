@@ -1,6 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { useBudgetWarningRules } from "@/hooks/useBudgetWarningRules";
+import { useState, useEffect } from "react";
 
 const WARNING_RULE_CONFIGS = [
   {
@@ -32,11 +34,29 @@ const WARNING_RULE_CONFIGS = [
     id: 'missing_specifications',
     label: 'Missing Specifications',
     description: 'Show warning when specifications are not attached to cost code'
+  },
+  {
+    id: 'budget_below_threshold',
+    label: 'Budget Below Threshold',
+    description: 'Show warning when total budget is below a specific dollar amount',
+    hasThreshold: true
   }
 ];
 
 export function BudgetWarningsTab() {
   const { rules, updateRule, isLoading } = useBudgetWarningRules();
+  const [thresholdValues, setThresholdValues] = useState<Record<string, string>>({});
+
+  // Initialize threshold values from rules
+  useEffect(() => {
+    const initialThresholds: Record<string, string> = {};
+    rules.forEach(rule => {
+      if (rule.threshold_value !== null && rule.threshold_value !== undefined) {
+        initialThresholds[rule.rule_type] = rule.threshold_value.toString();
+      }
+    });
+    setThresholdValues(initialThresholds);
+  }, [rules]);
 
   if (isLoading) {
     return (
@@ -60,24 +80,62 @@ export function BudgetWarningsTab() {
           {WARNING_RULE_CONFIGS.map((config) => {
             const rule = rules.find(r => r.rule_type === config.id);
             const isEnabled = rule?.enabled ?? true;
+            const currentThreshold = thresholdValues[config.id] || '';
 
             return (
-              <div key={config.id} className="flex items-center justify-between gap-4">
-                <div className="space-y-0.5 flex-1">
-                  <Label htmlFor={config.id} className="text-sm font-normal cursor-pointer">
-                    {config.label}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {config.description}
-                  </p>
+              <div key={config.id} className="space-y-2">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5 flex-1">
+                    <Label htmlFor={config.id} className="text-sm font-normal cursor-pointer">
+                      {config.label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {config.description}
+                    </p>
+                  </div>
+                  <Switch
+                    id={config.id}
+                    checked={isEnabled}
+                    onCheckedChange={(checked) => 
+                      updateRule.mutate({ 
+                        rule_type: config.id, 
+                        enabled: checked,
+                        threshold_value: config.hasThreshold ? parseFloat(currentThreshold) || 0 : undefined
+                      })
+                    }
+                  />
                 </div>
-                <Switch
-                  id={config.id}
-                  checked={isEnabled}
-                  onCheckedChange={(checked) => 
-                    updateRule.mutate({ rule_type: config.id, enabled: checked })
-                  }
-                />
+                
+                {config.hasThreshold && isEnabled && (
+                  <div className="flex items-center gap-2 pl-4">
+                    <Label htmlFor={`${config.id}-threshold`} className="text-xs text-muted-foreground whitespace-nowrap">
+                      Threshold Amount:
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm">$</span>
+                      <Input
+                        id={`${config.id}-threshold`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={currentThreshold}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setThresholdValues(prev => ({ ...prev, [config.id]: newValue }));
+                        }}
+                        onBlur={() => {
+                          updateRule.mutate({
+                            rule_type: config.id,
+                            enabled: isEnabled,
+                            threshold_value: parseFloat(currentThreshold) || 0
+                          });
+                        }}
+                        className="w-32"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
