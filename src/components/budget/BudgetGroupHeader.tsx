@@ -16,6 +16,9 @@ interface BudgetGroupHeaderProps {
   isDeleting?: boolean;
   groupTotal: number;
   visibleColumns?: { historicalCosts: boolean; variance: boolean };
+  stickyTop?: number;
+  rowClassName?: string;
+  floatingClassName?: string;
 }
 
 export function BudgetGroupHeader({ 
@@ -28,12 +31,23 @@ export function BudgetGroupHeader({
   onDeleteGroup,
   isDeleting = false,
   groupTotal,
-  visibleColumns = { historicalCosts: true, variance: true }
+  visibleColumns = { historicalCosts: true, variance: true },
+  stickyTop,
+  rowClassName = '',
+  floatingClassName = ''
 }: BudgetGroupHeaderProps) {
   const formatCurrency = (amount: number) => `$${Math.round(amount).toLocaleString()}`;
 
+  const baseClassName = stickyTop !== undefined 
+    ? `bg-background hover:bg-muted/60 border-b ${floatingClassName} ${rowClassName}`.trim()
+    : `bg-muted/40 hover:bg-muted/60 border-b ${rowClassName}`.trim();
+
+  const style = stickyTop !== undefined 
+    ? { position: 'sticky' as const, top: stickyTop, zIndex: 10 }
+    : undefined;
+
   return (
-    <TableRow className="bg-muted/40 hover:bg-muted/60 border-b">
+    <TableRow className={baseClassName} style={style}>
       <TableCell className="py-3 px-3">
         <div className="flex items-center gap-2">
           <Checkbox

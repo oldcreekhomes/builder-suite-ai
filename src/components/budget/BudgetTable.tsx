@@ -191,7 +191,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       if (headerRef.current) {
         const firstRow = headerRef.current.querySelector('tr');
         if (firstRow) {
-          setHeaderHeight(firstRow.getBoundingClientRect().height);
+          // Add 1px for border so floating header sits just below
+          setHeaderHeight(firstRow.getBoundingClientRect().height + 1);
         }
       }
     };
@@ -239,11 +240,15 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       rafId = requestAnimationFrame(updateActiveGroup);
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Attach scroll listener to the table's scroll container
+    const container = headerRef.current?.parentElement?.parentElement as HTMLDivElement | null;
+    if (!container) return;
+    
+    container.addEventListener('scroll', handleScroll, { passive: true });
     updateActiveGroup(); // Initial check
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scroll', handleScroll);
       if (rafId) cancelAnimationFrame(rafId);
     };
   }, [groupedBudgetItems]);
@@ -280,7 +285,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           />
 
           {activeGroup && groupedBudgetItems[activeGroup] && (
-            <tbody className="sticky z-10" style={{ top: `${headerHeight}px` }}>
+            <tbody>
               <BudgetGroupHeader
                 group={activeGroup}
                 isExpanded={expandedGroups.has(activeGroup)}
@@ -293,6 +298,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 isDeleting={deletingGroups.has(activeGroup)}
                 groupTotal={calculateGroupTotal(groupedBudgetItems[activeGroup], subcategoryTotalsMap)}
                 visibleColumns={visibleColumns}
+                stickyTop={headerHeight}
+                floatingClassName="shadow-sm"
               />
             </tbody>
           )}
@@ -324,6 +331,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     isDeleting={deletingGroups.has(group)}
                     groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
                     visibleColumns={visibleColumns}
+                    rowClassName={group === activeGroup ? 'invisible' : ''}
                   />
 
                   {expandedGroups.has(group) && (
