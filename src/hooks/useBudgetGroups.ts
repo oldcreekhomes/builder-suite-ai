@@ -1,6 +1,4 @@
-
 import { useState, useEffect, useRef } from 'react';
-import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -54,21 +52,11 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
 
   const calculateGroupTotal = (
     groupItems: any[], 
-    subcategoryTotals: Record<string, number> = {},
-    historicalCostsMap: Record<string, Record<string, number>> = {}
+    itemTotalsMap: Record<string, number> = {}
   ) => {
+    // Simply sum the pre-calculated totals from the map
     return groupItems.reduce((sum, item) => {
-      const subcategoryTotal = subcategoryTotals[item.id];
-      const costCode = item.cost_codes as any;
-      
-      // Get historical cost if this item uses historical source
-      let historicalCostForItem: number | undefined = undefined;
-      if (item.budget_source === 'historical' && item.historical_project_id && costCode?.code) {
-        const projectHistoricalCosts = historicalCostsMap[item.historical_project_id];
-        historicalCostForItem = projectHistoricalCosts?.[costCode.code] || 0;
-      }
-      
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCostForItem);
+      return sum + (itemTotalsMap[item.id] || 0);
     }, 0);
   };
 

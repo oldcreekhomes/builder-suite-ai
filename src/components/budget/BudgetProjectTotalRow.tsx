@@ -1,7 +1,5 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
-import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
-import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetProjectTotalRowProps {
@@ -9,49 +7,14 @@ interface BudgetProjectTotalRowProps {
   totalHistorical: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
-  budgetItems?: any[];
-  groupedBudgetItems?: Record<string, any[]>;
-  subcategoryTotals?: Record<string, number>;
 }
 
 export function BudgetProjectTotalRow({ 
   totalBudget, 
   totalHistorical,
   showVarianceAsPercentage = false,
-  visibleColumns,
-  budgetItems = [],
-  subcategoryTotals = {}
+  visibleColumns
 }: BudgetProjectTotalRowProps) {
-  // Collect all unique historical project IDs
-  const historicalProjectIds = React.useMemo(() => {
-    const ids = new Set<string>();
-    budgetItems.forEach(item => {
-      if (item.budget_source === 'historical' && item.historical_project_id) {
-        ids.add(item.historical_project_id);
-      }
-    });
-    return Array.from(ids);
-  }, [budgetItems]);
-  
-  // Fetch historical costs for all unique projects
-  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalProjectIds);
-  
-  // Recalculate the actual displayed total to ensure accuracy
-  const displayedTotal = React.useMemo(() => {
-    return budgetItems.reduce((sum, item) => {
-      const subcategoryTotal = subcategoryTotals[item.id];
-      const costCode = item.cost_codes as any;
-      
-      // Get historical cost if this item uses historical source
-      let historicalCostForItem: number | undefined = undefined;
-      if (item.budget_source === 'historical' && item.historical_project_id && costCode?.code) {
-        const projectHistoricalCosts = historicalCostsMap[item.historical_project_id];
-        historicalCostForItem = projectHistoricalCosts?.[costCode.code] || 0;
-      }
-      
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCostForItem);
-    }, 0);
-  }, [budgetItems, subcategoryTotals, historicalCostsMap]);
   const formatCurrency = (amount: number | null) => {
     if (amount === null) return '-';
     return new Intl.NumberFormat('en-US', {
@@ -64,15 +27,15 @@ export function BudgetProjectTotalRow({
 
   const calculateVariance = () => {
     // Only show no variance if BOTH are 0 or null
-    if ((totalHistorical === undefined || totalHistorical === null || totalHistorical === 0) && displayedTotal === 0) return null;
+    if ((totalHistorical === undefined || totalHistorical === null || totalHistorical === 0) && totalBudget === 0) return null;
     
     // Treat null/undefined historical as 0 for calculation
     const historical = totalHistorical || 0;
     
-    if (showVarianceAsPercentage && displayedTotal !== 0) {
-      return ((historical - displayedTotal) / displayedTotal) * 100;
+    if (showVarianceAsPercentage && totalBudget !== 0) {
+      return ((historical - totalBudget) / totalBudget) * 100;
     }
-    return historical - displayedTotal;
+    return historical - totalBudget;
   };
 
   const variance = calculateVariance();
@@ -98,7 +61,7 @@ export function BudgetProjectTotalRow({
       <TableCell colSpan={3} className="py-1 text-sm">Total Project Budget</TableCell>
       <TableCell className="w-48 py-1"></TableCell>
       <TableCell className="w-52 py-1 text-sm">
-        {formatCurrency(displayedTotal)}
+        {formatCurrency(totalBudget)}
       </TableCell>
       {visibleColumns.historicalCosts && (
         <TableCell className="w-52 py-1 text-sm">
