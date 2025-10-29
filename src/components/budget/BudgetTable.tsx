@@ -167,7 +167,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .pt-4 { padding-top: 16px; }
             @media print {
               body { 
-                margin: 0;
+                margin: 15px;
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
               }
@@ -186,7 +186,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               }
               
               @page {
-                margin: 0;
+                margin: 0.5in 0.5in 1in 0.5in;
                 size: auto;
               }
               
