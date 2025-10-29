@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { BudgetCreationModal } from './BudgetCreationModal';
@@ -35,6 +35,12 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     historicalCosts: true,
     variance: true,
   });
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(40);
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const groupRefs = useRef<Record<string, HTMLTableSectionElement | null>>({});
+  const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
   const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
@@ -179,6 +185,69 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }, 0);
   }, [groupedBudgetItems, calculateGroupTotal, subcategoryTotalsMap]);
 
+  // Measure header height
+  useEffect(() => {
+    const measureHeader = () => {
+      if (headerRef.current) {
+        const firstRow = headerRef.current.querySelector('tr');
+        if (firstRow) {
+          setHeaderHeight(firstRow.getBoundingClientRect().height);
+        }
+      }
+    };
+    
+    measureHeader();
+    window.addEventListener('resize', measureHeader);
+    return () => window.removeEventListener('resize', measureHeader);
+  }, [visibleColumns]);
+
+  // Determine active group on scroll
+  useEffect(() => {
+    let rafId: number;
+    
+    const updateActiveGroup = () => {
+      if (!headerRef.current) return;
+      
+      const headerRow = headerRef.current.querySelector('tr');
+      if (!headerRow) return;
+      
+      const headerBottom = headerRow.getBoundingClientRect().bottom;
+      const groups = Object.keys(groupedBudgetItems);
+      
+      let newActiveGroup: string | null = null;
+      
+      for (const group of groups) {
+        const tbody = groupRefs.current[group];
+        if (!tbody) continue;
+        
+        const rect = tbody.getBoundingClientRect();
+        
+        // If this group's bottom is above the header, skip it
+        if (rect.bottom <= headerBottom) continue;
+        
+        // If this group's top is at or above the header bottom, it's the active one
+        if (rect.top <= headerBottom) {
+          newActiveGroup = group;
+          break;
+        }
+      }
+      
+      setActiveGroup(newActiveGroup);
+    };
+    
+    const handleScroll = () => {
+      rafId = requestAnimationFrame(updateActiveGroup);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    updateActiveGroup(); // Initial check
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [groupedBudgetItems]);
+
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar 
@@ -199,15 +268,34 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         />
       )}
 
-      <div className="border rounded-lg overflow-hidden">
+      <div ref={containerRef} className="border rounded-lg overflow-hidden">
         <Table className="table-fixed">
           <BudgetTableHeader 
+            ref={headerRef}
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
             visibleColumns={visibleColumns}
             selectedHistoricalProject={selectedHistoricalProject}
             onHistoricalProjectChange={setSelectedHistoricalProject}
           />
+
+          {activeGroup && groupedBudgetItems[activeGroup] && (
+            <tbody className="sticky z-10" style={{ top: `${headerHeight}px` }}>
+              <BudgetGroupHeader
+                group={activeGroup}
+                isExpanded={expandedGroups.has(activeGroup)}
+                onToggle={handleGroupToggle}
+                isSelected={isGroupSelected(groupedBudgetItems[activeGroup])}
+                isPartiallySelected={isGroupPartiallySelected(groupedBudgetItems[activeGroup])}
+                onCheckboxChange={onGroupCheckboxChange}
+                onEditGroup={() => {}}
+                onDeleteGroup={onDeleteGroup}
+                isDeleting={deletingGroups.has(activeGroup)}
+                groupTotal={calculateGroupTotal(groupedBudgetItems[activeGroup], subcategoryTotalsMap)}
+                visibleColumns={visibleColumns}
+              />
+            </tbody>
+          )}
 
           {budgetItems.length === 0 ? (
             <tbody>
@@ -223,7 +311,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           ) : (
             <>
               {Object.entries(groupedBudgetItems).map(([group, items]) => (
-                <tbody key={group} className="relative">
+                <tbody key={group} ref={(el) => groupRefs.current[group] = el} className="relative">
                   <BudgetGroupHeader
                     group={group}
                     isExpanded={expandedGroups.has(group)}

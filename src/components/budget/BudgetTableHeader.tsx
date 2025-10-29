@@ -13,17 +13,18 @@ interface BudgetTableHeaderProps {
   onHistoricalProjectChange: (projectId: string) => void;
 }
 
-export function BudgetTableHeader({ 
-  showVarianceAsPercentage, 
-  onToggleVarianceMode,
-  visibleColumns,
-  selectedHistoricalProject,
-  onHistoricalProjectChange 
-}: BudgetTableHeaderProps) {
-  const { data: historicalProjects = [] } = useHistoricalProjects();
+export const BudgetTableHeader = React.forwardRef<HTMLTableSectionElement, BudgetTableHeaderProps>(
+  function BudgetTableHeader({ 
+    showVarianceAsPercentage, 
+    onToggleVarianceMode,
+    visibleColumns,
+    selectedHistoricalProject,
+    onHistoricalProjectChange 
+  }, ref) {
+    const { data: historicalProjects = [] } = useHistoricalProjects();
 
-  return (
-    <TableHeader>
+    return (
+      <TableHeader ref={ref}>
       <TableRow className="h-10 border-b-2">
         <TableHead className="h-10 px-3 py-2 text-xs font-semibold w-12"></TableHead>
         <TableHead className="h-10 pl-12 pr-3 py-2 text-xs font-semibold w-40">Cost Code</TableHead>
@@ -65,4 +66,4 @@ export function BudgetTableHeader({
       </TableRow>
     </TableHeader>
   );
-}
+});
