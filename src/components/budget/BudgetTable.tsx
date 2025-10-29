@@ -35,12 +35,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     historicalCosts: true,
     variance: true,
   });
-  const [activeGroup, setActiveGroup] = useState<string | null>(null);
-  const [headerHeight, setHeaderHeight] = useState(40);
   
-  const lastActiveGroupRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const groupRefs = useRef<Record<string, HTMLTableSectionElement | null>>({});
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
@@ -186,86 +182,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }, 0);
   }, [groupedBudgetItems, calculateGroupTotal, subcategoryTotalsMap]);
 
-  // Measure header height
-  useEffect(() => {
-    const measureHeader = () => {
-      if (headerRef.current) {
-        const firstRow = headerRef.current.querySelector('tr');
-        if (firstRow) {
-          // Add 1px for border so floating header sits just below
-          setHeaderHeight(firstRow.getBoundingClientRect().height + 1);
-        }
-      }
-    };
-    
-    measureHeader();
-    window.addEventListener('resize', measureHeader);
-    return () => window.removeEventListener('resize', measureHeader);
-  }, [visibleColumns]);
-
-  // Sync ref with current activeGroup to avoid thrash
-  useEffect(() => {
-    lastActiveGroupRef.current = activeGroup;
-  }, [activeGroup]);
-
-  // Determine active group on scroll
-  useEffect(() => {
-    let rafId: number;
-    
-    const updateActiveGroup = () => {
-      if (!headerRef.current) return;
-      const headerRow = headerRef.current.querySelector('tr');
-      if (!headerRow) return;
-
-      const headerBottom = headerRow.getBoundingClientRect().bottom;
-      const groups = Object.keys(groupedBudgetItems);
-
-      let candidate: string | null = null;
-
-      for (const group of groups) {
-        const tbody = groupRefs.current[group];
-        if (!tbody) continue;
-
-        const rect = tbody.getBoundingClientRect();
-        if (rect.bottom <= headerBottom) continue; // skip fully above
-        if (rect.top <= headerBottom) {
-          candidate = group;
-          break;
-        }
-      }
-
-      // Hysteresis: if candidate is null but previous active group is still intersecting
-      if (candidate === null && lastActiveGroupRef.current) {
-        const currentTbody = groupRefs.current[lastActiveGroupRef.current];
-        if (currentTbody) {
-          const r = currentTbody.getBoundingClientRect();
-          if (r.top <= headerBottom + 2 && r.bottom > headerBottom) {
-            candidate = lastActiveGroupRef.current;
-          }
-        }
-      }
-
-      // Only update when value changes
-      setActiveGroup((prev) => (prev === candidate ? prev : candidate));
-    };
-    
-    const handleScroll = () => {
-      rafId = requestAnimationFrame(updateActiveGroup);
-    };
-    
-    // Attach scroll listener to the table's scroll container
-    const container = headerRef.current?.parentElement?.parentElement as HTMLDivElement | null;
-    if (!container) return;
-    
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    updateActiveGroup(); // Initial check
-    
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, [groupedBudgetItems]);
-
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar 
@@ -297,7 +213,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             {visibleColumns.historicalCosts && <col style={{ width: '13rem' }} />}
             {visibleColumns.variance && <col style={{ width: '12rem' }} />}
           </colgroup>
-          <BudgetTableHeader
+          <BudgetTableHeader 
             headerRef={headerRef}
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
@@ -305,26 +221,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             selectedHistoricalProject={selectedHistoricalProject}
             onHistoricalProjectChange={setSelectedHistoricalProject}
           />
-
-          {activeGroup && groupedBudgetItems[activeGroup] && (
-            <tbody>
-              <BudgetGroupHeader
-                group={activeGroup}
-                isExpanded={expandedGroups.has(activeGroup)}
-                onToggle={handleGroupToggle}
-                isSelected={isGroupSelected(groupedBudgetItems[activeGroup])}
-                isPartiallySelected={isGroupPartiallySelected(groupedBudgetItems[activeGroup])}
-                onCheckboxChange={onGroupCheckboxChange}
-                onEditGroup={() => {}}
-                onDeleteGroup={onDeleteGroup}
-                isDeleting={deletingGroups.has(activeGroup)}
-                groupTotal={calculateGroupTotal(groupedBudgetItems[activeGroup], subcategoryTotalsMap)}
-                visibleColumns={visibleColumns}
-                stickyTop={headerHeight}
-                floatingClassName="shadow-sm"
-              />
-            </tbody>
-          )}
 
           {budgetItems.length === 0 ? (
             <tbody>
@@ -340,7 +236,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           ) : (
             <>
               {Object.entries(groupedBudgetItems).map(([group, items]) => (
-                <tbody key={group} ref={(el) => groupRefs.current[group] = el} className="relative">
+                <tbody key={group}>
                   <BudgetGroupHeader
                     group={group}
                     isExpanded={expandedGroups.has(group)}
@@ -353,7 +249,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     isDeleting={deletingGroups.has(group)}
                     groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
                     visibleColumns={visibleColumns}
-                    rowClassName={group === activeGroup ? 'invisible' : ''}
                   />
 
                   {expandedGroups.has(group) && (
