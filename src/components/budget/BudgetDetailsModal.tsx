@@ -434,7 +434,7 @@ export function BudgetDetailsModal({
           </Button>
           <Button 
             onClick={handleApply} 
-            disabled={isUpdating || isBidLoading || !hasChanges()}
+            disabled={isUpdating || isBidLoading}
           >
             {isUpdating || isBidLoading ? 'Applying...' : 'Apply'}
           </Button>
