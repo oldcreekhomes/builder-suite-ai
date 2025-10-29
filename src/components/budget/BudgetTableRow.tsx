@@ -251,7 +251,7 @@ export function BudgetTableRow({
           {formatCurrency(total)}
         </TableCell>
         {visibleColumns.historicalCosts && (
-          <TableCell className="w-52 py-1 text-sm text-right">
+          <TableCell className="w-52 py-1 text-sm text-right pr-4">
             {historicalActual !== null && historicalActual !== undefined 
               ? formatCurrency(historicalActual)
               : '-'
@@ -259,7 +259,7 @@ export function BudgetTableRow({
           </TableCell>
         )}
         {visibleColumns.variance && (
-          <TableCell className="w-48 py-1 text-sm text-right">
+          <TableCell className="w-48 py-1 text-sm text-right pr-4">
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
             </span>

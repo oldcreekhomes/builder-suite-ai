@@ -218,15 +218,15 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       )}
 
       <div ref={containerRef} className="border rounded-lg overflow-hidden">
-        <Table>
+        <Table className="table-fixed">
           <colgroup>
-            <col style={{ width: '3rem' }} />
-            <col style={{ width: '10rem' }} />
-            <col />
-            <col style={{ width: '12rem' }} />
-            <col style={{ width: '13rem' }} />
-            {visibleColumns.historicalCosts && <col style={{ width: '13rem' }} />}
-            {visibleColumns.variance && <col style={{ width: '12rem' }} />}
+            <col style={{ width: '48px' }} />
+            <col style={{ width: '160px' }} />
+            <col style={{ width: '320px' }} />
+            <col style={{ width: '192px' }} />
+            <col style={{ width: '208px' }} />
+            {visibleColumns.historicalCosts && <col style={{ width: '208px' }} />}
+            {visibleColumns.variance && <col style={{ width: '192px' }} />}
           </colgroup>
           <BudgetTableHeader 
             headerRef={headerRef}
