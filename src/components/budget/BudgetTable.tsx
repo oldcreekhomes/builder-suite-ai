@@ -274,8 +274,17 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       )}
 
       <div ref={containerRef} className="border rounded-lg overflow-hidden">
-        <Table className="table-fixed">
-          <BudgetTableHeader 
+        <Table>
+          <colgroup>
+            <col style={{ width: '3rem' }} />
+            <col style={{ width: '10rem' }} />
+            <col />
+            <col style={{ width: '13rem' }} />
+            <col style={{ width: '12rem' }} />
+            {visibleColumns.historicalCosts && <col style={{ width: '13rem' }} />}
+            {visibleColumns.variance && <col style={{ width: '12rem' }} />}
+          </colgroup>
+          <BudgetTableHeader
             headerRef={headerRef}
             showVarianceAsPercentage={showVarianceAsPercentage}
             onToggleVarianceMode={() => setShowVarianceAsPercentage(!showVarianceAsPercentage)}
@@ -331,7 +340,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     isDeleting={deletingGroups.has(group)}
                     groupTotal={calculateGroupTotal(items, subcategoryTotalsMap)}
                     visibleColumns={visibleColumns}
-                    rowClassName={group === activeGroup ? 'invisible' : ''}
                   />
 
                   {expandedGroups.has(group) && (

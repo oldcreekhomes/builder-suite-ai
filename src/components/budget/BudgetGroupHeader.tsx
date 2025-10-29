@@ -74,10 +74,10 @@ export function BudgetGroupHeader({
         {group}
       </TableCell>
       <TableCell className="flex-1 min-w-[250px] py-3 px-3"></TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
       <TableCell className="w-52 py-1 text-sm text-right font-semibold">
         {formatCurrency(groupTotal)}
       </TableCell>
+      <TableCell className="w-48 py-1"></TableCell>
       {visibleColumns.historicalCosts && <TableCell className="w-52 py-1"></TableCell>}
       {visibleColumns.variance && <TableCell className="w-48 py-1"></TableCell>}
     </TableRow>
