@@ -378,6 +378,7 @@ export function BudgetDetailsModal({
                 <table className="w-full">
                   <thead className="bg-muted">
                     <tr>
+                      <th className="w-12 p-3"></th>
                       <th className="text-left p-3 text-sm font-medium">Cost Code</th>
                       <th className="text-left p-3 text-sm font-medium">Description</th>
                       <th className="text-left p-3 text-sm font-medium">Unit Price</th>
@@ -388,6 +389,7 @@ export function BudgetDetailsModal({
                   </thead>
                   <tbody>
                     <tr className="border-t">
+                      <td className="p-3"></td>
                       <td className="p-3 text-sm">{costCode.code}</td>
                       <td className="p-3 text-sm">{costCode.name}</td>
                       <td className="p-3 text-sm text-left">
