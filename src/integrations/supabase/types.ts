@@ -245,12 +245,14 @@ export type Database = {
           cost_code_id: string | null
           created_at: string
           id: string
+          is_reversal: boolean
           line_number: number
           line_type: Database["public"]["Enums"]["bill_line_type"]
           memo: string | null
           owner_id: string
           project_id: string | null
           quantity: number
+          reverses_line_id: string | null
           unit_cost: number
           updated_at: string
         }
@@ -261,12 +263,14 @@ export type Database = {
           cost_code_id?: string | null
           created_at?: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type: Database["public"]["Enums"]["bill_line_type"]
           memo?: string | null
           owner_id: string
           project_id?: string | null
           quantity?: number
+          reverses_line_id?: string | null
           unit_cost?: number
           updated_at?: string
         }
@@ -277,12 +281,14 @@ export type Database = {
           cost_code_id?: string | null
           created_at?: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type?: Database["public"]["Enums"]["bill_line_type"]
           memo?: string | null
           owner_id?: string
           project_id?: string | null
           quantity?: number
+          reverses_line_id?: string | null
           unit_cost?: number
           updated_at?: string
         }
@@ -315,15 +321,24 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bill_lines_reverses_line_id_fkey"
+            columns: ["reverses_line_id"]
+            isOneToOne: false
+            referencedRelation: "bill_lines"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bills: {
         Row: {
           bill_date: string
+          correction_reason: string | null
           created_at: string
           created_by: string
           due_date: string | null
           id: string
+          is_reversal: boolean
           notes: string | null
           owner_id: string
           project_id: string | null
@@ -331,6 +346,9 @@ export type Database = {
           reconciliation_date: string | null
           reconciliation_id: string | null
           reference_number: string | null
+          reversed_at: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
           status: Database["public"]["Enums"]["bill_status"]
           terms: string | null
           total_amount: number
@@ -339,10 +357,12 @@ export type Database = {
         }
         Insert: {
           bill_date?: string
+          correction_reason?: string | null
           created_at?: string
           created_by: string
           due_date?: string | null
           id?: string
+          is_reversal?: boolean
           notes?: string | null
           owner_id: string
           project_id?: string | null
@@ -350,6 +370,9 @@ export type Database = {
           reconciliation_date?: string | null
           reconciliation_id?: string | null
           reference_number?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           status?: Database["public"]["Enums"]["bill_status"]
           terms?: string | null
           total_amount?: number
@@ -358,10 +381,12 @@ export type Database = {
         }
         Update: {
           bill_date?: string
+          correction_reason?: string | null
           created_at?: string
           created_by?: string
           due_date?: string | null
           id?: string
+          is_reversal?: boolean
           notes?: string | null
           owner_id?: string
           project_id?: string | null
@@ -369,6 +394,9 @@ export type Database = {
           reconciliation_date?: string | null
           reconciliation_id?: string | null
           reference_number?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           status?: Database["public"]["Enums"]["bill_status"]
           terms?: string | null
           total_amount?: number
@@ -388,6 +416,20 @@ export type Database = {
             columns: ["reconciliation_id"]
             isOneToOne: false
             referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
             referencedColumns: ["id"]
           },
           {
@@ -479,11 +521,13 @@ export type Database = {
           cost_code_id: string | null
           created_at: string
           id: string
+          is_reversal: boolean
           line_number: number
           line_type: string
           memo: string | null
           owner_id: string
           project_id: string | null
+          reverses_line_id: string | null
           updated_at: string
         }
         Insert: {
@@ -493,11 +537,13 @@ export type Database = {
           cost_code_id?: string | null
           created_at?: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type: string
           memo?: string | null
           owner_id: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -507,11 +553,13 @@ export type Database = {
           cost_code_id?: string | null
           created_at?: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type?: string
           memo?: string | null
           owner_id?: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -520,6 +568,13 @@ export type Database = {
             columns: ["check_id"]
             isOneToOne: false
             referencedRelation: "checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_lines_reverses_line_id_fkey"
+            columns: ["reverses_line_id"]
+            isOneToOne: false
+            referencedRelation: "check_lines"
             referencedColumns: ["id"]
           },
         ]
@@ -535,9 +590,11 @@ export type Database = {
           company_address: string | null
           company_city_state: string | null
           company_name: string | null
+          correction_reason: string | null
           created_at: string
           created_by: string
           id: string
+          is_reversal: boolean
           memo: string | null
           owner_id: string
           pay_to: string
@@ -545,6 +602,9 @@ export type Database = {
           reconciled: boolean
           reconciliation_date: string | null
           reconciliation_id: string | null
+          reversed_at: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
           routing_number: string | null
           status: string
           updated_at: string
@@ -559,9 +619,11 @@ export type Database = {
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
+          correction_reason?: string | null
           created_at?: string
           created_by: string
           id?: string
+          is_reversal?: boolean
           memo?: string | null
           owner_id: string
           pay_to: string
@@ -569,6 +631,9 @@ export type Database = {
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
@@ -583,9 +648,11 @@ export type Database = {
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
+          correction_reason?: string | null
           created_at?: string
           created_by?: string
           id?: string
+          is_reversal?: boolean
           memo?: string | null
           owner_id?: string
           pay_to?: string
@@ -593,11 +660,29 @@ export type Database = {
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checks_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checks_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "checks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies: {
         Row: {
@@ -952,11 +1037,13 @@ export type Database = {
           created_at: string
           credit_card_id: string
           id: string
+          is_reversal: boolean
           line_number: number
           line_type: string
           memo: string | null
           owner_id: string
           project_id: string | null
+          reverses_line_id: string | null
           updated_at: string
         }
         Insert: {
@@ -966,11 +1053,13 @@ export type Database = {
           created_at?: string
           credit_card_id: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type: string
           memo?: string | null
           owner_id: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -980,11 +1069,13 @@ export type Database = {
           created_at?: string
           credit_card_id?: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type?: string
           memo?: string | null
           owner_id?: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -995,21 +1086,33 @@ export type Database = {
             referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credit_card_lines_reverses_line_id_fkey"
+            columns: ["reverses_line_id"]
+            isOneToOne: false
+            referencedRelation: "credit_card_lines"
+            referencedColumns: ["id"]
+          },
         ]
       }
       credit_cards: {
         Row: {
           amount: number
+          correction_reason: string | null
           created_at: string
           created_by: string
           credit_card_account_id: string
           id: string
+          is_reversal: boolean
           memo: string | null
           owner_id: string
           project_id: string | null
           reconciled: boolean
           reconciliation_date: string | null
           reconciliation_id: string | null
+          reversed_at: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
           status: string
           transaction_date: string
           transaction_type: string
@@ -1018,16 +1121,21 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          correction_reason?: string | null
           created_at?: string
           created_by: string
           credit_card_account_id: string
           id?: string
+          is_reversal?: boolean
           memo?: string | null
           owner_id: string
           project_id?: string | null
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           status?: string
           transaction_date?: string
           transaction_type: string
@@ -1036,23 +1144,43 @@ export type Database = {
         }
         Update: {
           amount?: number
+          correction_reason?: string | null
           created_at?: string
           created_by?: string
           credit_card_account_id?: string
           id?: string
+          is_reversal?: boolean
           memo?: string | null
           owner_id?: string
           project_id?: string | null
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           status?: string
           transaction_date?: string
           transaction_type?: string
           updated_at?: string
           vendor?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "credit_cards_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_cards_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deposit_lines: {
         Row: {
@@ -1061,11 +1189,13 @@ export type Database = {
           created_at: string
           deposit_id: string
           id: string
+          is_reversal: boolean
           line_number: number
           line_type: string
           memo: string | null
           owner_id: string
           project_id: string | null
+          reverses_line_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1074,11 +1204,13 @@ export type Database = {
           created_at?: string
           deposit_id: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type: string
           memo?: string | null
           owner_id: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1087,11 +1219,13 @@ export type Database = {
           created_at?: string
           deposit_id?: string
           id?: string
+          is_reversal?: boolean
           line_number?: number
           line_type?: string
           memo?: string | null
           owner_id?: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1100,6 +1234,13 @@ export type Database = {
             columns: ["deposit_id"]
             isOneToOne: false
             referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_lines_reverses_line_id_fkey"
+            columns: ["reverses_line_id"]
+            isOneToOne: false
+            referencedRelation: "deposit_lines"
             referencedColumns: ["id"]
           },
         ]
@@ -1159,17 +1300,22 @@ export type Database = {
           company_address: string | null
           company_city_state: string | null
           company_name: string | null
+          correction_reason: string | null
           created_at: string
           created_by: string
           deposit_date: string
           deposit_source_id: string | null
           id: string
+          is_reversal: boolean
           memo: string | null
           owner_id: string
           project_id: string | null
           reconciled: boolean
           reconciliation_date: string | null
           reconciliation_id: string | null
+          reversed_at: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
           routing_number: string | null
           status: string
           updated_at: string
@@ -1183,17 +1329,22 @@ export type Database = {
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
+          correction_reason?: string | null
           created_at?: string
           created_by: string
           deposit_date?: string
           deposit_source_id?: string | null
           id?: string
+          is_reversal?: boolean
           memo?: string | null
           owner_id: string
           project_id?: string | null
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
@@ -1207,17 +1358,22 @@ export type Database = {
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
+          correction_reason?: string | null
           created_at?: string
           created_by?: string
           deposit_date?: string
           deposit_source_id?: string | null
           id?: string
+          is_reversal?: boolean
           memo?: string | null
           owner_id?: string
           project_id?: string | null
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           routing_number?: string | null
           status?: string
           updated_at?: string
@@ -1228,6 +1384,20 @@ export type Database = {
             columns: ["deposit_source_id"]
             isOneToOne: false
             referencedRelation: "deposit_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposits_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposits_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "deposits"
             referencedColumns: ["id"]
           },
         ]
@@ -1275,39 +1445,69 @@ export type Database = {
       }
       journal_entries: {
         Row: {
+          correction_reason: string | null
           created_at: string
           description: string | null
           entry_date: string
           id: string
+          is_reversal: boolean
           owner_id: string
           posted_at: string | null
+          reversed_at: string | null
+          reversed_by_id: string | null
+          reverses_id: string | null
           source_id: string
           source_type: string
           updated_at: string
         }
         Insert: {
+          correction_reason?: string | null
           created_at?: string
           description?: string | null
           entry_date?: string
           id?: string
+          is_reversal?: boolean
           owner_id: string
           posted_at?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           source_id: string
           source_type: string
           updated_at?: string
         }
         Update: {
+          correction_reason?: string | null
           created_at?: string
           description?: string | null
           entry_date?: string
           id?: string
+          is_reversal?: boolean
           owner_id?: string
           posted_at?: string | null
+          reversed_at?: string | null
+          reversed_by_id?: string | null
+          reverses_id?: string | null
           source_id?: string
           source_type?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_reversed_by_id_fkey"
+            columns: ["reversed_by_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       journal_entry_lines: {
         Row: {
@@ -1317,11 +1517,13 @@ export type Database = {
           credit: number
           debit: number
           id: string
+          is_reversal: boolean
           journal_entry_id: string
           line_number: number
           memo: string | null
           owner_id: string
           project_id: string | null
+          reverses_line_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1331,11 +1533,13 @@ export type Database = {
           credit?: number
           debit?: number
           id?: string
+          is_reversal?: boolean
           journal_entry_id: string
           line_number?: number
           memo?: string | null
           owner_id: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1345,11 +1549,13 @@ export type Database = {
           credit?: number
           debit?: number
           id?: string
+          is_reversal?: boolean
           journal_entry_id?: string
           line_number?: number
           memo?: string | null
           owner_id?: string
           project_id?: string | null
+          reverses_line_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1379,6 +1585,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_reverses_line_id_fkey"
+            columns: ["reverses_line_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entry_lines"
             referencedColumns: ["id"]
           },
         ]
@@ -2871,7 +3084,7 @@ export type Database = {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
       app_role: "owner" | "accountant" | "employee"
       bill_line_type: "job_cost" | "expense"
-      bill_status: "draft" | "posted" | "void" | "paid"
+      bill_status: "draft" | "posted" | "void" | "paid" | "reversed"
       user_type: "home_builder" | "employee"
     }
     CompositeTypes: {
@@ -3003,7 +3216,7 @@ export const Constants = {
       account_type: ["asset", "liability", "equity", "revenue", "expense"],
       app_role: ["owner", "accountant", "employee"],
       bill_line_type: ["job_cost", "expense"],
-      bill_status: ["draft", "posted", "void", "paid"],
+      bill_status: ["draft", "posted", "void", "paid", "reversed"],
       user_type: ["home_builder", "employee"],
     },
   },
