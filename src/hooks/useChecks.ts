@@ -398,11 +398,151 @@ export const useChecks = () => {
     },
   });
 
+  const correctCheck = useMutation({
+    mutationFn: async ({ 
+      checkId, 
+      correctedCheckData, 
+      correctedCheckLines,
+      correctionReason 
+    }: { 
+      checkId: string; 
+      correctedCheckData: CheckData; 
+      correctedCheckLines: CheckLineData[];
+      correctionReason?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Step 1: Get original check
+      const { data: originalCheck } = await supabase
+        .from('checks')
+        .select('*, check_lines (*)')
+        .eq('id', checkId)
+        .single();
+
+      if (!originalCheck) throw new Error("Check not found");
+
+      // Step 2: Get original journal entries
+      const { data: originalJournalEntries } = await supabase
+        .from('journal_entries')
+        .select('*, journal_entry_lines (*)')
+        .eq('source_type', 'check')
+        .eq('source_id', checkId);
+
+      // Step 3: Mark original as reversed
+      await supabase
+        .from('checks')
+        .update({ reversed_at: new Date().toISOString() })
+        .eq('id', checkId);
+
+      // Step 4: Create reversing check
+      const { data: reversingCheck } = await supabase
+        .from('checks')
+        .insert({
+          owner_id: originalCheck.owner_id,
+          created_by: user.id,
+          check_number: `REV-${originalCheck.check_number || ''}`,
+          check_date: originalCheck.check_date,
+          pay_to: originalCheck.pay_to,
+          bank_account_id: originalCheck.bank_account_id,
+          project_id: originalCheck.project_id,
+          amount: originalCheck.amount,
+          memo: `REVERSAL: ${originalCheck.memo || ''}`,
+          is_reversal: true,
+          reverses_id: checkId
+        })
+        .select()
+        .single();
+
+      // Step 5: Create reversing check lines
+      const reversingCheckLines = originalCheck.check_lines.map((line: any, index: number) => ({
+        check_id: reversingCheck.id,
+        owner_id: originalCheck.owner_id,
+        line_number: index + 1,
+        line_type: line.line_type,
+        account_id: line.account_id,
+        cost_code_id: line.cost_code_id,
+        project_id: line.project_id,
+        amount: line.amount,
+        memo: `REVERSAL: ${line.memo || ''}`,
+        is_reversal: true,
+        reverses_line_id: line.id
+      }));
+
+      await supabase.from('check_lines').insert(reversingCheckLines);
+
+      // Step 6: Create reversing journal entries (flip debits/credits)
+      if (originalJournalEntries && originalJournalEntries.length > 0) {
+        for (const originalJE of originalJournalEntries) {
+          const { data: reversingJE } = await supabase
+            .from('journal_entries')
+            .insert({
+              owner_id: originalCheck.owner_id,
+              source_type: 'check',
+              source_id: reversingCheck.id,
+              entry_date: originalJE.entry_date,
+              description: `REVERSAL: ${originalJE.description}`,
+              is_reversal: true,
+              reverses_id: originalJE.id
+            })
+            .select()
+            .single();
+
+          const reversingJELines = originalJE.journal_entry_lines.map((line: any, index: number) => ({
+            journal_entry_id: reversingJE!.id,
+            owner_id: originalCheck.owner_id,
+            line_number: index + 1,
+            account_id: line.account_id,
+            debit: line.credit,
+            credit: line.debit,
+            project_id: line.project_id,
+            cost_code_id: line.cost_code_id,
+            memo: `REVERSAL: ${line.memo || ''}`,
+            is_reversal: true,
+            reverses_line_id: line.id
+          }));
+
+          await supabase.from('journal_entry_lines').insert(reversingJELines);
+          await supabase.from('journal_entries').update({ reversed_by_id: reversingJE!.id }).eq('id', originalJE.id);
+        }
+      }
+
+      // Step 7: Link original to reversing
+      await supabase.from('checks').update({ reversed_by_id: reversingCheck.id }).eq('id', checkId);
+
+      // Step 8: Create corrected check using existing createCheck logic
+      const result = await createCheck.mutateAsync({ 
+        checkData: { ...correctedCheckData, memo: correctionReason ? `${correctedCheckData.memo || ''} (Corrected: ${correctionReason})` : correctedCheckData.memo },
+        checkLines: correctedCheckLines 
+      });
+
+      return { originalCheck, reversingCheck, correctedCheck: result };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['checks'] });
+      queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      toast({
+        title: "Check Corrected",
+        description: "Check corrected with complete audit trail",
+      });
+    },
+    onError: (error) => {
+      console.error('Error correcting check:', error);
+      toast({
+        title: "Error Correcting Check",
+        description: error.message || "Failed to correct check",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     checks,
     isLoading,
     createCheck,
     deleteCheck,
     updateCheck,
+    correctCheck,
   };
 };

@@ -435,12 +435,102 @@ export const useJournalEntries = () => {
     },
   });
 
+  const correctManualJournalEntry = useMutation({
+    mutationFn: async ({ 
+      journalEntryId, 
+      correctedEntryData,
+      correctionReason 
+    }: { 
+      journalEntryId: string; 
+      correctedEntryData: CreateManualJournalEntryData;
+      correctionReason?: string;
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Step 1: Get original journal entry
+      const { data: originalJE } = await supabase
+        .from('journal_entries')
+        .select('*, journal_entry_lines (*)')
+        .eq('id', journalEntryId)
+        .single();
+
+      if (!originalJE) throw new Error("Journal entry not found");
+
+      // Step 2: Mark original as reversed
+      await supabase
+        .from('journal_entries')
+        .update({ reversed_at: new Date().toISOString() })
+        .eq('id', journalEntryId);
+
+      // Step 3: Create reversing journal entry
+      const { data: reversingJE } = await supabase
+        .from('journal_entries')
+        .insert({
+          owner_id: originalJE.owner_id,
+          source_type: 'manual',
+          source_id: crypto.randomUUID(),
+          entry_date: originalJE.entry_date,
+          description: `REVERSAL: ${originalJE.description || ''}`,
+          is_reversal: true,
+          reverses_id: journalEntryId
+        })
+        .select()
+        .single();
+
+      // Step 4: Create reversing journal entry lines (flip debits/credits)
+      const reversingJELines = originalJE.journal_entry_lines.map((line: any, index: number) => ({
+        journal_entry_id: reversingJE!.id,
+        owner_id: originalJE.owner_id,
+        line_number: index + 1,
+        account_id: line.account_id,
+        debit: line.credit,
+        credit: line.debit,
+        project_id: line.project_id,
+        cost_code_id: line.cost_code_id,
+        memo: `REVERSAL: ${line.memo || ''}`,
+        is_reversal: true,
+        reverses_line_id: line.id
+      }));
+
+      await supabase.from('journal_entry_lines').insert(reversingJELines);
+
+      // Step 5: Link original to reversing
+      await supabase.from('journal_entries').update({ reversed_by_id: reversingJE.id }).eq('id', journalEntryId);
+
+      // Step 6: Create corrected journal entry
+      const result = await createManualJournalEntry.mutateAsync({
+        ...correctedEntryData,
+        description: correctionReason ? `${correctedEntryData.description || ''} (Corrected: ${correctionReason})` : correctedEntryData.description
+      });
+
+      return { originalJE, reversingJE, correctedJE: result };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      toast({
+        title: "Success",
+        description: "Journal entry corrected with complete audit trail",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error correcting journal entry:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to correct journal entry",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createManualJournalEntry,
     updateManualJournalEntry,
     deleteManualJournalEntry,
     updateJournalEntryField,
     updateJournalEntryLine,
+    correctManualJournalEntry,
     journalEntries,
     isLoading,
   };

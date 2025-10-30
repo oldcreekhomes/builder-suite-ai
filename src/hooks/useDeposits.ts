@@ -317,5 +317,147 @@ export const useDeposits = () => {
     },
   });
 
-  return { createDeposit, deleteDeposit, updateDeposit };
+  const correctDeposit = useMutation({
+    mutationFn: async ({ 
+      depositId, 
+      correctedDepositData, 
+      correctedDepositLines,
+      correctionReason 
+    }: { 
+      depositId: string; 
+      correctedDepositData: DepositData; 
+      correctedDepositLines: DepositLineData[];
+      correctionReason?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Step 1: Get original deposit
+      const { data: originalDeposit } = await supabase
+        .from('deposits')
+        .select('*, deposit_lines (*)')
+        .eq('id', depositId)
+        .single();
+
+      if (!originalDeposit) throw new Error("Deposit not found");
+
+      // Step 2: Get original journal entries
+      const { data: originalJournalEntries } = await supabase
+        .from('journal_entries')
+        .select('*, journal_entry_lines (*)')
+        .eq('source_type', 'deposit')
+        .eq('source_id', depositId);
+
+      // Step 3: Mark original as reversed
+      await supabase
+        .from('deposits')
+        .update({ 
+          status: 'reversed',
+          reversed_at: new Date().toISOString()
+        })
+        .eq('id', depositId);
+
+      // Step 4: Create reversing deposit
+      const { data: reversingDeposit } = await supabase
+        .from('deposits')
+        .insert({
+          owner_id: originalDeposit.owner_id,
+          created_by: user.id,
+          deposit_date: originalDeposit.deposit_date,
+          bank_account_id: originalDeposit.bank_account_id,
+          project_id: originalDeposit.project_id,
+          amount: originalDeposit.amount,
+          memo: `REVERSAL: ${originalDeposit.memo || ''}`,
+          deposit_source_id: originalDeposit.deposit_source_id,
+          check_number: originalDeposit.check_number,
+          status: 'posted',
+          is_reversal: true,
+          reverses_id: depositId
+        })
+        .select()
+        .single();
+
+      // Step 5: Create reversing deposit lines
+      const reversingDepositLines = originalDeposit.deposit_lines.map((line: any, index: number) => ({
+        deposit_id: reversingDeposit.id,
+        owner_id: originalDeposit.owner_id,
+        line_number: index + 1,
+        line_type: line.line_type,
+        account_id: line.account_id,
+        project_id: line.project_id,
+        amount: line.amount,
+        memo: `REVERSAL: ${line.memo || ''}`,
+        is_reversal: true,
+        reverses_line_id: line.id
+      }));
+
+      await supabase.from('deposit_lines').insert(reversingDepositLines);
+
+      // Step 6: Create reversing journal entries (flip debits/credits)
+      if (originalJournalEntries && originalJournalEntries.length > 0) {
+        for (const originalJE of originalJournalEntries) {
+          const { data: reversingJE } = await supabase
+            .from('journal_entries')
+            .insert({
+              owner_id: originalDeposit.owner_id,
+              source_type: 'deposit',
+              source_id: reversingDeposit.id,
+              entry_date: originalJE.entry_date,
+              description: `REVERSAL: ${originalJE.description}`,
+              is_reversal: true,
+              reverses_id: originalJE.id
+            })
+            .select()
+            .single();
+
+          const reversingJELines = originalJE.journal_entry_lines.map((line: any, index: number) => ({
+            journal_entry_id: reversingJE!.id,
+            owner_id: originalDeposit.owner_id,
+            line_number: index + 1,
+            account_id: line.account_id,
+            debit: line.credit,
+            credit: line.debit,
+            project_id: line.project_id,
+            cost_code_id: line.cost_code_id,
+            memo: `REVERSAL: ${line.memo || ''}`,
+            is_reversal: true,
+            reverses_line_id: line.id
+          }));
+
+          await supabase.from('journal_entry_lines').insert(reversingJELines);
+          await supabase.from('journal_entries').update({ reversed_by_id: reversingJE!.id }).eq('id', originalJE.id);
+        }
+      }
+
+      // Step 7: Link original to reversing
+      await supabase.from('deposits').update({ reversed_by_id: reversingDeposit.id }).eq('id', depositId);
+
+      // Step 8: Create corrected deposit using existing createDeposit logic
+      const result = await createDeposit.mutateAsync({
+        depositData: { ...correctedDepositData, memo: correctionReason ? `${correctedDepositData.memo || ''} (Corrected: ${correctionReason})` : correctedDepositData.memo },
+        depositLines: correctedDepositLines
+      });
+
+      return { originalDeposit, reversingDeposit, correctedDeposit: result };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      toast({
+        title: "Success",
+        description: "Deposit corrected with complete audit trail",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error correcting deposit:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to correct deposit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  return { createDeposit, deleteDeposit, updateDeposit, correctDeposit };
 };

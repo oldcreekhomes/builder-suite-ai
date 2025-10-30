@@ -602,6 +602,209 @@ export const useBills = () => {
     }
   });
 
+  const correctBill = useMutation({
+    mutationFn: async ({ 
+      billId, 
+      correctedBillData, 
+      correctedBillLines,
+      correctionReason 
+    }: { 
+      billId: string; 
+      correctedBillData: BillData; 
+      correctedBillLines: BillLineData[];
+      correctionReason?: string;
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Step 1: Get original bill with all related data
+      const { data: originalBill, error: fetchError } = await supabase
+        .from('bills')
+        .select(`
+          *,
+          bill_lines (*)
+        `)
+        .eq('id', billId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!originalBill) throw new Error("Bill not found");
+
+      // Step 2: Get original journal entries
+      const { data: originalJournalEntries } = await supabase
+        .from('journal_entries')
+        .select(`
+          *,
+          journal_entry_lines (*)
+        `)
+        .eq('source_type', 'bill')
+        .eq('source_id', billId)
+        .order('created_at', { ascending: true });
+
+      // Step 3: Mark original bill as reversed
+      const { error: markError } = await supabase
+        .from('bills')
+        .update({ 
+          status: 'reversed',
+          reversed_at: new Date().toISOString()
+        })
+        .eq('id', billId);
+
+      if (markError) throw markError;
+
+      // Step 4: Create reversing bill entry
+      const { data: reversingBill, error: reversingBillError } = await supabase
+        .from('bills')
+        .insert({
+          vendor_id: originalBill.vendor_id,
+          project_id: originalBill.project_id,
+          bill_date: originalBill.bill_date,
+          due_date: originalBill.due_date,
+          terms: originalBill.terms,
+          reference_number: `REVERSAL: ${originalBill.reference_number || ''}`,
+          notes: `REVERSAL of bill ${originalBill.id}${correctionReason ? ` - Reason: ${correctionReason}` : ''}`,
+          owner_id: originalBill.owner_id,
+          created_by: user.id,
+          total_amount: originalBill.total_amount,
+          status: originalBill.status,
+          is_reversal: true,
+          reverses_id: billId
+        })
+        .select()
+        .single();
+
+      if (reversingBillError) throw reversingBillError;
+
+      // Step 5: Create reversing bill lines
+      const reversingBillLines = originalBill.bill_lines.map((line: any, index: number) => ({
+        bill_id: reversingBill.id,
+        owner_id: originalBill.owner_id,
+        line_number: index + 1,
+        line_type: line.line_type,
+        account_id: line.account_id,
+        cost_code_id: line.cost_code_id,
+        project_id: line.project_id,
+        quantity: line.quantity,
+        unit_cost: line.unit_cost,
+        amount: line.amount,
+        memo: `REVERSAL: ${line.memo || ''}`,
+        is_reversal: true,
+        reverses_line_id: line.id
+      }));
+
+      const { error: reversingLinesError } = await supabase
+        .from('bill_lines')
+        .insert(reversingBillLines);
+
+      if (reversingLinesError) throw reversingLinesError;
+
+      // Step 6: Create reversing journal entries (flip debits/credits)
+      if (originalJournalEntries && originalJournalEntries.length > 0) {
+        for (const originalJE of originalJournalEntries) {
+          const { data: reversingJE, error: reversingJEError } = await supabase
+            .from('journal_entries')
+            .insert({
+              owner_id: originalBill.owner_id,
+              source_type: originalJE.source_type,
+              source_id: reversingBill.id,
+              entry_date: originalJE.entry_date,
+              description: `REVERSAL: ${originalJE.description}`,
+              is_reversal: true,
+              reverses_id: originalJE.id
+            })
+            .select()
+            .single();
+
+          if (reversingJEError) throw reversingJEError;
+
+          // Create reversing journal entry lines with flipped debits/credits
+          const reversingJELines = originalJE.journal_entry_lines.map((line: any, index: number) => ({
+            journal_entry_id: reversingJE.id,
+            owner_id: originalBill.owner_id,
+            line_number: index + 1,
+            account_id: line.account_id,
+            debit: line.credit, // FLIP: credit becomes debit
+            credit: line.debit, // FLIP: debit becomes credit
+            project_id: line.project_id,
+            cost_code_id: line.cost_code_id,
+            memo: `REVERSAL: ${line.memo || ''}`,
+            is_reversal: true,
+            reverses_line_id: line.id
+          }));
+
+          const { error: reversingJELinesError } = await supabase
+            .from('journal_entry_lines')
+            .insert(reversingJELines);
+
+          if (reversingJELinesError) throw reversingJELinesError;
+
+          // Link original JE to reversing JE
+          await supabase
+            .from('journal_entries')
+            .update({ reversed_by_id: reversingJE.id })
+            .eq('id', originalJE.id);
+        }
+      }
+
+      // Step 7: Link original bill to reversing bill
+      const { error: linkError } = await supabase
+        .from('bills')
+        .update({ reversed_by_id: reversingBill.id })
+        .eq('id', billId);
+
+      if (linkError) throw linkError;
+
+      // Step 8: Create corrected bill using existing createBill logic
+      const { data: correctedBill } = await supabase
+        .from('bills')
+        .insert({
+          ...correctedBillData,
+          owner_id: originalBill.owner_id,
+          created_by: user.id,
+          total_amount: correctedBillLines.reduce((sum, line) => sum + line.amount, 0),
+          correction_reason: correctionReason
+        })
+        .select()
+        .single();
+
+      if (!correctedBill) throw new Error("Failed to create corrected bill");
+
+      // Create corrected bill lines
+      const correctedBillLinesData = correctedBillLines.map((line, index) => ({
+        ...line,
+        bill_id: correctedBill.id,
+        line_number: index + 1,
+        owner_id: originalBill.owner_id
+      }));
+
+      const { error: correctedLinesError } = await supabase
+        .from('bill_lines')
+        .insert(correctedBillLinesData);
+
+      if (correctedLinesError) throw correctedLinesError;
+
+      return { originalBill, reversingBill, correctedBill };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      toast({
+        title: "Success",
+        description: "Bill corrected with complete audit trail",
+      });
+    },
+    onError: (error) => {
+      console.error('Error correcting bill:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to correct bill",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     createBill,
     postBill,
@@ -609,6 +812,7 @@ export const useBills = () => {
     rejectBill,
     payBill,
     deleteBill,
-    updateBill
+    updateBill,
+    correctBill
   };
 };
