@@ -82,9 +82,9 @@ export function BudgetDetailsModal({
   const { availableBids, selectBid, isLoading: isBidLoading } = useBudgetBidSelection(projectId, costCode.id);
   const [selectedBidId, setSelectedBidId] = useState<string | null>(currentSelectedBidId || null);
 
-  // Manual tab state
-  const [manualQuantity, setManualQuantity] = useState<number>(budgetItem.quantity || 0);
-  const [manualUnitPrice, setManualUnitPrice] = useState<number>(budgetItem.unit_price || 0);
+  // Manual tab state - store as strings to allow empty inputs
+  const [manualQuantityInput, setManualQuantityInput] = useState<string>(budgetItem.quantity?.toString() || '');
+  const [manualUnitPriceInput, setManualUnitPriceInput] = useState<string>(budgetItem.unit_price?.toString() || '');
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
@@ -172,8 +172,8 @@ export function BudgetDetailsModal({
       updateSource({
         budgetItemId: budgetItem.id,
         source: 'manual',
-        manualQuantity,
-        manualUnitPrice,
+        manualQuantity: parseFloat(manualQuantityInput) || 0,
+        manualUnitPrice: parseFloat(manualUnitPriceInput) || 0,
       });
       onClose();
     } else if (source === 'estimate') {
@@ -499,8 +499,8 @@ export function BudgetDetailsModal({
                       <td className="p-3 text-sm text-left">
                         <Input
                           type="number"
-                          value={manualUnitPrice}
-                          onChange={(e) => setManualUnitPrice(parseFloat(e.target.value) || 0)}
+                          value={manualUnitPriceInput}
+                          onChange={(e) => setManualUnitPriceInput(e.target.value)}
                           className="w-28 h-8 text-left"
                         />
                       </td>
@@ -510,13 +510,13 @@ export function BudgetDetailsModal({
                       <td className="p-3 text-sm text-left">
                         <Input
                           type="number"
-                          value={manualQuantity}
-                          onChange={(e) => setManualQuantity(parseFloat(e.target.value) || 0)}
+                          value={manualQuantityInput}
+                          onChange={(e) => setManualQuantityInput(e.target.value)}
                           className="w-28 h-8 text-left"
                         />
                       </td>
                       <td className="p-3 text-sm text-left font-medium">
-                        {formatCurrency(manualQuantity * manualUnitPrice)}
+                        {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
                       </td>
                     </tr>
                   </tbody>
@@ -525,7 +525,7 @@ export function BudgetDetailsModal({
               <div className="flex justify-between items-center pt-4 border-t">
                 <span className="text-sm font-medium">Total Budget:</span>
                 <span className="text-lg font-semibold">
-                  {formatCurrency(manualQuantity * manualUnitPrice)}
+                  {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
                 </span>
               </div>
             </div>
