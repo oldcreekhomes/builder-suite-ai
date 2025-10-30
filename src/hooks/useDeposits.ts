@@ -27,6 +27,9 @@ export interface DepositData {
   bank_name?: string;
   routing_number?: string;
   account_number?: string;
+  reconciled?: boolean;
+  reconciliation_id?: string;
+  reconciliation_date?: string;
 }
 
 export const useDeposits = () => {
@@ -434,7 +437,13 @@ export const useDeposits = () => {
 
       // Step 8: Create corrected deposit using existing createDeposit logic
       const result = await createDeposit.mutateAsync({
-        depositData: { ...correctedDepositData, memo: correctionReason ? `${correctedDepositData.memo || ''} (Corrected: ${correctionReason})` : correctedDepositData.memo },
+        depositData: { 
+          ...correctedDepositData, 
+          reconciled: originalDeposit.reconciled,
+          reconciliation_id: originalDeposit.reconciliation_id,
+          reconciliation_date: originalDeposit.reconciliation_date,
+          memo: correctionReason ? `${correctedDepositData.memo || ''} (Corrected: ${correctionReason})` : correctedDepositData.memo 
+        },
         depositLines: correctedDepositLines
       });
 

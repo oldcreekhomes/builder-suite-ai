@@ -20,6 +20,9 @@ export interface CreditCardData {
   amount: number;
   memo?: string;
   lines: CreditCardLineData[];
+  reconciled?: boolean;
+  reconciliation_id?: string;
+  reconciliation_date?: string;
 }
 
 export function useCreditCards() {
@@ -371,6 +374,9 @@ export function useCreditCards() {
       // Step 8: Create corrected credit card transaction
       const result = await createCreditCard.mutateAsync({
         ...correctedCreditCardData,
+        reconciled: originalCC.reconciled,
+        reconciliation_id: originalCC.reconciliation_id,
+        reconciliation_date: originalCC.reconciliation_date,
         memo: correctionReason ? `${correctedCreditCardData.memo || ''} (Corrected: ${correctionReason})` : correctedCreditCardData.memo
       });
 

@@ -25,6 +25,9 @@ export interface CheckData {
   bank_name?: string;
   routing_number?: string;
   account_number?: string;
+  reconciled?: boolean;
+  reconciliation_id?: string;
+  reconciliation_date?: string;
 }
 
 export const useChecks = () => {
@@ -514,7 +517,13 @@ export const useChecks = () => {
 
       // Step 8: Create corrected check using existing createCheck logic
       const result = await createCheck.mutateAsync({ 
-        checkData: { ...correctedCheckData, memo: correctionReason ? `${correctedCheckData.memo || ''} (Corrected: ${correctionReason})` : correctedCheckData.memo },
+        checkData: { 
+          ...correctedCheckData, 
+          reconciled: originalCheck.reconciled,
+          reconciliation_id: originalCheck.reconciliation_id,
+          reconciliation_date: originalCheck.reconciliation_date,
+          memo: correctionReason ? `${correctedCheckData.memo || ''} (Corrected: ${correctionReason})` : correctedCheckData.memo 
+        },
         checkLines: correctedCheckLines 
       });
 
