@@ -209,11 +209,10 @@ export function BudgetDetailsModal({
 
           if (existingErr) throw existingErr;
 
-          // Build upsert payload with IDs for existing items
+          // Build upsert payload - no need for IDs, we'll use (project_id, cost_code_id) for conflict resolution
           const childBudgetItems = subcategories
             .filter(sub => selections[sub.cost_codes.id] !== false)
             .map(sub => {
-              const existingItem = existingRows?.find(r => r.cost_code_id === sub.cost_codes.id);
               const qty = Number.isFinite(parseFloat(String(sub.quantity))) 
                 ? parseFloat(String(sub.quantity)) 
                 : 1;
@@ -222,7 +221,6 @@ export function BudgetDetailsModal({
                 : 0;
 
               return {
-                ...(existingItem ? { id: existingItem.id } : {}),
                 project_id: projectId,
                 cost_code_id: sub.cost_codes.id,
                 quantity: qty,
@@ -233,7 +231,7 @@ export function BudgetDetailsModal({
           const { error: budgetError } = await supabase
             .from('project_budgets')
             .upsert(childBudgetItems, { 
-              onConflict: 'id'
+              onConflict: 'project_id,cost_code_id'
             });
 
           if (budgetError) throw budgetError;
