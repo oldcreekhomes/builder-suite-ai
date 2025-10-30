@@ -380,6 +380,8 @@ export function useCreditCards() {
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.refetchQueries({ queryKey: ['account-transactions'] });
       toast.success("Credit card transaction corrected with complete audit trail");
     },
     onError: (error: Error) => {

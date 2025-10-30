@@ -437,6 +437,8 @@ export function AccountDetailDialog({
     field: "date" | "reference" | "description" | "amount",
     value: string | number | Date
   ) => {
+    const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
+    
     try {
       // Description is always updated on the journal entry line
       if (field === "description") {
@@ -444,6 +446,12 @@ export function AccountDetailDialog({
           lineId: transaction.line_id, 
           updates: { memo: value as string } 
         });
+        
+        // Immediately refresh the dialog and balance sheet
+        await queryClient.invalidateQueries({ queryKey });
+        await queryClient.refetchQueries({ queryKey });
+        queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+        queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
         return;
       }
 
@@ -484,6 +492,12 @@ export function AccountDetailDialog({
             if (field === "amount") checkUpdates.amount = value as number;
             await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
           }
+          
+          // Immediately refresh the dialog and balance sheet
+          await queryClient.invalidateQueries({ queryKey });
+          await queryClient.refetchQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
           break;
         case 'deposit':
           // Fetch deposit to determine status
@@ -522,11 +536,23 @@ export function AccountDetailDialog({
             if (field === "amount") depositUpdates.amount = value as number;
             await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
           }
+          
+          // Immediately refresh the dialog and balance sheet
+          await queryClient.invalidateQueries({ queryKey });
+          await queryClient.refetchQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
           break;
         case 'manual':
           const journalUpdates: any = {};
           if (field === "date") journalUpdates.entry_date = format(value as Date, "yyyy-MM-dd");
           await updateJournalEntryField.mutateAsync({ entryId: transaction.source_id, updates: journalUpdates });
+          
+          // Immediately refresh the dialog and balance sheet
+          await queryClient.invalidateQueries({ queryKey });
+          await queryClient.refetchQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
           break;
         default:
           console.log('Edit not implemented for:', transaction.source_type);

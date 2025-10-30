@@ -444,6 +444,8 @@ export const useDeposits = () => {
       queryClient.invalidateQueries({ queryKey: ['deposits'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.refetchQueries({ queryKey: ['account-transactions'] });
       toast({
         title: "Success",
         description: "Deposit corrected with complete audit trail",

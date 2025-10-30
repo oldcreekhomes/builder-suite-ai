@@ -524,6 +524,8 @@ export const useChecks = () => {
       queryClient.invalidateQueries({ queryKey: ['checks'] });
       queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.refetchQueries({ queryKey: ['account-transactions'] });
       toast({
         title: "Check Corrected",
         description: "Check corrected with complete audit trail",
