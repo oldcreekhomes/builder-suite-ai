@@ -144,6 +144,8 @@ export function AccountDetailDialog({
             pay_to, 
             check_number,
             reconciled,
+            reconciliation_id,
+            reconciliation_date,
             check_lines(memo, line_number)
           `)
           .eq('is_reversal', false)
@@ -200,6 +202,8 @@ export function AccountDetailDialog({
             bank_account_id,
             deposit_source_id,
             reconciled,
+            reconciliation_id,
+            reconciliation_date,
             deposit_sources(customer_name),
             deposit_lines(memo, line_number)
           `)
@@ -236,6 +240,8 @@ export function AccountDetailDialog({
             vendor,
             memo,
             reconciled,
+            reconciliation_id,
+            reconciliation_date,
             credit_card_lines(memo, line_number)
           `)
           .eq('is_reversal', false)
@@ -279,7 +285,7 @@ export function AccountDetailDialog({
           if (check) {
             memo = check.memo;
             reference = check.vendor_name || check.pay_to;
-            reconciled = check.reconciled || false;
+            reconciled = check.reconciled || !!check.reconciliation_id || !!check.reconciliation_date;
             // Use first check line memo as description (e.g., "Testing")
             description = check.firstLineMemo || description;
           }
@@ -291,7 +297,7 @@ export function AccountDetailDialog({
           if (deposit) {
             memo = deposit.memo;
             reference = deposit.receivedFrom;
-            reconciled = deposit.reconciled || false;
+            reconciled = deposit.reconciled || !!deposit.reconciliation_id || !!deposit.reconciliation_date;
             // Use first deposit line memo as description
             description = deposit.firstLineMemo || description;
           }
@@ -303,7 +309,7 @@ export function AccountDetailDialog({
           if (cc) {
             memo = cc.memo;
             reference = cc.vendor;
-            reconciled = cc.reconciled || false;
+            reconciled = cc.reconciled || !!cc.reconciliation_id || !!cc.reconciliation_date;
             // Use first credit card line memo as description
             description = cc.firstLineMemo || description;
           }
