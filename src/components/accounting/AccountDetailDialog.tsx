@@ -93,12 +93,14 @@ export function AccountDetailDialog({
           source_id,
           created_at,
           is_reversal,
-          reversed_at
+          reversed_at,
+          reversed_by_id
         )
         `)
         .eq('account_id', accountId)
         .eq('journal_entries.is_reversal', false)
-        .is('journal_entries.reversed_at', null);
+        .is('journal_entries.reversed_at', null)
+        .is('journal_entries.reversed_by_id', null);
 
       if (projectId) {
         // For project-specific reports, include both project lines AND company-wide lines (null project_id)
@@ -255,7 +257,17 @@ export function AccountDetailDialog({
         });
       }
 
-      const transactions: Transaction[] = (data || []).map((line: any) => {
+      // Client-side defensive filter: only show journal lines whose source records exist in the filtered maps
+      const filteredData = (data || []).filter((line: any) => {
+        const st = line.journal_entries.source_type;
+        const sid = line.journal_entries.source_id;
+        if (st === 'deposit') return depositsMap.has(sid);
+        if (st === 'check') return checksMap.has(sid);
+        if (st === 'credit_card') return creditCardsMap.has(sid);
+        return true; // keep manual/bill types
+      });
+
+      const transactions: Transaction[] = filteredData.map((line: any) => {
         let memo = line.memo;
         let reference = null;
         let description = line.memo; // Description always comes from the line memo

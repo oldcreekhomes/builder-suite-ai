@@ -425,7 +425,7 @@ export const useDeposits = () => {
           }));
 
           await supabase.from('journal_entry_lines').insert(reversingJELines);
-          await supabase.from('journal_entries').update({ reversed_by_id: reversingJE!.id }).eq('id', originalJE.id);
+          await supabase.from('journal_entries').update({ reversed_by_id: reversingJE!.id, reversed_at: new Date().toISOString() }).eq('id', originalJE.id);
         }
       }
 
