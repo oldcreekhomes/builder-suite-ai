@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useMultipleHistoricalCosts(projectIds: string[]) {
-  // Create stable sorted array to prevent unnecessary refetches
-  const sortedIds = useMemo(() => [...projectIds].sort(), [projectIds]);
+  // Create sorted array without mutating the original
+  const sortedIds = [...projectIds].sort();
 
   // Fetch historical costs for all project IDs
   const queries = useQuery({
