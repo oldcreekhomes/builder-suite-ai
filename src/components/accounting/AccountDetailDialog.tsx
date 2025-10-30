@@ -209,7 +209,6 @@ export function AccountDetailDialog({
           `)
           .eq('is_reversal', false)
           .is('reversed_at', null)
-          .neq('status', 'reversed')
           .in('id', depositIds);
         
         depositsData?.forEach((deposit: any) => {

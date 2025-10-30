@@ -83,6 +83,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       const { data, error } = await supabase
         .from('deposits')
         .select('*')
+        .eq('is_reversal', false)
+        .is('reversed_at', null)
         .order('deposit_date', { ascending: false });
       
       if (error) throw error;
