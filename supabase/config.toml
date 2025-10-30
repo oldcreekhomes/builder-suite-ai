@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.extract-takeoff]
 verify_jwt = true
+
+[functions.fix-deposit-reversal]
+verify_jwt = false
