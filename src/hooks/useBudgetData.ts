@@ -28,6 +28,7 @@ export function useBudgetData(projectId: string) {
       return data;
     },
     enabled: !!projectId,
+    placeholderData: (previousData) => previousData,
   });
 
   // Fetch all cost codes to understand the hierarchy
@@ -41,6 +42,7 @@ export function useBudgetData(projectId: string) {
       if (error) throw error;
       return data;
     },
+    placeholderData: (previousData) => previousData,
   });
 
   // Group budget items by parent group and sort by cost code
