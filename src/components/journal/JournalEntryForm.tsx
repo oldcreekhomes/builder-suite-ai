@@ -17,6 +17,7 @@ import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toDateLocal } from "@/utils/dateOnly";
 
 interface JournalLine {
   id: string;
@@ -242,7 +243,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   // Load a journal entry into the form
   const loadJournalEntry = (entry: any) => {
     setCurrentJournalEntryId(entry.id);
-    setEntryDate(new Date(entry.entry_date));
+    setEntryDate(toDateLocal(entry.entry_date));
     setDescription(entry.description || "");
     
     const expLines: JournalLine[] = [];

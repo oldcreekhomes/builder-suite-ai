@@ -22,6 +22,7 @@ import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { toDateLocal } from "@/utils/dateOnly";
 
 interface CheckRow {
   id: string;
@@ -328,7 +329,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setCurrentCheckId(check.id);
     setIsViewingMode(true);
     
-    setCheckDate(new Date(check.check_date));
+    setCheckDate(toDateLocal(check.check_date));
     setPayTo(check.pay_to || "");
     setPayToName(check.pay_to || "");
     setCheckNumber(check.check_number || "");

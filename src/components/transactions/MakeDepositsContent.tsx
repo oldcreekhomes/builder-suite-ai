@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toDateLocal } from "@/utils/dateOnly";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
@@ -99,7 +100,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const sortedDeposits = useMemo(() => {
     return [...filteredDeposits].sort((a, b) => 
-      new Date(b.deposit_date).getTime() - new Date(a.deposit_date).getTime()
+      b.deposit_date.localeCompare(a.deposit_date)
     );
   }, [filteredDeposits]);
 
@@ -130,7 +131,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const loadDepositData = async (deposit: any) => {
     setCurrentDepositId(deposit.id);
     setIsViewingMode(true);
-    setDepositDate(new Date(deposit.deposit_date));
+    setDepositDate(toDateLocal(deposit.deposit_date));
     setCheckNumber(deposit.check_number || "");
     
     const bankAcct = accounts.find(a => a.id === deposit.bank_account_id);

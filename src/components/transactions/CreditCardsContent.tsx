@@ -301,7 +301,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setIsViewingMode(true);
     setCurrentCreditCardId(card.id);
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
-    setTransactionDate(format(new Date(card.transaction_date), 'yyyy-MM-dd'));
+    setTransactionDate(card.transaction_date);
     // Set credit card account ID and display text
     const creditCardAcct = accounts.find(a => a.id === card.credit_card_account_id);
     if (creditCardAcct) {
