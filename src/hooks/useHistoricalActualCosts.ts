@@ -57,5 +57,9 @@ export function useHistoricalActualCosts(projectId: string | null) {
       };
     },
     enabled: !!projectId,
+    placeholderData: (prev) => prev,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

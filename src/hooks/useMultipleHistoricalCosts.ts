@@ -3,11 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useMultipleHistoricalCosts(projectIds: string[]) {
+  // Create stable sorted array to prevent unnecessary refetches
+  const sortedIds = useMemo(() => [...projectIds].sort(), [projectIds]);
+
   // Fetch historical costs for all project IDs
   const queries = useQuery({
-    queryKey: ['multiple-historical-costs', ...projectIds.sort()],
+    queryKey: ['multiple-historical-costs', ...sortedIds],
     queryFn: async () => {
-      if (projectIds.length === 0) {
+      if (sortedIds.length === 0) {
         return {};
       }
 
@@ -19,7 +22,7 @@ export function useMultipleHistoricalCosts(projectIds: string[]) {
           actual_amount,
           cost_codes (*)
         `)
-        .in('project_id', projectIds)
+        .in('project_id', sortedIds)
         .not('actual_amount', 'is', null)
         .neq('actual_amount', 0);
 
@@ -41,7 +44,11 @@ export function useMultipleHistoricalCosts(projectIds: string[]) {
 
       return map;
     },
-    enabled: projectIds.length > 0,
+    enabled: sortedIds.length > 0,
+    placeholderData: (prev) => prev,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   return queries;
