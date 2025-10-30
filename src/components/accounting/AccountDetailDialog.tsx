@@ -144,6 +144,9 @@ export function AccountDetailDialog({
             reconciled,
             check_lines(memo, line_number)
           `)
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
+          .neq('status', 'reversed')
           .in('id', checkIds);
         
         // Get unique vendor IDs (UUIDs) to fetch company names
@@ -198,6 +201,9 @@ export function AccountDetailDialog({
             deposit_sources(customer_name),
             deposit_lines(memo, line_number)
           `)
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
+          .neq('status', 'reversed')
           .in('id', depositIds);
         
         depositsData?.forEach((deposit: any) => {
@@ -230,6 +236,9 @@ export function AccountDetailDialog({
             reconciled,
             credit_card_lines(memo, line_number)
           `)
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
+          .neq('status', 'reversed')
           .in('id', creditCardIds);
         
         creditCardsData?.forEach((cc: any) => {
