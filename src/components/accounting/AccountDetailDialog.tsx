@@ -391,6 +391,18 @@ export function AccountDetailDialog({
 
   const handleDelete = async (transaction: Transaction) => {
     if (!canDeleteBills) return;
+    
+    // CRITICAL: Never allow deletion of reconciled transactions
+    if (transaction.reconciled) {
+      console.error('Cannot delete reconciled transaction');
+      const { toast } = await import("@/hooks/use-toast");
+      toast({
+        title: "Cannot Delete",
+        description: "This transaction is reconciled and cannot be deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Compute query key for optimistic update
     const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
@@ -437,6 +449,18 @@ export function AccountDetailDialog({
     field: "date" | "reference" | "description" | "amount",
     value: string | number | Date
   ) => {
+    // CRITICAL: Never allow updates to reconciled transactions
+    if (transaction.reconciled) {
+      console.error('Cannot update reconciled transaction');
+      const { toast } = await import("@/hooks/use-toast");
+      toast({
+        title: "Cannot Edit",
+        description: "This transaction is reconciled and cannot be modified.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
     
     try {
@@ -627,7 +651,7 @@ export function AccountDetailDialog({
                     value={toLocalDate(txn.date)}
                     field="date"
                     onSave={(value) => handleUpdate(txn, "date", value)}
-                    readOnly={!canDeleteBills}
+                    readOnly={!canDeleteBills || txn.reconciled}
                   />
                     </TableCell>
                     <TableCell className="px-2 py-1">
@@ -635,7 +659,7 @@ export function AccountDetailDialog({
                         value={txn.reference || '-'}
                         field="reference"
                         onSave={(value) => handleUpdate(txn, "reference", value)}
-                        readOnly={!canDeleteBills || !['check', 'deposit'].includes(txn.source_type)}
+                        readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type)}
                       />
                     </TableCell>
                     <TableCell className="px-2 py-1">
@@ -643,7 +667,7 @@ export function AccountDetailDialog({
                         value={txn.description || '-'}
                         field="description"
                         onSave={(value) => handleUpdate(txn, "description", value)}
-                        readOnly={!canDeleteBills}
+                        readOnly={!canDeleteBills || txn.reconciled}
                       />
                     </TableCell>
                     <TableCell className="px-2 py-1">
