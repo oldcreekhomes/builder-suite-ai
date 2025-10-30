@@ -49,6 +49,8 @@ export const useJournalEntries = () => {
         .select("*")
         .eq("owner_id", owner_id)
         .eq("source_type", "manual")
+        .eq("is_reversal", false)
+        .is("reversed_at", null)
         .order("entry_date", { ascending: false })
         .order("created_at", { ascending: false });
 

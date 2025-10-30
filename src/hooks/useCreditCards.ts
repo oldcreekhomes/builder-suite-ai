@@ -32,6 +32,8 @@ export function useCreditCards() {
       const { data: creditCardsData, error: creditCardsError } = await supabase
         .from('credit_cards')
         .select('*')
+        .eq('is_reversal', false)
+        .is('reversed_at', null)
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false });
 

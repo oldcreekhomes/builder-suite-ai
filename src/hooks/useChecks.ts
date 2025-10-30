@@ -60,6 +60,8 @@ export const useChecks = () => {
           )
         `)
         .eq('owner_id', owner_id)
+        .eq('is_reversal', false)
+        .is('reversed_at', null)
         .order('check_date', { ascending: false })
         .order('created_at', { ascending: false });
 

@@ -176,7 +176,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             )
           )
         `)
-        .in('status', statusArray);
+        .in('status', statusArray)
+        .eq('is_reversal', false)
+        .is('reversed_at', null);
 
       // Filter by project_id or projectIds if provided
       if (projectIds && projectIds.length > 0) {

@@ -61,10 +61,10 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('asc');
-  const { deleteCheck, updateCheck } = useChecks();
-  const { deleteDeposit, updateDeposit } = useDeposits();
-  const { deleteCreditCard } = useCreditCards();
-  const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine } = useJournalEntries();
+  const { deleteCheck, updateCheck, correctCheck } = useChecks();
+  const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
+  const { deleteCreditCard, correctCreditCard } = useCreditCards();
+  const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine, correctManualJournalEntry } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
@@ -91,10 +91,14 @@ export function AccountDetailDialog({
           description,
           source_type,
           source_id,
-          created_at
+          created_at,
+          is_reversal,
+          reversed_at
         )
         `)
-        .eq('account_id', accountId);
+        .eq('account_id', accountId)
+        .eq('journal_entries.is_reversal', false)
+        .is('journal_entries.reversed_at', null);
 
       if (projectId) {
         // For project-specific reports, include both project lines AND company-wide lines (null project_id)
@@ -424,21 +428,79 @@ export function AccountDetailDialog({
 
       switch (transaction.source_type) {
         case 'check':
-          const checkUpdates: any = {};
-          if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "reference") checkUpdates.pay_to = value as string;
-          if (field === "amount") checkUpdates.amount = value as number;
-          await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
+          // Fetch check to determine status
+          const { data: checkData } = await supabase
+            .from('checks')
+            .select('*, check_lines(*)')
+            .eq('id', transaction.source_id)
+            .single();
+          
+          if (checkData && (checkData.status === 'posted' || checkData.status === 'cleared')) {
+            // Use correction for posted/cleared checks
+            const correctedCheckData: any = {
+              check_number: checkData.check_number,
+              check_date: field === "date" ? format(value as Date, "yyyy-MM-dd") : checkData.check_date,
+              pay_to: field === "reference" ? value as string : checkData.pay_to,
+              bank_account_id: checkData.bank_account_id,
+              project_id: checkData.project_id,
+              amount: field === "amount" ? value as number : checkData.amount,
+              memo: checkData.memo
+            };
+            const correctedCheckLines = checkData.check_lines.map((line: any) => ({
+              line_type: line.line_type,
+              account_id: line.account_id,
+              cost_code_id: line.cost_code_id,
+              project_id: line.project_id,
+              amount: field === "amount" ? (value as number) * (line.amount / checkData.amount) : line.amount,
+              memo: line.memo
+            }));
+            await correctCheck.mutateAsync({ checkId: transaction.source_id, correctedCheckData, correctedCheckLines });
+          } else {
+            // Use update for draft checks
+            const checkUpdates: any = {};
+            if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
+            if (field === "reference") checkUpdates.pay_to = value as string;
+            if (field === "amount") checkUpdates.amount = value as number;
+            await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
+          }
           break;
         case 'deposit':
-          const depositUpdates: any = {};
-          if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "reference") {
-            // For deposits, "Received From" updates the memo field which is displayed as the received from
-            depositUpdates.memo = value as string;
+          // Fetch deposit to determine status
+          const { data: depositData } = await supabase
+            .from('deposits')
+            .select('*, deposit_lines(*)')
+            .eq('id', transaction.source_id)
+            .single();
+          
+          if (depositData && (depositData.status === 'posted' || depositData.status === 'cleared')) {
+            // Use correction for posted/cleared deposits
+            const correctedDepositData: any = {
+              deposit_date: field === "date" ? format(value as Date, "yyyy-MM-dd") : depositData.deposit_date,
+              bank_account_id: depositData.bank_account_id,
+              project_id: depositData.project_id,
+              amount: field === "amount" ? value as number : depositData.amount,
+              memo: field === "reference" ? value as string : depositData.memo
+            };
+            const correctedDepositLines = depositData.deposit_lines.map((line: any) => ({
+              line_type: line.line_type,
+              account_id: line.account_id,
+              cost_code_id: line.cost_code_id,
+              project_id: line.project_id,
+              amount: field === "amount" ? (value as number) * (line.amount / depositData.amount) : line.amount,
+              memo: line.memo
+            }));
+            await correctDeposit.mutateAsync({ depositId: transaction.source_id, correctedDepositData, correctedDepositLines });
+          } else {
+            // Use update for draft deposits
+            const depositUpdates: any = {};
+            if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
+            if (field === "reference") {
+              // For deposits, "Received From" updates the memo field which is displayed as the received from
+              depositUpdates.memo = value as string;
+            }
+            if (field === "amount") depositUpdates.amount = value as number;
+            await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
           }
-          if (field === "amount") depositUpdates.amount = value as number;
-          await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
           break;
         case 'manual':
           const journalUpdates: any = {};

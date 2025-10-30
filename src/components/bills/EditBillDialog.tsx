@@ -84,7 +84,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [responseNote, setResponseNote] = useState('');
   
-  const { updateBill } = useBills();
+  const { updateBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Load bill data
@@ -425,12 +425,21 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     };
 
     try {
-      await updateBill.mutateAsync({ 
-        billId, 
-        billData: updateData, 
-        billLines,
-        deletedLineIds
-      });
+      // Auto-correct if posted/paid, otherwise update
+      if (billData.status === 'posted' || billData.status === 'paid') {
+        await correctBill.mutateAsync({ 
+          billId, 
+          correctedBillData: updateData, 
+          correctedBillLines: billLines
+        });
+      } else {
+        await updateBill.mutateAsync({ 
+          billId, 
+          billData: updateData, 
+          billLines,
+          deletedLineIds
+        });
+      }
       
       setShowSaveConfirmation(false);
       setResponseNote('');
@@ -874,7 +883,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               variant="outline"
               className="flex-1"
               onClick={() => onOpenChange(false)}
-              disabled={updateBill.isPending}
+              disabled={updateBill.isPending || correctBill.isPending}
             >
               Cancel
             </Button>
@@ -882,9 +891,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               type="button" 
               className="flex-1"
               onClick={handleSave}
-              disabled={updateBill.isPending}
+              disabled={updateBill.isPending || correctBill.isPending}
             >
-              {updateBill.isPending ? "Saving..." : "Save Changes"}
+              {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>

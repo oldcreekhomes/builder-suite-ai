@@ -56,6 +56,8 @@ export const useBankReconciliation = () => {
           .eq('bank_account_id', bankAccountId)
           .eq('status', 'posted')
           .eq('reconciled', false)
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
           .order('check_date', { ascending: true });
 
         if (checksError) throw checksError;
@@ -102,6 +104,8 @@ export const useBankReconciliation = () => {
           .eq('bank_account_id', bankAccountId)
           .eq('status', 'posted')
           .eq('reconciled', false)
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
           .order('deposit_date', { ascending: true });
 
         if (projectId) {
