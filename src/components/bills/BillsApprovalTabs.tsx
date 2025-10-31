@@ -466,7 +466,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               className="pl-9 h-10"
             />
           </div>
-          <div className="flex items-center gap-4 bg-muted/50 px-4 rounded-lg border h-10">
+          <div className="flex items-center gap-4 px-4 rounded-lg border h-10 bg-background">
             <span className="text-sm font-medium whitespace-nowrap">Show bills</span>
             <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-4">
               <div className="flex items-center gap-2">
