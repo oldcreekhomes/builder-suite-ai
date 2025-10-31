@@ -65,9 +65,11 @@ interface PayBillsTableProps {
   projectIds?: string[];
   showProjectColumn?: boolean;
   searchQuery?: string;
+  dueDateFilter?: "all" | "due-on-or-before";
+  filterDate?: Date;
 }
 
-export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery }: PayBillsTableProps) {
+export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate }: PayBillsTableProps) {
   const { payBill, deleteBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -324,38 +326,53 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
   }, [bills, sortColumn, sortDirection]);
 
   const filteredBills = useMemo(() => {
-    if (!searchQuery || !sortedBills) return sortedBills;
+    let filtered = sortedBills;
 
-    const query = searchQuery.toLowerCase();
-    return sortedBills.filter(bill => {
-      // Search by vendor name
-      const vendorName = (bill.companies?.company_name || '').toLowerCase();
-      if (vendorName.includes(query)) return true;
+    // Apply date filter
+    if (dueDateFilter === "due-on-or-before" && filterDate && filtered) {
+      const filterDateYMD = normalizeToYMD(filterDate.toISOString());
+      filtered = filtered.filter(bill => {
+        if (!bill.due_date) return false;
+        const billDueDateYMD = normalizeToYMD(bill.due_date);
+        return billDueDateYMD <= filterDateYMD;
+      });
+    }
 
-      // Search by reference number
-      const refNumber = (bill.reference_number || '').toLowerCase();
-      if (refNumber.includes(query)) return true;
+    // Apply search filter
+    if (searchQuery && filtered) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(bill => {
+        // Search by vendor name
+        const vendorName = (bill.companies?.company_name || '').toLowerCase();
+        if (vendorName.includes(query)) return true;
 
-      // Search by project address
-      const projectAddress = (bill.projects?.address || '').toLowerCase();
-      if (projectAddress.includes(query)) return true;
+        // Search by reference number
+        const refNumber = (bill.reference_number || '').toLowerCase();
+        if (refNumber.includes(query)) return true;
 
-      // Search by cost codes
-      if (bill.bill_lines) {
-        const matchesCostCode = bill.bill_lines.some(line => {
-          if (line.cost_codes) {
-            const code = (line.cost_codes.code || '').toLowerCase();
-            const name = (line.cost_codes.name || '').toLowerCase();
-            return code.includes(query) || name.includes(query);
-          }
-          return false;
-        });
-        if (matchesCostCode) return true;
-      }
+        // Search by project address
+        const projectAddress = (bill.projects?.address || '').toLowerCase();
+        if (projectAddress.includes(query)) return true;
 
-      return false;
-    });
-  }, [sortedBills, searchQuery]);
+        // Search by cost codes
+        if (bill.bill_lines) {
+          const matchesCostCode = bill.bill_lines.some(line => {
+            if (line.cost_codes) {
+              const code = (line.cost_codes.code || '').toLowerCase();
+              const name = (line.cost_codes.name || '').toLowerCase();
+              return code.includes(query) || name.includes(query);
+            }
+            return false;
+          });
+          if (matchesCostCode) return true;
+        }
+
+        return false;
+      });
+    }
+
+    return filtered;
+  }, [sortedBills, searchQuery, dueDateFilter, filterDate]);
 
   const handlePayBill = (bill: BillForPayment) => {
     setSelectedBill(bill);

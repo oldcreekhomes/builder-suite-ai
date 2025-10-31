@@ -3,7 +3,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, CalendarIcon } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
 import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
@@ -32,6 +38,8 @@ interface BatchBill extends PendingBill {
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
   const [activeTab, setActiveTab] = useState(reviewOnly ? "review" : "upload");
   const [searchQuery, setSearchQuery] = useState("");
+  const [dueDateFilter, setDueDateFilter] = useState<"all" | "due-on-or-before">("all");
+  const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const effectiveProjectId = projectId || (projectIds && projectIds.length === 1 ? projectIds[0] : undefined);
@@ -448,7 +456,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       </TabsContent>
 
       <TabsContent value="approve" className="mt-6">
-        <div className="mb-4">
+        <div className="mb-4 flex items-start gap-4">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -458,12 +466,51 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               className="pl-9"
             />
           </div>
+          <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg border">
+            <span className="text-sm font-medium">Show bills</span>
+            <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="due-on-or-before" id="due-filter" />
+                <Label htmlFor="due-filter" className="cursor-pointer font-normal">Due on or before</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={dueDateFilter !== "due-on-or-before"}
+                      className={cn(
+                        "w-[160px] justify-start text-left font-normal h-8 text-xs",
+                        !filterDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-3 w-3" />
+                      {filterDate ? format(filterDate, "MM/dd/yyyy") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDate}
+                      onSelect={setFilterDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="all" id="all-filter" />
+                <Label htmlFor="all-filter" className="cursor-pointer font-normal">Show all bills</Label>
+              </div>
+            </RadioGroup>
+          </div>
         </div>
         <PayBillsTable 
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}
           searchQuery={searchQuery}
+          dueDateFilter={dueDateFilter}
+          filterDate={filterDate}
         />
       </TabsContent>
 
