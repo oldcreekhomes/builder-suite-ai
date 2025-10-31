@@ -332,6 +332,7 @@ export type Database = {
       }
       bills: {
         Row: {
+          amount_paid: number
           bill_date: string
           correction_reason: string | null
           created_at: string
@@ -356,6 +357,7 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          amount_paid?: number
           bill_date?: string
           correction_reason?: string | null
           created_at?: string
@@ -380,6 +382,7 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          amount_paid?: number
           bill_date?: string
           correction_reason?: string | null
           created_at?: string

@@ -27,6 +27,7 @@ interface BillForPayment {
   bill_date: string;
   due_date?: string | null;
   total_amount: number;
+  amount_paid?: number;
   reference_number?: string | null;
   terms?: string | null;
   companies?: {
@@ -41,7 +42,7 @@ interface PayBillDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bills: BillForPayment | BillForPayment[] | null;
-  onConfirm: (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => void;
+  onConfirm: (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string, paymentAmount?: number) => void;
   isLoading?: boolean;
 }
 
@@ -58,6 +59,12 @@ export function PayBillDialog({
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [memo, setMemo] = useState<string>("");
+  
+  // For single bill, calculate remaining balance and allow partial payment
+  const singleBill = !isMultiple ? billsArray[0] : null;
+  const remainingBalance = singleBill ? singleBill.total_amount - (singleBill.amount_paid || 0) : 0;
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
+  const [paymentAmountError, setPaymentAmountError] = useState<string>("");
 
   // Filter accounts for payment methods (Cash/Bank accounts and Credit Card accounts)
   const paymentAccounts = accounts.filter(account => 
@@ -84,24 +91,54 @@ export function PayBillDialog({
   const handleConfirm = () => {
     if (billsArray.length === 0 || !paymentAccountId) return;
     
+    // Validate payment amount for single bill
+    if (!isMultiple) {
+      const amount = parseFloat(paymentAmount);
+      if (isNaN(amount) || amount <= 0) {
+        setPaymentAmountError("Payment amount must be greater than $0");
+        return;
+      }
+      if (amount > remainingBalance) {
+        setPaymentAmountError(`Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`);
+        return;
+      }
+    }
+    
     const billIds = billsArray.map(b => b.id);
-    onConfirm(billIds, paymentAccountId, paymentDate, memo || undefined);
+    const amount = !isMultiple ? parseFloat(paymentAmount) : undefined;
+    onConfirm(billIds, paymentAccountId, paymentDate, memo || undefined, amount);
   };
 
   const resetForm = () => {
     setPaymentAccountId("");
     setPaymentDate(format(new Date(), 'yyyy-MM-dd'));
     setMemo("");
+    setPaymentAmount("");
+    setPaymentAmountError("");
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       resetForm();
+    } else {
+      // When dialog opens, set default payment amount to remaining balance for single bill
+      if (!isMultiple && singleBill) {
+        const remaining = singleBill.total_amount - (singleBill.amount_paid || 0);
+        setPaymentAmount(remaining.toFixed(2));
+      }
     }
     onOpenChange(newOpen);
   };
 
   if (billsArray.length === 0) return null;
+  
+  const handlePaymentAmountChange = (value: string) => {
+    setPaymentAmount(value);
+    setPaymentAmountError("");
+  };
+  
+  const parsedPaymentAmount = parseFloat(paymentAmount);
+  const newRemainingBalance = !isNaN(parsedPaymentAmount) ? remainingBalance - parsedPaymentAmount : remainingBalance;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -150,8 +187,18 @@ export function PayBillDialog({
             ) : (
               <>
                 <div className="flex justify-between">
-                  <span>Amount:</span>
-                  <span>{formatCurrency(billsArray[0].total_amount)}</span>
+                  <span>Original Amount:</span>
+                  <span className="font-semibold">{formatCurrency(billsArray[0].total_amount)}</span>
+                </div>
+                {(billsArray[0].amount_paid || 0) > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Previously Paid:</span>
+                    <span>{formatCurrency(billsArray[0].amount_paid || 0)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span>Remaining Balance:</span>
+                  <span className="font-semibold">{formatCurrency(remainingBalance)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Due Date:</span>
@@ -166,6 +213,32 @@ export function PayBillDialog({
               </>
             )}
           </div>
+
+          {/* Payment Amount (single bill only) */}
+          {!isMultiple && (
+            <div className="space-y-2">
+              <Label htmlFor="payment-amount">Payment Amount *</Label>
+              <Input
+                id="payment-amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={remainingBalance}
+                value={paymentAmount}
+                onChange={(e) => handlePaymentAmountChange(e.target.value)}
+                placeholder="0.00"
+                className={paymentAmountError ? "border-destructive" : ""}
+              />
+              {paymentAmountError && (
+                <p className="text-sm text-destructive">{paymentAmountError}</p>
+              )}
+              {!paymentAmountError && !isNaN(parsedPaymentAmount) && parsedPaymentAmount > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  After payment: <span className="font-medium">{formatCurrency(newRemainingBalance)}</span> remaining
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Payment Method and Date */}
           <div className="grid grid-cols-2 gap-4">
@@ -227,7 +300,7 @@ export function PayBillDialog({
           </Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={!paymentAccountId || isLoading}
+            disabled={!paymentAccountId || isLoading || (!isMultiple && (!paymentAmount || parseFloat(paymentAmount) <= 0))}
           >
             {isLoading ? "Processing..." : "Record Payment"}
           </Button>

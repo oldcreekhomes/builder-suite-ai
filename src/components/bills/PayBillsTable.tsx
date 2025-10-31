@@ -35,6 +35,7 @@ interface BillForPayment {
   bill_date: string;
   due_date: string | null;
   total_amount: number;
+  amount_paid?: number;
   reference_number: string | null;
   terms: string | null;
   notes?: string;
@@ -103,6 +104,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             bill_date,
             due_date,
             total_amount,
+            amount_paid,
             reference_number,
             terms,
             notes,
@@ -152,6 +154,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             bill_date,
             due_date,
             total_amount,
+            amount_paid,
             reference_number,
             terms,
             notes,
@@ -200,6 +203,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             bill_date,
             due_date,
             total_amount,
+            amount_paid,
             reference_number,
             terms,
             notes,
@@ -258,6 +262,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             bill_date,
             due_date,
             total_amount,
+            amount_paid,
             reference_number,
             terms,
             notes,
@@ -447,10 +452,10 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     setDialogOpen(true);
   };
 
-  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => {
+  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string, paymentAmount?: number) => {
     if (billIds.length === 1) {
       payBill.mutate(
-        { billId: billIds[0], paymentAccountId, paymentDate, memo },
+        { billId: billIds[0], paymentAccountId, paymentDate, memo, paymentAmount },
         {
           onSuccess: () => {
             setDialogOpen(false);
@@ -485,7 +490,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     ? selectedBills[0].companies?.company_name || 'Unknown Vendor'
     : '';
 
-  const selectedTotal = selectedBills.reduce((sum, bill) => sum + bill.total_amount, 0);
+  const selectedTotal = selectedBills.reduce((sum, bill) => sum + (bill.total_amount - (bill.amount_paid || 0)), 0);
 
   const isHeaderChecked = useMemo(() => {
     if (filteredBills.length === 0) return false;
@@ -708,12 +713,19 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     ) : '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs font-medium">
-                    <div className="flex items-center gap-2">
-                      {formatCurrency(bill.total_amount)}
-                      {bill.total_amount < 0 && (
-                        <Badge variant="outline" className="text-green-600 border-green-600">
-                          Credit
-                        </Badge>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        {formatCurrency(bill.total_amount - (bill.amount_paid || 0))}
+                        {bill.total_amount < 0 && (
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            Credit
+                          </Badge>
+                        )}
+                      </div>
+                      {(bill.amount_paid || 0) > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          Paid: {formatCurrency(bill.amount_paid || 0)}
+                        </div>
                       )}
                     </div>
                   </TableCell>

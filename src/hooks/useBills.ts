@@ -398,6 +398,9 @@ export const useBills = () => {
 
           if (billError) throw billError;
 
+          // For multiple bills, always pay full remaining balance
+          const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+
           // Get accounting settings for AP account
           const { data: settings } = await supabase
             .from('accounting_settings')
@@ -424,9 +427,9 @@ export const useBills = () => {
 
           if (jeError) throw jeError;
 
-          // Create journal entry lines for payment
-          const totalAmount = Math.abs(bill.total_amount);
-          const isBillCredit = bill.total_amount < 0;
+          // Create journal entry lines for payment amount
+          const paymentAmount = Math.abs(remainingBalance);
+          const isBillCredit = remainingBalance < 0;
           
           const journalLines = [
             // Debit AP (normal bills) or Credit AP (for credits)
@@ -434,8 +437,8 @@ export const useBills = () => {
               journal_entry_id: journalEntry.id,
               line_number: 1,
               account_id: settings.ap_account_id,
-              debit: isBillCredit ? 0 : totalAmount,
-              credit: isBillCredit ? totalAmount : 0,
+              debit: isBillCredit ? 0 : paymentAmount,
+              credit: isBillCredit ? paymentAmount : 0,
               memo: `Payment - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
               owner_id: bill.owner_id,
               project_id: bill.project_id || null,
@@ -445,8 +448,8 @@ export const useBills = () => {
               journal_entry_id: journalEntry.id,
               line_number: 2,
               account_id: paymentAccountId,
-              debit: isBillCredit ? totalAmount : 0,
-              credit: isBillCredit ? 0 : totalAmount,
+              debit: isBillCredit ? paymentAmount : 0,
+              credit: isBillCredit ? 0 : paymentAmount,
               memo: memo || `Payment for bill ${bill.reference_number || ''}`,
               owner_id: bill.owner_id,
               project_id: bill.project_id || null,
@@ -459,12 +462,16 @@ export const useBills = () => {
 
           if (linesError) throw linesError;
 
-          // Update bill status to paid
+          // Update bill with new amount paid and status
+          const newAmountPaid = (bill.amount_paid || 0) + paymentAmount;
+          const isFullyPaid = newAmountPaid >= bill.total_amount;
+
           const { error: updateError } = await supabase
             .from('bills')
             .update({ 
-              status: 'paid' as any,
-              notes: memo ? `Paid - ${memo}` : 'Paid',
+              amount_paid: newAmountPaid,
+              status: isFullyPaid ? 'paid' as any : 'posted' as any,
+              notes: memo ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` : (isFullyPaid ? 'Paid' : 'Partial payment'),
               updated_at: new Date().toISOString()
             })
             .eq('id', billId);
@@ -509,12 +516,14 @@ export const useBills = () => {
       billId, 
       paymentAccountId, 
       paymentDate, 
-      memo 
+      memo,
+      paymentAmount 
     }: { 
       billId: string; 
       paymentAccountId: string; 
       paymentDate: string; 
-      memo?: string; 
+      memo?: string;
+      paymentAmount?: number;
     }) => {
       if (!user) throw new Error("User not authenticated");
 
@@ -526,6 +535,18 @@ export const useBills = () => {
         .single();
 
       if (billError) throw billError;
+
+      // Use provided payment amount or remaining balance
+      const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+      const amountToPay = paymentAmount !== undefined ? paymentAmount : remainingBalance;
+
+      // Validate payment amount
+      if (amountToPay <= 0) {
+        throw new Error("Payment amount must be greater than zero");
+      }
+      if (amountToPay > remainingBalance) {
+        throw new Error("Payment amount cannot exceed remaining balance");
+      }
 
       // Get accounting settings for AP account
       const { data: settings } = await supabase
@@ -553,9 +574,9 @@ export const useBills = () => {
 
       if (jeError) throw jeError;
 
-      // Create journal entry lines for payment
-      const totalAmount = Math.abs(bill.total_amount);
-      const isBillCredit = bill.total_amount < 0;
+      // Create journal entry lines for payment amount
+      const paymentAmountAbs = Math.abs(amountToPay);
+      const isBillCredit = amountToPay < 0;
       
       const journalLines = [
         // Debit AP (normal bills) or Credit AP (for credits)
@@ -563,8 +584,8 @@ export const useBills = () => {
           journal_entry_id: journalEntry.id,
           line_number: 1,
           account_id: settings.ap_account_id,
-          debit: isBillCredit ? 0 : totalAmount,
-          credit: isBillCredit ? totalAmount : 0,
+          debit: isBillCredit ? 0 : paymentAmountAbs,
+          credit: isBillCredit ? paymentAmountAbs : 0,
           memo: `Payment - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
           owner_id: bill.owner_id,
           project_id: bill.project_id || null,
@@ -574,8 +595,8 @@ export const useBills = () => {
           journal_entry_id: journalEntry.id,
           line_number: 2,
           account_id: paymentAccountId,
-          debit: isBillCredit ? totalAmount : 0,
-          credit: isBillCredit ? 0 : totalAmount,
+          debit: isBillCredit ? paymentAmountAbs : 0,
+          credit: isBillCredit ? 0 : paymentAmountAbs,
           memo: memo || `Payment for bill ${bill.reference_number || ''}`,
           owner_id: bill.owner_id,
           project_id: bill.project_id || null,
@@ -588,12 +609,16 @@ export const useBills = () => {
 
       if (linesError) throw linesError;
 
-      // Update bill status to paid
+      // Update bill with new amount paid and status
+      const newAmountPaid = (bill.amount_paid || 0) + amountToPay;
+      const isFullyPaid = newAmountPaid >= bill.total_amount;
+
       const { error: updateError } = await supabase
         .from('bills')
         .update({ 
-          status: 'paid' as any,
-          notes: memo ? `Paid - ${memo}` : 'Paid',
+          amount_paid: newAmountPaid,
+          status: isFullyPaid ? 'paid' as any : 'posted' as any,
+          notes: memo ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` : (isFullyPaid ? 'Paid' : 'Partial payment'),
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
