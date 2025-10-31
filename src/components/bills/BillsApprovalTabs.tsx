@@ -456,29 +456,29 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       </TabsContent>
 
       <TabsContent value="approve" className="mt-6">
-        <div className="mb-4 flex items-start gap-4">
-          <div className="relative max-w-sm">
+        <div className="mb-4 flex items-center gap-4">
+          <div className="relative w-80">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="Search bills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-10"
             />
           </div>
-          <div className="flex items-center gap-4 bg-muted/50 p-3 rounded-lg border">
-            <span className="text-sm font-medium">Show bills</span>
+          <div className="flex items-center gap-4 bg-muted/50 px-4 rounded-lg border h-10">
+            <span className="text-sm font-medium whitespace-nowrap">Show bills</span>
             <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="due-on-or-before" id="due-filter" />
-                <Label htmlFor="due-filter" className="cursor-pointer font-normal">Due on or before</Label>
+                <Label htmlFor="due-filter" className="cursor-pointer font-normal whitespace-nowrap">Due on or before</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       disabled={dueDateFilter !== "due-on-or-before"}
                       className={cn(
-                        "w-[160px] justify-start text-left font-normal h-8 text-xs",
+                        "w-[150px] justify-start text-left font-normal h-8 text-xs",
                         !filterDate && "text-muted-foreground"
                       )}
                     >
@@ -499,7 +499,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="all" id="all-filter" />
-                <Label htmlFor="all-filter" className="cursor-pointer font-normal">Show all bills</Label>
+                <Label htmlFor="all-filter" className="cursor-pointer font-normal whitespace-nowrap">Show all bills</Label>
               </div>
             </RadioGroup>
           </div>
