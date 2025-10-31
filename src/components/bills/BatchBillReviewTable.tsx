@@ -617,7 +617,11 @@ export function BatchBillReviewTable({
                     )}
                   </TableCell>
                   <TableCell className="px-3 py-1">
-                    <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
+                    {totalAmount > 0 ? (
+                      <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
+                    ) : (
+                      <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="px-3 py-1">
                     <div className="relative group inline-block">

@@ -363,6 +363,28 @@ export function EditExtractedBillDialog({
       return;
     }
 
+    // Validate that we have line items
+    const allLines = [...jobCostLines, ...expenseLines];
+    if (allLines.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "At least one line item is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate and validate total
+    const calculatedTotal = parseFloat(calculateTotal());
+    if (calculatedTotal <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Bill total must be greater than $0.00 - please verify line item amounts",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Get current bill to check if vendor changed
     const currentBill = pendingBills?.find(b => b.id === pendingUploadId);
     const originalVendorId = currentBill?.extracted_data?.vendor_id || currentBill?.extracted_data?.vendorId;
@@ -391,14 +413,18 @@ export function EditExtractedBillDialog({
           due_date: dueDateStr,
           dueDate: dueDateStr,
           referenceNumber: refNo,
+          reference_number: refNo,
           terms,
+          total_amount: calculatedTotal,
+          totalAmount: calculatedTotal,
         },
       })
       .eq('id', pendingUploadId);
 
     // Save all lines with display names
-    const allLines = [...jobCostLines, ...expenseLines];
     for (const line of allLines) {
+      // Ensure amount is calculated correctly
+      const lineAmount = line.amount || ((line.quantity || 0) * (line.unit_cost || 0));
       // Query display names for this line
       let accountName = '';
       let costCodeName = '';
@@ -433,9 +459,9 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
-            quantity: line.quantity,
-            unit_cost: line.unit_cost,
-            amount: line.amount,
+            quantity: line.quantity || 1,
+            unit_cost: line.unit_cost || 0,
+            amount: lineAmount,
             memo: line.memo,
           },
         });
@@ -449,9 +475,9 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
-            quantity: line.quantity,
-            unit_cost: line.unit_cost,
-            amount: line.amount,
+            quantity: line.quantity || 1,
+            unit_cost: line.unit_cost || 0,
+            amount: lineAmount,
             memo: line.memo,
           },
         });
@@ -508,8 +534,8 @@ export function EditExtractedBillDialog({
     }
 
     toast({
-      title: "Success",
-      description: "Bill updated successfully",
+      title: "Bill Saved",
+      description: `${vendorData?.company_name || 'Bill'} - $${calculatedTotal.toFixed(2)} with ${allLines.length} line item(s)`,
     });
     onOpenChange(false);
   };
