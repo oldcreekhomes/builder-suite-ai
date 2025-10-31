@@ -370,6 +370,140 @@ export const useBills = () => {
     }
   });
 
+  const payMultipleBills = useMutation({
+    mutationFn: async ({
+      billIds,
+      paymentAccountId,
+      paymentDate,
+      memo
+    }: {
+      billIds: string[];
+      paymentAccountId: string;
+      paymentDate: string;
+      memo?: string;
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      const results = [];
+      const errors = [];
+
+      for (const billId of billIds) {
+        try {
+          // Get bill details for journal entry
+          const { data: bill, error: billError } = await supabase
+            .from('bills')
+            .select('*')
+            .eq('id', billId)
+            .single();
+
+          if (billError) throw billError;
+
+          // Get accounting settings for AP account
+          const { data: settings } = await supabase
+            .from('accounting_settings')
+            .select('ap_account_id')
+            .eq('owner_id', bill.owner_id)
+            .single();
+
+          if (!settings?.ap_account_id) {
+            throw new Error("Accounts Payable account not configured in Accounting Settings");
+          }
+
+          // Create journal entry for payment
+          const { data: journalEntry, error: jeError } = await supabase
+            .from('journal_entries')
+            .insert({
+              owner_id: bill.owner_id,
+              source_type: 'bill_payment',
+              source_id: bill.id,
+              entry_date: paymentDate,
+              description: `Payment for bill - Ref: ${bill.reference_number || 'N/A'}${memo ? ` - ${memo}` : ''}`
+            })
+            .select()
+            .single();
+
+          if (jeError) throw jeError;
+
+          // Create journal entry lines for payment
+          const totalAmount = Math.abs(bill.total_amount);
+          const isBillCredit = bill.total_amount < 0;
+          
+          const journalLines = [
+            // Debit AP (normal bills) or Credit AP (for credits)
+            {
+              journal_entry_id: journalEntry.id,
+              line_number: 1,
+              account_id: settings.ap_account_id,
+              debit: isBillCredit ? 0 : totalAmount,
+              credit: isBillCredit ? totalAmount : 0,
+              memo: `Payment - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
+              owner_id: bill.owner_id,
+              project_id: bill.project_id || null,
+            },
+            // Credit payment account (normal bills) or Debit payment account (for credits)
+            {
+              journal_entry_id: journalEntry.id,
+              line_number: 2,
+              account_id: paymentAccountId,
+              debit: isBillCredit ? totalAmount : 0,
+              credit: isBillCredit ? 0 : totalAmount,
+              memo: memo || `Payment for bill ${bill.reference_number || ''}`,
+              owner_id: bill.owner_id,
+              project_id: bill.project_id || null,
+            }
+          ];
+
+          const { error: linesError } = await supabase
+            .from('journal_entry_lines')
+            .insert(journalLines);
+
+          if (linesError) throw linesError;
+
+          // Update bill status to paid
+          const { error: updateError } = await supabase
+            .from('bills')
+            .update({ 
+              status: 'paid' as any,
+              notes: memo ? `Paid - ${memo}` : 'Paid',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', billId);
+
+          if (updateError) throw updateError;
+
+          results.push({ billId, success: true });
+        } catch (error) {
+          console.error(`Error paying bill ${billId}:`, error);
+          errors.push({ billId, error });
+        }
+      }
+
+      if (errors.length > 0) {
+        throw new Error(`Failed to pay ${errors.length} of ${billIds.length} bills`);
+      }
+
+      return results;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      toast({
+        title: "Success",
+        description: `${variables.billIds.length} bill${variables.billIds.length > 1 ? 's' : ''} paid successfully and posted to General Ledger`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error paying bills:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to pay bills",
+        variant: "destructive",
+      });
+    }
+  });
+
   const payBill = useMutation({
     mutationFn: async ({ 
       billId, 
@@ -811,6 +945,7 @@ export const useBills = () => {
     approveBill,
     rejectBill,
     payBill,
+    payMultipleBills,
     deleteBill,
     updateBill,
     correctBill

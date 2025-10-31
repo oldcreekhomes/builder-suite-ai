@@ -295,9 +295,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     setPayBillDialogOpen(true);
   };
 
-  const handleConfirmPayment = (billId: string, paymentAccountId: string, paymentDate: string, memo?: string) => {
+  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => {
     payBill.mutate(
-      { billId, paymentAccountId, paymentDate, memo },
+      { billId: billIds[0], paymentAccountId, paymentDate, memo },
       {
         onSuccess: () => {
           setPayBillDialogOpen(false);
@@ -679,7 +679,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       <PayBillDialog
         open={payBillDialogOpen}
         onOpenChange={setPayBillDialogOpen}
-        bill={selectedBillForPayment}
+        bills={selectedBillForPayment}
         onConfirm={handleConfirmPayment}
         isLoading={payBill.isPending}
       />

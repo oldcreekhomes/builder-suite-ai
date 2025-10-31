@@ -40,18 +40,20 @@ interface BillForPayment {
 interface PayBillDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  bill: BillForPayment | null;
-  onConfirm: (billId: string, paymentAccountId: string, paymentDate: string, memo?: string) => void;
+  bills: BillForPayment | BillForPayment[] | null;
+  onConfirm: (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => void;
   isLoading?: boolean;
 }
 
 export function PayBillDialog({
   open,
   onOpenChange,
-  bill,
+  bills,
   onConfirm,
   isLoading = false
 }: PayBillDialogProps) {
+  const billsArray = Array.isArray(bills) ? bills : bills ? [bills] : [];
+  const isMultiple = billsArray.length > 1;
   const { accounts } = useAccounts();
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
@@ -80,9 +82,10 @@ export function PayBillDialog({
   ];
 
   const handleConfirm = () => {
-    if (!bill || !paymentAccountId) return;
+    if (billsArray.length === 0 || !paymentAccountId) return;
     
-    onConfirm(bill.id, paymentAccountId, paymentDate, memo || undefined);
+    const billIds = billsArray.map(b => b.id);
+    onConfirm(billIds, paymentAccountId, paymentDate, memo || undefined);
   };
 
   const resetForm = () => {
@@ -98,7 +101,7 @@ export function PayBillDialog({
     onOpenChange(newOpen);
   };
 
-  if (!bill) return null;
+  if (billsArray.length === 0) return null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -107,11 +110,14 @@ export function PayBillDialog({
     }).format(amount);
   };
 
+  const totalAmount = billsArray.reduce((sum, bill) => sum + bill.total_amount, 0);
+  const vendorName = billsArray[0]?.companies?.company_name || 'Unknown Vendor';
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Pay Bill</DialogTitle>
+          <DialogTitle>{isMultiple ? `Pay ${billsArray.length} Bills` : 'Pay Bill'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -119,21 +125,45 @@ export function PayBillDialog({
           <div className="border bg-muted/50 p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
               <span>Vendor:</span>
-              <span>{bill.companies?.company_name || 'Unknown Vendor'}</span>
+              <span>{vendorName}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Amount:</span>
-              <span>{formatCurrency(bill.total_amount)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Due Date:</span>
-              <span>{bill.due_date ? format(new Date(bill.due_date), 'MMM dd, yyyy') : 'Not set'}</span>
-            </div>
-            {bill.reference_number && (
-              <div className="flex justify-between">
-                <span>Reference:</span>
-                <span>{bill.reference_number}</span>
-              </div>
+            {isMultiple ? (
+              <>
+                <div className="flex justify-between font-semibold">
+                  <span>Total Amount ({billsArray.length} bills):</span>
+                  <span>{formatCurrency(totalAmount)}</span>
+                </div>
+                <div className="mt-2 pt-2 border-t">
+                  <div className="text-sm font-medium mb-1">Bills:</div>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {billsArray.map((bill) => (
+                      <div key={bill.id} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {bill.reference_number || 'No ref'}
+                        </span>
+                        <span>{formatCurrency(bill.total_amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span>Amount:</span>
+                  <span>{formatCurrency(billsArray[0].total_amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Due Date:</span>
+                  <span>{billsArray[0].due_date ? format(new Date(billsArray[0].due_date), 'MMM dd, yyyy') : 'Not set'}</span>
+                </div>
+                {billsArray[0].reference_number && (
+                  <div className="flex justify-between">
+                    <span>Reference:</span>
+                    <span>{billsArray[0].reference_number}</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

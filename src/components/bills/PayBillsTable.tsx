@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Check, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
+import { toast } from "@/hooks/use-toast";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -70,8 +72,9 @@ interface PayBillsTableProps {
 }
 
 export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate }: PayBillsTableProps) {
-  const { payBill, deleteBill } = useBills();
+  const { payBill, payMultipleBills, deleteBill } = useBills();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
+  const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -374,22 +377,130 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     return filtered;
   }, [sortedBills, searchQuery, dueDateFilter, filterDate]);
 
+  // Helper functions for selection
+  const getVendorForBill = (billId: string) => {
+    const bill = bills.find(b => b.id === billId);
+    return bill?.vendor_id;
+  };
+
+  const getSelectedVendor = () => {
+    if (selectedBillIds.size === 0) return null;
+    const firstBillId = Array.from(selectedBillIds)[0];
+    return getVendorForBill(firstBillId);
+  };
+
+  const canSelectBill = (billId: string) => {
+    if (selectedBillIds.size === 0) return true;
+    const selectedVendor = getSelectedVendor();
+    const billVendor = getVendorForBill(billId);
+    return selectedVendor === billVendor;
+  };
+
+  const handleCheckboxChange = (billId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (checked) {
+      if (!canSelectBill(billId)) {
+        const selectedVendorName = bills.find(b => b.id === Array.from(selectedBillIds)[0])?.companies?.company_name || 'Unknown';
+        toast({
+          title: "Cannot select bill",
+          description: `You can only select bills from the same vendor. Currently selected: ${selectedVendorName}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedBillIds(prev => new Set([...prev, billId]));
+    } else {
+      setSelectedBillIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(billId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleHeaderCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (checked) {
+      // Select all bills from first vendor or all bills from currently selected vendor
+      const targetVendor = getSelectedVendor() || filteredBills[0]?.vendor_id;
+      if (targetVendor) {
+        const sameVendorBillIds = filteredBills
+          .filter(b => b.vendor_id === targetVendor)
+          .map(b => b.id);
+        setSelectedBillIds(new Set(sameVendorBillIds));
+      }
+    } else {
+      setSelectedBillIds(new Set());
+    }
+  };
+
   const handlePayBill = (bill: BillForPayment) => {
     setSelectedBill(bill);
     setDialogOpen(true);
   };
 
-  const handleConfirmPayment = (billId: string, paymentAccountId: string, paymentDate: string, memo?: string) => {
-    payBill.mutate(
-      { billId, paymentAccountId, paymentDate, memo },
-      {
-        onSuccess: () => {
-          setDialogOpen(false);
-          setSelectedBill(null);
-        }
-      }
-    );
+  const handlePaySelectedBills = () => {
+    const selectedBills = filteredBills.filter(b => selectedBillIds.has(b.id));
+    if (selectedBills.length === 0) return;
+    
+    setSelectedBill(selectedBills.length === 1 ? selectedBills[0] : null);
+    setDialogOpen(true);
   };
+
+  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => {
+    if (billIds.length === 1) {
+      payBill.mutate(
+        { billId: billIds[0], paymentAccountId, paymentDate, memo },
+        {
+          onSuccess: () => {
+            setDialogOpen(false);
+            setSelectedBill(null);
+            setSelectedBillIds(new Set());
+          }
+        }
+      );
+    } else {
+      payMultipleBills.mutate(
+        { billIds, paymentAccountId, paymentDate, memo },
+        {
+          onSuccess: () => {
+            setDialogOpen(false);
+            setSelectedBill(null);
+            setSelectedBillIds(new Set());
+          }
+        }
+      );
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedBillIds(new Set());
+  };
+
+  const selectedBills = useMemo(() => {
+    return filteredBills.filter(b => selectedBillIds.has(b.id));
+  }, [filteredBills, selectedBillIds]);
+
+  const selectedVendorName = selectedBills.length > 0 
+    ? selectedBills[0].companies?.company_name || 'Unknown Vendor'
+    : '';
+
+  const selectedTotal = selectedBills.reduce((sum, bill) => sum + bill.total_amount, 0);
+
+  const isHeaderChecked = useMemo(() => {
+    if (filteredBills.length === 0) return false;
+    const targetVendor = getSelectedVendor() || filteredBills[0]?.vendor_id;
+    const sameVendorBills = filteredBills.filter(b => b.vendor_id === targetVendor);
+    return sameVendorBills.length > 0 && sameVendorBills.every(b => selectedBillIds.has(b.id));
+  }, [filteredBills, selectedBillIds]);
+
+  const isHeaderIndeterminate = useMemo(() => {
+    if (filteredBills.length === 0) return false;
+    const targetVendor = getSelectedVendor() || filteredBills[0]?.vendor_id;
+    const sameVendorBills = filteredBills.filter(b => b.vendor_id === targetVendor);
+    const selectedCount = sameVendorBills.filter(b => selectedBillIds.has(b.id)).length;
+    return selectedCount > 0 && selectedCount < sameVendorBills.length;
+  }, [filteredBills, selectedBillIds]);
 
   const formatCurrency = (amount: number) => {
     const absAmount = Math.abs(amount);
@@ -442,10 +553,48 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
 
   return (
     <>
+      {/* Bulk Payment Toolbar */}
+      {selectedBillIds.size > 0 && (
+        <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-medium">
+              {selectedBillIds.size} bill{selectedBillIds.size > 1 ? 's' : ''} selected from {selectedVendorName}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Total: {formatCurrency(selectedTotal)}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handlePaySelectedBills}
+              disabled={payBill.isPending || payMultipleBills.isPending}
+            >
+              Pay Selected Bills
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={clearSelection}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Clear Selection
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-10">
+                <MinimalCheckbox
+                  checked={isHeaderChecked}
+                  indeterminate={isHeaderIndeterminate}
+                  onChange={handleHeaderCheckboxChange}
+                />
+              </TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">
                 <button
                   type="button"
@@ -514,13 +663,19 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
             ) : (
               filteredBills.map((bill) => (
                 <TableRow key={bill.id} className="h-10">
+                  <TableCell className="px-2 py-1 text-xs">
+                    <MinimalCheckbox
+                      checked={selectedBillIds.has(bill.id)}
+                      onChange={(e) => handleCheckboxChange(bill.id, e)}
+                    />
+                  </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {bill.companies?.company_name || 'Unknown Vendor'}
                   </TableCell>
@@ -606,9 +761,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       <PayBillDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        bill={selectedBill}
+        bills={selectedBill ? selectedBill : selectedBills}
         onConfirm={handleConfirmPayment}
-        isLoading={payBill.isPending}
+        isLoading={payBill.isPending || payMultipleBills.isPending}
       />
     </>
   );
