@@ -17,7 +17,7 @@ import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { useAllBudgetSubcategories } from '@/hooks/useAllBudgetSubcategories';
-import { useAutoAddMissingCostCodes } from '@/hooks/useAutoAddMissingCostCodes';
+
 import { useBudgetItemTotals } from '@/hooks/useBudgetItemTotals';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
@@ -63,8 +63,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   // Fetch historical costs for all historical projects used in budget items
   const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalProjectIds);
   
-  // Auto-add missing cost codes from historical project
-  useAutoAddMissingCostCodes(projectId, historicalCostCodes, budgetItems);
   
   const {
     expandedGroups,
