@@ -25,7 +25,7 @@ export const MinimalCheckbox = React.forwardRef<HTMLInputElement, MinimalCheckbo
         ref={setRef}
         type="checkbox"
         {...props}
-        className={['h-3 w-3 align-middle border rounded', className].filter(Boolean).join(' ')}
+        className={['h-3 w-3 align-middle border border-foreground rounded accent-foreground cursor-pointer', className].filter(Boolean).join(' ')}
       />
     );
   }
