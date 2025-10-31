@@ -3036,6 +3036,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      reverse_bill_payment: {
+        Args: { journal_entry_id_param: string }
+        Returns: boolean
+      }
       update_project_task:
         | {
             Args: {

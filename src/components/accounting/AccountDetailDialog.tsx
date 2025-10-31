@@ -429,7 +429,19 @@ export function AccountDetailDialog({
         await deleteCreditCard.mutateAsync(transaction.source_id);
       } else if (transaction.source_type === 'manual') {
         await deleteManualJournalEntry.mutateAsync(transaction.source_id);
-      } else if (transaction.source_type === 'bill' || transaction.source_type === 'bill_payment') {
+      } else if (transaction.source_type === 'bill_payment') {
+        // Reverse the payment instead of deleting the bill
+        const { error } = await supabase.rpc('reverse_bill_payment', {
+          journal_entry_id_param: transaction.journal_entry_id
+        });
+        if (error) throw error;
+        
+        const { toast } = await import("@/hooks/use-toast");
+        toast({
+          title: "Payment Reversed",
+          description: "The payment has been reversed and the bill balance has been restored.",
+        });
+      } else if (transaction.source_type === 'bill') {
         const { error } = await supabase.rpc('delete_bill_with_journal_entries', {
           bill_id_param: transaction.source_id
         });
@@ -441,11 +453,20 @@ export function AccountDetailDialog({
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       queryClient.refetchQueries({ queryKey: ['account-transactions'] });
     } catch (error) {
       console.error('Error deleting transaction:', error);
       // Roll back optimistic update on error
       queryClient.setQueryData(queryKey, previous);
+      
+      const { toast } = await import("@/hooks/use-toast");
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
