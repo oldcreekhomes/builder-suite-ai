@@ -929,6 +929,32 @@ Return ONLY the JSON object, no additional text.`;
       }
     }
 
+    // Auto-calculate due_date from bill_date and terms if missing
+    if (extractedData.bill_date && extractedData.terms && !extractedData.due_date) {
+      const billDate = new Date(extractedData.bill_date);
+      let daysToAdd = 30; // default
+      
+      switch (extractedData.terms) {
+        case 'net-15':
+          daysToAdd = 15;
+          break;
+        case 'net-30':
+          daysToAdd = 30;
+          break;
+        case 'net-60':
+          daysToAdd = 60;
+          break;
+        case 'due-on-receipt':
+          daysToAdd = 0;
+          break;
+      }
+      
+      const dueDate = new Date(billDate);
+      dueDate.setDate(dueDate.getDate() + daysToAdd);
+      extractedData.due_date = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      console.log(`✅ Auto-calculated due_date: ${extractedData.due_date} from bill_date + ${extractedData.terms}`);
+    }
+
     // Perform contact enrichment inline (no separate mode)
     if (!enrichContactOnly && extractedData.vendor_name) {
       console.log('Starting inline contact enrichment...');

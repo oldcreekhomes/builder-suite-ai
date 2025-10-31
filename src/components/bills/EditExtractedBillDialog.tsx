@@ -41,6 +41,28 @@ function normalizeTermsForUI(terms: string | null | undefined): string {
   return 'net-30';
 }
 
+// Compute due date from bill date and terms
+function computeDueDate(billDate: Date, terms: string): Date {
+  const result = new Date(billDate);
+  switch (terms) {
+    case 'net-15':
+      result.setDate(result.getDate() + 15);
+      break;
+    case 'net-30':
+      result.setDate(result.getDate() + 30);
+      break;
+    case 'net-60':
+      result.setDate(result.getDate() + 60);
+      break;
+    case 'due-on-receipt':
+      // Due on receipt = same day as bill date
+      break;
+    default:
+      result.setDate(result.getDate() + 30);
+  }
+  return result;
+}
+
 interface EditExtractedBillDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -71,6 +93,7 @@ export function EditExtractedBillDialog({
   const [dueDate, setDueDate] = useState<Date>();
   const [refNo, setRefNo] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
+  const [isDueAuto, setIsDueAuto] = useState<boolean>(true);
   const [jobCostLines, setJobCostLines] = useState<LineItem[]>([]);
   const [expenseLines, setExpenseLines] = useState<LineItem[]>([]);
   const [fileName, setFileName] = useState<string>("");
@@ -96,11 +119,20 @@ export function EditExtractedBillDialog({
       setFileName(bill.file_name);
       setFilePath(bill.file_path);
 
+      let loadedBillDate = new Date();
       if (extractedData.bill_date || extractedData.billDate) {
-        setBillDate(toDateLocal(normalizeToYMD(extractedData.bill_date || extractedData.billDate)));
+        loadedBillDate = toDateLocal(normalizeToYMD(extractedData.bill_date || extractedData.billDate));
+        setBillDate(loadedBillDate);
       }
+      
       if (extractedData.due_date || extractedData.dueDate) {
         setDueDate(toDateLocal(normalizeToYMD(extractedData.due_date || extractedData.dueDate)));
+        setIsDueAuto(false); // User or AI provided due date, don't auto-calculate
+      } else {
+        // No due date provided, compute it from bill date and terms
+        const loadedTerms = normalizeTermsForUI(extractedData.terms);
+        setDueDate(computeDueDate(loadedBillDate, loadedTerms));
+        setIsDueAuto(true);
       }
 
       // Fetch default cost code if vendor has exactly 1
@@ -269,6 +301,21 @@ export function EditExtractedBillDialog({
     };
     applyDefault();
   }, [vendorId, open]);
+
+  // Auto-calculate due date when terms change
+  useEffect(() => {
+    if (!open) return;
+    const newDueDate = computeDueDate(billDate, terms);
+    setDueDate(newDueDate);
+    setIsDueAuto(true);
+  }, [terms, open]);
+
+  // Auto-calculate due date when bill date changes (only if auto mode)
+  useEffect(() => {
+    if (!open || !isDueAuto) return;
+    const newDueDate = computeDueDate(billDate, terms);
+    setDueDate(newDueDate);
+  }, [billDate, isDueAuto, terms, open]);
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
@@ -624,7 +671,10 @@ export function EditExtractedBillDialog({
                   <Calendar
                     mode="single"
                     selected={dueDate}
-                    onSelect={setDueDate}
+                    onSelect={(date) => {
+                      setDueDate(date);
+                      setIsDueAuto(false); // Manual selection disables auto-calculation
+                    }}
                     initialFocus
                     className="pointer-events-auto"
                   />
