@@ -713,19 +713,12 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     ) : '-'}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs font-medium">
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-2">
-                        {formatCurrency(bill.total_amount - (bill.amount_paid || 0))}
-                        {bill.total_amount < 0 && (
-                          <Badge variant="outline" className="text-green-600 border-green-600">
-                            Credit
-                          </Badge>
-                        )}
-                      </div>
-                      {(bill.amount_paid || 0) > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          Paid: {formatCurrency(bill.amount_paid || 0)}
-                        </div>
+                    <div className="flex items-center gap-2">
+                      {formatCurrency(bill.total_amount - (bill.amount_paid || 0))}
+                      {bill.total_amount < 0 && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Credit
+                        </Badge>
                       )}
                     </div>
                   </TableCell>
