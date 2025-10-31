@@ -2,8 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useAllBudgetSubcategories(budgetItems: any[], projectId: string) {
+  // Sort item IDs to create stable query key
+  const itemIds = [...budgetItems.map(item => item.id)].sort();
+  
   return useQuery({
-    queryKey: ['all-budget-subcategories', projectId, budgetItems.map(item => item.id)],
+    queryKey: ['all-budget-subcategories', projectId, itemIds],
     queryFn: async () => {
       const subcategoryTotalsMap: Record<string, number> = {};
 
@@ -99,5 +102,9 @@ export function useAllBudgetSubcategories(budgetItems: any[], projectId: string)
       return subcategoryTotalsMap;
     },
     enabled: !!projectId && budgetItems.length > 0,
+    placeholderData: (prev) => prev,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

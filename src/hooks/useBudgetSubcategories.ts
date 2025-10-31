@@ -63,6 +63,10 @@ export function useBudgetSubcategories(
       }) as BudgetItem[];
     },
     enabled: enabled,
+    placeholderData: (prev) => prev,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Fetch saved selections
@@ -78,6 +82,10 @@ export function useBudgetSubcategories(
       return data;
     },
     enabled: enabled,
+    placeholderData: (prev) => prev,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Initialize selections when data loads

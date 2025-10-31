@@ -30,6 +30,10 @@ export function useBudgetWarnings(item: any, total: number, costCode: any) {
 
       return data as BudgetWarningRule[];
     },
+    placeholderData: (prev) => prev,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const warnings: Warning[] = [];
