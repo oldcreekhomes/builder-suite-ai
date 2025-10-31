@@ -478,11 +478,11 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                       variant="outline"
                       disabled={dueDateFilter !== "due-on-or-before"}
                       className={cn(
-                        "w-[150px] justify-start text-left font-normal h-8 text-xs",
-                        !filterDate && "text-muted-foreground"
+                        "w-[150px] justify-start text-left font-normal h-8 text-xs text-foreground",
+                        !filterDate && "text-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
+                      <CalendarIcon className="mr-2 h-3 w-3 text-foreground" />
                       {filterDate ? format(filterDate, "MM/dd/yyyy") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
