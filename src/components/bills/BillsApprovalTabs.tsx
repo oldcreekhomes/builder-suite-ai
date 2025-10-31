@@ -51,6 +51,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     isLoading: pendingLoading,
     refetch: refetchPendingBills,
     deletePendingUpload,
+    batchApproveBills,
   } = usePendingBills();
 
   const [batchBills, setBatchBills] = useState<BatchBill[]>([]);
@@ -186,77 +187,69 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     try {
       const selectedBills = batchBills.filter(bill => selectedBillIds.has(bill.id));
       
-      for (const bill of selectedBills) {
-        // Get data from extracted_data or bill properties
-        const vendorId = bill.extracted_data?.vendor_id;
-        const vendorName = bill.extracted_data?.vendorName || bill.extracted_data?.vendor_name || bill.vendor_name;
-        const billDate = bill.extracted_data?.billDate || bill.extracted_data?.bill_date || bill.bill_date;
-        const dueDate = bill.extracted_data?.dueDate || bill.extracted_data?.due_date || bill.due_date;
-        const referenceNumber = bill.extracted_data?.referenceNumber || bill.extracted_data?.reference_number || bill.reference_number;
-        const totalAmount = bill.extracted_data?.totalAmount || bill.extracted_data?.total_amount;
+      // Map selected bills to the format expected by batchApproveBills
+      const billsToApprove = selectedBills.map(bill => {
+        // Extract data from extracted_data with fallbacks to root properties
+        const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const billDate = bill.extracted_data?.bill_date || bill.extracted_data?.billDate || bill.bill_date;
+        const dueDate = bill.extracted_data?.due_date || bill.extracted_data?.dueDate || bill.due_date;
+        const referenceNumber = bill.extracted_data?.reference_number || bill.extracted_data?.referenceNumber || bill.reference_number;
+        const terms = bill.extracted_data?.terms;
+        
+        // Determine project ID: use provided projectId, or first line's project_id if available
+        const determinedProjectId = effectiveProjectId || bill.lines?.[0]?.project_id || '';
         
         if (!vendorId) {
-          console.error("No vendor_id found for bill:", bill.id);
-          continue;
+          throw new Error(`Missing vendor for bill ${bill.id}`);
         }
-
-        const { data: insertedBill, error: billError } = await supabase
-          .from('bills')
-          .insert({
-            vendor_id: vendorId,
-            bill_date: billDate,
-            due_date: dueDate,
-            reference_number: referenceNumber,
-            total_amount: totalAmount,
-            project_id: effectiveProjectId,
-            status: 'draft',
-            created_by: bill.owner_id,
-            owner_id: bill.owner_id,
-          })
-          .select()
-          .single();
-
-        if (billError) throw billError;
-
-        // Skip line items for now - will be handled by separate bill line entry process
-        // if (bill.lines.length > 0) {
-        //   const { error: linesError } = await supabase
-        //     .from('bill_line_items')
-        //     .insert(
-        //       bill.lines.map(line => ({
-        //         bill_id: insertedBill.id,
-        //         account_id: line.account_id,
-        //         cost_code_id: line.cost_code_id,
-        //         description: line.description,
-        //         amount: line.amount,
-        //         line_type: line.line_type,
-        //       }))
-        //     );
-        //
-        //   if (linesError) throw linesError;
-        // }
-
-        // Delete the pending bill
-        const { error: deleteError } = await supabase
-          .from('pending_bill_uploads')
-          .delete()
-          .eq('id', bill.id);
-
-        if (deleteError) throw deleteError;
-      }
-
-      // Invalidate queries to update all tab counts immediately
-      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
-      queryClient.invalidateQueries({ queryKey: ["bills"] });
-
-      toast({
-        title: "Success",
-        description: `${selectedBills.length} bill${selectedBills.length > 1 ? 's' : ''} submitted successfully`,
+        
+        if (!determinedProjectId) {
+          throw new Error(`Missing project for bill ${bill.id}`);
+        }
+        
+        return {
+          pendingUploadId: bill.id,
+          vendorId,
+          projectId: determinedProjectId,
+          billDate,
+          dueDate,
+          referenceNumber,
+          terms,
+          notes: undefined,
+          reviewNotes: undefined,
+        };
       });
 
+      // Call batchApproveBills which uses the approve_pending_bill RPC
+      // This will properly copy line items and attachments
+      const results = await batchApproveBills.mutateAsync(billsToApprove);
+      
+      // Check for failures
+      const failures = results.filter(r => !r.success);
+      const successes = results.filter(r => r.success);
+      
+      if (failures.length > 0) {
+        console.error("Some bills failed to approve:", failures);
+        toast({
+          title: "Partial Success",
+          description: `${successes.length} bill(s) submitted successfully, ${failures.length} failed. Check console for details.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `${successes.length} bill${successes.length > 1 ? 's' : ''} submitted successfully`,
+        });
+      }
+
+      // Clear local state
       setBatchBills([]);
       setSelectedBillIds(new Set());
+      
+      // Refresh data
       await refetchPendingBills();
+      queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
     } catch (error) {
       console.error("Error submitting bills:", error);
       
@@ -266,13 +259,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       
       toast({
         title: "Error",
-        description: "Failed to submit bills. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit bills. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [batchBills, selectedBillIds, effectiveProjectId, toast, refetchPendingBills]);
+  }, [batchBills, selectedBillIds, effectiveProjectId, batchApproveBills, toast, refetchPendingBills, queryClient]);
 
   const getTabLabel = (status: string, count: number | undefined) => {
     if (countsLoading) {
