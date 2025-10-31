@@ -133,8 +133,14 @@ export function EditExtractedBillDialog({
           const expense: LineItem[] = [];
 
           for (const line of data) {
-            let qty = Number(line.quantity) || 1;
+            const qty = Number(line.quantity) || 1;
+            const rawUnitCost = Number(line.unit_cost) || 0;
             let amt = Number(line.amount) || 0;
+
+            // Prefer computing amount from quantity * unit_cost when amount is missing/zero
+            if ((amt <= 0 || !Number.isFinite(amt)) && rawUnitCost > 0) {
+              amt = Math.round(qty * rawUnitCost * 100) / 100;
+            }
 
             // SANITY CHECKS common to both types
             if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
@@ -146,7 +152,9 @@ export function EditExtractedBillDialog({
               console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
               amt = reasonableUnitCost * qty;
             }
-            const unitCost = amt > 0 && qty > 0 ? Math.round((amt / qty) * 100) / 100 : 0;
+
+            // If unit_cost wasn't provided, back-calculate from amount
+            const unitCost = rawUnitCost > 0 ? rawUnitCost : (qty > 0 && amt > 0 ? Math.round((amt / qty) * 100) / 100 : 0);
 
             // Fetch cost code display string if applicable
             let costCodeDisplay = '';

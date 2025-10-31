@@ -1054,7 +1054,9 @@ Return ONLY the JSON object, no additional text.`;
             project_name: null,
             quantity: item.quantity || 1,
             unit_cost: item.unit_cost || 0,
-            amount: item.amount || 0,
+            amount: (item.amount && item.amount > 0)
+              ? Number(item.amount.toFixed(2))
+              : Number(((item.quantity || 1) * (item.unit_cost || 0)).toFixed(2)),
           };
         });
         
