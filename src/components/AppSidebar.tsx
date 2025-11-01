@@ -10,15 +10,24 @@ import { SidebarUserDropdown } from "./sidebar/SidebarUserDropdown";
 import { MessagesSidebar } from "./sidebar/MessagesSidebar";
 import { CompanyDashboardNav } from "./sidebar/CompanyDashboardNav";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
-import { useUnreadCountsSimplified } from "@/hooks/useUnreadCountsSimplified";
 
 interface AppSidebarProps {
   selectedUser?: any;
   onUserSelect?: (user: any) => void;
   onStartChat?: (user: any) => void;
+  unreadCounts?: Record<string, number>;
+  connectionState?: string;
+  markConversationAsRead?: ((userId: string) => Promise<void>) | null;
 }
 
-export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSidebarProps) {
+export function AppSidebar({ 
+  selectedUser, 
+  onUserSelect, 
+  onStartChat,
+  unreadCounts = {},
+  connectionState = 'disconnected',
+  markConversationAsRead
+}: AppSidebarProps) {
   const location = useLocation();
   const { users, currentUserId } = useCompanyUsers();
   
@@ -32,10 +41,6 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
   useEffect(() => {
     localStorage.setItem('sidebar-active-tab', activeTab);
   }, [activeTab]);
-
-  // Get user IDs for unread count tracking (excluding current user)
-  const userIds = users?.filter(user => user.id !== currentUserId).map(user => user.id) || [];
-  const { unreadCounts, markConversationAsRead } = useUnreadCountsSimplified(userIds);
 
   // Calculate total unread count for Messages tab badge
   const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
@@ -85,7 +90,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
               onUserSelect={onUserSelect}
               onStartChat={onStartChat}
               unreadCounts={unreadCounts}
-              markConversationAsRead={markConversationAsRead}
+              markConversationAsRead={markConversationAsRead || (async () => {})}
             />
           )}
         </div>
@@ -136,7 +141,7 @@ export function AppSidebar({ selectedUser, onUserSelect, onStartChat }: AppSideb
             onUserSelect={onUserSelect}
             onStartChat={onStartChat}
             unreadCounts={unreadCounts}
-            markConversationAsRead={markConversationAsRead}
+            markConversationAsRead={markConversationAsRead || (async () => {})}
           />
         )}
       </div>

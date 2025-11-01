@@ -1,24 +1,16 @@
 import { useEffect } from 'react';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
-import { useUnreadCountsSimplified } from '@/hooks/useUnreadCountsSimplified';
 
+/**
+ * Hook to update the browser title with unread message count
+ * Note: This hook is currently a placeholder. The actual unread count
+ * is managed by FloatingChatManager and displayed in the sidebar.
+ * Browser title updates should be added when we integrate with the global state.
+ */
 export const useBrowserTitle = () => {
-  const { users } = useCompanyUsers();
-  const userIds = users?.map(user => user.id) || [];
-  const { unreadCounts } = useUnreadCountsSimplified(userIds);
-  
-  // Calculate total unread count
-  const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-
   useEffect(() => {
     const baseTitle = 'BuilderSuite AI';
-    
-    if (totalUnread > 0) {
-      document.title = `(${totalUnread}) ${baseTitle}`;
-    } else {
-      document.title = baseTitle;
-    }
-  }, [totalUnread]);
+    document.title = baseTitle;
+  }, []);
 
-  return totalUnread;
+  return 0;
 };

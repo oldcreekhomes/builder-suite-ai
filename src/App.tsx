@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { FloatingChatManager, useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { NotificationStatus } from "@/components/NotificationStatus";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
@@ -56,6 +57,9 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [connectionState, setConnectionState] = useState<'connected' | 'connecting' | 'disconnected' | 'error'>('disconnected');
+  const [markConversationAsRead, setMarkConversationAsRead] = useState<((userId: string) => Promise<void>) | null>(null);
   const { registerChatManager, openFloatingChat } = useFloatingChat();
   
   // Initialize browser title with unread counts (must be after QueryClientProvider)
@@ -64,6 +68,18 @@ const AppContent = () => {
   
   // Note: Global chat notifications are now handled only by FloatingChatManager
   // to prevent duplicate Supabase subscriptions and race conditions
+  
+  const handleChatManagerRegistration = (manager: { 
+    openChat: (user: any) => void;
+    unreadCounts: Record<string, number>;
+    connectionState: 'connected' | 'connecting' | 'disconnected' | 'error';
+    markConversationAsRead: (userId: string) => Promise<void>;
+  }) => {
+    setUnreadCounts(manager.unreadCounts);
+    setConnectionState(manager.connectionState);
+    setMarkConversationAsRead(() => manager.markConversationAsRead);
+    registerChatManager(manager);
+  };
 
   // Register Syncfusion license at application startup
   useEffect(() => {
@@ -217,7 +233,8 @@ const AppContent = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
         
-        <FloatingChatManager onOpenChat={registerChatManager} />
+        <FloatingChatManager onOpenChat={handleChatManagerRegistration} />
+        <NotificationStatus connectionState={connectionState} />
       </SidebarProvider>
     </BrowserRouter>
   );

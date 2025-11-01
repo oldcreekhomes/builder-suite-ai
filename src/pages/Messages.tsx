@@ -8,7 +8,6 @@ import { ChatHeader } from "@/components/messages/ChatHeader";
 import { SimpleMessagesList } from "@/components/messages/SimpleMessagesList";
 import { SimpleMessageInput } from "@/components/messages/SimpleMessageInput";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
-import { NotificationStatus } from "@/components/NotificationStatus";
 
 export default function Messages() {
   const location = useLocation();

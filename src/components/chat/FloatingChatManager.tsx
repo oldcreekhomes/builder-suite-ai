@@ -9,7 +9,12 @@ interface ChatWindow {
 }
 
 interface FloatingChatManagerProps {
-  onOpenChat?: (manager: { openChat: (user: User) => void }) => void;
+  onOpenChat?: (manager: { 
+    openChat: (user: User) => void;
+    unreadCounts: Record<string, number>;
+    connectionState: string;
+    markConversationAsRead: (userId: string) => Promise<void>;
+  }) => void;
 }
 
 // Global reference to the chat manager
@@ -35,7 +40,7 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
   // Set up master real-time notifications
   // CRITICAL: This is the ONLY place where notifications are enabled globally
   // All other useMasterChatRealtime calls must have enableNotifications: false
-  useMasterChatRealtime(activeConversationUserId, {
+  const { unreadCounts, connectionState, markConversationAsRead } = useMasterChatRealtime(activeConversationUserId, {
     onNotificationTrigger: (sender, message) => {
       console.log('💬 FloatingChatManager: Opening chat from notification for user:', sender.id);
       openChat(sender);
@@ -74,7 +79,7 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
 
   // Register the openChat function with the parent and globally
   useEffect(() => {
-    const manager = { openChat };
+    const manager = { openChat, unreadCounts, connectionState, markConversationAsRead };
     globalChatManager = manager;
     onOpenChat?.(manager);
     console.log('💬 FloatingChatManager: Registered chat manager globally and with parent');
@@ -82,7 +87,7 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
     return () => {
       globalChatManager = null;
     };
-  }, [onOpenChat, openChat]);
+  }, [onOpenChat, openChat, unreadCounts, connectionState, markConversationAsRead]);
 
   return (
     <>
