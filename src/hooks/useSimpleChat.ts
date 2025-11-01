@@ -21,12 +21,15 @@ export const useSimpleChat = () => {
   } = useChatRooms();
 
   // Set up master real-time subscription for chat messages
+  // NOTE: Notifications are DISABLED here - FloatingChatManager handles ALL notifications globally
   useMasterChatRealtime(selectedUser?.id || null, {
     onNewMessage: (message, isActiveConversation) => {
       if (isActiveConversation) {
         addMessage(message);
       }
     }
+  }, { 
+    enableNotifications: false // Let FloatingChatManager handle all notifications
   });
 
   // Enhanced start chat function that also fetches messages

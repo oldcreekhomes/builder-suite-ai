@@ -32,7 +32,9 @@ export function FloatingChatManager({ onOpenChat }: FloatingChatManagerProps) {
     });
   }, []);
 
-  // Set up master real-time notifications (always enabled to ensure notifications work)
+  // Set up master real-time notifications
+  // CRITICAL: This is the ONLY place where notifications are enabled globally
+  // All other useMasterChatRealtime calls must have enableNotifications: false
   useMasterChatRealtime(activeConversationUserId, {
     onNotificationTrigger: (sender, message) => {
       console.log('💬 FloatingChatManager: Opening chat from notification for user:', sender.id);

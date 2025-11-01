@@ -9,7 +9,6 @@ import { SimpleMessagesList } from "@/components/messages/SimpleMessagesList";
 import { SimpleMessageInput } from "@/components/messages/SimpleMessageInput";
 import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { NotificationStatus } from "@/components/NotificationStatus";
-import { useMasterChatRealtime } from "@/hooks/useMasterChatRealtime";
 
 export default function Messages() {
   const location = useLocation();
@@ -24,27 +23,6 @@ export default function Messages() {
   } = useSimpleChat();
   
   const { registerChatManager, openFloatingChat } = useFloatingChat();
-  
-  // Set up master chat realtime for notifications
-  const { connectionState } = useMasterChatRealtime(selectedRoom?.id || null, {
-    onNewMessage: (message, isActiveConversation) => {
-      // Update messages if this is the active conversation
-      if (isActiveConversation) {
-        console.log('🚀 Adding new message to active conversation');
-        // This should be handled by useSimpleChat
-      }
-    },
-    onNotificationTrigger: (user) => {
-      console.log('🚀 Opening floating chat from notification for:', user.id);
-      openFloatingChat(user);
-    }
-  }, {
-    enableNotifications: true,
-    notifyWhileActive: false // Don't notify when already viewing the conversation
-  });
-  
-  // Debug the floating chat function
-  console.log('Messages: openFloatingChat function:', openFloatingChat);
 
   // Debug logging
   console.log('Messages Component Debug:', {
@@ -105,9 +83,6 @@ export default function Messages() {
           </div>
         </div>
       </div>
-      
-      {/* Connection Status Indicator */}
-      <NotificationStatus connectionState={connectionState} />
     </SidebarProvider>
   );
 }
