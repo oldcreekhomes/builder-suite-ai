@@ -206,8 +206,8 @@ const AppContent = () => {
           <Route path="/bid-declined" element={<BidDeclined />} />
           
           {/* Protected routes */}
-          {navItems.map(({ to, page }) => (
-            <Route key={to} path={to} element={<ProtectedRoute>{page}</ProtectedRoute>} />
+          {navItems.map(({ to, page: Page }) => (
+            <Route key={to} path={to} element={<ProtectedRoute><Page /></ProtectedRoute>} />
           ))}
           
           {/* Catch all route */}
