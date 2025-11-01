@@ -98,61 +98,96 @@ const handler = async (req: Request): Promise<Response> => {
         from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
         to: [email],
         subject: "Reset Your Password - BuilderSuite AI",
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Reset Your Password</title>
-          </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-              <!-- Header -->
-              <div style="background: linear-gradient(135deg, #3b82f6, #1e40af); padding: 40px 30px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">BuilderSuite AI</h1>
-                <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 16px;">Construction Management Platform</p>
-              </div>
-              
-              <!-- Content -->
-              <div style="padding: 40px 30px;">
-                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 24px;">Reset Your Password</h2>
+        html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Reset Your Password - BuilderSuite AI</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
+        <tr>
+            <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
                 
-                <p style="color: #64748b; font-size: 16px; line-height: 1.5; margin: 0 0 20px 0;">
-                  We received a request to reset your password for your BuilderSuite AI account. Click the button below to create a new password:
-                </p>
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">BuilderSuite AI</h1>
+                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Construction Management Platform</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 30px; margin: 0;">
+                            
+                            <!-- Reset Password Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                <tr>
+                                    <td style="padding: 25px; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 16px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        We received a request to reset your password for your BuilderSuite AI account.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 20px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        Click the button below to create a new password:
+                                                    </p>
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0;">
+                                                        <tr>
+                                                            <td align="center" style="border-radius: 5px; background-color: #000000;">
+                                                                <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 5px;" target="_blank">
+                                                                    Reset Your Password
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0;">
+                                                    <div style="background-color: #f1f5f9; padding: 15px; border-radius: 5px;">
+                                                        <p style="color: #475569; font-size: 13px; margin: 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                            <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, you can safely ignore this email.
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
+                            <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
                 
-                 <div style="text-align: center; margin: 30px 0;">
-                   <a href="${resetUrl}" 
-                      style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                     Reset Your Password
-                   </a>
-                 </div>
-                 
-                 <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin: 30px 0;">
-                   <p style="color: #475569; font-size: 14px; margin: 0; line-height: 1.4;">
-                     <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, you can safely ignore this email.
-                   </p>
-                 </div>
-                 
-                 <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
-                   If the button doesn't work, you can copy and paste this link into your browser:<br>
-                   <a href="${resetUrl}" style="color: #3b82f6; word-break: break-all;">${resetUrl}</a>
-                 </p>
-              </div>
-              
-              <!-- Footer -->
-              <div style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
-                <p style="color: #64748b; font-size: 14px; margin: 0 0 10px 0;">
-                  Best regards,<br>
-                  The BuilderSuite AI Team
-                </p>
-                 <a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #94a3b8; font-size: 12px; margin: 0; text-decoration: none;">www.buildersuiteai.com</a>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`,
       });
 
       console.log("Resend API response:", emailResponse);
