@@ -6,11 +6,9 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CustomGanttChart } from "@/components/schedule/CustomGanttChart";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
-  const { openFloatingChat } = useFloatingChat();
 
   if (!projectId) {
     return <div>Project not found</div>;
@@ -19,7 +17,7 @@ export default function ProjectSchedule() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar onStartChat={openFloatingChat} />
+        <AppSidebar />
         <SidebarInset className="flex-1 overflow-hidden">
           <DashboardHeader 
             title="Project Schedule" 

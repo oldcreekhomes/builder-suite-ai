@@ -18,16 +18,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { registerChatManager, openFloatingChat } = useFloatingChat();
-  
-  // Debug the chat functions
-  console.log('ProjectPage: openFloatingChat function:', openFloatingChat);
-  console.log('ProjectPage: registerChatManager function:', registerChatManager);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -57,7 +51,7 @@ export default function ProjectPage() {
   if (isLoading) {
     return (
       <SidebarProvider>
-        <AppSidebar onStartChat={openFloatingChat} />
+        <AppSidebar />
         <SidebarInset>
           <DashboardHeader title="Loading..." />
           <div className="flex-1 space-y-4 p-8 pt-6">
@@ -71,7 +65,7 @@ export default function ProjectPage() {
   if (!project) {
     return (
       <SidebarProvider>
-        <AppSidebar onStartChat={openFloatingChat} />
+        <AppSidebar />
         <SidebarInset>
           <DashboardHeader title="Project Not Found" />
           <div className="flex-1 space-y-4 p-8 pt-6">
@@ -136,7 +130,7 @@ export default function ProjectPage() {
   return (
     <>
       <SidebarProvider>
-        <AppSidebar onStartChat={openFloatingChat} />
+        <AppSidebar />
         <SidebarInset>
           <DashboardHeader title={project.address || "Project Details"} />
           <div className="flex-1 space-y-6 p-8 pt-6">

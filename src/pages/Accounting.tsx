@@ -6,7 +6,6 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, DollarSign, Clock } from "lucide-react";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountingGuard } from "@/components/guards/AccountingGuard";
@@ -14,7 +13,6 @@ import { AccountingGuard } from "@/components/guards/AccountingGuard";
 export default function Accounting() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { openFloatingChat } = useFloatingChat();
   
   // Fetch bill metrics for this project
   const { data: billMetrics, isLoading } = useQuery({

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Menu, MessageSquare } from "lucide-react";
+import { useChatContext } from "@/contexts/ChatContext";
 import { Sidebar, SidebarContent, SidebarGroup } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { UnreadBadge } from "@/components/ui/unread-badge";
@@ -15,21 +16,19 @@ interface AppSidebarProps {
   selectedUser?: any;
   onUserSelect?: (user: any) => void;
   onStartChat?: (user: any) => void;
-  unreadCounts?: Record<string, number>;
-  connectionState?: string;
-  markConversationAsRead?: ((userId: string) => Promise<void>) | null;
 }
 
 export function AppSidebar({ 
   selectedUser, 
   onUserSelect, 
-  onStartChat,
-  unreadCounts = {},
-  connectionState = 'disconnected',
-  markConversationAsRead
+  onStartChat
 }: AppSidebarProps) {
   const location = useLocation();
   const { users, currentUserId } = useCompanyUsers();
+  const { unreadCounts, connectionState, markConversationAsRead, openChat } = useChatContext();
+  
+  // Use openChat from context if onStartChat is not provided
+  const handleStartChat = onStartChat || openChat;
   
   // State for active tab with localStorage persistence
   const [activeTab, setActiveTab] = useState<'menus' | 'messages'>(() => {
@@ -88,9 +87,9 @@ export function AppSidebar({
             <MessagesSidebar
               selectedUser={selectedUser || null}
               onUserSelect={onUserSelect}
-              onStartChat={onStartChat}
+              onStartChat={handleStartChat}
               unreadCounts={unreadCounts}
-              markConversationAsRead={markConversationAsRead || (async () => {})}
+              markConversationAsRead={markConversationAsRead}
             />
           )}
         </div>
@@ -139,9 +138,9 @@ export function AppSidebar({
           <MessagesSidebar
             selectedUser={selectedUser || null}
             onUserSelect={onUserSelect}
-            onStartChat={onStartChat}
+            onStartChat={handleStartChat}
             unreadCounts={unreadCounts}
-            markConversationAsRead={markConversationAsRead || (async () => {})}
+            markConversationAsRead={markConversationAsRead}
           />
         )}
       </div>

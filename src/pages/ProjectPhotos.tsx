@@ -11,14 +11,12 @@ import { PhotoViewer } from "@/components/photos/PhotoViewer";
 
 import { useInfiniteProjectPhotos } from "@/hooks/useInfiniteProjectPhotos";
 import { useHeicConverter } from "@/hooks/useHeicConverter";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 
 export default function ProjectPhotos() {
   const { projectId } = useParams();
   const { toast } = useToast();
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   const [showViewer, setShowViewer] = useState(false);
-  const { openFloatingChat } = useFloatingChat();
 
   const { 
     data, 
@@ -82,7 +80,7 @@ export default function ProjectPhotos() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <AppSidebar onStartChat={openFloatingChat} />
+        <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
             title="Project Photos" 

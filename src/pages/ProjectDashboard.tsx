@@ -18,7 +18,6 @@ import {
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { formatDistanceToNow } from "date-fns";
 import { WeatherForecast } from "@/components/WeatherForecast";
 
@@ -29,7 +28,6 @@ export default function ProjectDashboard() {
   const { data: photos = [], refetch } = useProjectPhotos(projectId || '');
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
-  const { openFloatingChat } = useFloatingChat();
   
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
@@ -110,7 +108,7 @@ export default function ProjectDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar onStartChat={openFloatingChat} />
+        <AppSidebar />
         <main className="flex-1 flex flex-col">
           <header className="bg-white border-b border-border px-6 py-2 mt-6">
             <div className="flex items-center justify-between">

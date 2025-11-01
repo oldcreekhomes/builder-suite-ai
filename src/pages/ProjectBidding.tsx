@@ -7,12 +7,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { BiddingTabs } from "@/components/bidding/BiddingTabs";
-import { useFloatingChat } from "@/components/chat/FloatingChatManager";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 export default function ProjectBidding() {
   const { projectId } = useParams();
-  const { openFloatingChat } = useFloatingChat();
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -44,7 +42,7 @@ export default function ProjectBidding() {
     <UniversalFilePreviewProvider>
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          <AppSidebar onStartChat={openFloatingChat} />
+          <AppSidebar />
           <SidebarInset className="flex-1">
             <DashboardHeader 
               title="Bidding" 
