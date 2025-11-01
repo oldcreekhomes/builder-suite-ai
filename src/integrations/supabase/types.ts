@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_periods: {
+        Row: {
+          closed_at: string
+          closed_by: string
+          closure_notes: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          period_end_date: string
+          project_id: string
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by: string
+          closure_notes?: string | null
+          created_at?: string
+          id?: string
+          owner_id: string
+          period_end_date: string
+          project_id: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string
+          closure_notes?: string | null
+          created_at?: string
+          id?: string
+          owner_id?: string
+          period_end_date?: string
+          project_id?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       accounting_settings: {
         Row: {
           ap_account_id: string | null
@@ -2697,6 +2745,7 @@ export type Database = {
           can_access_manage_bills: boolean
           can_access_reports: boolean
           can_access_transactions: boolean
+          can_close_books: boolean
           created_at: string
           id: string
           receive_bill_payment_alerts: boolean
@@ -2711,6 +2760,7 @@ export type Database = {
           can_access_manage_bills?: boolean
           can_access_reports?: boolean
           can_access_transactions?: boolean
+          can_close_books?: boolean
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
@@ -2725,6 +2775,7 @@ export type Database = {
           can_access_manage_bills?: boolean
           can_access_reports?: boolean
           can_access_transactions?: boolean
+          can_close_books?: boolean
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
@@ -2884,6 +2935,13 @@ export type Database = {
             }
             Returns: string
           }
+      can_close_period: {
+        Args: { check_date: string; check_project_id: string }
+        Returns: {
+          can_close: boolean
+          reason: string
+        }[]
+      }
       create_project_task:
         | {
             Args: {
@@ -3011,6 +3069,14 @@ export type Database = {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+        }
+        Returns: boolean
+      }
+      is_period_closed: {
+        Args: {
+          check_date: string
+          check_owner_id: string
+          check_project_id: string
         }
         Returns: boolean
       }

@@ -121,6 +121,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-close-books" className="text-sm font-normal cursor-pointer">
+                Close the Books
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to close and reopen accounting periods for projects
+              </p>
+            </div>
+            <Switch
+              id="can-close-books"
+              checked={preferences.can_close_books}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_close_books: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 
