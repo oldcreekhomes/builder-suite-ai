@@ -41,10 +41,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user: caller }, error: authGetError } = await supabaseAdmin.auth.getUser(token);
 
-    if (authError || !caller) {
-      console.error("❌ Auth error:", authError);
+    if (authGetError || !caller) {
+      console.error("❌ Auth error:", authGetError);
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid token" }),
         {

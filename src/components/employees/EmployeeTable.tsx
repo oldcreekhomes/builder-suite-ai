@@ -210,15 +210,17 @@ export function EmployeeTable() {
                 </TableCell>
                 <TableCell>{getStatusBadge(employee)}</TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    {isOwner && (
+                  <div className="flex justify-end gap-2 min-w-[120px]">
+                    {/* View (Eye) slot: owner sees button, others keep placeholder to preserve layout */}
+                    {isOwner ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleViewAsUser(employee)}
                             disabled={!employee.confirmed || employee.id === realUser?.id}
+                            aria-label="View as user"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -231,21 +233,32 @@ export function EmployeeTable() {
                             : "View application as this user"}
                         </TooltipContent>
                       </Tooltip>
+                    ) : (
+                      <span className="inline-flex h-10 w-10" aria-hidden="true" />
                     )}
+
+                    {/* Edit slot: always visible */}
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleEditEmployee(employee)}
+                      aria-label="Edit employee"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {isOwner && employee.id !== user?.id && (
+
+                    {/* Delete slot: owner sees button (not for self), others keep placeholder */}
+                    {isOwner && employee.id !== user?.id ? (
                       <DeleteButton
                         onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
                         title="Delete Employee"
                         description={`Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`}
                         isLoading={deleteEmployeeMutation.isPending}
+                        size="icon"
+                        variant="ghost"
                       />
+                    ) : (
+                      <span className="inline-flex h-10 w-10" aria-hidden="true" />
                     )}
                   </div>
                 </TableCell>
