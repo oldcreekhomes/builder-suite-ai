@@ -244,13 +244,13 @@ const PasswordReset = () => {
   const isEmployeeInvitation = searchParams.get('type') === 'recovery';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-white">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             Welcome to BuilderSuite AI
           </h2>
-          <p className="mt-2 text-sm text-gray-300">
+          <p className="mt-2 text-sm text-gray-600">
             {isEmployeeInvitation ? "Set up your password to access your account" : "Reset your password to access your account"}
           </p>
         </div>
