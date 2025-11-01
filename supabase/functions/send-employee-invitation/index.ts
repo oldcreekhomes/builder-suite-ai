@@ -239,96 +239,42 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td style="padding: 30px; margin: 0;">
                             
-                            <!-- Invitation Details Section -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
+                            <!-- Consolidated Invitation Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                                 <tr>
-                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        You've been invited
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0; margin: 0;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                    <td style="padding: 25px; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
                                             <tr>
-                                                <td style="padding: 20px; margin: 0;">
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0 0 12px 0;">
-                                                                <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                    Hi <strong>${firstName}</strong>,
-                                                                </p>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0 0 12px 0;">
-                                                                <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                    You've been invited by <strong>${companyName}</strong> to join their team on BuilderSuite AI.
-                                                                </p>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 80px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Role:</span>
-                                                                <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${role}</span>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
+                                                <td style="margin: 0; padding: 0 0 12px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        Hi ${firstName},
+                                                    </p>
                                                 </td>
                                             </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <!-- Account Setup Section -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
-                                <tr>
-                                    <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        Set Up Your Account
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0; margin: 0;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                                             <tr>
-                                                <td style="padding: 20px; margin: 0;">
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                                <td style="margin: 0; padding: 0 0 12px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        You've been invited by ${companyName} to join their team on BuilderSuite AI.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 16px 0;">
+                                                    <span style="color: #666666; font-weight: 500; display: inline-block; width: 80px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Role:</span>
+                                                    <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${role}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 20px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        To set up your password and complete your account, please click the button below:
+                                                    </p>
+                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0;">
                                                         <tr>
-                                                            <td style="margin: 0; padding: 0 0 20px 0;">
-                                                                <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0 0 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                    To set up your password and complete your account, please click the button below:
-                                                                </p>
-                                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 16px 0;">
-                                                                    <tr>
-                                                                        <td align="center" style="border-radius: 5px; background-color: #000000;">
-                                                                            <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 5px;" target="_blank">
-                                                                                Set Your Password
-                                                                            </a>
-                                                                        </td>
-                                                                    </tr>
-                                                                </table>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0 0 12px 0;">
-                                                                <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                    After setting your password, you can log in at:
-                                                                </p>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0 0 12px 0;">
-                                                                <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                    <a href="https://buildersuiteai.com/auth" style="color: #000000; text-decoration: underline; font-weight: 600;" target="_blank">https://buildersuiteai.com/auth</a>
-                                                                </p>
-                                                            </td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td style="margin: 0; padding: 0;">
-                                                                <p style="color: #666666; font-size: 12px; line-height: 1.4; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                    If the button doesn't work, copy and paste this link into your browser:<br>
-                                                                    <a href="${resetLink}" style="color: #666666; text-decoration: underline; word-break: break-all;" target="_blank">${resetLink}</a>
-                                                                </p>
+                                                            <td align="center" style="border-radius: 5px; background-color: #000000;">
+                                                                <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 5px;" target="_blank">
+                                                                    Set Your Password
+                                                                </a>
                                                             </td>
                                                         </tr>
                                                     </table>
