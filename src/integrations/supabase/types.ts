@@ -2693,6 +2693,7 @@ export type Database = {
       user_notification_preferences: {
         Row: {
           can_access_accounting: boolean
+          can_access_employees: boolean
           can_access_manage_bills: boolean
           can_access_reports: boolean
           can_access_transactions: boolean
@@ -2706,6 +2707,7 @@ export type Database = {
         }
         Insert: {
           can_access_accounting?: boolean
+          can_access_employees?: boolean
           can_access_manage_bills?: boolean
           can_access_reports?: boolean
           can_access_transactions?: boolean
@@ -2719,6 +2721,7 @@ export type Database = {
         }
         Update: {
           can_access_accounting?: boolean
+          can_access_employees?: boolean
           can_access_manage_bills?: boolean
           can_access_reports?: boolean
           can_access_transactions?: boolean

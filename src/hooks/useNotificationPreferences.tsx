@@ -13,6 +13,7 @@ export interface NotificationPreferences {
   can_access_manage_bills: boolean;
   can_access_transactions: boolean;
   can_access_reports: boolean;
+  can_access_employees: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -23,6 +24,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_access_manage_bills: false,
   can_access_transactions: false,
   can_access_reports: false,
+  can_access_employees: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {

@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { SidebarFooter } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileDialog } from "@/components/ProfileDialog";
@@ -20,9 +22,14 @@ import { ProfileDialog } from "@/components/ProfileDialog";
 export function SidebarUserDropdown() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { isOwner, isAccountant } = useUserRole();
+  const { canAccessEmployees } = useEmployeePermissions();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Show employees menu item if user is owner/accountant OR has permission
+  const showEmployeesMenu = isOwner || isAccountant || canAccessEmployees;
 
   const handleLogout = async () => {
     console.log("Logout initiated...");
@@ -94,14 +101,16 @@ export function SidebarUserDropdown() {
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="cursor-pointer hover:bg-gray-50"
-              onClick={() => navigate('/employees')}
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              <span>Employees</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
+            {showEmployeesMenu && (
+              <DropdownMenuItem 
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => navigate('/employees')}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                <span>Employees</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
               className="cursor-pointer hover:bg-gray-50"
               onClick={() => navigate('/companies')}
             >

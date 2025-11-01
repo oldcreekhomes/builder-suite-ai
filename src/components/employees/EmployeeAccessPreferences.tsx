@@ -123,6 +123,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+
+      {/* Employees Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Employees</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage employee directory access
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-employees" className="text-sm font-normal cursor-pointer">
+                Access Employee Directory
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and access the employee directory to see other employees
+              </p>
+            </div>
+            <Switch
+              id="access-employees"
+              checked={preferences.can_access_employees}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_employees: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
