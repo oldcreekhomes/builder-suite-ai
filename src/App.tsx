@@ -47,6 +47,7 @@ import POResponseConfirmation from "./pages/POResponseConfirmation";
 import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import BidDeclined from "./pages/BidDeclined";
 import SubmitBid from "./pages/SubmitBid";
+import CloseBooks from "./pages/accounting/CloseBooks";
 
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
@@ -171,6 +172,7 @@ const AppContent = () => {
           <Route path="/project/:projectId/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/make-deposits" element={<ProtectedRoute><MakeDeposits /></ProtectedRoute>} />
           <Route path="/project/:projectId/accounting/banking/reconciliation" element={<ProtectedRoute><BankReconciliation /></ProtectedRoute>} />
+          <Route path="/project/:projectId/accounting/close-books" element={<ProtectedRoute><CloseBooks /></ProtectedRoute>} />
           
           
           {/* Messages route - TEMPORARILY DISABLED

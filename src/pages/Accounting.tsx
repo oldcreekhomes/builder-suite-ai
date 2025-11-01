@@ -5,14 +5,16 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, DollarSign, Clock } from "lucide-react";
+import { FileText, DollarSign, Clock, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountingGuard } from "@/components/guards/AccountingGuard";
+import { useCloseBookPermissions } from "@/hooks/useCloseBookPermissions";
 
 export default function Accounting() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const { canCloseBooks } = useCloseBookPermissions();
   
   // Fetch bill metrics for this project
   const { data: billMetrics, isLoading } = useQuery({
@@ -107,6 +109,12 @@ export default function Accounting() {
     const path = projectId ? `/project/${projectId}/accounting/bills/approve` : '/accounting/bills/approve';
     navigate(path);
   };
+
+  const handleCloseBooksClick = () => {
+    if (projectId) {
+      navigate(`/project/${projectId}/accounting/close-books`);
+    }
+  };
   
   return (
     <AccountingGuard>
@@ -121,7 +129,7 @@ export default function Accounting() {
             
             <div className="flex-1 p-6 space-y-6">
               {/* Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`grid grid-cols-1 gap-6 ${canCloseBooks && projectId ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
                 <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handlePendingBillsClick}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Bills Pending Approval</CardTitle>
@@ -182,6 +190,21 @@ export default function Accounting() {
                     </p>
                   </CardContent>
                 </Card>
+                
+                {canCloseBooks && projectId && (
+                  <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleCloseBooksClick}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Close the Books</CardTitle>
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">Manage</div>
+                      <p className="text-xs text-muted-foreground">
+                        Lock accounting periods
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
             </div>

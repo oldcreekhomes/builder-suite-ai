@@ -8,13 +8,9 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CloseBooksPeriodManager } from "@/components/accounting/CloseBooksPeriodManager";
-import { useCloseBookPermissions } from "@/hooks/useCloseBookPermissions";
 
 export default function ProjectBudget() {
   const { projectId } = useParams();
-  const { canCloseBooks } = useCloseBookPermissions();
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -53,27 +49,10 @@ export default function ProjectBudget() {
           
           <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
             <UniversalFilePreviewProvider>
-              <Tabs defaultValue="budget" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="budget">Budget</TabsTrigger>
-                  {canCloseBooks && (
-                    <TabsTrigger value="close-books">Close Books</TabsTrigger>
-                  )}
-                </TabsList>
-                
-                <TabsContent value="budget">
-                  <BudgetTable 
-                    projectId={projectId} 
-                    projectAddress={project?.address}
-                  />
-                </TabsContent>
-                
-                {canCloseBooks && (
-                  <TabsContent value="close-books">
-                    <CloseBooksPeriodManager projectId={projectId} />
-                  </TabsContent>
-                )}
-              </Tabs>
+              <BudgetTable 
+                projectId={projectId} 
+                projectAddress={project?.address}
+              />
             </UniversalFilePreviewProvider>
           </main>
         </SidebarInset>
