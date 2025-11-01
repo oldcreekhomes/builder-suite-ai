@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNotificationPreferences } from './useNotificationPreferences';
 import { useAuth } from './useAuth';
-import { toast } from 'sonner';
 import { audioManager } from '@/utils/audioManager';
 import { User } from './useCompanyUsers';
 
@@ -213,31 +212,6 @@ export const useMasterChatRealtime = (
               };
 
               const senderName = `${sender.first_name} ${sender.last_name}`.trim() || sender.company_name || 'Unknown User';
-              const messagePreview = messageData.message_text || 'New message';
-
-              // Show toast notification if preferences allow (with fallback to true if preferences not loaded)
-              const shouldShowToast = preferences?.toast_notifications_enabled ?? true;
-              if (shouldShowToast) {
-                console.log('🚀 Showing toast notification for:', senderName);
-                
-                try {
-                  toast(`${senderName}`, {
-                    description: messagePreview,
-                    duration: 5000,
-                    action: {
-                      label: 'Reply',
-                      onClick: () => {
-                        console.log('🚀 Reply button clicked for:', sender.id);
-                        if (callbacksRef.current.onNotificationTrigger) {
-                          callbacksRef.current.onNotificationTrigger(sender, messageData);
-                        }
-                      }
-                    }
-                  });
-                } catch (toastError) {
-                  console.error('🚀 Error showing toast:', toastError);
-                }
-              }
 
               // Play sound notification if enabled (with fallback to true if preferences not loaded)
               const shouldPlaySound = preferences?.sound_notifications_enabled ?? true;
