@@ -252,16 +252,10 @@ const handler = async (req: Request): Promise<Response> => {
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td style="margin: 0; padding: 0 0 12px 0;">
+                                                <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
                                                         You've been invited by ${companyName} to join their team on BuilderSuite AI.
                                                     </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="margin: 0; padding: 0 0 16px 0;">
-                                                    <span style="color: #666666; font-weight: 500; display: inline-block; width: 80px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Role:</span>
-                                                    <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${role}</span>
                                                 </td>
                                             </tr>
                                             <tr>
