@@ -83,11 +83,15 @@ export function EmployeeTable() {
 
       if (error) {
         console.error('Error calling delete-employee function:', error);
-        throw new Error('Failed to delete employee. Please try again.');
+        throw new Error(error.message || 'Failed to delete employee. Please try again.');
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to delete employee');
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (!data?.success) {
+        throw new Error('Failed to delete employee');
       }
     },
     onSuccess: () => {

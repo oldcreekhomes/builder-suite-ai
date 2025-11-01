@@ -135,12 +135,12 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("✅ All authorization checks passed, proceeding with deletion");
 
     // Delete from auth.users first (this requires admin privileges)
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(employeeId);
+    const { error: adminDeleteError } = await supabaseAdmin.auth.admin.deleteUser(employeeId);
     
-    if (authError && !authError.message.includes('User not found')) {
-      console.error("❌ Error deleting from auth.users:", authError);
+    if (adminDeleteError && !adminDeleteError.message.includes('User not found')) {
+      console.error("❌ Error deleting from auth.users:", adminDeleteError);
       return new Response(
-        JSON.stringify({ error: "Failed to delete employee from authentication system" }),
+        JSON.stringify({ error: `Failed to delete employee from authentication system: ${adminDeleteError.message}` }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -159,7 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (dbError) {
       console.error("❌ Error deleting from public.users:", dbError);
       return new Response(
-        JSON.stringify({ error: "Failed to delete employee from database" }),
+        JSON.stringify({ error: `Failed to delete employee from database: ${dbError.message || dbError.code || 'Unknown error'}` }),
         {
           status: 500,
           headers: { "Content-Type": "application/json", ...corsHeaders },
