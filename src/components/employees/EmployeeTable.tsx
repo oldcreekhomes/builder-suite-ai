@@ -239,12 +239,14 @@ export function EmployeeTable() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <DeleteButton
-                      onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
-                      title="Delete Employee"
-                      description={`Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`}
-                      isLoading={deleteEmployeeMutation.isPending}
-                    />
+                    {isOwner && employee.id !== user?.id && (
+                      <DeleteButton
+                        onDelete={() => deleteEmployeeMutation.mutate(employee.id)}
+                        title="Delete Employee"
+                        description={`Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`}
+                        isLoading={deleteEmployeeMutation.isPending}
+                      />
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
