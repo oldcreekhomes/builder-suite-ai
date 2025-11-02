@@ -87,14 +87,14 @@ export function JobCostBudgetDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Budget Details - {costCode} {costCodeName}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto min-h-0">
           {isLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-10 w-full" />
