@@ -447,6 +447,7 @@ return parentRows;
             {/* Table */}
             <div className="border rounded-lg">
               <Table 
+                containerClassName="relative w-full overflow-auto max-h-[70vh] isolate"
                 className="table-fixed border-collapse bg-background"
                 style={{ borderSpacing: 0 }}
               >
