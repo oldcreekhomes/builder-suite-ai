@@ -5,6 +5,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 interface AccountBalance {
   id: string;
@@ -29,9 +34,10 @@ interface IncomeStatementContentProps {
 export function IncomeStatementContent({ projectId }: IncomeStatementContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
+  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   
   const { data: incomeStatementData, isLoading, error } = useQuery({
-    queryKey: ['income-statement', user?.id, projectId],
+    queryKey: ['income-statement', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
     queryFn: async (): Promise<IncomeStatementData> => {
       console.log("🔍 Income Statement: Starting query with user:", user?.email, "project:", projectId || 'Old Creek Homes');
       
@@ -50,10 +56,16 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
       
       let journalLinesQuery = supabase
         .from('journal_entry_lines')
-        .select('account_id, debit, credit');
+        .select(`
+          account_id,
+          debit,
+          credit,
+          journal_entries!inner(entry_date)
+        `)
+        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
       
       if (projectId) {
-        journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
+        journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
       } else {
         journalLinesQuery = journalLinesQuery.is('project_id', null);
       }
@@ -192,9 +204,24 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Income Statement <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
-        </h2>
+        <h2 className="text-3xl font-bold tracking-tight">Income Statement</h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              As of {format(asOfDate, "PPP")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={asOfDate}
+              onSelect={(date) => date && setAsOfDate(date)}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {isLoading ? (
@@ -284,6 +311,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
         accountName={selectedAccount?.name || ''}
         accountType={selectedAccount?.type || 'expense'}
         projectId={projectId}
+        asOfDate={asOfDate}
         open={!!selectedAccount}
         onOpenChange={(open) => !open && handleCloseDialog()}
       />

@@ -472,6 +472,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
         accountName={selectedAccount?.name || ''}
         accountType={selectedAccount?.type || 'asset'}
         projectId={projectId}
+        asOfDate={asOfDate}
         open={!!selectedAccount}
         onOpenChange={(open) => !open && handleCloseDialog()}
       />

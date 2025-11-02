@@ -47,6 +47,7 @@ interface AccountDetailDialogProps {
   accountName: string;
   accountType: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
   projectId?: string;
+  asOfDate?: Date;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -57,6 +58,7 @@ export function AccountDetailDialog({
   accountName,
   accountType,
   projectId,
+  asOfDate,
   open,
   onOpenChange,
 }: AccountDetailDialogProps) {
@@ -73,7 +75,7 @@ export function AccountDetailDialog({
   const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
-    queryKey: ['account-transactions', accountId, projectId, sortOrder],
+    queryKey: ['account-transactions', accountId, projectId, sortOrder, asOfDate?.toISOString()],
     queryFn: async (): Promise<Transaction[]> => {
       if (!accountId) return [];
 
@@ -101,6 +103,11 @@ export function AccountDetailDialog({
         .eq('journal_entries.is_reversal', false)
         .is('journal_entries.reversed_at', null)
         .is('journal_entries.reversed_by_id', null);
+
+      // Apply date filter if asOfDate is provided
+      if (asOfDate) {
+        query = query.lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
+      }
 
       if (projectId) {
         // For project-specific reports, include both project lines AND company-wide lines (null project_id)
