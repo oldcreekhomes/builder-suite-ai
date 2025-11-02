@@ -31,7 +31,7 @@ export function JobCostGroupHeader({
   };
 
   return (
-    <TableRow className="bg-muted/50 h-12 sticky top-[40px] z-10 hover:bg-muted/50">
+    <TableRow className="bg-background h-12 sticky top-12 z-10 border-y shadow-sm hover:bg-background">
       <TableCell colSpan={2} className="font-semibold py-2">
         <div className="flex items-center gap-2">
           <Button
