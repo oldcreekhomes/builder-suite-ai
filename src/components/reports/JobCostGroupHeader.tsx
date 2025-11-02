@@ -11,6 +11,7 @@ interface JobCostGroupHeaderProps {
     actual: number;
     variance: number;
   };
+  stickyOffset: number;
 }
 
 export function JobCostGroupHeader({
@@ -18,6 +19,7 @@ export function JobCostGroupHeader({
   isExpanded,
   onToggle,
   groupTotal,
+  stickyOffset,
 }: JobCostGroupHeaderProps) {
   const formatCurrency = (amount: number) => {
     const normalized = Math.abs(amount) < 0.005 ? 0 : amount;
@@ -31,7 +33,7 @@ export function JobCostGroupHeader({
   };
 
   return (
-    <TableRow className="bg-background h-12 sticky top-12 z-10 border-y shadow-sm hover:bg-background">
+    <TableRow className="bg-background h-12 sticky z-10 border-y shadow-sm hover:bg-background" style={{ top: stickyOffset }}>
       <TableCell colSpan={2} className="font-semibold py-2">
         <div className="flex items-center gap-2">
           <Button
