@@ -18,6 +18,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { calculateBudgetItemTotal } from "@/utils/budgetUtils";
 
+const getTopLevelGroup = (costCode: string): string => {
+  const num = parseFloat(costCode);
+  if (isNaN(num) || num < 1000) return 'Uncategorized';
+  
+  // Get the thousands digit (1000, 2000, 3000, 4000, etc.)
+  const topLevel = Math.floor(num / 1000) * 1000;
+  return topLevel.toString();
+};
+
 interface JobCostRow {
   costCodeId: string;
   costCode: string;
@@ -130,7 +139,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
           costCodeData[item.cost_code_id] = { 
             code: cc.code, 
             name: cc.name,
-            parentGroup: cc.parent_group || 'Uncategorized'
+            parentGroup: getTopLevelGroup(cc.code)
           };
         }
       });
@@ -154,7 +163,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
           costCodeData[cc.id] = {
             code: cc.code,
             name: cc.name,
-            parentGroup: cc.parent_group || 'Uncategorized'
+            parentGroup: getTopLevelGroup(cc.code)
           };
         });
       }
