@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JobCostBudgetDialog } from "./JobCostBudgetDialog";
 import { JobCostActualDialog } from "./JobCostActualDialog";
+import { JobCostGroupHeader } from "./JobCostGroupHeader";
+import { JobCostGroupTotalRow } from "./JobCostGroupTotalRow";
+import { JobCostRow } from "./JobCostRow";
+import { JobCostProjectTotalRow } from "./JobCostProjectTotalRow";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,6 +22,7 @@ interface JobCostRow {
   costCodeId: string;
   costCode: string;
   costCodeName: string;
+  parentGroup: string;
   budget: number;
   actual: number;
   variance: number;
@@ -32,6 +37,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [selectedCostCode, setSelectedCostCode] = useState<JobCostRow | null>(null);
   const [dialogType, setDialogType] = useState<'budget' | 'actual' | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   
   const { data: jobCostsData, isLoading, error } = useQuery({
     queryKey: ['job-costs', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
@@ -72,7 +78,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
           selected_bid_id,
           historical_project_id,
           selected_bid:project_bids!selected_bid_id(price),
-          cost_codes(id, code, name, has_subcategories, price)
+          cost_codes(id, code, name, has_subcategories, price, parent_group)
         `)
         .eq('project_id', projectId);
 
@@ -114,7 +120,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
 
       // Step 5: Collect all unique cost codes and their details
       const costCodeSet = new Set<string>();
-      const costCodeData: Record<string, { code: string, name: string }> = {};
+      const costCodeData: Record<string, { code: string, name: string, parentGroup: string }> = {};
       
       // Add cost codes from budget
       budgetData?.forEach(item => {
@@ -123,7 +129,8 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
           costCodeSet.add(item.cost_code_id);
           costCodeData[item.cost_code_id] = { 
             code: cc.code, 
-            name: cc.name 
+            name: cc.name,
+            parentGroup: cc.parent_group || 'Uncategorized'
           };
         }
       });
@@ -140,13 +147,14 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
       if (missingCostCodeIds.length > 0) {
         const { data: missingCostCodes } = await supabase
           .from('cost_codes')
-          .select('id, code, name')
+          .select('id, code, name, parent_group')
           .in('id', missingCostCodeIds);
 
         missingCostCodes?.forEach(cc => {
           costCodeData[cc.id] = {
             code: cc.code,
-            name: cc.name
+            name: cc.name,
+            parentGroup: cc.parent_group || 'Uncategorized'
           };
         });
       }
@@ -174,6 +182,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
             costCodeId,
             costCode: cd.code,
             costCodeName: cd.name,
+            parentGroup: cd.parentGroup,
             budget,
             actual,
             variance
@@ -277,6 +286,56 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
   );
 }
 
+  // Group data by parent_group
+  const groupedJobCosts = useMemo(() => {
+    if (!jobCostsData) return {};
+    
+    const grouped: Record<string, JobCostRow[]> = {};
+    jobCostsData.forEach(row => {
+      const group = row.parentGroup || 'Uncategorized';
+      if (!grouped[group]) {
+        grouped[group] = [];
+      }
+      grouped[group].push(row);
+    });
+    
+    // Sort groups alphabetically
+    const sortedGroups: Record<string, JobCostRow[]> = {};
+    Object.keys(grouped).sort().forEach(key => {
+      sortedGroups[key] = grouped[key];
+    });
+    
+    return sortedGroups;
+  }, [jobCostsData]);
+
+  // Calculate group totals
+  const calculateGroupTotals = (rows: JobCostRow[]) => {
+    return rows.reduce((acc, row) => ({
+      budget: acc.budget + row.budget,
+      actual: acc.actual + row.actual,
+      variance: acc.variance + row.variance
+    }), { budget: 0, actual: 0, variance: 0 });
+  };
+
+  // Initialize all groups as expanded
+  useEffect(() => {
+    if (groupedJobCosts && Object.keys(groupedJobCosts).length > 0) {
+      setExpandedGroups(new Set(Object.keys(groupedJobCosts)));
+    }
+  }, [groupedJobCosts]);
+
+  const handleGroupToggle = (group: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(group)) {
+        newSet.delete(group);
+      } else {
+        newSet.add(group);
+      }
+      return newSet;
+    });
+  };
+
   const totalBudget = jobCostsData?.reduce((sum, row) => sum + row.budget, 0) || 0;
   const totalActual = jobCostsData?.reduce((sum, row) => sum + row.actual, 0) || 0;
   const totalVariance = totalBudget - totalActual;
@@ -324,10 +383,11 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
           </CardHeader>
           <CardContent>
             {/* Table */}
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
+            <div className="border rounded-lg">
+              <Table className="table-fixed">
                 <colgroup>
                   <col style={{ width: '200px' }} />
+                  <col />
                   <col style={{ width: '180px' }} />
                   <col style={{ width: '180px' }} />
                   <col style={{ width: '180px' }} />
@@ -335,6 +395,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-left">Cost Code</TableHead>
+                    <TableHead className="text-left">Name</TableHead>
                     <TableHead className="text-right">Budget</TableHead>
                     <TableHead className="text-right">Actual</TableHead>
                     <TableHead className="text-right">Variance</TableHead>
@@ -343,60 +404,56 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
                 <TableBody>
                   {!jobCostsData || jobCostsData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-sm text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
                         No job cost data available for this project.
                       </TableCell>
                     </TableRow>
                   ) : (
                     <>
-                      {jobCostsData.map((row) => (
-                        <TableRow 
-                          key={row.costCodeId}
-                          className="h-10 hover:bg-muted/50 transition-colors"
-                        >
-                          <TableCell className="py-1 text-sm">
-                            <span className="font-medium">{row.costCode}</span>
-                            <span className="text-muted-foreground ml-2">{row.costCodeName}</span>
-                          </TableCell>
-                          <TableCell 
-                            className="text-right py-1 cursor-pointer hover:bg-muted/50 hover:underline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCostCode(row);
-                              setDialogType('budget');
-                            }}
-                          >
-                            <span className="text-sm">{formatCurrency(row.budget)}</span>
-                          </TableCell>
-                          <TableCell 
-                            className="text-right py-1 cursor-pointer hover:bg-muted/50 hover:underline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCostCode(row);
-                              setDialogType('actual');
-                            }}
-                          >
-                            <span className="text-sm">{formatCurrency(row.actual)}</span>
-                          </TableCell>
-                          <TableCell className={`text-right py-1 text-sm font-medium ${
-                            row.variance >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {formatCurrency(row.variance)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {Object.entries(groupedJobCosts).map(([group, rows]) => {
+                        const groupTotals = calculateGroupTotals(rows);
+                        return (
+                          <tbody key={group}>
+                            <JobCostGroupHeader
+                              group={group}
+                              isExpanded={expandedGroups.has(group)}
+                              onToggle={() => handleGroupToggle(group)}
+                              groupTotal={groupTotals}
+                            />
+                            
+                            {expandedGroups.has(group) && (
+                              <>
+                                {rows.map(row => (
+                                  <JobCostRow
+                                    key={row.costCodeId}
+                                    row={row}
+                                    onBudgetClick={() => {
+                                      setSelectedCostCode(row);
+                                      setDialogType('budget');
+                                    }}
+                                    onActualClick={() => {
+                                      setSelectedCostCode(row);
+                                      setDialogType('actual');
+                                    }}
+                                  />
+                                ))}
+                                <JobCostGroupTotalRow
+                                  group={group}
+                                  totals={groupTotals}
+                                />
+                              </>
+                            )}
+                          </tbody>
+                        );
+                      })}
                       
-                      {/* Total Row */}
-                      <TableRow className="font-semibold bg-muted/30">
-                        <TableCell className="py-2">Total</TableCell>
-                        <TableCell className="text-right py-2">{formatCurrency(totalBudget)}</TableCell>
-                        <TableCell className="text-right py-2">{formatCurrency(totalActual)}</TableCell>
-                        <TableCell className={`text-right py-2 ${
-                          totalVariance >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatCurrency(totalVariance)}
-                        </TableCell>
-                      </TableRow>
+                      <tbody>
+                        <JobCostProjectTotalRow
+                          totalBudget={totalBudget}
+                          totalActual={totalActual}
+                          totalVariance={totalVariance}
+                        />
+                      </tbody>
                     </>
                   )}
                 </TableBody>
