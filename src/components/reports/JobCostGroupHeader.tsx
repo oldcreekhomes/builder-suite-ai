@@ -35,7 +35,7 @@ export function JobCostGroupHeader({
   return (
     <TableRow 
       className="bg-background h-12 hover:bg-background border-0 shadow-none" 
-      style={{ position: 'sticky', top: stickyOffset, zIndex: 15, borderBottom: '0', boxShadow: 'none' }}
+      style={{ position: 'sticky', top: stickyOffset, zIndex: 30, borderBottom: '0', boxShadow: 'none', backgroundColor: 'var(--background)' }}
     >
       <TableCell colSpan={2} className="font-semibold py-2">
         <div className="flex items-center gap-2">

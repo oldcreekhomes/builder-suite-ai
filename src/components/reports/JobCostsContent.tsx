@@ -446,7 +446,10 @@ return parentRows;
           <CardContent>
             {/* Table */}
             <div className="border rounded-lg">
-              <Table className="table-fixed">
+              <Table 
+                className="table-fixed border-collapse bg-background"
+                style={{ borderSpacing: 0 }}
+              >
                 <colgroup>
                   <col style={{ width: '200px' }} />
                   <col />
