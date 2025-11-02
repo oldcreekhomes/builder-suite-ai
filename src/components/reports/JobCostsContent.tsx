@@ -27,6 +27,8 @@ const getTopLevelGroup = (costCode: string): string => {
   return topLevel.toString();
 };
 
+const getParentCode = (code: string): string => code.split('.')[0];
+
 interface JobCostRow {
   costCodeId: string;
   costCode: string;
@@ -168,46 +170,97 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
         });
       }
 
-      // Step 6: Calculate budgets using existing utility
-      const budgetsByCostCode: Record<string, number> = {};
-      budgetData?.forEach(item => {
-        if (item.cost_code_id) {
-          const total = calculateBudgetItemTotal(item, 0, false);
-          budgetsByCostCode[item.cost_code_id] = 
-            (budgetsByCostCode[item.cost_code_id] || 0) + total;
-        }
-      });
+// Step 6: Calculate budgets aggregated to parent codes (match Budget UI)
+const sumChildrenByParent: Record<string, number> = {};
+const parentItemTotals: Record<string, number> = {};
+const parentsWithChildren = new Set<string>();
+const parentNamesByCode: Record<string, string> = {};
 
-      // Step 7: Build result rows
-      const rows: JobCostRow[] = [];
-      costCodeSet.forEach(costCodeId => {
-        const budget = budgetsByCostCode[costCodeId] || 0;
-        const actual = actualsByCostCode[costCodeId] || 0;
-        const variance = budget - actual;
-        
-        const cd = costCodeData[costCodeId];
-        if (cd) {
-          rows.push({
-            costCodeId,
-            costCode: cd.code,
-            costCodeName: cd.name,
-            parentGroup: cd.parentGroup,
-            budget,
-            actual,
-            variance
-          });
-        }
-      });
+budgetData?.forEach(item => {
+  if (!item.cost_code_id || !item.cost_codes) return;
+  const code = (item.cost_codes as any).code as string;
+  const name = (item.cost_codes as any).name as string;
+  const parentCode = getParentCode(code);
+  const isChild = code.includes('.');
+  const total = calculateBudgetItemTotal(item, 0, false);
 
-      // Sort by cost code numerically
-      rows.sort((a, b) => {
-        const numA = parseFloat(a.costCode) || 0;
-        const numB = parseFloat(b.costCode) || 0;
-        return numA - numB;
-      });
+  if (isChild) {
+    sumChildrenByParent[parentCode] = (sumChildrenByParent[parentCode] || 0) + total;
+    parentsWithChildren.add(parentCode);
+  } else {
+    parentItemTotals[parentCode] = (parentItemTotals[parentCode] || 0) + total;
+    parentNamesByCode[parentCode] = name;
+  }
+});
 
-      console.log(`🔍 Job Costs: Returning ${rows.length} cost code rows`);
-      return rows;
+// If we only saw children, fetch parent names
+const missingParentCodes = Array.from(parentsWithChildren).filter(pc => !parentNamesByCode[pc]);
+if (missingParentCodes.length > 0) {
+  const { data: parentCodeNames } = await supabase
+    .from('cost_codes')
+    .select('code, name')
+    .in('code', missingParentCodes);
+  parentCodeNames?.forEach(cc => {
+    parentNamesByCode[cc.code] = cc.name;
+  });
+}
+
+// Build budgets by parent code; children override parent if present
+const budgetsByParentCode: Record<string, number> = {};
+const allParentCodesSet = new Set<string>([
+  ...Object.keys(parentItemTotals),
+  ...Object.keys(sumChildrenByParent),
+]);
+
+allParentCodesSet.forEach(pc => {
+  budgetsByParentCode[pc] = parentsWithChildren.has(pc)
+    ? (sumChildrenByParent[pc] || 0)
+    : (parentItemTotals[pc] || 0);
+});
+
+// Step 7: Aggregate actuals to parent codes
+const actualsByParentCode: Record<string, number> = {};
+Object.entries(actualsByCostCode).forEach(([id, amount]) => {
+  const cd = costCodeData[id];
+  if (!cd) return;
+  const parentCode = getParentCode(cd.code);
+  actualsByParentCode[parentCode] = (actualsByParentCode[parentCode] || 0) + (amount as number);
+});
+
+// Ensure we have a display name for all parent codes we will render
+Object.keys(actualsByParentCode).forEach(pc => {
+  if (!parentNamesByCode[pc]) parentNamesByCode[pc] = pc;
+});
+
+// Step 8: Build parent-only rows (no subcategories)
+const parentRows: JobCostRow[] = [];
+Array.from(new Set<string>([
+  ...Object.keys(budgetsByParentCode),
+  ...Object.keys(actualsByParentCode),
+])).forEach(parentCode => {
+  const budget = budgetsByParentCode[parentCode] || 0;
+  const actual = actualsByParentCode[parentCode] || 0;
+  const variance = budget - actual;
+  parentRows.push({
+    costCodeId: parentCode,
+    costCode: parentCode,
+    costCodeName: parentNamesByCode[parentCode] || '',
+    parentGroup: getTopLevelGroup(parentCode),
+    budget,
+    actual,
+    variance,
+  });
+});
+
+// Sort by cost code numerically
+parentRows.sort((a, b) => {
+  const numA = parseFloat(a.costCode) || 0;
+  const numB = parseFloat(b.costCode) || 0;
+  return numA - numB;
+});
+
+console.log(`🔍 Job Costs: Returning ${parentRows.length} parent cost code rows`);
+return parentRows;
     },
     enabled: !!user && !!session && !authLoading && !!projectId,
     retry: (failureCount, error: any) => {
