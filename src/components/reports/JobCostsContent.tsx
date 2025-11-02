@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { JobCostBudgetDialog } from "./JobCostBudgetDialog";
+import { JobCostActualDialog } from "./JobCostActualDialog";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,6 +30,8 @@ interface JobCostsContentProps {
 export function JobCostsContent({ projectId }: JobCostsContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
+  const [selectedCostCode, setSelectedCostCode] = useState<JobCostRow | null>(null);
+  const [dialogType, setDialogType] = useState<'budget' | 'actual' | null>(null);
   
   const { data: jobCostsData, isLoading, error } = useQuery({
     queryKey: ['job-costs', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
@@ -266,11 +271,11 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
                 {error?.message || 'An unexpected error occurred'}
               </p>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
   const totalBudget = jobCostsData?.reduce((sum, row) => sum + row.budget, 0) || 0;
   const totalActual = jobCostsData?.reduce((sum, row) => sum + row.actual, 0) || 0;
@@ -318,55 +323,117 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
             <CardTitle>Budget vs. Actual</CardTitle>
           </CardHeader>
           <CardContent>
-            {jobCostsData && jobCostsData.length > 0 ? (
-              <div className="space-y-1">
-                {/* Header Row */}
-                <div className="grid grid-cols-4 gap-4 font-semibold text-sm border-b pb-2 mb-2">
-                  <div>Cost Code</div>
-                  <div className="text-right">Budget</div>
-                  <div className="text-right">Actual</div>
-                  <div className="text-right">Variance</div>
-                </div>
-                
-                {/* Data Rows */}
-                {jobCostsData.map((row) => (
-                  <div 
-                    key={row.costCodeId} 
-                    className="grid grid-cols-4 gap-4 text-sm py-2 hover:bg-muted/50 rounded transition-colors"
-                  >
-                    <div>
-                      <div className="font-medium">{row.costCode}</div>
-                      <div className="text-xs text-muted-foreground">{row.costCodeName}</div>
-                    </div>
-                    <div className="text-right">{formatCurrency(row.budget)}</div>
-                    <div className="text-right">{formatCurrency(row.actual)}</div>
-                    <div className={`text-right font-medium ${
-                      row.variance >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {formatCurrency(row.variance)}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Total Row */}
-                <div className="grid grid-cols-4 gap-4 font-bold text-sm border-t-2 pt-3 mt-3">
-                  <div>Total</div>
-                  <div className="text-right">{formatCurrency(totalBudget)}</div>
-                  <div className="text-right">{formatCurrency(totalActual)}</div>
-                  <div className={`text-right ${
-                    totalVariance >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {formatCurrency(totalVariance)}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                No job costs data available for this project.
-              </p>
-            )}
+            {/* Table */}
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <colgroup>
+                  <col style={{ width: '200px' }} />
+                  <col style={{ width: '180px' }} />
+                  <col style={{ width: '180px' }} />
+                  <col style={{ width: '180px' }} />
+                </colgroup>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-left">Cost Code</TableHead>
+                    <TableHead className="text-right">Budget</TableHead>
+                    <TableHead className="text-right">Actual</TableHead>
+                    <TableHead className="text-right">Variance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!jobCostsData || jobCostsData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-sm text-muted-foreground">
+                        No job cost data available for this project.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <>
+                      {jobCostsData.map((row) => (
+                        <TableRow 
+                          key={row.costCodeId}
+                          className="h-10 hover:bg-muted/50 transition-colors"
+                        >
+                          <TableCell className="py-1">
+                            <div className="text-sm font-medium">{row.costCode}</div>
+                            <div className="text-xs text-muted-foreground">{row.costCodeName}</div>
+                          </TableCell>
+                          <TableCell 
+                            className="text-right py-1 cursor-pointer hover:bg-muted/50 hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCostCode(row);
+                              setDialogType('budget');
+                            }}
+                          >
+                            <span className="text-sm">{formatCurrency(row.budget)}</span>
+                          </TableCell>
+                          <TableCell 
+                            className="text-right py-1 cursor-pointer hover:bg-muted/50 hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCostCode(row);
+                              setDialogType('actual');
+                            }}
+                          >
+                            <span className="text-sm">{formatCurrency(row.actual)}</span>
+                          </TableCell>
+                          <TableCell className={`text-right py-1 text-sm font-medium ${
+                            row.variance >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatCurrency(row.variance)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      
+                      {/* Total Row */}
+                      <TableRow className="font-semibold bg-muted/30">
+                        <TableCell className="py-2">Total</TableCell>
+                        <TableCell className="text-right py-2">{formatCurrency(totalBudget)}</TableCell>
+                        <TableCell className="text-right py-2">{formatCurrency(totalActual)}</TableCell>
+                        <TableCell className={`text-right py-2 ${
+                          totalVariance >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatCurrency(totalVariance)}
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Dialogs */}
+      {dialogType === 'budget' && selectedCostCode && projectId && (
+        <JobCostBudgetDialog
+          isOpen={true}
+          onClose={() => {
+            setDialogType(null);
+            setSelectedCostCode(null);
+          }}
+          costCode={selectedCostCode.costCode}
+          costCodeName={selectedCostCode.costCodeName}
+          projectId={projectId}
+          totalBudget={selectedCostCode.budget}
+        />
+      )}
+
+      {dialogType === 'actual' && selectedCostCode && projectId && (
+        <JobCostActualDialog
+          isOpen={true}
+          onClose={() => {
+            setDialogType(null);
+            setSelectedCostCode(null);
+          }}
+          costCode={selectedCostCode.costCode}
+          costCodeName={selectedCostCode.costCodeName}
+          projectId={projectId}
+          totalActual={selectedCostCode.actual}
+          asOfDate={asOfDate}
+        />
       )}
     </div>
   );

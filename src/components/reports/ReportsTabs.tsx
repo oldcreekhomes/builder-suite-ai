@@ -9,16 +9,12 @@ interface ReportsTabsProps {
 
 export function ReportsTabs({ projectId }: ReportsTabsProps) {
   return (
-    <Tabs defaultValue="job-costs" className="w-full">
+    <Tabs defaultValue="balance-sheet" className="w-full">
       <TabsList className="grid w-full max-w-2xl grid-cols-3">
-        <TabsTrigger value="job-costs">Job Costs</TabsTrigger>
         <TabsTrigger value="balance-sheet">Balance Sheet</TabsTrigger>
         <TabsTrigger value="income-statement">Income Statement</TabsTrigger>
+        <TabsTrigger value="job-costs">Job Costs</TabsTrigger>
       </TabsList>
-      
-      <TabsContent value="job-costs" className="mt-6">
-        <JobCostsContent projectId={projectId} />
-      </TabsContent>
       
       <TabsContent value="balance-sheet" className="mt-6">
         <BalanceSheetContent projectId={projectId} />
@@ -26,6 +22,10 @@ export function ReportsTabs({ projectId }: ReportsTabsProps) {
       
       <TabsContent value="income-statement" className="mt-6">
         <IncomeStatementContent projectId={projectId} />
+      </TabsContent>
+      
+      <TabsContent value="job-costs" className="mt-6">
+        <JobCostsContent projectId={projectId} />
       </TabsContent>
     </Tabs>
   );
