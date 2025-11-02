@@ -35,9 +35,13 @@ export function JobCostGroupHeader({
   return (
     <TableRow 
       className="bg-background h-12 hover:bg-background border-0 shadow-none" 
-      style={{ position: 'sticky', top: stickyOffset, zIndex: 30, borderBottom: '0', boxShadow: 'none', backgroundColor: 'var(--background)' }}
+      style={{ position: 'sticky', top: stickyOffset, zIndex: 100, borderBottom: '0', boxShadow: 'none', backgroundColor: 'var(--background)' }}
     >
-      <TableCell colSpan={2} className="font-semibold py-2">
+      <TableCell 
+        colSpan={2} 
+        className="font-semibold py-2 bg-background"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -54,13 +58,22 @@ export function JobCostGroupHeader({
           <span>{group}</span>
         </div>
       </TableCell>
-      <TableCell className="text-right py-2 text-sm text-muted-foreground">
+      <TableCell 
+        className="text-right py-2 text-sm text-muted-foreground bg-background"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         {formatCurrency(groupTotal.budget)}
       </TableCell>
-      <TableCell className="text-right py-2 text-sm text-muted-foreground">
+      <TableCell 
+        className="text-right py-2 text-sm text-muted-foreground bg-background"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         {formatCurrency(groupTotal.actual)}
       </TableCell>
-      <TableCell className="text-right py-2 text-sm text-muted-foreground">
+      <TableCell 
+        className="text-right py-2 text-sm text-muted-foreground bg-background"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         {formatCurrency(groupTotal.variance)}
       </TableCell>
     </TableRow>
