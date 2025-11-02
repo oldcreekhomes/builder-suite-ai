@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -413,7 +413,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
                       {Object.entries(groupedJobCosts).map(([group, rows]) => {
                         const groupTotals = calculateGroupTotals(rows);
                         return (
-                          <tbody key={group}>
+                          <Fragment key={group}>
                             <JobCostGroupHeader
                               group={group}
                               isExpanded={expandedGroups.has(group)}
@@ -443,17 +443,15 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
                                 />
                               </>
                             )}
-                          </tbody>
+                          </Fragment>
                         );
                       })}
                       
-                      <tbody>
-                        <JobCostProjectTotalRow
-                          totalBudget={totalBudget}
-                          totalActual={totalActual}
-                          totalVariance={totalVariance}
-                        />
-                      </tbody>
+                      <JobCostProjectTotalRow
+                        totalBudget={totalBudget}
+                        totalActual={totalActual}
+                        totalVariance={totalVariance}
+                      />
                     </>
                   )}
                 </TableBody>
