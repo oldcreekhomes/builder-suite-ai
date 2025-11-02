@@ -277,6 +277,9 @@ export function AccountDetailDialog({
             id,
             vendor_id,
             reference_number,
+            reconciled,
+            reconciliation_id,
+            reconciliation_date,
             companies(company_name)
           `)
           .eq('is_reversal', false)
@@ -350,6 +353,7 @@ export function AccountDetailDialog({
           if (bill) {
             reference = bill.vendor_name;
             description = bill.reference_number || description;
+            reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
           }
         }
 
