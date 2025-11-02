@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Eye, Upload, Pencil, Check, X } from "lucide-react";
+import { Download, Upload, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -263,7 +263,18 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
             </thead>
             <tbody>
               {reconciliations.map((reconciliation) => (
-                <tr key={reconciliation.id} className="border-t hover:bg-muted/30">
+                <tr 
+                  key={reconciliation.id} 
+                  onClick={() => {
+                    if (editingId !== reconciliation.id) {
+                      openProjectFile(
+                        reconciliation.storage_path,
+                        reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename
+                      );
+                    }
+                  }}
+                  className={`border-t ${editingId === reconciliation.id ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                >
                   <td className="p-3">
                     {editingId === reconciliation.id ? (
                       <div className="flex items-center gap-2">
@@ -310,33 +321,34 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openProjectFile(reconciliation.storage_path, reconciliation.filename)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownload(reconciliation.storage_path, reconciliation.filename)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(reconciliation.storage_path, reconciliation.filename);
+                          }}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(reconciliation.id, reconciliation.original_filename || reconciliation.filename)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(reconciliation.id, reconciliation.original_filename || reconciliation.filename);
+                          }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <DeleteButton
-                          onDelete={() => deleteMutation.mutate(reconciliation.id)}
-                          title="Delete Bank Reconciliation"
-                          description="Are you sure you want to delete this bank reconciliation? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteMutation.isPending}
-                          showIcon={true}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DeleteButton
+                            onDelete={() => deleteMutation.mutate(reconciliation.id)}
+                            title="Delete Bank Reconciliation"
+                            description="Are you sure you want to delete this bank reconciliation? This action cannot be undone."
+                            size="sm"
+                            variant="ghost"
+                            isLoading={deleteMutation.isPending}
+                            showIcon={true}
+                          />
+                        </div>
                       </div>
                     )}
                   </td>

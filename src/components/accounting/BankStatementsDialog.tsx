@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Eye, Download, Pencil, Check, X } from "lucide-react";
+import { Upload, Download, Pencil, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -286,7 +286,18 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
             </TableHeader>
             <TableBody>
               {statements.map((statement) => (
-                <TableRow key={statement.id}>
+                  <TableRow 
+                    key={statement.id}
+                    onClick={() => {
+                      if (editingId !== statement.id) {
+                        openProjectFile(
+                          statement.storage_path,
+                          statement.original_filename?.replace('Bank Statements/', '') || 'Statement'
+                        );
+                      }
+                    }}
+                    className={editingId === statement.id ? "" : "cursor-pointer hover:bg-muted/50"}
+                  >
                   <TableCell className="font-medium">
                     {editingId === statement.id ? (
                       <div className="flex items-center gap-2">
@@ -333,39 +344,37 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openProjectFile(
-                            statement.storage_path,
-                            statement.original_filename?.replace('Bank Statements/', '') || 'Statement'
-                          )}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownload(
-                            statement.storage_path,
-                            statement.original_filename || 'statement.pdf'
-                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(
+                              statement.storage_path,
+                              statement.original_filename || 'statement.pdf'
+                            );
+                          }}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(statement.id, statement.original_filename || '')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(statement.id, statement.original_filename || '');
+                          }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <DeleteButton
-                          onDelete={() => deleteMutation.mutate(statement.id)}
-                          title="Delete Bank Statement"
-                          description="Are you sure you want to delete this bank statement? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteMutation.isPending}
-                          showIcon={true}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DeleteButton
+                            onDelete={() => deleteMutation.mutate(statement.id)}
+                            title="Delete Bank Statement"
+                            description="Are you sure you want to delete this bank statement? This action cannot be undone."
+                            size="sm"
+                            variant="ghost"
+                            isLoading={deleteMutation.isPending}
+                            showIcon={true}
+                          />
+                        </div>
                       </div>
                     )}
                   </TableCell>

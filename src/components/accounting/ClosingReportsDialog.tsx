@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Download, Eye, Pencil, Check, X } from "lucide-react";
+import { Upload, Download, Pencil, Check, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -288,7 +288,18 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
             </TableHeader>
             <TableBody>
               {closingReports.map((report) => (
-                <TableRow key={report.id}>
+                  <TableRow 
+                    key={report.id}
+                    onClick={() => {
+                      if (editingId !== report.id) {
+                        openProjectFile(
+                          report.storage_path,
+                          report.original_filename?.replace('Closing Reports/', '') || 'Report'
+                        );
+                      }
+                    }}
+                    className={editingId === report.id ? "" : "cursor-pointer hover:bg-muted/50"}
+                  >
                   <TableCell className="font-medium">
                     {editingId === report.id ? (
                       <div className="flex items-center gap-2">
@@ -333,33 +344,34 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openProjectFile(report.storage_path, report.original_filename)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownload(report.storage_path, report.original_filename)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(report.storage_path, report.original_filename);
+                          }}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(report.id, report.original_filename)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(report.id, report.original_filename);
+                          }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <DeleteButton
-                          onDelete={() => deleteMutation.mutate(report.id)}
-                          title="Delete Closing Report"
-                          description="Are you sure you want to delete this closing report? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteMutation.isPending}
-                          showIcon={true}
-                        />
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <DeleteButton
+                            onDelete={() => deleteMutation.mutate(report.id)}
+                            title="Delete Closing Report"
+                            description="Are you sure you want to delete this closing report? This action cannot be undone."
+                            size="sm"
+                            variant="ghost"
+                            isLoading={deleteMutation.isPending}
+                            showIcon={true}
+                          />
+                        </div>
                       </div>
                     )}
                   </TableCell>
