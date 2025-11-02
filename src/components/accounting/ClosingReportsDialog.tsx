@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, Download, Trash2, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, Download, Eye, Pencil, Check, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 interface ClosingReportsDialogProps {
@@ -50,6 +52,8 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   const { openProjectFile } = useUniversalFilePreviewContext();
 
   const { data: closingReports, isLoading } = useQuery({
@@ -94,6 +98,57 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
       });
     },
   });
+
+  const updateFilenameMutation = useMutation({
+    mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ original_filename: `Closing Reports/${newName}` })
+        .eq('id', fileId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['closing-reports', projectId] });
+      setEditingId(null);
+      setEditingName("");
+      toast({
+        title: "Success",
+        description: "Filename updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update filename: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (fileId: string, currentName: string) => {
+    setEditingId(fileId);
+    setEditingName(currentName.replace('Closing Reports/', ''));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingName.trim()) {
+      toast({
+        title: "Error",
+        description: "Filename cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editingId) {
+      updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName("");
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -235,37 +290,78 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
               {closingReports.map((report) => (
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">
-                    {report.original_filename.replace('Closing Reports/', '')}
+                    {editingId === report.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit();
+                            if (e.key === 'Escape') handleCancelEdit();
+                          }}
+                          className="h-8"
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleSaveEdit}
+                          disabled={updateFilenameMutation.isPending}
+                        >
+                          <Check className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleCancelEdit}
+                          disabled={updateFilenameMutation.isPending}
+                        >
+                          <X className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    ) : (
+                      report.original_filename.replace('Closing Reports/', '')
+                    )}
                   </TableCell>
                   <TableCell>{formatFileSize(report.file_size)}</TableCell>
                   <TableCell>
                     {format(new Date(report.uploaded_at), 'PP')}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openProjectFile(report.storage_path, report.original_filename)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(report.storage_path, report.original_filename)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteMutation.mutate(report.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {editingId === report.id ? null : (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openProjectFile(report.storage_path, report.original_filename)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(report.storage_path, report.original_filename)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(report.id, report.original_filename)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <DeleteButton
+                          onDelete={() => deleteMutation.mutate(report.id)}
+                          title="Delete Closing Report"
+                          description="Are you sure you want to delete this closing report? This action cannot be undone."
+                          size="sm"
+                          variant="ghost"
+                          isLoading={deleteMutation.isPending}
+                          showIcon={true}
+                        />
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

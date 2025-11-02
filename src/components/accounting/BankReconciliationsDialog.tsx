@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Trash2, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, Eye, Upload, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { useUniversalFilePreview } from "@/hooks/useUniversalFilePreview";
 
@@ -33,6 +36,8 @@ export function BankReconciliationsDialog({ projectId, open, onOpenChange }: Ban
 function BankReconciliationsDialogContent({ projectId }: { projectId: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   const { openProjectFile } = useUniversalFilePreview();
 
   // Fetch bank reconciliations
@@ -78,6 +83,57 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
       });
     },
   });
+
+  const updateFilenameMutation = useMutation({
+    mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ original_filename: `Bank Reconciliations/${newName}` })
+        .eq('id', fileId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations', projectId] });
+      setEditingId(null);
+      setEditingName("");
+      toast({
+        title: "Success",
+        description: "Filename updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update filename: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (fileId: string, currentName: string) => {
+    setEditingId(fileId);
+    setEditingName(currentName.replace('Bank Reconciliations/', ''));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingName.trim()) {
+      toast({
+        title: "Error",
+        description: "Filename cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editingId) {
+      updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName("");
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -208,7 +264,40 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
             <tbody>
               {reconciliations.map((reconciliation) => (
                 <tr key={reconciliation.id} className="border-t hover:bg-muted/30">
-                  <td className="p-3">{reconciliation.filename}</td>
+                  <td className="p-3">
+                    {editingId === reconciliation.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit();
+                            if (e.key === 'Escape') handleCancelEdit();
+                          }}
+                          className="h-8"
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleSaveEdit}
+                          disabled={updateFilenameMutation.isPending}
+                        >
+                          <Check className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleCancelEdit}
+                          disabled={updateFilenameMutation.isPending}
+                        >
+                          <X className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    ) : (
+                      reconciliation.filename
+                    )}
+                  </td>
                   <td className="p-3 text-sm text-muted-foreground">
                     {formatFileSize(reconciliation.file_size || 0)}
                   </td>
@@ -216,29 +305,40 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
                     {format(new Date(reconciliation.uploaded_at), 'MMM d, yyyy')}
                   </td>
                   <td className="p-3">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openProjectFile(reconciliation.storage_path, reconciliation.filename)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(reconciliation.storage_path, reconciliation.filename)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteMutation.mutate(reconciliation.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {editingId === reconciliation.id ? null : (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openProjectFile(reconciliation.storage_path, reconciliation.filename)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(reconciliation.storage_path, reconciliation.filename)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(reconciliation.id, reconciliation.original_filename || reconciliation.filename)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <DeleteButton
+                          onDelete={() => deleteMutation.mutate(reconciliation.id)}
+                          title="Delete Bank Reconciliation"
+                          description="Are you sure you want to delete this bank reconciliation? This action cannot be undone."
+                          size="sm"
+                          variant="ghost"
+                          isLoading={deleteMutation.isPending}
+                          showIcon={true}
+                        />
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

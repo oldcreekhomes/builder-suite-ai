@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -17,9 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Eye, Download, Trash2 } from "lucide-react";
+import { Upload, Eye, Download, Pencil, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 interface BankStatementsDialogProps {
@@ -33,6 +35,8 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const queryClient = useQueryClient();
   const { openProjectFile } = useUniversalFilePreviewContext();
   const [isUploading, setIsUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   // Fetch bank statements
   const { data: statements, isLoading } = useQuery({
@@ -77,6 +81,58 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       });
     },
   });
+
+  // Update filename mutation
+  const updateFilenameMutation = useMutation({
+    mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ original_filename: `Bank Statements/${newName}` })
+        .eq('id', fileId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-statements', projectId] });
+      setEditingId(null);
+      setEditingName("");
+      toast({
+        title: "Success",
+        description: "Filename updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update filename: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (fileId: string, currentName: string) => {
+    setEditingId(fileId);
+    setEditingName(currentName.replace('Bank Statements/', ''));
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingName.trim()) {
+      toast({
+        title: "Error",
+        description: "Filename cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editingId) {
+      updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingName("");
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -232,7 +288,38 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
               {statements.map((statement) => (
                 <TableRow key={statement.id}>
                   <TableCell className="font-medium">
-                    {statement.original_filename?.replace('Bank Statements/', '') || 'Untitled'}
+                    {editingId === statement.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={editingName}
+                          onChange={(e) => setEditingName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEdit();
+                            if (e.key === 'Escape') handleCancelEdit();
+                          }}
+                          className="h-8"
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleSaveEdit}
+                          disabled={updateFilenameMutation.isPending}
+                        >
+                          <Check className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleCancelEdit}
+                          disabled={updateFilenameMutation.isPending}
+                        >
+                          <X className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    ) : (
+                      statement.original_filename?.replace('Bank Statements/', '') || 'Untitled'
+                    )}
                   </TableCell>
                   <TableCell>
                     {statement.uploaded_at ? format(new Date(statement.uploaded_at), 'PP') : '-'}
@@ -241,36 +328,46 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                     {statement.file_size ? formatFileSize(statement.file_size) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openProjectFile(
-                          statement.storage_path,
-                          statement.original_filename?.replace('Bank Statements/', '') || 'Statement'
-                        )}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(
-                          statement.storage_path,
-                          statement.original_filename || 'statement.pdf'
-                        )}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteMutation.mutate(statement.id)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {editingId === statement.id ? null : (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openProjectFile(
+                            statement.storage_path,
+                            statement.original_filename?.replace('Bank Statements/', '') || 'Statement'
+                          )}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(
+                            statement.storage_path,
+                            statement.original_filename || 'statement.pdf'
+                          )}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(statement.id, statement.original_filename || '')}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <DeleteButton
+                          onDelete={() => deleteMutation.mutate(statement.id)}
+                          title="Delete Bank Statement"
+                          description="Are you sure you want to delete this bank statement? This action cannot be undone."
+                          size="sm"
+                          variant="ghost"
+                          isLoading={deleteMutation.isPending}
+                          showIcon={true}
+                        />
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
