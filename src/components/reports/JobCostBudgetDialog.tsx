@@ -102,7 +102,7 @@ export function JobCostBudgetDialog({
               <Skeleton className="h-10 w-full" />
             </div>
           ) : budgetItems && budgetItems.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>

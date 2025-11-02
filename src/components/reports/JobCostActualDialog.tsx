@@ -114,7 +114,7 @@ export function JobCostActualDialog({
               <Skeleton className="h-10 w-full" />
             </div>
           ) : journalLines && journalLines.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
