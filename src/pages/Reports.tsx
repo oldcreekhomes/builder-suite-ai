@@ -6,6 +6,7 @@ import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ReportsTabs } from "@/components/reports/ReportsTabs";
 import { ReportsGuard } from "@/components/guards/ReportsGuard";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 export default function Reports() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -25,7 +26,9 @@ export default function Reports() {
               <CompanyDashboardHeader />
             )}
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-              <ReportsTabs projectId={projectId} />
+              <UniversalFilePreviewProvider>
+                <ReportsTabs projectId={projectId} />
+              </UniversalFilePreviewProvider>
             </div>
           </SidebarInset>
         </div>
