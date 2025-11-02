@@ -209,16 +209,16 @@ export default function Accounting() {
             
             <div className="flex-1 p-6 space-y-6">
               {/* Overview Cards */}
-              <div className={`grid grid-cols-1 gap-6 ${projectId ? (canCloseBooks ? 'md:grid-cols-3 lg:grid-cols-6' : 'md:grid-cols-2 lg:grid-cols-5') : 'md:grid-cols-3'}`}>
+              <div className={`grid grid-cols-1 gap-8 ${projectId ? (canCloseBooks ? 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3') : 'md:grid-cols-2 lg:grid-cols-3'}`}>
                 <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handlePendingBillsClick}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-medium">Bills Pending Approval</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
+                  <CardContent className="space-y-1">
+                    <div className="text-3xl font-bold">
                       {isLoading ? (
-                        <Skeleton className="h-8 w-12" />
+                        <Skeleton className="h-10 w-12" />
                       ) : (
                         billMetrics?.pendingCount || 0
                       )}
@@ -230,14 +230,14 @@ export default function Accounting() {
                 </Card>
                 
                 <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleTotalOutstandingClick}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-medium">Bills Needing to be Paid</CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
+                  <CardContent className="space-y-1">
+                    <div className="text-2xl font-bold break-words">
                       {isLoading ? (
-                        <Skeleton className="h-8 w-20" />
+                        <Skeleton className="h-10 w-32" />
                       ) : (
                         formatCurrency(billMetrics?.totalOutstanding || 0)
                       )}
@@ -253,14 +253,14 @@ export default function Accounting() {
                 </Card>
                 
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-medium">Overdue Bills</CardTitle>
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
+                  <CardContent className="space-y-1">
+                    <div className="text-3xl font-bold">
                       {isLoading ? (
-                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-10 w-12" />
                       ) : (
                         billMetrics?.overdueCount || 0
                       )}
@@ -274,14 +274,14 @@ export default function Accounting() {
                 {projectId && (
                   <>
                     <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowBankStatements(true)}>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-medium">Bank Statements</CardTitle>
                         <Receipt className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
+                      <CardContent className="space-y-1">
+                        <div className="text-3xl font-bold">
                           {isLoadingBankStmts ? (
-                            <Skeleton className="h-8 w-12" />
+                            <Skeleton className="h-10 w-12" />
                           ) : (
                             bankStmtMetrics?.count ?? 0
                           )}
@@ -299,14 +299,14 @@ export default function Accounting() {
                     </Card>
 
                     <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowClosingReports(true)}>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-medium">Closing Reports</CardTitle>
                         <FileText className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
+                      <CardContent className="space-y-1">
+                        <div className="text-3xl font-bold">
                           {isLoadingClosingReports ? (
-                            <Skeleton className="h-8 w-12" />
+                            <Skeleton className="h-10 w-12" />
                           ) : (
                             closingReportsMetrics?.count ?? 0
                           )}
@@ -324,14 +324,14 @@ export default function Accounting() {
                     </Card>
 
                     <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowBankReconciliations(true)}>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                         <CardTitle className="text-sm font-medium">Bank Reconciliations</CardTitle>
                         <FileText className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
+                      <CardContent className="space-y-1">
+                        <div className="text-3xl font-bold">
                           {isLoadingBankReconciliations ? (
-                            <Skeleton className="h-8 w-12" />
+                            <Skeleton className="h-10 w-12" />
                           ) : (
                             bankReconciliationsMetrics?.count ?? 0
                           )}
@@ -352,12 +352,12 @@ export default function Accounting() {
 
                 {canCloseBooks && projectId && (
                   <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleCloseBooksClick}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                       <CardTitle className="text-sm font-medium">Close the Books</CardTitle>
                       <Lock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">Manage</div>
+                    <CardContent className="space-y-1">
+                      <div className="text-3xl font-bold">Manage</div>
                       <p className="text-xs text-muted-foreground">
                         Lock accounting periods
                       </p>
