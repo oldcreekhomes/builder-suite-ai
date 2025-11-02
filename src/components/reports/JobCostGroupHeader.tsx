@@ -33,7 +33,7 @@ export function JobCostGroupHeader({
   };
 
   return (
-    <TableRow className="bg-background h-12 sticky z-10 border-y shadow-sm hover:bg-background" style={{ top: stickyOffset }}>
+    <TableRow className="bg-background h-12 sticky z-10 border-b shadow-sm hover:bg-background" style={{ top: stickyOffset }}>
       <TableCell colSpan={2} className="font-semibold py-2">
         <div className="flex items-center gap-2">
           <Button
