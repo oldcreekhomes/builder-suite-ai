@@ -659,6 +659,20 @@ export function AccountDetailDialog({
     }).format(amount);
   };
 
+  const formatAmountWithSign = (amount: number) => {
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(absAmount);
+    
+    if (amount < 0) {
+      return <span className="text-red-600">({formatted})</span>;
+    }
+    return formatted;
+  };
+
   const calculateRunningBalance = (transactions: Transaction[]) => {
     let balance = 0;
     return transactions.map((txn) => {
@@ -741,10 +755,15 @@ export function AccountDetailDialog({
                         field="amount"
                         onSave={(value) => handleUpdate(txn, "amount", value)}
                         readOnly={!canDeleteBills || txn.reconciled}
+                        isNegative={
+                          (accountType === 'asset' || accountType === 'expense') 
+                            ? txn.credit > 0 
+                            : txn.debit > 0
+                        }
                       />
                     </TableCell>
                     <TableCell className="px-2 py-1 font-medium">
-                      {formatCurrency(balances[index])}
+                      {formatAmountWithSign(balances[index])}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-center">
                       {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}

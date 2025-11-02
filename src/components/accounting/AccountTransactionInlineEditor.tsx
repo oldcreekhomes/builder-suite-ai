@@ -13,6 +13,7 @@ interface AccountTransactionInlineEditorProps {
   field: "date" | "reference" | "vendor" | "description" | "amount";
   onSave: (value: string | number | Date) => void;
   readOnly?: boolean;
+  isNegative?: boolean;
 }
 
 export function AccountTransactionInlineEditor({
@@ -20,18 +21,25 @@ export function AccountTransactionInlineEditor({
   field,
   onSave,
   readOnly = false,
+  isNegative = false,
 }: AccountTransactionInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [showCalendar, setShowCalendar] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+  const formatAmountDisplay = (amount: number, isNeg: boolean) => {
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-    }).format(amount);
+    }).format(absAmount);
+    
+    if (isNeg) {
+      return `(${formatted})`;
+    }
+    return formatted;
   };
 
   useEffect(() => {
@@ -69,12 +77,12 @@ export function AccountTransactionInlineEditor({
 
   if (readOnly) {
     return (
-      <span className="text-xs">
+      <span className={cn("text-xs", isNegative && field === "amount" && "text-red-600")}>
         {field === "date" && value instanceof Date
           ? format(value, "MM/dd/yyyy")
           : field === "amount"
           ? typeof value === "number"
-            ? formatCurrency(Number(value))
+            ? formatAmountDisplay(Number(value), isNegative)
             : String(value)
           : String(value)}
       </span>
@@ -132,9 +140,9 @@ export function AccountTransactionInlineEditor({
       className="group flex items-center gap-1 cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded"
       onClick={() => setIsEditing(true)}
     >
-      <span className="text-xs">
+      <span className={cn("text-xs", isNegative && field === "amount" && "text-red-600")}>
         {field === "amount" && typeof value === "number"
-          ? formatCurrency(Number(value))
+          ? formatAmountDisplay(Number(value), isNegative)
           : String(value)}
       </span>
       <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
