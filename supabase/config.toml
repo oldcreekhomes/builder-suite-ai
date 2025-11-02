@@ -68,6 +68,3 @@ verify_jwt = true
 
 [functions.fix-deposit-reversal]
 verify_jwt = false
-
-[functions.fix-missing-deposit]
-verify_jwt = false
