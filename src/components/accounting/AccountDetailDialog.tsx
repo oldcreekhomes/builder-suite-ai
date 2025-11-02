@@ -132,6 +132,11 @@ export function AccountDetailDialog({
         .filter((line: any) => line.journal_entries.source_type === 'credit_card')
         .map((line: any) => line.journal_entries.source_id);
 
+      // Get bill IDs for bill and bill_payment transactions
+      const billIds = (data || [])
+        .filter((line: any) => ['bill', 'bill_payment'].includes(line.journal_entries.source_type))
+        .map((line: any) => line.journal_entries.source_id);
+
       // Fetch check details with vendor names if we have any checks
       let checksMap = new Map();
       
@@ -262,6 +267,30 @@ export function AccountDetailDialog({
         });
       }
 
+      // Fetch bill details with vendor names if we have any bills
+      let billsMap = new Map();
+      
+      if (billIds.length > 0) {
+        const { data: billsData } = await supabase
+          .from('bills')
+          .select(`
+            id,
+            vendor_id,
+            reference_number,
+            companies(company_name)
+          `)
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
+          .in('id', billIds);
+        
+        billsData?.forEach((bill: any) => {
+          billsMap.set(bill.id, {
+            ...bill,
+            vendor_name: bill.companies?.company_name || 'Unknown Vendor'
+          });
+        });
+      }
+
       // Client-side defensive filter: only show journal lines whose source records exist in the filtered maps
       const filteredData = (data || []).filter((line: any) => {
         const st = line.journal_entries.source_type;
@@ -269,7 +298,8 @@ export function AccountDetailDialog({
         if (st === 'deposit') return depositsMap.has(sid);
         if (st === 'check') return checksMap.has(sid);
         if (st === 'credit_card') return creditCardsMap.has(sid);
-        return true; // keep manual/bill types
+        if (st === 'bill' || st === 'bill_payment') return billsMap.has(sid);
+        return true; // keep manual types
       });
 
       const transactions: Transaction[] = filteredData.map((line: any) => {
@@ -311,6 +341,15 @@ export function AccountDetailDialog({
             reconciled = cc.reconciled || !!cc.reconciliation_id || !!cc.reconciliation_date;
             // Use first credit card line memo as description
             description = cc.firstLineMemo || description;
+          }
+        }
+
+        // If this is a bill or bill payment, get vendor name from bills table
+        if (line.journal_entries.source_type === 'bill' || line.journal_entries.source_type === 'bill_payment') {
+          const bill = billsMap.get(line.journal_entries.source_id);
+          if (bill) {
+            reference = bill.vendor_name;
+            description = bill.reference_number || description;
           }
         }
 
