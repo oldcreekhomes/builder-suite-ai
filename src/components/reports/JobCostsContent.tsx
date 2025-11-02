@@ -354,9 +354,9 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
                           key={row.costCodeId}
                           className="h-10 hover:bg-muted/50 transition-colors"
                         >
-                          <TableCell className="py-1">
-                            <div className="text-sm font-medium">{row.costCode}</div>
-                            <div className="text-xs text-muted-foreground">{row.costCodeName}</div>
+                          <TableCell className="py-1 text-sm">
+                            <span className="font-medium">{row.costCode}</span>
+                            <span className="text-muted-foreground ml-2">{row.costCodeName}</span>
                           </TableCell>
                           <TableCell 
                             className="text-right py-1 cursor-pointer hover:bg-muted/50 hover:underline"
