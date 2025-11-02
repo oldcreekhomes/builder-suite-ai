@@ -121,14 +121,21 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
 
       if (uploadError) throw uploadError;
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { error: dbError } = await supabase
         .from('project_files')
         .insert({
           project_id: projectId,
-          storage_path: filePath,
+          filename: fileName,
           original_filename: `Closing Reports/${file.name}`,
           file_size: file.size,
+          file_type: 'pdf',
           mime_type: file.type,
+          storage_path: filePath,
+          uploaded_by: user.id,
+          is_deleted: false,
         });
 
       if (dbError) throw dbError;
