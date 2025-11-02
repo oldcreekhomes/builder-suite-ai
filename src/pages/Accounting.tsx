@@ -13,6 +13,7 @@ import { AccountingGuard } from "@/components/guards/AccountingGuard";
 import { useCloseBookPermissions } from "@/hooks/useCloseBookPermissions";
 import { BankStatementsDialog } from "@/components/accounting/BankStatementsDialog";
 import { ClosingReportsDialog } from "@/components/accounting/ClosingReportsDialog";
+import { BankReconciliationsDialog } from "@/components/accounting/BankReconciliationsDialog";
 import { format } from "date-fns";
 
 export default function Accounting() {
@@ -21,6 +22,7 @@ export default function Accounting() {
   const { canCloseBooks } = useCloseBookPermissions();
   const [showBankStatements, setShowBankStatements] = useState(false);
   const [showClosingReports, setShowClosingReports] = useState(false);
+  const [showBankReconciliations, setShowBankReconciliations] = useState(false);
   
   // Fetch bill metrics for this project
   const { data: billMetrics, isLoading } = useQuery({
@@ -136,6 +138,30 @@ export default function Accounting() {
         .eq('project_id', projectId)
         .eq('is_deleted', false)
         .like('original_filename', 'Closing Reports/%')
+        .order('uploaded_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return {
+        count: data?.length || 0,
+        lastUploadedAt: data?.[0]?.uploaded_at || null
+      };
+    }
+  });
+
+  // Fetch bank reconciliations metrics
+  const { data: bankReconciliationsMetrics, isLoading: isLoadingBankReconciliations } = useQuery({
+    queryKey: ['bank-reconciliations-metrics', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      if (!projectId) return { count: 0, lastUploadedAt: null };
+      
+      const { data, error } = await supabase
+        .from('project_files')
+        .select('id, uploaded_at')
+        .eq('project_id', projectId)
+        .eq('is_deleted', false)
+        .like('original_filename', 'Bank Reconciliations/%')
         .order('uploaded_at', { ascending: false });
       
       if (error) throw error;
@@ -296,6 +322,31 @@ export default function Accounting() {
                         </p>
                       </CardContent>
                     </Card>
+
+                    <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowBankReconciliations(true)}>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Bank Reconciliations</CardTitle>
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {isLoadingBankReconciliations ? (
+                            <Skeleton className="h-8 w-12" />
+                          ) : (
+                            bankReconciliationsMetrics?.count ?? 0
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {isLoadingBankReconciliations ? (
+                            <Skeleton className="h-4 w-32" />
+                          ) : bankReconciliationsMetrics?.lastUploadedAt ? (
+                            `Last: ${format(new Date(bankReconciliationsMetrics.lastUploadedAt), 'PP')}`
+                          ) : (
+                            'No reconciliations yet'
+                          )}
+                        </p>
+                      </CardContent>
+                    </Card>
                   </>
                 )}
 
@@ -322,11 +373,17 @@ export default function Accounting() {
                     open={showBankStatements}
                     onOpenChange={setShowBankStatements}
                   />
-                  <ClosingReportsDialog
-                    projectId={projectId}
-                    open={showClosingReports}
-                    onOpenChange={setShowClosingReports}
-                  />
+      <ClosingReportsDialog 
+        projectId={projectId}
+        open={showClosingReports}
+        onOpenChange={setShowClosingReports}
+      />
+
+      <BankReconciliationsDialog 
+        projectId={projectId}
+        open={showBankReconciliations}
+        onOpenChange={setShowBankReconciliations}
+      />
                 </>
               )}
             </div>
