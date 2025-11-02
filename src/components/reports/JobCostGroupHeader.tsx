@@ -35,12 +35,11 @@ export function JobCostGroupHeader({
   return (
     <TableRow 
       className="bg-background h-12 hover:bg-background border-0 shadow-none" 
-      style={{ borderBottom: '0', boxShadow: 'none', backgroundColor: 'var(--background)' }}
+      style={{ position: 'sticky', top: stickyOffset, zIndex: 10, backgroundColor: 'var(--background)' }}
     >
       <TableCell 
         colSpan={2} 
         className="font-semibold py-2 bg-background"
-        style={{ position: 'sticky', top: stickyOffset, zIndex: 200, backgroundColor: 'var(--background)' }}
       >
         <div className="flex items-center gap-2">
           <Button
@@ -60,19 +59,16 @@ export function JobCostGroupHeader({
       </TableCell>
       <TableCell 
         className="text-right py-2 text-sm text-muted-foreground bg-background"
-        style={{ position: 'sticky', top: stickyOffset, zIndex: 200, backgroundColor: 'var(--background)' }}
       >
         {formatCurrency(groupTotal.budget)}
       </TableCell>
       <TableCell 
         className="text-right py-2 text-sm text-muted-foreground bg-background"
-        style={{ position: 'sticky', top: stickyOffset, zIndex: 200, backgroundColor: 'var(--background)' }}
       >
         {formatCurrency(groupTotal.actual)}
       </TableCell>
       <TableCell 
         className="text-right py-2 text-sm text-muted-foreground bg-background"
-        style={{ position: 'sticky', top: stickyOffset, zIndex: 200, backgroundColor: 'var(--background)' }}
       >
         {formatCurrency(groupTotal.variance)}
       </TableCell>

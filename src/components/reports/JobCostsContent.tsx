@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JobCostBudgetDialog } from "./JobCostBudgetDialog";
 import { JobCostActualDialog } from "./JobCostActualDialog";
 import { JobCostGroupHeader } from "./JobCostGroupHeader";
@@ -446,11 +446,7 @@ return parentRows;
           <CardContent>
             {/* Table */}
             <div className="border rounded-lg">
-              <Table 
-                containerClassName="relative w-full overflow-auto max-h-[70vh] isolate"
-                className="table-fixed border-collapse bg-background"
-                style={{ borderSpacing: 0 }}
-              >
+              <Table className="table-fixed">
                 <colgroup>
                   <col style={{ width: '200px' }} />
                   <col />
@@ -467,63 +463,63 @@ return parentRows;
                     <TableHead className="text-right">Variance</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {!jobCostsData || jobCostsData.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
+                {!jobCostsData || jobCostsData.length === 0 ? (
+                  <tbody>
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
                         No job cost data available for this project.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    <>
-                      {Object.entries(groupedJobCosts).map(([group, rows], index) => {
-                        const groupTotals = calculateGroupTotals(rows);
-                        const headerHeight = 48;
-                        const stickyOffset = headerHeight + (index * headerHeight);
-                        return (
-                          <Fragment key={group}>
-                            <JobCostGroupHeader
-                              group={group}
-                              isExpanded={expandedGroups.has(group)}
-                              onToggle={() => handleGroupToggle(group)}
-                              groupTotal={groupTotals}
-                              stickyOffset={stickyOffset}
-                            />
-                            
-                            {expandedGroups.has(group) && (
-                              <>
-                                {rows.map(row => (
-                                  <JobCostRow
-                                    key={row.costCodeId}
-                                    row={row}
-                                    onBudgetClick={() => {
-                                      setSelectedCostCode(row);
-                                      setDialogType('budget');
-                                    }}
-                                    onActualClick={() => {
-                                      setSelectedCostCode(row);
-                                      setDialogType('actual');
-                                    }}
-                                  />
-                                ))}
-                                <JobCostGroupTotalRow
-                                  group={group}
-                                  totals={groupTotals}
+                      </td>
+                    </tr>
+                  </tbody>
+                ) : (
+                  <>
+                    {Object.entries(groupedJobCosts).map(([group, rows], index) => {
+                      const groupTotals = calculateGroupTotals(rows);
+                      const headerHeight = 48;
+                      const stickyOffset = headerHeight + (index * headerHeight);
+                      return (
+                        <tbody key={group}>
+                          <JobCostGroupHeader
+                            group={group}
+                            isExpanded={expandedGroups.has(group)}
+                            onToggle={() => handleGroupToggle(group)}
+                            groupTotal={groupTotals}
+                            stickyOffset={stickyOffset}
+                          />
+                          {expandedGroups.has(group) && (
+                            <>
+                              {rows.map(row => (
+                                <JobCostRow
+                                  key={row.costCodeId}
+                                  row={row}
+                                  onBudgetClick={() => {
+                                    setSelectedCostCode(row);
+                                    setDialogType('budget');
+                                  }}
+                                  onActualClick={() => {
+                                    setSelectedCostCode(row);
+                                    setDialogType('actual');
+                                  }}
                                 />
-                              </>
-                            )}
-                          </Fragment>
-                        );
-                      })}
-                      
+                              ))}
+                              <JobCostGroupTotalRow
+                                group={group}
+                                totals={groupTotals}
+                              />
+                            </>
+                          )}
+                        </tbody>
+                      );
+                    })}
+                    <tbody>
                       <JobCostProjectTotalRow
                         totalBudget={totalBudget}
                         totalActual={totalActual}
                         totalVariance={totalVariance}
                       />
-                    </>
-                  )}
-                </TableBody>
+                    </tbody>
+                  </>
+                )}
               </Table>
             </div>
           </CardContent>
