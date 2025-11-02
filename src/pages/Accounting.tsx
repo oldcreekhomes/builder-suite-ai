@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -5,16 +6,19 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, DollarSign, Clock, Lock } from "lucide-react";
+import { FileText, DollarSign, Clock, Lock, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountingGuard } from "@/components/guards/AccountingGuard";
 import { useCloseBookPermissions } from "@/hooks/useCloseBookPermissions";
+import { BankStatementsDialog } from "@/components/accounting/BankStatementsDialog";
+import { format } from "date-fns";
 
 export default function Accounting() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { canCloseBooks } = useCloseBookPermissions();
+  const [showBankStatements, setShowBankStatements] = useState(false);
   
   // Fetch bill metrics for this project
   const { data: billMetrics, isLoading } = useQuery({
@@ -93,6 +97,30 @@ export default function Accounting() {
     enabled: true,
   });
 
+  // Fetch bank statement metrics
+  const { data: bankStmtMetrics, isLoading: isLoadingBankStmts } = useQuery({
+    queryKey: ['bank-statement-metrics', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      if (!projectId) return { count: 0, lastUploadedAt: null };
+      
+      const { data, error } = await supabase
+        .from('project_files')
+        .select('id, uploaded_at')
+        .eq('project_id', projectId)
+        .eq('is_deleted', false)
+        .like('original_filename', 'Bank Statements/%')
+        .order('uploaded_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return {
+        count: data?.length || 0,
+        lastUploadedAt: data?.[0]?.uploaded_at || null
+      };
+    }
+  });
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -129,7 +157,7 @@ export default function Accounting() {
             
             <div className="flex-1 p-6 space-y-6">
               {/* Overview Cards */}
-              <div className={`grid grid-cols-1 gap-6 ${canCloseBooks && projectId ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+              <div className={`grid grid-cols-1 gap-6 ${projectId ? (canCloseBooks ? 'md:grid-cols-5 lg:grid-cols-5' : 'md:grid-cols-4') : 'md:grid-cols-3'}`}>
                 <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handlePendingBillsClick}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Bills Pending Approval</CardTitle>
@@ -191,6 +219,33 @@ export default function Accounting() {
                   </CardContent>
                 </Card>
                 
+                {projectId && (
+                  <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowBankStatements(true)}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Bank Statements</CardTitle>
+                      <Receipt className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {isLoadingBankStmts ? (
+                          <Skeleton className="h-8 w-12" />
+                        ) : (
+                          bankStmtMetrics?.count ?? 0
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {isLoadingBankStmts ? (
+                          <Skeleton className="h-4 w-32" />
+                        ) : bankStmtMetrics?.lastUploadedAt ? (
+                          `Last: ${format(new Date(bankStmtMetrics.lastUploadedAt), 'PP')}`
+                        ) : (
+                          'No statements yet'
+                        )}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {canCloseBooks && projectId && (
                   <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleCloseBooksClick}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -207,6 +262,13 @@ export default function Accounting() {
                 )}
               </div>
 
+              {projectId && (
+                <BankStatementsDialog
+                  projectId={projectId}
+                  open={showBankStatements}
+                  onOpenChange={setShowBankStatements}
+                />
+              )}
             </div>
           </SidebarInset>
         </div>
