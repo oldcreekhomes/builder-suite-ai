@@ -168,6 +168,17 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       return;
     }
 
+    // Check for outstanding transactions when difference is zero
+    const uncheckedChecks = transactions?.checks.filter(c => !c.reconciled && !checkedTransactions.has(c.id)) || [];
+    const uncheckedDeposits = transactions?.deposits.filter(d => !d.reconciled && !checkedTransactions.has(d.id)) || [];
+    
+    if ((uncheckedChecks.length > 0 || uncheckedDeposits.length > 0) && Math.abs(difference) < 0.01) {
+      const message = `Warning: You have ${uncheckedChecks.length} unchecked check(s)/bill payment(s) and ${uncheckedDeposits.length} unchecked deposit(s), but the difference is $0.00.\n\nThis may indicate that transactions were manually adjusted to balance without being properly reconciled.\n\nAre you sure you want to complete this reconciliation?`;
+      if (!confirm(message)) {
+        return;
+      }
+    }
+
     try {
       const reconciliationData = {
         owner_id: user!.id,

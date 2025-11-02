@@ -25,6 +25,7 @@ import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
 import { Check } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Transaction {
   source_id: string;
@@ -39,6 +40,7 @@ interface Transaction {
   credit: number;
   created_at: string;
   reconciled: boolean;
+  reconciliation_date?: string | null;
 }
 
 interface AccountDetailDialogProps {
@@ -317,6 +319,7 @@ export function AccountDetailDialog({
         let reference = null;
         let description = line.memo; // Description always comes from the line memo
         let reconciled = false;
+        let reconciliation_date: string | null = null;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
@@ -325,6 +328,7 @@ export function AccountDetailDialog({
             memo = check.memo;
             reference = check.vendor_name || check.pay_to;
             reconciled = check.reconciled || !!check.reconciliation_id || !!check.reconciliation_date;
+            reconciliation_date = check.reconciliation_date;
             // Use first check line memo as description (e.g., "Testing")
             description = check.firstLineMemo || description;
           }
@@ -337,6 +341,7 @@ export function AccountDetailDialog({
             memo = deposit.memo;
             reference = deposit.receivedFrom;
             reconciled = deposit.reconciled || !!deposit.reconciliation_id || !!deposit.reconciliation_date;
+            reconciliation_date = deposit.reconciliation_date;
             // Use first deposit line memo as description
             description = deposit.firstLineMemo || description;
           }
@@ -349,6 +354,7 @@ export function AccountDetailDialog({
             memo = cc.memo;
             reference = cc.vendor;
             reconciled = cc.reconciled || !!cc.reconciliation_id || !!cc.reconciliation_date;
+            reconciliation_date = cc.reconciliation_date;
             // Use first credit card line memo as description
             description = cc.firstLineMemo || description;
           }
@@ -361,6 +367,7 @@ export function AccountDetailDialog({
             reference = bill.vendor_name;
             description = bill.reference_number || description;
             reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
+            reconciliation_date = bill.reconciliation_date;
           }
         }
 
@@ -377,6 +384,7 @@ export function AccountDetailDialog({
           credit: line.credit || 0,
           created_at: line.journal_entries.created_at,
           reconciled: reconciled,
+          reconciliation_date: reconciliation_date,
         };
       });
 
@@ -777,21 +785,45 @@ export function AccountDetailDialog({
                       {formatAmountWithSign(balances[index])}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-center">
-                      {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center justify-center">
+                              {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                            </div>
+                          </TooltipTrigger>
+                          {txn.reconciled && txn.reconciliation_date && (
+                            <TooltipContent>
+                              <p className="text-xs">Reconciled on {format(new Date(txn.reconciliation_date), "MM/dd/yyyy")}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell className="px-2 py-1">
-                      <div className="flex items-center justify-center">
-                        {canDeleteBills && !txn.reconciled && (
-                          <DeleteButton
-                            onDelete={() => handleDelete(txn)}
-                            title="Delete Transaction"
-                            description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                          />
-                        )}
-                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center justify-center">
+                              {canDeleteBills && !txn.reconciled && (
+                                <DeleteButton
+                                  onDelete={() => handleDelete(txn)}
+                                  title="Delete Transaction"
+                                  description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                />
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          {txn.reconciled && (
+                            <TooltipContent>
+                              <p className="text-xs">Cannot delete reconciled transaction</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 ))}
