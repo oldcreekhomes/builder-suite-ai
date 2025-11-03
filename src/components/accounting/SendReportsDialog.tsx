@@ -143,14 +143,14 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             />
           </div>
 
-          <div className="space-y-3">
-            <Label>As of Date</Label>
+          <div className="flex items-center gap-3">
+            <Label className="whitespace-nowrap">As of Date</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "flex-1 justify-start text-left font-normal",
                     !asOfDate && "text-muted-foreground"
                   )}
                 >
@@ -231,9 +231,24 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               </div>
 
               {bankStatements && bankStatements.length > 0 && (
-                <div className="space-y-2 pt-2 border-t">
-                  <Label className="text-sm font-medium">Bank Statements</Label>
-                  <div className="space-y-2 pl-2 max-h-32 overflow-y-auto">
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="select-all-statements"
+                      checked={selectedBankStatements.length === bankStatements.length && bankStatements.length > 0}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedBankStatements(bankStatements.map(s => s.id));
+                        } else {
+                          setSelectedBankStatements([]);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="select-all-statements" className="text-sm font-medium cursor-pointer">
+                      Bank Statements
+                    </Label>
+                  </div>
+                  <div className="space-y-2 pl-8 max-h-32 overflow-y-auto">
                     {bankStatements.map((statement) => {
                       const displayName = statement.original_filename.replace("Bank Statements/", "");
                       return (
