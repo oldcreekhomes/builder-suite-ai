@@ -80,7 +80,7 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     } finally {
       setSpecificationsLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     if (user && costCodes.length > 0) {
