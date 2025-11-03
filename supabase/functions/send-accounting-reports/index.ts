@@ -19,12 +19,9 @@ interface ReportRequest {
     balanceSheet: boolean;
     incomeStatement: boolean;
     jobCosts: boolean;
-    bankStatements: boolean;
+    bankStatementIds: string[];
   };
-  dateRange: {
-    from: string;
-    to: string;
-  };
+  asOfDate: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -42,12 +39,12 @@ const handler = async (req: Request): Promise<Response> => {
       projectId,
       delivery,
       reports,
-      dateRange,
+      asOfDate,
     }: ReportRequest = await req.json();
 
     console.log("Generating reports for project:", projectId);
     console.log("Selected reports:", reports);
-    console.log("Date range:", dateRange);
+    console.log("As of date:", asOfDate);
 
     // Get project details
     const { data: project } = await supabase
@@ -64,9 +61,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Balance Sheet
     if (reports.balanceSheet) {
       console.log("Generating Balance Sheet...");
-      const balanceSheetPdf = await generateBalanceSheet(supabase, projectId, dateRange);
+      const balanceSheetPdf = await generateBalanceSheet(supabase, projectId, asOfDate);
       pdfFiles.push({
-        name: `Balance_Sheet_${dateRange.from}_to_${dateRange.to}.pdf`,
+        name: `Balance_Sheet_as_of_${asOfDate}.pdf`,
         data: balanceSheetPdf,
       });
     }
@@ -74,9 +71,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Income Statement
     if (reports.incomeStatement) {
       console.log("Generating Income Statement...");
-      const incomeStatementPdf = await generateIncomeStatement(supabase, projectId, dateRange);
+      const incomeStatementPdf = await generateIncomeStatement(supabase, projectId, asOfDate);
       pdfFiles.push({
-        name: `Income_Statement_${dateRange.from}_to_${dateRange.to}.pdf`,
+        name: `Income_Statement_as_of_${asOfDate}.pdf`,
         data: incomeStatementPdf,
       });
     }
@@ -84,17 +81,17 @@ const handler = async (req: Request): Promise<Response> => {
     // Job Costs
     if (reports.jobCosts) {
       console.log("Generating Job Costs Report...");
-      const jobCostsPdf = await generateJobCostsReport(supabase, projectId, dateRange);
+      const jobCostsPdf = await generateJobCostsReport(supabase, projectId, asOfDate);
       pdfFiles.push({
-        name: `Job_Costs_${dateRange.from}_to_${dateRange.to}.pdf`,
+        name: `Job_Costs_as_of_${asOfDate}.pdf`,
         data: jobCostsPdf,
       });
     }
 
     // Bank Statements
-    if (reports.bankStatements) {
+    if (reports.bankStatementIds && reports.bankStatementIds.length > 0) {
       console.log("Fetching Bank Statements...");
-      const bankStatements = await fetchBankStatements(supabase, projectId);
+      const bankStatements = await fetchBankStatements(supabase, projectId, reports.bankStatementIds);
       for (const statement of bankStatements) {
         pdfFiles.push(statement);
       }
@@ -114,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
       const zipBase64 = btoa(String.fromCharCode(...zipData));
       
       attachments = [{
-        filename: `Accounting_Reports_${projectName}_${dateRange.from}_to_${dateRange.to}.zip`,
+        filename: `Accounting_Reports_${projectName}_as_of_${asOfDate}.zip`,
         content: zipBase64,
       }];
     } else {
@@ -130,8 +127,8 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [recipientEmail],
-      subject: `Accounting Reports - ${projectName} (${dateRange.from} to ${dateRange.to})`,
-      html: generateEmailTemplate(projectName, dateRange, reports, pdfFiles.length),
+      subject: `Accounting Reports - ${projectName} (As of ${asOfDate})`,
+      html: generateEmailTemplate(projectName, asOfDate, reports, pdfFiles.length),
       attachments,
     });
 
@@ -153,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-async function generateBalanceSheet(supabase: any, projectId: string, dateRange: any): Promise<Uint8Array> {
+async function generateBalanceSheet(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
   const doc = new jsPDF();
   
   // Fetch account data
@@ -169,7 +166,7 @@ async function generateBalanceSheet(supabase: any, projectId: string, dateRange:
       *,
       journal_entries!inner(entry_date)
     `)
-    .lte("journal_entries.entry_date", dateRange.to);
+    .lte("journal_entries.entry_date", asOfDate);
 
   // Calculate balances
   const balances: Record<string, number> = {};
@@ -184,7 +181,7 @@ async function generateBalanceSheet(supabase: any, projectId: string, dateRange:
   doc.setFontSize(18);
   doc.text("Balance Sheet", 105, 20, { align: "center" });
   doc.setFontSize(12);
-  doc.text(`As of ${dateRange.to}`, 105, 30, { align: "center" });
+  doc.text(`As of ${asOfDate}`, 105, 30, { align: "center" });
 
   let y = 50;
   doc.setFontSize(10);
@@ -226,7 +223,7 @@ async function generateBalanceSheet(supabase: any, projectId: string, dateRange:
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-async function generateIncomeStatement(supabase: any, projectId: string, dateRange: any): Promise<Uint8Array> {
+async function generateIncomeStatement(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
   const doc = new jsPDF();
   
   // Fetch account data
@@ -235,15 +232,14 @@ async function generateIncomeStatement(supabase: any, projectId: string, dateRan
     .select("*")
     .order("account_number");
 
-  // Fetch journal entries within date range
+  // Fetch journal entries up to date
   const { data: journalLines } = await supabase
     .from("journal_entry_lines")
     .select(`
       *,
       journal_entries!inner(entry_date)
     `)
-    .gte("journal_entries.entry_date", dateRange.from)
-    .lte("journal_entries.entry_date", dateRange.to);
+    .lte("journal_entries.entry_date", asOfDate);
 
   // Calculate balances
   const balances: Record<string, number> = {};
@@ -258,7 +254,7 @@ async function generateIncomeStatement(supabase: any, projectId: string, dateRan
   doc.setFontSize(18);
   doc.text("Income Statement", 105, 20, { align: "center" });
   doc.setFontSize(12);
-  doc.text(`${dateRange.from} to ${dateRange.to}`, 105, 30, { align: "center" });
+  doc.text(`As of ${asOfDate}`, 105, 30, { align: "center" });
 
   let y = 50;
   doc.setFontSize(10);
@@ -306,7 +302,7 @@ async function generateIncomeStatement(supabase: any, projectId: string, dateRan
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-async function generateJobCostsReport(supabase: any, projectId: string, dateRange: any): Promise<Uint8Array> {
+async function generateJobCostsReport(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
   const doc = new jsPDF();
   
   // Fetch project budgets
@@ -323,7 +319,7 @@ async function generateJobCostsReport(supabase: any, projectId: string, dateRang
   doc.setFontSize(18);
   doc.text("Job Costs Report", 105, 20, { align: "center" });
   doc.setFontSize(12);
-  doc.text(`${dateRange.from} to ${dateRange.to}`, 105, 30, { align: "center" });
+  doc.text(`As of ${asOfDate}`, 105, 30, { align: "center" });
 
   let y = 50;
   doc.setFontSize(9);
@@ -357,12 +353,13 @@ async function generateJobCostsReport(supabase: any, projectId: string, dateRang
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-async function fetchBankStatements(supabase: any, projectId: string): Promise<Array<{ name: string; data: Uint8Array }>> {
+async function fetchBankStatements(supabase: any, projectId: string, fileIds: string[]): Promise<Array<{ name: string; data: Uint8Array }>> {
   const { data: files } = await supabase
     .from("project_files")
     .select("*")
     .eq("project_id", projectId)
     .eq("is_deleted", false)
+    .in("id", fileIds)
     .like("original_filename", "Bank Statements/%");
 
   const statements: Array<{ name: string; data: Uint8Array }> = [];
@@ -389,12 +386,14 @@ async function fetchBankStatements(supabase: any, projectId: string): Promise<Ar
   return statements;
 }
 
-function generateEmailTemplate(projectName: string, dateRange: any, reports: any, fileCount: number): string {
+function generateEmailTemplate(projectName: string, asOfDate: string, reports: any, fileCount: number): string {
   const selectedReports = [];
   if (reports.balanceSheet) selectedReports.push("Balance Sheet");
   if (reports.incomeStatement) selectedReports.push("Income Statement");
   if (reports.jobCosts) selectedReports.push("Job Costs Report");
-  if (reports.bankStatements) selectedReports.push("Bank Statements");
+  if (reports.bankStatementIds && reports.bankStatementIds.length > 0) {
+    selectedReports.push(`Bank Statements (${reports.bankStatementIds.length})`);
+  }
 
   return `
     <!DOCTYPE html>
@@ -418,7 +417,7 @@ function generateEmailTemplate(projectName: string, dateRange: any, reports: any
           </div>
           <div class="content">
             <p><strong>Project:</strong> ${projectName}</p>
-            <p><strong>Date Range:</strong> ${dateRange.from} to ${dateRange.to}</p>
+            <p><strong>As of Date:</strong> ${asOfDate}</p>
             <p><strong>Reports Included:</strong></p>
             <ul>
               ${selectedReports.map(report => `<li>${report}</li>`).join("")}

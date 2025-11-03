@@ -28,29 +28,30 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
   const [email, setEmail] = useState(user?.email || "");
   const [delivery, setDelivery] = useState<"combined" | "individual">("combined");
   const [sending, setSending] = useState(false);
-  const [dateFrom, setDateFrom] = useState<Date>(new Date(new Date().getFullYear(), 0, 1));
-  const [dateTo, setDateTo] = useState<Date>(new Date());
+  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   
   const [reports, setReports] = useState({
     balanceSheet: true,
     incomeStatement: true,
     jobCosts: true,
-    bankStatements: true,
   });
+  
+  const [selectedBankStatements, setSelectedBankStatements] = useState<string[]>([]);
 
-  // Fetch bank statements count
-  const { data: bankStatementsCount } = useQuery({
-    queryKey: ['bank-statements-count', projectId],
+  // Fetch individual bank statements
+  const { data: bankStatements } = useQuery({
+    queryKey: ['bank-statements', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_files')
-        .select('id', { count: 'exact' })
+        .select('id, original_filename, file_size')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
-        .like('original_filename', 'Bank Statements/%');
+        .like('original_filename', 'Bank Statements/%')
+        .order('original_filename');
       
       if (error) throw error;
-      return data?.length || 0;
+      return data || [];
     },
     enabled: open && !!projectId,
   });
@@ -76,7 +77,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
     }
 
     const selectedReports = Object.entries(reports).filter(([_, selected]) => selected);
-    if (selectedReports.length === 0) {
+    if (selectedReports.length === 0 && selectedBankStatements.length === 0) {
       toast({
         title: "Error",
         description: "Please select at least one report to send",
@@ -92,11 +93,11 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           recipientEmail: email,
           projectId,
           delivery,
-          reports,
-          dateRange: {
-            from: format(dateFrom, 'yyyy-MM-dd'),
-            to: format(dateTo, 'yyyy-MM-dd'),
+          reports: {
+            ...reports,
+            bankStatementIds: selectedBankStatements,
           },
+          asOfDate: format(asOfDate, 'yyyy-MM-dd'),
         },
       });
 
@@ -143,56 +144,30 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           </div>
 
           <div className="space-y-3">
-            <Label>Date Range</Label>
-            <div className="flex gap-2 items-center">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "flex-1 justify-start text-left font-normal",
-                      !dateFrom && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "PP") : "From date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateFrom}
-                    onSelect={(date) => date && setDateFrom(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              
-              <span className="text-muted-foreground">to</span>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "flex-1 justify-start text-left font-normal",
-                      !dateTo && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "PP") : "To date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dateTo}
-                    onSelect={(date) => date && setDateTo(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <Label>As of Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !asOfDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {asOfDate ? format(asOfDate, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={asOfDate}
+                  onSelect={(date) => date && setAsOfDate(date)}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-3">
@@ -255,18 +230,38 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
                 </Label>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="bank-statements"
-                  checked={reports.bankStatements}
-                  onCheckedChange={(checked) =>
-                    setReports({ ...reports, bankStatements: checked as boolean })
-                  }
-                />
-                <Label htmlFor="bank-statements" className="font-normal cursor-pointer">
-                  Bank Statements {bankStatementsCount ? `(${bankStatementsCount})` : ''}
-                </Label>
-              </div>
+              {bankStatements && bankStatements.length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label className="text-sm font-medium">Bank Statements</Label>
+                  <div className="space-y-2 pl-2 max-h-32 overflow-y-auto">
+                    {bankStatements.map((statement) => {
+                      const displayName = statement.original_filename.replace("Bank Statements/", "");
+                      return (
+                        <div key={statement.id} className="flex items-start space-x-2">
+                          <Checkbox
+                            id={`bank-statement-${statement.id}`}
+                            checked={selectedBankStatements.includes(statement.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedBankStatements((prev) => [...prev, statement.id]);
+                              } else {
+                                setSelectedBankStatements((prev) => prev.filter((id) => id !== statement.id));
+                              }
+                            }}
+                            className="mt-0.5"
+                          />
+                          <Label 
+                            htmlFor={`bank-statement-${statement.id}`} 
+                            className="cursor-pointer text-sm font-normal leading-tight flex-1"
+                          >
+                            {displayName}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
