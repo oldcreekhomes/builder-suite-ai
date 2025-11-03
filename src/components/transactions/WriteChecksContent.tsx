@@ -707,51 +707,35 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </TooltipContent>
             </Tooltip>
             
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  {currentCheckId && isViewingMode && !isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
-                    <DeleteButton
-                      onDelete={handleDelete}
-                      title="Delete Check"
-                      description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
-                      size="sm"
-                      variant="ghost"
-                      isLoading={deleteCheck.isPending}
-                      className="ml-2"
-                    />
-                  ) : currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled
-                      className="ml-2"
-                    >
-                      <span className="text-lg">🔒</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled
-                      className="ml-2 opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </TooltipTrigger>
-              {(!currentCheckId || !isViewingMode) && (
-                <TooltipContent>
-                  <p>Navigate to a saved check to delete</p>
-                </TooltipContent>
-              )}
-              {currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) && (
-                <TooltipContent>
-                  <p className="text-xs">Books are closed.</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
+            {currentCheckId && isViewingMode && !isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete Check"
+                description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={deleteCheck.isPending}
+                className="ml-2"
+              />
+            ) : currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                className="ml-2"
+              >
+                <span className="text-lg">🔒</span>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                className="ml-2 opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

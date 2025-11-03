@@ -498,51 +498,35 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 <p>Newer entry</p>
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  {currentJournalEntryId && isViewingMode && !isDateLocked(entryDate.toISOString().split('T')[0]) ? (
-                    <DeleteButton
-                      onDelete={handleDelete}
-                      title="Delete Journal Entry"
-                      description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
-                      size="sm"
-                      variant="ghost"
-                      isLoading={deleteManualJournalEntry.isPending}
-                      className="ml-2"
-                    />
-                  ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled
-                      className="ml-2"
-                    >
-                      <span className="text-lg">🔒</span>
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled
-                      className="ml-2 opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </TooltipTrigger>
-              {(!currentJournalEntryId || !isViewingMode) && (
-                <TooltipContent>
-                  <p>Navigate to a saved entry to delete</p>
-                </TooltipContent>
-              )}
-              {currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) && (
-                <TooltipContent>
-                  <p className="text-xs">Books are closed.</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
+            {currentJournalEntryId && isViewingMode && !isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete Journal Entry"
+                description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={deleteManualJournalEntry.isPending}
+                className="ml-2"
+              />
+            ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                className="ml-2"
+              >
+                <span className="text-lg">🔒</span>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                className="ml-2 opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 

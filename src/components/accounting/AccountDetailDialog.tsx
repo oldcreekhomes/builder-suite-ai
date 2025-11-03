@@ -799,53 +799,26 @@ export function AccountDetailDialog({
                       {formatAmountWithSign(balances[index])}
                     </TableCell>
                     <TableCell className="px-2 py-1 text-center">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center justify-center">
-                              {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
-                            </div>
-                          </TooltipTrigger>
-                          {txn.reconciled && txn.reconciliation_date && (
-                            <TooltipContent>
-                              <p className="text-xs">Reconciled on {format(new Date(txn.reconciliation_date), "MM/dd/yyyy")}</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="flex items-center justify-center">
+                        {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                      </div>
                     </TableCell>
                     <TableCell className="px-2 py-1">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center justify-center">
-                              {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && (
-                                <DeleteButton
-                                  onDelete={() => handleDelete(txn)}
-                                  title="Delete Transaction"
-                                  description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-6 w-6 p-0"
-                                />
-                              )}
-                              {(txn.reconciled || isDateLocked(txn.date)) && (
-                                <span className="text-muted-foreground text-lg">🔒</span>
-                              )}
-                            </div>
-                          </TooltipTrigger>
-                          {txn.reconciled && (
-                            <TooltipContent>
-                              <p className="text-xs">Cannot delete reconciled transaction</p>
-                            </TooltipContent>
-                          )}
-                          {!txn.reconciled && isDateLocked(txn.date) && (
-                            <TooltipContent>
-                              <p className="text-xs">Books are closed.</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div className="flex items-center justify-center">
+                        {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && (
+                          <DeleteButton
+                            onDelete={() => handleDelete(txn)}
+                            title="Delete Transaction"
+                            description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                          />
+                        )}
+                        {(txn.reconciled || isDateLocked(txn.date)) && (
+                          <span className="text-muted-foreground text-lg">🔒</span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

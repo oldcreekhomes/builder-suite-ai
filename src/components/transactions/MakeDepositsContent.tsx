@@ -612,51 +612,35 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         </TooltipContent>
                       </Tooltip>
                       
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div>
-                            {currentDepositId && isViewingMode && !isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
-                              <DeleteButton
-                                onDelete={handleDelete}
-                                title="Delete Deposit"
-                                description="Are you sure you want to delete this deposit? This action cannot be undone."
-                                size="sm"
-                                variant="ghost"
-                                isLoading={deleteDeposit.isPending}
-                                className="ml-2"
-                              />
-                            ) : currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled
-                                className="ml-2"
-                              >
-                                <span className="text-lg">🔒</span>
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled
-                                className="ml-2 opacity-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TooltipTrigger>
-                        {(!currentDepositId || !isViewingMode) && (
-                          <TooltipContent>
-                            <p>Navigate to a saved deposit to delete</p>
-                          </TooltipContent>
-                        )}
-                        {currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) && (
-                          <TooltipContent>
-                            <p className="text-xs">Books are closed.</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
+                      {currentDepositId && isViewingMode && !isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                        <DeleteButton
+                          onDelete={handleDelete}
+                          title="Delete Deposit"
+                          description="Are you sure you want to delete this deposit? This action cannot be undone."
+                          size="sm"
+                          variant="ghost"
+                          isLoading={deleteDeposit.isPending}
+                          className="ml-2"
+                        />
+                      ) : currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled
+                          className="ml-2"
+                        >
+                          <span className="text-lg">🔒</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled
+                          className="ml-2 opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   

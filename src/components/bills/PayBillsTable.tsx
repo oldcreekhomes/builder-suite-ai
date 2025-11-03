@@ -743,38 +743,25 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       >
                         {payBill.isPending ? "Processing..." : "Pay Bill"}
                       </Button>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              {!isDateLocked(bill.bill_date) ? (
-                                <DeleteButton
-                                  onDelete={() => deleteBill.mutate(bill.id)}
-                                  title="Delete Bill"
-                                  description={`Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`}
-                                  size="icon"
-                                  variant="ghost"
-                                  isLoading={deleteBill.isPending}
-                                />
-                              ) : (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  disabled
-                                  className="h-8 w-8"
-                                >
-                                  <span className="text-lg">🔒</span>
-                                </Button>
-                              )}
-                            </div>
-                          </TooltipTrigger>
-                          {isDateLocked(bill.bill_date) && (
-                            <TooltipContent>
-                              <p className="text-xs">Books are closed.</p>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </TooltipProvider>
+                      {!isDateLocked(bill.bill_date) ? (
+                        <DeleteButton
+                          onDelete={() => deleteBill.mutate(bill.id)}
+                          title="Delete Bill"
+                          description={`Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`}
+                          size="icon"
+                          variant="ghost"
+                          isLoading={deleteBill.isPending}
+                        />
+                      ) : (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          disabled
+                          className="h-8 w-8"
+                        >
+                          <span className="text-lg">🔒</span>
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
