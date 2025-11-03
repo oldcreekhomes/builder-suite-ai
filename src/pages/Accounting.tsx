@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, DollarSign, Clock, Lock, Receipt } from "lucide-react";
+import { FileText, DollarSign, Clock, Lock, Receipt, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountingGuard } from "@/components/guards/AccountingGuard";
@@ -14,6 +14,7 @@ import { useCloseBookPermissions } from "@/hooks/useCloseBookPermissions";
 import { BankStatementsDialog } from "@/components/accounting/BankStatementsDialog";
 import { ClosingReportsDialog } from "@/components/accounting/ClosingReportsDialog";
 import { BankReconciliationsDialog } from "@/components/accounting/BankReconciliationsDialog";
+import { SendReportsDialog } from "@/components/accounting/SendReportsDialog";
 import { format } from "date-fns";
 
 export default function Accounting() {
@@ -23,6 +24,7 @@ export default function Accounting() {
   const [showBankStatements, setShowBankStatements] = useState(false);
   const [showClosingReports, setShowClosingReports] = useState(false);
   const [showBankReconciliations, setShowBankReconciliations] = useState(false);
+  const [showSendReports, setShowSendReports] = useState(false);
   
   // Fetch bill metrics for this project
   const { data: billMetrics, isLoading } = useQuery({
@@ -350,6 +352,21 @@ export default function Accounting() {
                   </>
                 )}
 
+                {projectId && (
+                  <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowSendReports(true)}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-sm font-medium">Email Reports</CardTitle>
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="space-y-1">
+                      <div className="text-3xl font-bold">Send</div>
+                      <p className="text-xs text-muted-foreground">
+                        Email accounting reports
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {canCloseBooks && projectId && (
                   <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleCloseBooksClick}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -383,6 +400,12 @@ export default function Accounting() {
         projectId={projectId}
         open={showBankReconciliations}
         onOpenChange={setShowBankReconciliations}
+      />
+
+      <SendReportsDialog 
+        projectId={projectId}
+        open={showSendReports}
+        onOpenChange={setShowSendReports}
       />
                 </>
               )}

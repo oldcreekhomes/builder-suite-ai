@@ -1,5 +1,8 @@
 project_id = "nlmnwlvmmkngrgatnzkj"
 
+[functions.send-accounting-reports]
+verify_jwt = false
+
 [functions.detect-drawing-scale]
 verify_jwt = true
 
