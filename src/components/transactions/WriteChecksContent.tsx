@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { Badge } from "@/components/ui/badge";
@@ -727,7 +727,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                       disabled
                       className="ml-2"
                     >
-                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-lg">🔒</span>
                     </Button>
                   ) : (
                     <Button

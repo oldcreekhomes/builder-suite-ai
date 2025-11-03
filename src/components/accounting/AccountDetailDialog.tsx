@@ -24,7 +24,7 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
-import { Check, Lock } from "lucide-react";
+import { Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 
@@ -830,7 +830,7 @@ export function AccountDetailDialog({
                                 />
                               )}
                               {(txn.reconciled || isDateLocked(txn.date)) && (
-                                <Lock className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground text-lg">🔒</span>
                               )}
                             </div>
                           </TooltipTrigger>

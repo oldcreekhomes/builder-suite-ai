@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Lock } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
@@ -429,7 +429,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           variant="ghost"
                           disabled
                         >
-                          <Lock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-lg">🔒</span>
                         </Button>
                       ) : (
                         <Button

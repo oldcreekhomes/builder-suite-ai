@@ -10,7 +10,7 @@ import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, Lock } from "lucide-react";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -763,7 +763,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                                   disabled
                                   className="h-8 w-8"
                                 >
-                                  <Lock className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-lg">🔒</span>
                                 </Button>
                               )}
                             </div>

@@ -14,7 +14,7 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
@@ -518,7 +518,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                       disabled
                       className="ml-2"
                     >
-                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-lg">🔒</span>
                     </Button>
                   ) : (
                     <Button
