@@ -200,7 +200,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               Close Accounting Period?
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
@@ -208,7 +208,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
                 This will lock all transactions dated on or before{" "}
                 <strong>{selectedDate && format(selectedDate, "MMMM d, yyyy")}</strong>.
               </p>
-              <p className="text-amber-600 font-medium">
+              <p className="text-destructive font-medium">
                 Locked transactions cannot be edited or deleted unless you reopen this period.
               </p>
               <p>
