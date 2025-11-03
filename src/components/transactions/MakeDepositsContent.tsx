@@ -615,21 +615,47 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div>
-                            <DeleteButton
-                              onDelete={handleDelete}
-                              title="Delete Deposit"
-                              description="Are you sure you want to delete this deposit? This action cannot be undone."
-                              size="sm"
-                              variant="ghost"
-                              isLoading={deleteDeposit.isPending}
-                              disabled={!currentDepositId || !isViewingMode}
-                              className="ml-2"
-                            />
+                            {currentDepositId && isViewingMode && !isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                              <DeleteButton
+                                onDelete={handleDelete}
+                                title="Delete Deposit"
+                                description="Are you sure you want to delete this deposit? This action cannot be undone."
+                                size="sm"
+                                variant="ghost"
+                                isLoading={deleteDeposit.isPending}
+                                className="ml-2"
+                              />
+                            ) : currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled
+                                className="ml-2"
+                              >
+                                <Lock className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled
+                                className="ml-2 opacity-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete deposit</p>
-                        </TooltipContent>
+                        {(!currentDepositId || !isViewingMode) && (
+                          <TooltipContent>
+                            <p>Navigate to a saved deposit to delete</p>
+                          </TooltipContent>
+                        )}
+                        {currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) && (
+                          <TooltipContent>
+                            <p className="text-xs">Books are closed - cannot delete deposits dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                          </TooltipContent>
+                        )}
                       </Tooltip>
                     </div>
                   </div>

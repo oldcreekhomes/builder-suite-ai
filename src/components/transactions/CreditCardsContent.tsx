@@ -414,20 +414,45 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
-                      <DeleteButton
-                        onDelete={handleDelete}
-                        title="Delete Credit Card Transaction"
-                        description="Are you sure you want to delete this credit card transaction? This action cannot be undone."
-                        size="sm"
-                        variant="ghost"
-                        isLoading={deleteCreditCard.isPending}
-                        disabled={!currentCreditCardId || !isViewingMode}
-                      />
+                      {currentCreditCardId && isViewingMode && !isDateLocked(transactionDate) ? (
+                        <DeleteButton
+                          onDelete={handleDelete}
+                          title="Delete Credit Card Transaction"
+                          description="Are you sure you want to delete this credit card transaction? This action cannot be undone."
+                          size="sm"
+                          variant="ghost"
+                          isLoading={deleteCreditCard.isPending}
+                        />
+                      ) : currentCreditCardId && isViewingMode && isDateLocked(transactionDate) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled
+                        >
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled
+                          className="opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Delete credit card transaction</p>
-                  </TooltipContent>
+                  {(!currentCreditCardId || !isViewingMode) && (
+                    <TooltipContent>
+                      <p>Navigate to a saved transaction to delete</p>
+                    </TooltipContent>
+                  )}
+                  {currentCreditCardId && isViewingMode && isDateLocked(transactionDate) && (
+                    <TooltipContent>
+                      <p className="text-xs">Books are closed - cannot delete transactions dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                    </TooltipContent>
+                  )}
                 </Tooltip>
               </div>
               

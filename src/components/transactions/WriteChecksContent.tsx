@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { toDateLocal } from "@/utils/dateOnly";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 
 interface CheckRow {
   id: string;
@@ -709,21 +710,45 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <DeleteButton
-                    onDelete={handleDelete}
-                    title="Delete Check"
-                    description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
-                    size="sm"
-                    variant="ghost"
-                    isLoading={deleteCheck.isPending}
-                    disabled={!currentCheckId || !isViewingMode}
-                    className="ml-2"
-                  />
+                  {currentCheckId && isViewingMode && !isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
+                    <DeleteButton
+                      onDelete={handleDelete}
+                      title="Delete Check"
+                      description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
+                      size="sm"
+                      variant="ghost"
+                      isLoading={deleteCheck.isPending}
+                      className="ml-2"
+                    />
+                  ) : currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled
+                      className="ml-2"
+                    >
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled
+                      className="ml-2 opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </TooltipTrigger>
               {(!currentCheckId || !isViewingMode) && (
                 <TooltipContent>
                   <p>Navigate to a saved check to delete</p>
+                </TooltipContent>
+              )}
+              {currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) && (
+                <TooltipContent>
+                  <p className="text-xs">Books are closed - cannot delete checks dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
                 </TooltipContent>
               )}
             </Tooltip>
