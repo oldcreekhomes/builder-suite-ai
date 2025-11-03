@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { Resend } from "npm:resend@4.0.0";
-import jsPDF from "npm:jspdf@2.5.2";
+import { jsPDF } from "npm:jspdf@2.5.2";
 import JSZip from "npm:jszip@3.10.1";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
