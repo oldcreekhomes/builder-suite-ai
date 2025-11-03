@@ -10,7 +10,7 @@ import { BulkActionBar } from './components/BulkActionBar';
 import { FileShareModal } from './components/FileShareModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 interface SimpleFolder {
   name: string;
@@ -67,6 +67,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
+  const { toast } = useToast();
+  
   const handleFileView = (file: SimpleFile) => {
     console.log('PROJECT FILES: Opening file', file.storage_path, file.displayName);
     openProjectFile(file.storage_path, file.displayName);
@@ -91,7 +93,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       }
     } catch (error) {
       console.error('Error downloading file:', error);
-      toast.error('Failed to download file');
+      toast({ title: "Error", description: "Failed to download file", variant: "destructive" });
     }
   };
 
@@ -123,13 +125,13 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
       if (error) throw error;
       
-      toast.success('File renamed successfully');
+      toast({ title: "Success", description: "File renamed successfully" });
       setRenameFile(null);
       setNewFileName('');
       onRefresh();
     } catch (error) {
       console.error('Error renaming file:', error);
-      toast.error('Failed to rename file');
+      toast({ title: "Error", description: "Failed to rename file", variant: "destructive" });
     }
   };
 
@@ -174,13 +176,13 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         }
       }
 
-      toast.success('Folder renamed successfully');
+      toast({ title: "Success", description: "Folder renamed successfully" });
       setRenameFolder(null);
       setNewFolderName('');
       onRefresh();
     } catch (error) {
       console.error('Error renaming folder:', error);
-      toast.error('Failed to rename folder');
+      toast({ title: "Error", description: "Failed to rename folder", variant: "destructive" });
     }
   };
 
@@ -203,7 +205,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       });
 
       if (folderFiles.length === 0) {
-        toast.error('No files found in this folder');
+        toast({ title: "Error", description: "No files found in this folder", variant: "destructive" });
         return;
       }
 
@@ -244,10 +246,10 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success(`Folder "${folder.name}" downloaded successfully`);
+      toast({ title: "Success", description: `Folder "${folder.name}" downloaded successfully` });
     } catch (error) {
       console.error('Error downloading folder:', error);
-      toast.error('Failed to download folder');
+      toast({ title: "Error", description: "Failed to download folder", variant: "destructive" });
     }
   };
 
@@ -303,12 +305,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         .like('folder_path', likePrefix);
       if (pfError2) throw pfError2;
 
-      toast.success('Folder deleted successfully');
+      toast({ title: "Success", description: "Folder deleted successfully" });
       setDeleteFolder(null);
       onRefresh();
     } catch (error) {
       console.error('Error deleting folder:', error);
-      toast.error('Failed to delete folder');
+      toast({ title: "Error", description: "Failed to delete folder", variant: "destructive" });
       setDeleteFolder(null);
     }
   };
@@ -349,12 +351,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
       if (error) throw error;
       
-      toast.success('File deleted successfully');
+      toast({ title: "Success", description: "File deleted successfully" });
       setDeleteFile(null);
       onRefresh();
     } catch (error) {
       console.error('Error deleting file:', error);
-      toast.error('Failed to delete file');
+      toast({ title: "Error", description: "Failed to delete file", variant: "destructive" });
       setDeleteFile(null);
     }
   };
@@ -487,14 +489,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
           ? 'file(s)' 
           : 'folder(s)';
       
-      toast.success(`Successfully deleted ${deletedCount} ${itemType}`);
+      toast({ title: "Success", description: `Successfully deleted ${deletedCount} ${itemType}` });
       setSelectedFiles(new Set());
       setSelectedFolders(new Set());
       setShowBulkDeleteConfirm(false);
       onRefresh();
     } catch (error) {
       console.error('Error deleting items:', error);
-      toast.error('Failed to delete selected items');
+      toast({ title: "Error", description: "Failed to delete selected items", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }

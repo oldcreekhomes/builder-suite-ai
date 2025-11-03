@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, FileText, Trash2 } from "lucide-react";
 import { UploadSheetDialog } from "./UploadSheetDialog";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,7 @@ interface SheetSelectorProps {
 
 export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onItemsExtracted }: SheetSelectorProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sheetToDelete, setSheetToDelete] = useState<string | null>(null);
@@ -68,11 +69,11 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
         onSelectSheet(null);
       }
       
-      toast.success('Sheet deleted');
+      toast({ title: "Success", description: "Sheet deleted" });
       refetch();
     } catch (error) {
       console.error('Error deleting sheet:', error);
-      toast.error('Failed to delete sheet');
+      toast({ title: "Error", description: "Failed to delete sheet", variant: "destructive" });
     } finally {
       setDeleteDialogOpen(false);
       setSheetToDelete(null);

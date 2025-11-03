@@ -17,7 +17,7 @@ import { ScheduleToolbar } from "./ScheduleToolbar";
 import { CopyScheduleDialog } from "./CopyScheduleDialog";
 import { useCopySchedule } from "@/hooks/useCopySchedule";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { getTasksWithDependency } from "@/utils/predecessorValidation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -36,6 +36,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const copyScheduleMutation = useCopySchedule();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   // Add flags to prevent infinite loops  
   const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
@@ -486,7 +487,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const result = computeMoveDownUpdates(task, originalTasks);
     
     if (result.hierarchyUpdates.length === 0) {
-      toast.error("Cannot move this task down");
+      toast({ title: "Error", description: "Cannot move this task down", variant: "destructive" });
       return;
     }
     
@@ -533,7 +534,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Final cache invalidation
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
       
-      toast.success(`Moved "${task.task_name}" down successfully`);
+      toast({ title: "Success", description: `Moved "${task.task_name}" down successfully` });
       
     } catch (error) {
       console.error('❌ Failed to move task down:', error);
@@ -541,7 +542,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Revert optimistic update on error
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
       
-      toast.error("Failed to move task down");
+      toast({ title: "Error", description: "Failed to move task down", variant: "destructive" });
     }
   };
 
@@ -549,7 +550,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     // Prevent updates to optimistic (unsaved) tasks
     if (taskId.startsWith('optimistic-')) {
       if (!options?.silent) {
-        toast.error("Please save the task first before editing", { id: `error-${taskId}` });
+        toast({ title: "Error", description: "Please save the task first before editing", variant: "destructive" });
       }
       return;
     }
@@ -633,7 +634,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     // Instant success feedback
     if (!options?.silent) {
-      toast.success("Task updated successfully", { id: `success-${taskId}` });
+      toast({ title: "Success", description: "Task updated successfully" });
     }
   };
 
@@ -646,7 +647,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const updates = generateIndentUpdates(task, tasks);
     
     if (updates.length === 0) {
-      toast.error("Cannot indent this task");
+      toast({ title: "Error", description: "Cannot indent this task", variant: "destructive" });
       return;
     }
     
@@ -673,11 +674,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Expand all tasks after successful indent
       setExpandAllTasks(true);
       
-      toast.success("Task indented successfully");
+      toast({ title: "Success", description: "Task indented successfully" });
     } catch (error) {
       // Revert optimistic update on error
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
-      toast.error("Failed to indent task");
+      toast({ title: "Error", description: "Failed to indent task", variant: "destructive" });
       console.error("Error indenting task:", error);
     }
   };
@@ -694,7 +695,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const result = computeOutdentUpdates(task, originalTasks);
     
     if (result.hierarchyUpdates.length === 0) {
-      toast.error("Cannot outdent this task");
+      toast({ title: "Error", description: "Cannot outdent this task", variant: "destructive" });
       return;
     }
     
@@ -736,11 +737,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Expand all tasks after successful outdent
       setExpandAllTasks(true);
       
-      toast.success("Task outdented successfully");
+      toast({ title: "Success", description: "Task outdented successfully" });
     } catch (error) {
       // Revert optimistic update on error
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
-      toast.error("Failed to outdent task");
+      toast({ title: "Error", description: "Failed to outdent task", variant: "destructive" });
       console.error("Error outdenting task:", error);
     }
   };
@@ -845,10 +846,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         hierarchy_number: newHierarchyNumber
       });
       
-      toast.success("Group added successfully");
+      toast({ title: "Success", description: "Group added successfully" });
     } catch (error) {
       console.error("Failed to add group:", error);
-      toast.error("Failed to add group");
+      toast({ title: "Error", description: "Failed to add group", variant: "destructive" });
     }
   };
 
@@ -886,7 +887,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     try {
       const targetTask = tasks.find(t => t.id === relativeTaskId);
       if (!targetTask || !targetTask.hierarchy_number) {
-        toast.error("Invalid task selected");
+        toast({ title: "Error", description: "Invalid task selected", variant: "destructive" });
         return;
       }
 
@@ -1032,7 +1033,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
 
       console.log("✅ Add Above operation completed successfully");
-      toast.success("Task added above successfully");
+      toast({ title: "Success", description: "Task added above successfully" });
     } catch (error) {
       console.error("❌ Add Above operation failed:", error);
       
@@ -1041,7 +1042,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       
       // Show detailed error message
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error(`Failed to add task above: ${errorMessage}`);
+      toast({ title: "Error", description: `Failed to add task above: ${errorMessage}`, variant: "destructive" });
     } finally {
       // Clear batch operation flag
       (window as any).__batchOperationInProgress = false;
@@ -1050,7 +1051,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // DISABLED: Add below functionality
   const handleAddBelow = async (relativeTaskId: string) => {
-    toast.info("Add below temporarily disabled - use Add Above instead");
+    toast({ title: "Info", description: "Add below temporarily disabled - use Add Above instead" });
   };
 
   // Handle single task deletion with dependency check and proper renumbering
@@ -1060,7 +1061,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
     // Check if task has children - prevent deletion if so
     if (hasChildren(taskId)) {
-      toast.error("Cannot delete parent task - delete all child tasks first");
+      toast({ title: "Error", description: "Cannot delete parent task - delete all child tasks first", variant: "destructive" });
       return;
     }
 
@@ -1082,7 +1083,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         deleteResult = computeDeleteUpdates(task, tasks);
       } catch (error) {
         console.error("❌ Pre-flight failed - Delete computation:", error);
-        toast.error(`Failed to compute delete updates: ${error instanceof Error ? error.message : String(error)}`);
+        toast({ title: "Error", description: `Failed to compute delete updates: ${error instanceof Error ? error.message : String(error)}`, variant: "destructive" });
         return;
       }
       
@@ -1103,7 +1104,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         console.log('✅ Phase 1 completed successfully');
       } catch (error) {
         console.error('❌ Phase 1 (Bulk Delete) failed:', error);
-        toast.error(`Failed to delete task - Phase 1: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast({ title: "Error", description: `Failed to delete task - Phase 1: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
         return;
       }
       
@@ -1129,7 +1130,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           console.log('✅ Phase 2 completed successfully');
         } catch (error) {
           console.error('❌ Phase 2 (Hierarchy Updates) failed:', error);
-          toast.error(`Failed to delete task - Phase 2: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          toast({ title: "Error", description: `Failed to delete task - Phase 2: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
           return;
         }
       }
@@ -1152,7 +1153,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           console.error('❌ Phase 3 (Predecessor Updates) failed:', error);
           // Don't throw - allow deletion to complete even if predecessor cleanup fails
           console.log('⚠️ Continuing deletion despite predecessor update failure');
-          toast.error(`Task deleted but some predecessor references may need manual cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          toast({ title: "Error", description: `Task deleted but some predecessor references may need manual cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
         }
       }
       
@@ -1209,7 +1210,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         console.log('✅ Phase 4 completed successfully');
       } catch (error) {
         console.error('❌ Phase 4 (Normalization) failed:', error);
-        toast.error(`Failed to delete task - Phase 4: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast({ title: "Error", description: `Failed to delete task - Phase 4: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
         throw error;
       }
       
@@ -1224,7 +1225,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         console.error('❌ Phase 5 (Parent Recalculation) failed:', error);
         // Don't throw - deletion is essentially complete at this point
         console.log('⚠️ Task deleted successfully but parent recalculation failed');
-        toast.error(`Task deleted but parent date recalculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast({ title: "Error", description: `Task deleted but parent date recalculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
       }
       
       // Remove from selected tasks if it was selected
@@ -1234,12 +1235,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         setSelectedTasks(newSelected);
       }
       
-      toast.success("Task deleted successfully");
+      toast({ title: "Success", description: "Task deleted successfully" });
     } catch (error) {
       console.error("Failed to delete task:", error);
       // Generic fallback if specific phase error handling didn't catch it
       if (!error.message?.includes('Phase')) {
-        toast.error(`Failed to delete task: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast({ title: "Error", description: `Failed to delete task: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
       }
     } finally {
       // Clear batch flag and invalidate cache once
@@ -1251,7 +1252,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   // Handle bulk delete for multiple selected tasks with dependency check
   const handleBulkDelete = async () => {
     if (selectedTasks.size === 0) {
-      toast.error("No tasks selected");
+      toast({ title: "Error", description: "No tasks selected", variant: "destructive" });
       return;
     }
 
@@ -1271,7 +1272,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         // Check if all direct children are also selected
         const allChildrenSelected = children.every(child => selectedTasks.has(child.id));
         if (!allChildrenSelected) {
-          toast.error("Cannot delete parent task - select all child tasks first or delete child tasks individually");
+          toast({ title: "Error", description: "Cannot delete parent task - select all child tasks first or delete child tasks individually", variant: "destructive" });
           return;
         }
       }
@@ -1291,7 +1292,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
 
     if (dependentTasks.length > 0) {
-      toast.error(`Cannot delete tasks: ${dependentTasks.length} other task(s) depend on selected tasks`);
+      toast({ title: "Error", description: `Cannot delete tasks: ${dependentTasks.length} other task(s) depend on selected tasks`, variant: "destructive" });
       return;
     }
 
@@ -1402,10 +1403,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Clear selection after successful deletion
       setSelectedTasks(new Set());
       
-      toast.success(`${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully`);
+      toast({ title: "Success", description: `${selectedTasks.size} task${selectedTasks.size > 1 ? 's' : ''} deleted successfully` });
     } catch (error) {
       console.error("Failed to delete tasks:", error);
-      toast.error("Failed to delete selected tasks");
+      toast({ title: "Error", description: "Failed to delete selected tasks", variant: "destructive" });
     } finally {
       // Clear batch flag and invalidate cache once
       (window as any).__batchOperationInProgress = false;
@@ -1506,10 +1507,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       }
       
       setPendingDelete(null);
-      toast.success("Task deleted successfully");
+      toast({ title: "Success", description: "Task deleted successfully" });
     } catch (error) {
       console.error("Failed to delete task:", error);
-      toast.error("Failed to delete task");
+      toast({ title: "Error", description: "Failed to delete task", variant: "destructive" });
     } finally {
       // Clear batch flag and invalidate cache once
       (window as any).__batchOperationInProgress = false;
@@ -1635,7 +1636,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         onPublish={(data) => {
           // Handle publish logic here
           console.log("Publishing schedule with data:", data);
-          toast.success("Schedule published successfully");
+          toast({ title: "Success", description: "Schedule published successfully" });
         }}
       />
 

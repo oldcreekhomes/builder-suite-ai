@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { autoExtractAndSave } from "@/utils/autoExtractTakeoff";
@@ -35,6 +35,7 @@ interface SheetProgress {
 
 export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: UploadSheetDialogProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -165,7 +166,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
         const successCount = sheetProgress.filter(p => p.status === 'complete').length;
         const totalItems = sheetProgress.reduce((sum, p) => sum + (p.itemCount || 0), 0);
         
-        toast.success(`✓ ${successCount} sheet${successCount !== 1 ? 's' : ''} uploaded, ${totalItems} items extracted`);
+        toast({ title: "Success", description: `✓ ${successCount} sheet${successCount !== 1 ? 's' : ''} uploaded, ${totalItems} items extracted` });
         
       } else {
         // Handle single image files (PNG, JPG, JPEG)
@@ -219,7 +220,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             status: 'complete',
             itemCount: extractResult.itemCount,
           }]);
-          toast.success(`✓ Sheet uploaded, ${extractResult.itemCount} items extracted`);
+          toast({ title: "Success", description: `✓ Sheet uploaded, ${extractResult.itemCount} items extracted` });
         } else {
           setSheetProgress([{
             sheetId,
@@ -227,7 +228,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             status: 'failed',
             error: extractResult.error,
           }]);
-          toast.success('Sheet uploaded (extraction failed - use Re-extract)');
+          toast({ title: "Success", description: "Sheet uploaded (extraction failed - use Re-extract)" });
         }
       }
       
@@ -243,7 +244,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
       
     } catch (error) {
       console.error('Error uploading sheet:', error);
-      toast.error('Failed to upload sheet');
+      toast({ title: "Error", description: "Failed to upload sheet", variant: "destructive" });
       setIsUploading(false);
       setShowProgress(false);
     }

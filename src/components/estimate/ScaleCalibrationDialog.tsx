@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
 import type { Canvas as FabricCanvas } from "fabric";
 
@@ -28,6 +28,7 @@ export function ScaleCalibrationDialog({
   sheetId,
   fabricCanvas 
 }: ScaleCalibrationDialogProps) {
+  const { toast } = useToast();
   const [manualScale, setManualScale] = useState("");
   const [realDistance, setRealDistance] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -45,18 +46,18 @@ export function ScaleCalibrationDialog({
       if (data.scale) {
         setManualScale(data.scale);
         if (data.confidence === 'high') {
-          toast.success(`Scale detected: ${data.scale}`);
+          toast({ title: "Success", description: `Scale detected: ${data.scale}` });
         } else if (data.confidence === 'medium') {
-          toast.success(`Scale detected: ${data.scale} (medium confidence - please verify)`);
+          toast({ title: "Success", description: `Scale detected: ${data.scale} (medium confidence - please verify)` });
         } else {
-          toast.info(`Possible scale found: ${data.scale} (low confidence - please verify)`);
+          toast({ title: "Info", description: `Possible scale found: ${data.scale} (low confidence - please verify)` });
         }
       } else {
-        toast.info('No scale found on drawing. Please enter manually.');
+        toast({ title: "Info", description: "No scale found on drawing. Please enter manually." });
       }
     } catch (error) {
       console.error('Error detecting scale:', error);
-      toast.error('Failed to detect scale');
+      toast({ title: "Error", description: "Failed to detect scale", variant: "destructive" });
     } finally {
       setIsDetecting(false);
     }
@@ -79,11 +80,11 @@ export function ScaleCalibrationDialog({
 
       if (error) throw error;
 
-      toast.success('Scale saved');
+      toast({ title: "Success", description: "Scale saved" });
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving scale:', error);
-      toast.error('Failed to save scale');
+      toast({ title: "Error", description: "Failed to save scale", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }

@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, FileText, Calendar, Pencil, Trash2 } from "lucide-react";
 import { CreateTakeoffDialog } from "./CreateTakeoffDialog";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 export function TakeoffList() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: takeoffs, isLoading, refetch } = useQuery({
@@ -41,11 +42,11 @@ export function TakeoffList() {
 
       if (error) throw error;
       
-      toast.success('Takeoff deleted successfully');
+      toast({ title: "Success", description: "Takeoff deleted successfully" });
       refetch();
     } catch (error) {
       console.error('Error deleting takeoff:', error);
-      toast.error('Failed to delete takeoff');
+      toast({ title: "Error", description: "Failed to delete takeoff", variant: "destructive" });
     }
   };
 

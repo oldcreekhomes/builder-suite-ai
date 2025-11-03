@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateTakeoffDialogProps {
   open: boolean;
@@ -25,6 +25,7 @@ interface CreateTakeoffDialogProps {
 export function CreateTakeoffDialog({ open, onOpenChange, onSuccess }: CreateTakeoffDialogProps) {
   const { projectId } = useParams();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,14 +47,14 @@ export function CreateTakeoffDialog({ open, onOpenChange, onSuccess }: CreateTak
 
       if (error) throw error;
 
-      toast.success('Takeoff created successfully');
+      toast({ title: "Success", description: "Takeoff created successfully" });
       setName("");
       setDescription("");
       onOpenChange(false);
       onSuccess();
     } catch (error) {
       console.error('Error creating takeoff:', error);
-      toast.error('Failed to create takeoff');
+      toast({ title: "Error", description: "Failed to create takeoff", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }

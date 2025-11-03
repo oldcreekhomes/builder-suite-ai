@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { UniversalFile } from "../FilePreviewModal";
 
 interface UseFilePreviewProps {
@@ -11,6 +11,7 @@ interface UseFilePreviewProps {
 }
 
 export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFilePreviewProps) {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
@@ -128,7 +129,7 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          toast.success('Download started');
+          toast({ title: "Success", description: "Download started" });
           return;
         }
         throw error;
@@ -143,11 +144,11 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success('Download started');
+        toast({ title: "Success", description: "Download started" });
       }
     } catch (error) {
       console.error('Error downloading file:', error);
-      toast.error('Failed to download file');
+      toast({ title: "Error", description: "Failed to download file", variant: "destructive" });
     }
   };
 
@@ -173,12 +174,12 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
         if (error) throw error;
       }
 
-      toast.success('File deleted successfully');
+      toast({ title: "Success", description: "File deleted successfully" });
       onClose();
       onFileDeleted?.();
     } catch (error) {
       console.error('Error deleting file:', error);
-      toast.error('Failed to delete file');
+      toast({ title: "Error", description: "Failed to delete file", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }
