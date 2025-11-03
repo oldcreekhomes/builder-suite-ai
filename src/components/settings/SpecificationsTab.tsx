@@ -69,6 +69,11 @@ export function SpecificationsTab({
       if (!acc[normalized]) acc[normalized] = [];
     });
 
+    // Sort each group's specifications by cost code for numerical order
+    Object.keys(acc).forEach(groupKey => {
+      acc[groupKey].sort((a, b) => a.cost_code.code.localeCompare(b.cost_code.code));
+    });
+
     return acc;
   }, [specifications, parentCodes, groupedCostCodes]);
 
