@@ -24,6 +24,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { InlineEditCell } from "@/components/schedule/InlineEditCell";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface ReconcileAccountsContentProps {
   projectId?: string;
@@ -42,6 +45,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [notes, setNotes] = useState<string>("");
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
   const { 
     useReconciliationTransactions,
@@ -555,6 +559,103 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </>
         )}
       </Card>
+
+      {/* Reconciliation History Section */}
+      {selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0 && (
+        <Card className="p-6">
+          <Collapsible open={isHistoryExpanded} onOpenChange={setIsHistoryExpanded}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">Reconciliation History</h3>
+                <p className="text-sm text-muted-foreground">
+                  {reconciliationHistory.length} reconciliation{reconciliationHistory.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {isHistoryExpanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      Show
+                    </>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+
+            <CollapsibleContent>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="p-3 text-left">Statement Date</th>
+                      <th className="p-3 text-left">Status</th>
+                      <th className="p-3 text-right">Beginning Balance</th>
+                      <th className="p-3 text-right">Ending Balance</th>
+                      <th className="p-3 text-right">Difference</th>
+                      <th className="p-3 text-left">Completed Date</th>
+                      <th className="p-3 text-left">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconciliationHistory
+                      .sort((a: any, b: any) => new Date(b.statement_date).getTime() - new Date(a.statement_date).getTime())
+                      .map((rec: any) => (
+                        <tr key={rec.id} className="border-t hover:bg-muted/50">
+                          <td className="p-3">
+                            {format(new Date(rec.statement_date), "MM/dd/yyyy")}
+                          </td>
+                          <td className="p-3">
+                            {rec.status === 'completed' ? (
+                              <Badge className="bg-green-500 hover:bg-green-600">
+                                Completed
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                In Progress
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-3 text-right">
+                            {formatCurrency(rec.statement_beginning_balance || 0)}
+                          </td>
+                          <td className="p-3 text-right">
+                            {formatCurrency(rec.statement_ending_balance || 0)}
+                          </td>
+                          <td className={cn(
+                            "p-3 text-right font-medium",
+                            Math.abs(rec.difference || 0) < 0.01 ? "text-green-600" : "text-amber-600"
+                          )}>
+                            {formatCurrency(rec.difference || 0)}
+                            {Math.abs(rec.difference || 0) > 0.01 && (
+                              <Badge variant="outline" className="ml-2 text-amber-600 border-amber-600">
+                                Unbalanced
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {rec.completed_at 
+                              ? format(new Date(rec.completed_at), "MM/dd/yyyy")
+                              : "-"
+                            }
+                          </td>
+                          <td className="p-3 text-sm text-muted-foreground">
+                            {rec.notes || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+      )}
     </div>
   );
 }
