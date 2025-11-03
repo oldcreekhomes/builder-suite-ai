@@ -49,11 +49,12 @@ const handler = async (req: Request): Promise<Response> => {
     // Get project details
     const { data: project } = await supabase
       .from("projects")
-      .select("address")
+      .select("address, owner_id")
       .eq("id", projectId)
       .single();
 
     const projectName = project?.address || "Project";
+    const ownerId = project?.owner_id;
 
     // Generate PDFs
     const pdfFiles: Array<{ name: string; data: Uint8Array }> = [];
@@ -61,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Balance Sheet
     if (reports.balanceSheet) {
       console.log("Generating Balance Sheet...");
-      const balanceSheetPdf = await generateBalanceSheet(supabase, projectId, asOfDate);
+      const balanceSheetPdf = await generateBalanceSheet(supabase, projectId, ownerId, asOfDate);
       pdfFiles.push({
         name: `Balance_Sheet_as_of_${asOfDate}.pdf`,
         data: balanceSheetPdf,
@@ -71,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Income Statement
     if (reports.incomeStatement) {
       console.log("Generating Income Statement...");
-      const incomeStatementPdf = await generateIncomeStatement(supabase, projectId, asOfDate);
+      const incomeStatementPdf = await generateIncomeStatement(supabase, projectId, ownerId, asOfDate);
       pdfFiles.push({
         name: `Income_Statement_as_of_${asOfDate}.pdf`,
         data: incomeStatementPdf,
@@ -150,22 +151,24 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
-async function generateBalanceSheet(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
+async function generateBalanceSheet(supabase: any, projectId: string, ownerId: string, asOfDate: string): Promise<Uint8Array> {
   const doc = new jsPDF();
   
-  // Fetch account data
+  // Fetch account data filtered by owner
   const { data: accounts } = await supabase
     .from("accounts")
     .select("*")
-    .order("account_number");
+    .eq("owner_id", ownerId)
+    .order("code");
 
-  // Fetch journal entries
+  // Fetch journal entries filtered by project and date
   const { data: journalLines } = await supabase
     .from("journal_entry_lines")
     .select(`
       *,
       journal_entries!inner(entry_date)
     `)
+    .eq("project_id", projectId)
     .lte("journal_entries.entry_date", asOfDate);
 
   // Calculate balances
@@ -189,56 +192,83 @@ async function generateBalanceSheet(supabase: any, projectId: string, asOfDate: 
   // Assets
   doc.text("ASSETS", 20, y);
   y += 10;
-  accounts?.filter((a: any) => a.account_type === "asset").forEach((account: any) => {
+  let totalAssets = 0;
+  accounts?.filter((a: any) => a.type === "asset").forEach((account: any) => {
     const balance = balances[account.id] || 0;
-    doc.text(`  ${account.name}`, 20, y);
-    doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-    y += 7;
+    if (balance !== 0) {
+      totalAssets += balance;
+      doc.text(`  ${account.code} - ${account.name}`, 20, y);
+      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
+      y += 7;
+    }
   });
-
-  y += 10;
+  y += 5;
+  doc.setFont(undefined, "bold");
+  doc.text("Total Assets", 20, y);
+  doc.text(`$${totalAssets.toFixed(2)}`, 150, y, { align: "right" });
+  doc.setFont(undefined, "normal");
+  y += 15;
 
   // Liabilities
   doc.text("LIABILITIES", 20, y);
   y += 10;
-  accounts?.filter((a: any) => a.account_type === "liability").forEach((account: any) => {
+  let totalLiabilities = 0;
+  accounts?.filter((a: any) => a.type === "liability").forEach((account: any) => {
     const balance = Math.abs(balances[account.id] || 0);
-    doc.text(`  ${account.name}`, 20, y);
-    doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-    y += 7;
+    if (balance !== 0) {
+      totalLiabilities += balance;
+      doc.text(`  ${account.code} - ${account.name}`, 20, y);
+      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
+      y += 7;
+    }
   });
-
-  y += 10;
+  y += 5;
+  doc.setFont(undefined, "bold");
+  doc.text("Total Liabilities", 20, y);
+  doc.text(`$${totalLiabilities.toFixed(2)}`, 150, y, { align: "right" });
+  doc.setFont(undefined, "normal");
+  y += 15;
 
   // Equity
   doc.text("EQUITY", 20, y);
   y += 10;
-  accounts?.filter((a: any) => a.account_type === "equity").forEach((account: any) => {
+  let totalEquity = 0;
+  accounts?.filter((a: any) => a.type === "equity").forEach((account: any) => {
     const balance = Math.abs(balances[account.id] || 0);
-    doc.text(`  ${account.name}`, 20, y);
-    doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-    y += 7;
+    if (balance !== 0) {
+      totalEquity += balance;
+      doc.text(`  ${account.code} - ${account.name}`, 20, y);
+      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
+      y += 7;
+    }
   });
+  y += 5;
+  doc.setFont(undefined, "bold");
+  doc.text("Total Equity", 20, y);
+  doc.text(`$${totalEquity.toFixed(2)}`, 150, y, { align: "right" });
+  doc.setFont(undefined, "normal");
 
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-async function generateIncomeStatement(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
+async function generateIncomeStatement(supabase: any, projectId: string, ownerId: string, asOfDate: string): Promise<Uint8Array> {
   const doc = new jsPDF();
   
-  // Fetch account data
+  // Fetch account data filtered by owner
   const { data: accounts } = await supabase
     .from("accounts")
     .select("*")
-    .order("account_number");
+    .eq("owner_id", ownerId)
+    .order("code");
 
-  // Fetch journal entries up to date
+  // Fetch journal entries filtered by project and date
   const { data: journalLines } = await supabase
     .from("journal_entry_lines")
     .select(`
       *,
       journal_entries!inner(entry_date)
     `)
+    .eq("project_id", projectId)
     .lte("journal_entries.entry_date", asOfDate);
 
   // Calculate balances
@@ -263,39 +293,48 @@ async function generateIncomeStatement(supabase: any, projectId: string, asOfDat
   doc.text("REVENUE", 20, y);
   y += 10;
   let totalRevenue = 0;
-  accounts?.filter((a: any) => a.account_type === "revenue").forEach((account: any) => {
+  accounts?.filter((a: any) => a.type === "revenue").forEach((account: any) => {
     const balance = Math.abs(balances[account.id] || 0);
-    totalRevenue += balance;
-    doc.text(`  ${account.name}`, 20, y);
-    doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-    y += 7;
+    if (balance !== 0) {
+      totalRevenue += balance;
+      doc.text(`  ${account.code} - ${account.name}`, 20, y);
+      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
+      y += 7;
+    }
   });
 
   y += 5;
+  doc.setFont(undefined, "bold");
   doc.text("Total Revenue", 20, y);
   doc.text(`$${totalRevenue.toFixed(2)}`, 150, y, { align: "right" });
+  doc.setFont(undefined, "normal");
   y += 15;
 
   // Expenses
   doc.text("EXPENSES", 20, y);
   y += 10;
   let totalExpenses = 0;
-  accounts?.filter((a: any) => a.account_type === "expense").forEach((account: any) => {
+  accounts?.filter((a: any) => a.type === "expense").forEach((account: any) => {
     const balance = balances[account.id] || 0;
-    totalExpenses += balance;
-    doc.text(`  ${account.name}`, 20, y);
-    doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-    y += 7;
+    if (balance !== 0) {
+      totalExpenses += balance;
+      doc.text(`  ${account.code} - ${account.name}`, 20, y);
+      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
+      y += 7;
+    }
   });
 
   y += 5;
+  doc.setFont(undefined, "bold");
   doc.text("Total Expenses", 20, y);
   doc.text(`$${totalExpenses.toFixed(2)}`, 150, y, { align: "right" });
+  doc.setFont(undefined, "normal");
   y += 15;
 
   // Net Income
   const netIncome = totalRevenue - totalExpenses;
   doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
   doc.text("NET INCOME", 20, y);
   doc.text(`$${netIncome.toFixed(2)}`, 150, y, { align: "right" });
 
@@ -305,15 +344,37 @@ async function generateIncomeStatement(supabase: any, projectId: string, asOfDat
 async function generateJobCostsReport(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
   const doc = new jsPDF();
   
-  // Fetch project budgets
-  const { data: budgets } = await supabase
-    .from("project_budgets")
+  // Fetch journal entry lines for this project grouped by cost code
+  const { data: journalLines } = await supabase
+    .from("journal_entry_lines")
     .select(`
-      *,
-      cost_codes(code, name)
+      cost_code_id,
+      debit,
+      credit,
+      cost_codes(code, name),
+      journal_entries!inner(entry_date)
     `)
     .eq("project_id", projectId)
-    .order("cost_code_id");
+    .not("cost_code_id", "is", null)
+    .lte("journal_entries.entry_date", asOfDate);
+
+  // Group by cost code and calculate totals
+  const costCodeTotals: Record<string, { code: string; name: string; actualAmount: number }> = {};
+  
+  journalLines?.forEach((line: any) => {
+    const costCodeId = line.cost_code_id;
+    if (!costCodeTotals[costCodeId]) {
+      costCodeTotals[costCodeId] = {
+        code: line.cost_codes?.code || "N/A",
+        name: line.cost_codes?.name || "Unknown",
+        actualAmount: 0,
+      };
+    }
+    costCodeTotals[costCodeId].actualAmount += (line.debit || 0) - (line.credit || 0);
+  });
+
+  // Convert to array and sort by code
+  const costCodeArray = Object.values(costCodeTotals).sort((a, b) => a.code.localeCompare(b.code));
 
   // Generate PDF
   doc.setFontSize(18);
@@ -325,23 +386,20 @@ async function generateJobCostsReport(supabase: any, projectId: string, asOfDate
   doc.setFontSize(9);
 
   // Header
+  doc.setFont(undefined, "bold");
   doc.text("Cost Code", 20, y);
-  doc.text("Budget", 80, y);
-  doc.text("Actual", 120, y);
-  doc.text("Variance", 160, y);
+  doc.text("Actual Cost", 140, y);
+  doc.setFont(undefined, "normal");
   y += 10;
 
   // Data rows
-  budgets?.forEach((budget: any) => {
-    const costCode = budget.cost_codes;
-    const budgetAmount = budget.budget_amount || 0;
-    const actualAmount = budget.actual_amount || 0;
-    const variance = budgetAmount - actualAmount;
+  let grandTotal = 0;
+  costCodeArray.forEach((costCode) => {
+    const actualAmount = costCode.actualAmount;
+    grandTotal += actualAmount;
 
-    doc.text(`${costCode?.code} - ${costCode?.name}`, 20, y);
-    doc.text(`$${budgetAmount.toFixed(2)}`, 80, y);
-    doc.text(`$${actualAmount.toFixed(2)}`, 120, y);
-    doc.text(`$${variance.toFixed(2)}`, 160, y);
+    doc.text(`${costCode.code} - ${costCode.name}`, 20, y);
+    doc.text(`$${actualAmount.toFixed(2)}`, 140, y);
     y += 7;
 
     if (y > 270) {
@@ -349,6 +407,12 @@ async function generateJobCostsReport(supabase: any, projectId: string, asOfDate
       y = 20;
     }
   });
+
+  // Total
+  y += 5;
+  doc.setFont(undefined, "bold");
+  doc.text("Total Job Costs", 20, y);
+  doc.text(`$${grandTotal.toFixed(2)}`, 140, y);
 
   return new Uint8Array(doc.output("arraybuffer"));
 }
@@ -395,42 +459,101 @@ function generateEmailTemplate(projectName: string, asOfDate: string, reports: a
     selectedReports.push(`Bank Statements (${reports.bankStatementIds.length})`);
   }
 
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #0066cc; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background-color: #f9f9f9; }
-          .footer { padding: 20px; text-align: center; color: #666; font-size: 12px; }
-          ul { list-style-type: none; padding-left: 0; }
-          li { padding: 5px 0; }
-          li:before { content: "✓ "; color: #0066cc; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Accounting Reports</h1>
-          </div>
-          <div class="content">
-            <p><strong>Project:</strong> ${projectName}</p>
-            <p><strong>As of Date:</strong> ${asOfDate}</p>
-            <p><strong>Reports Included:</strong></p>
-            <ul>
-              ${selectedReports.map(report => `<li>${report}</li>`).join("")}
-            </ul>
-            <p>Please find ${fileCount} file${fileCount > 1 ? "s" : ""} attached to this email.</p>
-          </div>
-          <div class="footer">
-            <p>This email was generated by BuilderSuite AI</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Accounting Reports - ${projectName}</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f5f5f5;">
+        <tr>
+            <td align="center" valign="top" style="margin: 0; padding: 40px 20px;">
+                
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Accounting Reports</h1>
+                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectName}</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 30px; margin: 0;">
+                            
+                            <!-- Report Details Section -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
+                                <tr>
+                                    <td style="padding: 25px; margin: 0;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 12px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        <strong>Project:</strong> ${projectName}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 16px 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        <strong>As of Date:</strong> ${asOfDate}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="margin: 0; padding: 0 0 8px 0;">
+                                                    <p style="color: #000000; font-size: 14px; font-weight: 600; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        Reports Included:
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            ${selectedReports.map(report => `
+                                            <tr>
+                                                <td style="margin: 0; padding: 4px 0 4px 20px;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        ✓ ${report}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            `).join('')}
+                                            <tr>
+                                                <td style="margin: 0; padding: 16px 0 0 0;">
+                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                                        Please find ${fileCount} file${fileCount > 1 ? 's' : ''} attached to this email.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
+                            <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+                
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
 }
 
 serve(handler);
