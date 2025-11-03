@@ -230,53 +230,62 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
                 </Label>
               </div>
 
-              {bankStatements && bankStatements.length > 0 && (
-                <div className="space-y-2">
+              <div className="space-y-2">
+                {bankStatements && bankStatements.length > 0 ? (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all-statements"
+                        checked={selectedBankStatements.length === bankStatements.length && bankStatements.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedBankStatements(bankStatements.map(s => s.id));
+                          } else {
+                            setSelectedBankStatements([]);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="select-all-statements" className="font-normal cursor-pointer">
+                        Bank Statements
+                      </Label>
+                    </div>
+                    <div className="space-y-2 pl-8 max-h-32 overflow-y-auto">
+                      {bankStatements.map((statement) => {
+                        const displayName = statement.original_filename.replace("Bank Statements/", "");
+                        return (
+                          <div key={statement.id} className="flex items-start space-x-2">
+                            <Checkbox
+                              id={`bank-statement-${statement.id}`}
+                              checked={selectedBankStatements.includes(statement.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedBankStatements((prev) => [...prev, statement.id]);
+                                } else {
+                                  setSelectedBankStatements((prev) => prev.filter((id) => id !== statement.id));
+                                }
+                              }}
+                              className="mt-0.5"
+                            />
+                            <Label 
+                              htmlFor={`bank-statement-${statement.id}`} 
+                              className="cursor-pointer text-sm font-normal leading-tight flex-1"
+                            >
+                              {displayName}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
                   <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="select-all-statements"
-                      checked={selectedBankStatements.length === bankStatements.length && bankStatements.length > 0}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedBankStatements(bankStatements.map(s => s.id));
-                        } else {
-                          setSelectedBankStatements([]);
-                        }
-                      }}
-                    />
-                    <Label htmlFor="select-all-statements" className="font-normal cursor-pointer">
-                      Bank Statements
+                    <Checkbox disabled />
+                    <Label className="font-normal text-muted-foreground">
+                      Bank Statements (None available)
                     </Label>
                   </div>
-                  <div className="space-y-2 pl-8 max-h-32 overflow-y-auto">
-                    {bankStatements.map((statement) => {
-                      const displayName = statement.original_filename.replace("Bank Statements/", "");
-                      return (
-                        <div key={statement.id} className="flex items-start space-x-2">
-                          <Checkbox
-                            id={`bank-statement-${statement.id}`}
-                            checked={selectedBankStatements.includes(statement.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedBankStatements((prev) => [...prev, statement.id]);
-                              } else {
-                                setSelectedBankStatements((prev) => prev.filter((id) => id !== statement.id));
-                              }
-                            }}
-                            className="mt-0.5"
-                          />
-                          <Label 
-                            htmlFor={`bank-statement-${statement.id}`} 
-                            className="cursor-pointer text-sm font-normal leading-tight flex-1"
-                          >
-                            {displayName}
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
