@@ -748,7 +748,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               )}
               {currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) && (
                 <TooltipContent>
-                  <p className="text-xs">Books are closed - cannot delete checks dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                  <p className="text-xs">Books are closed.</p>
                 </TooltipContent>
               )}
             </Tooltip>

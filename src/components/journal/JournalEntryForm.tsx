@@ -539,7 +539,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               )}
               {currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) && (
                 <TooltipContent>
-                  <p className="text-xs">Books are closed - cannot delete entries dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                  <p className="text-xs">Books are closed.</p>
                 </TooltipContent>
               )}
             </Tooltip>

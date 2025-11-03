@@ -770,7 +770,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                           </TooltipTrigger>
                           {isDateLocked(bill.bill_date) && (
                             <TooltipContent>
-                              <p className="text-xs">Books are closed - cannot delete bills dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                              <p className="text-xs">Books are closed.</p>
                             </TooltipContent>
                           )}
                         </Tooltip>

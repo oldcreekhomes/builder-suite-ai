@@ -450,7 +450,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   )}
                   {currentCreditCardId && isViewingMode && isDateLocked(transactionDate) && (
                     <TooltipContent>
-                      <p className="text-xs">Books are closed - cannot delete transactions dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                      <p className="text-xs">Books are closed.</p>
                     </TooltipContent>
                   )}
                 </Tooltip>

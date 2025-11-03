@@ -653,7 +653,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         )}
                         {currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) && (
                           <TooltipContent>
-                            <p className="text-xs">Books are closed - cannot delete deposits dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                            <p className="text-xs">Books are closed.</p>
                           </TooltipContent>
                         )}
                       </Tooltip>
