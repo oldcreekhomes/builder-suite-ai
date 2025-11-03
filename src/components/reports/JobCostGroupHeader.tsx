@@ -11,7 +11,7 @@ interface JobCostGroupHeaderProps {
     actual: number;
     variance: number;
   };
-  stickyOffset: number;
+  
 }
 
 export function JobCostGroupHeader({
@@ -19,7 +19,6 @@ export function JobCostGroupHeader({
   isExpanded,
   onToggle,
   groupTotal,
-  stickyOffset,
 }: JobCostGroupHeaderProps) {
   const formatCurrency = (amount: number) => {
     const normalized = Math.abs(amount) < 0.005 ? 0 : amount;
@@ -34,12 +33,11 @@ export function JobCostGroupHeader({
 
   return (
     <TableRow 
-      className="bg-background h-12 hover:bg-background !border-0 shadow-none" 
-      style={{ position: 'sticky', top: stickyOffset, zIndex: 10, backgroundColor: 'var(--background)' }}
+      className="bg-muted/40 hover:bg-muted/60 border-b"
     >
       <TableCell 
         colSpan={2} 
-        className="font-semibold py-2 bg-background !border-0"
+        className="py-3 px-3 font-semibold"
       >
         <div className="flex items-center gap-2">
           <Button
@@ -58,17 +56,17 @@ export function JobCostGroupHeader({
         </div>
       </TableCell>
       <TableCell 
-        className="text-right py-2 text-sm text-muted-foreground bg-background !border-0"
+        className="text-right py-3 px-3 text-sm text-muted-foreground"
       >
         {formatCurrency(groupTotal.budget)}
       </TableCell>
       <TableCell 
-        className="text-right py-2 text-sm text-muted-foreground bg-background !border-0"
+        className="text-right py-3 px-3 text-sm text-muted-foreground"
       >
         {formatCurrency(groupTotal.actual)}
       </TableCell>
       <TableCell 
-        className="text-right py-2 text-sm text-muted-foreground bg-background !border-0"
+        className="text-right py-3 px-3 text-sm text-muted-foreground"
       >
         {formatCurrency(groupTotal.variance)}
       </TableCell>

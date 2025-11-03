@@ -475,8 +475,6 @@ return parentRows;
                   <>
                     {Object.entries(groupedJobCosts).map(([group, rows], index) => {
                       const groupTotals = calculateGroupTotals(rows);
-                      const headerHeight = 48;
-                      const stickyOffset = headerHeight + (index * headerHeight);
                       return (
                         <tbody key={group}>
                           <JobCostGroupHeader
@@ -484,7 +482,6 @@ return parentRows;
                             isExpanded={expandedGroups.has(group)}
                             onToggle={() => handleGroupToggle(group)}
                             groupTotal={groupTotals}
-                            stickyOffset={stickyOffset}
                           />
                           {expandedGroups.has(group) && (
                             <>
