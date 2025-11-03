@@ -10,7 +10,7 @@ import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Check, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, Lock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,6 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
 interface BillAttachment {
   id: string;
@@ -79,6 +82,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>('bill_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
   const handleSort = (column: 'vendor' | 'bill_date' | 'due_date') => {
     if (sortColumn === column) {
@@ -739,14 +743,38 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       >
                         {payBill.isPending ? "Processing..." : "Pay Bill"}
                       </Button>
-                      <DeleteButton
-                        onDelete={() => deleteBill.mutate(bill.id)}
-                        title="Delete Bill"
-                        description={`Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`}
-                        size="icon"
-                        variant="ghost"
-                        isLoading={deleteBill.isPending}
-                      />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              {!isDateLocked(bill.bill_date) ? (
+                                <DeleteButton
+                                  onDelete={() => deleteBill.mutate(bill.id)}
+                                  title="Delete Bill"
+                                  description={`Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`}
+                                  size="icon"
+                                  variant="ghost"
+                                  isLoading={deleteBill.isPending}
+                                />
+                              ) : (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  disabled
+                                  className="h-8 w-8"
+                                >
+                                  <Lock className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          {isDateLocked(bill.bill_date) && (
+                            <TooltipContent>
+                              <p className="text-xs">Books are closed - cannot delete bills dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>

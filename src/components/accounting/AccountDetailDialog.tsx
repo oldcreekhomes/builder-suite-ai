@@ -24,8 +24,9 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
 import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 
 interface Transaction {
   source_id: string;
@@ -72,6 +73,7 @@ export function AccountDetailDialog({
   const { canDeleteBills } = useUserRole();
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
   // Helper to parse date-only strings as local midnight (avoids timezone shift)
   const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
@@ -467,6 +469,18 @@ export function AccountDetailDialog({
       return;
     }
 
+    // CRITICAL: Never allow deletion of transactions in closed periods
+    if (isDateLocked(transaction.date)) {
+      console.error('Cannot delete transaction in closed period');
+      const { toast } = await import("@/hooks/use-toast");
+      toast({
+        title: "Books are Closed",
+        description: `This transaction is dated on or before ${latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'} and cannot be deleted. You must reopen the accounting period first.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Compute query key for optimistic update
     const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
     
@@ -805,7 +819,7 @@ export function AccountDetailDialog({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex items-center justify-center">
-                              {canDeleteBills && !txn.reconciled && (
+                              {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && (
                                 <DeleteButton
                                   onDelete={() => handleDelete(txn)}
                                   title="Delete Transaction"
@@ -815,11 +829,19 @@ export function AccountDetailDialog({
                                   className="h-6 w-6 p-0"
                                 />
                               )}
+                              {(txn.reconciled || isDateLocked(txn.date)) && (
+                                <Lock className="h-4 w-4 text-muted-foreground" />
+                              )}
                             </div>
                           </TooltipTrigger>
                           {txn.reconciled && (
                             <TooltipContent>
                               <p className="text-xs">Cannot delete reconciled transaction</p>
+                            </TooltipContent>
+                          )}
+                          {!txn.reconciled && isDateLocked(txn.date) && (
+                            <TooltipContent>
+                              <p className="text-xs">Books are closed - cannot delete transactions dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
                             </TooltipContent>
                           )}
                         </Tooltip>

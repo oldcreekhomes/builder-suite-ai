@@ -14,10 +14,11 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 
 interface JournalLine {
   id: string;
@@ -38,6 +39,7 @@ interface JournalEntryFormProps {
 
 export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: JournalEntryFormProps) => {
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<'job_cost' | 'expense'>('job_cost');
@@ -499,21 +501,45 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             <Tooltip>
               <TooltipTrigger asChild>
                 <div>
-                  <DeleteButton
-                    onDelete={handleDelete}
-                    title="Delete Journal Entry"
-                    description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
-                    size="sm"
-                    variant="ghost"
-                    isLoading={deleteManualJournalEntry.isPending}
-                    disabled={!currentJournalEntryId || !isViewingMode}
-                    className="ml-2"
-                  />
+                  {currentJournalEntryId && isViewingMode && !isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+                    <DeleteButton
+                      onDelete={handleDelete}
+                      title="Delete Journal Entry"
+                      description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
+                      size="sm"
+                      variant="ghost"
+                      isLoading={deleteManualJournalEntry.isPending}
+                      className="ml-2"
+                    />
+                  ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled
+                      className="ml-2"
+                    >
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled
+                      className="ml-2 opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </TooltipTrigger>
               {(!currentJournalEntryId || !isViewingMode) && (
                 <TooltipContent>
                   <p>Navigate to a saved entry to delete</p>
+                </TooltipContent>
+              )}
+              {currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) && (
+                <TooltipContent>
+                  <p className="text-xs">Books are closed - cannot delete entries dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
                 </TooltipContent>
               )}
             </Tooltip>

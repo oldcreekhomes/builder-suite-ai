@@ -14,7 +14,8 @@ import { AccountSearchInputInline } from "@/components/AccountSearchInputInline"
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -43,6 +44,7 @@ interface MakeDepositsContentProps {
 
 export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: MakeDepositsContentProps) {
   const navigate = useNavigate();
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [depositDate, setDepositDate] = useState<Date>(new Date());
   const [depositSourceId, setDepositSourceId] = useState<string>("");
   const [depositSourceName, setDepositSourceName] = useState<string>("");

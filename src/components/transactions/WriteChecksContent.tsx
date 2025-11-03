@@ -41,6 +41,7 @@ interface WriteChecksContentProps {
 
 export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const navigate = useNavigate();
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [checkDate, setCheckDate] = useState<Date>(new Date());
   const [payTo, setPayTo] = useState<string>("");
   const [checkNumber, setCheckNumber] = useState<string>("");

@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Lock } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
@@ -20,6 +20,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 
 interface CreditCardRow {
   id: string;
@@ -40,6 +41,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const { creditCards, createCreditCard, deleteCreditCard } = useCreditCards();
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts } = useAccounts();
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
   const [transactionType, setTransactionType] = useState<'purchase' | 'refund'>('purchase');
   const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'));

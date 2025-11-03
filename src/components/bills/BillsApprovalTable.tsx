@@ -30,8 +30,11 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, Lock } from 'lucide-react';
 import { EditBillDialog } from './EditBillDialog';
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
 interface BillForApproval {
   id: string;
@@ -89,6 +92,7 @@ interface BillsApprovalTableProps {
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
     defaultSortBy === 'due_date' ? 'due_date' : 'bill_date'
   );
@@ -604,15 +608,39 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                               <Edit className="h-4 w-4" />
                             </Button>
                           )}
-                          <DeleteButton
-                            onDelete={() => deleteBill.mutate(bill.id)}
-                            title="Delete Bill"
-                            description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
-                            size="icon"
-                            variant="ghost"
-                            isLoading={deleteBill.isPending}
-                            className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div>
+                                  {!isDateLocked(bill.bill_date) ? (
+                                    <DeleteButton
+                                      onDelete={() => deleteBill.mutate(bill.id)}
+                                      title="Delete Bill"
+                                      description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
+                                      size="icon"
+                                      variant="ghost"
+                                      isLoading={deleteBill.isPending}
+                                      className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                    />
+                                  ) : (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      disabled
+                                      className="h-8 w-8"
+                                    >
+                                      <Lock className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              {isDateLocked(bill.bill_date) && (
+                                <TooltipContent>
+                                  <p className="text-xs">Books are closed - cannot delete bills dated on or before {latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'}</p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       )}
                     </TableCell>
