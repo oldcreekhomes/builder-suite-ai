@@ -86,7 +86,7 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     if (user && costCodes.length > 0) {
       fetchSpecifications();
     }
-  }, [user, costCodes.length, fetchSpecifications]);
+  }, [user, costCodes, fetchSpecifications]);
 
   useEffect(() => {
     setCollapsedSpecGroups(new Set());
