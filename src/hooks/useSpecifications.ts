@@ -76,9 +76,12 @@ export const useSpecifications = (costCodes: CostCode[]) => {
           *,
           cost_code:cost_codes(*)
         `)
-        .in('cost_code_id', costCodesWithSpecs.map(cc => cc.id));
+        .in('cost_code_id', costCodesWithSpecs.map(cc => cc.id))
+        .order('code', { foreignTable: 'cost_codes', ascending: true });
 
       if (finalError) throw finalError;
+
+      console.log('Specs fetched:', (allSpecs || []).map((s: any) => s.cost_code?.code).join(', '));
 
       setSpecifications(allSpecs || []);
     } catch (error) {

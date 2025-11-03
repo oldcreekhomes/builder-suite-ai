@@ -54,10 +54,10 @@ export function SpecificationsTab({
     const acc: Record<string, SpecificationWithCostCode[]> = {};
 
     specifications.forEach(spec => {
-      const key =
-        (spec.cost_code.parent_group && spec.cost_code.parent_group.trim() !== '')
-          ? spec.cost_code.parent_group
-          : (parentCodes.has(spec.cost_code.code) ? spec.cost_code.code : 'ungrouped');
+      const parentGroup = (spec.cost_code.parent_group || '').trim();
+      const key = parentGroup !== ''
+        ? parentGroup
+        : (parentCodes.has(spec.cost_code.code) ? spec.cost_code.code : 'ungrouped');
 
       if (!acc[key]) acc[key] = [];
       acc[key].push(spec);
@@ -65,7 +65,8 @@ export function SpecificationsTab({
 
     // Keep existing group headers even if a group is empty
     Object.keys(groupedCostCodes).forEach(k => {
-      if (!acc[k]) acc[k] = [];
+      const normalized = k.trim();
+      if (!acc[normalized]) acc[normalized] = [];
     });
 
     return acc;
