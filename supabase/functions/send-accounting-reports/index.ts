@@ -11,6 +11,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to format currency with commas
+function formatCurrency(amount: number): string {
+  return amount.toLocaleString('en-US', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  });
+}
+
 interface ReportRequest {
   recipientEmail: string;
   projectId: string;
@@ -180,73 +188,119 @@ async function generateBalanceSheet(supabase: any, projectId: string, ownerId: s
     balances[line.account_id] += (line.debit || 0) - (line.credit || 0);
   });
 
-  // Generate PDF
-  doc.setFontSize(18);
-  doc.text("Balance Sheet", 105, 20, { align: "center" });
+  // Generate PDF with styling
+  const pageWidth = doc.internal.pageSize.width;
+  
+  // Header with background
+  doc.setFillColor(0, 0, 0);
+  doc.rect(0, 0, pageWidth, 40, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont(undefined, "bold");
+  doc.text("Balance Sheet", pageWidth / 2, 18, { align: "center" });
   doc.setFontSize(12);
-  doc.text(`As of ${asOfDate}`, 105, 30, { align: "center" });
+  doc.setFont(undefined, "normal");
+  doc.text(`As of ${asOfDate}`, pageWidth / 2, 28, { align: "center" });
+  
+  // Reset text color
+  doc.setTextColor(0, 0, 0);
 
-  let y = 50;
-  doc.setFontSize(10);
+  let y = 55;
+  const leftMargin = 20;
+  const rightMargin = pageWidth - 20;
+  const amountX = rightMargin - 45;
 
-  // Assets
-  doc.text("ASSETS", 20, y);
+  // Assets Section
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
+  doc.text("ASSETS", leftMargin + 2, y);
   y += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
   let totalAssets = 0;
   accounts?.filter((a: any) => a.type === "asset").forEach((account: any) => {
     const balance = balances[account.id] || 0;
     if (balance !== 0) {
       totalAssets += balance;
-      doc.text(`  ${account.code} - ${account.name}`, 20, y);
-      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-      y += 7;
+      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
+      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
+      y += 6;
     }
   });
-  y += 5;
+  
+  // Assets total with border
+  y += 2;
+  doc.setLineWidth(0.5);
+  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
   doc.setFont(undefined, "bold");
-  doc.text("Total Assets", 20, y);
-  doc.text(`$${totalAssets.toFixed(2)}`, 150, y, { align: "right" });
+  doc.text("Total Assets", leftMargin + 5, y);
+  doc.text(`$${formatCurrency(totalAssets)}`, amountX, y, { align: "right" });
+  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
   doc.setFont(undefined, "normal");
   y += 15;
 
-  // Liabilities
-  doc.text("LIABILITIES", 20, y);
+  // Liabilities Section
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
+  doc.text("LIABILITIES", leftMargin + 2, y);
   y += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
   let totalLiabilities = 0;
   accounts?.filter((a: any) => a.type === "liability").forEach((account: any) => {
     const balance = Math.abs(balances[account.id] || 0);
     if (balance !== 0) {
       totalLiabilities += balance;
-      doc.text(`  ${account.code} - ${account.name}`, 20, y);
-      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-      y += 7;
+      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
+      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
+      y += 6;
     }
   });
-  y += 5;
+  
+  // Liabilities total with border
+  y += 2;
+  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
   doc.setFont(undefined, "bold");
-  doc.text("Total Liabilities", 20, y);
-  doc.text(`$${totalLiabilities.toFixed(2)}`, 150, y, { align: "right" });
+  doc.text("Total Liabilities", leftMargin + 5, y);
+  doc.text(`$${formatCurrency(totalLiabilities)}`, amountX, y, { align: "right" });
+  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
   doc.setFont(undefined, "normal");
   y += 15;
 
-  // Equity
-  doc.text("EQUITY", 20, y);
+  // Equity Section
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
+  doc.text("EQUITY", leftMargin + 2, y);
   y += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
   let totalEquity = 0;
   accounts?.filter((a: any) => a.type === "equity").forEach((account: any) => {
     const balance = Math.abs(balances[account.id] || 0);
     if (balance !== 0) {
       totalEquity += balance;
-      doc.text(`  ${account.code} - ${account.name}`, 20, y);
-      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-      y += 7;
+      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
+      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
+      y += 6;
     }
   });
-  y += 5;
+  
+  // Equity total with border
+  y += 2;
+  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
   doc.setFont(undefined, "bold");
-  doc.text("Total Equity", 20, y);
-  doc.text(`$${totalEquity.toFixed(2)}`, 150, y, { align: "right" });
-  doc.setFont(undefined, "normal");
+  doc.text("Total Equity", leftMargin + 5, y);
+  doc.text(`$${formatCurrency(totalEquity)}`, amountX, y, { align: "right" });
+  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
 
   return new Uint8Array(doc.output("arraybuffer"));
 }
@@ -280,63 +334,99 @@ async function generateIncomeStatement(supabase: any, projectId: string, ownerId
     balances[line.account_id] += (line.debit || 0) - (line.credit || 0);
   });
 
-  // Generate PDF
-  doc.setFontSize(18);
-  doc.text("Income Statement", 105, 20, { align: "center" });
+  // Generate PDF with styling
+  const pageWidth = doc.internal.pageSize.width;
+  
+  // Header with background
+  doc.setFillColor(0, 0, 0);
+  doc.rect(0, 0, pageWidth, 40, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont(undefined, "bold");
+  doc.text("Income Statement", pageWidth / 2, 18, { align: "center" });
   doc.setFontSize(12);
-  doc.text(`As of ${asOfDate}`, 105, 30, { align: "center" });
+  doc.setFont(undefined, "normal");
+  doc.text(`As of ${asOfDate}`, pageWidth / 2, 28, { align: "center" });
+  
+  // Reset text color
+  doc.setTextColor(0, 0, 0);
 
-  let y = 50;
-  doc.setFontSize(10);
+  let y = 55;
+  const leftMargin = 20;
+  const rightMargin = pageWidth - 20;
+  const amountX = rightMargin - 45;
 
-  // Revenue
-  doc.text("REVENUE", 20, y);
+  // Revenue Section
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
+  doc.text("REVENUE", leftMargin + 2, y);
   y += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
   let totalRevenue = 0;
   accounts?.filter((a: any) => a.type === "revenue").forEach((account: any) => {
     const balance = Math.abs(balances[account.id] || 0);
     if (balance !== 0) {
       totalRevenue += balance;
-      doc.text(`  ${account.code} - ${account.name}`, 20, y);
-      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-      y += 7;
+      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
+      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
+      y += 6;
     }
   });
 
-  y += 5;
+  // Revenue total with border
+  y += 2;
+  doc.setLineWidth(0.5);
+  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
   doc.setFont(undefined, "bold");
-  doc.text("Total Revenue", 20, y);
-  doc.text(`$${totalRevenue.toFixed(2)}`, 150, y, { align: "right" });
+  doc.text("Total Revenue", leftMargin + 5, y);
+  doc.text(`$${formatCurrency(totalRevenue)}`, amountX, y, { align: "right" });
+  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
   doc.setFont(undefined, "normal");
   y += 15;
 
-  // Expenses
-  doc.text("EXPENSES", 20, y);
+  // Expenses Section
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
+  doc.text("EXPENSES", leftMargin + 2, y);
   y += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
   let totalExpenses = 0;
   accounts?.filter((a: any) => a.type === "expense").forEach((account: any) => {
     const balance = balances[account.id] || 0;
     if (balance !== 0) {
       totalExpenses += balance;
-      doc.text(`  ${account.code} - ${account.name}`, 20, y);
-      doc.text(`$${balance.toFixed(2)}`, 150, y, { align: "right" });
-      y += 7;
+      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
+      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
+      y += 6;
     }
   });
 
-  y += 5;
+  // Expenses total with border
+  y += 2;
+  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
   doc.setFont(undefined, "bold");
-  doc.text("Total Expenses", 20, y);
-  doc.text(`$${totalExpenses.toFixed(2)}`, 150, y, { align: "right" });
+  doc.text("Total Expenses", leftMargin + 5, y);
+  doc.text(`$${formatCurrency(totalExpenses)}`, amountX, y, { align: "right" });
+  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
   doc.setFont(undefined, "normal");
   y += 15;
 
-  // Net Income
+  // Net Income Section
   const netIncome = totalRevenue - totalExpenses;
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 40, 10, "F");
   doc.setFontSize(12);
   doc.setFont(undefined, "bold");
-  doc.text("NET INCOME", 20, y);
-  doc.text(`$${netIncome.toFixed(2)}`, 150, y, { align: "right" });
+  doc.text("NET INCOME", leftMargin + 2, y);
+  doc.text(`$${formatCurrency(netIncome)}`, amountX, y, { align: "right" });
 
   return new Uint8Array(doc.output("arraybuffer"));
 }
@@ -358,8 +448,22 @@ async function generateJobCostsReport(supabase: any, projectId: string, asOfDate
     .not("cost_code_id", "is", null)
     .lte("journal_entries.entry_date", asOfDate);
 
+  // Fetch budget data for this project
+  const { data: budgetItems } = await supabase
+    .from("budget_items")
+    .select("cost_code_id, total")
+    .eq("project_id", projectId);
+
+  // Create budget lookup
+  const budgetLookup: Record<string, number> = {};
+  budgetItems?.forEach((item: any) => {
+    if (item.cost_code_id) {
+      budgetLookup[item.cost_code_id] = item.total || 0;
+    }
+  });
+
   // Group by cost code and calculate totals
-  const costCodeTotals: Record<string, { code: string; name: string; actualAmount: number }> = {};
+  const costCodeTotals: Record<string, { code: string; name: string; actualAmount: number; budgetAmount: number }> = {};
   
   journalLines?.forEach((line: any) => {
     const costCodeId = line.cost_code_id;
@@ -368,6 +472,7 @@ async function generateJobCostsReport(supabase: any, projectId: string, asOfDate
         code: line.cost_codes?.code || "N/A",
         name: line.cost_codes?.name || "Unknown",
         actualAmount: 0,
+        budgetAmount: budgetLookup[costCodeId] || 0,
       };
     }
     costCodeTotals[costCodeId].actualAmount += (line.debit || 0) - (line.credit || 0);
@@ -376,31 +481,67 @@ async function generateJobCostsReport(supabase: any, projectId: string, asOfDate
   // Convert to array and sort by code
   const costCodeArray = Object.values(costCodeTotals).sort((a, b) => a.code.localeCompare(b.code));
 
-  // Generate PDF
-  doc.setFontSize(18);
-  doc.text("Job Costs Report", 105, 20, { align: "center" });
-  doc.setFontSize(12);
-  doc.text(`As of ${asOfDate}`, 105, 30, { align: "center" });
-
-  let y = 50;
-  doc.setFontSize(9);
-
-  // Header
+  // Generate PDF with styling
+  const pageWidth = doc.internal.pageSize.width;
+  
+  // Header with background
+  doc.setFillColor(0, 0, 0);
+  doc.rect(0, 0, pageWidth, 40, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
   doc.setFont(undefined, "bold");
-  doc.text("Cost Code", 20, y);
-  doc.text("Actual Cost", 140, y);
+  doc.text("Job Costs Report", pageWidth / 2, 18, { align: "center" });
+  doc.setFontSize(12);
   doc.setFont(undefined, "normal");
-  y += 10;
+  doc.text(`As of ${asOfDate}`, pageWidth / 2, 28, { align: "center" });
+  
+  // Reset text color
+  doc.setTextColor(0, 0, 0);
+
+  let y = 55;
+  const leftMargin = 15;
+  
+  // Table header
+  doc.setFontSize(9);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(240, 240, 240);
+  doc.rect(leftMargin, y - 5, pageWidth - 30, 8, "F");
+  doc.text("Cost Code", leftMargin + 2, y);
+  doc.text("Budget", 115, y, { align: "right" });
+  doc.text("Actual", 150, y, { align: "right" });
+  doc.text("Variance", 185, y, { align: "right" });
+  doc.setFont(undefined, "normal");
+  y += 8;
+
+  // Draw header bottom border
+  doc.setLineWidth(0.5);
+  doc.line(leftMargin, y, pageWidth - 15, y);
+  y += 5;
 
   // Data rows
-  let grandTotal = 0;
+  let grandTotalBudget = 0;
+  let grandTotalActual = 0;
   costCodeArray.forEach((costCode) => {
     const actualAmount = costCode.actualAmount;
-    grandTotal += actualAmount;
+    const budgetAmount = costCode.budgetAmount;
+    const variance = budgetAmount - actualAmount;
+    
+    grandTotalBudget += budgetAmount;
+    grandTotalActual += actualAmount;
 
-    doc.text(`${costCode.code} - ${costCode.name}`, 20, y);
-    doc.text(`$${actualAmount.toFixed(2)}`, 140, y);
-    y += 7;
+    doc.setFontSize(8);
+    doc.text(`${costCode.code} - ${costCode.name}`, leftMargin + 2, y);
+    doc.text(`$${formatCurrency(budgetAmount)}`, 115, y, { align: "right" });
+    doc.text(`$${formatCurrency(actualAmount)}`, 150, y, { align: "right" });
+    
+    // Color variance based on positive/negative
+    if (variance < 0) {
+      doc.setTextColor(220, 38, 38); // Red for over budget
+    }
+    doc.text(`$${formatCurrency(variance)}`, 185, y, { align: "right" });
+    doc.setTextColor(0, 0, 0); // Reset color
+    
+    y += 6;
 
     if (y > 270) {
       doc.addPage();
@@ -408,11 +549,27 @@ async function generateJobCostsReport(supabase: any, projectId: string, asOfDate
     }
   });
 
-  // Total
+  // Total row with border
+  y += 3;
+  doc.setLineWidth(0.5);
+  doc.line(leftMargin, y, pageWidth - 15, y);
   y += 5;
+  
+  doc.setFontSize(9);
   doc.setFont(undefined, "bold");
-  doc.text("Total Job Costs", 20, y);
-  doc.text(`$${grandTotal.toFixed(2)}`, 140, y);
+  const grandVariance = grandTotalBudget - grandTotalActual;
+  doc.text("TOTAL", leftMargin + 2, y);
+  doc.text(`$${formatCurrency(grandTotalBudget)}`, 115, y, { align: "right" });
+  doc.text(`$${formatCurrency(grandTotalActual)}`, 150, y, { align: "right" });
+  
+  if (grandVariance < 0) {
+    doc.setTextColor(220, 38, 38);
+  }
+  doc.text(`$${formatCurrency(grandVariance)}`, 185, y, { align: "right" });
+  
+  // Double line under total
+  y += 2;
+  doc.line(leftMargin, y, pageWidth - 15, y);
 
   return new Uint8Array(doc.output("arraybuffer"));
 }
