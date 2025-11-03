@@ -207,7 +207,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
         <h2 className="text-3xl font-bold tracking-tight">Income Statement</h2>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+            <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
               <CalendarIcon className="mr-2 h-4 w-4" />
               As of {format(asOfDate, "PPP")}
             </Button>
