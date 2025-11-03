@@ -49,13 +49,38 @@ export function SpecificationsTab({
   // Use ALL cost codes for grouping so we can find parent codes like "4000"
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes, true);
   
-  // Convert grouped cost codes back to specifications format
-  const groupedSpecifications = Object.entries(groupedCostCodes).reduce((acc, [key, costCodes]) => {
-    acc[key] = specifications.filter(spec => 
-      costCodes.some(costCode => costCode.id === spec.cost_code.id)
-    );
+  // Build a map from cost_code.id to groupKey for robust grouping
+  const idToGroup = React.useMemo(() => {
+    const m = new Map<string, string>();
+    Object.entries(groupedCostCodes).forEach(([groupKey, costCodes]) => {
+      costCodes.forEach(cc => m.set(cc.id, groupKey));
+    });
+    return m;
+  }, [groupedCostCodes]);
+
+  // Convert grouped cost codes back to specifications format with fallback logic
+  const groupedSpecifications = React.useMemo(() => {
+    const acc: Record<string, SpecificationWithCostCode[]> = {};
+
+    // Place each spec into the right group - never drop a spec
+    specifications.forEach(spec => {
+      const key =
+        idToGroup.get(spec.cost_code.id) ||
+        (spec.cost_code.parent_group && spec.cost_code.parent_group.trim() !== '' 
+          ? spec.cost_code.parent_group 
+          : 'ungrouped');
+
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(spec);
+    });
+
+    // Ensure all existing groups exist in the accumulator so headers render even if empty
+    Object.keys(groupedCostCodes).forEach(k => {
+      if (!acc[k]) acc[k] = [];
+    });
+
     return acc;
-  }, {} as Record<string, SpecificationWithCostCode[]>);
+  }, [specifications, idToGroup, groupedCostCodes]);
 
   const getParentSpecification = (parentGroupCode: string): SpecificationWithCostCode | undefined => {
     // First, try to find the actual parent cost code using the hook

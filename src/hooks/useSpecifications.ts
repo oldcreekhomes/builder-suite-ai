@@ -18,10 +18,21 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     if (!user) return;
     
     try {
-      // First, get cost codes that have specifications enabled
+      // Get company owner ID
+      const { data: userInfo } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = userInfo?.[0]?.is_employee ? userInfo[0].home_builder_id : user.id;
+      
+      if (!ownerId) {
+        console.error('Could not determine owner ID');
+        setSpecificationsLoading(false);
+        return;
+      }
+
+      // First, get cost codes that have specifications enabled, scoped to owner
       const { data: costCodesWithSpecs, error: costCodesError } = await supabase
         .from('cost_codes')
         .select('*')
+        .eq('owner_id', ownerId)
         .eq('has_specifications', true);
 
       if (costCodesError) throw costCodesError;
