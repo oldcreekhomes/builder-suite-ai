@@ -128,7 +128,7 @@ export function CostCodeTableRow({
           />
         </TableCell>
         <TableCell className="py-1">
-          {isLeafSubcategory ? (
+          {isLeafSubcategory && !costCode.has_specifications ? (
             <span className="text-muted-foreground text-sm">-</span>
           ) : (
             <CostCodeInlineEditor
@@ -139,7 +139,7 @@ export function CostCodeTableRow({
           )}
         </TableCell>
         <TableCell className="py-1">
-          {isLeafSubcategory ? (
+          {isLeafSubcategory && !costCode.has_bidding ? (
             <span className="text-muted-foreground text-sm">-</span>
           ) : (
             <CostCodeInlineEditor
@@ -150,7 +150,7 @@ export function CostCodeTableRow({
           )}
         </TableCell>
         <TableCell className="py-1">
-          {isLeafSubcategory ? (
+          {isLeafSubcategory && !costCode.has_subcategories ? (
             <span className="text-muted-foreground text-sm">-</span>
           ) : (
             <CostCodeInlineEditor

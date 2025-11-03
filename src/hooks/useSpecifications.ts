@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,7 @@ export const useSpecifications = (costCodes: CostCode[]) => {
   const [collapsedSpecGroups, setCollapsedSpecGroups] = useState<Set<string>>(new Set());
 
   // Fetch specifications
-  const fetchSpecifications = async () => {
+  const fetchSpecifications = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -80,11 +80,13 @@ export const useSpecifications = (costCodes: CostCode[]) => {
     } finally {
       setSpecificationsLoading(false);
     }
-  };
+  }, [user, toast]);
 
   useEffect(() => {
-    fetchSpecifications();
-  }, [user, costCodes]);
+    if (user && costCodes.length > 0) {
+      fetchSpecifications();
+    }
+  }, [user, costCodes.length, fetchSpecifications]);
 
   useEffect(() => {
     setCollapsedSpecGroups(new Set());
