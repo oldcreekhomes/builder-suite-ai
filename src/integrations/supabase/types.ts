@@ -3012,14 +3012,6 @@ export type Database = {
           is_employee: boolean
         }[]
       }
-      get_home_builders: {
-        Args: never
-        Returns: {
-          company_name: string
-          email: string
-          id: string
-        }[]
-      }
       get_pending_employee_approvals: {
         Args: never
         Returns: {
