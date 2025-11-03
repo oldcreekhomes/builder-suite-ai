@@ -77,7 +77,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>(null);
+  const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>('bill_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const handleSort = (column: 'vendor' | 'bill_date' | 'due_date') => {

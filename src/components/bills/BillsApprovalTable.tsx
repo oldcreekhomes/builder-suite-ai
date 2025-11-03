@@ -90,7 +90,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
-    defaultSortBy === 'due_date' ? 'due_date' : null
+    defaultSortBy === 'due_date' ? 'due_date' : 'bill_date'
   );
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(sortOrder || 'asc');
   const [confirmDialog, setConfirmDialog] = useState<{
