@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 export interface PendingBill {
   id: string;
@@ -40,6 +40,7 @@ export interface PendingBillLine {
 
 export const usePendingBills = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const {
     data: pendingBills,
@@ -215,10 +216,10 @@ export const usePendingBills = () => {
       queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
-      toast.success("Bill approved and created successfully");
+      toast({ title: "Success", description: "Bill approved and created successfully" });
     },
     onError: (error: any) => {
-      toast.error(`Failed to approve bill: ${error.message}`);
+      toast({ title: "Error", description: `Failed to approve bill: ${error.message}`, variant: "destructive" });
     },
   });
 
@@ -233,10 +234,10 @@ export const usePendingBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
-      toast.success("Bill rejected");
+      toast({ title: "Success", description: "Bill rejected" });
     },
     onError: (error: any) => {
-      toast.error(`Failed to reject bill: ${error.message}`);
+      toast({ title: "Error", description: `Failed to reject bill: ${error.message}`, variant: "destructive" });
     },
   });
 
@@ -252,10 +253,10 @@ export const usePendingBills = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-bills"] });
       queryClient.invalidateQueries({ queryKey: ["bill-approval-counts"] });
-      toast.success("Bill deleted successfully");
+      toast({ title: "Success", description: "Bill deleted successfully" });
     },
     onError: (error: any) => {
-      toast.error(`Failed to delete pending upload: ${error.message}`);
+      toast({ title: "Error", description: `Failed to delete pending upload: ${error.message}`, variant: "destructive" });
     },
   });
 

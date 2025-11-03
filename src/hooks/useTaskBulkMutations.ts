@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { ProjectTask } from "./useProjectTasks";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface BulkHierarchyUpdate {
   id: string;
@@ -25,6 +25,7 @@ interface BulkUpdateOptions {
 export const useTaskBulkMutations = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const bulkDeleteTasks = useMutation({
     mutationFn: async ({ taskIds, options }: { taskIds: string[], options?: BulkDeleteOptions }) => {
@@ -194,7 +195,7 @@ export const useTaskBulkMutations = (projectId: string) => {
     },
     onError: (error) => {
       console.error('Bulk hierarchy update failed:', error);
-      toast.error('Failed to update task positions');
+      toast({ title: "Error", description: 'Failed to update task positions', variant: "destructive" });
     },
   });
 

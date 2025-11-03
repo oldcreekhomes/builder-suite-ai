@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "./useProjectTasks";
 
 interface CreateTaskParams {
@@ -34,6 +34,7 @@ interface UpdateTaskParams {
 export const useTaskMutations = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const createTask = useMutation({
     mutationFn: async (params: CreateTaskParams) => {
@@ -79,7 +80,7 @@ export const useTaskMutations = (projectId: string) => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-      toast.success('Task created successfully');
+      toast({ title: "Success", description: 'Task created successfully' });
       
       // Skip parent recalculation if batch operation is in progress
       if (data.hierarchy_number && !(window as any).__batchOperationInProgress) {
@@ -91,7 +92,7 @@ export const useTaskMutations = (projectId: string) => {
     },
     onError: (error) => {
       console.error('Error creating task:', error);
-      toast.error('Failed to create task');
+      toast({ title: "Error", description: 'Failed to create task', variant: "destructive" });
     },
   });
 
@@ -272,7 +273,7 @@ export const useTaskMutations = (projectId: string) => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-      toast.success('Task deleted successfully');
+      toast({ title: "Success", description: 'Task deleted successfully' });
       
       // Skip parent recalculation if batch operation is in progress
       if (data.hierarchy_number && !(window as any).__batchOperationInProgress) {
@@ -284,7 +285,7 @@ export const useTaskMutations = (projectId: string) => {
     },
     onError: (error) => {
       console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
+      toast({ title: "Error", description: 'Task deleted successfully', variant: "destructive" });
     },
   });
 

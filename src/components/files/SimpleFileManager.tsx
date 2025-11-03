@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/card';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
 import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
 import { SimpleFileList } from './SimpleFileList';
 import { SimpleBreadcrumb } from './SimpleBreadcrumb';
@@ -544,12 +543,20 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       // Trim and validate folder name
       const trimmedFolderName = folderName.trim();
       if (!trimmedFolderName) {
-        toast.error('Folder name cannot be empty');
+        useToastHook({
+          title: "Error",
+          description: 'Folder name cannot be empty',
+          variant: "destructive",
+        });
         return;
       }
       
       if (trimmedFolderName.includes('/') || trimmedFolderName.includes('\\')) {
-        toast.error('Folder name cannot contain slashes');
+        useToastHook({
+          title: "Error",
+          description: 'Folder name cannot contain slashes',
+          variant: "destructive",
+        });
         return;
       }
 
@@ -580,7 +587,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       if (existingDBFiles && existingDBFiles.length > 0) {
         // Folder exists in database - show error
         console.log('❌ Folder already exists in database');
-        toast.error('A folder with this name already exists');
+        useToastHook({
+          title: "Error",
+          description: 'A folder with this name already exists',
+          variant: "destructive",
+        });
         return;
       }
 
@@ -603,14 +614,21 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
         if (healError) {
           console.error('❌ Auto-heal failed:', healError);
-          toast.error(`Failed to create folder: ${healError.message}`);
+          useToastHook({
+            title: "Error",
+            description: `Failed to create folder: ${healError.message}`,
+            variant: "destructive",
+          });
           return;
         }
 
         console.log('✅ Auto-heal successful');
         refetch();
         refetchFolders();
-        toast.success('Folder created successfully');
+        useToastHook({
+          title: "Success",
+          description: 'Folder created successfully',
+        });
         setShowNewFolderModal(false);
         
         if (onUploadSuccess) {
@@ -630,7 +648,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
       if (folderFiles && folderFiles.length > 0) {
         console.log('❌ Folder path already has files');
-        toast.error('A folder with this name already exists');
+        useToastHook({
+          title: "Error",
+          description: 'A folder with this name already exists',
+          variant: "destructive",
+        });
         return;
       }
 
@@ -670,14 +692,21 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
           if (dbError) {
             console.error('❌ DB record creation failed:', dbError);
-            toast.error(`Failed to create folder: ${dbError.message}`);
+            useToastHook({
+              title: "Error",
+              description: `Failed to create folder: ${dbError.message}`,
+              variant: "destructive",
+            });
             return;
           }
 
            console.log('✅ Auto-heal successful after storage conflict');
            refetch();
            refetchFolders();
-           toast.success('Folder created successfully');
+           useToastHook({
+             title: "Success",
+             description: 'Folder created successfully',
+           });
           setShowNewFolderModal(false);
           
           if (onUploadSuccess) {
@@ -685,7 +714,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
           }
           return;
         } else {
-          toast.error(`Failed to create folder: ${uploadError.message}`);
+          useToastHook({
+            title: "Error",
+            description: `Failed to create folder: ${uploadError.message}`,
+            variant: "destructive",
+          });
           return;
         }
       }
@@ -708,14 +741,21 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
         console.error('❌ Database insert error:', dbError);
         // Try to clean up the storage file if DB insert failed
         await supabase.storage.from('project-files').remove([storageFileName]);
-        toast.error(`Failed to create folder: ${dbError.message}`);
+        useToastHook({
+          title: "Error",
+          description: `Failed to create folder: ${dbError.message}`,
+          variant: "destructive",
+        });
         return;
       }
 
       console.log('✅ Folder created successfully');
       refetch();
       refetchFolders();
-      toast.success('Folder created successfully');
+      useToastHook({
+        title: "Success",
+        description: 'Folder created successfully',
+      });
       setShowNewFolderModal(false);
       
       if (onUploadSuccess) {
@@ -723,7 +763,11 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       }
     } catch (error) {
       console.error('❌ Error creating folder:', error);
-      toast.error(`Failed to create folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      useToastHook({
+        title: "Error",
+        description: `Failed to create folder: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
     }
   };
 

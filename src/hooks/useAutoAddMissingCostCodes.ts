@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -12,6 +12,7 @@ export function useAutoAddMissingCostCodes(
   existingBudgetItems: any[]
 ) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const addMissingCostCodes = useMutation({
     mutationFn: async (costCodesToAdd: CostCode[]) => {
@@ -34,12 +35,12 @@ export function useAutoAddMissingCostCodes(
     onSuccess: (_, costCodesToAdd) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', currentProjectId] });
       if (costCodesToAdd.length > 0) {
-        toast.success(`Added ${costCodesToAdd.length} missing cost code${costCodesToAdd.length > 1 ? 's' : ''} from historical project`);
+        toast({ title: "Success", description: `Added ${costCodesToAdd.length} missing cost code${costCodesToAdd.length > 1 ? 's' : ''} from historical project` });
       }
     },
     onError: (error) => {
       console.error('Error adding missing cost codes:', error);
-      toast.error('Failed to add missing cost codes');
+      toast({ title: "Error", description: 'Failed to add missing cost codes', variant: "destructive" });
     }
   });
 

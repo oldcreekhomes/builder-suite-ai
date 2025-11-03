@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface DepositSource {
   id: string;
@@ -35,6 +35,7 @@ export function useDepositSources() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchDepositSources = async () => {
@@ -97,11 +98,11 @@ export function useDepositSources() {
     onSuccess: (newSource) => {
       setDepositSources(prev => [...prev, newSource]);
       queryClient.invalidateQueries({ queryKey: ['deposit-sources'] });
-      toast.success('Deposit source added successfully');
+      toast({ title: "Success", description: 'Deposit source added successfully' });
     },
     onError: (error) => {
       console.error('Error creating deposit source:', error);
-      toast.error('Failed to create deposit source');
+      toast({ title: "Error", description: 'Failed to create deposit source', variant: "destructive" });
     },
   });
 

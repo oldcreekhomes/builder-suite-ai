@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { 
   parsePredecessors, 
   validatePredecessors, 
@@ -34,6 +34,7 @@ export function PredecessorSelector({
   const [inputValue, setInputValue] = useState<string>("");
   const [validationResult, setValidationResult] = useState({ isValid: true, errors: [], warnings: [] });
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   // Helper function to safely convert value to string array
   const valueToArray = (val: any): string[] => {
@@ -81,9 +82,10 @@ export function PredecessorSelector({
     if (inputValue.trim()) {
       const result = validatePredecessors(currentTaskId, predecessors, allTasks);
       if (!result.isValid) {
-        toast.error("Predecessor Validation Error", {
+        toast({
+          title: "Predecessor Validation Error",
           description: result.errors.join("; "),
-          className: "[&_*]:!text-red-500"
+          variant: "destructive"
         });
         // Reject invalid input - reset to original value and don't call onValueChange
         setInputValue(safeValue.join(', '));

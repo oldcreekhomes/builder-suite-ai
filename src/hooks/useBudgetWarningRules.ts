@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
 type BudgetWarningRule = Tables<'budget_warning_rules'>;
@@ -17,6 +17,7 @@ const DEFAULT_RULES = [
 
 export function useBudgetWarningRules() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ['budget-warning-rules'],
@@ -84,11 +85,11 @@ export function useBudgetWarningRules() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budget-warning-rules'] });
-      toast.success('Warning rule updated');
+      toast({ title: "Success", description: 'Warning rule updated' });
     },
     onError: (error) => {
       console.error('Error updating warning rule:', error);
-      toast.error('Failed to update warning rule');
+      toast({ title: "Error", description: 'Failed to update warning rule', variant: "destructive" });
     },
   });
 

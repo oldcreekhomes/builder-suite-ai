@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 export interface CreditCardLineData {
   line_type: 'expense' | 'job_cost';
@@ -27,6 +27,7 @@ export interface CreditCardData {
 
 export function useCreditCards() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch all credit card transactions
   const { data: creditCards = [], isLoading } = useQuery({
@@ -223,7 +224,7 @@ export function useCreditCards() {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-      toast.success("Credit card transaction created successfully");
+      toast({ title: "Success", description: "Credit card transaction created successfully" });
     },
     onError: (error: Error) => {
       let errorMessage = error.message || "Failed to create credit card transaction";
@@ -232,7 +233,7 @@ export function useCreditCards() {
         errorMessage = "Could not save: a journal line was missing an account. For Job Cost, we automatically use your WIP account. Please check Settings > Accounting.";
       }
       
-      toast.error(errorMessage);
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     },
   });
 
@@ -250,10 +251,10 @@ export function useCreditCards() {
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-      toast.success("Credit card transaction deleted successfully");
+      toast({ title: "Success", description: "Credit card transaction deleted successfully" });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete credit card transaction");
+      toast({ title: "Error", description: error.message || "Failed to delete credit card transaction", variant: "destructive" });
     },
   });
 
@@ -388,11 +389,11 @@ export function useCreditCards() {
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       queryClient.refetchQueries({ queryKey: ['account-transactions'] });
-      toast.success("Credit card transaction corrected with complete audit trail");
+      toast({ title: "Success", description: "Credit card transaction corrected with complete audit trail" });
     },
     onError: (error: Error) => {
       console.error('Error correcting credit card:', error);
-      toast.error(error.message || "Failed to correct credit card transaction");
+      toast({ title: "Error", description: error.message || "Failed to correct credit card transaction", variant: "destructive" });
     },
   });
 

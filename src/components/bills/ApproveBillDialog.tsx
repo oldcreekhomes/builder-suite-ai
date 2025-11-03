@@ -21,7 +21,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface ExtractedData {
   vendor_name?: string;
@@ -42,6 +42,7 @@ export const ApproveBillDialog = ({
   projectId: initialProjectId,
 }: ApproveBillDialogProps) => {
   const { approveBill } = usePendingBills();
+  const { toast } = useToast();
   const [vendorId, setVendorId] = useState("");
   const [projectId, setProjectId] = useState(initialProjectId || "");
   const [billDate, setBillDate] = useState<Date>(new Date());
@@ -100,7 +101,7 @@ export const ApproveBillDialog = ({
           if (exactMatch.terms) {
             setTerms(exactMatch.terms);
           }
-          toast.success(`Auto-matched vendor: ${exactMatch.company_name}`);
+          toast({ title: "Success", description: `Auto-matched vendor: ${exactMatch.company_name}` });
         } else if (companies && companies.length > 0) {
           // Partial match - auto-select the first one
           setVendorId(companies[0].id);
@@ -108,7 +109,7 @@ export const ApproveBillDialog = ({
           if (companies[0].terms) {
             setTerms(companies[0].terms);
           }
-          toast.info(`Selected vendor: ${companies[0].company_name}`);
+          toast({ title: "Info", description: `Selected vendor: ${companies[0].company_name}` });
         }
       } catch (error) {
         console.error("Error fetching vendor data:", error);

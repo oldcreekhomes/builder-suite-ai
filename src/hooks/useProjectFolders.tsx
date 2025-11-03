@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 export interface ProjectFolder {
   id: string;
@@ -42,6 +42,7 @@ export const useProjectFolders = (projectId: string) => {
 export const useCreateFolder = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ projectId, folderName, parentPath }: {
@@ -70,17 +71,18 @@ export const useCreateFolder = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project-folders', variables.projectId] });
-      toast.success('Folder created successfully');
+      toast({ title: "Success", description: 'Folder created successfully' });
     },
     onError: (error) => {
       console.error('Error creating folder:', error);
-      toast.error('Failed to create folder');
+      toast({ title: "Error", description: 'Failed to create folder', variant: "destructive" });
     },
   });
 };
 
 export const useDeleteFolder = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ projectId, folderPath }: {
@@ -98,11 +100,11 @@ export const useDeleteFolder = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project-folders', variables.projectId] });
-      toast.success('Folder deleted successfully');
+      toast({ title: "Success", description: 'Folder deleted successfully' });
     },
     onError: (error) => {
       console.error('Error deleting folder:', error);
-      toast.error('Failed to delete folder');
+      toast({ title: "Error", description: 'Failed to delete folder', variant: "destructive" });
     },
   });
 };
