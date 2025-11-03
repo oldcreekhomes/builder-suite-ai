@@ -486,7 +486,7 @@ export function AccountDetailDialog({
       } else if (transaction.source_type === 'credit_card') {
         await deleteCreditCard.mutateAsync(transaction.source_id);
       } else if (transaction.source_type === 'manual') {
-        await deleteManualJournalEntry.mutateAsync(transaction.source_id);
+        await deleteManualJournalEntry.mutateAsync(transaction.journal_entry_id);
       } else if (transaction.source_type === 'bill_payment') {
         // Reverse the payment instead of deleting the bill
         const { error } = await supabase.rpc('reverse_bill_payment', {
