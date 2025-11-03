@@ -185,7 +185,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     if (onUploadSuccess) {
       onUploadSuccess();
     }
-    toast.success('File uploaded successfully');
   };
 
   // File upload helpers
