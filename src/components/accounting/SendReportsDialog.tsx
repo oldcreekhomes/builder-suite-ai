@@ -231,7 +231,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               </div>
 
               {bankStatements && bankStatements.length > 0 && (
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="select-all-statements"
@@ -244,7 +244,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
                         }
                       }}
                     />
-                    <Label htmlFor="select-all-statements" className="text-sm font-medium cursor-pointer">
+                    <Label htmlFor="select-all-statements" className="font-normal cursor-pointer">
                       Bank Statements
                     </Label>
                   </div>
