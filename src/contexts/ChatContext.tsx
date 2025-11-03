@@ -13,6 +13,7 @@ interface ChatContextType {
   connectionState: string;
   markConversationAsRead: (userId: string) => Promise<void>;
   openChat: (user: User) => void;
+  reconnectChannel?: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -46,14 +47,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   }, []);
 
   // Set up master real-time notifications
-  const { unreadCounts, connectionState, markConversationAsRead } = useMasterChatRealtime(
+  const { unreadCounts, connectionState, markConversationAsRead, reconnectChannel } = useMasterChatRealtime(
     activeConversationUserId,
-    {
-      onNotificationTrigger: (sender, message) => {
-        console.log('💬 ChatContext: Opening chat from notification for user:', sender.id);
-        openChat(sender);
-      }
-    },
+    {},
     { enableNotifications: true, notifyWhileActive: true }
   );
 
@@ -91,7 +87,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     unreadCounts,
     connectionState,
     markConversationAsRead,
-    openChat
+    openChat,
+    reconnectChannel,
   };
 
   return (

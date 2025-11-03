@@ -1,48 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, Volume2, VolumeX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { WifiOff, Wifi, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import { audioManager } from '@/utils/audioManager';
+import { tabLeader } from '@/utils/tabLeader';
 
 interface NotificationStatusProps {
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'error';
+  connectionState: 'connected' | 'connecting' | 'disconnected' | 'error';
+  onReconnect?: () => void;
 }
 
-export const NotificationStatus = ({ connectionState }: NotificationStatusProps) => {
+export const NotificationStatus = ({ connectionState, onReconnect }: NotificationStatusProps) => {
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [isLeader, setIsLeader] = useState(tabLeader.getIsLeader());
+  const [testingSound, setTestingSound] = useState(false);
 
   useEffect(() => {
-    // Initialize audio immediately when component mounts
-    const initAudio = async () => {
-      try {
-        const enabled = await audioManager.initWithUserGesture();
-        setAudioEnabled(enabled);
-        console.log('🚀 Audio manager initialized:', enabled);
-      } catch (error) {
-        console.error('🚀 Error initializing audio:', error);
-        setAudioEnabled(false);
-      }
+    // Listen to leadership changes
+    tabLeader.onLeaderChange(setIsLeader);
+    
+    // Check audio status periodically
+    const checkAudio = () => {
+      setAudioEnabled(audioManager.isAudioUnlocked());
     };
+    
+    const interval = setInterval(checkAudio, 2000);
+    checkAudio();
+    
+    return () => clearInterval(interval);
+  }, []);
 
-    // Try to initialize immediately (in case user already interacted)
-    initAudio();
+  const handleEnableSound = async () => {
+    const unlocked = await audioManager.ensureUnlocked();
+    setAudioEnabled(unlocked);
+    
+    if (!unlocked) {
+      console.warn('🔔 NotificationStatus: Failed to unlock audio');
+    }
+  };
 
-    const handleClick = () => {
-      if (!audioEnabled) {
-        initAudio();
-      }
-    };
-
-    // Listen for any user interaction to enable audio
-    document.addEventListener('click', handleClick);
-    document.addEventListener('keydown', handleClick);
-    document.addEventListener('touchstart', handleClick);
-
-    return () => {
-      document.removeEventListener('click', handleClick);
-      document.removeEventListener('keydown', handleClick);
-      document.removeEventListener('touchstart', handleClick);
-    };
-  }, [audioEnabled]);
+  const handleTestSound = async () => {
+    setTestingSound(true);
+    const played = await audioManager.playNotificationSound();
+    setTestingSound(false);
+    
+    if (!played) {
+      console.warn('🔔 NotificationStatus: Test sound failed to play');
+    }
+  };
 
   const getConnectionIcon = () => {
     switch (connectionState) {
@@ -79,23 +84,69 @@ export const NotificationStatus = ({ connectionState }: NotificationStatusProps)
     }
   };
 
-  // Always show when there are connection issues or audio is disabled
-  if (connectionState === 'connected' && audioEnabled) {
-    // Hide when everything is working perfectly
+  // Show status when not connected or audio not enabled
+  const shouldShow = connectionState !== 'connected' || !audioEnabled;
+  
+  if (!shouldShow) {
     return null;
   }
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex gap-2">
-      <Badge variant={getConnectionVariant()} className="flex items-center gap-1">
-        {getConnectionIcon()}
-        {getConnectionText()}
-      </Badge>
+    <div className="fixed top-4 right-4 z-50 flex items-center gap-2 flex-wrap">
+      {connectionState !== 'connected' && (
+        <>
+          <Badge 
+            variant={getConnectionVariant()} 
+            className="flex items-center gap-1.5"
+          >
+            {getConnectionIcon()}
+            <span className="text-xs">{getConnectionText()}</span>
+          </Badge>
+          
+          {onReconnect && connectionState === 'error' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onReconnect}
+              className="h-6 text-xs"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Retry
+            </Button>
+          )}
+        </>
+      )}
       
       {!audioEnabled && (
-        <Badge variant="outline" className="flex items-center gap-1">
-          <VolumeX className="h-3 w-3" />
-          Click to enable sound
+        <div className="flex items-center gap-2">
+          <Badge 
+            variant="outline" 
+            className="flex items-center gap-1.5 cursor-pointer hover:bg-accent"
+            onClick={handleEnableSound}
+          >
+            <VolumeX className="h-3 w-3" />
+            <span className="text-xs">Click to enable sound</span>
+          </Badge>
+          
+          {audioEnabled && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleTestSound}
+              disabled={testingSound}
+              className="h-6 text-xs"
+            >
+              <Volume2 className="h-3 w-3 mr-1" />
+              Test
+            </Button>
+          )}
+        </div>
+      )}
+
+      {audioEnabled && !isLeader && (
+        <Badge variant="secondary" className="flex items-center gap-1.5">
+          <Volume2 className="h-3 w-3" />
+          <span className="text-xs">Sound: Background tab</span>
         </Badge>
       )}
     </div>

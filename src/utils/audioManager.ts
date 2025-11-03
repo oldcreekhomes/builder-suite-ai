@@ -4,6 +4,8 @@ class AudioManager {
   private isInitialized = false;
   private soundQueue: Array<() => Promise<void>> = [];
   private isPlayingSound = false;
+  private fallbackAudio: HTMLAudioElement | null = null;
+  private audioUnlocked = false;
 
   async getAudioContext(): Promise<AudioContext | null> {
     try {
@@ -39,14 +41,46 @@ class AudioManager {
     }
   }
 
-  // Initialize audio context with user interaction
-  async initWithUserGesture(): Promise<boolean> {
-    try {
-      const context = await this.getAudioContext();
-      if (!context) return false;
+  // Initialize fallback audio element
+  private initFallbackAudio() {
+    if (!this.fallbackAudio) {
+      this.fallbackAudio = new Audio();
+      // Short notification beep as data URI (440Hz, 0.2s)
+      this.fallbackAudio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGWi77eaeTRAMUKfj8LZjGwY5ktfyzHksBSR3yPDckUELFF60'+
+        '6eqpVRQKRp/g8r5rIAUrgc7y2Yk2CBlou+3mnk0QDFCn4/C2YxsGOZLX8sx5LAUkd8nw3JFBC';
+      this.fallbackAudio.volume = 0.3;
+      this.fallbackAudio.load();
+    }
+  }
 
-      // Play a silent sound to unlock audio context
-      if (context.state !== 'running') {
+  // Check if audio is unlocked and ready
+  public async ensureUnlocked(): Promise<boolean> {
+    try {
+      // Try AudioContext first
+      const context = await this.getAudioContext();
+      if (context && context.state === 'running') {
+        this.audioUnlocked = true;
+        console.log('🔊 AudioManager: Audio unlocked via AudioContext');
+        return true;
+      }
+
+      // Try fallback audio element
+      this.initFallbackAudio();
+      if (this.fallbackAudio) {
+        try {
+          await this.fallbackAudio.play();
+          this.fallbackAudio.pause();
+          this.fallbackAudio.currentTime = 0;
+          this.audioUnlocked = true;
+          console.log('🔊 AudioManager: Audio unlocked via HTMLAudioElement');
+          return true;
+        } catch (playError) {
+          console.warn('🔊 AudioManager: Fallback audio play failed:', playError);
+        }
+      }
+
+      // Try to resume AudioContext with silent sound
+      if (context) {
         const oscillator = context.createOscillator();
         const gainNode = context.createGain();
         
@@ -59,14 +93,27 @@ class AudioManager {
         oscillator.start(context.currentTime);
         oscillator.stop(context.currentTime + 0.01);
         
-        console.log('🔊 AudioManager: Unlocked audio context with user gesture');
+        if (context.state === 'running') {
+          this.audioUnlocked = true;
+          console.log('🔊 AudioManager: Audio unlocked with user gesture');
+          return true;
+        }
       }
 
-      return context.state === 'running';
+      return false;
     } catch (error) {
-      console.warn('🔊 AudioManager: Failed to initialize with user gesture:', error);
+      console.warn('🔊 AudioManager: Failed to ensure audio unlocked:', error);
       return false;
     }
+  }
+
+  // Initialize audio context with user interaction
+  async initWithUserGesture(): Promise<boolean> {
+    return this.ensureUnlocked();
+  }
+
+  public isAudioUnlocked(): boolean {
+    return this.audioUnlocked;
   }
 
   // Queue-based sound playing to prevent overlapping and ensure reliability
@@ -75,16 +122,33 @@ class AudioManager {
       const soundTask = async () => {
         try {
           console.log('🔊 AudioManager: Attempting to play notification sound');
+          
+          // Try AudioContext first
           const audioContext = await this.getAudioContext();
-          if (!audioContext) {
-            console.warn('🔊 AudioManager: No audio context available');
-            resolve(false);
+          if (audioContext && audioContext.state === 'running') {
+            const result = await this.createAndPlaySound(audioContext);
+            console.log('🔊 AudioManager: Sound play result (AudioContext):', result);
+            resolve(result);
             return;
           }
 
-          const result = await this.createAndPlaySound(audioContext);
-          console.log('🔊 AudioManager: Sound play result:', result);
-          resolve(result);
+          // Fallback to HTMLAudioElement
+          console.log('🔊 AudioManager: Trying fallback audio element');
+          this.initFallbackAudio();
+          if (this.fallbackAudio) {
+            try {
+              this.fallbackAudio.currentTime = 0;
+              await this.fallbackAudio.play();
+              console.log('🔊 AudioManager: Sound played via fallback audio');
+              resolve(true);
+              return;
+            } catch (playError) {
+              console.warn('🔊 AudioManager: Fallback audio play failed:', playError);
+            }
+          }
+
+          console.warn('🔊 AudioManager: All audio methods failed');
+          resolve(false);
         } catch (error) {
           console.warn('🔊 AudioManager: Sound task failed:', error);
           resolve(false);
@@ -170,6 +234,13 @@ class AudioManager {
       this.audioContext = null;
       this.isInitialized = false;
     }
+
+    if (this.fallbackAudio) {
+      this.fallbackAudio.pause();
+      this.fallbackAudio = null;
+    }
+
+    this.audioUnlocked = false;
   }
 }
 

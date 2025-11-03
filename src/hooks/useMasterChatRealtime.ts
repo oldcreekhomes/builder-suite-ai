@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNotificationPreferences } from './useNotificationPreferences';
 import { useAuth } from './useAuth';
-import { audioManager } from '@/utils/audioManager';
-import { User } from './useCompanyUsers';
+import { notificationEngine } from '@/utils/notificationEngine';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface UnreadCounts {
   [userId: string]: number;
@@ -11,8 +10,8 @@ export interface UnreadCounts {
 
 export interface MasterChatCallbacks {
   onNewMessage?: (message: any, isActiveConversation: boolean) => void;
-  onUnreadCountChange?: (senderId: string, newCount: number) => void;
-  onNotificationTrigger?: (sender: User, message: any) => void;
+  onUnreadCountChange?: (counts: UnreadCounts) => void;
+  onNotificationTrigger?: (message: any) => void;
 }
 
 export interface MasterChatOptions {
@@ -20,312 +19,469 @@ export interface MasterChatOptions {
   notifyWhileActive?: boolean;
 }
 
-// Global channel management to prevent multiple instances
-let globalChannel: any = null;
-let globalChannelUsers = new Set<string>();
+type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 export const useMasterChatRealtime = (
   activeConversationUserId: string | null,
   callbacks: MasterChatCallbacks = {},
   options: MasterChatOptions = {}
 ) => {
-  const { enableNotifications = true, notifyWhileActive = true } = options;
-  const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  
-  const channelRef = useRef<any>(null);
-  const currentUserRef = useRef<string | null>(null);
-  const activeConversationRef = useRef<string | null>(activeConversationUserId);
-  const callbacksRef = useRef(callbacks);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const instanceId = useRef(Math.random().toString(36).substr(2, 9));
-  const isSetupInProgress = useRef(false);
-  
   const { user } = useAuth();
-  const { preferences, isLoading: preferencesLoading } = useNotificationPreferences();
+  const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
+  
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const currentUserRef = useRef(user);
+  const activeConversationRef = useRef(activeConversationUserId);
+  const callbacksRef = useRef(callbacks);
+  const optionsRef = useRef(options);
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const lastMessageAtRef = useRef(Date.now());
+  const healthCheckIntervalRef = useRef<number | null>(null);
+  const pollIntervalRef = useRef<number | null>(null);
+  const seenMessageIdsRef = useRef(new Set<string>());
+  const reconcileIntervalRef = useRef<number | null>(null);
 
-  // Update refs when values change
-  activeConversationRef.current = activeConversationUserId;
-  callbacksRef.current = callbacks;
+  const MAX_RECONNECT_ATTEMPTS = 10;
+  const BASE_RECONNECT_DELAY = 1000;
+  const MAX_RECONNECT_DELAY = 30000;
+  const HEALTH_CHECK_INTERVAL = 10000;
+  const STALE_THRESHOLD = 30000;
+  const POLL_INTERVAL = 15000;
+  const RECONCILE_INTERVAL = 60000;
 
-  // Fetch unread counts for specific users
-  const fetchUnreadCounts = useCallback(async (userIds: string[]) => {
-    if (!user?.id || userIds.length === 0) {
-      setUnreadCounts({});
-      return {};
-    }
+  // Update refs when props change
+  useEffect(() => {
+    currentUserRef.current = user;
+  }, [user]);
 
-    setIsLoading(true);
+  useEffect(() => {
+    activeConversationRef.current = activeConversationUserId;
+  }, [activeConversationUserId]);
+
+  useEffect(() => {
+    callbacksRef.current = callbacks;
+  }, [callbacks]);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  // Fetch unread counts with retry logic
+  const fetchUnreadCounts = useCallback(async (userIds?: string[]) => {
+    if (!currentUserRef.current) return;
+
     try {
-      const counts: UnreadCounts = {};
+      console.log('💬 MasterChat: Fetching unread counts');
       
-      for (const userId of userIds) {
-        const { data, error } = await supabase.rpc('get_conversation_unread_count', {
-          other_user_id_param: userId
-        });
+      if (userIds && userIds.length > 0) {
+        const counts: UnreadCounts = {};
+        
+        await Promise.all(
+          userIds.map(async (userId) => {
+            try {
+              const { data, error } = await supabase.rpc('get_conversation_unread_count', {
+                other_user_id_param: userId,
+              });
 
-        if (error) {
-          console.error('📧 Error fetching unread count for user:', userId, error);
-          counts[userId] = 0;
-        } else {
-          counts[userId] = data || 0;
-        }
+              if (error) throw error;
+              counts[userId] = data || 0;
+            } catch (error) {
+              console.error('💬 MasterChat: Error fetching count for user', userId, error);
+              counts[userId] = 0;
+            }
+          })
+        );
+
+        setUnreadCounts(counts);
+        callbacksRef.current.onUnreadCountChange?.(counts);
       }
-
-      setUnreadCounts(counts);
-      return counts;
-    } catch (error) {
-      console.error('📧 Error fetching unread counts:', error);
-      return {};
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
-  // Mark conversation as read
-  const markConversationAsRead = useCallback(async (otherUserId: string) => {
-    try {
-      await supabase.rpc('mark_conversation_as_read', {
-        other_user_id_param: otherUserId
-      });
       
-      // Update local state immediately
-      setUnreadCounts(prev => ({
-        ...prev,
-        [otherUserId]: 0
-      }));
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error marking conversation as read:', error);
+      console.error('💬 MasterChat: Error in fetchUnreadCounts:', error);
+      setIsLoading(false);
     }
   }, []);
 
-  // Setup realtime connection
-  const setupMasterRealtime = useCallback(async () => {
-    // Prevent multiple simultaneous setups
-    if (isSetupInProgress.current || connectionState === 'connecting') {
-      console.log('🚀 Setup already in progress, skipping');
+  // Mark conversation as read
+  const markConversationAsRead = useCallback(async (otherUserId: string) => {
+    if (!currentUserRef.current) return;
+
+    try {
+      console.log('💬 MasterChat: Marking conversation as read:', otherUserId);
+
+      await supabase.rpc('mark_conversation_as_read', {
+        other_user_id_param: otherUserId,
+      });
+
+      setUnreadCounts(prev => {
+        const updated = { ...prev, [otherUserId]: 0 };
+        callbacksRef.current.onUnreadCountChange?.(updated);
+        return updated;
+      });
+
+      // Broadcast to other tabs
+      try {
+        const bc = new BroadcastChannel('chat-unread-sync');
+        bc.postMessage({ type: 'mark-read', userId: otherUserId });
+        bc.close();
+      } catch (e) {
+        console.warn('💬 MasterChat: BroadcastChannel not available');
+      }
+    } catch (error) {
+      console.error('💬 MasterChat: Error marking as read:', error);
+    }
+  }, []);
+
+  // Calculate reconnect delay with exponential backoff and jitter
+  const getReconnectDelay = useCallback(() => {
+    const attempt = reconnectAttemptsRef.current;
+    const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, attempt), MAX_RECONNECT_DELAY);
+    const jitter = Math.random() * 1000;
+    return delay + jitter;
+  }, []);
+
+  // Reconnect function
+  const reconnectChannel = useCallback(() => {
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('💬 MasterChat: Max reconnect attempts reached');
+      setConnectionState('error');
       return;
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    const delay = getReconnectDelay();
+    console.log(`💬 MasterChat: Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1})`);
+    
+    setConnectionState('connecting');
+    
+    reconnectTimeoutRef.current = window.setTimeout(() => {
+      reconnectAttemptsRef.current++;
+      setupMasterRealtime();
+    }, delay);
+  }, [getReconnectDelay]);
+
+  // Polling fallback
+  const startPolling = useCallback(() => {
+    if (pollIntervalRef.current) return;
+
+    console.log('💬 MasterChat: Starting polling fallback');
+    
+    pollIntervalRef.current = window.setInterval(async () => {
+      const now = Date.now();
+      const timeSinceLastMessage = now - lastMessageAtRef.current;
+      const isStale = timeSinceLastMessage > STALE_THRESHOLD;
+      const isDisconnected = connectionState !== 'connected';
+
+      if (isDisconnected || isStale || document.hidden) {
+        console.log('💬 MasterChat: Polling for updates', { isDisconnected, isStale, hidden: document.hidden });
+        
+        // Poll unread counts (server-truth reconciliation)
+        await fetchUnreadCounts();
+        
+        // If we have an active conversation, also poll messages
+        if (activeConversationRef.current) {
+          try {
+            const { data: messages } = await supabase
+              .from('user_chat_messages')
+              .select('*')
+              .or(`sender_id.eq.${activeConversationRef.current},receiver_id.eq.${activeConversationRef.current}`)
+              .order('created_at', { ascending: false })
+              .limit(20);
+
+            if (messages) {
+              // Check for new messages we haven't seen
+              messages.forEach(msg => {
+                if (!seenMessageIdsRef.current.has(msg.id)) {
+                  seenMessageIdsRef.current.add(msg.id);
+                  callbacksRef.current.onNewMessage?.(msg, true);
+                }
+              });
+            }
+          } catch (error) {
+            console.error('💬 MasterChat: Error polling messages:', error);
+          }
+        }
+      }
+    }, POLL_INTERVAL);
+  }, [connectionState, fetchUnreadCounts]);
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      console.log('💬 MasterChat: Stopping polling');
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
+  // Health check watchdog
+  const startHealthCheck = useCallback(() => {
+    if (healthCheckIntervalRef.current) return;
+
+    healthCheckIntervalRef.current = window.setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastMessage = now - lastMessageAtRef.current;
+      const channel = channelRef.current;
+
+      if (!channel) {
+        console.warn('💬 MasterChat: No channel in health check, reconnecting');
+        reconnectChannel();
+        return;
+      }
+
+      // Check if channel is stale
+      if (timeSinceLastMessage > STALE_THRESHOLD && connectionState === 'connected') {
+        console.warn('💬 MasterChat: Channel stale, reconnecting');
+        reconnectChannel();
+      }
+    }, HEALTH_CHECK_INTERVAL);
+  }, [connectionState, reconnectChannel]);
+
+  const stopHealthCheck = useCallback(() => {
+    if (healthCheckIntervalRef.current) {
+      clearInterval(healthCheckIntervalRef.current);
+      healthCheckIntervalRef.current = null;
+    }
+  }, []);
+
+  // Server-truth reconciliation
+  const startReconciliation = useCallback(() => {
+    if (reconcileIntervalRef.current) return;
+
+    reconcileIntervalRef.current = window.setInterval(async () => {
+      console.log('💬 MasterChat: Reconciling unread counts with server');
+      await fetchUnreadCounts();
+    }, RECONCILE_INTERVAL);
+  }, [fetchUnreadCounts]);
+
+  const stopReconciliation = useCallback(() => {
+    if (reconcileIntervalRef.current) {
+      clearInterval(reconcileIntervalRef.current);
+      reconcileIntervalRef.current = null;
+    }
+  }, []);
+
+  // Main realtime setup
+  const setupMasterRealtime = useCallback(async () => {
+    if (!currentUserRef.current?.id) {
+      console.log('💬 MasterChat: No user, skipping setup');
+      return;
+    }
+
+    // Clean up existing channel
+    if (channelRef.current) {
+      console.log('💬 MasterChat: Cleaning up existing channel');
+      await supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
     }
 
     try {
-      isSetupInProgress.current = true;
-      
-      // Get current user
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser) {
-        isSetupInProgress.current = false;
-        return;
-      }
-
-      currentUserRef.current = authUser.id;
-      globalChannelUsers.add(instanceId.current);
-      
-      console.log('🚀 Setting up MASTER chat realtime for user:', authUser.id, 'instance:', instanceId.current);
+      console.log('💬 MasterChat: Setting up master realtime channel');
       setConnectionState('connecting');
 
-      // If global channel already exists and is healthy, reuse it
-      if (globalChannel && (globalChannel.state === 'joined' || globalChannel.state === 'joining')) {
-        console.log('🚀 Reusing existing healthy global channel');
-        channelRef.current = globalChannel;
-        setConnectionState('connected');
-        isSetupInProgress.current = false;
-        return;
-      }
-
-      // Clean up existing unhealthy channel
-      if (globalChannel) {
-        console.log('🚀 Cleaning up unhealthy global channel');
-        try {
-          await supabase.removeChannel(globalChannel);
-        } catch (error) {
-          console.warn('🚀 Error removing existing channel:', error);
-        }
-        globalChannel = null;
-      }
-
-      // Create new channel
-      const channelName = `master_chat_${authUser.id}`;
-      console.log('🚀 Creating master channel:', channelName);
-
-      const newChannel = supabase.channel(channelName, {
+      const channel = supabase.channel(`master-chat-${currentUserRef.current.id}`, {
         config: {
-          presence: {
-            key: authUser.id,
-          },
+          broadcast: { self: false },
+          presence: { key: currentUserRef.current.id },
         },
       });
 
-      // Handle realtime message updates
-      newChannel
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'user_chat_messages',
-          filter: `recipient_id=eq.${authUser.id}`
-        }, async (payload) => {
-          console.log('🚀 New message received:', payload);
-          setConnectionState('connected');
-          reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful message
+      channelRef.current = channel;
 
-          const messageData = payload.new;
-          const senderId = messageData.sender_id;
-          const isActiveConversation = activeConversationRef.current === senderId;
-
-          // Update unread count
-          if (!isActiveConversation) {
-            setUnreadCounts(prev => ({
-              ...prev,
-              [senderId]: (prev[senderId] || 0) + 1
-            }));
-
-            if (callbacksRef.current.onUnreadCountChange) {
-              callbacksRef.current.onUnreadCountChange(senderId, (unreadCounts[senderId] || 0) + 1);
-            }
-          }
-
-          // Trigger callback for new message
-          if (callbacksRef.current.onNewMessage) {
-            callbacksRef.current.onNewMessage(messageData, isActiveConversation);
-          }
-
-          // Handle notifications
-          if (enableNotifications && (!isActiveConversation || notifyWhileActive)) {
-            console.log('🚀 Processing notification for message from:', senderId);
+      // Listen for new messages
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'user_chat_messages',
+            filter: `receiver_id=eq.${currentUserRef.current.id}`,
+          },
+          async (payload) => {
+            console.log('💬 MasterChat: New message received', payload);
+            lastMessageAtRef.current = Date.now();
             
-            // Get sender information
-            const { data: senderData } = await supabase
-              .from('users')
-              .select('first_name, last_name, company_name')
-              .eq('id', senderId)
-              .single();
+            const message = payload.new;
+            const senderId = message.sender_id;
+            
+            // Deduplicate
+            if (seenMessageIdsRef.current.has(message.id)) {
+              console.log('💬 MasterChat: Duplicate message, skipping', message.id);
+              return;
+            }
+            seenMessageIdsRef.current.add(message.id);
 
-            if (senderData) {
-              const sender: User = {
-                id: senderId,
-                first_name: senderData.first_name || '',
-                last_name: senderData.last_name || '',
-                email: '',
-                role: 'employee',
-                company_name: senderData.company_name || ''
-              };
+            const isActiveConversation = senderId === activeConversationRef.current;
 
-              const senderName = `${sender.first_name} ${sender.last_name}`.trim() || sender.company_name || 'Unknown User';
+            // Update unread count
+            if (!isActiveConversation) {
+              setUnreadCounts(prev => {
+                const updated = {
+                  ...prev,
+                  [senderId]: (prev[senderId] || 0) + 1,
+                };
+                callbacksRef.current.onUnreadCountChange?.(updated);
+                return updated;
+              });
+            }
 
-              // Play sound notification if enabled (with fallback to true if preferences not loaded)
-              const shouldPlaySound = preferences?.sound_notifications_enabled ?? true;
-              if (shouldPlaySound) {
-                console.log('🚀 Playing notification sound for:', senderName);
-                
-                try {
-                  await audioManager.getAudioContext();
-                  const soundPlayed = await audioManager.playNotificationSound();
-                  if (!soundPlayed) {
-                    console.log('🚀 Could not play notification sound - user interaction required');
-                  }
-                } catch (soundError) {
-                  console.error('🚀 Error playing notification sound:', soundError);
-                }
+            // Trigger callbacks
+            callbacksRef.current.onNewMessage?.(message, isActiveConversation);
+
+            // Handle notifications via notification engine
+            if (optionsRef.current.enableNotifications !== false) {
+              try {
+                // Fetch sender info from users table
+                const { data: senderData } = await supabase
+                  .from('users')
+                  .select('first_name, last_name, email')
+                  .eq('id', senderId)
+                  .single();
+
+                const senderName = senderData 
+                  ? `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim() || senderData.email || 'Someone'
+                  : 'Someone';
+
+                notificationEngine.notifyNewMessage({
+                  id: message.id,
+                  senderId,
+                  senderName,
+                  content: message.content || '',
+                  isActiveConversation,
+                  timestamp: Date.now(),
+                });
+              } catch (error) {
+                console.error('💬 MasterChat: Error fetching sender info:', error);
               }
             }
           }
-        })
-        .subscribe((status) => {
-          console.log('🚀 Master chat subscription status:', status, 'instance:', instanceId.current);
-          
+        )
+        .subscribe(async (status) => {
+          console.log('💬 MasterChat: Channel status:', status);
+
           if (status === 'SUBSCRIBED') {
+            console.log('💬 MasterChat: Successfully subscribed');
             setConnectionState('connected');
-            reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
+            reconnectAttemptsRef.current = 0;
+            lastMessageAtRef.current = Date.now();
             
-            // Clear any pending reconnection attempts
-            if (reconnectTimeoutRef.current) {
-              clearTimeout(reconnectTimeoutRef.current);
-              reconnectTimeoutRef.current = null;
-            }
-          } else if (status === 'CHANNEL_ERROR') {
-            console.warn('🚀 Channel error detected', 'instance:', instanceId.current);
+            // Reconcile unread counts on connection
+            await fetchUnreadCounts();
+            
+            // Start health check and reconciliation
+            startHealthCheck();
+            startReconciliation();
+            stopPolling(); // Stop polling when connected
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('💬 MasterChat: Channel error:', status);
             setConnectionState('error');
-            // Don't auto-reconnect on channel errors to prevent loops
+            stopHealthCheck();
+            stopReconciliation();
+            startPolling(); // Start polling as fallback
+            reconnectChannel();
           } else if (status === 'CLOSED') {
-            console.warn('🚀 Channel closed', 'instance:', instanceId.current);
+            console.warn('💬 MasterChat: Channel closed');
             setConnectionState('disconnected');
-            // Don't auto-reconnect on close to prevent loops - let user action trigger reconnect
+            stopHealthCheck();
+            stopReconciliation();
+            startPolling();
+            reconnectChannel();
           }
         });
-
-      channelRef.current = newChannel;
-      globalChannel = newChannel;
-      console.log('🚀 Master realtime setup complete', 'instance:', instanceId.current);
     } catch (error) {
-      console.error('🚀 Error setting up master realtime:', error);
+      console.error('💬 MasterChat: Error setting up channel:', error);
       setConnectionState('error');
-    } finally {
-      isSetupInProgress.current = false;
+      startPolling();
+      reconnectChannel();
     }
-  }, [user?.id, preferences, preferencesLoading, enableNotifications, notifyWhileActive]);
+  }, [fetchUnreadCounts, reconnectChannel, startHealthCheck, stopHealthCheck, startPolling, stopPolling, startReconciliation, stopReconciliation]);
 
-  // Manual reconnect function (no auto-reconnect to prevent loops)
-  const reconnectChannel = useCallback(() => {
-    if (reconnectAttemptsRef.current >= 3) {
-      console.log('🚀 Max reconnection attempts reached');
-      setConnectionState('error');
-      return;
-    }
-
-    reconnectAttemptsRef.current++;
-    console.log(`🚀 Manual reconnect attempt ${reconnectAttemptsRef.current}`);
-    
-    // Clear existing timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    
-    // Setup after short delay
-    reconnectTimeoutRef.current = setTimeout(() => {
-      setupMasterRealtime();
-    }, 1000);
-  }, [setupMasterRealtime]);
-
+  // Visibility and focus handlers
   useEffect(() => {
-    let isCleanedUp = false;
-
-    if (user?.id && !isCleanedUp) {
-      setupMasterRealtime();
-    }
-
-    return () => {
-      console.log('🚀 Cleaning up master chat realtime', 'instance:', instanceId.current);
-      isCleanedUp = true;
-      
-      // Remove this instance from global users
-      globalChannelUsers.delete(instanceId.current);
-      
-      // Clear reconnection timeout
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      
-      // Reset connection attempts
-      reconnectAttemptsRef.current = 0;
-      setConnectionState('disconnected');
-      
-      // Only remove global channel if no other instances are using it
-      if (globalChannelUsers.size === 0 && globalChannel) {
-        console.log('🚀 Removing global channel - no more instances');
-        try {
-          supabase.removeChannel(globalChannel);
-          globalChannel = null;
-        } catch (error) {
-          console.warn('🚀 Error removing global channel:', error);
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && currentUserRef.current) {
+        console.log('💬 MasterChat: Tab visible, reconciling');
+        await fetchUnreadCounts();
+        
+        if (connectionState !== 'connected') {
+          reconnectChannel();
         }
       }
-      
-      channelRef.current = null;
     };
-  }, [setupMasterRealtime]);
+
+    const handleFocus = async () => {
+      console.log('💬 MasterChat: Window focused, reconciling');
+      await fetchUnreadCounts();
+    };
+
+    const handleOnline = () => {
+      console.log('💬 MasterChat: Network online, reconnecting');
+      reconnectChannel();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [connectionState, fetchUnreadCounts, reconnectChannel]);
+
+  // Listen for cross-tab sync
+  useEffect(() => {
+    try {
+      const bc = new BroadcastChannel('chat-unread-sync');
+      bc.onmessage = (event) => {
+        if (event.data.type === 'mark-read') {
+          setUnreadCounts(prev => {
+            const updated = { ...prev, [event.data.userId]: 0 };
+            return updated;
+          });
+        }
+      };
+
+      return () => bc.close();
+    } catch (e) {
+      console.warn('💬 MasterChat: BroadcastChannel not available');
+    }
+  }, []);
+
+  // Main setup and cleanup
+  useEffect(() => {
+    if (!user) return;
+
+    setupMasterRealtime();
+    startPolling(); // Start polling immediately as backup
+
+    return () => {
+      console.log('💬 MasterChat: Cleaning up');
+      
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      stopHealthCheck();
+      stopPolling();
+      stopReconciliation();
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      
+      seenMessageIdsRef.current.clear();
+    };
+  }, [user, setupMasterRealtime, startPolling, stopHealthCheck, stopPolling, stopReconciliation]);
 
   return {
     unreadCounts,
@@ -333,6 +489,6 @@ export const useMasterChatRealtime = (
     connectionState,
     fetchUnreadCounts,
     markConversationAsRead,
-    reconnectChannel
+    reconnectChannel,
   };
 };
