@@ -57,12 +57,12 @@ const styles = StyleSheet.create({
     borderTopColor: '#000',
     fontWeight: 'bold',
   },
-  col1: { width: '8%' }, // Code
-  col2: { width: '42%' }, // Name
-  col3: { width: '18%' }, // Source
+  col1Base: { width: '8%' }, // Code
+  col2Base: { width: '42%' }, // Name
+  col3Base: { width: '18%' }, // Source
   col4: { width: '10%', textAlign: 'right' }, // Historical
   col5: { width: '10%', textAlign: 'right' }, // Variance
-  col6: { width: '12%', textAlign: 'left' }, // Budget Total (far right)
+  col6Base: { width: '12%', textAlign: 'left' }, // Budget Total (far right)
   footerContainer: {
     position: 'absolute',
     bottom: 20,
@@ -184,9 +184,29 @@ export function BudgetPdfDocument({
     );
   };
 
+  // Calculate dynamic column widths based on visible columns
+  const showHistorical = visibleColumns.historical;
+  const showVariance = visibleColumns.variance;
+  
+  // When Historical/Variance are hidden, redistribute space proportionally
+  const col1Style = {
+    ...styles.col1Base,
+    width: showHistorical && showVariance ? '8%' : '10%'
+  };
+  
+  const col2Style = {
+    ...styles.col2Base,
+    width: showHistorical && showVariance ? '42%' : '52%'
+  };
+  
+  const col3Style = {
+    ...styles.col3Base,
+    width: showHistorical && showVariance ? '18%' : '23%'
+  };
+  
   const col6Style = {
-    ...styles.col6,
-    width: `${12 + (!visibleColumns.historical ? 10 : 0) + (!visibleColumns.variance ? 10 : 0)}%`,
+    ...styles.col6Base,
+    width: showHistorical && showVariance ? '12%' : '15%'
   };
 
   return (
@@ -199,9 +219,9 @@ export function BudgetPdfDocument({
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={styles.col1}>Cost Code</Text>
-            <Text style={styles.col2}>Name</Text>
-            <Text style={styles.col3}>Source</Text>
+            <Text style={col1Style}>Cost Code</Text>
+            <Text style={col2Style}>Name</Text>
+            <Text style={col3Style}>Source</Text>
             {visibleColumns.historical && <Text style={styles.col4}>Historical</Text>}
             {visibleColumns.variance && <Text style={styles.col5}>Variance</Text>}
             <Text style={col6Style}>Total Budget</Text>
@@ -218,9 +238,9 @@ export function BudgetPdfDocument({
 
                 return (
                   <View key={item.id} style={styles.tableRow}>
-                    <Text style={styles.col1}>{costCode?.code || '-'}</Text>
-                    <Text style={styles.col2}>{costCode?.name || '-'}</Text>
-                    <Text style={styles.col3}>{getSourceLabel(item)}</Text>
+                    <Text style={col1Style}>{costCode?.code || '-'}</Text>
+                    <Text style={col2Style}>{costCode?.name || '-'}</Text>
+                    <Text style={col3Style}>{getSourceLabel(item)}</Text>
                     {visibleColumns.historical && (
                       <Text style={styles.col4}>{formatCurrency(historical)}</Text>
                     )}
@@ -237,9 +257,9 @@ export function BudgetPdfDocument({
               })}
 
               <View style={styles.groupHeader}>
-                <Text style={styles.col1}></Text>
-                <Text style={{ ...styles.col2, fontWeight: 'bold' }}>Subtotal for {group.split(' - ')[0]}</Text>
-                <Text style={styles.col3}></Text>
+                <Text style={col1Style}></Text>
+                <Text style={{ ...col2Style, fontWeight: 'bold' }}>Subtotal for {group.split(' - ')[0]}</Text>
+                <Text style={col3Style}></Text>
                 {visibleColumns.historical && (
                   <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
                     {formatCurrency(calculateGroupHistorical(items))}
@@ -254,9 +274,9 @@ export function BudgetPdfDocument({
           ))}
 
           <View style={styles.totalRow}>
-            <Text style={styles.col1}></Text>
-            <Text style={{ ...styles.col2, fontWeight: 'bold' }}>Project Total:</Text>
-            <Text style={styles.col3}></Text>
+            <Text style={col1Style}></Text>
+            <Text style={{ ...col2Style, fontWeight: 'bold' }}>Project Total:</Text>
+            <Text style={col3Style}></Text>
             {visibleColumns.historical && (
               <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
                 {formatCurrency(calculateProjectHistorical())}
