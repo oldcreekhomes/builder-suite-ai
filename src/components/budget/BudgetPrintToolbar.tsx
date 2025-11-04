@@ -39,10 +39,6 @@ export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggle
             <FileDown className="h-4 w-4 mr-2" />
             {isExportingPdf ? 'Exporting...' : 'Export PDF'}
           </Button>
-          <Button onClick={onPrint} variant="outline" size="sm">
-            <Printer className="h-4 w-4 mr-2" />
-            Print
-          </Button>
         </div>
       </div>
     </div>
