@@ -69,7 +69,7 @@ export function BudgetTableHeader({
             </button>
           </TableHead>
         )}
-        <TableHead className="h-10 pl-3 pr-3 py-2 text-xs font-semibold w-52">Total Budget</TableHead>
+        <TableHead className="h-10 pl-3 pr-3 py-2 text-xs font-semibold w-52 text-right">Total Budget</TableHead>
       </TableRow>
     </TableHeader>
   );

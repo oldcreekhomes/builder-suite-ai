@@ -289,7 +289,7 @@ export function BudgetTableRow({
             </span>
           </TableCell>
         )}
-        <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
+        <TableCell className="w-52 pr-3 py-1 text-sm text-right">
           {formatCurrency(total)}
         </TableCell>
       </TableRow>

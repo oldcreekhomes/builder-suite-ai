@@ -134,6 +134,7 @@ export function BudgetPrintView({
           <col style={{ width: '120px' }} />
           {showHistorical && <col style={{ width: '120px' }} />}
           {showVariance && <col style={{ width: '100px' }} />}
+          <col style={{ width: '120px' }} />
         </colgroup>
         
         <thead>
@@ -161,7 +162,7 @@ export function BudgetPrintView({
             <th className="p-1 text-left text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Source</th>
             {showHistorical && <th className="p-1 text-right text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Historical</th>}
             {showVariance && <th className="p-1 text-right text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Variance</th>}
-            <th className="p-1 text-left text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Total Budget</th>
+            <th className="p-1 text-right text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Total Budget</th>
           </tr>
         </thead>
         
@@ -190,7 +191,7 @@ export function BudgetPrintView({
                           {calculateVariance(itemTotal, historicalValue)}
                         </td>
                       )}
-                      <td className="p-1 text-left text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{formatCurrency(itemTotal)}</td>
+                      <td className="p-1 text-right text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{formatCurrency(itemTotal)}</td>
                     </tr>
                   );
                 })}
@@ -204,7 +205,7 @@ export function BudgetPrintView({
                       {calculateVariance(groupTotal, groupHistorical)}
                     </td>
                   )}
-                  <td className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatCurrency(groupTotal)}</td>
+                  <td className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatCurrency(groupTotal)}</td>
                 </tr>
               </React.Fragment>
             );
@@ -220,7 +221,7 @@ export function BudgetPrintView({
                 {calculateVariance(totalBudget, totalHistorical)}
               </td>
             )}
-            <td className="p-2 text-left text-lg font-bold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{formatCurrency(totalBudget)}</td>
+            <td className="p-2 text-right text-lg font-bold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{formatCurrency(totalBudget)}</td>
           </tr>
         </tfoot>
       </table>
