@@ -240,12 +240,13 @@ export function BudgetTableRow({
         className={`h-10 hover:bg-muted/50 border-b cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
         onClick={() => setShowDetailsModal(true)}
       >
-        <TableCell className="w-12 py-1" onClick={(e) => e.stopPropagation()}>
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
-          />
-        </TableCell>
+      <TableCell className="w-12 py-1" onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          disabled={isLocked}
+          onCheckedChange={(checked) => !isLocked && onCheckboxChange(item.id, checked as boolean)}
+        />
+      </TableCell>
         <TableCell className="w-40 py-1 text-sm font-medium pl-12">
           {costCode?.code || '-'}
         </TableCell>
@@ -306,6 +307,7 @@ export function BudgetTableRow({
         onBidSelected={() => {
           setShowDetailsModal(false);
         }}
+        isLocked={isLocked}
       />
     )}
     </React.Fragment>

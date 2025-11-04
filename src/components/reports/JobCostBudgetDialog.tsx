@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BudgetDetailsModal } from "@/components/budget/BudgetDetailsModal";
+import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
 
 interface JobCostBudgetDialogProps {
   isOpen: boolean;
@@ -20,6 +21,8 @@ export function JobCostBudgetDialog({
   projectId,
   totalBudget,
 }: JobCostBudgetDialogProps) {
+  const { isLocked } = useBudgetLockStatus(projectId);
+  
   const { data: budgetItem, isLoading } = useQuery({
     queryKey: ['job-cost-budget-details', projectId, costCode],
     queryFn: async () => {
@@ -60,6 +63,7 @@ export function JobCostBudgetDialog({
       projectId={projectId}
       currentSelectedBidId={budgetItem.selected_bid_id}
       onBidSelected={onClose}
+      isLocked={isLocked}
     />
   );
 }

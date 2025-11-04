@@ -54,7 +54,8 @@ export function BudgetGroupHeader({
         <div className="flex items-center gap-2">
           <Checkbox
             checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
-            onCheckedChange={(checked) => onCheckboxChange(group, checked === true)}
+            disabled={isLocked}
+            onCheckedChange={(checked) => !isLocked && onCheckboxChange(group, checked === true)}
           />
           <button
             type="button"

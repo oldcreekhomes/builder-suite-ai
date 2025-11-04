@@ -32,6 +32,7 @@ interface BudgetDetailsModalProps {
   projectId: string;
   currentSelectedBidId?: string | null;
   onBidSelected: (bidId: string | null) => void;
+  isLocked?: boolean;
 }
 
 export function BudgetDetailsModal({
@@ -41,6 +42,7 @@ export function BudgetDetailsModal({
   projectId,
   currentSelectedBidId,
   onBidSelected,
+  isLocked = false,
 }: BudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
   const { openProposalFile } = useUniversalFilePreviewContext();
@@ -152,6 +154,8 @@ export function BudgetDetailsModal({
   };
 
   const handleApply = async () => {
+    if (isLocked) return; // No-op when locked
+    
     const source = activeTab as 'estimate' | 'vendor-bid' | 'manual';
     
     if (source === 'vendor-bid') {
@@ -325,7 +329,8 @@ export function BudgetDetailsModal({
                             <td className="p-3">
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={(checked) => toggleSubcategory(subcategory.cost_codes.id, checked as boolean)}
+                                disabled={isLocked}
+                                onCheckedChange={(checked) => !isLocked && toggleSubcategory(subcategory.cost_codes.id, checked as boolean)}
                               />
                             </td>
                             <td className="p-3 text-sm">{subcategory.cost_codes?.code}</td>
@@ -337,7 +342,7 @@ export function BudgetDetailsModal({
                               {truncateUnit(subcategory.cost_codes?.unit_of_measure)}
                             </td>
                             <td className="p-3 text-sm text-left">
-                              {editingQuantityId === subcategory.id ? (
+                              {editingQuantityId === subcategory.id && !isLocked ? (
                                 <input
                                   type="number"
                                   value={editingValue}
@@ -349,8 +354,8 @@ export function BudgetDetailsModal({
                                 />
                               ) : (
                                 <span
-                                  className="cursor-text hover:bg-muted rounded px-2 py-1"
-                                  onClick={() => handleQuantityEdit(subcategory.id, quantity)}
+                                  className={isLocked ? "" : "cursor-text hover:bg-muted rounded px-2 py-1"}
+                                  onClick={() => !isLocked && handleQuantityEdit(subcategory.id, quantity)}
                                 >
                                   {quantity}
                                 </span>
@@ -411,15 +416,16 @@ export function BudgetDetailsModal({
                           return (
                             <tr 
                               key={bid.id}
-                              className={`border-t cursor-pointer ${
-                                selectedBidId === bid.id ? 'bg-blue-50' : 'hover:bg-muted/50'
+                              className={`border-t ${isLocked ? '' : 'cursor-pointer'} ${
+                                selectedBidId === bid.id ? 'bg-blue-50' : isLocked ? '' : 'hover:bg-muted/50'
                               }`}
-                              onClick={() => setSelectedBidId(bid.id)}
+                              onClick={() => !isLocked && setSelectedBidId(bid.id)}
                             >
                               <td className="p-3">
                                 <Checkbox
                                   checked={selectedBidId === bid.id}
-                                  onCheckedChange={(checked) => checked && setSelectedBidId(bid.id)}
+                                  disabled={isLocked}
+                                  onCheckedChange={(checked) => !isLocked && checked && setSelectedBidId(bid.id)}
                                 />
                               </td>
                               <td className="p-3 text-sm">{costCode.code}</td>
@@ -500,6 +506,8 @@ export function BudgetDetailsModal({
                           value={manualUnitPriceInput}
                           onChange={(e) => setManualUnitPriceInput(e.target.value)}
                           className="w-28 h-8 text-left"
+                          disabled={isLocked}
+                          readOnly={isLocked}
                         />
                       </td>
                       <td className="p-3 text-sm text-center">
@@ -511,6 +519,8 @@ export function BudgetDetailsModal({
                           value={manualQuantityInput}
                           onChange={(e) => setManualQuantityInput(e.target.value)}
                           className="w-28 h-8 text-left"
+                          disabled={isLocked}
+                          readOnly={isLocked}
                         />
                       </td>
                       <td className="p-3 text-sm text-left font-medium">
@@ -532,11 +542,11 @@ export function BudgetDetailsModal({
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {isLocked ? 'Close' : 'Cancel'}
           </Button>
           <Button 
             onClick={handleApply} 
-            disabled={isUpdating || isBidLoading}
+            disabled={isLocked || isUpdating || isBidLoading}
           >
             {isUpdating || isBidLoading ? 'Applying...' : 'Apply'}
           </Button>
