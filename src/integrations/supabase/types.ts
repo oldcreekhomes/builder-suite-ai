@@ -2406,6 +2406,10 @@ export type Database = {
         Row: {
           accounting_manager: string | null
           address: string
+          budget_lock_notes: string | null
+          budget_locked: boolean | null
+          budget_locked_at: string | null
+          budget_locked_by: string | null
           construction_manager: string | null
           created_at: string
           id: string
@@ -2417,6 +2421,10 @@ export type Database = {
         Insert: {
           accounting_manager?: string | null
           address: string
+          budget_lock_notes?: string | null
+          budget_locked?: boolean | null
+          budget_locked_at?: string | null
+          budget_locked_by?: string | null
           construction_manager?: string | null
           created_at?: string
           id?: string
@@ -2428,6 +2436,10 @@ export type Database = {
         Update: {
           accounting_manager?: string | null
           address?: string
+          budget_lock_notes?: string | null
+          budget_locked?: boolean | null
+          budget_locked_at?: string | null
+          budget_locked_by?: string | null
           construction_manager?: string | null
           created_at?: string
           id?: string
@@ -2746,6 +2758,7 @@ export type Database = {
           can_access_reports: boolean
           can_access_transactions: boolean
           can_close_books: boolean
+          can_lock_budgets: boolean | null
           created_at: string
           id: string
           receive_bill_payment_alerts: boolean
@@ -2761,6 +2774,7 @@ export type Database = {
           can_access_reports?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
+          can_lock_budgets?: boolean | null
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
@@ -2776,6 +2790,7 @@ export type Database = {
           can_access_reports?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
+          can_lock_budgets?: boolean | null
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean

@@ -1,6 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown } from 'lucide-react';
+import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown, Lock, LockOpen } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from '@/lib/utils';
 
 interface BudgetPrintToolbarProps {
   onPrint: () => void;
@@ -9,17 +16,58 @@ interface BudgetPrintToolbarProps {
   onToggleExpandCollapse?: () => void;
   allExpanded?: boolean;
   isExportingPdf?: boolean;
+  isLocked?: boolean;
+  canLockBudgets?: boolean;
+  onLockToggle?: () => void;
 }
 
-export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggleExpandCollapse, allExpanded, isExportingPdf }: BudgetPrintToolbarProps) {
+export function BudgetPrintToolbar({ 
+  onPrint, 
+  onExportPdf, 
+  onAddBudget, 
+  onToggleExpandCollapse, 
+  allExpanded, 
+  isExportingPdf,
+  isLocked = false,
+  canLockBudgets = false,
+  onLockToggle,
+}: BudgetPrintToolbarProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Budget</h1>
-          <p className="text-muted-foreground">
-            Manage budget for this project
-          </p>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={canLockBudgets ? onLockToggle : undefined}
+                  disabled={!canLockBudgets}
+                  className={cn(
+                    "p-1 rounded transition-colors",
+                    canLockBudgets 
+                      ? "cursor-pointer hover:bg-accent" 
+                      : "cursor-not-allowed opacity-50"
+                  )}
+                >
+                  {isLocked ? (
+                    <Lock className="h-5 w-5 text-red-600" />
+                  ) : (
+                    <LockOpen className="h-5 w-5 text-green-600" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!canLockBudgets ? (
+                  <p>No access. Contact admin.</p>
+                ) : isLocked ? (
+                  <p>Budget is locked. Click to unlock.</p>
+                ) : (
+                  <p>Budget is unlocked. Click to lock.</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div className="flex items-center gap-2">
           {onToggleExpandCollapse && (
@@ -41,6 +89,9 @@ export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggle
           </Button>
         </div>
       </div>
+      <p className="text-muted-foreground">
+        Manage budget for this project
+      </p>
     </div>
   );
 }

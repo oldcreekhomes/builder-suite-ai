@@ -20,6 +20,17 @@ import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { useAllBudgetSubcategories } from '@/hooks/useAllBudgetSubcategories';
+import { useBudgetLockStatus } from '@/hooks/useBudgetLockStatus';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { useBudgetItemTotals } from '@/hooks/useBudgetItemTotals';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
@@ -39,10 +50,20 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('none');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [showLockDialog, setShowLockDialog] = useState(false);
+  const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
+  
   const visibleColumns: VisibleColumns = {
     historicalCosts: true,
     variance: true,
   };
+  
+  const { 
+    isLocked, 
+    canLockBudgets, 
+    lockBudget, 
+    unlockBudget,
+  } = useBudgetLockStatus(projectId);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
@@ -86,7 +107,34 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   
   const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
 
+  const handleLockToggle = () => {
+    if (isLocked) {
+      setLockAction('unlock');
+    } else {
+      setLockAction('lock');
+    }
+    setShowLockDialog(true);
+  };
+
+  const handleConfirmLock = () => {
+    if (lockAction === 'lock') {
+      lockBudget(undefined);
+    } else {
+      unlockBudget(undefined);
+    }
+    setShowLockDialog(false);
+  };
+
   const onDeleteGroup = (group: string) => {
+    if (isLocked) {
+      toast({
+        title: "Budget Locked",
+        description: "Cannot delete items from a locked budget",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const groupItems = groupedBudgetItems[group] || [];
     handleDeleteGroup(group, groupItems);
     
@@ -96,6 +144,15 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   };
 
   const onDeleteItem = (itemId: string) => {
+    if (isLocked) {
+      toast({
+        title: "Budget Locked",
+        description: "Cannot delete items from a locked budget",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     handleDeleteItem(itemId);
     
     // Clean up UI state after deletion
@@ -332,11 +389,35 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       <BudgetPrintToolbar 
         onPrint={handlePrint}
         onExportPdf={handleExportPdf}
-        onAddBudget={() => setShowAddBudgetModal(true)}
+        onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
         isExportingPdf={isExportingPdf}
+        isLocked={isLocked}
+        canLockBudgets={canLockBudgets}
+        onLockToggle={handleLockToggle}
       />
+
+      <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lockAction === 'lock' ? 'Lock Budget' : 'Unlock Budget'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lockAction === 'lock' 
+                ? 'Are you sure you want to lock this budget? This will prevent any edits until it is unlocked.'
+                : 'Are you sure you want to unlock this budget? This will allow edits to be made.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLock}>
+              {lockAction === 'lock' ? 'Lock' : 'Unlock'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {selectedCount > 0 && (
         <BulkActionBar
@@ -395,6 +476,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                     isDeleting={deletingGroups.has(group)}
                     groupTotal={calculateGroupTotal(items, itemTotalsMap)}
                     visibleColumns={visibleColumns}
+                    isLocked={isLocked}
                   />
 
                   {expandedGroups.has(group) && (
@@ -415,6 +497,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                           showVarianceAsPercentage={showVarianceAsPercentage}
                           visibleColumns={visibleColumns}
                           projectId={projectId}
+                          isLocked={isLocked}
                         />
                       ))}
                       <BudgetGroupTotalRow

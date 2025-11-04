@@ -37,6 +37,7 @@ interface BudgetTableRowProps {
   visibleColumns: VisibleColumns;
   projectId?: string;
   itemTotal?: number; // Pre-calculated total from itemTotalsMap
+  isLocked?: boolean;
 }
 
 export function BudgetTableRow({ 
@@ -52,7 +53,8 @@ export function BudgetTableRow({
   showVarianceAsPercentage = false,
   visibleColumns,
   projectId,
-  itemTotal
+  itemTotal,
+  isLocked = false,
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());

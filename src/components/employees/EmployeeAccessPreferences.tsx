@@ -22,6 +22,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
 
   return (
     <div className="space-y-6 py-4">
+      {/* Budgets Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Budgets</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage budget-related permissions
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-lock-budgets" className="text-sm font-normal cursor-pointer">
+                Lock Budgets
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to lock and unlock project budgets to prevent changes
+              </p>
+            </div>
+            <Switch
+              id="can-lock-budgets"
+              checked={preferences.can_lock_budgets}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_lock_budgets: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Accounting Section */}
       <div className="space-y-4">
         <div>

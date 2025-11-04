@@ -19,6 +19,7 @@ interface BudgetGroupHeaderProps {
   stickyTop?: number;
   rowClassName?: string;
   floatingClassName?: string;
+  isLocked?: boolean;
 }
 
 export function BudgetGroupHeader({ 
@@ -34,7 +35,8 @@ export function BudgetGroupHeader({
   visibleColumns = { historicalCosts: true, variance: true },
   stickyTop,
   rowClassName = '',
-  floatingClassName = ''
+  floatingClassName = '',
+  isLocked = false,
 }: BudgetGroupHeaderProps) {
   const formatCurrency = (amount: number) => `$${Math.round(amount).toLocaleString()}`;
 
