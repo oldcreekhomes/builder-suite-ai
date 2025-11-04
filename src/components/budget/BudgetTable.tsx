@@ -133,7 +133,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           <title>Project Budget</title>
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
           <style>
-            body { font-family: 'Montserrat', sans-serif; margin: 15px; font-size: 11px; counter-reset: page; }
+            body { font-family: 'Montserrat', sans-serif; margin: 15px; font-size: 11px; }
             table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
             th, td { border: 1px solid #000; padding: 6px; text-align: left; font-family: 'Montserrat', sans-serif; }
             th { background-color: #fff; font-weight: 600; }
