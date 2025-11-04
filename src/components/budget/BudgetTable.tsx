@@ -175,6 +175,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 border-left: none !important;
                 border-right: none !important;
                 border-top: none !important;
+                border-bottom: none !important;
               }
               
               tfoot {

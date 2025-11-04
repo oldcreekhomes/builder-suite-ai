@@ -138,7 +138,7 @@ export function BudgetPrintView({
         <thead>
           {/* Print Header - Repeats on all pages */}
           <tr style={{ border: 'none' }}>
-            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', borderBottom: '2px solid #000', paddingBottom: '8px' }}>
+            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '8px' }}>
               <h1 className="text-2xl font-bold text-center mb-2" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                 PROJECT BUDGET
               </h1>
@@ -148,7 +148,7 @@ export function BudgetPrintView({
               <div className="text-sm font-normal mb-3" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between' }}>
                 <span>{currentDate}</span>
                 <span>{currentTime}</span>
-                <span>Page <span className="page-number"></span> of <span className="total-pages"></span></span>
+                <span><span className="page-number"></span>/<span className="total-pages"></span></span>
               </div>
             </td>
           </tr>
