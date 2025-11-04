@@ -330,6 +330,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar 
+        onPrint={handlePrint}
         onExportPdf={handleExportPdf}
         onAddBudget={() => setShowAddBudgetModal(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
