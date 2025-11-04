@@ -205,18 +205,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 content: "Page " counter(page);
               }
               
-              thead .page-number,
-              thead .total-pages {
-                display: none !important;
-              }
-              
-              .page-number::before {
-                content: counter(page);
-              }
-              
-              .total-pages::before {
-                content: counter(pages);
-              }
               
               tfoot {
                 display: table-row-group !important;

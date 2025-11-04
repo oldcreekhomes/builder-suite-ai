@@ -149,7 +149,7 @@ export function BudgetPrintView({
               <div className="text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between', margin: '0 0 4px 0' }}>
                 <span>{currentDate}</span>
                 <span>{currentTime}</span>
-                <span><span className="page-number"></span>/<span className="total-pages"></span></span>
+                <span></span>
               </div>
             </td>
           </tr>
