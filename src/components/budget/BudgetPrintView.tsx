@@ -138,14 +138,14 @@ export function BudgetPrintView({
         <thead>
           {/* Print Header - Repeats on all pages */}
           <tr style={{ border: 'none' }}>
-            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '8px' }}>
-              <h1 className="text-2xl font-bold text-center mb-2" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '4px' }}>
+              <h1 className="text-2xl font-bold text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, marginBottom: '4px' }}>
                 PROJECT BUDGET
               </h1>
-              <div className="text-sm font-normal mb-2 text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
+              <div className="text-sm font-normal text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, marginBottom: '4px' }}>
                 {projectAddress}
               </div>
-              <div className="text-sm font-normal mb-3" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between' }}>
+              <div className="text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span>{currentDate}</span>
                 <span>{currentTime}</span>
                 <span><span className="page-number"></span>/<span className="total-pages"></span></span>
