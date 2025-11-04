@@ -88,15 +88,6 @@ export function BudgetPrintView({
   const showHistorical = visibleColumns.historicalCosts && selectedHistoricalProject !== 'none';
   const showVariance = visibleColumns.variance && showHistorical;
 
-  const totalBudget = Object.entries(groupedBudgetItems).reduce((sum, [group, items]) => {
-    return sum + calculateGroupTotal(items);
-  }, 0);
-
-  const totalHistorical = budgetItems.reduce((sum, item) => {
-    const costCode = item.cost_codes?.code;
-    return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
-  }, 0);
-
   const calculateGroupTotal = (items: any[]) => {
     return items.reduce((sum, item) => {
       const subcategoryTotal = subcategoryTotals[item.id];
@@ -111,6 +102,15 @@ export function BudgetPrintView({
       return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
     }, 0);
   };
+
+  const totalBudget = Object.entries(groupedBudgetItems).reduce((sum, [group, items]) => {
+    return sum + calculateGroupTotal(items);
+  }, 0);
+
+  const totalHistorical = budgetItems.reduce((sum, item) => {
+    const costCode = item.cost_codes?.code;
+    return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
+  }, 0);
 
   const currentDate = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
