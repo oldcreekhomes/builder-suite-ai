@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -41,14 +41,14 @@ export function useBudgetGroups(groupedBiddingItems?: Record<string, any[]>) {
     setSelectedItems(newSelected);
   };
 
-  const isGroupSelected = useCallback((groupItems: any[]) => {
+  const isGroupSelected = (groupItems: any[]) => {
     return groupItems.length > 0 && groupItems.every(item => selectedItems.has(item.id));
-  }, [selectedItems]);
+  };
 
-  const isGroupPartiallySelected = useCallback((groupItems: any[]) => {
+  const isGroupPartiallySelected = (groupItems: any[]) => {
     const selectedInGroup = groupItems.filter(item => selectedItems.has(item.id));
     return selectedInGroup.length > 0 && selectedInGroup.length < groupItems.length;
-  }, [selectedItems]);
+  };
 
   const calculateGroupTotal = (
     groupItems: any[], 
