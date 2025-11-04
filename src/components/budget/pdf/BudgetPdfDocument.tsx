@@ -57,16 +57,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   col1: { width: '10%' }, // Code
-  col2: { width: '35%' }, // Name
-  col3: { width: '18%' }, // Source
-  col4: { width: '15%', textAlign: 'right' }, // Budget Total
-  col5: { width: '11%', textAlign: 'right' }, // Historical
-  col6: { width: '11%', textAlign: 'right' }, // Variance
-  footer: {
+  col2: { width: '30%' }, // Name
+  col3: { width: '20%' }, // Source
+  col4: { width: '20%', textAlign: 'right' }, // Budget Total
+  col5: { width: '10%', textAlign: 'right' }, // Historical
+  col6: { width: '10%', textAlign: 'right' }, // Variance
+  footerContainer: {
     position: 'absolute',
     bottom: 20,
+    left: 40,
     right: 40,
-    fontSize: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    fontSize: 9,
+  },
+  footerLeft: {
+    textAlign: 'left',
+  },
+  footerCenter: {
+    textAlign: 'center',
+  },
+  footerRight: {
+    textAlign: 'right',
   },
 });
 
@@ -111,19 +123,19 @@ export function BudgetPdfDocument({
   };
 
   const getSourceLabel = (item: any): string => {
+    // Check for vendor bid first
+    if (item.selected_bid_id && item.selected_bid) {
+      return 'Vendor Bid';
+    }
+    
     if (item.budget_source) {
       switch (item.budget_source) {
-        case 'vendor-bid': return item.selected_bid?.companies?.company_name || 'Vendor Bid';
+        case 'vendor-bid': return 'Vendor Bid';
         case 'estimate': return 'Estimate';
         case 'historical': return 'Historical';
         case 'settings': return 'Settings';
         case 'manual': return 'Manual';
       }
-    }
-    
-    // Legacy logic
-    if (item.selected_bid_id && item.selected_bid) {
-      return item.selected_bid.companies?.company_name || 'Vendor Bid';
     }
     
     const costCode = item.cost_codes;
@@ -258,11 +270,14 @@ export function BudgetPdfDocument({
           </View>
         </View>
 
-        <Text
-          style={styles.footer}
-          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-          fixed
-        />
+        <View style={styles.footerContainer} fixed>
+          <Text style={styles.footerLeft}>{new Date().toLocaleDateString()}</Text>
+          <Text style={styles.footerCenter}>{new Date().toLocaleTimeString()}</Text>
+          <Text 
+            style={styles.footerRight}
+            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+          />
+        </View>
       </Page>
     </Document>
   );
