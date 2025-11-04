@@ -137,8 +137,8 @@ export function BudgetPrintView({
         
         <thead>
           {/* Print Header - Repeats on all pages */}
-          <tr>
-            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '8px' }}>
+          <tr style={{ border: 'none' }}>
+            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', borderBottom: '2px solid #000', paddingBottom: '8px' }}>
               <h1 className="text-2xl font-bold text-center mb-2" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                 PROJECT BUDGET
               </h1>

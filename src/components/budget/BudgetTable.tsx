@@ -133,7 +133,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           <title>Project Budget</title>
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
           <style>
-            body { font-family: 'Montserrat', sans-serif; margin: 15px; font-size: 11px; }
+            body { font-family: 'Montserrat', sans-serif; margin: 15px; font-size: 11px; counter-reset: page; }
             table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
             th, td { border: 1px solid #000; padding: 6px; text-align: left; font-family: 'Montserrat', sans-serif; }
             th { background-color: #fff; font-weight: 600; }
@@ -150,6 +150,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .font-semibold { font-weight: 600; }
             .font-normal { font-weight: 400; }
             .mb-2 { margin-bottom: 8px; }
+            .mb-3 { margin-bottom: 12px; }
             .mb-4 { margin-bottom: 16px; }
             .mb-6 { margin-bottom: 24px; }
             .p-1 { padding: 4px; }
@@ -164,6 +165,16 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               
               thead { 
                 display: table-header-group;
+              }
+              
+              thead tr {
+                border: none !important;
+              }
+              
+              thead td {
+                border-left: none !important;
+                border-right: none !important;
+                border-top: none !important;
               }
               
               tfoot {
@@ -184,16 +195,35 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 margin: 0;
                 size: auto;
               }
-              
-              .page-number::after {
-                content: counter(page);
-              }
-              
-              .total-pages::after {
-                content: counter(pages);
-              }
             }
           </style>
+          <script>
+            window.onload = function() {
+              // Wait for print dialog to calculate pages
+              setTimeout(function() {
+                var pageNumbers = document.querySelectorAll('.page-number');
+                var totalPages = document.querySelectorAll('.total-pages');
+                
+                // Calculate approximate number of pages based on content height
+                var contentHeight = document.body.scrollHeight;
+                var pageHeight = 1056; // Approximate page height in pixels (11 inches at 96 DPI)
+                var numPages = Math.ceil(contentHeight / pageHeight);
+                
+                // Set total pages
+                totalPages.forEach(function(el) {
+                  el.textContent = numPages;
+                });
+                
+                // For page numbers, we'll set them sequentially
+                var currentPage = 1;
+                pageNumbers.forEach(function(el) {
+                  el.textContent = currentPage;
+                  currentPage++;
+                  if (currentPage > numPages) currentPage = 1;
+                });
+              }, 100);
+            };
+          </script>
         </head>
         <body>
           ${printContent?.innerHTML || ''}
