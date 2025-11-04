@@ -201,7 +201,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               }
               
               .print-page-counter::before {
-                content: "Page " counter(page);
+                content: counter(page);
               }
               
               
