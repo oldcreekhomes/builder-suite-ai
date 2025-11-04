@@ -88,14 +88,9 @@ export function BudgetPrintView({
   const showHistorical = visibleColumns.historicalCosts && selectedHistoricalProject !== 'none';
   const showVariance = visibleColumns.variance && showHistorical;
 
-  const totalBudget = budgetItems.reduce(
-    (sum, item) => {
-      const subcategoryTotal = subcategoryTotals[item.id];
-      const historicalCost = getHistoricalCost(item);
-      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCost);
-    }, 
-    0
-  );
+  const totalBudget = Object.entries(groupedBudgetItems).reduce((sum, [group, items]) => {
+    return sum + calculateGroupTotal(items);
+  }, 0);
 
   const totalHistorical = budgetItems.reduce((sum, item) => {
     const costCode = item.cost_codes?.code;
@@ -130,21 +125,6 @@ export function BudgetPrintView({
 
   return (
     <div className="print-content hidden">
-      {/* Print Header */}
-      <div className="print-header" style={{ fontFamily: "'Montserrat', sans-serif" }}>
-        <h1 className="text-2xl font-bold text-center mb-4" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-          PROJECT BUDGET
-        </h1>
-        <div className="mb-2 text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between' }}>
-          <span>Date: {currentDate}</span>
-          <span>Time: {currentTime}</span>
-          <span>Page: <span className="page-number"></span> of <span className="total-pages"></span></span>
-        </div>
-        <div className="mb-4 text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
-          Address: {projectAddress}
-        </div>
-      </div>
-
       <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: '1px solid #000', fontFamily: "'Montserrat', sans-serif" }}>
         <colgroup>
           <col style={{ width: '80px' }} />
@@ -156,6 +136,23 @@ export function BudgetPrintView({
         </colgroup>
         
         <thead>
+          {/* Print Header - Repeats on all pages */}
+          <tr>
+            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '8px' }}>
+              <div className="text-sm font-normal mb-2" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
+                {projectAddress}
+              </div>
+              <div className="text-sm font-normal mb-3" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between' }}>
+                <span>{currentDate}</span>
+                <span>{currentTime}</span>
+                <span>Page <span className="page-number"></span> of <span className="total-pages"></span></span>
+              </div>
+              <h1 className="text-2xl font-bold text-center mb-4" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+                PROJECT BUDGET
+              </h1>
+            </td>
+          </tr>
+          
           {/* Column Headers Row */}
           <tr style={{ backgroundColor: '#fff' }}>
             <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Cost Code</th>
