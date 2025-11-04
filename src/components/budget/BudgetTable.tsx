@@ -156,7 +156,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .p-1 { padding: 4px; }
             .p-2 { padding: 8px; }
             .pt-4 { padding-top: 16px; }
-            .print-page-counter { display: none; }
+            
             @media print {
               body { 
                 margin: 0.5in;
@@ -191,18 +191,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 padding-top: 0 !important;
               }
               
-              .print-page-counter {
-                display: block;
-                position: fixed;
-                top: 0.5in;
-                right: 0.5in;
-                z-index: 9999;
-                font-size: 11px;
-                font-weight: 400;
-              }
-              
-              .print-page-counter::before {
-                content: "Page " counter(page);
+              .page-x::after {
+                content: counter(page);
               }
               
               
