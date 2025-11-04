@@ -128,8 +128,8 @@ export function BudgetPrintView({
       <div className="print-page-counter" aria-hidden="true"></div>
       <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: 'none', fontFamily: "'Montserrat', sans-serif" }}>
         <colgroup>
-          <col style={{ width: '80px' }} />
-          <col style={{ width: '250px' }} />
+          <col style={{ width: '90px' }} />
+          <col style={{ width: '240px' }} />
           <col style={{ width: '100px' }} />
           <col style={{ width: '120px' }} />
           {showHistorical && <col style={{ width: '120px' }} />}
