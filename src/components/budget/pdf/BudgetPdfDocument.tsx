@@ -57,11 +57,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   col1: { width: '8%' }, // Code
-  col2: { width: '35%' }, // Name
-  col3: { width: '15%' }, // Source
-  col4: { width: '12%', textAlign: 'right' }, // Historical
-  col5: { width: '12%', textAlign: 'right' }, // Variance
-  col6: { width: '18%', textAlign: 'left' }, // Budget Total (moved to right)
+  col2: { width: '42%' }, // Name
+  col3: { width: '18%' }, // Source
+  col4: { width: '10%', textAlign: 'right' }, // Historical
+  col5: { width: '10%', textAlign: 'right' }, // Variance
+  col6: { width: '12%', textAlign: 'left' }, // Budget Total (far right)
   footerContainer: {
     position: 'absolute',
     bottom: 20,
