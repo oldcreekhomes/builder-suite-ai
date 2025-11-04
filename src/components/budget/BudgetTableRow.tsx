@@ -253,9 +253,6 @@ export function BudgetTableRow({
         <TableCell className="w-48 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
-        <TableCell className="w-52 pr-3 py-1 text-sm">
-          {formatCurrency(total)}
-        </TableCell>
         <TableCell className="w-10 px-0 py-1" onClick={(e) => e.stopPropagation()}>
           {warnings.length > 0 && (
             <TooltipProvider>
@@ -292,6 +289,9 @@ export function BudgetTableRow({
             </span>
           </TableCell>
         )}
+        <TableCell className="w-52 pr-3 py-1 text-sm">
+          {formatCurrency(total)}
+        </TableCell>
       </TableRow>
     
     {showDetailsModal && costCode && (
