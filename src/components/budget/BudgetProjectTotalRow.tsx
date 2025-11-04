@@ -77,7 +77,7 @@ export function BudgetProjectTotalRow({
           )}
         </TableCell>
       )}
-      <TableCell className="w-52 pr-3 py-1 text-sm">
+      <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
         {formatCurrency(totalBudget)}
       </TableCell>
     </TableRow>
