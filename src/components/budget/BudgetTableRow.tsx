@@ -274,6 +274,9 @@ export function BudgetTableRow({
             </TooltipProvider>
           )}
         </TableCell>
+        <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
+          {formatCurrency(total)}
+        </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 pl-3 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
@@ -289,9 +292,6 @@ export function BudgetTableRow({
             </span>
           </TableCell>
         )}
-        <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
-          {formatCurrency(total)}
-        </TableCell>
       </TableRow>
     
     {showDetailsModal && costCode && (
