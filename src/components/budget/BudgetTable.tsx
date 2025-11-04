@@ -171,11 +171,23 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 border: none !important;
               }
               
+              table {
+                border: none !important;
+              }
+              
               thead td {
                 border-left: none !important;
                 border-right: none !important;
                 border-top: none !important;
                 border-bottom: none !important;
+              }
+              
+              .page-number::before {
+                content: counter(page);
+              }
+              
+              .total-pages::before {
+                content: counter(pages);
               }
               
               tfoot {
@@ -198,33 +210,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               }
             }
           </style>
-          <script>
-            window.onload = function() {
-              // Wait for print dialog to calculate pages
-              setTimeout(function() {
-                var pageNumbers = document.querySelectorAll('.page-number');
-                var totalPages = document.querySelectorAll('.total-pages');
-                
-                // Calculate approximate number of pages based on content height
-                var contentHeight = document.body.scrollHeight;
-                var pageHeight = 1056; // Approximate page height in pixels (11 inches at 96 DPI)
-                var numPages = Math.ceil(contentHeight / pageHeight);
-                
-                // Set total pages
-                totalPages.forEach(function(el) {
-                  el.textContent = numPages;
-                });
-                
-                // For page numbers, we'll set them sequentially
-                var currentPage = 1;
-                pageNumbers.forEach(function(el) {
-                  el.textContent = currentPage;
-                  currentPage++;
-                  if (currentPage > numPages) currentPage = 1;
-                });
-              }, 100);
-            };
-          </script>
         </head>
         <body>
           ${printContent?.innerHTML || ''}

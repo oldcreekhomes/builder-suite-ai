@@ -125,7 +125,7 @@ export function BudgetPrintView({
 
   return (
     <div className="print-content hidden">
-      <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: '1px solid #000', fontFamily: "'Montserrat', sans-serif" }}>
+      <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: 'none', fontFamily: "'Montserrat', sans-serif" }}>
         <colgroup>
           <col style={{ width: '80px' }} />
           <col style={{ width: '250px' }} />
