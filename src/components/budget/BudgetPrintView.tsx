@@ -125,7 +125,7 @@ export function BudgetPrintView({
 
   return (
     <div className="print-content hidden">
-      
+      <div className="print-page-counter" aria-hidden="true"></div>
       <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: 'none', fontFamily: "'Montserrat', sans-serif" }}>
         <colgroup>
           <col style={{ width: '80px' }} />
@@ -149,7 +149,7 @@ export function BudgetPrintView({
               <div className="text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between', margin: '0 0 4px 0' }}>
                 <span>{currentDate}</span>
                 <span>{currentTime}</span>
-                <span>Page <span className="page-x"></span></span>
+                <span></span>
               </div>
             </td>
           </tr>

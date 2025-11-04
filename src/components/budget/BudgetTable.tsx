@@ -191,8 +191,17 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 padding-top: 0 !important;
               }
               
-              .page-x::after {
-                content: counter(page);
+              .print-page-counter {
+                position: fixed;
+                top: 0.5in;
+                right: 0.5in;
+                z-index: 9999;
+                font-size: 11px;
+                font-weight: 400;
+              }
+              
+              .print-page-counter::before {
+                content: "Page " counter(page);
               }
               
               
