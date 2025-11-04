@@ -57,11 +57,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   col1: { width: '8%' }, // Code
-  col2: { width: '40%' }, // Name
-  col3: { width: '17%' }, // Source
-  col4: { width: '15%', textAlign: 'right' }, // Budget Total
-  col5: { width: '10%', textAlign: 'right' }, // Historical
-  col6: { width: '10%', textAlign: 'right' }, // Variance
+  col2: { width: '35%' }, // Name
+  col3: { width: '15%' }, // Source
+  col4: { width: '12%', textAlign: 'right' }, // Historical
+  col5: { width: '12%', textAlign: 'right' }, // Variance
+  col6: { width: '18%', textAlign: 'left' }, // Budget Total (moved to right)
   footerContainer: {
     position: 'absolute',
     bottom: 20,
@@ -193,9 +193,9 @@ export function BudgetPdfDocument({
             <Text style={styles.col1}>Cost Code</Text>
             <Text style={styles.col2}>Name</Text>
             <Text style={styles.col3}>Source</Text>
-            <Text style={styles.col4}>Total Budget</Text>
-            {visibleColumns.historical && <Text style={styles.col5}>Historical</Text>}
-            {visibleColumns.variance && <Text style={styles.col6}>Variance</Text>}
+            {visibleColumns.historical && <Text style={styles.col4}>Historical</Text>}
+            {visibleColumns.variance && <Text style={styles.col5}>Variance</Text>}
+            <Text style={styles.col6}>Total Budget</Text>
           </View>
 
           {Object.entries(groupedBudgetItems).map(([group, items]) => (
@@ -211,17 +211,17 @@ export function BudgetPdfDocument({
                     <Text style={styles.col1}>{costCode?.code || '-'}</Text>
                     <Text style={styles.col2}>{costCode?.name || '-'}</Text>
                     <Text style={styles.col3}>{getSourceLabel(item)}</Text>
-                    <Text style={styles.col4}>{formatCurrency(total)}</Text>
                     {visibleColumns.historical && (
-                      <Text style={styles.col5}>{formatCurrency(historical)}</Text>
+                      <Text style={styles.col4}>{formatCurrency(historical)}</Text>
                     )}
                     {visibleColumns.variance && (
-                      <Text style={styles.col6}>
+                      <Text style={styles.col5}>
                         {showVarianceAsPercentage
                           ? `${variance >= 0 ? '+' : ''}${variance.toFixed(1)}%`
                           : `${variance >= 0 ? '+' : ''}${formatCurrency(Math.abs(variance))}`}
                       </Text>
                     )}
+                    <Text style={styles.col6}>{formatCurrency(total)}</Text>
                   </View>
                 );
               })}
@@ -230,15 +230,15 @@ export function BudgetPdfDocument({
                 <Text style={styles.col1}></Text>
                 <Text style={{ ...styles.col2, fontWeight: 'bold' }}>Subtotal for {group.split(' - ')[0]}</Text>
                 <Text style={styles.col3}></Text>
-                <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
-                  {formatCurrency(calculateGroupTotal(items))}
-                </Text>
                 {visibleColumns.historical && (
-                  <Text style={{ ...styles.col5, fontWeight: 'bold' }}>
+                  <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
                     {formatCurrency(calculateGroupHistorical(items))}
                   </Text>
                 )}
-                {visibleColumns.variance && <Text style={styles.col6}></Text>}
+                {visibleColumns.variance && <Text style={styles.col5}></Text>}
+                <Text style={{ ...styles.col6, fontWeight: 'bold' }}>
+                  {formatCurrency(calculateGroupTotal(items))}
+                </Text>
               </View>
             </View>
           ))}
@@ -247,16 +247,13 @@ export function BudgetPdfDocument({
             <Text style={styles.col1}></Text>
             <Text style={{ ...styles.col2, fontWeight: 'bold' }}>Project Total:</Text>
             <Text style={styles.col3}></Text>
-            <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
-              {formatCurrency(calculateProjectTotal())}
-            </Text>
             {visibleColumns.historical && (
-              <Text style={{ ...styles.col5, fontWeight: 'bold' }}>
+              <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
                 {formatCurrency(calculateProjectHistorical())}
               </Text>
             )}
             {visibleColumns.variance && (
-              <Text style={{ ...styles.col6, fontWeight: 'bold' }}>
+              <Text style={{ ...styles.col5, fontWeight: 'bold' }}>
                 {(() => {
                   const total = calculateProjectTotal();
                   const historical = calculateProjectHistorical();
@@ -267,6 +264,9 @@ export function BudgetPdfDocument({
                 })()}
               </Text>
             )}
+            <Text style={{ ...styles.col6, fontWeight: 'bold' }}>
+              {formatCurrency(calculateProjectTotal())}
+            </Text>
           </View>
         </View>
 
