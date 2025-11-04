@@ -1,15 +1,16 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
+import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown } from 'lucide-react';
 
 interface BudgetPrintToolbarProps {
   onPrint: () => void;
+  onExportPdf: () => void;
   onAddBudget: () => void;
   onToggleExpandCollapse?: () => void;
   allExpanded?: boolean;
 }
 
-export function BudgetPrintToolbar({ onPrint, onAddBudget, onToggleExpandCollapse, allExpanded }: BudgetPrintToolbarProps) {
+export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggleExpandCollapse, allExpanded }: BudgetPrintToolbarProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -32,6 +33,10 @@ export function BudgetPrintToolbar({ onPrint, onAddBudget, onToggleExpandCollaps
           <Button onClick={onAddBudget} variant="outline" size="sm">
             <PlusIcon className="h-4 w-4 mr-2" />
             Budget
+          </Button>
+          <Button onClick={onExportPdf} variant="outline" size="sm">
+            <FileDown className="h-4 w-4 mr-2" />
+            Export PDF
           </Button>
           <Button onClick={onPrint} variant="outline" size="sm">
             <Printer className="h-4 w-4 mr-2" />

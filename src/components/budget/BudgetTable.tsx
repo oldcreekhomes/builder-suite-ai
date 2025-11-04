@@ -11,6 +11,8 @@ import { BudgetProjectTotalRow } from './BudgetProjectTotalRow';
 import { BudgetTableFooter } from './BudgetTableFooter';
 import { BudgetPrintToolbar } from './BudgetPrintToolbar';
 import { BudgetPrintView } from './BudgetPrintView';
+import { BudgetPdfDocument } from './pdf/BudgetPdfDocument';
+import { pdf } from '@react-pdf/renderer';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
@@ -242,6 +244,40 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }
   };
 
+  const handleExportPdf = async () => {
+    try {
+      const pdfVisibleColumns = {
+        quantity: true,
+        unitPrice: true,
+        source: true,
+        historical: selectedHistoricalProject !== 'none',
+        variance: selectedHistoricalProject !== 'none',
+      };
+
+      const blob = await pdf(
+        <BudgetPdfDocument
+          projectAddress={projectAddress}
+          groupedBudgetItems={groupedBudgetItems}
+          visibleColumns={pdfVisibleColumns}
+          selectedHistoricalProject={selectedHistoricalProject !== 'none' ? selectedHistoricalProject : null}
+          showVarianceAsPercentage={showVarianceAsPercentage}
+          historicalActualCosts={historicalData}
+          subcategoryTotals={subcategoryTotalsMap}
+          itemTotalsMap={itemTotalsMap}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Project_Budget-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
+
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
@@ -271,7 +307,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar 
-        onPrint={handlePrint} 
+        onPrint={handlePrint}
+        onExportPdf={handleExportPdf}
         onAddBudget={() => setShowAddBudgetModal(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
