@@ -131,24 +131,24 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         <html>
         <head>
           <title>Project Budget</title>
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
           <style>
-            body { font-family: Arial, sans-serif; margin: 15px; font-size: 12px; }
+            body { font-family: 'Montserrat', sans-serif; margin: 15px; font-size: 11px; }
             table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
-            th, td { border: 1px solid #ccc; padding: 4px; text-align: left; }
-            th { background-color: #f5f5f5; font-weight: bold; }
+            th, td { border: 1px solid #000; padding: 6px; text-align: left; font-family: 'Montserrat', sans-serif; }
+            th { background-color: #fff; font-weight: 600; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
-            .bg-gray-100 { background-color: #f5f5f5; }
-            .bg-gray-50 { background-color: #f9f9f9; }
-            .border-t-2 { border-top: 2px solid #ccc; }
+            .border-t-2 { border-top: 2px solid #000; }
             .print-footer { margin-top: 20px; padding-top: 15px; }
-            .print-header { page-break-after: avoid; }
+            .print-header { page-break-after: avoid; margin-bottom: 20px; }
             .text-sm { font-size: 11px; }
             .text-lg { font-size: 14px; }
             .text-xl { font-size: 16px; }
-            .text-2xl { font-size: 18px; }
-            .font-bold { font-weight: bold; }
+            .text-2xl { font-size: 24px; }
+            .font-bold { font-weight: 700; }
             .font-semibold { font-weight: 600; }
+            .font-normal { font-weight: 400; }
             .mb-2 { margin-bottom: 8px; }
             .mb-4 { margin-bottom: 16px; }
             .mb-6 { margin-bottom: 24px; }
@@ -157,7 +157,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
             .pt-4 { padding-top: 16px; }
             @media print {
               body { 
-                margin: 15px;
+                margin: 0.5in;
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
               }
@@ -181,7 +181,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
               }
               
               @page {
-                margin: 0.5in;
+                margin: 0;
                 size: auto;
               }
               

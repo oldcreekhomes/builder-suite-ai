@@ -123,9 +123,29 @@ export function BudgetPrintView({
     day: '2-digit' 
   });
 
+  const currentTime = new Date().toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
   return (
     <div className="print-content hidden">
-      <table className="w-full border-collapse border border-gray-300" style={{ tableLayout: 'fixed' }}>
+      {/* Print Header */}
+      <div className="print-header" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+        <h1 className="text-2xl font-bold text-center mb-4" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+          PROJECT BUDGET
+        </h1>
+        <div className="mb-2 text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between' }}>
+          <span>Date: {currentDate}</span>
+          <span>Time: {currentTime}</span>
+          <span>Page: <span className="page-number"></span> of <span className="total-pages"></span></span>
+        </div>
+        <div className="mb-4 text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
+          Address: {projectAddress}
+        </div>
+      </div>
+
+      <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: '1px solid #000', fontFamily: "'Montserrat', sans-serif" }}>
         <colgroup>
           <col style={{ width: '80px' }} />
           <col style={{ width: '250px' }} />
@@ -136,25 +156,14 @@ export function BudgetPrintView({
         </colgroup>
         
         <thead>
-          {/* Date/Time, Address, Page Numbers Row */}
-          <tr>
-            <th colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} className="border border-gray-300 p-2">
-              <div className="flex justify-between items-center text-sm text-gray-600">
-                <span>{currentDate}</span>
-                <span className="font-normal">{projectAddress}</span>
-                <span><span className="page-number"></span>/<span className="total-pages"></span></span>
-              </div>
-            </th>
-          </tr>
-          
           {/* Column Headers Row */}
-          <tr className="bg-gray-50">
-            <th className="border border-gray-300 p-1 text-left text-sm">Cost Code</th>
-            <th className="border border-gray-300 p-1 text-left text-sm">Name</th>
-            <th className="border border-gray-300 p-1 text-left text-sm">Source</th>
-            <th className="border border-gray-300 p-1 text-right text-sm">Total Budget</th>
-            {showHistorical && <th className="border border-gray-300 p-1 text-right text-sm">Historical</th>}
-            {showVariance && <th className="border border-gray-300 p-1 text-right text-sm">Variance</th>}
+          <tr style={{ backgroundColor: '#fff' }}>
+            <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Cost Code</th>
+            <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Name</th>
+            <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Source</th>
+            <th className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Total Budget</th>
+            {showHistorical && <th className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Historical</th>}
+            {showVariance && <th className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Variance</th>}
           </tr>
         </thead>
         
@@ -173,14 +182,14 @@ export function BudgetPrintView({
                   const historicalValue = costCode ? (historicalActualCosts[costCode] || 0) : 0;
                   
                   return (
-                    <tr key={item.id}>
-                      <td className="border border-gray-300 p-1 text-sm">{costCode}</td>
-                      <td className="border border-gray-300 p-1 text-sm">{item.cost_codes?.name}</td>
-                      <td className="border border-gray-300 p-1 text-sm">{getSourceLabel(item)}</td>
-                      <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(itemTotal)}</td>
-                      {showHistorical && <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(historicalValue)}</td>}
+                    <tr key={item.id} style={{ backgroundColor: '#fff' }}>
+                      <td className="p-1 text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{costCode}</td>
+                      <td className="p-1 text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{item.cost_codes?.name}</td>
+                      <td className="p-1 text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{getSourceLabel(item)}</td>
+                      <td className="p-1 text-right text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{formatCurrency(itemTotal)}</td>
+                      {showHistorical && <td className="p-1 text-right text-sm" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>{formatCurrency(historicalValue)}</td>}
                       {showVariance && (
-                        <td className="border border-gray-300 p-1 text-right text-sm" style={getVarianceColor(itemTotal, historicalValue)}>
+                        <td className="p-1 text-right text-sm" style={{ ...getVarianceColor(itemTotal, historicalValue), border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
                           {calculateVariance(itemTotal, historicalValue)}
                         </td>
                       )}
@@ -189,12 +198,12 @@ export function BudgetPrintView({
                 })}
                 
                 {/* Group Total Row */}
-                <tr className="bg-gray-50 font-semibold">
-                  <td colSpan={3} className="border border-gray-300 p-1"></td>
-                  <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupTotal)}</td>
-                  {showHistorical && <td className="border border-gray-300 p-1 text-right text-sm">{formatCurrency(groupHistorical)}</td>}
+                <tr style={{ backgroundColor: '#fff' }}>
+                  <td colSpan={3} className="p-1 font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}></td>
+                  <td className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatCurrency(groupTotal)}</td>
+                  {showHistorical && <td className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatCurrency(groupHistorical)}</td>}
                   {showVariance && (
-                    <td className="border border-gray-300 p-1 text-right text-sm" style={getVarianceColor(groupTotal, groupHistorical)}>
+                    <td className="p-1 text-right text-sm font-semibold" style={{ ...getVarianceColor(groupTotal, groupHistorical), border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>
                       {calculateVariance(groupTotal, groupHistorical)}
                     </td>
                   )}
@@ -205,12 +214,12 @@ export function BudgetPrintView({
         </tbody>
         
         <tfoot>
-          <tr className="bg-gray-100 font-bold">
-            <td colSpan={3} className="border border-gray-300 p-2 text-right text-lg">Project Total:</td>
-            <td className="border border-gray-300 p-2 text-right text-lg">{formatCurrency(totalBudget)}</td>
-            {showHistorical && <td className="border border-gray-300 p-2 text-right text-lg">{formatCurrency(totalHistorical)}</td>}
+          <tr style={{ backgroundColor: '#fff', borderTop: '2px solid #000' }}>
+            <td colSpan={3} className="p-2 text-right text-lg font-bold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>Project Total:</td>
+            <td className="p-2 text-right text-lg font-bold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{formatCurrency(totalBudget)}</td>
+            {showHistorical && <td className="p-2 text-right text-lg font-bold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>{formatCurrency(totalHistorical)}</td>}
             {showVariance && (
-              <td className="border border-gray-300 p-2 text-right text-lg" style={getVarianceColor(totalBudget, totalHistorical)}>
+              <td className="p-2 text-right text-lg font-bold" style={{ ...getVarianceColor(totalBudget, totalHistorical), border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
                 {calculateVariance(totalBudget, totalHistorical)}
               </td>
             )}
