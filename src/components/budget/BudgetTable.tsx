@@ -269,7 +269,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           showVarianceAsPercentage={showVarianceAsPercentage}
           historicalActualCosts={historicalData}
           subcategoryTotals={subcategoryTotalsMap}
-          itemTotalsMap={itemTotalsMap}
         />
       ).toBlob();
 

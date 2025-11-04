@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 
 const styles = StyleSheet.create({
@@ -93,7 +94,6 @@ interface BudgetPdfDocumentProps {
   showVarianceAsPercentage: boolean;
   historicalActualCosts: any;
   subcategoryTotals: Record<string, number>;
-  itemTotalsMap: Record<string, number>;
 }
 
 export function BudgetPdfDocument({
@@ -104,15 +104,15 @@ export function BudgetPdfDocument({
   showVarianceAsPercentage,
   historicalActualCosts,
   subcategoryTotals,
-  itemTotalsMap,
 }: BudgetPdfDocumentProps) {
   const formatCurrency = (value: number | null | undefined): string => {
     if (value === null || value === undefined) return '-';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(value);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Math.round(value));
   };
 
 
@@ -159,7 +159,11 @@ export function BudgetPdfDocument({
   };
 
   const calculateGroupTotal = (items: any[]): number => {
-    return items.reduce((sum, item) => sum + (itemTotalsMap[item.id] || 0), 0);
+    return items.reduce((sum, item) => {
+      const subcategoryTotal = subcategoryTotals[item.id];
+      const historicalCost = getHistoricalCost(item);
+      return sum + calculateBudgetItemTotal(item, subcategoryTotal, false, historicalCost);
+    }, 0);
   };
 
   const calculateGroupHistorical = (items: any[]): number => {
@@ -202,8 +206,9 @@ export function BudgetPdfDocument({
             <View key={group}>
               {items.map((item) => {
                 const costCode = item.cost_codes as any;
-                const total = itemTotalsMap[item.id] || 0;
+                const subcategoryTotal = subcategoryTotals[item.id];
                 const historical = getHistoricalCost(item);
+                const total = calculateBudgetItemTotal(item, subcategoryTotal, false, historical);
                 const variance = calculateVariance(total, historical);
 
                 return (
