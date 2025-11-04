@@ -56,10 +56,10 @@ const styles = StyleSheet.create({
     borderTopColor: '#000',
     fontWeight: 'bold',
   },
-  col1: { width: '10%' }, // Code
-  col2: { width: '30%' }, // Name
-  col3: { width: '20%' }, // Source
-  col4: { width: '20%', textAlign: 'right' }, // Budget Total
+  col1: { width: '8%' }, // Code
+  col2: { width: '40%' }, // Name
+  col3: { width: '17%' }, // Source
+  col4: { width: '15%', textAlign: 'right' }, // Budget Total
   col5: { width: '10%', textAlign: 'right' }, // Historical
   col6: { width: '10%', textAlign: 'right' }, // Variance
   footerContainer: {
