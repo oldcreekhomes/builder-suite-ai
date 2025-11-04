@@ -155,12 +155,12 @@ export function BudgetPrintView({
           
           {/* Column Headers Row */}
           <tr style={{ backgroundColor: '#fff' }}>
-            <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Cost Code</th>
-            <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Name</th>
-            <th className="p-1 text-left text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Source</th>
-            <th className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Total Budget</th>
-            {showHistorical && <th className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Historical</th>}
-            {showVariance && <th className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Variance</th>}
+            <th className="p-1 text-left text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderLeft: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Cost Code</th>
+            <th className="p-1 text-left text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Name</th>
+            <th className="p-1 text-left text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Source</th>
+            <th className="p-1 text-right text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Total Budget</th>
+            {showHistorical && <th className="p-1 text-right text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Historical</th>}
+            {showVariance && <th className="p-1 text-right text-sm font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Variance</th>}
           </tr>
         </thead>
         
@@ -196,7 +196,7 @@ export function BudgetPrintView({
                 
                 {/* Group Total Row */}
                 <tr style={{ backgroundColor: '#fff' }}>
-                  <td colSpan={3} className="p-1 font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}></td>
+                  <td colSpan={3} className="p-1 font-semibold" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', borderRight: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>Subtotal for {group.split(' - ')[0]}</td>
                   <td className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatCurrency(groupTotal)}</td>
                   {showHistorical && <td className="p-1 text-right text-sm font-semibold" style={{ border: '1px solid #000', fontFamily: "'Montserrat', sans-serif", fontWeight: 600 }}>{formatCurrency(groupHistorical)}</td>}
                   {showVariance && (
