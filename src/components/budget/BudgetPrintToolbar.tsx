@@ -1,9 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown } from 'lucide-react';
+import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp } from 'lucide-react';
 
 interface BudgetPrintToolbarProps {
-  onPrint: () => void;
   onExportPdf: () => void;
   onAddBudget: () => void;
   onToggleExpandCollapse?: () => void;
@@ -11,7 +10,7 @@ interface BudgetPrintToolbarProps {
   isExportingPdf?: boolean;
 }
 
-export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggleExpandCollapse, allExpanded, isExportingPdf }: BudgetPrintToolbarProps) {
+export function BudgetPrintToolbar({ onExportPdf, onAddBudget, onToggleExpandCollapse, allExpanded, isExportingPdf }: BudgetPrintToolbarProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -36,12 +35,8 @@ export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggle
             Budget
           </Button>
           <Button onClick={onExportPdf} variant="outline" size="sm" disabled={isExportingPdf}>
-            <FileDown className="h-4 w-4 mr-2" />
-            {isExportingPdf ? 'Exporting...' : 'Export PDF'}
-          </Button>
-          <Button onClick={onPrint} variant="outline" size="sm">
             <Printer className="h-4 w-4 mr-2" />
-            Print
+            {isExportingPdf ? 'Printing...' : 'Print'}
           </Button>
         </div>
       </div>
