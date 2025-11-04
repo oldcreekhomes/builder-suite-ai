@@ -9,16 +9,19 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 20,
+    textAlign: 'center',
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 10,
     color: '#666',
     marginBottom: 2,
+    textAlign: 'center',
   },
   table: {
     width: '100%',
@@ -53,12 +56,12 @@ const styles = StyleSheet.create({
     borderTopColor: '#000',
     fontWeight: 'bold',
   },
-  col1: { width: '12%' }, // Code
-  col2: { width: '30%' }, // Name
-  col3: { width: '15%' }, // Source
+  col1: { width: '10%' }, // Code
+  col2: { width: '35%' }, // Name
+  col3: { width: '18%' }, // Source
   col4: { width: '15%', textAlign: 'right' }, // Budget Total
-  col5: { width: '14%', textAlign: 'right' }, // Historical
-  col6: { width: '14%', textAlign: 'right' }, // Variance
+  col5: { width: '11%', textAlign: 'right' }, // Historical
+  col6: { width: '11%', textAlign: 'right' }, // Variance
   footer: {
     position: 'absolute',
     bottom: 20,
@@ -167,13 +170,10 @@ export function BudgetPdfDocument({
 
   return (
     <Document>
-      <Page size="LETTER" style={styles.page} orientation="landscape">
+      <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>Project Budget</Text>
           {projectAddress && <Text style={styles.subtitle}>{projectAddress}</Text>}
-          <Text style={styles.subtitle}>
-            Generated: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
-          </Text>
         </View>
 
         <View style={styles.table}>
@@ -188,21 +188,6 @@ export function BudgetPdfDocument({
 
           {Object.entries(groupedBudgetItems).map(([group, items]) => (
             <View key={group}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.col1}></Text>
-                <Text style={{ ...styles.col2, fontWeight: 'bold' }}>Subtotal for {group.split(' - ')[0]}</Text>
-                <Text style={styles.col3}></Text>
-                <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
-                  {formatCurrency(calculateGroupTotal(items))}
-                </Text>
-                {visibleColumns.historical && (
-                  <Text style={{ ...styles.col5, fontWeight: 'bold' }}>
-                    {formatCurrency(calculateGroupHistorical(items))}
-                  </Text>
-                )}
-                {visibleColumns.variance && <Text style={styles.col6}></Text>}
-              </View>
-
               {items.map((item) => {
                 const costCode = item.cost_codes as any;
                 const total = itemTotalsMap[item.id] || 0;
@@ -228,6 +213,21 @@ export function BudgetPdfDocument({
                   </View>
                 );
               })}
+
+              <View style={styles.groupHeader}>
+                <Text style={styles.col1}></Text>
+                <Text style={{ ...styles.col2, fontWeight: 'bold' }}>Subtotal for {group.split(' - ')[0]}</Text>
+                <Text style={styles.col3}></Text>
+                <Text style={{ ...styles.col4, fontWeight: 'bold' }}>
+                  {formatCurrency(calculateGroupTotal(items))}
+                </Text>
+                {visibleColumns.historical && (
+                  <Text style={{ ...styles.col5, fontWeight: 'bold' }}>
+                    {formatCurrency(calculateGroupHistorical(items))}
+                  </Text>
+                )}
+                {visibleColumns.variance && <Text style={styles.col6}></Text>}
+              </View>
             </View>
           ))}
 
@@ -260,7 +260,7 @@ export function BudgetPdfDocument({
 
         <Text
           style={styles.footer}
-          render={({ pageNumber }) => `${pageNumber}`}
+          render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
           fixed
         />
       </Page>
