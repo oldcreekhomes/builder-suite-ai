@@ -139,7 +139,10 @@ export function BudgetPrintView({
           {/* Print Header - Repeats on all pages */}
           <tr>
             <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '8px' }}>
-              <div className="text-sm font-normal mb-2" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
+              <h1 className="text-2xl font-bold text-center mb-2" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
+                PROJECT BUDGET
+              </h1>
+              <div className="text-sm font-normal mb-2 text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400 }}>
                 {projectAddress}
               </div>
               <div className="text-sm font-normal mb-3" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between' }}>
@@ -147,9 +150,6 @@ export function BudgetPrintView({
                 <span>{currentTime}</span>
                 <span>Page <span className="page-number"></span> of <span className="total-pages"></span></span>
               </div>
-              <h1 className="text-2xl font-bold text-center mb-4" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700 }}>
-                PROJECT BUDGET
-              </h1>
             </td>
           </tr>
           
