@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   col3: { width: '18%' }, // Source
   col4: { width: '10%', textAlign: 'right' }, // Historical
   col5: { width: '10%', textAlign: 'right' }, // Variance
-  col6: { width: '12%', textAlign: 'left' }, // Budget Total (far right)
+  col6: { width: '12%', textAlign: 'right' }, // Budget Total (far right)
   footerContainer: {
     position: 'absolute',
     bottom: 20,
