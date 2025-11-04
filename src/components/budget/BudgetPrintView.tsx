@@ -125,6 +125,7 @@ export function BudgetPrintView({
 
   return (
     <div className="print-content hidden">
+      <div className="print-page-counter" aria-hidden="true"></div>
       <table className="w-full border-collapse" style={{ tableLayout: 'fixed', border: 'none', fontFamily: "'Montserrat', sans-serif" }}>
         <colgroup>
           <col style={{ width: '80px' }} />
@@ -138,14 +139,14 @@ export function BudgetPrintView({
         <thead>
           {/* Print Header - Repeats on all pages */}
           <tr style={{ border: 'none' }}>
-            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingBottom: '4px' }}>
-              <h1 className="text-2xl font-bold text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, marginBottom: '4px' }}>
+            <td colSpan={4 + (showHistorical ? 1 : 0) + (showVariance ? 1 : 0)} style={{ border: 'none', paddingTop: '0', paddingBottom: '4px' }}>
+              <h1 className="text-2xl font-bold text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, margin: '0 0 4px 0' }}>
                 PROJECT BUDGET
               </h1>
-              <div className="text-sm font-normal text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, marginBottom: '4px' }}>
+              <div className="text-sm font-normal text-center" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, margin: '0 0 4px 0' }}>
                 {projectAddress}
               </div>
-              <div className="text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div className="text-sm font-normal" style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 400, display: 'flex', justifyContent: 'space-between', margin: '0 0 4px 0' }}>
                 <span>{currentDate}</span>
                 <span>{currentTime}</span>
                 <span><span className="page-number"></span>/<span className="total-pages"></span></span>
