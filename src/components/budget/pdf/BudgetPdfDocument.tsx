@@ -184,6 +184,11 @@ export function BudgetPdfDocument({
     );
   };
 
+  const col6Style = {
+    ...styles.col6,
+    width: `${12 + (!visibleColumns.historical ? 10 : 0) + (!visibleColumns.variance ? 10 : 0)}%`,
+  };
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
@@ -199,7 +204,7 @@ export function BudgetPdfDocument({
             <Text style={styles.col3}>Source</Text>
             {visibleColumns.historical && <Text style={styles.col4}>Historical</Text>}
             {visibleColumns.variance && <Text style={styles.col5}>Variance</Text>}
-            <Text style={styles.col6}>Total Budget</Text>
+            <Text style={col6Style}>Total Budget</Text>
           </View>
 
           {Object.entries(groupedBudgetItems).map(([group, items]) => (
@@ -226,7 +231,7 @@ export function BudgetPdfDocument({
                           : `${variance >= 0 ? '+' : ''}${formatCurrency(Math.abs(variance))}`}
                       </Text>
                     )}
-                    <Text style={styles.col6}>{formatCurrency(total)}</Text>
+                    <Text style={col6Style}>{formatCurrency(total)}</Text>
                   </View>
                 );
               })}
@@ -241,7 +246,7 @@ export function BudgetPdfDocument({
                   </Text>
                 )}
                 {visibleColumns.variance && <Text style={styles.col5}></Text>}
-                <Text style={{ ...styles.col6, fontWeight: 'bold' }}>
+                <Text style={{ ...col6Style, fontWeight: 'bold' }}>
                   {formatCurrency(calculateGroupTotal(items))}
                 </Text>
               </View>
@@ -269,7 +274,7 @@ export function BudgetPdfDocument({
                 })()}
               </Text>
             )}
-            <Text style={{ ...styles.col6, fontWeight: 'bold' }}>
+            <Text style={{ ...col6Style, fontWeight: 'bold' }}>
               {formatCurrency(calculateProjectTotal())}
             </Text>
           </View>
