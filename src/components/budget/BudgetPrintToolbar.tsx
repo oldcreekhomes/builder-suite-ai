@@ -8,9 +8,10 @@ interface BudgetPrintToolbarProps {
   onAddBudget: () => void;
   onToggleExpandCollapse?: () => void;
   allExpanded?: boolean;
+  isExportingPdf?: boolean;
 }
 
-export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggleExpandCollapse, allExpanded }: BudgetPrintToolbarProps) {
+export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggleExpandCollapse, allExpanded, isExportingPdf }: BudgetPrintToolbarProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -34,9 +35,9 @@ export function BudgetPrintToolbar({ onPrint, onExportPdf, onAddBudget, onToggle
             <PlusIcon className="h-4 w-4 mr-2" />
             Budget
           </Button>
-          <Button onClick={onExportPdf} variant="outline" size="sm">
+          <Button onClick={onExportPdf} variant="outline" size="sm" disabled={isExportingPdf}>
             <FileDown className="h-4 w-4 mr-2" />
-            Export PDF
+            {isExportingPdf ? 'Exporting...' : 'Export PDF'}
           </Button>
           <Button onClick={onPrint} variant="outline" size="sm">
             <Printer className="h-4 w-4 mr-2" />

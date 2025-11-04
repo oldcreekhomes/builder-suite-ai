@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { BudgetCreationModal } from './BudgetCreationModal';
@@ -33,9 +34,11 @@ interface BudgetTableProps {
 }
 
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
+  const { toast } = useToast();
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('none');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const visibleColumns: VisibleColumns = {
     historicalCosts: true,
     variance: true,
@@ -245,7 +248,11 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   };
 
   const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    
     try {
+      console.log('Starting PDF export...');
+      
       const pdfVisibleColumns = {
         quantity: true,
         unitPrice: true,
@@ -254,6 +261,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         variance: selectedHistoricalProject !== 'none',
       };
 
+      console.log('Generating PDF document...');
+      
       const blob = await pdf(
         <BudgetPdfDocument
           projectAddress={projectAddress}
@@ -267,14 +276,32 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         />
       ).toBlob();
 
+      console.log('PDF blob created, downloading...');
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `Project_Budget-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF exported successfully",
+        description: "Your budget PDF has been downloaded",
+      });
+      
+      console.log('PDF export complete');
     } catch (error) {
       console.error('Error generating PDF:', error);
+      toast({
+        title: "PDF export failed",
+        description: error instanceof Error ? error.message : "An error occurred while generating the PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -312,6 +339,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         onAddBudget={() => setShowAddBudgetModal(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
+        isExportingPdf={isExportingPdf}
       />
 
       {selectedCount > 0 && (
