@@ -254,9 +254,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
       console.log('Starting PDF export...');
       
       const pdfVisibleColumns = {
-        quantity: true,
-        unitPrice: true,
-        source: true,
         historical: selectedHistoricalProject !== 'none',
         variance: selectedHistoricalProject !== 'none',
       };
