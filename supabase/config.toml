@@ -1,5 +1,8 @@
 project_id = "nlmnwlvmmkngrgatnzkj"
 
+[functions.reverse-duplicate-bills]
+verify_jwt = false
+
 [functions.send-accounting-reports]
 verify_jwt = false
 
