@@ -118,6 +118,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           .from('journal_entry_lines')
           .select('*, journal_entries!inner(*), accounts(*)')
           .eq('owner_id', user.id)
+          .or(`project_id.eq.${projectId},project_id.is.null`, { foreignTable: 'journal_entries' })
           .lte('journal_entries.entry_date', asOfDateStr);
 
         const accountBalances = new Map<string, number>();
@@ -181,6 +182,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           .from('journal_entry_lines')
           .select('*, journal_entries!inner(*)')
           .eq('owner_id', user.id)
+          .or(`project_id.eq.${projectId},project_id.is.null`, { foreignTable: 'journal_entries' })
           .lte('journal_entries.entry_date', asOfDateStr);
 
         const accountBalances = new Map<string, number>();
