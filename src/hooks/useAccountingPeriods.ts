@@ -76,7 +76,39 @@ export const useAccountingPeriods = (projectId?: string) => {
 
       if (!ownerId) throw new Error('Unable to determine company');
 
-      // Then close the period
+      // Check if period already exists (re-closing scenario)
+      const { data: existingPeriod } = await supabase
+        .from('accounting_periods')
+        .select('id, status')
+        .eq('owner_id', ownerId)
+        .eq('project_id', projectId)
+        .eq('period_end_date', periodEndDate)
+        .maybeSingle();
+
+      if (existingPeriod && existingPeriod.status === 'open') {
+        // Re-close existing period
+        const { data, error } = await supabase
+          .from('accounting_periods')
+          .update({
+            status: 'closed',
+            closed_at: new Date().toISOString(),
+            closed_by: user.id,
+            closure_notes: closureNotes,
+            reopened_at: null,
+            reopened_by: null,
+            reopen_reason: null,
+          })
+          .eq('id', existingPeriod.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else if (existingPeriod && existingPeriod.status === 'closed') {
+        throw new Error('This period is already closed');
+      }
+
+      // First-time close: insert new period
       const { data, error } = await supabase
         .from('accounting_periods')
         .insert({
