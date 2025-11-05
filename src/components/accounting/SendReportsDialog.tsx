@@ -19,6 +19,7 @@ import { pdf } from '@react-pdf/renderer';
 import { BalanceSheetPdfDocument } from '@/components/reports/pdf/BalanceSheetPdfDocument';
 import { IncomeStatementPdfDocument } from '@/components/reports/pdf/IncomeStatementPdfDocument';
 import { JobCostsPdfDocument } from '@/components/reports/pdf/JobCostsPdfDocument';
+import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 interface SendReportsDialogProps {
   projectId: string;
@@ -313,41 +314,234 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
       }
 
       // Generate Job Costs PDF if selected
-      if (reports.jobCosts) {
-        const { data: budgetItems } = await supabase
+      if (reports.jobCosts && projectId) {
+        const asOfDateStr = format(asOfDate, 'yyyy-MM-dd');
+        
+        console.log("📊 Job Costs PDF: Starting generation for project:", projectId);
+
+        // Step 1: Get WIP account ID (match JobCostsContent.tsx)
+        const { data: settings, error: settingsError } = await supabase
+          .from('accounting_settings')
+          .select('wip_account_id')
+          .single();
+
+        if (settingsError) {
+          console.error("📊 Job Costs PDF: Settings query failed:", settingsError);
+          throw settingsError;
+        }
+
+        const wipAccountId = settings?.wip_account_id;
+        if (!wipAccountId) {
+          throw new Error("WIP account not configured in accounting settings");
+        }
+
+        console.log("📊 Job Costs PDF: WIP account ID:", wipAccountId);
+
+        // Step 2: Get budget data (match JobCostsContent.tsx)
+        const { data: budgetData, error: budgetError } = await supabase
           .from('project_budgets')
-          .select('*, cost_codes(code, name, parent_group)')
+          .select(`
+            id,
+            cost_code_id,
+            quantity,
+            unit_price,
+            budget_source,
+            selected_bid_id,
+            historical_project_id,
+            selected_bid:project_bids!selected_bid_id(price),
+            cost_codes(id, code, name, has_subcategories, price, parent_group)
+          `)
+          .eq('project_id', projectId);
+
+        if (budgetError) {
+          console.error("📊 Job Costs PDF: Budget query failed:", budgetError);
+          throw budgetError;
+        }
+
+        console.log(`📊 Job Costs PDF: Found ${budgetData?.length || 0} budget items`);
+
+        // Step 3: Get actual WIP costs (match JobCostsContent.tsx)
+        const { data: wipLines, error: wipError } = await supabase
+          .from('journal_entry_lines')
+          .select(`
+            cost_code_id,
+            debit,
+            credit,
+            journal_entries!inner(entry_date)
+          `)
+          .eq('account_id', wipAccountId)
           .eq('project_id', projectId)
-          .order('cost_codes(code)');
+          .not('cost_code_id', 'is', null)
+          .lte('journal_entries.entry_date', asOfDateStr);
 
-        const { data: allCostCodes } = await supabase
-          .from('cost_codes')
-          .select('code, parent_group')
-          .eq('owner_id', user.id);
+        if (wipError) {
+          console.error("📊 Job Costs PDF: WIP lines query failed:", wipError);
+          throw wipError;
+        }
 
-        const topLevelGroups = new Set(
-          allCostCodes?.filter(cc => !allCostCodes.some(c => c.code === cc.parent_group)).map(cc => cc.code) || []
-        );
+        console.log(`📊 Job Costs PDF: Found ${wipLines?.length || 0} WIP journal lines`);
 
-        const grouped = budgetItems?.reduce((acc: Record<string, any[]>, item: any) => {
-          const group = item.cost_codes?.parent_group || 'Uncategorized';
-          if (!acc[group]) acc[group] = [];
-          acc[group].push({
-            costCode: item.cost_codes?.code || '',
-            costCodeName: item.cost_codes?.name || '',
-            budget: item.quantity * item.unit_price || 0,
-            actual: item.actual_amount || 0,
-            variance: (item.quantity * item.unit_price || 0) - (item.actual_amount || 0),
-          });
-          return acc;
-        }, {});
-
-        const groupedObj: Record<string, any[]> = {};
-        Object.entries(grouped || {}).filter(([group]) => topLevelGroups.has(group)).forEach(([key, val]) => {
-          groupedObj[key] = val;
+        // Step 4: Build actuals by cost code
+        const actualsByCostCode: Record<string, number> = {};
+        wipLines?.forEach(line => {
+          const costCodeId = line.cost_code_id!;
+          actualsByCostCode[costCodeId] = 
+            (actualsByCostCode[costCodeId] || 0) + ((line.debit || 0) - (line.credit || 0));
         });
-        const totalBudget = budgetItems?.reduce((sum, item) => sum + (item.quantity * item.unit_price || 0), 0) || 0;
-        const totalActual = budgetItems?.reduce((sum, item) => sum + (item.actual_amount || 0), 0) || 0;
+
+        // Step 5: Collect cost code details
+        const costCodeSet = new Set<string>();
+        const costCodeData: Record<string, { code: string, name: string, parentGroup: string }> = {};
+        
+        const getTopLevelGroup = (costCode: string): string => {
+          const num = parseFloat(costCode);
+          if (isNaN(num) || num < 1000) return 'Uncategorized';
+          const topLevel = Math.floor(num / 1000) * 1000;
+          return topLevel.toString();
+        };
+
+        const getParentCode = (code: string): string => code.split('.')[0];
+
+        // Add cost codes from budget
+        budgetData?.forEach(item => {
+          const cc = item.cost_codes;
+          if (cc && item.cost_code_id) {
+            costCodeSet.add(item.cost_code_id);
+            costCodeData[item.cost_code_id] = { 
+              code: cc.code, 
+              name: cc.name,
+              parentGroup: getTopLevelGroup(cc.code)
+            };
+          }
+        });
+        
+        // Add cost codes from actuals
+        wipLines?.forEach(line => {
+          if (line.cost_code_id) {
+            costCodeSet.add(line.cost_code_id);
+          }
+        });
+
+        // Fetch missing cost code details
+        const missingCostCodeIds = Array.from(costCodeSet).filter(id => !costCodeData[id]);
+        if (missingCostCodeIds.length > 0) {
+          const { data: missingCostCodes } = await supabase
+            .from('cost_codes')
+            .select('id, code, name, parent_group')
+            .in('id', missingCostCodeIds);
+
+          missingCostCodes?.forEach(cc => {
+            costCodeData[cc.id] = {
+              code: cc.code,
+              name: cc.name,
+              parentGroup: getTopLevelGroup(cc.code)
+            };
+          });
+        }
+
+        // Step 6: Calculate budgets aggregated to parent codes (match JobCostsContent.tsx)
+        const sumChildrenByParent: Record<string, number> = {};
+        const parentItemTotals: Record<string, number> = {};
+        const parentsWithChildren = new Set<string>();
+        const parentNamesByCode: Record<string, string> = {};
+
+        budgetData?.forEach(item => {
+          if (!item.cost_code_id || !item.cost_codes) return;
+          const code = (item.cost_codes as any).code as string;
+          const name = (item.cost_codes as any).name as string;
+          const parentCode = getParentCode(code);
+          const isChild = code.includes('.');
+          const total = calculateBudgetItemTotal(item, 0, false);
+
+          if (isChild) {
+            sumChildrenByParent[parentCode] = (sumChildrenByParent[parentCode] || 0) + total;
+            parentsWithChildren.add(parentCode);
+          } else {
+            parentItemTotals[parentCode] = (parentItemTotals[parentCode] || 0) + total;
+            parentNamesByCode[parentCode] = name;
+          }
+        });
+
+        // Fetch missing parent names
+        const missingParentCodes = Array.from(parentsWithChildren).filter(pc => !parentNamesByCode[pc]);
+        if (missingParentCodes.length > 0) {
+          const { data: parentCodeNames } = await supabase
+            .from('cost_codes')
+            .select('code, name')
+            .in('code', missingParentCodes);
+          parentCodeNames?.forEach(cc => {
+            parentNamesByCode[cc.code] = cc.name;
+          });
+        }
+
+        // Build budgets by parent code
+        const budgetsByParentCode: Record<string, number> = {};
+        const allParentCodesSet = new Set<string>([
+          ...Object.keys(parentItemTotals),
+          ...Object.keys(sumChildrenByParent),
+        ]);
+
+        allParentCodesSet.forEach(pc => {
+          budgetsByParentCode[pc] = parentsWithChildren.has(pc)
+            ? (sumChildrenByParent[pc] || 0)
+            : (parentItemTotals[pc] || 0);
+        });
+
+        // Step 7: Aggregate actuals to parent codes
+        const actualsByParentCode: Record<string, number> = {};
+        Object.entries(actualsByCostCode).forEach(([id, amount]) => {
+          const cd = costCodeData[id];
+          if (!cd) return;
+          const parentCode = getParentCode(cd.code);
+          actualsByParentCode[parentCode] = (actualsByParentCode[parentCode] || 0) + (amount as number);
+        });
+
+        // Ensure display names for all parent codes
+        Object.keys(actualsByParentCode).forEach(pc => {
+          if (!parentNamesByCode[pc]) parentNamesByCode[pc] = pc;
+        });
+
+        // Step 8: Build parent-only rows for PDF
+        const costCodeRows: any[] = [];
+        Array.from(new Set<string>([
+          ...Object.keys(budgetsByParentCode),
+          ...Object.keys(actualsByParentCode),
+        ])).forEach(parentCode => {
+          const budget = budgetsByParentCode[parentCode] || 0;
+          const actual = actualsByParentCode[parentCode] || 0;
+          const variance = budget - actual;
+          costCodeRows.push({
+            costCode: parentCode,
+            costCodeName: parentNamesByCode[parentCode] || '',
+            parentGroup: getTopLevelGroup(parentCode),
+            budget,
+            actual,
+            variance,
+          });
+        });
+
+        // Sort by cost code numerically
+        costCodeRows.sort((a, b) => {
+          const numA = parseFloat(a.costCode) || 0;
+          const numB = parseFloat(b.costCode) || 0;
+          return numA - numB;
+        });
+
+        console.log(`📊 Job Costs PDF: Generated ${costCodeRows.length} parent cost code rows`);
+
+        // Group by parent_group
+        const groupedObj: Record<string, any[]> = {};
+        costCodeRows.forEach(row => {
+          const group = row.parentGroup || 'Uncategorized';
+          if (!groupedObj[group]) {
+            groupedObj[group] = [];
+          }
+          groupedObj[group].push(row);
+        });
+
+        // Calculate totals
+        const totalBudget = costCodeRows.reduce((sum, row) => sum + row.budget, 0);
+        const totalActual = costCodeRows.reduce((sum, row) => sum + row.actual, 0);
         const totalVariance = totalBudget - totalActual;
 
         const blob = await pdf(
