@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { Resend } from "npm:resend@4.0.0";
-import { jsPDF } from "npm:jspdf@2.5.2";
 import JSZip from "npm:jszip@3.10.1";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -10,14 +9,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Helper function to format currency with commas
-function formatCurrency(amount: number): string {
-  return amount.toLocaleString('en-US', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
-  });
-}
 
 interface ReportRequest {
   recipientEmail: string;
@@ -30,6 +21,11 @@ interface ReportRequest {
     bankStatementIds: string[];
   };
   asOfDate: string;
+  generatedPdfs?: {
+    balanceSheet?: string;
+    incomeStatement?: string;
+    jobCosts?: string;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -48,9 +44,10 @@ const handler = async (req: Request): Promise<Response> => {
       delivery,
       reports,
       asOfDate,
+      generatedPdfs,
     }: ReportRequest = await req.json();
 
-    console.log("Generating reports for project:", projectId);
+    console.log("Sending reports for project:", projectId);
     console.log("Selected reports:", reports);
     console.log("As of date:", asOfDate);
 
@@ -64,13 +61,13 @@ const handler = async (req: Request): Promise<Response> => {
     const projectName = project?.address || "Project";
     const ownerId = project?.owner_id;
 
-    // Generate PDFs
+    // Use pre-generated PDFs from frontend
     const pdfFiles: Array<{ name: string; data: Uint8Array }> = [];
 
     // Balance Sheet
-    if (reports.balanceSheet) {
-      console.log("Generating Balance Sheet...");
-      const balanceSheetPdf = await generateBalanceSheet(supabase, projectId, ownerId, asOfDate);
+    if (reports.balanceSheet && generatedPdfs?.balanceSheet) {
+      console.log("Using pre-generated Balance Sheet PDF...");
+      const balanceSheetPdf = Uint8Array.from(atob(generatedPdfs.balanceSheet), c => c.charCodeAt(0));
       pdfFiles.push({
         name: `Balance_Sheet_as_of_${asOfDate}.pdf`,
         data: balanceSheetPdf,
@@ -78,9 +75,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Income Statement
-    if (reports.incomeStatement) {
-      console.log("Generating Income Statement...");
-      const incomeStatementPdf = await generateIncomeStatement(supabase, projectId, ownerId, asOfDate);
+    if (reports.incomeStatement && generatedPdfs?.incomeStatement) {
+      console.log("Using pre-generated Income Statement PDF...");
+      const incomeStatementPdf = Uint8Array.from(atob(generatedPdfs.incomeStatement), c => c.charCodeAt(0));
       pdfFiles.push({
         name: `Income_Statement_as_of_${asOfDate}.pdf`,
         data: incomeStatementPdf,
@@ -88,9 +85,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Job Costs
-    if (reports.jobCosts) {
-      console.log("Generating Job Costs Report...");
-      const jobCostsPdf = await generateJobCostsReport(supabase, projectId, asOfDate);
+    if (reports.jobCosts && generatedPdfs?.jobCosts) {
+      console.log("Using pre-generated Job Costs PDF...");
+      const jobCostsPdf = Uint8Array.from(atob(generatedPdfs.jobCosts), c => c.charCodeAt(0));
       pdfFiles.push({
         name: `Job_Costs_as_of_${asOfDate}.pdf`,
         data: jobCostsPdf,
@@ -158,421 +155,6 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
-
-async function generateBalanceSheet(supabase: any, projectId: string, ownerId: string, asOfDate: string): Promise<Uint8Array> {
-  const doc = new jsPDF();
-  
-  // Fetch account data filtered by owner
-  const { data: accounts } = await supabase
-    .from("accounts")
-    .select("*")
-    .eq("owner_id", ownerId)
-    .order("code");
-
-  // Fetch journal entries filtered by project and date
-  const { data: journalLines } = await supabase
-    .from("journal_entry_lines")
-    .select(`
-      *,
-      journal_entries!inner(entry_date)
-    `)
-    .eq("project_id", projectId)
-    .lte("journal_entries.entry_date", asOfDate);
-
-  // Calculate balances
-  const balances: Record<string, number> = {};
-  journalLines?.forEach((line: any) => {
-    if (!balances[line.account_id]) {
-      balances[line.account_id] = 0;
-    }
-    balances[line.account_id] += (line.debit || 0) - (line.credit || 0);
-  });
-
-  // Generate PDF with styling
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Header with background
-  doc.setFillColor(0, 0, 0);
-  doc.rect(0, 0, pageWidth, 40, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont(undefined, "bold");
-  doc.text("Balance Sheet", pageWidth / 2, 18, { align: "center" });
-  doc.setFontSize(12);
-  doc.setFont(undefined, "normal");
-  doc.text(`As of ${asOfDate}`, pageWidth / 2, 28, { align: "center" });
-  
-  // Reset text color
-  doc.setTextColor(0, 0, 0);
-
-  let y = 55;
-  const leftMargin = 20;
-  const rightMargin = pageWidth - 20;
-  const amountX = rightMargin - 45;
-
-  // Assets Section
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
-  doc.text("ASSETS", leftMargin + 2, y);
-  y += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  let totalAssets = 0;
-  accounts?.filter((a: any) => a.type === "asset").forEach((account: any) => {
-    const balance = balances[account.id] || 0;
-    if (balance !== 0) {
-      totalAssets += balance;
-      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
-      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
-      y += 6;
-    }
-  });
-  
-  // Assets total with border
-  y += 2;
-  doc.setLineWidth(0.5);
-  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
-  doc.setFont(undefined, "bold");
-  doc.text("Total Assets", leftMargin + 5, y);
-  doc.text(`$${formatCurrency(totalAssets)}`, amountX, y, { align: "right" });
-  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
-  doc.setFont(undefined, "normal");
-  y += 15;
-
-  // Liabilities Section
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
-  doc.text("LIABILITIES", leftMargin + 2, y);
-  y += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  let totalLiabilities = 0;
-  accounts?.filter((a: any) => a.type === "liability").forEach((account: any) => {
-    const balance = Math.abs(balances[account.id] || 0);
-    if (balance !== 0) {
-      totalLiabilities += balance;
-      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
-      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
-      y += 6;
-    }
-  });
-  
-  // Liabilities total with border
-  y += 2;
-  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
-  doc.setFont(undefined, "bold");
-  doc.text("Total Liabilities", leftMargin + 5, y);
-  doc.text(`$${formatCurrency(totalLiabilities)}`, amountX, y, { align: "right" });
-  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
-  doc.setFont(undefined, "normal");
-  y += 15;
-
-  // Equity Section
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
-  doc.text("EQUITY", leftMargin + 2, y);
-  y += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  let totalEquity = 0;
-  accounts?.filter((a: any) => a.type === "equity").forEach((account: any) => {
-    const balance = Math.abs(balances[account.id] || 0);
-    if (balance !== 0) {
-      totalEquity += balance;
-      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
-      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
-      y += 6;
-    }
-  });
-  
-  // Equity total with border
-  y += 2;
-  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
-  doc.setFont(undefined, "bold");
-  doc.text("Total Equity", leftMargin + 5, y);
-  doc.text(`$${formatCurrency(totalEquity)}`, amountX, y, { align: "right" });
-  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
-
-  return new Uint8Array(doc.output("arraybuffer"));
-}
-
-async function generateIncomeStatement(supabase: any, projectId: string, ownerId: string, asOfDate: string): Promise<Uint8Array> {
-  const doc = new jsPDF();
-  
-  // Fetch account data filtered by owner
-  const { data: accounts } = await supabase
-    .from("accounts")
-    .select("*")
-    .eq("owner_id", ownerId)
-    .order("code");
-
-  // Fetch journal entries filtered by project and date
-  const { data: journalLines } = await supabase
-    .from("journal_entry_lines")
-    .select(`
-      *,
-      journal_entries!inner(entry_date)
-    `)
-    .eq("project_id", projectId)
-    .lte("journal_entries.entry_date", asOfDate);
-
-  // Calculate balances
-  const balances: Record<string, number> = {};
-  journalLines?.forEach((line: any) => {
-    if (!balances[line.account_id]) {
-      balances[line.account_id] = 0;
-    }
-    balances[line.account_id] += (line.debit || 0) - (line.credit || 0);
-  });
-
-  // Generate PDF with styling
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Header with background
-  doc.setFillColor(0, 0, 0);
-  doc.rect(0, 0, pageWidth, 40, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont(undefined, "bold");
-  doc.text("Income Statement", pageWidth / 2, 18, { align: "center" });
-  doc.setFontSize(12);
-  doc.setFont(undefined, "normal");
-  doc.text(`As of ${asOfDate}`, pageWidth / 2, 28, { align: "center" });
-  
-  // Reset text color
-  doc.setTextColor(0, 0, 0);
-
-  let y = 55;
-  const leftMargin = 20;
-  const rightMargin = pageWidth - 20;
-  const amountX = rightMargin - 45;
-
-  // Revenue Section
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
-  doc.text("REVENUE", leftMargin + 2, y);
-  y += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  let totalRevenue = 0;
-  accounts?.filter((a: any) => a.type === "revenue").forEach((account: any) => {
-    const balance = Math.abs(balances[account.id] || 0);
-    if (balance !== 0) {
-      totalRevenue += balance;
-      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
-      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
-      y += 6;
-    }
-  });
-
-  // Revenue total with border
-  y += 2;
-  doc.setLineWidth(0.5);
-  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
-  doc.setFont(undefined, "bold");
-  doc.text("Total Revenue", leftMargin + 5, y);
-  doc.text(`$${formatCurrency(totalRevenue)}`, amountX, y, { align: "right" });
-  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
-  doc.setFont(undefined, "normal");
-  y += 15;
-
-  // Expenses Section
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 40, 8, "F");
-  doc.text("EXPENSES", leftMargin + 2, y);
-  y += 10;
-  
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  let totalExpenses = 0;
-  accounts?.filter((a: any) => a.type === "expense").forEach((account: any) => {
-    const balance = balances[account.id] || 0;
-    if (balance !== 0) {
-      totalExpenses += balance;
-      doc.text(`${account.code} - ${account.name}`, leftMargin + 5, y);
-      doc.text(`$${formatCurrency(balance)}`, amountX, y, { align: "right" });
-      y += 6;
-    }
-  });
-
-  // Expenses total with border
-  y += 2;
-  doc.line(amountX - 50, y - 2, amountX + 2, y - 2);
-  doc.setFont(undefined, "bold");
-  doc.text("Total Expenses", leftMargin + 5, y);
-  doc.text(`$${formatCurrency(totalExpenses)}`, amountX, y, { align: "right" });
-  doc.line(amountX - 50, y + 1, amountX + 2, y + 1);
-  doc.setFont(undefined, "normal");
-  y += 15;
-
-  // Net Income Section
-  const netIncome = totalRevenue - totalExpenses;
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 40, 10, "F");
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.text("NET INCOME", leftMargin + 2, y);
-  doc.text(`$${formatCurrency(netIncome)}`, amountX, y, { align: "right" });
-
-  return new Uint8Array(doc.output("arraybuffer"));
-}
-
-async function generateJobCostsReport(supabase: any, projectId: string, asOfDate: string): Promise<Uint8Array> {
-  const doc = new jsPDF();
-  
-  // Fetch journal entry lines for this project grouped by cost code
-  const { data: journalLines } = await supabase
-    .from("journal_entry_lines")
-    .select(`
-      cost_code_id,
-      debit,
-      credit,
-      cost_codes(code, name),
-      journal_entries!inner(entry_date)
-    `)
-    .eq("project_id", projectId)
-    .not("cost_code_id", "is", null)
-    .lte("journal_entries.entry_date", asOfDate);
-
-  // Fetch budget data for this project
-  const { data: budgetItems } = await supabase
-    .from("budget_items")
-    .select("cost_code_id, total")
-    .eq("project_id", projectId);
-
-  // Create budget lookup
-  const budgetLookup: Record<string, number> = {};
-  budgetItems?.forEach((item: any) => {
-    if (item.cost_code_id) {
-      budgetLookup[item.cost_code_id] = item.total || 0;
-    }
-  });
-
-  // Group by cost code and calculate totals
-  const costCodeTotals: Record<string, { code: string; name: string; actualAmount: number; budgetAmount: number }> = {};
-  
-  journalLines?.forEach((line: any) => {
-    const costCodeId = line.cost_code_id;
-    if (!costCodeTotals[costCodeId]) {
-      costCodeTotals[costCodeId] = {
-        code: line.cost_codes?.code || "N/A",
-        name: line.cost_codes?.name || "Unknown",
-        actualAmount: 0,
-        budgetAmount: budgetLookup[costCodeId] || 0,
-      };
-    }
-    costCodeTotals[costCodeId].actualAmount += (line.debit || 0) - (line.credit || 0);
-  });
-
-  // Convert to array and sort by code
-  const costCodeArray = Object.values(costCodeTotals).sort((a, b) => a.code.localeCompare(b.code));
-
-  // Generate PDF with styling
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Header with background
-  doc.setFillColor(0, 0, 0);
-  doc.rect(0, 0, pageWidth, 40, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont(undefined, "bold");
-  doc.text("Job Costs Report", pageWidth / 2, 18, { align: "center" });
-  doc.setFontSize(12);
-  doc.setFont(undefined, "normal");
-  doc.text(`As of ${asOfDate}`, pageWidth / 2, 28, { align: "center" });
-  
-  // Reset text color
-  doc.setTextColor(0, 0, 0);
-
-  let y = 55;
-  const leftMargin = 15;
-  
-  // Table header
-  doc.setFontSize(9);
-  doc.setFont(undefined, "bold");
-  doc.setFillColor(240, 240, 240);
-  doc.rect(leftMargin, y - 5, pageWidth - 30, 8, "F");
-  doc.text("Cost Code", leftMargin + 2, y);
-  doc.text("Budget", 115, y, { align: "right" });
-  doc.text("Actual", 150, y, { align: "right" });
-  doc.text("Variance", 185, y, { align: "right" });
-  doc.setFont(undefined, "normal");
-  y += 8;
-
-  // Draw header bottom border
-  doc.setLineWidth(0.5);
-  doc.line(leftMargin, y, pageWidth - 15, y);
-  y += 5;
-
-  // Data rows
-  let grandTotalBudget = 0;
-  let grandTotalActual = 0;
-  costCodeArray.forEach((costCode) => {
-    const actualAmount = costCode.actualAmount;
-    const budgetAmount = costCode.budgetAmount;
-    const variance = budgetAmount - actualAmount;
-    
-    grandTotalBudget += budgetAmount;
-    grandTotalActual += actualAmount;
-
-    doc.setFontSize(8);
-    doc.text(`${costCode.code} - ${costCode.name}`, leftMargin + 2, y);
-    doc.text(`$${formatCurrency(budgetAmount)}`, 115, y, { align: "right" });
-    doc.text(`$${formatCurrency(actualAmount)}`, 150, y, { align: "right" });
-    
-    // Color variance based on positive/negative
-    if (variance < 0) {
-      doc.setTextColor(220, 38, 38); // Red for over budget
-    }
-    doc.text(`$${formatCurrency(variance)}`, 185, y, { align: "right" });
-    doc.setTextColor(0, 0, 0); // Reset color
-    
-    y += 6;
-
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
-  });
-
-  // Total row with border
-  y += 3;
-  doc.setLineWidth(0.5);
-  doc.line(leftMargin, y, pageWidth - 15, y);
-  y += 5;
-  
-  doc.setFontSize(9);
-  doc.setFont(undefined, "bold");
-  const grandVariance = grandTotalBudget - grandTotalActual;
-  doc.text("TOTAL", leftMargin + 2, y);
-  doc.text(`$${formatCurrency(grandTotalBudget)}`, 115, y, { align: "right" });
-  doc.text(`$${formatCurrency(grandTotalActual)}`, 150, y, { align: "right" });
-  
-  if (grandVariance < 0) {
-    doc.setTextColor(220, 38, 38);
-  }
-  doc.text(`$${formatCurrency(grandVariance)}`, 185, y, { align: "right" });
-  
-  // Double line under total
-  y += 2;
-  doc.line(leftMargin, y, pageWidth - 15, y);
-
-  return new Uint8Array(doc.output("arraybuffer"));
-}
 
 async function fetchBankStatements(supabase: any, projectId: string, fileIds: string[]): Promise<Array<{ name: string; data: Uint8Array }>> {
   const { data: files } = await supabase

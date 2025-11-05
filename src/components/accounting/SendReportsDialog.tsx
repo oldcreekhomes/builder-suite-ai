@@ -15,6 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { pdf } from '@react-pdf/renderer';
+import { BalanceSheetPdfDocument } from '@/components/reports/pdf/BalanceSheetPdfDocument';
+import { IncomeStatementPdfDocument } from '@/components/reports/pdf/IncomeStatementPdfDocument';
+import { JobCostsPdfDocument } from '@/components/reports/pdf/JobCostsPdfDocument';
 
 interface SendReportsDialogProps {
   projectId: string;
@@ -88,6 +92,191 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
 
     setSending(true);
     try {
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('address')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+
+      const asOfDateStr = format(asOfDate, 'yyyy-MM-dd');
+      const generatedPdfs: any = {};
+
+      // Generate Balance Sheet PDF if selected
+      if (reports.balanceSheet) {
+        const { data: accounts } = await supabase
+          .from('accounts')
+          .select('*')
+          .eq('owner_id', user.id)
+          .eq('is_active', true)
+          .order('code');
+
+        const { data: journalLines } = await supabase
+          .from('journal_entry_lines')
+          .select('*, journal_entries!inner(*), accounts(*)')
+          .eq('owner_id', user.id)
+          .lte('journal_entries.entry_date', asOfDateStr);
+
+        const accountBalances = new Map<string, number>();
+        journalLines?.forEach((line) => {
+          const accountId = line.account_id;
+          const current = accountBalances.get(accountId) || 0;
+          accountBalances.set(accountId, current + (line.debit || 0) - (line.credit || 0));
+        });
+
+        const categorize = (type: string) => 
+          accounts?.filter(a => a.type === type).map(a => ({
+            id: a.id,
+            code: a.code,
+            name: a.name,
+            balance: accountBalances.get(a.id) || 0,
+          })) || [];
+
+        const currentAssets = categorize('asset').filter(a => a.code.startsWith('1') && parseInt(a.code) < 1500);
+        const fixedAssets = categorize('asset').filter(a => a.code.startsWith('1') && parseInt(a.code) >= 1500);
+        const currentLiabilities = categorize('liability').filter(a => a.code.startsWith('2') && parseInt(a.code) < 2500);
+        const longTermLiabilities = categorize('liability').filter(a => a.code.startsWith('2') && parseInt(a.code) >= 2500);
+        const equity = categorize('equity');
+
+        const totalAssets = [...currentAssets, ...fixedAssets].reduce((sum, a) => sum + a.balance, 0);
+        const totalLiabilities = [...currentLiabilities, ...longTermLiabilities].reduce((sum, a) => sum + a.balance, 0);
+        const totalEquity = equity.reduce((sum, a) => sum + a.balance, 0);
+
+        const blob = await pdf(
+          <BalanceSheetPdfDocument
+            projectAddress={projectData.address}
+            asOfDate={asOfDateStr}
+            assets={{
+              current: currentAssets,
+              fixed: fixedAssets,
+            }}
+            liabilities={{
+              current: currentLiabilities,
+              longTerm: longTermLiabilities,
+            }}
+            equity={equity}
+            totalAssets={totalAssets}
+            totalLiabilities={totalLiabilities}
+            totalEquity={totalEquity}
+          />
+        ).toBlob();
+
+        const arrayBuffer = await blob.arrayBuffer();
+        generatedPdfs.balanceSheet = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+
+      // Generate Income Statement PDF if selected
+      if (reports.incomeStatement) {
+        const { data: accounts } = await supabase
+          .from('accounts')
+          .select('*')
+          .eq('owner_id', user.id)
+          .eq('is_active', true)
+          .order('code');
+
+        const { data: journalLines } = await supabase
+          .from('journal_entry_lines')
+          .select('*, journal_entries!inner(*)')
+          .eq('owner_id', user.id)
+          .lte('journal_entries.entry_date', asOfDateStr);
+
+        const accountBalances = new Map<string, number>();
+        journalLines?.forEach((line) => {
+          const accountId = line.account_id;
+          const current = accountBalances.get(accountId) || 0;
+          accountBalances.set(accountId, current + (line.debit || 0) - (line.credit || 0));
+        });
+
+        const revenue = accounts?.filter(a => a.type === 'revenue').map(a => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          balance: -(accountBalances.get(a.id) || 0),
+        })) || [];
+
+        const expenses = accounts?.filter(a => a.type === 'expense').map(a => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+          balance: accountBalances.get(a.id) || 0,
+        })) || [];
+
+        const totalRevenue = revenue.reduce((sum, a) => sum + a.balance, 0);
+        const totalExpenses = expenses.reduce((sum, a) => sum + a.balance, 0);
+        const netIncome = totalRevenue - totalExpenses;
+
+        const blob = await pdf(
+          <IncomeStatementPdfDocument
+            projectAddress={projectData.address}
+            asOfDate={asOfDateStr}
+            revenue={revenue}
+            expenses={expenses}
+            totalRevenue={totalRevenue}
+            totalExpenses={totalExpenses}
+            netIncome={netIncome}
+          />
+        ).toBlob();
+
+        const arrayBuffer = await blob.arrayBuffer();
+        generatedPdfs.incomeStatement = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+
+      // Generate Job Costs PDF if selected
+      if (reports.jobCosts) {
+        const { data: budgetItems } = await supabase
+          .from('project_budgets')
+          .select('*, cost_codes(code, name, parent_group)')
+          .eq('project_id', projectId)
+          .order('cost_codes(code)');
+
+        const { data: allCostCodes } = await supabase
+          .from('cost_codes')
+          .select('code, parent_group')
+          .eq('owner_id', user.id);
+
+        const topLevelGroups = new Set(
+          allCostCodes?.filter(cc => !allCostCodes.some(c => c.code === cc.parent_group)).map(cc => cc.code) || []
+        );
+
+        const grouped = budgetItems?.reduce((acc: Record<string, any[]>, item: any) => {
+          const group = item.cost_codes?.parent_group || 'Uncategorized';
+          if (!acc[group]) acc[group] = [];
+          acc[group].push({
+            costCode: item.cost_codes?.code || '',
+            costCodeName: item.cost_codes?.name || '',
+            budget: item.quantity * item.unit_price || 0,
+            actual: item.actual_amount || 0,
+            variance: (item.quantity * item.unit_price || 0) - (item.actual_amount || 0),
+          });
+          return acc;
+        }, {});
+
+        const groupedObj: Record<string, any[]> = {};
+        Object.entries(grouped || {}).filter(([group]) => topLevelGroups.has(group)).forEach(([key, val]) => {
+          groupedObj[key] = val;
+        });
+        const totalBudget = budgetItems?.reduce((sum, item) => sum + (item.quantity * item.unit_price || 0), 0) || 0;
+        const totalActual = budgetItems?.reduce((sum, item) => sum + (item.actual_amount || 0), 0) || 0;
+        const totalVariance = totalBudget - totalActual;
+
+        const blob = await pdf(
+          <JobCostsPdfDocument
+            projectAddress={projectData.address}
+            asOfDate={asOfDateStr}
+            groupedCostCodes={groupedObj}
+            totalBudget={totalBudget}
+            totalActual={totalActual}
+            totalVariance={totalVariance}
+          />
+        ).toBlob();
+
+        const arrayBuffer = await blob.arrayBuffer();
+        generatedPdfs.jobCosts = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+
       const { data, error } = await supabase.functions.invoke('send-accounting-reports', {
         body: {
           recipientEmail: email,
@@ -97,7 +286,8 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             ...reports,
             bankStatementIds: selectedBankStatements,
           },
-          asOfDate: format(asOfDate, 'yyyy-MM-dd'),
+          asOfDate: asOfDateStr,
+          generatedPdfs,
         },
       });
 
