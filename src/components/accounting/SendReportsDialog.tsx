@@ -107,57 +107,113 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
 
       // Generate Balance Sheet PDF if selected
       if (reports.balanceSheet) {
+        console.log('📊 Generating Balance Sheet PDF for project:', projectId);
+        
         const { data: accounts } = await supabase
           .from('accounts')
-          .select('*')
-          .eq('owner_id', user.id)
-          .eq('is_active', true)
-          .order('code');
+          .select('id, code, name, type, is_active')
+          .eq('is_active', true);
 
-        const { data: journalLines } = await supabase
+        console.log('📊 Accounts fetched:', accounts?.length);
+
+        let journalLinesQuery = supabase
           .from('journal_entry_lines')
-          .select('*, journal_entries!inner(*), accounts(*)')
-          .eq('owner_id', user.id)
-          .or(`project_id.eq.${projectId},project_id.is.null`, { foreignTable: 'journal_entries' })
+          .select(`
+            account_id,
+            debit,
+            credit,
+            journal_entries!inner(entry_date)
+          `)
           .lte('journal_entries.entry_date', asOfDateStr);
+        
+        if (projectId) {
+          journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
+        } else {
+          journalLinesQuery = journalLinesQuery.is('project_id', null);
+        }
 
-        const accountBalances = new Map<string, number>();
+        const { data: journalLines } = await journalLinesQuery;
+        console.log('📊 Journal lines fetched:', journalLines?.length);
+
+        // Calculate balances exactly like BalanceSheetContent
+        const accountBalances: Record<string, number> = {};
         journalLines?.forEach((line) => {
-          const accountId = line.account_id;
-          const current = accountBalances.get(accountId) || 0;
-          accountBalances.set(accountId, current + (line.debit || 0) - (line.credit || 0));
+          if (!accountBalances[line.account_id]) {
+            accountBalances[line.account_id] = 0;
+          }
+          accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
         });
 
-        const categorize = (type: string) => 
-          accounts?.filter(a => a.type === type).map(a => ({
-            id: a.id,
-            code: a.code,
-            name: a.name,
-            balance: accountBalances.get(a.id) || 0,
-          })) || [];
+        const assets: { current: any[], fixed: any[] } = { current: [], fixed: [] };
+        const liabilities: { current: any[], longTerm: any[] } = { current: [], longTerm: [] };
+        const equity: any[] = [];
+        let revenueBalance = 0;
+        let expenseBalance = 0;
 
-        const currentAssets = categorize('asset').filter(a => a.code.startsWith('1') && parseInt(a.code) < 1500);
-        const fixedAssets = categorize('asset').filter(a => a.code.startsWith('1') && parseInt(a.code) >= 1500);
-        const currentLiabilities = categorize('liability').filter(a => a.code.startsWith('2') && parseInt(a.code) < 2500);
-        const longTermLiabilities = categorize('liability').filter(a => a.code.startsWith('2') && parseInt(a.code) >= 2500);
-        const equity = categorize('equity');
+        accounts?.forEach((account) => {
+          const rawBalance = accountBalances[account.id] || 0;
+          let displayBalance = rawBalance;
+          
+          switch (account.type) {
+            case 'asset':
+              displayBalance = rawBalance;
+              assets.current.push({
+                id: account.id,
+                code: account.code,
+                name: account.name,
+                balance: displayBalance
+              });
+              break;
+            case 'liability':
+              displayBalance = Math.abs(rawBalance);
+              liabilities.current.push({
+                id: account.id,
+                code: account.code,
+                name: account.name,
+                balance: displayBalance
+              });
+              break;
+            case 'equity':
+              displayBalance = Math.abs(rawBalance);
+              equity.push({
+                id: account.id,
+                code: account.code,
+                name: account.name,
+                balance: displayBalance
+              });
+              break;
+            case 'revenue':
+              revenueBalance += -rawBalance;
+              break;
+            case 'expense':
+              expenseBalance += rawBalance;
+              break;
+          }
+        });
 
-        const totalAssets = [...currentAssets, ...fixedAssets].reduce((sum, a) => sum + a.balance, 0);
-        const totalLiabilities = [...currentLiabilities, ...longTermLiabilities].reduce((sum, a) => sum + a.balance, 0);
+        // Add Current Year Earnings to equity
+        const netIncome = revenueBalance - expenseBalance;
+        if (netIncome !== 0) {
+          equity.push({
+            id: 'retained-earnings-current',
+            code: 'RE-CY',
+            name: 'Current Year Earnings',
+            balance: netIncome
+          });
+        }
+
+        const totalAssets = [...assets.current, ...assets.fixed].reduce((sum, a) => sum + a.balance, 0);
+        const totalLiabilities = [...liabilities.current, ...liabilities.longTerm].reduce((sum, a) => sum + a.balance, 0);
         const totalEquity = equity.reduce((sum, a) => sum + a.balance, 0);
+
+        console.log('📊 Balance Sheet totals - Assets:', totalAssets, 'Liabilities:', totalLiabilities, 'Equity:', totalEquity);
 
         const blob = await pdf(
           <BalanceSheetPdfDocument
             projectAddress={projectData.address}
             asOfDate={asOfDateStr}
-            assets={{
-              current: currentAssets,
-              fixed: fixedAssets,
-            }}
-            liabilities={{
-              current: currentLiabilities,
-              longTerm: longTermLiabilities,
-            }}
+            assets={assets}
+            liabilities={liabilities}
             equity={equity}
             totalAssets={totalAssets}
             totalLiabilities={totalLiabilities}
@@ -171,44 +227,74 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
 
       // Generate Income Statement PDF if selected
       if (reports.incomeStatement) {
+        console.log('📊 Generating Income Statement PDF for project:', projectId);
+        
         const { data: accounts } = await supabase
           .from('accounts')
-          .select('*')
-          .eq('owner_id', user.id)
+          .select('id, code, name, type, is_active')
           .eq('is_active', true)
-          .order('code');
+          .in('type', ['revenue', 'expense']);
 
-        const { data: journalLines } = await supabase
+        console.log('📊 Accounts fetched:', accounts?.length);
+
+        let journalLinesQuery = supabase
           .from('journal_entry_lines')
-          .select('*, journal_entries!inner(*)')
-          .eq('owner_id', user.id)
-          .or(`project_id.eq.${projectId},project_id.is.null`, { foreignTable: 'journal_entries' })
+          .select(`
+            account_id,
+            debit,
+            credit,
+            journal_entries!inner(entry_date)
+          `)
           .lte('journal_entries.entry_date', asOfDateStr);
+        
+        if (projectId) {
+          journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
+        } else {
+          journalLinesQuery = journalLinesQuery.is('project_id', null);
+        }
 
-        const accountBalances = new Map<string, number>();
+        const { data: journalLines } = await journalLinesQuery;
+        console.log('📊 Journal lines fetched:', journalLines?.length);
+
+        // Calculate balances exactly like IncomeStatementContent
+        const accountBalances: Record<string, number> = {};
         journalLines?.forEach((line) => {
-          const accountId = line.account_id;
-          const current = accountBalances.get(accountId) || 0;
-          accountBalances.set(accountId, current + (line.debit || 0) - (line.credit || 0));
+          if (!accountBalances[line.account_id]) {
+            accountBalances[line.account_id] = 0;
+          }
+          accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
         });
 
-        const revenue = accounts?.filter(a => a.type === 'revenue').map(a => ({
-          id: a.id,
-          code: a.code,
-          name: a.name,
-          balance: -(accountBalances.get(a.id) || 0),
-        })) || [];
+        const revenue: any[] = [];
+        const expenses: any[] = [];
 
-        const expenses = accounts?.filter(a => a.type === 'expense').map(a => ({
-          id: a.id,
-          code: a.code,
-          name: a.name,
-          balance: accountBalances.get(a.id) || 0,
-        })) || [];
+        accounts?.forEach((account) => {
+          const rawBalance = accountBalances[account.id] || 0;
+          
+          if (account.type === 'revenue') {
+            const displayBalance = -rawBalance;
+            revenue.push({
+              id: account.id,
+              code: account.code,
+              name: account.name,
+              balance: displayBalance
+            });
+          } else if (account.type === 'expense') {
+            const displayBalance = rawBalance;
+            expenses.push({
+              id: account.id,
+              code: account.code,
+              name: account.name,
+              balance: displayBalance
+            });
+          }
+        });
 
         const totalRevenue = revenue.reduce((sum, a) => sum + a.balance, 0);
         const totalExpenses = expenses.reduce((sum, a) => sum + a.balance, 0);
         const netIncome = totalRevenue - totalExpenses;
+
+        console.log('📊 Income Statement totals - Revenue:', totalRevenue, 'Expenses:', totalExpenses, 'Net Income:', netIncome);
 
         const blob = await pdf(
           <IncomeStatementPdfDocument
