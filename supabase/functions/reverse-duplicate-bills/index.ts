@@ -61,11 +61,12 @@ Deno.serve(async (req) => {
 
       console.log(`Found ${originalLines.length} bill lines to reverse`);
 
-      // 3. Fetch the original journal entries
+      // 3. Fetch the original journal entries using source_type and source_id
       const { data: originalJournalEntries, error: jeError } = await supabase
         .from('journal_entries')
         .select('*, journal_entry_lines(*)')
-        .eq('bill_id', billId)
+        .eq('source_type', 'bill')
+        .eq('source_id', billId)
         .order('created_at');
 
       if (jeError) {
@@ -76,11 +77,42 @@ Deno.serve(async (req) => {
 
       console.log(`Found ${originalJournalEntries?.length || 0} journal entries to reverse`);
 
-      // 4. Create reversing bill lines
+      // 4. Create a new reversing bill
+      const reversingBill = {
+        owner_id: originalBill.owner_id,
+        vendor_id: originalBill.vendor_id,
+        project_id: originalBill.project_id,
+        bill_date: originalBill.bill_date,
+        due_date: originalBill.due_date,
+        reference_number: `REVERSAL: ${originalBill.reference_number || 'No ref'}`,
+        total_amount: -originalBill.total_amount,
+        status: 'posted',
+        is_reversal: true,
+        reverses_id: billId,
+        correction_reason: REVERSAL_REASON,
+        created_by: originalBill.created_by,
+        notes: `Reversal of duplicate bill ${originalBill.reference_number || billId}`,
+      };
+
+      const { data: newReversingBill, error: reversingBillError } = await supabase
+        .from('bills')
+        .insert(reversingBill)
+        .select()
+        .single();
+
+      if (reversingBillError || !newReversingBill) {
+        console.error(`Error creating reversing bill for ${billId}:`, reversingBillError);
+        results.push({ billId, success: false, error: reversingBillError?.message || 'Failed to create reversing bill' });
+        continue;
+      }
+
+      console.log(`Created reversing bill: ${newReversingBill.id}`);
+
+      // 5. Create reversing bill lines
       const reversingLines = originalLines.map(line => ({
-        bill_id: billId,
+        bill_id: newReversingBill.id,
         owner_id: line.owner_id,
-        line_number: line.line_number + 1000, // Offset to avoid conflicts
+        line_number: line.line_number,
         line_type: line.line_type,
         account_id: line.account_id,
         cost_code_id: line.cost_code_id,
@@ -105,13 +137,14 @@ Deno.serve(async (req) => {
 
       console.log(`Created ${reversingLines.length} reversing bill lines`);
 
-      // 5. Create reversing journal entries
+      // 6. Create reversing journal entries
       if (originalJournalEntries && originalJournalEntries.length > 0) {
         for (const je of originalJournalEntries) {
           const reversingJE = {
             owner_id: je.owner_id,
             project_id: je.project_id,
-            bill_id: billId,
+            source_type: 'bill',
+            source_id: newReversingBill.id,
             entry_date: je.entry_date,
             description: `REVERSAL: ${je.description}`,
             is_reversal: true,
@@ -130,7 +163,7 @@ Deno.serve(async (req) => {
             break;
           }
 
-          // Create reversing journal entry lines
+          // Create reversing journal entry lines (swap debit/credit)
           const reversingJELines = je.journal_entry_lines.map((line: any) => ({
             journal_entry_id: newJE.id,
             owner_id: line.owner_id,
@@ -156,18 +189,27 @@ Deno.serve(async (req) => {
           }
 
           console.log(`Created reversing journal entry with ${reversingJELines.length} lines`);
+
+          // Update original journal entry to mark it as reversed
+          const { error: updateJEError } = await supabase
+            .from('journal_entries')
+            .update({ reversed_by_id: newJE.id })
+            .eq('id', je.id);
+
+          if (updateJEError) {
+            console.error(`Error updating original journal entry ${je.id}:`, updateJEError);
+          }
         }
       }
 
-      // 6. Mark the original bill as reversed
+      // 7. Mark the original bill as reversed
       const { error: updateBillError } = await supabase
         .from('bills')
         .update({
-          is_reversal: false, // The original is NOT a reversal
-          reversed_by_id: billId, // Self-reference for tracking
+          status: 'reversed',
+          reversed_by_id: newReversingBill.id,
           reversed_at: new Date().toISOString(),
           correction_reason: REVERSAL_REASON,
-          status: 'void',
         })
         .eq('id', billId);
 
@@ -178,7 +220,7 @@ Deno.serve(async (req) => {
       }
 
       console.log(`Successfully reversed bill ${billId}`);
-      results.push({ billId, success: true, message: 'Bill reversed successfully' });
+      results.push({ billId, success: true, message: 'Bill reversed successfully', reversingBillId: newReversingBill.id });
     }
 
     return new Response(
