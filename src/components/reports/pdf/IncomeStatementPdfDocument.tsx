@@ -21,11 +21,6 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 2,
   },
-  dateIndicator: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 4,
-  },
   sectionHeader: {
     fontSize: 11,
     fontWeight: 'bold',
@@ -82,12 +77,12 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 20,
     left: 40,
     right: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    fontSize: 8,
+    fontSize: 9,
     color: '#666',
     borderTopWidth: 0.5,
     borderTopColor: '#ccc',
@@ -143,28 +138,12 @@ export const IncomeStatementPdfDocument: React.FC<IncomeStatementPdfDocumentProp
     }).format(Math.round(value));
   };
 
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
-  const timestamp = new Date().toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>Income Statement</Text>
           {projectAddress && <Text style={styles.subtitle}>{projectAddress}</Text>}
-          <Text style={styles.dateIndicator}>As of {asOfDate}</Text>
         </View>
 
         {/* Revenue Section */}
@@ -215,9 +194,9 @@ export const IncomeStatementPdfDocument: React.FC<IncomeStatementPdfDocumentProp
           </Text>
         </View>
 
-        <View style={styles.footerContainer}>
-          <Text style={styles.footerLeft}>{currentDate}</Text>
-          <Text style={styles.footerCenter}>Generated on {timestamp}</Text>
+        <View style={styles.footerContainer} fixed>
+          <Text style={styles.footerLeft}>{new Date().toLocaleDateString()}</Text>
+          <Text style={styles.footerCenter}>{new Date().toLocaleTimeString()}</Text>
           <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => (
             `Page ${pageNumber} of ${totalPages}`
           )} />
