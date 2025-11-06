@@ -68,6 +68,21 @@ export function TaskRow({
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
+  const isTaskOverdue = (endDate: string | null | undefined): boolean => {
+    if (!endDate) return false;
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset to midnight for accurate comparison
+      
+      const taskEndDate = new Date(endDate.split("T")[0] + "T12:00:00");
+      taskEndDate.setHours(0, 0, 0, 0);
+      
+      return taskEndDate < today;
+    } catch {
+      return false;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     try {
       // Handle invalid or empty date strings
@@ -345,6 +360,7 @@ export function TaskRow({
                 }
               }}
               readOnly={true}
+              className={isTaskOverdue(task.end_date) ? "text-red-600 font-semibold" : ""}
             />
           </TableCell>
 
