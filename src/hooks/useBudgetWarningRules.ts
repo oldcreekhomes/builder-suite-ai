@@ -25,11 +25,22 @@ export function useBudgetWarningRules() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Fetch existing rules
+      // Get user's company name
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', user.id)
+        .single();
+
+      if (userError || !userData?.company_name) {
+        throw new Error('Failed to fetch user company information');
+      }
+
+      // Fetch existing company-wide rules
       const { data, error } = await supabase
         .from('budget_warning_rules')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('company_name', userData.company_name);
 
       if (error) throw error;
 
@@ -37,6 +48,7 @@ export function useBudgetWarningRules() {
       if (!data || data.length === 0) {
         const defaultRules = DEFAULT_RULES.map(rule => ({
           user_id: user.id,
+          company_name: userData.company_name,
           ...rule,
         }));
 
@@ -66,18 +78,30 @@ export function useBudgetWarningRules() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get user's company name
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', user.id)
+        .single();
+
+      if (userError || !userData?.company_name) {
+        throw new Error('Failed to fetch user company information');
+      }
+
       const { error } = await supabase
         .from('budget_warning_rules')
         .upsert(
           {
             user_id: user.id,
+            company_name: userData.company_name,
             rule_type,
             enabled,
             threshold_value: threshold_value !== undefined ? threshold_value : null,
             updated_at: new Date().toISOString(),
           },
           {
-            onConflict: 'user_id,rule_type',
+            onConflict: 'company_name,rule_type',
           }
         );
 

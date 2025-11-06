@@ -536,6 +536,7 @@ export type Database = {
       }
       budget_warning_rules: {
         Row: {
+          company_name: string
           created_at: string | null
           enabled: boolean | null
           id: string
@@ -545,6 +546,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_name: string
           created_at?: string | null
           enabled?: boolean | null
           id?: string
@@ -554,6 +556,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_name?: string
           created_at?: string | null
           enabled?: boolean | null
           id?: string

@@ -17,10 +17,23 @@ export function useBudgetWarnings(item: any, total: number, costCode: any) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Get user's company name
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('company_name')
+        .eq('id', user.id)
+        .single();
+
+      if (userError || !userData?.company_name) {
+        console.error('Error fetching user company:', userError);
+        return [];
+      }
+
+      // Query by company_name for company-wide rules
       const { data, error } = await supabase
         .from('budget_warning_rules')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('company_name', userData.company_name)
         .eq('enabled', true);
 
       if (error) {

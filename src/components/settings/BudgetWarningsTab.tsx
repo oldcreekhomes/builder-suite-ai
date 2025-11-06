@@ -2,7 +2,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { useBudgetWarningRules } from "@/hooks/useBudgetWarningRules";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useEffect } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 const WARNING_RULE_CONFIGS = [
   {
@@ -45,6 +48,7 @@ const WARNING_RULE_CONFIGS = [
 
 export function BudgetWarningsTab() {
   const { rules, updateRule, isLoading } = useBudgetWarningRules();
+  const { isOwner, isLoading: isLoadingRole } = useUserRole();
   const [thresholdValues, setThresholdValues] = useState<Record<string, string>>({});
 
   // Initialize threshold values from rules
@@ -58,7 +62,7 @@ export function BudgetWarningsTab() {
     setThresholdValues(initialThresholds);
   }, [rules]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingRole) {
     return (
       <div className="space-y-6 py-4">
         <div className="text-sm text-muted-foreground">Loading warning rules...</div>
@@ -75,6 +79,14 @@ export function BudgetWarningsTab() {
             Configure which warnings to display when reviewing budget items
           </p>
         </div>
+        
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            <strong>Company-Wide Settings:</strong> These warning rules apply to all employees in your company. 
+            {!isOwner && " Only company owners can modify these settings."}
+          </AlertDescription>
+        </Alert>
         
         <div className="space-y-3 pl-6">
           {WARNING_RULE_CONFIGS.map((config) => {
@@ -96,6 +108,7 @@ export function BudgetWarningsTab() {
                   <Switch
                     id={config.id}
                     checked={isEnabled}
+                    disabled={!isOwner}
                     onCheckedChange={(checked) => 
                       updateRule.mutate({ 
                         rule_type: config.id, 
@@ -119,6 +132,7 @@ export function BudgetWarningsTab() {
                         min="0"
                         step="1"
                         value={currentThreshold}
+                        disabled={!isOwner}
                         onChange={(e) => {
                           const newValue = e.target.value;
                           setThresholdValues(prev => ({ ...prev, [config.id]: newValue }));
