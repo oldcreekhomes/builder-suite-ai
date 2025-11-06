@@ -67,7 +67,10 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
           credit,
           journal_entries!inner(entry_date)
         `)
-        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
+        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0])
+        .eq('journal_entries.is_reversal', false)
+        .is('journal_entries.reversed_at', null)
+        .is('journal_entries.reversed_by_id', null);
       
       if (projectId) {
         // For project-specific reports, include both project lines AND company-wide lines (null project_id)
