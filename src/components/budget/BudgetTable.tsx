@@ -310,10 +310,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     try {
       console.log('Starting PDF export...');
       
-      const pdfVisibleColumns = {
-        historical: selectedHistoricalProject !== 'none',
-        variance: selectedHistoricalProject !== 'none',
-      };
+    const pdfVisibleColumns = {
+      historical: false,
+      variance: false,
+    };
 
       console.log('Generating PDF document...');
       
