@@ -1,14 +1,27 @@
 
 import { useParams } from "react-router-dom";
+import { useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Calendar } from "lucide-react";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CustomGanttChart } from "@/components/schedule/CustomGanttChart";
+import { fixDuplicateResourceNames } from "@/utils/fixResourceNames";
 
 export default function ProjectSchedule() {
   const { projectId } = useParams();
+
+  // Run the resource name fix on component mount (one-time cleanup)
+  useEffect(() => {
+    fixDuplicateResourceNames().then(result => {
+      if (result.success && result.updatedCount > 0) {
+        console.log(`Fixed ${result.updatedCount} tasks with duplicate resource names`);
+        // Refresh the page to show updated data
+        window.location.reload();
+      }
+    });
+  }, []);
 
   if (!projectId) {
     return <div>Project not found</div>;
