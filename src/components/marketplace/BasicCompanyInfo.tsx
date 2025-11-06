@@ -36,11 +36,11 @@ interface BasicCompanyInfoProps {
 }
 
 const companyTypes = [
-  "Subcontractor",
-  "Vendor", 
-  "Municipality",
   "Consultant",
-  "Finance"
+  "Lender",
+  "Municipality",
+  "Subcontractor",
+  "Vendor"
 ];
 
 export function BasicCompanyInfo({

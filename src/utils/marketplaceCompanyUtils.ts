@@ -7,7 +7,7 @@ export const determineCompanyTypeFromGoogleTypes = (placeTypes: string[]): strin
   } else if (placeTypes.includes('local_government_office')) {
     return 'Municipality';
   } else if (placeTypes.includes('bank') || placeTypes.includes('finance') || placeTypes.includes('atm')) {
-    return 'Finance';
+    return 'Lender';
   }
   return '';
 };

@@ -34,7 +34,7 @@ import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_type: z.enum(["Subcontractor", "Vendor", "Municipality", "Consultant"]),
+  company_type: z.enum(["Consultant", "Lender", "Municipality", "Subcontractor", "Vendor"]),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -274,10 +274,11 @@ export function AddCompanyDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="Consultant">Consultant</SelectItem>
+                          <SelectItem value="Lender">Lender</SelectItem>
+                          <SelectItem value="Municipality">Municipality</SelectItem>
                           <SelectItem value="Subcontractor">Subcontractor</SelectItem>
                           <SelectItem value="Vendor">Vendor</SelectItem>
-                          <SelectItem value="Municipality">Municipality</SelectItem>
-                          <SelectItem value="Consultant">Consultant</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
