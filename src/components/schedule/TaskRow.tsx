@@ -70,6 +70,10 @@ export function TaskRow({
 
   const isTaskOverdue = (endDate: string | null | undefined): boolean => {
     if (!endDate) return false;
+    
+    // Don't mark as overdue if task is 100% complete
+    if (task.progress === 100) return false;
+    
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset to midnight for accurate comparison
