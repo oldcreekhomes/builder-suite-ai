@@ -56,7 +56,6 @@ export function useHistoricalActualCosts(projectId: string | null) {
         costCodes: Array.from(costCodeSet.values())
       };
     },
-    enabled: !!projectId,
     placeholderData: (prev) => prev,
     staleTime: 60000,
     refetchOnWindowFocus: false,
