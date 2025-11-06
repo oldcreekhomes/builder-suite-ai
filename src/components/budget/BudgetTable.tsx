@@ -47,7 +47,7 @@ interface BudgetTableProps {
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const { toast } = useToast();
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
-  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('none');
+  const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
