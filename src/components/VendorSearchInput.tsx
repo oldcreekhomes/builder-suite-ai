@@ -131,7 +131,7 @@ export function VendorSearchInput({
                 }}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add New Vendor "{searchQuery}"
+                Add New Company "{searchQuery}"
               </Button>
             </div>
           )}
