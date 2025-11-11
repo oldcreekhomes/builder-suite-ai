@@ -185,24 +185,51 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     const currentPrice = Number(costCode.price || 0);
     
     if (history.length === 0) {
-      return { min: currentPrice, max: currentPrice, volatility: 0, priceChange: 0, percentChange: 0, isNegative: false };
+      return { 
+        currentPrice: currentPrice, 
+        min: currentPrice, 
+        max: currentPrice, 
+        volatility: 0, 
+        priceChange: 0, 
+        percentChange: 0, 
+        isNegative: false 
+      };
     }
 
+    // Sort history by date (newest first) to get most recent historical price
+    const sortedHistoryNewest = [...history].sort((a, b) => 
+      new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+    );
+    const mostRecentHistoricalPrice = Number(sortedHistoryNewest[0].price || 0);
+    
+    // Use current price if it's valid (> 0), otherwise use most recent historical
+    const mostRecentPrice = currentPrice > 0 ? currentPrice : mostRecentHistoricalPrice;
+    
+    // Calculate min/max from historical prices (and current if valid)
     const prices = history.map(h => Number(h.price));
-    const min = Math.min(...prices, currentPrice);
-    const max = Math.max(...prices, currentPrice);
+    const validPrices = currentPrice > 0 ? [...prices, currentPrice] : prices;
+    const min = Math.min(...validPrices);
+    const max = Math.max(...validPrices);
     const volatility = max - min;
     
-    // Calculate price change from first to last
-    const sortedHistory = [...history].sort((a, b) => 
+    // Calculate price change from earliest to most recent
+    const sortedHistoryOldest = [...history].sort((a, b) => 
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
-    const firstPrice = sortedHistory[0] ? Number(sortedHistory[0].price) : currentPrice;
-    const priceChange = currentPrice - firstPrice;
+    const firstPrice = Number(sortedHistoryOldest[0].price || 0);
+    const priceChange = mostRecentPrice - firstPrice;
     const percentChange = firstPrice > 0 ? ((priceChange / firstPrice) * 100) : 0;
     const isNegative = priceChange < 0;
 
-    return { min, max, volatility, priceChange, percentChange, isNegative };
+    return { 
+      currentPrice: mostRecentPrice, 
+      min, 
+      max, 
+      volatility, 
+      priceChange, 
+      percentChange, 
+      isNegative 
+    };
   };
 
   const stats = calculateVolatility();
@@ -287,7 +314,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
         <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
-            <p className="text-lg font-semibold">${costCode.price?.toFixed(2) || '0.00'}/{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
+            <p className="text-lg font-semibold">${stats.currentPrice.toFixed(2)}/{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Min Price</p>
