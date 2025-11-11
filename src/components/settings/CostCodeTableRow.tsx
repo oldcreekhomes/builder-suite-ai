@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Trash2, ChevronRight, ChevronDown, Plus } from 'lucide-react';
+import { Edit, Trash2, ChevronRight, ChevronDown, Plus, LineChart } from 'lucide-react';
 import { CostCodeInlineEditor } from '@/components/CostCodeInlineEditor';
 import { AddSubcategoryDialog } from '@/components/AddSubcategoryDialog';
 import type { Tables } from '@/integrations/supabase/types';
@@ -121,14 +121,28 @@ export function CostCodeTableRow({
             onUpdate={onUpdate}
           />
         </TableCell>
-        <TableCell className="py-1">
-          <CostCodeInlineEditor
-            costCode={costCode}
-            field="price"
-            onUpdate={onUpdate}
-            hasPriceHistory={hasPriceHistory}
-            onViewPriceHistory={() => onViewPriceHistory(costCode)}
-          />
+        <TableCell className="py-1 relative">
+          <div className="flex items-center">
+            <div className="flex-1">
+              <CostCodeInlineEditor
+                costCode={costCode}
+                field="price"
+                onUpdate={onUpdate}
+                hasPriceHistory={hasPriceHistory}
+              />
+            </div>
+            {hasPriceHistory && (
+              <div className="absolute right-2 flex items-center" title="View price history">
+                <LineChart 
+                  className="h-3.5 w-3.5 text-primary cursor-pointer hover:text-primary/80" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewPriceHistory(costCode);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </TableCell>
         <TableCell className="py-1">
           <CostCodeInlineEditor
