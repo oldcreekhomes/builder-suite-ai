@@ -70,15 +70,8 @@ export function AddSubcategoryDialog({ parentCode, parentName, existingCostCodes
       hasBidding: "no",
     };
     onAddCostCode(submissionData);
-    // Reset form for next entry instead of closing
-    setFormData({
-      code: calculateNextCode(),
-      name: "",
-      quantity: "",
-      price: "",
-      unitOfMeasure: "",
-      estimate: "",
-    });
+    // Close the dialog after adding
+    onOpenChange(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
