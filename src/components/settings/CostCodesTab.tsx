@@ -22,6 +22,7 @@ interface CostCodesTabProps {
   onDeleteCostCode: (costCode: CostCode) => void;
   onImportCostCodes: (importedCostCodes: any[]) => void;
   onBulkDeleteCostCodes: () => void;
+  onPriceSync?: () => void;
 }
 
 export function CostCodesTab({
@@ -38,7 +39,8 @@ export function CostCodesTab({
   onEditCostCode,
   onDeleteCostCode,
   onImportCostCodes,
-  onBulkDeleteCostCodes
+  onBulkDeleteCostCodes,
+  onPriceSync
 }: CostCodesTabProps) {
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(costCodes);
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
@@ -80,6 +82,7 @@ export function CostCodesTab({
         getParentCostCode={getParentCostCode}
         onAddCostCode={handleAddCostCode}
         onAddSubcategory={onAddCostCode}
+        onPriceSync={onPriceSync}
       />
     </div>
   );

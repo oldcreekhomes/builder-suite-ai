@@ -40,6 +40,7 @@ const Settings = () => {
     updateCostCode,
     deleteCostCode,
     importCostCodes,
+    refetch,
   } = useCostCodes();
 
   // Fetch price history counts for all cost codes
@@ -170,6 +171,7 @@ const Settings = () => {
                     onDeleteCostCode={handleDeleteClick}
                     onImportCostCodes={handleImportCostCodes}
                     onBulkDeleteCostCodes={handleBulkDeleteCostCodes}
+                    onPriceSync={refetch}
                   />
                 </TabsContent>
                 

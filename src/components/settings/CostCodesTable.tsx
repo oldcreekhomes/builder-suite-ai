@@ -26,6 +26,7 @@ interface CostCodesTableProps {
   getParentCostCode: (parentGroupCode: string) => CostCode | undefined;
   onAddCostCode: (parentCode?: string) => void;
   onAddSubcategory: (costCode: any) => void;
+  onPriceSync?: () => void;
 }
 
 export function CostCodesTable({
@@ -44,7 +45,8 @@ export function CostCodesTable({
   onDeleteCostCode,
   getParentCostCode,
   onAddCostCode,
-  onAddSubcategory
+  onAddSubcategory,
+  onPriceSync
 }: CostCodesTableProps) {
   const [priceHistoryModal, setPriceHistoryModal] = useState<{
     open: boolean;
@@ -62,6 +64,7 @@ export function CostCodesTable({
           costCode={priceHistoryModal.costCode}
           open={priceHistoryModal.open}
           onOpenChange={(open) => setPriceHistoryModal({ open, costCode: null })}
+          onPriceSync={onPriceSync}
         />
       )}
     <div className="border rounded-lg overflow-hidden">

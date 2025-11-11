@@ -20,9 +20,10 @@ interface PriceHistoryModalProps {
   costCode: CostCode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onPriceSync?: () => void;
 }
 
-export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistoryModalProps) {
+export function PriceHistoryModal({ costCode, open, onOpenChange, onPriceSync }: PriceHistoryModalProps) {
   const [history, setHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,6 +103,32 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
 
       if (error) throw error;
       setHistory(data || []);
+      
+      // AUTO-SYNC: Update cost code price to match most recent history
+      if (data && data.length > 0) {
+        const mostRecentHistoricalPrice = Number(data[0].price || 0);
+        const currentPrice = Number(costCode.price || 0);
+        
+        // If they don't match, sync the historical price to the table
+        if (mostRecentHistoricalPrice !== currentPrice) {
+          console.log(`Auto-syncing price: ${currentPrice} → ${mostRecentHistoricalPrice}`);
+          
+          const { error: updateError } = await supabase
+            .from('cost_codes')
+            .update({ 
+              price: mostRecentHistoricalPrice,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', costCode.id);
+          
+          if (updateError) {
+            console.error('Error syncing price:', updateError);
+          } else {
+            // Call parent callback to refresh data
+            onPriceSync?.();
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching price history:', error);
     } finally {
