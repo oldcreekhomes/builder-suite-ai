@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import type { CostCode } from "@/types/settings";
 
 export const useCostCodeHandlers = (
@@ -8,7 +8,6 @@ export const useCostCodeHandlers = (
   deleteCostCode: (costCodeId: string) => Promise<void>,
   importCostCodes: (importedCostCodes: any[]) => Promise<void>
 ) => {
-  const initializedRef = useRef(false);
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
     // Initialize with all codes that have subcategories OR are referenced as parents
@@ -31,33 +30,6 @@ export const useCostCodeHandlers = (
     
     return initialCollapsed;
   });
-
-  // Initialize collapsed state only once on first load
-  useEffect(() => {
-    if (costCodes.length > 0 && !initializedRef.current) {
-      setCollapsedGroups(prev => {
-        const updated = new Set(prev);
-        const referencedAsParent = new Set<string>();
-        
-        // Find all codes referenced as parent_group
-        costCodes.forEach(cc => {
-          if (cc.parent_group) {
-            referencedAsParent.add(cc.parent_group);
-          }
-        });
-        
-        // Add new parent codes to collapsed state
-        costCodes.forEach(cc => {
-          if ((cc.has_subcategories || referencedAsParent.has(cc.code)) && !updated.has(cc.code)) {
-            updated.add(cc.code);
-          }
-        });
-        
-        return updated;
-      });
-      initializedRef.current = true;
-    }
-  }, [costCodes.length]);
 
   const handleAddCostCode = async (newCostCode: any) => {
     console.log("Adding new cost code:", newCostCode);
