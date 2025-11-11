@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+import { Paperclip } from "lucide-react";
+import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 type CostCode = Tables<'cost_codes'>;
 type PriceHistory = Tables<'cost_code_price_history'>;
@@ -30,7 +33,12 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
   const [historicalPrice, setHistoricalPrice] = useState("");
   const [historicalDate, setHistoricalDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { openProjectFile } = useUniversalFilePreviewContext();
 
   useEffect(() => {
     if (open && costCode) {
@@ -65,6 +73,86 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "File must be smaller than 50MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload PDF, DOC, DOCX, XLS, or XLSX files only",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteHistoricalFile = async (historyId: string, filePath: string) => {
+    if (!confirm("Are you sure you want to delete this file?")) return;
+
+    setDeletingFileId(historyId);
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('project-files')
+        .remove([filePath]);
+
+      if (storageError) throw storageError;
+
+      // Update database record
+      const { error: dbError } = await supabase
+        .from('cost_code_price_history')
+        .update({ file_path: null })
+        .eq('id', historyId);
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+
+      fetchPriceHistory();
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete file",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingFileId(null);
+    }
+  };
+
   const handleAddHistoricalPrice = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -91,9 +179,24 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
       return;
     }
 
+    setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      let filePath: string | null = null;
+
+      // Upload file if selected
+      if (selectedFile) {
+        const fileName = `price_history_${costCode.id}_${Date.now()}_${selectedFile.name}`;
+        filePath = `price-history/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, selectedFile);
+
+        if (uploadError) throw uploadError;
+      }
+
       const { error } = await supabase
         .from('cost_code_price_history')
         .insert({
@@ -103,6 +206,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
           changed_by: user?.id,
           owner_id: costCode.owner_id,
           notes: notes.trim() || null,
+          file_path: filePath,
         });
 
       if (error) throw error;
@@ -116,6 +220,10 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
       setHistoricalPrice("");
       setHistoricalDate(format(new Date(), "yyyy-MM-dd"));
       setNotes("");
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       
       // Refresh the list
       fetchPriceHistory();
@@ -126,6 +234,8 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
         description: "Failed to add historical price",
         variant: "destructive",
       });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -182,8 +292,55 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Add Historical Price
+              <div className="space-y-2">
+                <Label>File Attachment (Optional)</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
+                  className="hidden"
+                />
+                {selectedFile ? (
+                  <div className="relative inline-block">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const IconComponent = getFileIcon(selectedFile.name);
+                        const iconColorClass = getFileIconColor(selectedFile.name);
+                      }}
+                      className={`${getFileIconColor(selectedFile.name)} transition-colors p-2 hover:scale-110`}
+                      title={`${selectedFile.name}`}
+                    >
+                      {(() => {
+                        const IconComponent = getFileIcon(selectedFile.name);
+                        return <IconComponent className="h-5 w-5" />;
+                      })()}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                      title="Remove file"
+                    >
+                      <span className="text-xs font-bold leading-none">×</span>
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Attach File
+                  </Button>
+                )}
+              </div>
+
+              <Button type="submit" className="w-full" disabled={uploading}>
+                {uploading ? "Adding..." : "Add Historical Price"}
               </Button>
             </form>
           </div>
@@ -215,6 +372,40 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
                     {entry.notes && (
                       <div className="text-sm text-muted-foreground">
                         {entry.notes}
+                      </div>
+                    )}
+
+                    {entry.file_path && (
+                      <div className="mt-2">
+                        <div className="text-xs text-muted-foreground mb-1">File:</div>
+                        <div className="relative inline-block">
+                          <button
+                            onClick={() => {
+                              const fileName = entry.file_path!.split('/').pop() || 'file';
+                              openProjectFile(entry.file_path!, fileName);
+                            }}
+                            className={`${getFileIconColor(entry.file_path)} transition-colors p-1 hover:scale-110`}
+                            title={`View ${entry.file_path.split('.').pop()?.toUpperCase()} file`}
+                            disabled={deletingFileId === entry.id}
+                          >
+                            {(() => {
+                              const IconComponent = getFileIcon(entry.file_path!);
+                              return <IconComponent className="h-4 w-4" />;
+                            })()}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteHistoricalFile(entry.id, entry.file_path!);
+                            }}
+                            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
+                            title="Delete file"
+                            type="button"
+                            disabled={deletingFileId === entry.id}
+                          >
+                            <span className="text-xs font-bold leading-none">×</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

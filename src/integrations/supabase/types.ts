@@ -952,6 +952,7 @@ export type Database = {
           changed_by: string | null
           cost_code_id: string
           created_at: string
+          file_path: string | null
           id: string
           notes: string | null
           owner_id: string
@@ -962,6 +963,7 @@ export type Database = {
           changed_by?: string | null
           cost_code_id: string
           created_at?: string
+          file_path?: string | null
           id?: string
           notes?: string | null
           owner_id: string
@@ -972,6 +974,7 @@ export type Database = {
           changed_by?: string | null
           cost_code_id?: string
           created_at?: string
+          file_path?: string | null
           id?: string
           notes?: string | null
           owner_id?: string
