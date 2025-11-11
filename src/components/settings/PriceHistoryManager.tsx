@@ -215,6 +215,29 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
 
       if (error) throw error;
 
+      // Update cost_codes.price to match the most recent historical price
+      const { data: latestHistory, error: fetchError } = await supabase
+        .from('cost_code_price_history')
+        .select('price')
+        .eq('cost_code_id', costCode.id)
+        .order('changed_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!fetchError && latestHistory) {
+        const { error: updateError } = await supabase
+          .from('cost_codes')
+          .update({ 
+            price: latestHistory.price,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', costCode.id);
+
+        if (updateError) {
+          console.error('Error updating cost code price:', updateError);
+        }
+      }
+
       toast({
         title: "Success",
         description: "Historical price added successfully",
