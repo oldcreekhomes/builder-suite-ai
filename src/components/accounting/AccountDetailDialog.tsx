@@ -820,7 +820,7 @@ export function AccountDetailDialog({
                             <TooltipTrigger asChild>
                               <span className="text-muted-foreground text-lg cursor-help">🔒</span>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent side="left" align="center">
                               {txn.reconciled && isDateLocked(txn.date) ? (
                                 <>
                                   <p className="font-medium">Reconciled and Books Closed</p>
