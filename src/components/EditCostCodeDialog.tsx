@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { History } from "lucide-react";
+import { PriceHistoryManager } from "@/components/settings/PriceHistoryManager";
 import type { Tables } from "@/integrations/supabase/types";
 
 type CostCode = Tables<'cost_codes'>;
@@ -30,6 +32,7 @@ export function EditCostCodeDialog({
   existingCostCodes, 
   onUpdateCostCode 
 }: EditCostCodeDialogProps) {
+  const [showPriceHistory, setShowPriceHistory] = useState(false);
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -143,7 +146,19 @@ export function EditCostCodeDialog({
             {/* Row 3 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="price">Price</Label>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setShowPriceHistory(true)}
+                    className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <History className="h-3 w-3 mr-1" />
+                    History
+                  </Button>
+                </div>
                 <Input
                   id="price"
                   type="number"
@@ -239,6 +254,12 @@ export function EditCostCodeDialog({
           </div>
         </form>
       </DialogContent>
+      
+      <PriceHistoryManager
+        costCode={costCode}
+        open={showPriceHistory}
+        onOpenChange={setShowPriceHistory}
+      />
     </Dialog>
   );
 }
