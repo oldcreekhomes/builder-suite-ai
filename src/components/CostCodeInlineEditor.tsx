@@ -120,7 +120,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHis
       case 'quantity':
         return costCode.quantity || "-";
       case 'price':
-        return costCode.price ? `$${costCode.price.toFixed(2)}` : "-";
+        return costCode.price ? `$${Number(costCode.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-";
       case 'unit_of_measure':
         return formatUnitOfMeasure(costCode.unit_of_measure);
       case 'has_specifications':

@@ -351,11 +351,11 @@ export function PriceHistoryModal({
                 />
                 <YAxis
                   domain={yDomain}
-                  tickFormatter={(value) => `$${Number(value ?? 0).toFixed(2)}`}
+                  tickFormatter={(value) => `$${Number(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                   tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
                 <Tooltip
-                  formatter={(value: any) => [`$${Number(value ?? 0).toFixed(2)}/${formatUnitOfMeasure(costCode.unit_of_measure)}`, 'Price']}
+                  formatter={(value: any) => [`$${Number(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/${formatUnitOfMeasure(costCode.unit_of_measure)}`, 'Price']}
                   labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
                   contentStyle={{
                     backgroundColor: 'hsl(var(--background))',
@@ -388,26 +388,26 @@ export function PriceHistoryModal({
         <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
-            <p className="text-lg font-semibold">${stats.currentPrice.toFixed(2)}</p>
+            <p className="text-lg font-semibold">${stats.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Min Price</p>
-            <p className="text-lg font-semibold">${stats.min.toFixed(2)}</p>
+            <p className="text-lg font-semibold">${stats.min.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Max Price</p>
-            <p className="text-lg font-semibold">${stats.max.toFixed(2)}</p>
+            <p className="text-lg font-semibold">${stats.max.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Price Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-              {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toFixed(2)}
+              {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">% Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-              {stats.isNegative ? '-' : '+'}${Math.abs(stats.percentChange).toFixed(1)}%
+              {stats.isNegative ? '-' : '+'}${Math.abs(stats.percentChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
             </p>
           </div>
         </div>
