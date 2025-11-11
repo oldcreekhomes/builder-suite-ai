@@ -109,64 +109,76 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
     }
   };
 
-  const generateYearChartData = () => {
+  const generateHistoricalChartData = () => {
     const currentPrice = Number(costCode.price || 0);
     const today = new Date();
-    const currentYear = today.getFullYear();
     
-    // Generate all 12 months of the current year (Jan-Dec)
-    const yearMonths = Array.from({ length: 12 }, (_, i) => {
-      const date = new Date(currentYear, i, 15); // 15th of each month
-      return {
-        monthName: format(date, 'MMM'),
-        monthDate: date,
-        fullDate: format(date, 'MMM yyyy')
-      };
-    });
-    
-    // If no history, show current price for all months
+    // If no history, show current price for past 12 months
     if (history.length === 0) {
-      return yearMonths.map(({ monthName, fullDate }) => ({
-        date: monthName,
-        price: currentPrice,
-        fullDate
-      }));
+      const months = [];
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(today);
+        date.setMonth(date.getMonth() - i);
+        date.setDate(15);
+        months.push({
+          date: format(date, 'MMM yy'),
+          price: currentPrice,
+          fullDate: format(date, 'MMM yyyy')
+        });
+      }
+      return months;
     }
     
-    // Sort history by date (oldest first)
+    // Sort history oldest first
     const sortedHistory = [...history].sort((a, b) => 
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
     
-    // Get the earliest price from history
+    // Find date range: earliest history to 3 months in future
+    const earliestDate = new Date(sortedHistory[0].changed_at);
+    const latestDate = new Date(today);
+    latestDate.setMonth(latestDate.getMonth() + 3); // Show 3 months into future
+    
+    // Get the most recent price (either from history or current)
+    const lastHistoricalPrice = Number(sortedHistory[sortedHistory.length - 1].price || 0);
+    const mostRecentPrice = currentPrice > 0 ? currentPrice : lastHistoricalPrice;
+    
+    // Generate monthly data points from earliest to latest
+    const months = [];
+    const currentDate = new Date(earliestDate);
+    currentDate.setDate(15); // 15th of each month
+    
+    // Get the price before the earliest history entry (use first historical price)
     const earliestPrice = Number(sortedHistory[0].price || 0);
     
-    // For each month, find the most recent price at or before that month
-    return yearMonths.map(({ monthName, monthDate, fullDate }) => {
-      // Start with the earliest price (for months before first history entry)
+    while (currentDate <= latestDate) {
+      // For this month, find the active price
       let activePrice = earliestPrice;
       
-      // Find the most recent price change before or on this month
+      // Find the most recent price change at or before this month
       for (const record of sortedHistory) {
         const recordDate = new Date(record.changed_at);
-        if (recordDate <= monthDate) {
+        if (recordDate <= currentDate) {
           activePrice = Number(record.price || 0);
-        } else {
-          break; // Stop once we pass this month
         }
       }
       
-      // If we're in a future month, use current price
-      if (monthDate > today) {
-        activePrice = currentPrice;
+      // For future months, use the most recent price
+      if (currentDate > today) {
+        activePrice = mostRecentPrice;
       }
       
-      return {
-        date: monthName,
+      months.push({
+        date: format(currentDate, 'MMM yy'),
         price: activePrice,
-        fullDate
-      };
-    });
+        fullDate: format(currentDate, 'MMM yyyy')
+      });
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    
+    return months;
   };
 
   const calculateVolatility = () => {
@@ -194,7 +206,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
   };
 
   const stats = calculateVolatility();
-  const chartData = generateYearChartData();
+  const chartData = generateHistoricalChartData();
   
   // Calculate safe Y-axis domain
   const prices = chartData.map(d => d.price);
