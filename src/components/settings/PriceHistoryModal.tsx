@@ -314,7 +314,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange }: PriceHistory
         <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
-            <p className="text-lg font-semibold">${stats.currentPrice.toFixed(2)}/{formatUnitOfMeasure(costCode.unit_of_measure)}</p>
+            <p className="text-lg font-semibold">${stats.currentPrice.toFixed(2)}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Min Price</p>
