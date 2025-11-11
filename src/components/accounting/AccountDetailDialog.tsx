@@ -815,37 +815,31 @@ export function AccountDetailDialog({
                             className="h-6 w-6 p-0"
                           />
                         )}
-                        {txn.reconciled && isDateLocked(txn.date) ? (
+                        {(txn.reconciled || isDateLocked(txn.date)) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-red-600 text-lg cursor-help">🔒🔒</span>
+                              <span className="text-muted-foreground text-lg cursor-help">🔒</span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="font-medium">Reconciled AND in closed period</p>
-                              <p className="text-xs">Cannot be edited or deleted</p>
+                              {txn.reconciled && isDateLocked(txn.date) ? (
+                                <>
+                                  <p className="font-medium">Reconciled and Books Closed</p>
+                                  <p className="text-xs">Cannot be edited or deleted</p>
+                                </>
+                              ) : txn.reconciled ? (
+                                <>
+                                  <p className="font-medium">Reconciled</p>
+                                  <p className="text-xs">Cannot be edited or deleted</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="font-medium">Books Closed</p>
+                                  <p className="text-xs">Cannot be edited or deleted</p>
+                                </>
+                              )}
                             </TooltipContent>
                           </Tooltip>
-                        ) : txn.reconciled ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-green-600 text-lg cursor-help">✓🔒</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="font-medium">Reconciled transaction</p>
-                              <p className="text-xs">Unreconcile in Bank Reconciliation to edit</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : isDateLocked(txn.date) ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-orange-600 text-lg cursor-help">📅🔒</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="font-medium">In closed accounting period</p>
-                              <p className="text-xs">Reopen period in Accounting to edit</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : null}
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
