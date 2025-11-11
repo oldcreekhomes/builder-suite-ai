@@ -170,7 +170,14 @@ export function PriceHistoryModal({
   };
 
   const generateHistoricalChartData = () => {
-    const currentPrice = Number(costCode.price || 0);
+    // If price is null/0 but history exists, use most recent historical price
+    let currentPrice = Number(costCode.price || 0);
+    if (currentPrice === 0 && history.length > 0) {
+      const sortedHistory = [...history].sort((a, b) => 
+        new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+      );
+      currentPrice = Number(sortedHistory[0].price || 0);
+    }
     const today = new Date();
     
     // If no history, show current price for past 12 months
@@ -242,8 +249,14 @@ export function PriceHistoryModal({
   };
 
   const calculateVolatility = () => {
-    // Always show the actual table price as "Current Price"
-    const currentPrice = Number(costCode.price || 0);
+    // If price is null/0 but history exists, use most recent historical price
+    let currentPrice = Number(costCode.price || 0);
+    if (currentPrice === 0 && history.length > 0) {
+      const sortedHistory = [...history].sort((a, b) => 
+        new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+      );
+      currentPrice = Number(sortedHistory[0].price || 0);
+    }
     
     if (history.length === 0) {
       return { 
