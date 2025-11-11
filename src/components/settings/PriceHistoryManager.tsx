@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -14,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
-import { Paperclip } from "lucide-react";
+import { CalendarIcon, Paperclip } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
@@ -31,7 +34,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [historicalPrice, setHistoricalPrice] = useState("");
-  const [historicalDate, setHistoricalDate] = useState("");
+  const [historicalDate, setHistoricalDate] = useState<Date | undefined>(new Date());
   const [notes, setNotes] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -44,7 +47,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
     if (open && costCode) {
       fetchPriceHistory();
       // Set default date to today
-      setHistoricalDate(format(new Date(), "yyyy-MM-dd"));
+      setHistoricalDate(new Date());
     }
   }, [open, costCode]);
 
@@ -167,8 +170,9 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
 
     // Validate that the date is not in the future
     const selectedDate = new Date(historicalDate);
+    selectedDate.setHours(0, 0, 0, 0);
     const today = new Date();
-    today.setHours(23, 59, 59, 999); // Set to end of today
+    today.setHours(0, 0, 0, 0);
     
     if (selectedDate > today) {
       toast({
@@ -202,7 +206,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
         .insert({
           cost_code_id: costCode.id,
           price: parseFloat(historicalPrice),
-          changed_at: new Date(historicalDate).toISOString(),
+          changed_at: historicalDate.toISOString(),
           changed_by: user?.id,
           owner_id: costCode.owner_id,
           notes: notes.trim() || null,
@@ -218,7 +222,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
 
       // Reset form
       setHistoricalPrice("");
-      setHistoricalDate(format(new Date(), "yyyy-MM-dd"));
+      setHistoricalDate(new Date());
       setNotes("");
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -257,14 +261,30 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="historical-date">Date *</Label>
-                  <Input
-                    id="historical-date"
-                    type="date"
-                    value={historicalDate}
-                    onChange={(e) => setHistoricalDate(e.target.value)}
-                    max={format(new Date(), "yyyy-MM-dd")}
-                    required
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !historicalDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {historicalDate ? format(historicalDate, "MM/dd/yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={historicalDate}
+                        onSelect={setHistoricalDate}
+                        disabled={(date) => date > new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 <div className="space-y-2">
