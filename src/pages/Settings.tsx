@@ -26,8 +26,12 @@ import { useCostCodeHandlers } from "@/hooks/useCostCodeHandlers";
 import { useSettingsDialogs } from "@/hooks/useSettingsDialogs";
 import type { CostCode, SpecificationWithCostCode } from "@/types/settings";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Settings = () => {
+  const { user } = useAuth();
   
   const {
     costCodes,
@@ -37,6 +41,30 @@ const Settings = () => {
     deleteCostCode,
     importCostCodes,
   } = useCostCodes();
+
+  // Fetch price history counts for all cost codes
+  const { data: priceHistoryCounts = {} } = useQuery({
+    queryKey: ['price-history-counts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return {};
+      
+      const { data, error } = await supabase
+        .from('cost_code_price_history')
+        .select('cost_code_id')
+        .eq('owner_id', user.id);
+      
+      if (error) throw error;
+      
+      // Count entries per cost code
+      const counts: Record<string, number> = {};
+      data?.forEach(entry => {
+        counts[entry.cost_code_id] = (counts[entry.cost_code_id] || 0) + 1;
+      });
+      
+      return counts;
+    },
+    enabled: !!user?.id,
+  });
 
   // Specifications state and handlers
   const {
@@ -132,6 +160,7 @@ const Settings = () => {
                     loading={loading}
                     selectedCostCodes={selectedCostCodes}
                     collapsedGroups={collapsedGroups}
+                    priceHistoryCounts={priceHistoryCounts}
                     onCostCodeSelect={handleCostCodeSelect}
                     onSelectAllCostCodes={handleSelectAllCostCodes}
                     onToggleGroupCollapse={toggleGroupCollapse}

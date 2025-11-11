@@ -16,6 +16,7 @@ interface CostCodesTableProps {
   collapsedGroups: Set<string>;
   groupedCostCodes: Record<string, CostCode[]>;
   parentCodes: Set<string>;
+  priceHistoryCounts?: Record<string, number>;
   onCostCodeSelect: (costCodeId: string, checked: boolean) => void;
   onSelectAllCostCodes: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
@@ -34,6 +35,7 @@ export function CostCodesTable({
   collapsedGroups,
   groupedCostCodes,
   parentCodes,
+  priceHistoryCounts = {},
   onCostCodeSelect,
   onSelectAllCostCodes,
   onToggleGroupCollapse,
@@ -131,6 +133,7 @@ export function CostCodesTable({
                         key={`row-${costCode.id}`}
                         costCode={costCode}
                         selectedCostCodes={selectedCostCodes}
+                        priceHistoryCounts={priceHistoryCounts}
                         onSelect={onCostCodeSelect}
                         onEdit={onEditCostCode}
                         onDelete={onDeleteCostCode}

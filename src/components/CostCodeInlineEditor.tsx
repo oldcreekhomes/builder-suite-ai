@@ -13,9 +13,10 @@ interface CostCodeInlineEditorProps {
   field: 'quantity' | 'price' | 'unit_of_measure' | 'has_specifications' | 'has_bidding' | 'has_subcategories' | 'estimate';
   onUpdate: (costCodeId: string, updates: any) => void;
   onViewPriceHistory?: () => void;
+  hasPriceHistory?: boolean;
 }
 
-export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHistory }: CostCodeInlineEditorProps) {
+export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHistory, hasPriceHistory = false }: CostCodeInlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(() => {
     switch (field) {
@@ -145,7 +146,7 @@ export function CostCodeInlineEditor({ costCode, field, onUpdate, onViewPriceHis
         <Edit className="h-3 w-3 opacity-0 group-hover:opacity-50" />
         
         {/* Add history button for price field */}
-        {field === 'price' && onViewPriceHistory && costCode.price && (
+        {field === 'price' && onViewPriceHistory && (costCode.price || hasPriceHistory) && (
           <div title="View price history">
             <LineChart 
               className="h-3 w-3 text-primary cursor-pointer hover:text-primary/80" 

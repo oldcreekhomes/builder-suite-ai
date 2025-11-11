@@ -12,6 +12,7 @@ interface CostCodesTabProps {
   loading: boolean;
   selectedCostCodes: Set<string>;
   collapsedGroups: Set<string>;
+  priceHistoryCounts?: Record<string, number>;
   onCostCodeSelect: (costCodeId: string, checked: boolean) => void;
   onSelectAllCostCodes: (checked: boolean) => void;
   onToggleGroupCollapse: (groupKey: string) => void;
@@ -28,6 +29,7 @@ export function CostCodesTab({
   loading,
   selectedCostCodes,
   collapsedGroups,
+  priceHistoryCounts = {},
   onCostCodeSelect,
   onSelectAllCostCodes,
   onToggleGroupCollapse,
@@ -68,6 +70,7 @@ export function CostCodesTab({
         collapsedGroups={collapsedGroups}
         groupedCostCodes={groupedCostCodes}
         parentCodes={parentCodes}
+        priceHistoryCounts={priceHistoryCounts}
         onCostCodeSelect={onCostCodeSelect}
         onSelectAllCostCodes={onSelectAllCostCodes}
         onToggleGroupCollapse={onToggleGroupCollapse}

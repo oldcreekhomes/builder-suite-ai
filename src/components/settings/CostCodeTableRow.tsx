@@ -13,6 +13,7 @@ type CostCode = Tables<'cost_codes'>;
 interface CostCodeTableRowProps {
   costCode: CostCode;
   selectedCostCodes: Set<string>;
+  priceHistoryCounts?: Record<string, number>;
   onSelect: (id: string, checked: boolean) => void;
   onEdit: (costCode: CostCode) => void;
   onDelete: (costCode: CostCode) => void;
@@ -31,6 +32,7 @@ interface CostCodeTableRowProps {
 export function CostCodeTableRow({
   costCode,
   selectedCostCodes,
+  priceHistoryCounts = {},
   onSelect,
   onEdit,
   onDelete,
@@ -46,6 +48,9 @@ export function CostCodeTableRow({
   allCostCodes
 }: CostCodeTableRowProps) {
   const [showSubcategoryDialog, setShowSubcategoryDialog] = useState(false);
+  
+  // Calculate if this cost code has price history
+  const hasPriceHistory = (priceHistoryCounts[costCode.id] || 0) > 0;
   
   // Compute children dynamically based on parent_group matching this cost code's code
   const parentCode = String(costCode.code ?? '').trim();
@@ -121,6 +126,7 @@ export function CostCodeTableRow({
             costCode={costCode}
             field="price"
             onUpdate={onUpdate}
+            hasPriceHistory={hasPriceHistory}
             onViewPriceHistory={() => onViewPriceHistory(costCode)}
           />
         </TableCell>
@@ -196,6 +202,7 @@ export function CostCodeTableRow({
               key={childCode.id}
               costCode={childCode}
               selectedCostCodes={selectedCostCodes}
+              priceHistoryCounts={priceHistoryCounts}
               onSelect={onSelect}
               onEdit={onEdit}
               onDelete={onDelete}
