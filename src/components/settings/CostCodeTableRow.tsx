@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,6 +6,7 @@ import { Edit, Trash2, ChevronRight, ChevronDown, Plus } from 'lucide-react';
 import { CostCodeInlineEditor } from '@/components/CostCodeInlineEditor';
 import { AddSubcategoryDialog } from '@/components/AddSubcategoryDialog';
 import type { Tables } from '@/integrations/supabase/types';
+import { compareCostCodes } from '@/lib/costCodeSort';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -53,8 +54,11 @@ export function CostCodeTableRow({
     return ccParentGroup === parentCode;
   });
   
-  // Use computed children if childCodes is empty, otherwise use passed childCodes
-  const childrenToRender = childCodes.length > 0 ? childCodes : computedChildren;
+  // Use computed children if childCodes is empty, otherwise use passed childCodes, and sort naturally
+  const childrenToRender = useMemo(() => {
+    const base = childCodes.length > 0 ? childCodes : computedChildren;
+    return base.slice().sort(compareCostCodes);
+  }, [childCodes, computedChildren]);
   
   // Determine if this row is expandable based on actual children OR has_subcategories flag
   const hasChildren = childrenToRender.length > 0;
