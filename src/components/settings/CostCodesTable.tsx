@@ -5,6 +5,7 @@ import { CostCodeTableRow } from './CostCodeTableRow';
 import { CostCodeGroupRow } from './CostCodeGroupRow';
 import { PriceHistoryModal } from './PriceHistoryModal';
 import type { Tables } from '@/integrations/supabase/types';
+import { compareCostCodes } from '@/lib/costCodeSort';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -123,36 +124,7 @@ export function CostCodesTable({
                     const parentCode = String(costCode.code ?? '').trim();
                     const children = costCodes
                       .filter(cc => String(cc.parent_group ?? '').trim() === parentCode)
-                      .sort((a, b) => {
-                        // Split codes by '.' to compare segments
-                        const aParts = a.code.split('.');
-                        const bParts = b.code.split('.');
-                        
-                        // Compare each segment
-                        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-                          const aPart = aParts[i] || '';
-                          const bPart = bParts[i] || '';
-                          
-                          // Try to parse as numbers
-                          const aNum = parseFloat(aPart);
-                          const bNum = parseFloat(bPart);
-                          
-                          // If both are valid numbers, compare numerically
-                          if (!isNaN(aNum) && !isNaN(bNum)) {
-                            if (aNum !== bNum) {
-                              return aNum - bNum;
-                            }
-                          } else {
-                            // Otherwise compare as strings
-                            const stringCompare = aPart.localeCompare(bPart);
-                            if (stringCompare !== 0) {
-                              return stringCompare;
-                            }
-                          }
-                        }
-                        
-                        return 0;
-                      });
+                      .sort(compareCostCodes);
                     
                     return (
                       <CostCodeTableRow

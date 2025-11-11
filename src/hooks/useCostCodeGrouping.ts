@@ -1,7 +1,7 @@
 
 import { useMemo, useCallback } from 'react';
 import type { Tables } from '@/integrations/supabase/types';
-
+import { compareCostCodes } from '@/lib/costCodeSort';
 type CostCode = Tables<'cost_codes'>;
 
 export const useCostCodeGrouping = (costCodes: CostCode[], includeParentCodesAsItems: boolean = false) => {
@@ -63,36 +63,7 @@ export const useCostCodeGrouping = (costCodes: CostCode[], includeParentCodesAsI
     
     // Sort each group's cost codes by code with smart numerical sorting
     Object.keys(groups).forEach(groupKey => {
-      groups[groupKey].sort((a, b) => {
-        // Split codes by '.' to compare segments
-        const aParts = a.code.split('.');
-        const bParts = b.code.split('.');
-        
-        // Compare each segment
-        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-          const aPart = aParts[i] || '';
-          const bPart = bParts[i] || '';
-          
-          // Try to parse as numbers
-          const aNum = parseFloat(aPart);
-          const bNum = parseFloat(bPart);
-          
-          // If both are valid numbers, compare numerically
-          if (!isNaN(aNum) && !isNaN(bNum)) {
-            if (aNum !== bNum) {
-              return aNum - bNum;
-            }
-          } else {
-            // Otherwise compare as strings
-            const stringCompare = aPart.localeCompare(bPart);
-            if (stringCompare !== 0) {
-              return stringCompare;
-            }
-          }
-        }
-        
-        return 0;
-      });
+      groups[groupKey].sort(compareCostCodes);
     });
     
     return groups;
