@@ -176,6 +176,7 @@ const Settings = () => {
                     onImportCostCodes={handleImportCostCodes}
                     onBulkDeleteCostCodes={handleBulkDeleteCostCodes}
                     onPriceSync={refetch}
+                    isEditing={editingCostCode !== null}
                   />
                 </TabsContent>
                 
