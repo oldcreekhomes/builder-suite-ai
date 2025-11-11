@@ -49,10 +49,14 @@ const Settings = () => {
     queryFn: async () => {
       if (!user?.id) return {};
       
+      // Get the correct owner_id (home builder for employees, user.id for owners)
+      const { data: info } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = info?.[0]?.is_employee ? info[0].home_builder_id : user.id;
+      
       const { data, error } = await supabase
         .from('cost_code_price_history')
         .select('cost_code_id')
-        .eq('owner_id', user.id);
+        .eq('owner_id', ownerId);
       
       if (error) throw error;
       

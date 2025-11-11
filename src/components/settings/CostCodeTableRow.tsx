@@ -131,17 +131,15 @@ export function CostCodeTableRow({
                 hasPriceHistory={hasPriceHistory}
               />
             </div>
-            {hasPriceHistory && (
-              <div className="absolute right-2 flex items-center" title="View price history">
-                <LineChart 
-                  className="h-3.5 w-3.5 text-primary cursor-pointer hover:text-primary/80" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onViewPriceHistory(costCode);
-                  }}
-                />
-              </div>
-            )}
+            <div className="absolute right-2 flex items-center" title="View price history">
+              <LineChart 
+                className="h-3.5 w-3.5 text-primary cursor-pointer hover:text-primary/80" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewPriceHistory(costCode);
+                }}
+              />
+            </div>
           </div>
         </TableCell>
         <TableCell className="py-1">

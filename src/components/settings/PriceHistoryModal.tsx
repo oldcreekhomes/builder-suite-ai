@@ -12,6 +12,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
+import { toast } from '@/hooks/use-toast';
 
 type PriceHistory = Tables<'cost_code_price_history'>;
 type CostCode = Tables<'cost_codes'>;
@@ -111,7 +112,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange, onPriceSync }:
         
         // If they don't match, sync the historical price to the table
         if (mostRecentHistoricalPrice !== currentPrice) {
-          console.log(`Auto-syncing price: ${currentPrice} → ${mostRecentHistoricalPrice}`);
+          console.log(`Auto-syncing price for ${costCode.code}: ${currentPrice} → ${mostRecentHistoricalPrice}`);
           
           const { error: updateError } = await supabase
             .from('cost_codes')
@@ -123,7 +124,17 @@ export function PriceHistoryModal({ costCode, open, onOpenChange, onPriceSync }:
           
           if (updateError) {
             console.error('Error syncing price:', updateError);
+            toast({
+              variant: "destructive",
+              title: "Error syncing price",
+              description: "Failed to update price from history",
+            });
           } else {
+            console.log('Price sync successful');
+            toast({
+              title: "Price updated",
+              description: `Price synced to $${mostRecentHistoricalPrice.toLocaleString()} from history`,
+            });
             // Call parent callback to refresh data
             onPriceSync?.();
           }
@@ -209,6 +220,7 @@ export function PriceHistoryModal({ costCode, open, onOpenChange, onPriceSync }:
   };
 
   const calculateVolatility = () => {
+    // Always show the actual table price as "Current Price"
     const currentPrice = Number(costCode.price || 0);
     
     if (history.length === 0) {
@@ -229,8 +241,8 @@ export function PriceHistoryModal({ costCode, open, onOpenChange, onPriceSync }:
     );
     const mostRecentHistoricalPrice = Number(sortedHistoryNewest[0].price || 0);
     
-    // Use current price if it's valid (> 0), otherwise use most recent historical
-    const mostRecentPrice = currentPrice > 0 ? currentPrice : mostRecentHistoricalPrice;
+    // For change calculations: if current price exists (>0), compare to it; else use most recent historical
+    const priceForCalculation = currentPrice > 0 ? currentPrice : mostRecentHistoricalPrice;
     
     // Calculate min/max from historical prices (and current if valid)
     const prices = history.map(h => Number(h.price));
@@ -239,17 +251,17 @@ export function PriceHistoryModal({ costCode, open, onOpenChange, onPriceSync }:
     const max = Math.max(...validPrices);
     const volatility = max - min;
     
-    // Calculate price change from earliest to most recent
+    // Calculate price change from earliest to most recent/current
     const sortedHistoryOldest = [...history].sort((a, b) => 
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
     const firstPrice = Number(sortedHistoryOldest[0].price || 0);
-    const priceChange = mostRecentPrice - firstPrice;
+    const priceChange = priceForCalculation - firstPrice;
     const percentChange = firstPrice > 0 ? ((priceChange / firstPrice) * 100) : 0;
     const isNegative = priceChange < 0;
 
     return { 
-      currentPrice: mostRecentPrice, 
+      currentPrice: currentPrice, // Always show actual table value
       min, 
       max, 
       volatility, 
