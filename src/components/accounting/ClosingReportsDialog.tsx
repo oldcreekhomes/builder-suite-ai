@@ -149,61 +149,83 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file",
-        variant: "destructive",
-      });
-      return;
-    }
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
 
     try {
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${file.name}`;
-      const filePath = `${projectId}/closing-reports/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error: dbError } = await supabase
-        .from('project_files')
-        .insert({
-          project_id: projectId,
-          filename: fileName,
-          original_filename: `Closing Reports/${file.name}`,
-          file_size: file.size,
-          file_type: 'pdf',
-          mime_type: file.type,
-          storage_path: filePath,
-          uploaded_by: user.id,
-          is_deleted: false,
+      let successCount = 0;
+
+      for (const file of Array.from(files)) {
+        if (file.type !== 'application/pdf') {
+          toast({
+            title: "Skipped",
+            description: `${file.name} is not a PDF file`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${file.name}`;
+        const filePath = `${projectId}/closing-reports/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          toast({
+            title: "Error",
+            description: `Failed to upload ${file.name}: ${uploadError.message}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const { error: dbError } = await supabase
+          .from('project_files')
+          .insert({
+            project_id: projectId,
+            filename: fileName,
+            original_filename: `Closing Reports/${file.name}`,
+            file_size: file.size,
+            file_type: 'pdf',
+            mime_type: file.type,
+            storage_path: filePath,
+            uploaded_by: user.id,
+            is_deleted: false,
+          });
+
+        if (dbError) {
+          toast({
+            title: "Error",
+            description: `Failed to save ${file.name}: ${dbError.message}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        successCount++;
+      }
+
+      if (successCount > 0) {
+        queryClient.invalidateQueries({ queryKey: ['closing-reports', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['closing-reports-metrics', projectId] });
+
+        toast({
+          title: "Success",
+          description: `${successCount} closing report(s) uploaded successfully`,
         });
-
-      if (dbError) throw dbError;
-
-      queryClient.invalidateQueries({ queryKey: ['closing-reports', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['closing-reports-metrics', projectId] });
-
-      toast({
-        title: "Success",
-        description: "Closing report uploaded successfully",
-      });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to upload closing report: ${error.message}`,
+        description: `Failed to upload closing reports: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -253,6 +275,7 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
           <input
             type="file"
             accept=".pdf"
+            multiple
             onChange={handleFileUpload}
             className="hidden"
             id="closing-report-upload"

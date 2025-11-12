@@ -139,53 +139,74 @@ const handleEdit = (fileId: string, currentName: string) => {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Error",
-        description: "Only PDF files are allowed",
-        variant: "destructive",
-      });
-      return;
-    }
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     try {
-      const fileName = `${Date.now()}_${file.name}`;
-      const filePath = `${projectId}/Bank Reconciliations/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
       const { data: userData } = await supabase.auth.getUser();
+      let successCount = 0;
 
-      const { error: dbError } = await supabase
-        .from('project_files')
-        .insert({
-          project_id: projectId,
-          filename: fileName,
-          original_filename: `Bank Reconciliations/${file.name}`,
-          storage_path: filePath,
-          mime_type: 'application/pdf',
-          file_type: 'application/pdf',
-          file_size: file.size,
-          uploaded_by: userData?.user?.id || '',
-          is_deleted: false,
+      for (const file of Array.from(files)) {
+        if (file.type !== 'application/pdf') {
+          toast({
+            title: "Skipped",
+            description: `${file.name} is not a PDF file`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const fileName = `${Date.now()}_${file.name}`;
+        const filePath = `${projectId}/Bank Reconciliations/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          toast({
+            title: "Error",
+            description: `Failed to upload ${file.name}: ${uploadError.message}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        const { error: dbError } = await supabase
+          .from('project_files')
+          .insert({
+            project_id: projectId,
+            filename: fileName,
+            original_filename: `Bank Reconciliations/${file.name}`,
+            storage_path: filePath,
+            mime_type: 'application/pdf',
+            file_type: 'application/pdf',
+            file_size: file.size,
+            uploaded_by: userData?.user?.id || '',
+            is_deleted: false,
+          });
+
+        if (dbError) {
+          toast({
+            title: "Error",
+            description: `Failed to save ${file.name}: ${dbError.message}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        successCount++;
+      }
+
+      if (successCount > 0) {
+        queryClient.invalidateQueries({ queryKey: ['bank-reconciliations', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['bank-reconciliations-metrics', projectId] });
+
+        toast({
+          title: "Success",
+          description: `${successCount} reconciliation(s) uploaded successfully`,
         });
-
-      if (dbError) throw dbError;
-
-      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations-metrics', projectId] });
-
-      toast({
-        title: "Success",
-        description: "Bank reconciliation uploaded successfully",
-      });
+      }
 
       event.target.value = '';
     } catch (error: any) {
@@ -240,6 +261,7 @@ const handleEdit = (fileId: string, currentName: string) => {
             id="reconciliation-upload"
             className="hidden"
             accept=".pdf"
+            multiple
             onChange={handleFileUpload}
           />
           <Button asChild size="sm">
