@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Upload, Pencil, Check, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Download, Upload, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +39,9 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const { openProjectFile } = useUniversalFilePreview();
+const { openProjectFile } = useUniversalFilePreview();
+
+const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
 
   // Fetch bank reconciliations
   const { data: reconciliations, isLoading } = useQuery({
@@ -111,9 +114,9 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
     },
   });
 
-  const handleEdit = (fileId: string, currentName: string) => {
+const handleEdit = (fileId: string, currentName: string) => {
     setEditingId(fileId);
-    setEditingName(currentName.replace('Bank Reconciliations/', ''));
+    setEditingName(cleanName(currentName.replace('Bank Reconciliations/', '')));
   };
 
   const handleSaveEdit = () => {
@@ -265,49 +268,16 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
               {reconciliations.map((reconciliation) => (
                 <tr 
                   key={reconciliation.id} 
-                  onClick={() => {
-                    if (editingId !== reconciliation.id) {
-                      openProjectFile(
-                        reconciliation.storage_path,
-                        reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename
-                      );
-                    }
+onClick={() => {
+                    openProjectFile(
+                      reconciliation.storage_path,
+                      cleanName(reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename)
+                    );
                   }}
-                  className={`border-t ${editingId === reconciliation.id ? "" : "cursor-pointer hover:bg-muted/50"}`}
+                  className="border-t cursor-pointer hover:bg-muted/50"
                 >
                   <td className="p-3">
-                    {editingId === reconciliation.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit();
-                            if (e.key === 'Escape') handleCancelEdit();
-                          }}
-                          className="h-8"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleSaveEdit}
-                          disabled={updateFilenameMutation.isPending}
-                        >
-                          <Check className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleCancelEdit}
-                          disabled={updateFilenameMutation.isPending}
-                        >
-                          <X className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    ) : (
-                      reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename
-                    )}
+                    {cleanName(reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename)}
                   </td>
                   <td className="p-3 text-sm text-muted-foreground">
                     {formatFileSize(reconciliation.file_size || 0)}
@@ -362,6 +332,33 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
           No bank reconciliations uploaded yet
         </div>
       )}
+
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && handleCancelEdit()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename File</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label htmlFor="rename-file-input">File Name</Label>
+            <Input
+              id="rename-file-input"
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveEdit();
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={!editingName.trim() || updateFilenameMutation.isPending}>
+              Rename
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
