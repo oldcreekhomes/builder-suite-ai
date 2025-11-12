@@ -165,7 +165,7 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
         .insert({
           project_id: projectId,
           filename: fileName,
-          original_filename: `Bank Reconciliations/${fileName}`,
+          original_filename: `Bank Reconciliations/${file.name}`,
           storage_path: filePath,
           mime_type: 'application/pdf',
           file_type: 'application/pdf',
@@ -306,7 +306,7 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
                         </Button>
                       </div>
                     ) : (
-                      reconciliation.filename
+                      reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename
                     )}
                   </td>
                   <td className="p-3 text-sm text-muted-foreground">
