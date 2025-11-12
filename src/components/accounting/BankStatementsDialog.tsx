@@ -18,11 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Download, Pencil, Check, X } from "lucide-react";
+import { Upload, Download, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
+import { Label } from "@/components/ui/label";
 
 interface BankStatementsDialogProps {
   projectId: string;
@@ -37,6 +38,8 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+
+  const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
 
   // Fetch bank statements
   const { data: statements, isLoading } = useQuery({
@@ -112,7 +115,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
 
   const handleEdit = (fileId: string, currentName: string) => {
     setEditingId(fileId);
-    setEditingName(currentName.replace('Bank Statements/', ''));
+    setEditingName(cleanName(currentName.replace('Bank Statements/', '')));
   };
 
   const handleSaveEdit = () => {
@@ -127,11 +130,6 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
     if (editingId) {
       updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,48 +287,15 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                   <TableRow 
                     key={statement.id}
                     onClick={() => {
-                      if (editingId !== statement.id) {
-                        openProjectFile(
-                          statement.storage_path,
-                          statement.original_filename?.replace('Bank Statements/', '') || 'Statement'
-                        );
-                      }
+                      openProjectFile(
+                        statement.storage_path,
+                        cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'Statement')
+                      );
                     }}
-                    className={editingId === statement.id ? "" : "cursor-pointer hover:bg-muted/50"}
+                    className="cursor-pointer hover:bg-muted/50"
                   >
                   <TableCell className="font-medium">
-                    {editingId === statement.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit();
-                            if (e.key === 'Escape') handleCancelEdit();
-                          }}
-                          className="h-8"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleSaveEdit}
-                          disabled={updateFilenameMutation.isPending}
-                        >
-                          <Check className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleCancelEdit}
-                          disabled={updateFilenameMutation.isPending}
-                        >
-                          <X className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    ) : (
-                      statement.original_filename?.replace('Bank Statements/', '') || 'Untitled'
-                    )}
+                    {cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'Untitled')}
                   </TableCell>
                   <TableCell>
                     {statement.uploaded_at ? format(new Date(statement.uploaded_at), 'PP') : '-'}
@@ -339,44 +304,42 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                     {statement.file_size ? formatFileSize(statement.file_size) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    {editingId === statement.id ? null : (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(
+                            statement.storage_path,
+                            cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'statement.pdf')
+                          );
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(statement.id, statement.original_filename || '');
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DeleteButton
+                          onDelete={() => deleteMutation.mutate(statement.id)}
+                          title="Delete Bank Statement"
+                          description="Are you sure you want to delete this bank statement? This action cannot be undone."
                           size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(
-                              statement.storage_path,
-                              statement.original_filename || 'statement.pdf'
-                            );
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(statement.id, statement.original_filename || '');
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <DeleteButton
-                            onDelete={() => deleteMutation.mutate(statement.id)}
-                            title="Delete Bank Statement"
-                            description="Are you sure you want to delete this bank statement? This action cannot be undone."
-                            size="sm"
-                            variant="ghost"
-                            isLoading={deleteMutation.isPending}
-                            showIcon={true}
-                          />
-                        </div>
+                          isLoading={deleteMutation.isPending}
+                          showIcon={true}
+                        />
                       </div>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -389,6 +352,46 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
           </div>
         )}
       </div>
+
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Bank Statement</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this bank statement
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="filename">File Name</Label>
+              <Input
+                id="filename"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit();
+                }}
+                placeholder="Enter filename"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditingId(null)}
+              disabled={updateFilenameMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateFilenameMutation.isPending}
+            >
+              {updateFilenameMutation.isPending ? "Renaming..." : "Rename"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DialogContent>
   );
 }

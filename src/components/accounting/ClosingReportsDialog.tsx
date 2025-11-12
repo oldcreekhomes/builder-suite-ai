@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Download, Pencil, Check, X } from "lucide-react";
+import { Upload, Download, Pencil } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -55,6 +56,8 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const { openProjectFile } = useUniversalFilePreviewContext();
+
+  const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
 
   const { data: closingReports, isLoading } = useQuery({
     queryKey: ['closing-reports', projectId],
@@ -128,7 +131,7 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
 
   const handleEdit = (fileId: string, currentName: string) => {
     setEditingId(fileId);
-    setEditingName(currentName.replace('Closing Reports/', ''));
+    setEditingName(cleanName(currentName.replace('Closing Reports/', '')));
   };
 
   const handleSaveEdit = () => {
@@ -143,11 +146,6 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
     if (editingId) {
       updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,89 +289,54 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
                   <TableRow 
                     key={report.id}
                     onClick={() => {
-                      if (editingId !== report.id) {
-                        openProjectFile(
-                          report.storage_path,
-                          report.original_filename?.replace('Closing Reports/', '') || 'Report'
-                        );
-                      }
+                      openProjectFile(
+                        report.storage_path,
+                        cleanName(report.original_filename?.replace('Closing Reports/', '') || 'Report')
+                      );
                     }}
-                    className={editingId === report.id ? "" : "cursor-pointer hover:bg-muted/50"}
+                    className="cursor-pointer hover:bg-muted/50"
                   >
                   <TableCell className="font-medium">
-                    {editingId === report.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit();
-                            if (e.key === 'Escape') handleCancelEdit();
-                          }}
-                          className="h-8"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleSaveEdit}
-                          disabled={updateFilenameMutation.isPending}
-                        >
-                          <Check className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleCancelEdit}
-                          disabled={updateFilenameMutation.isPending}
-                        >
-                          <X className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    ) : (
-                      report.original_filename.replace('Closing Reports/', '')
-                    )}
+                    {cleanName(report.original_filename?.replace('Closing Reports/', '') || 'Untitled')}
                   </TableCell>
                   <TableCell>{formatFileSize(report.file_size)}</TableCell>
                   <TableCell>
                     {format(new Date(report.uploaded_at), 'PP')}
                   </TableCell>
                   <TableCell className="text-right">
-                    {editingId === report.id ? null : (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(report.storage_path, cleanName(report.original_filename || 'report.pdf'));
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(report.id, report.original_filename);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DeleteButton
+                          onDelete={() => deleteMutation.mutate(report.id)}
+                          title="Delete Closing Report"
+                          description="Are you sure you want to delete this closing report? This action cannot be undone."
                           size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(report.storage_path, report.original_filename);
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
                           variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(report.id, report.original_filename);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <DeleteButton
-                            onDelete={() => deleteMutation.mutate(report.id)}
-                            title="Delete Closing Report"
-                            description="Are you sure you want to delete this closing report? This action cannot be undone."
-                            size="sm"
-                            variant="ghost"
-                            isLoading={deleteMutation.isPending}
-                            showIcon={true}
-                          />
-                        </div>
+                          isLoading={deleteMutation.isPending}
+                          showIcon={true}
+                        />
                       </div>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -385,6 +348,46 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
           </div>
         )}
       </div>
+
+      <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Closing Report</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this closing report
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="filename">File Name</Label>
+              <Input
+                id="filename"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit();
+                }}
+                placeholder="Enter filename"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditingId(null)}
+              disabled={updateFilenameMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateFilenameMutation.isPending}
+            >
+              {updateFilenameMutation.isPending ? "Renaming..." : "Rename"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
