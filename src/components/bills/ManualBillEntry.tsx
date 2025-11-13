@@ -533,9 +533,8 @@ export function ManualBillEntry() {
               </div>
 
               <div className="border rounded-lg overflow-hidden">
-                <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                   <div className="col-span-2">Cost Code</div>
-                  <div className="col-span-2">Project</div>
                   <div className="col-span-4">Memo</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
@@ -544,7 +543,7 @@ export function ManualBillEntry() {
                 </div>
 
                 {jobCostRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                  <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
                     <div className="col-span-2">
                       <CostCodeSearchInput 
                         value={row.account}
@@ -554,14 +553,6 @@ export function ManualBillEntry() {
                           updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
                         }}
                         placeholder="Cost Code"
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <JobSearchInput 
-                        value={row.projectId || ""}
-                        onChange={(projectId) => updateJobCostRow(row.id, 'projectId', projectId)}
-                        placeholder="Select project"
                         className="h-8"
                       />
                     </div>
@@ -616,8 +607,8 @@ export function ManualBillEntry() {
                 ))}
 
                 <div className="p-3 bg-muted border-t">
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-8 font-medium">
+                  <div className="grid grid-cols-10 gap-2">
+                    <div className="col-span-6 font-medium">
                       {jobCostRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;
                         const c = parseFloat(row.amount) || 0;
@@ -653,9 +644,8 @@ export function ManualBillEntry() {
               </div>
 
               <div className="border rounded-lg overflow-hidden">
-                <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
                   <div className="col-span-2">Account</div>
-                  <div className="col-span-2">Project</div>
                   <div className="col-span-4">Memo</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
@@ -664,21 +654,13 @@ export function ManualBillEntry() {
                 </div>
 
                 {expenseRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                  <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
                     <div className="col-span-2">
                       <AccountSearchInput
                         value={row.accountId || ""}
                         onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
                         placeholder="Select account"
                         accountType="expense"
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <JobSearchInput 
-                        value={row.projectId || ""}
-                        onChange={(projectId) => updateExpenseRow(row.id, 'projectId', projectId)}
-                        placeholder="Select project"
                         className="h-8"
                       />
                     </div>
@@ -733,8 +715,8 @@ export function ManualBillEntry() {
                 ))}
 
                 <div className="p-3 bg-muted border-t">
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-8 font-medium">
+                  <div className="grid grid-cols-10 gap-2">
+                    <div className="col-span-6 font-medium">
                       {expenseRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;
                         const c = parseFloat(row.amount) || 0;
