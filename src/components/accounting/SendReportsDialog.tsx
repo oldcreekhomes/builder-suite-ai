@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +43,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
   });
   
   const [selectedBankStatements, setSelectedBankStatements] = useState<string[]>([]);
+  const [customMessage, setCustomMessage] = useState("");
 
   // Fetch individual bank statements
   const { data: bankStatements } = useQuery({
@@ -570,6 +572,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           },
           asOfDate: asOfDateStr,
           generatedPdfs,
+          customMessage: customMessage.trim(),
         },
       });
 
@@ -640,6 +643,17 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
                 />
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message">Message (optional)</Label>
+            <Textarea
+              id="message"
+              placeholder="Add a message to include in the email..."
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+              className="min-h-[100px]"
+            />
           </div>
 
           <div className="space-y-3">
