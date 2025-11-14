@@ -53,6 +53,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Selected reports:", reports);
     console.log("As of date:", asOfDate);
 
+    // Format date from YYYY-MM-DD to MM-DD-YYYY
+    const formattedDate = asOfDate.split('-').reverse().join('-').replace(/^(\d+)-(\d+)-(\d+)$/, '$2-$1-$3');
+
     // Get project details
     const { data: project } = await supabase
       .from("projects")
@@ -135,8 +138,8 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [recipientEmail],
-      subject: `Accounting Reports - ${projectName} (As of ${asOfDate})`,
-      html: generateEmailTemplate(projectName, asOfDate, reports, pdfFiles.length, customMessage),
+      subject: `Accounting Reports - ${projectName} (As of ${formattedDate})`,
+      html: generateEmailTemplate(projectName, formattedDate, reports, pdfFiles.length, customMessage),
       attachments,
     });
 
