@@ -26,6 +26,7 @@ interface ReportRequest {
     incomeStatement?: string;
     jobCosts?: string;
   };
+  customMessage?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -45,6 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
       reports,
       asOfDate,
       generatedPdfs,
+      customMessage,
     }: ReportRequest = await req.json();
 
     console.log("Sending reports for project:", projectId);
@@ -134,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [recipientEmail],
       subject: `Accounting Reports - ${projectName} (As of ${asOfDate})`,
-      html: generateEmailTemplate(projectName, asOfDate, reports, pdfFiles.length),
+      html: generateEmailTemplate(projectName, asOfDate, reports, pdfFiles.length, customMessage),
       attachments,
     });
 
@@ -189,7 +191,7 @@ async function fetchBankStatements(supabase: any, projectId: string, fileIds: st
   return statements;
 }
 
-function generateEmailTemplate(projectName: string, asOfDate: string, reports: any, fileCount: number): string {
+function generateEmailTemplate(projectName: string, asOfDate: string, reports: any, fileCount: number, customMessage?: string): string {
   const selectedReports = [];
   if (reports.balanceSheet) selectedReports.push("Balance Sheet");
   if (reports.incomeStatement) selectedReports.push("Income Statement");
@@ -222,6 +224,21 @@ function generateEmailTemplate(projectName: string, asOfDate: string, reports: a
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectName}</p>
                         </td>
                     </tr>
+                    
+                    <!-- Custom Message Section (only shown if message exists) -->
+                    ${customMessage ? `
+                    <tr>
+                        <td style="padding: 30px 30px 0 30px; margin: 0;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #f8f9ff; border: 1px solid #e0e7ff; border-radius: 6px;">
+                                <tr>
+                                    <td style="padding: 20px; margin: 0;">
+                                        <p style="color: #1e293b; font-size: 14px; line-height: 1.6; margin: 0; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${customMessage}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    ` : ''}
                     
                     <!-- Main Content -->
                     <tr>
