@@ -461,6 +461,17 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            <div className="space-y-2 pt-2">
+              <Label>Attachments</Label>
+              <AttachmentFilesRow
+                files={attachments}
+                onFileUpload={uploadFiles}
+                onDeleteFile={deleteFile}
+                isUploading={isUploading}
+                entityType="journal_entry"
+                isReadOnly={false}
+              />
+            </div>
           </div>
 
           {/* New Entry Button */}
@@ -539,18 +550,6 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           </div>
         </div>
 
-        {/* Attachments - Full Width Below Description */}
-        <div className="space-y-2">
-          <Label>Attachments</Label>
-          <AttachmentFilesRow
-            files={attachments}
-            onFileUpload={uploadFiles}
-            onDeleteFile={deleteFile}
-            isUploading={isUploading}
-            entityType="journal_entry"
-            isReadOnly={false}
-          />
-        </div>
 
         {/* Tabbed Line Items */}
         <div className="space-y-4">
