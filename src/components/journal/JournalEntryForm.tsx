@@ -425,7 +425,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       <Card>
       <CardContent className="space-y-6 pt-6">
         {/* Compact Header with Navigation and Entry Fields */}
-        <div className="grid grid-cols-[1fr_2fr_1fr_auto_auto] gap-4 items-start">
+        <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-start">
           {/* Entry Date */}
           <div className="space-y-2">
             <Label>Entry Date</Label>
@@ -463,19 +463,6 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             />
           </div>
 
-          {/* Attachments */}
-          <div className="space-y-2">
-            <Label>Attachments</Label>
-            <AttachmentFilesRow
-              files={attachments}
-              onFileUpload={uploadFiles}
-              onDeleteFile={deleteFile}
-              isUploading={isUploading}
-              entityType="journal_entry"
-              isReadOnly={false}
-            />
-          </div>
-
           {/* New Entry Button */}
           <div className="flex items-center pt-8">
             <Button
@@ -490,8 +477,79 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
 
           {/* Navigation Arrows */}
           <div className="flex items-center gap-1 pt-8">
-...
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPrevious}
+                  disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Older entry</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNext}
+                  disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Newer entry</p>
+              </TooltipContent>
+            </Tooltip>
+            {currentJournalEntryId && isViewingMode && !isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+              <DeleteButton
+                onDelete={handleDelete}
+                title="Delete Journal Entry"
+                description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
+                size="sm"
+                variant="ghost"
+                isLoading={deleteManualJournalEntry.isPending}
+                className="ml-2"
+              />
+            ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                className="ml-2"
+              >
+                <span className="text-lg">🔒</span>
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled
+                className="ml-2 opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
+        </div>
+
+        {/* Attachments - Full Width Below Description */}
+        <div className="space-y-2">
+          <Label>Attachments</Label>
+          <AttachmentFilesRow
+            files={attachments}
+            onFileUpload={uploadFiles}
+            onDeleteFile={deleteFile}
+            isUploading={isUploading}
+            entityType="journal_entry"
+            isReadOnly={false}
+          />
         </div>
 
         {/* Tabbed Line Items */}
