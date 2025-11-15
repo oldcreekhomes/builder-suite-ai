@@ -75,25 +75,10 @@ export function AttachmentFilesRow({
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-muted/30">
-      <div className="flex items-center justify-between mb-3">
-        <Label className="text-sm font-medium">Attachments</Label>
-        {!isReadOnly && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleFileUpload}
-            disabled={isUploading}
-            className="h-8"
-          >
-            {isUploading ? 'Uploading...' : 'Add Files'}
-          </Button>
-        )}
-      </div>
-
-      {files.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+    <div className="flex items-center gap-2">
+      {/* Show file icons if any exist */}
+      {files.length > 0 && (
+        <div className="flex items-center gap-1">
           {files.map((file) => {
             const IconComponent = getFileIcon(file.file_name);
             const iconColorClass = getFileIconColor(file.file_name);
@@ -102,10 +87,10 @@ export function AttachmentFilesRow({
                 <button
                   type="button"
                   onClick={() => handleFilePreview(file)}
-                  className={`${iconColorClass} transition-colors p-2 rounded hover:bg-muted`}
+                  className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted`}
                   title={file.file_name}
                 >
-                  <IconComponent className="h-5 w-5" />
+                  <IconComponent className="h-4 w-4" />
                 </button>
                 {!isReadOnly && (
                   <button
@@ -114,18 +99,35 @@ export function AttachmentFilesRow({
                       e.stopPropagation();
                       setFileToDelete(file.id);
                     }}
-                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100"
+                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100"
                     title="Delete file"
                   >
-                    <span className="text-xs font-bold leading-none">×</span>
+                    <span className="text-[10px] font-bold leading-none">×</span>
                   </button>
                 )}
               </div>
             );
           })}
         </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">No files attached</p>
+      )}
+
+      {/* Show Add Files button ONLY when no files exist */}
+      {files.length === 0 && !isReadOnly && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleFileUpload}
+          disabled={isUploading}
+          className="h-8"
+        >
+          {isUploading ? 'Uploading...' : 'Add Files'}
+        </Button>
+      )}
+
+      {/* Show message for read-only with no files */}
+      {files.length === 0 && isReadOnly && (
+        <span className="text-sm text-muted-foreground">No files attached</span>
       )}
 
       <DeleteConfirmationDialog
