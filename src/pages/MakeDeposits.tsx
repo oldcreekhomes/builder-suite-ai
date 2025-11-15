@@ -25,6 +25,7 @@ import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput"
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useDepositAttachments } from "@/hooks/useDepositAttachments";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 interface DepositRow {
   id: string;
@@ -390,14 +391,15 @@ export default function MakeDeposits() {
 
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title="Make Deposits" 
-            projectId={projectId}
-          />
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <DashboardHeader 
+              title="Make Deposits" 
+              projectId={projectId}
+            />
           
           <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
             <Card className="max-w-6xl mx-auto">
@@ -714,5 +716,6 @@ export default function MakeDeposits() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+    </UniversalFilePreviewProvider>
   );
 }
