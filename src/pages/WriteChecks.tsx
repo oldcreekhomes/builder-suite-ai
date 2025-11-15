@@ -26,6 +26,7 @@ import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 interface CheckRow {
   id: string;
@@ -604,14 +605,15 @@ export default function WriteChecks() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <DashboardHeader 
-            title="Write Checks" 
-            projectId={projectId}
-          />
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <DashboardHeader 
+              title="Write Checks" 
+              projectId={projectId}
+            />
           
           <div className="flex-1 p-4 space-y-4">
             <Card>
@@ -1007,5 +1009,6 @@ export default function WriteChecks() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+    </UniversalFilePreviewProvider>
   );
 }
