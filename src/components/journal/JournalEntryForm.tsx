@@ -403,12 +403,16 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       createNewEntry();
     } else {
       // Creating new entry
-      await createManualJournalEntry.mutateAsync({
+      const newEntry = await createManualJournalEntry.mutateAsync({
         entry_date: entryDate,
         description: description || undefined,
         lines: journalLines,
         project_id: projectId,
       });
+
+      if (newEntry?.id) {
+        await finalizePendingAttachments(newEntry.id);
+      }
       // After save, clear form and prepare for next entry
       createNewEntry();
     }
@@ -533,6 +537,19 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               </Button>
             )}
           </div>
+        </div>
+
+        {/* Attachments - Full Width Below Description */}
+        <div className="space-y-2">
+          <Label>Attachments</Label>
+          <AttachmentFilesRow
+            files={attachments}
+            onFileUpload={uploadFiles}
+            onDeleteFile={deleteFile}
+            isUploading={isUploading}
+            entityType="journal_entry"
+            isReadOnly={false}
+          />
         </div>
 
         {/* Tabbed Line Items */}
