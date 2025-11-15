@@ -419,55 +419,11 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       <Card>
       <CardContent className="space-y-6 pt-6">
         {/* Compact Header with Navigation and Entry Fields */}
-        <div className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-4 items-start">
+        <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-start">
           {/* Entry Date */}
           <div className="space-y-2">
             <Label>Entry Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !entryDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {entryDate ? format(entryDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={entryDate}
-                  onSelect={(date) => date && setEntryDate(date)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Input
-              placeholder="Entry description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          {/* Attachments */}
-          <div className="space-y-2">
-            <Label>Attachments</Label>
-            <AttachmentFilesRow
-              files={attachments}
-              onFileUpload={uploadFiles}
-              onDeleteFile={deleteFile}
-              isUploading={isUploading}
-              entityType="journal_entry"
-              isReadOnly={false}
+...
             />
           </div>
 
