@@ -21,6 +21,8 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
+import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
+import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
 
 interface CreditCardRow {
   id: string;
@@ -61,6 +63,9 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentCreditCardId, setCurrentCreditCardId] = useState<string | null>(null);
+
+  // Attachments
+  const { attachments, isUploading, uploadFiles, deleteFile } = useCreditCardAttachments(currentCreditCardId);
 
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00' }]);
@@ -648,6 +653,18 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </Button>
           </TabsContent>
         </Tabs>
+
+        {/* Attachments */}
+        {currentCreditCardId && (
+          <AttachmentFilesRow
+            files={attachments}
+            onFileUpload={uploadFiles}
+            onDeleteFile={deleteFile}
+            isUploading={isUploading}
+            entityType="credit_card"
+            isReadOnly={false}
+          />
+        )}
 
         {/* Total */}
         <div className="flex justify-end">

@@ -9,6 +9,10 @@ interface UniversalFilePreviewContextType {
   openProposalFile: (fileName: string, additionalData?: Partial<UniversalFile>) => void;
   openSpecificationFile: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
   openBillAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
+  openJournalEntryAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
+  openCheckAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
+  openDepositAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
+  openCreditCardAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
 }
 
 const UniversalFilePreviewContext = createContext<UniversalFilePreviewContextType | null>(null);
@@ -36,7 +40,11 @@ export function UniversalFilePreviewProvider({ children, onFileDeleted }: Univer
     openIssueFile,
     openProposalFile,
     openSpecificationFile,
-    openBillAttachment
+    openBillAttachment,
+    openJournalEntryAttachment,
+    openCheckAttachment,
+    openDepositAttachment,
+    openCreditCardAttachment
   } = useUniversalFilePreview();
 
   const contextValue: UniversalFilePreviewContextType = {
@@ -45,7 +53,11 @@ export function UniversalFilePreviewProvider({ children, onFileDeleted }: Univer
     openIssueFile,
     openProposalFile,
     openSpecificationFile,
-    openBillAttachment
+    openBillAttachment,
+    openJournalEntryAttachment,
+    openCheckAttachment,
+    openDepositAttachment,
+    openCreditCardAttachment
   };
 
   return (

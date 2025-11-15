@@ -567,6 +567,53 @@ export type Database = {
         }
         Relationships: []
       }
+      check_attachments: {
+        Row: {
+          check_id: string
+          content_type: string | null
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          check_id: string
+          content_type?: string | null
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          check_id?: string
+          content_type?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_attachments_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       check_lines: {
         Row: {
           account_id: string | null
@@ -1086,6 +1133,53 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_card_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          credit_card_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          credit_card_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          credit_card_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_attachments_credit_card_id_fkey"
+            columns: ["credit_card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_card_lines: {
         Row: {
           account_id: string | null
@@ -1235,6 +1329,53 @@ export type Database = {
             columns: ["reverses_id"]
             isOneToOne: false
             referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deposit_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          deposit_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          deposit_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          deposit_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_attachments_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "deposits"
             referencedColumns: ["id"]
           },
         ]
@@ -1560,6 +1701,53 @@ export type Database = {
           {
             foreignKeyName: "journal_entries_reverses_id_fkey"
             columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entry_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          journal_entry_id: string
+          updated_at: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          journal_entry_id: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          journal_entry_id?: string
+          updated_at?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_attachments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]

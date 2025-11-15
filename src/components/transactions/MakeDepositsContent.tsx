@@ -25,6 +25,8 @@ import { toast } from "@/hooks/use-toast";
 import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { supabase } from "@/integrations/supabase/client";
+import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
+import { useDepositAttachments } from "@/hooks/useDepositAttachments";
 
 interface DepositRow {
   id: string;
@@ -57,6 +59,9 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentDepositId, setCurrentDepositId] = useState<string | null>(null);
   const hasInitiallyLoaded = useRef(false);
+  
+  // Attachments
+  const { attachments, isUploading, uploadFiles, deleteFile } = useDepositAttachments(currentDepositId);
   
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
