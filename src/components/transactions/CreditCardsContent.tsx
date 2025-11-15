@@ -655,16 +655,14 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         </Tabs>
 
         {/* Attachments */}
-        {currentCreditCardId && (
-          <AttachmentFilesRow
-            files={attachments}
-            onFileUpload={uploadFiles}
-            onDeleteFile={deleteFile}
-            isUploading={isUploading}
-            entityType="credit_card"
-            isReadOnly={false}
-          />
-        )}
+        <AttachmentFilesRow
+          files={attachments}
+          onFileUpload={uploadFiles}
+          onDeleteFile={deleteFile}
+          isUploading={isUploading}
+          entityType="credit_card"
+          isReadOnly={!currentCreditCardId}
+        />
 
         {/* Total */}
         <div className="flex justify-end">

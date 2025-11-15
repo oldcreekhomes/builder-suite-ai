@@ -1072,18 +1072,16 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </TabsContent>
               
               {/* Attachments */}
-              {currentCheckId && (
-                <div className="mt-4">
-                  <AttachmentFilesRow
-                    files={attachments}
-                    onFileUpload={uploadFiles}
-                    onDeleteFile={deleteFile}
-                    isUploading={isUploading}
-                    entityType="check"
-                    isReadOnly={false}
-                  />
-                </div>
-              )}
+              <div className="mt-4">
+                <AttachmentFilesRow
+                  files={attachments}
+                  onFileUpload={uploadFiles}
+                  onDeleteFile={deleteFile}
+                  isUploading={isUploading}
+                  entityType="check"
+                  isReadOnly={!currentCheckId}
+                />
+              </div>
               
               <div className="p-3 bg-muted border rounded-lg mt-4">
                 <div className="flex justify-between items-center">
