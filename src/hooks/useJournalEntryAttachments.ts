@@ -12,8 +12,9 @@ interface Attachment {
   uploaded_at: string;
 }
 
-export function useJournalEntryAttachments(journalEntryId: string | null) {
+export function useJournalEntryAttachments(journalEntryId: string | null, draftId: string) {
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const queryClient = useQueryClient();
 
   const { data: attachments = [], isLoading } = useQuery({
@@ -34,15 +35,6 @@ export function useJournalEntryAttachments(journalEntryId: string | null) {
   });
 
   const uploadFiles = async (files: File[]) => {
-    if (!journalEntryId) {
-      toast({
-        title: "Error",
-        description: "Please save the journal entry first before attaching files",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsUploading(true);
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -58,27 +50,47 @@ export function useJournalEntryAttachments(journalEntryId: string | null) {
           continue;
         }
 
-        // Upload to storage
-        const filePath = `journal-entry-attachments/${journalEntryId}/${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('project-files')
-          .upload(filePath, file);
+        if (journalEntryId) {
+          // Saved entry: upload and persist to database
+          const filePath = `journal-entry-attachments/${journalEntryId}/${Date.now()}-${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        // Save metadata to database
-        const { error: dbError } = await supabase
-          .from('journal_entry_attachments')
-          .insert({
-            journal_entry_id: journalEntryId,
+          const { error: dbError } = await supabase
+            .from('journal_entry_attachments')
+            .insert({
+              journal_entry_id: journalEntryId,
+              file_name: file.name,
+              file_path: filePath,
+              file_size: file.size,
+              content_type: file.type,
+              uploaded_by: user?.id,
+            });
+
+          if (dbError) throw dbError;
+        } else {
+          // Draft mode: upload to storage only, track as pending
+          const filePath = `journal-entry-attachments/draft-${draftId}/${Date.now()}-${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          // Add to pending attachments
+          const pendingAttachment: Attachment = {
+            id: `pending-${crypto.randomUUID()}`,
             file_name: file.name,
             file_path: filePath,
             file_size: file.size,
             content_type: file.type,
-            uploaded_by: user?.id,
-          });
-
-        if (dbError) throw dbError;
+            uploaded_at: new Date().toISOString(),
+          };
+          setPendingAttachments(prev => [...prev, pendingAttachment]);
+        }
       }
 
       toast({
@@ -86,7 +98,9 @@ export function useJournalEntryAttachments(journalEntryId: string | null) {
         description: `${files.length} file(s) uploaded successfully`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
+      if (journalEntryId) {
+        queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
+      }
     } catch (error) {
       console.error('Error uploading files:', error);
       toast({
@@ -101,36 +115,57 @@ export function useJournalEntryAttachments(journalEntryId: string | null) {
 
   const deleteFile = async (attachmentId: string) => {
     try {
-      // Get file path first
-      const { data: attachment } = await supabase
-        .from('journal_entry_attachments')
-        .select('file_path')
-        .eq('id', attachmentId)
-        .single();
+      if (attachmentId.startsWith('pending-')) {
+        // Delete pending attachment
+        const attachment = pendingAttachments.find(a => a.id === attachmentId);
+        if (!attachment) throw new Error('Pending attachment not found');
 
-      if (!attachment) throw new Error('Attachment not found');
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('project-files')
+          .remove([attachment.file_path]);
 
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('project-files')
-        .remove([attachment.file_path]);
+        if (storageError) throw storageError;
 
-      if (storageError) throw storageError;
+        // Remove from pending list
+        setPendingAttachments(prev => prev.filter(a => a.id !== attachmentId));
 
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('journal_entry_attachments')
-        .delete()
-        .eq('id', attachmentId);
+        toast({
+          title: "Success",
+          description: "File deleted successfully",
+        });
+      } else {
+        // Delete persisted attachment
+        const { data: attachment } = await supabase
+          .from('journal_entry_attachments')
+          .select('file_path')
+          .eq('id', attachmentId)
+          .single();
 
-      if (dbError) throw dbError;
+        if (!attachment) throw new Error('Attachment not found');
 
-      toast({
-        title: "Success",
-        description: "File deleted successfully",
-      });
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('project-files')
+          .remove([attachment.file_path]);
 
-      queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
+        if (storageError) throw storageError;
+
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('journal_entry_attachments')
+          .delete()
+          .eq('id', attachmentId);
+
+        if (dbError) throw dbError;
+
+        toast({
+          title: "Success",
+          description: "File deleted successfully",
+        });
+
+        queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
+      }
     } catch (error) {
       console.error('Error deleting file:', error);
       toast({
@@ -141,11 +176,50 @@ export function useJournalEntryAttachments(journalEntryId: string | null) {
     }
   };
 
+  const finalizePendingAttachments = async (finalJournalEntryId: string) => {
+    if (pendingAttachments.length === 0) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    try {
+      const inserts = pendingAttachments.map(att => ({
+        journal_entry_id: finalJournalEntryId,
+        file_name: att.file_name,
+        file_path: att.file_path,
+        file_size: att.file_size,
+        content_type: att.content_type,
+        uploaded_by: user?.id,
+      }));
+
+      const { error } = await supabase
+        .from('journal_entry_attachments')
+        .insert(inserts);
+
+      if (error) throw error;
+
+      // Clear pending attachments
+      setPendingAttachments([]);
+
+      queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', finalJournalEntryId] });
+    } catch (error) {
+      console.error('Error finalizing attachments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to link attachments to journal entry",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Combine pending and persisted attachments
+  const allAttachments = [...pendingAttachments, ...attachments];
+
   return {
-    attachments,
+    attachments: allAttachments,
     isLoading,
     isUploading,
     uploadFiles,
     deleteFile,
+    finalizePendingAttachments,
   };
 }
