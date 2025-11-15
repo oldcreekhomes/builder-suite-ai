@@ -53,10 +53,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   ]);
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1); // -1 means new entry
   const [isViewingMode, setIsViewingMode] = useState(false);
+  const [viewedEntryId, setViewedEntryId] = useState<string | null>(null);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
   
   // Attachments
-  const { attachments, isUploading, uploadFiles, deleteFile } = useJournalEntryAttachments(currentJournalEntryId);
+  const draftIdRef = useRef(crypto.randomUUID());
+  const { attachments, isUploading, uploadFiles, deleteFile, finalizePendingAttachments } = useJournalEntryAttachments(currentJournalEntryId, draftIdRef.current);
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -423,7 +425,37 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           {/* Entry Date */}
           <div className="space-y-2">
             <Label>Entry Date</Label>
-...
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !entryDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {entryDate ? format(entryDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={entryDate}
+                  onSelect={(date) => date && setEntryDate(date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Input
+              placeholder="Entry description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
 
