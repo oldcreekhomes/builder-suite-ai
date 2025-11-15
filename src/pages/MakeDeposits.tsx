@@ -23,6 +23,8 @@ import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
+import { useDepositAttachments } from "@/hooks/useDepositAttachments";
 
 interface DepositRow {
   id: string;
@@ -45,6 +47,7 @@ export default function MakeDeposits() {
   const [bankAccountId, setBankAccountId] = useState<string>("");
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("other");
+  const [currentDepositId, setCurrentDepositId] = useState<string | null>(null);
   
   // Company information state - reuse from check settings
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
@@ -69,6 +72,15 @@ export default function MakeDeposits() {
   const { createDeposit } = useDeposits();
   const { settings } = useProjectCheckSettings(projectId);
   const { costCodes } = useCostCodeSearch();
+  
+  // Attachment management
+  const { 
+    attachments, 
+    isLoading: isLoadingAttachments, 
+    isUploading, 
+    uploadFiles, 
+    deleteFile 
+  } = useDepositAttachments(currentDepositId);
 
   // Load saved settings when available (reuse check settings for company info)
   useEffect(() => {
@@ -351,14 +363,22 @@ export default function MakeDeposits() {
     };
 
     try {
-      await createDeposit.mutateAsync({ depositData, depositLines });
+      const result = await createDeposit.mutateAsync({ depositData, depositLines });
+      
+      // Set the deposit ID for attachments
+      if (result?.id) {
+        setCurrentDepositId(result.id);
+      }
       
       if (saveAndNew) {
-        // Reset form for new deposit
-        setDepositSourceId("");
-        setDepositSourceName("");
-        setCheckNumber("");
-        handleClear();
+        // Reset form for new deposit after a brief delay to allow attachment uploads
+        setTimeout(() => {
+          setDepositSourceId("");
+          setDepositSourceName("");
+          setCheckNumber("");
+          handleClear();
+          setCurrentDepositId(null);
+        }, 500);
       } else {
         // Navigate back
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
@@ -645,6 +665,19 @@ export default function MakeDeposits() {
                         ))}
                       </div>
                     </TabsContent>
+                  </Tabs>
+
+                  {/* Attachments Section */}
+                  <div className="mt-4">
+                    <AttachmentFilesRow
+                      files={attachments}
+                      onFileUpload={(files) => currentDepositId && uploadFiles(files)}
+                      onDeleteFile={deleteFile}
+                      isReadOnly={!currentDepositId}
+                      isUploading={isUploading}
+                      entityType="deposit"
+                    />
+                  </div>
                    
                   <div className="p-3 bg-muted border rounded-lg">
                     <div className="flex justify-between items-center">
@@ -675,9 +708,8 @@ export default function MakeDeposits() {
                       </div>
                     </div>
                   </div>
-                </Tabs>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
           </div>
         </SidebarInset>
       </div>
