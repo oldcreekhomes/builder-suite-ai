@@ -111,23 +111,18 @@ export function AttachmentFilesRow({
         </div>
       )}
 
-      {/* Show Add Files button ONLY when no files exist */}
-      {files.length === 0 && !isReadOnly && (
+      {/* Show Add Files button when no files exist */}
+      {files.length === 0 && (
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={handleFileUpload}
-          disabled={isUploading}
+          disabled={isUploading || isReadOnly}
           className="h-8"
         >
           {isUploading ? 'Uploading...' : 'Add Files'}
         </Button>
-      )}
-
-      {/* Show message for read-only with no files */}
-      {files.length === 0 && isReadOnly && (
-        <span className="text-sm text-muted-foreground">No files attached</span>
       )}
 
       <DeleteConfirmationDialog

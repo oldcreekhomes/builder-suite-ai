@@ -787,16 +787,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           </div>
 
           {/* Attachments */}
-          {currentJournalEntryId && (
-            <AttachmentFilesRow
-              files={attachments}
-              onFileUpload={uploadFiles}
-              onDeleteFile={deleteFile}
-              isUploading={isUploading}
-              entityType="journal_entry"
-              isReadOnly={false}
-            />
-          )}
+          <AttachmentFilesRow
+            files={attachments}
+            onFileUpload={uploadFiles}
+            onDeleteFile={deleteFile}
+            isUploading={isUploading}
+            entityType="journal_entry"
+            isReadOnly={!currentJournalEntryId}
+          />
         </div>
 
         {/* Action Buttons */}
