@@ -99,7 +99,7 @@ export function AttachmentFilesRow({
                       e.stopPropagation();
                       setFileToDelete(file.id);
                     }}
-                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100"
+                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
                     title="Delete file"
                   >
                     <span className="text-[10px] font-bold leading-none">×</span>
