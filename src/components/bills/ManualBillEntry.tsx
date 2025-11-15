@@ -656,13 +656,12 @@ export function ManualBillEntry() {
                 {expenseRows.map((row) => (
                   <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
                     <div className="col-span-2">
-                      <AccountSearchInput
-                        value={row.accountId || ""}
-                        onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
-                        placeholder="Select account"
-                        accountType="expense"
-                        className="h-8"
-                      />
+                          <AccountSearchInput
+                            value={row.accountId || ""}
+                            onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
+                            placeholder="Select account"
+                            className="h-8"
+                          />
                     </div>
                     <div className="col-span-4">
                       <Input 

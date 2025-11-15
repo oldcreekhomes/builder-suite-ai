@@ -84,6 +84,42 @@ export function useUniversalFilePreview() {
     });
   };
 
+  const openJournalEntryAttachment = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
+    openFile({
+      name: fileName || filePath.split('/').pop() || filePath,
+      bucket: 'project-files',
+      path: filePath,
+      ...additionalData
+    });
+  };
+
+  const openCheckAttachment = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
+    openFile({
+      name: fileName || filePath.split('/').pop() || filePath,
+      bucket: 'project-files',
+      path: filePath,
+      ...additionalData
+    });
+  };
+
+  const openDepositAttachment = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
+    openFile({
+      name: fileName || filePath.split('/').pop() || filePath,
+      bucket: 'project-files',
+      path: filePath,
+      ...additionalData
+    });
+  };
+
+  const openCreditCardAttachment = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
+    openFile({
+      name: fileName || filePath.split('/').pop() || filePath,
+      bucket: 'project-files',
+      path: filePath,
+      ...additionalData
+    });
+  };
+
   return {
     previewFile,
     isOpen,
@@ -93,6 +129,10 @@ export function useUniversalFilePreview() {
     openIssueFile,
     openProposalFile,
     openSpecificationFile,
-    openBillAttachment
+    openBillAttachment,
+    openJournalEntryAttachment,
+    openCheckAttachment,
+    openDepositAttachment,
+    openCreditCardAttachment
   };
 }

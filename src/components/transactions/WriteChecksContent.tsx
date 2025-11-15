@@ -24,6 +24,8 @@ import { toast } from "@/hooks/use-toast";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
+import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
+import { useCheckAttachments } from "@/hooks/useCheckAttachments";
 
 interface CheckRow {
   id: string;
@@ -75,6 +77,9 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1);
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentCheckId, setCurrentCheckId] = useState<string | null>(null);
+
+  // Attachments
+  const { attachments, isUploading, uploadFiles, deleteFile } = useCheckAttachments(currentCheckId);
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
@@ -1065,6 +1070,20 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                   ))}
                 </div>
               </TabsContent>
+              
+              {/* Attachments */}
+              {currentCheckId && (
+                <div className="mt-4">
+                  <AttachmentFilesRow
+                    files={attachments}
+                    onFileUpload={uploadFiles}
+                    onDeleteFile={deleteFile}
+                    isUploading={isUploading}
+                    entityType="check"
+                    isReadOnly={false}
+                  />
+                </div>
+              )}
               
               <div className="p-3 bg-muted border rounded-lg mt-4">
                 <div className="flex justify-between items-center">

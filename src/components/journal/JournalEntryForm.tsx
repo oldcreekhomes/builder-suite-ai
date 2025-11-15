@@ -19,6 +19,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
+import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
+import { useJournalEntryAttachments } from "@/hooks/useJournalEntryAttachments";
 
 interface JournalLine {
   id: string;
@@ -53,6 +55,8 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
   
+  // Attachments
+  const { attachments, isUploading, uploadFiles, deleteFile } = useJournalEntryAttachments(currentJournalEntryId);
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -781,6 +785,18 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               </>
             )}
           </div>
+
+          {/* Attachments */}
+          {currentJournalEntryId && (
+            <AttachmentFilesRow
+              files={attachments}
+              onFileUpload={uploadFiles}
+              onDeleteFile={deleteFile}
+              isUploading={isUploading}
+              entityType="journal_entry"
+              isReadOnly={false}
+            />
+          )}
         </div>
 
         {/* Action Buttons */}
