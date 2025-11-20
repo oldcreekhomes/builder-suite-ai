@@ -227,9 +227,7 @@ export function JournalEntryAttachmentUpload({
   };
 
   return (
-    <div className="space-y-2">
-      <Label>Attachments</Label>
-      <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-2">
         {/* Show existing files as small icons */}
         {attachments.map((attachment, index) => {
           const IconComponent = getFileIcon(attachment.file_name);
@@ -264,7 +262,6 @@ export function JournalEntryAttachmentUpload({
           size="sm"
           onClick={() => document.getElementById('journal-entry-file-input')?.click()}
           disabled={disabled || isUploading}
-          className="h-8 text-xs px-3"
         >
           {isUploading ? 'Uploading...' : 'Add Files'}
         </Button>
@@ -278,6 +275,5 @@ export function JournalEntryAttachmentUpload({
           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
         />
       </div>
-    </div>
   );
 }
