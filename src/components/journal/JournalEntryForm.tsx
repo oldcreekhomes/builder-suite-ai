@@ -467,10 +467,10 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     <TooltipProvider>
       <Card>
       <CardContent className="space-y-6 pt-6">
-        {/* Compact Header with Navigation and Entry Fields */}
-        <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 items-start">
+        {/* Row 1: Entry Date, Description, Attachments, and Navigation Controls */}
+        <div className="flex flex-wrap items-end gap-3">
           {/* Entry Date */}
-          <div className="space-y-2">
+          <div className="space-y-2" style={{ minWidth: '200px' }}>
             <Label>Entry Date</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -497,36 +497,37 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1" style={{ minWidth: '250px' }}>
             <Label>Description</Label>
             <Input
               placeholder="Entry description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <div className="pt-2">
-              <JournalEntryAttachmentUpload
-                attachments={attachments}
-                onAttachmentsChange={setAttachments}
-                journalEntryId={currentJournalEntryId || undefined}
-              />
-            </div>
+          </div>
+
+          {/* Attachments - Inline */}
+          <div className="space-y-2" style={{ minWidth: '140px' }}>
+            <Label>Attachments</Label>
+            <JournalEntryAttachmentUpload
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              journalEntryId={currentJournalEntryId || undefined}
+            />
           </div>
 
           {/* New Entry Button */}
-          <div className="flex items-center pt-8">
-            <Button
-              onClick={createNewEntry}
-              size="sm"
-              variant={!isViewingMode ? "default" : "outline"}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New
-            </Button>
-          </div>
+          <Button
+            onClick={createNewEntry}
+            size="sm"
+            variant={!isViewingMode ? "default" : "outline"}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New
+          </Button>
 
-          {/* Navigation Arrows */}
-          <div className="flex items-center gap-1 pt-8">
+          {/* Navigation Controls */}
+          <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -565,14 +566,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 size="sm"
                 variant="ghost"
                 isLoading={deleteManualJournalEntry.isPending}
-                className="ml-2"
               />
             ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
               <Button
                 size="sm"
                 variant="ghost"
                 disabled
-                className="ml-2"
               >
                 <span className="text-lg">🔒</span>
               </Button>
@@ -581,7 +580,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 size="sm"
                 variant="ghost"
                 disabled
-                className="ml-2 opacity-50"
+                className="opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -589,8 +588,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           </div>
         </div>
 
-
-        {/* Tabbed Line Items */}
+        {/* Row 2: Job Cost/Expense Tabs with Add Line Button */}
         <div className="space-y-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'job_cost' | 'expense')}>
             <div className="flex items-center justify-between">
