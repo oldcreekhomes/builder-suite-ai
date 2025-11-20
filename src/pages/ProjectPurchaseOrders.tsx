@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useProject } from "@/hooks/useProject";
 import { usePurchaseOrders } from "@/hooks/usePurchaseOrders";
+import { useLotManagement } from "@/hooks/useLotManagement";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -17,11 +18,12 @@ export default function ProjectPurchaseOrders() {
   const {
     data: project
   } = useProject(projectId!);
+  const { selectedLotId } = useLotManagement(projectId!);
   const {
     purchaseOrders,
     isLoading,
     error
-  } = usePurchaseOrders(projectId!);
+  } = usePurchaseOrders(projectId!, selectedLotId);
   
   if (!project) {
     return <div className="flex items-center justify-center min-h-screen">

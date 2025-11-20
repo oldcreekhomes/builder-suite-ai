@@ -8,8 +8,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
+import { LotSelector } from './LotSelector';
 
 interface BudgetPrintToolbarProps {
+  projectId: string;
   onPrint: () => void;
   onExportPdf: () => void;
   onAddBudget: () => void;
@@ -22,6 +24,7 @@ interface BudgetPrintToolbarProps {
 }
 
 export function BudgetPrintToolbar({ 
+  projectId,
   onPrint, 
   onExportPdf, 
   onAddBudget, 
@@ -79,6 +82,7 @@ export function BudgetPrintToolbar({
               )}
             </Button>
           )}
+          <LotSelector projectId={projectId} />
           <Button onClick={onAddBudget} variant="outline" size="sm">
             <PlusIcon className="h-4 w-4 mr-2" />
             Budget

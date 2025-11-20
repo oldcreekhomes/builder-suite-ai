@@ -21,6 +21,7 @@ import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { useAllBudgetSubcategories } from '@/hooks/useAllBudgetSubcategories';
 import { useBudgetLockStatus } from '@/hooks/useBudgetLockStatus';
+import { useLotManagement } from '@/hooks/useLotManagement';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ interface BudgetTableProps {
 
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const { toast } = useToast();
+  const { selectedLotId } = useLotManagement(projectId);
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
@@ -68,7 +70,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
-  const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId);
+  const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId, selectedLotId);
   const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
   
   const historicalActualCosts = historicalData?.mapByCode || {};
@@ -387,6 +389,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   return (
     <div className="space-y-4">
       <BudgetPrintToolbar 
+        projectId={projectId}
         onPrint={handlePrint}
         onExportPdf={handleExportPdf}
         onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}

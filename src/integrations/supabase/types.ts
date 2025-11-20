@@ -296,6 +296,7 @@ export type Database = {
           is_reversal: boolean
           line_number: number
           line_type: Database["public"]["Enums"]["bill_line_type"]
+          lot_id: string | null
           memo: string | null
           owner_id: string
           project_id: string | null
@@ -314,6 +315,7 @@ export type Database = {
           is_reversal?: boolean
           line_number?: number
           line_type: Database["public"]["Enums"]["bill_line_type"]
+          lot_id?: string | null
           memo?: string | null
           owner_id: string
           project_id?: string | null
@@ -332,6 +334,7 @@ export type Database = {
           is_reversal?: boolean
           line_number?: number
           line_type?: Database["public"]["Enums"]["bill_line_type"]
+          lot_id?: string | null
           memo?: string | null
           owner_id?: string
           project_id?: string | null
@@ -363,6 +366,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bill_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bill_lines_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -388,6 +398,7 @@ export type Database = {
           due_date: string | null
           id: string
           is_reversal: boolean
+          lot_id: string | null
           notes: string | null
           owner_id: string
           project_id: string | null
@@ -413,6 +424,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_reversal?: boolean
+          lot_id?: string | null
           notes?: string | null
           owner_id: string
           project_id?: string | null
@@ -438,6 +450,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           is_reversal?: boolean
+          lot_id?: string | null
           notes?: string | null
           owner_id?: string
           project_id?: string | null
@@ -455,6 +468,13 @@ export type Database = {
           vendor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bills_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bills_project_id_fkey"
             columns: ["project_id"]
@@ -2210,6 +2230,7 @@ export type Database = {
           created_at: string
           historical_project_id: string | null
           id: string
+          lot_id: string | null
           project_id: string
           quantity: number | null
           selected_bid_id: string | null
@@ -2223,6 +2244,7 @@ export type Database = {
           created_at?: string
           historical_project_id?: string | null
           id?: string
+          lot_id?: string | null
           project_id: string
           quantity?: number | null
           selected_bid_id?: string | null
@@ -2236,6 +2258,7 @@ export type Database = {
           created_at?: string
           historical_project_id?: string | null
           id?: string
+          lot_id?: string | null
           project_id?: string
           quantity?: number | null
           selected_bid_id?: string | null
@@ -2255,6 +2278,13 @@ export type Database = {
             columns: ["historical_project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
           {
@@ -2414,6 +2444,41 @@ export type Database = {
           },
         ]
       }
+      project_lots: {
+        Row: {
+          created_at: string
+          id: string
+          lot_name: string | null
+          lot_number: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lot_name?: string | null
+          lot_number: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lot_name?: string | null
+          lot_number?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_lots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_photos: {
         Row: {
           description: string | null
@@ -2488,6 +2553,7 @@ export type Database = {
           extra: boolean
           files: Json | null
           id: string
+          lot_id: string | null
           notes: string | null
           po_number: string | null
           project_id: string
@@ -2504,6 +2570,7 @@ export type Database = {
           extra?: boolean
           files?: Json | null
           id?: string
+          lot_id?: string | null
           notes?: string | null
           po_number?: string | null
           project_id: string
@@ -2520,6 +2587,7 @@ export type Database = {
           extra?: boolean
           files?: Json | null
           id?: string
+          lot_id?: string | null
           notes?: string | null
           po_number?: string | null
           project_id?: string
@@ -2533,6 +2601,13 @@ export type Database = {
             columns: ["bid_package_id"]
             isOneToOne: false
             referencedRelation: "project_bid_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_purchase_orders_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
         ]
@@ -3272,6 +3347,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      initialize_project_lots: {
+        Args: { p_project_id: string }
+        Returns: undefined
       }
       is_period_closed: {
         Args: {
