@@ -763,7 +763,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="md:col-span-1 space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <Label htmlFor="checkNumber">Check #</Label>
               <Input
                 id="checkNumber"
@@ -774,28 +774,25 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 className="h-10"
               />
             </div>
-
-            <div className="md:col-span-1 space-y-2">
-              <Label className="opacity-0">Action</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={activeTab === "other" ? addOtherRow : addRevenueRow}
-                className="h-10 px-3"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-            <div className="flex items-center gap-4 mb-4">
-              <h3 className="text-lg font-medium">Deposit Details</h3>
-              <TabsList className="grid grid-cols-2 w-auto">
-                <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
-                <TabsTrigger value="revenue">Job Cost</TabsTrigger>
-              </TabsList>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-medium">Deposit Details</h3>
+                <TabsList className="grid grid-cols-2 w-auto">
+                  <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
+                  <TabsTrigger value="revenue">Job Cost</TabsTrigger>
+                </TabsList>
+              </div>
+              <Button 
+                onClick={activeTab === "other" ? addOtherRow : addRevenueRow} 
+                size="sm" 
+                variant="outline"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Row
+              </Button>
             </div>
               
             <TabsContent value="other" className="space-y-4">
