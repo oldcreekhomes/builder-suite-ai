@@ -549,6 +549,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           open={showAddBudgetModal}
           onOpenChange={setShowAddBudgetModal}
           existingCostCodeIds={existingCostCodeIds}
+          selectedLotId={selectedLotId}
         />
       )}
     </div>
