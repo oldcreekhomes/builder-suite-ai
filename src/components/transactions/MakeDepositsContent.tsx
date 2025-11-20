@@ -726,7 +726,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-            <div className="md:col-span-3 space-y-2">
+            <div className="md:col-span-4 space-y-2">
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
               <AccountSearchInputInline
                 value={bankAccount}
@@ -740,7 +740,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="md:col-span-3 space-y-2">
+            <div className="md:col-span-4 space-y-2">
               <Label htmlFor="receivedFrom">Received From</Label>
               <DepositSourceSearchInput
                 value={depositSourceName}
@@ -763,7 +763,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="md:col-span-2 space-y-2">
+            <div className="md:col-span-1 space-y-2">
               <Label htmlFor="checkNumber">Check #</Label>
               <Input
                 id="checkNumber"
@@ -775,16 +775,16 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="md:col-span-2 space-y-2">
+            <div className="md:col-span-1 space-y-2">
               <Label className="opacity-0">Action</Label>
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={activeTab === "other" ? addOtherRow : addRevenueRow}
-                className="w-full h-10"
+                className="h-10 px-3"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Row
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
           </div>
