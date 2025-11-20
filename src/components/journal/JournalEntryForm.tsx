@@ -19,7 +19,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
-import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
+import { JournalEntryAttachmentUpload } from "@/components/journal/JournalEntryAttachmentUpload";
 import { useJournalEntryAttachments } from "@/hooks/useJournalEntryAttachments";
 
 interface JournalLine {
@@ -461,15 +461,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <div className="space-y-2 pt-2">
-              <Label>Attachments</Label>
-              <AttachmentFilesRow
-                files={attachments}
+            <div className="pt-2">
+              <JournalEntryAttachmentUpload
+                attachments={attachments}
                 onFileUpload={uploadFiles}
                 onDeleteFile={deleteFile}
                 isUploading={isUploading}
-                entityType="journal_entry"
-                isReadOnly={false}
               />
             </div>
           </div>
