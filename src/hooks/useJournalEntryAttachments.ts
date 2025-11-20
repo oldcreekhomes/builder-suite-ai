@@ -93,14 +93,28 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
         }
       }
 
+      // Optimistic update for instant UI feedback
+      if (journalEntryId) {
+        queryClient.setQueryData(
+          ['journal-entry-attachments', journalEntryId],
+          (old: Attachment[] = []) => {
+            const newAttachments = files.map(file => ({
+              id: crypto.randomUUID(),
+              file_name: file.name,
+              file_path: `journal-entry-attachments/${journalEntryId}/${Date.now()}-${file.name}`,
+              file_size: file.size,
+              content_type: file.type,
+              uploaded_at: new Date().toISOString(),
+            }));
+            return [...old, ...newAttachments];
+          }
+        );
+      }
+
       toast({
         title: "Success",
         description: `${files.length} file(s) uploaded successfully`,
       });
-
-      if (journalEntryId) {
-        queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
-      }
     } catch (error) {
       console.error('Error uploading files:', error);
       toast({
