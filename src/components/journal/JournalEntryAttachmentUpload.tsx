@@ -10,59 +10,187 @@ export interface JournalEntryAttachment {
   file_name: string;
   file_path: string;
   file_size: number;
-  content_type?: string | null;
+  content_type: string;
   file?: File;
 }
 
 interface JournalEntryAttachmentUploadProps {
   attachments: JournalEntryAttachment[];
-  onFileUpload: (files: File[]) => Promise<void>;
-  onDeleteFile: (attachmentId: string) => Promise<void>;
-  isUploading?: boolean;
+  onAttachmentsChange: (attachments: JournalEntryAttachment[]) => void;
+  journalEntryId?: string;
   disabled?: boolean;
 }
 
 export function JournalEntryAttachmentUpload({ 
   attachments, 
-  onFileUpload,
-  onDeleteFile,
-  isUploading = false,
+  onAttachmentsChange, 
+  journalEntryId,
   disabled = false 
 }: JournalEntryAttachmentUploadProps) {
+  const [isUploading, setIsUploading] = useState(false);
+
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    // Validate file sizes before uploading
-    const validFiles = files.filter(file => {
+    setIsUploading(true);
+    const newAttachments: JournalEntryAttachment[] = [];
+
+    for (const file of files) {
+      // Validate file size (20MB limit)
       if (file.size > 20 * 1024 * 1024) {
         toast({
           title: "File Too Large",
           description: `${file.name} is larger than 20MB. Please choose a smaller file.`,
           variant: "destructive",
         });
-        return false;
+        continue;
       }
-      return true;
-    });
 
-    if (validFiles.length > 0) {
-      await onFileUpload(validFiles);
+      // If we have a journalEntryId, upload to storage immediately
+      if (journalEntryId) {
+        try {
+          const timestamp = Date.now();
+          const sanitizedName = file.name
+            .replace(/\s+/g, '_')
+            .replace(/[^\w.-]/g, '_')
+            .replace(/_+/g, '_');
+          const fileName = `${timestamp}_${sanitizedName}`;
+          const filePath = `journal-entry-attachments/${journalEntryId}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(filePath, file);
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            toast({
+              title: "Upload Failed",
+              description: `Failed to upload ${file.name}. Please try again.`,
+              variant: "destructive",
+            });
+            continue;
+          }
+
+          // Save attachment metadata to database
+          const { data: attachment, error: dbError } = await supabase
+            .from('journal_entry_attachments')
+            .insert({
+              journal_entry_id: journalEntryId,
+              file_name: file.name,
+              file_path: filePath,
+              file_size: file.size,
+              content_type: file.type,
+              uploaded_by: (await supabase.auth.getUser()).data.user?.id
+            })
+            .select()
+            .single();
+
+          if (dbError) {
+            console.error('Database error:', dbError);
+            // Clean up uploaded file
+            await supabase.storage.from('project-files').remove([filePath]);
+            toast({
+              title: "Database Error",
+              description: `Failed to save ${file.name} metadata. Please try again.`,
+              variant: "destructive",
+            });
+            continue;
+          }
+
+          newAttachments.push({
+            id: attachment.id,
+            file_name: attachment.file_name,
+            file_path: attachment.file_path,
+            file_size: attachment.file_size,
+            content_type: attachment.content_type || file.type
+          });
+        } catch (error) {
+          console.error('Unexpected error:', error);
+          toast({
+            title: "Upload Failed",
+            description: `An unexpected error occurred while uploading ${file.name}.`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        // If no journalEntryId yet, just store the file temporarily
+        const tempAttachment: JournalEntryAttachment = {
+          file_name: file.name,
+          file_path: `temp_${Date.now()}_${file.name}`,
+          file_size: file.size,
+          content_type: file.type,
+          file
+        };
+        newAttachments.push(tempAttachment);
+      }
     }
 
+    if (newAttachments.length > 0) {
+      onAttachmentsChange([...attachments, ...newAttachments]);
+      toast({
+        title: "Files Added",
+        description: `${newAttachments.length} file(s) added successfully.`,
+      });
+    }
+
+    setIsUploading(false);
     // Reset the input
     event.target.value = '';
-  }, [onFileUpload, disabled]);
+  }, [attachments, onAttachmentsChange, journalEntryId, disabled]);
 
-  const handleRemoveAttachment = async (attachment: JournalEntryAttachment) => {
-    if (disabled || !attachment.id) return;
-    await onDeleteFile(attachment.id);
+  const handleRemoveAttachment = async (index: number) => {
+    if (disabled) return;
+
+    const attachment = attachments[index];
+    
+    // If attachment has an ID, it's saved in the database
+    if (attachment.id && journalEntryId) {
+      try {
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('journal_entry_attachments')
+          .delete()
+          .eq('id', attachment.id);
+
+        if (dbError) {
+          console.error('Database delete error:', dbError);
+          toast({
+            title: "Delete Failed",
+            description: "Failed to remove attachment from database.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from('project-files')
+          .remove([attachment.file_path]);
+
+        if (storageError) {
+          console.error('Storage delete error:', storageError);
+          // Don't show error to user as database record is already deleted
+        }
+      } catch (error) {
+        console.error('Unexpected error during deletion:', error);
+        toast({
+          title: "Delete Failed",
+          description: "An unexpected error occurred while removing the attachment.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const updatedAttachments = attachments.filter((_, i) => i !== index);
+    onAttachmentsChange(updatedAttachments);
   };
 
   const handleDownloadAttachment = async (attachment: JournalEntryAttachment) => {
-    if (!attachment.id) return;
+    if (!attachment.id || !journalEntryId) return;
 
     try {
       const { data, error } = await supabase.storage
@@ -113,12 +241,12 @@ export function JournalEntryAttachmentUpload({
                 className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
                 title={attachment.file_name}
                 type="button"
-                disabled={!attachment.id}
+                disabled={!attachment.id || !journalEntryId}
               >
                 <IconComponent className="h-5 w-5" />
               </button>
               <button
-                onClick={() => handleRemoveAttachment(attachment)}
+                onClick={() => handleRemoveAttachment(index)}
                 className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                 title="Remove attachment"
                 type="button"
@@ -130,7 +258,7 @@ export function JournalEntryAttachmentUpload({
           );
         })}
         
-        {/* Add Files button - always visible */}
+        {/* Add Files button */}
         <Button
           variant="outline"
           size="sm"
