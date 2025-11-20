@@ -25,8 +25,8 @@ import { toast } from "@/hooks/use-toast";
 import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { supabase } from "@/integrations/supabase/client";
-import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useDepositAttachments } from "@/hooks/useDepositAttachments";
+import { DepositAttachmentUpload, DepositAttachment } from "@/components/deposits/DepositAttachmentUpload";
 
 interface DepositRow {
   id: string;
@@ -60,8 +60,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const [currentDepositId, setCurrentDepositId] = useState<string | null>(null);
   const hasInitiallyLoaded = useRef(false);
   
-  // Attachments
-  const { attachments, isUploading, uploadFiles, deleteFile } = useDepositAttachments(currentDepositId);
+  // Attachments state
+  const [attachments, setAttachments] = useState<DepositAttachment[]>([]);
   
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
@@ -176,6 +176,22 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
       setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
       return;
+    }
+    
+    // Fetch attachments
+    const { data: attachmentsData } = await supabase
+      .from('deposit_attachments')
+      .select('*')
+      .eq('deposit_id', deposit.id);
+    
+    if (attachmentsData) {
+      setAttachments(attachmentsData.map(att => ({
+        id: att.id,
+        file_name: att.file_name,
+        file_path: att.file_path,
+        file_size: att.file_size,
+        content_type: att.content_type || ''
+      })));
     }
     
     if (!depositLines || depositLines.length === 0) {
@@ -343,6 +359,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     setRevenueRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
     setOtherRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
     setCheckNumber("");
+    setAttachments([]);
   };
 
   const calculateTotal = () => {
@@ -551,6 +568,35 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
     try {
       const result = await createDeposit.mutateAsync({ depositData, depositLines });
+      const newDepositId = result.id;
+      
+      // Upload any temporary attachments
+      for (const attachment of attachments.filter(a => a.file && !a.id)) {
+        if (attachment.file) {
+          const timestamp = Date.now();
+          const sanitizedName = attachment.file.name
+            .replace(/\s+/g, '_')
+            .replace(/[^\w.-]/g, '_')
+            .replace(/_+/g, '_');
+          const fileName = `${timestamp}_${sanitizedName}`;
+          const filePath = `deposit-attachments/${newDepositId}/${fileName}`;
+
+          await supabase.storage
+            .from('project-files')
+            .upload(filePath, attachment.file);
+
+          const { error: insertError } = await supabase
+            .from('deposit_attachments')
+            .insert([{
+              deposit_id: newDepositId,
+              file_name: attachment.file.name,
+              file_path: filePath,
+              file_size: attachment.file.size,
+              content_type: attachment.file.type,
+              uploaded_by: (await supabase.auth.getUser()).data.user?.id
+            }]);
+        }
+      }
       
       if (saveAndNew) {
         createNewDeposit();
@@ -680,7 +726,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-            <div className="md:col-span-5 space-y-2">
+            <div className="md:col-span-3 space-y-2">
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
               <AccountSearchInputInline
                 value={bankAccount}
@@ -694,7 +740,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="md:col-span-5 space-y-2">
+            <div className="md:col-span-4 space-y-2">
               <Label htmlFor="receivedFrom">Received From</Label>
               <DepositSourceSearchInput
                 value={depositSourceName}
@@ -704,6 +750,16 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   setDepositSourceName(sourceName);
                 }}
                 placeholder="Search or add customer"
+              />
+            </div>
+
+            <div className="md:col-span-3 space-y-2">
+              <Label>Attachments</Label>
+              <DepositAttachmentUpload
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                depositId={currentDepositId || undefined}
+                disabled={false}
               />
             </div>
 
