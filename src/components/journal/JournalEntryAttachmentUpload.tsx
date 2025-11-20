@@ -262,6 +262,7 @@ export function JournalEntryAttachmentUpload({
           size="sm"
           onClick={() => document.getElementById('journal-entry-file-input')?.click()}
           disabled={disabled || isUploading}
+          className="h-10"
         >
           {isUploading ? 'Uploading...' : 'Add Files'}
         </Button>
