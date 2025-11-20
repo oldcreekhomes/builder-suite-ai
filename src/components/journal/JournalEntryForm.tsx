@@ -477,7 +477,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal",
+                    "w-full justify-start text-left font-normal h-10",
                     !entryDate && "text-muted-foreground"
                   )}
                 >
@@ -521,6 +521,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             onClick={createNewEntry}
             size="sm"
             variant={!isViewingMode ? "default" : "outline"}
+            className="h-10"
           >
             <Plus className="h-4 w-4 mr-2" />
             New
@@ -535,6 +536,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   size="sm"
                   onClick={goToPrevious}
                   disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
+                  className="h-10"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -550,6 +552,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   size="sm"
                   onClick={goToNext}
                   disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
+                  className="h-10"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -566,12 +569,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 size="sm"
                 variant="ghost"
                 isLoading={deleteManualJournalEntry.isPending}
+                className="h-10"
               />
             ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
               <Button
                 size="sm"
                 variant="ghost"
                 disabled
+                className="h-10"
               >
                 <span className="text-lg">🔒</span>
               </Button>
@@ -580,7 +585,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 size="sm"
                 variant="ghost"
                 disabled
-                className="opacity-50"
+                className="opacity-50 h-10"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
