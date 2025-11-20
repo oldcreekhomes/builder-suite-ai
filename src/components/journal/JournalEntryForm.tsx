@@ -19,8 +19,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
-import { JournalEntryAttachmentUpload } from "@/components/journal/JournalEntryAttachmentUpload";
-import { useJournalEntryAttachments } from "@/hooks/useJournalEntryAttachments";
+import { JournalEntryAttachmentUpload, JournalEntryAttachment } from "@/components/journal/JournalEntryAttachmentUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JournalLine {
   id: string;
@@ -56,9 +56,8 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   const [viewedEntryId, setViewedEntryId] = useState<string | null>(null);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
   
-  // Attachments
-  const draftIdRef = useRef(crypto.randomUUID());
-  const { attachments, isUploading, uploadFiles, deleteFile, finalizePendingAttachments } = useJournalEntryAttachments(currentJournalEntryId, draftIdRef.current);
+  // Attachments - local state management like Bills
+  const [attachments, setAttachments] = useState<JournalEntryAttachment[]>([]);
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -248,11 +247,32 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     ));
   };
 
+  // Load attachments for a journal entry
+  const loadAttachments = async (entryId: string) => {
+    const { data, error } = await supabase
+      .from('journal_entry_attachments')
+      .select('*')
+      .eq('journal_entry_id', entryId);
+    
+    if (!error && data) {
+      setAttachments(data.map(att => ({
+        id: att.id,
+        file_name: att.file_name,
+        file_path: att.file_path,
+        file_size: att.file_size,
+        content_type: att.content_type || ''
+      })));
+    } else {
+      setAttachments([]);
+    }
+  };
+
   // Load a journal entry into the form
   const loadJournalEntry = (entry: any) => {
     setCurrentJournalEntryId(entry.id);
     setEntryDate(toDateLocal(entry.entry_date));
     setDescription(entry.description || "");
+    loadAttachments(entry.id);
     
     const expLines: JournalLine[] = [];
     const jobLines: JournalLine[] = [];
@@ -319,6 +339,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     setIsViewingMode(false);
     setEntryDate(new Date());
     setDescription("");
+    setAttachments([]);
     setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }]);
     setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
@@ -410,8 +431,30 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         project_id: projectId,
       });
 
+      // Upload temp attachments if any
       if (newEntry?.id) {
-        await finalizePendingAttachments(newEntry.id);
+        const tempAttachments = attachments.filter(att => !att.id && att.file);
+        for (const tempAtt of tempAttachments) {
+          if (tempAtt.file) {
+            const timestamp = Date.now();
+            const sanitizedName = tempAtt.file.name
+              .replace(/\s+/g, '_')
+              .replace(/[^\w.-]/g, '_')
+              .replace(/_+/g, '_');
+            const fileName = `${timestamp}_${sanitizedName}`;
+            const filePath = `journal-entry-attachments/${newEntry.id}/${fileName}`;
+
+            await supabase.storage.from('project-files').upload(filePath, tempAtt.file);
+            await supabase.from('journal_entry_attachments').insert({
+              journal_entry_id: newEntry.id,
+              file_name: tempAtt.file.name,
+              file_path: filePath,
+              file_size: tempAtt.file.size,
+              content_type: tempAtt.content_type,
+              uploaded_by: (await supabase.auth.getUser()).data.user?.id
+            });
+          }
+        }
       }
       // After save, clear form and prepare for next entry
       createNewEntry();
@@ -464,9 +507,8 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             <div className="pt-2">
               <JournalEntryAttachmentUpload
                 attachments={attachments}
-                onFileUpload={uploadFiles}
-                onDeleteFile={deleteFile}
-                isUploading={isUploading}
+                onAttachmentsChange={setAttachments}
+                journalEntryId={currentJournalEntryId || undefined}
               />
             </div>
           </div>
