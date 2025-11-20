@@ -11,13 +11,15 @@ interface BudgetCreationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingCostCodeIds: string[];
+  selectedLotId: string | null;
 }
 
 export function BudgetCreationModal({ 
   projectId, 
   open, 
   onOpenChange, 
-  existingCostCodeIds 
+  existingCostCodeIds,
+  selectedLotId 
 }: BudgetCreationModalProps) {
   const [selectedCostCodes, setSelectedCostCodes] = useState<Set<string>>(new Set());
   
@@ -35,6 +37,7 @@ export function BudgetCreationModal({
         cost_code_id: costCodeId,
         quantity: 0,
         unit_price: 0,
+        lot_id: selectedLotId,
       }));
 
       const { error } = await supabase
