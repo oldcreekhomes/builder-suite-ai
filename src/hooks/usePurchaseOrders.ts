@@ -31,7 +31,7 @@ export interface PurchaseOrder {
   };
 }
 
-export const usePurchaseOrders = (projectId: string) => {
+export const usePurchaseOrders = (projectId: string, lotId?: string | null) => {
   const [groupedPurchaseOrders, setGroupedPurchaseOrders] = useState<Record<string, PurchaseOrder[]>>({});
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -43,16 +43,22 @@ export const usePurchaseOrders = (projectId: string) => {
     error,
     refetch
   } = useQuery({
-    queryKey: ['purchase-orders', projectId],
+    queryKey: ['purchase-orders', projectId, lotId],
     queryFn: async () => {
-      console.log('Fetching purchase orders for project:', projectId);
+      console.log('Fetching purchase orders for project:', projectId, 'lot:', lotId);
       
       // Fetch purchase orders
-      const { data: pos, error: posError } = await supabase
+      let query = supabase
         .from('project_purchase_orders')
         .select('*, po_number')
-        .eq('project_id', projectId)
-        .order('updated_at', { ascending: false });
+        .eq('project_id', projectId);
+      
+      // Filter by lot_id if provided
+      if (lotId) {
+        query = query.eq('lot_id', lotId);
+      }
+      
+      const { data: pos, error: posError } = await query.order('updated_at', { ascending: false });
 
       if (posError) {
         console.error('Error fetching purchase orders:', posError);

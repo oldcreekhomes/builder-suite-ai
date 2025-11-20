@@ -11,6 +11,7 @@ import { PurchaseOrdersTableFooter } from './PurchaseOrdersTableFooter';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { usePurchaseOrderMutations } from '@/hooks/usePurchaseOrderMutations';
+import { useLotManagement } from '@/hooks/useLotManagement';
 
 interface PurchaseOrdersTableProps {
   projectId: string;
@@ -22,7 +23,8 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
   
-  const { purchaseOrders, groupedPurchaseOrders } = usePurchaseOrders(projectId);
+  const { selectedLotId } = useLotManagement(projectId);
+  const { purchaseOrders, groupedPurchaseOrders } = usePurchaseOrders(projectId, selectedLotId);
   
   // Filter purchase orders based on search query
   const filteredPurchaseOrders = useMemo(() => {

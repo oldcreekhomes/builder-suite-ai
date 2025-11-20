@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, Upload, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { ActualCostsImportDialog } from './ActualCostsImportDialog';
+import { LotSelector } from './LotSelector';
 
 interface ActualPrintToolbarProps {
+  projectId: string;
   onPrint: () => void;
   budgetItems: any[];
   onUpdateActual: (itemId: string, actualAmount: number) => void;
@@ -11,7 +13,7 @@ interface ActualPrintToolbarProps {
   onCollapseAll?: () => void;
 }
 
-export function ActualPrintToolbar({ onPrint, budgetItems, onUpdateActual, onExpandAll, onCollapseAll }: ActualPrintToolbarProps) {
+export function ActualPrintToolbar({ projectId, onPrint, budgetItems, onUpdateActual, onExpandAll, onCollapseAll }: ActualPrintToolbarProps) {
   const [showImportDialog, setShowImportDialog] = useState(false);
 
   return (
@@ -33,6 +35,7 @@ export function ActualPrintToolbar({ onPrint, budgetItems, onUpdateActual, onExp
               </Button>
             </>
           )}
+          <LotSelector projectId={projectId} />
           <Button 
             onClick={() => setShowImportDialog(true)} 
             variant="outline" 

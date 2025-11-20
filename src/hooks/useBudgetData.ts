@@ -5,11 +5,11 @@ import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
 
-export function useBudgetData(projectId: string) {
+export function useBudgetData(projectId: string, lotId?: string | null) {
   const { data: budgetItems = [] } = useQuery({
-    queryKey: ['project-budgets', projectId],
+    queryKey: ['project-budgets', projectId, lotId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('project_budgets')
         .select(`
           *,
@@ -23,6 +23,13 @@ export function useBudgetData(projectId: string) {
           )
         `)
         .eq('project_id', projectId);
+      
+      // Filter by lot_id if provided
+      if (lotId) {
+        query = query.eq('lot_id', lotId);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;

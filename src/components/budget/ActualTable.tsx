@@ -17,6 +17,7 @@ import { useBudgetMutations } from '@/hooks/useBudgetMutations';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { ViewCommittedCostsModal } from './ViewCommittedCostsModal';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
+import { useLotManagement } from '@/hooks/useLotManagement';
 
 interface ActualTableProps {
   projectId: string;
@@ -24,8 +25,9 @@ interface ActualTableProps {
 }
 
 export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
-  const { budgetItems, groupedBudgetItems } = useBudgetData(projectId);
-  const { purchaseOrders } = usePurchaseOrders(projectId);
+  const { selectedLotId } = useLotManagement(projectId);
+  const { budgetItems, groupedBudgetItems } = useBudgetData(projectId, selectedLotId);
+  const { purchaseOrders } = usePurchaseOrders(projectId, selectedLotId);
   
   const [committedModal, setCommittedModal] = useState<{
     open: boolean;
@@ -172,6 +174,7 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
     return (
       <div className="space-y-4">
       <ActualPrintToolbar 
+        projectId={projectId}
         onPrint={handlePrint} 
         budgetItems={budgetItems}
         onUpdateActual={handleUpdateActual}
