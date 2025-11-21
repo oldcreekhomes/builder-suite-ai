@@ -657,8 +657,12 @@ export function ManualBillEntry() {
                   <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
                     <div className="col-span-2">
                           <AccountSearchInput
-                            value={row.accountId || ""}
-                            onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
+                            value={row.account || ""}
+                            onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+                            onAccountSelect={(account) => {
+                              updateExpenseRow(row.id, 'accountId', account.id);
+                              updateExpenseRow(row.id, 'account', `${account.code} - ${account.name}`);
+                            }}
                             placeholder="Select account"
                             className="h-8"
                           />
