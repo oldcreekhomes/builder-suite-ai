@@ -90,7 +90,7 @@ export function AttachmentFilesRow({
                   className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted`}
                   title={file.file_name}
                 >
-                  <IconComponent className="h-4 w-4" />
+                  <IconComponent className="h-5 w-5" />
                 </button>
                 {!isReadOnly && (
                   <button
@@ -111,19 +111,17 @@ export function AttachmentFilesRow({
         </div>
       )}
 
-      {/* Show Add Files button when no files exist */}
-      {files.length === 0 && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleFileUpload}
-          disabled={isUploading || isReadOnly}
-          className="h-8"
-        >
-          {isUploading ? 'Uploading...' : 'Add Files'}
-        </Button>
-      )}
+      {/* Always show Add Files button */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleFileUpload}
+        disabled={isUploading || isReadOnly}
+        className="h-10"
+      >
+        {isUploading ? 'Uploading...' : 'Add Files'}
+      </Button>
 
       <DeleteConfirmationDialog
         open={!!fileToDelete}

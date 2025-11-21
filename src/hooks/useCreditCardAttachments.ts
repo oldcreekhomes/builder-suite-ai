@@ -12,8 +12,9 @@ interface Attachment {
   uploaded_at: string;
 }
 
-export function useCreditCardAttachments(creditCardId: string | null) {
+export function useCreditCardAttachments(creditCardId: string | null, draftId: string) {
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{ id: string; file_name: string; file: File }>>([]);
   const queryClient = useQueryClient();
 
   const { data: attachments = [], isLoading } = useQuery({
@@ -35,10 +36,16 @@ export function useCreditCardAttachments(creditCardId: string | null) {
 
   const uploadFiles = async (files: File[]) => {
     if (!creditCardId) {
+      // Store as pending attachments
+      const newPending = files.map(file => ({
+        id: `pending-${draftId}-${Date.now()}-${Math.random()}`,
+        file_name: file.name,
+        file
+      }));
+      setPendingAttachments(prev => [...prev, ...newPending]);
       toast({
-        title: "Save Required",
-        description: "Please save the credit card transaction before uploading files",
-        variant: "destructive",
+        title: "Files Ready",
+        description: `${files.length} file(s) will be uploaded when you save`,
       });
       return;
     }
@@ -97,6 +104,16 @@ export function useCreditCardAttachments(creditCardId: string | null) {
   };
 
   const deleteFile = async (attachmentId: string) => {
+    // Check if it's a pending attachment
+    if (attachmentId.startsWith('pending-')) {
+      setPendingAttachments(prev => prev.filter(a => a.id !== attachmentId));
+      toast({
+        title: "Success",
+        description: "File removed",
+      });
+      return;
+    }
+
     try {
       const { data: attachment } = await supabase
         .from('credit_card_attachments')
@@ -135,11 +152,69 @@ export function useCreditCardAttachments(creditCardId: string | null) {
     }
   };
 
+  const finalizePendingAttachments = async (finalCreditCardId: string) => {
+    if (pendingAttachments.length === 0) return;
+
+    setIsUploading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    try {
+      for (const pending of pendingAttachments) {
+        const filePath = `credit-card-attachments/${finalCreditCardId}/${Date.now()}-${pending.file_name}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, pending.file);
+
+        if (uploadError) throw uploadError;
+
+        const { error: dbError } = await supabase
+          .from('credit_card_attachments')
+          .insert({
+            credit_card_id: finalCreditCardId,
+            file_name: pending.file_name,
+            file_path: filePath,
+            file_size: pending.file.size,
+            content_type: pending.file.type,
+            uploaded_by: user?.id,
+          });
+
+        if (dbError) throw dbError;
+      }
+
+      setPendingAttachments([]);
+      queryClient.invalidateQueries({ queryKey: ['credit-card-attachments', finalCreditCardId] });
+    } catch (error) {
+      console.error('Error finalizing attachments:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload some files. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Combine saved and pending attachments
+  const allAttachments = [
+    ...attachments,
+    ...pendingAttachments.map(p => ({
+      id: p.id,
+      file_name: p.file_name,
+      file_path: '', // Pending files don't have paths yet
+      file_size: p.file.size,
+      content_type: p.file.type,
+      uploaded_at: new Date().toISOString()
+    }))
+  ];
+
   return {
-    attachments,
+    attachments: allAttachments,
     isLoading,
     isUploading,
     uploadFiles,
     deleteFile,
+    finalizePendingAttachments,
   };
 }
