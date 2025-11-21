@@ -3,13 +3,15 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { BillsReviewTable } from "@/components/bills/BillsReviewTable";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { ManageBillsGuard } from "@/components/guards/ManageBillsGuard";
+import { useDeleteTestBills } from "@/hooks/useDeleteTestBills";
 
 const ReviewBills = () => {
   const navigate = useNavigate();
+  const deleteTestBills = useDeleteTestBills();
 
   return (
     <ManageBillsGuard>
@@ -37,6 +39,15 @@ const ReviewBills = () => {
                       Review and approve AI-extracted bills before adding them to your accounting system
                     </p>
                   </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteTestBills.mutate()}
+                    disabled={deleteTestBills.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleteTestBills.isPending ? "Deleting..." : "Delete Test Bills"}
+                  </Button>
                 </div>
 
                 <BillsReviewTable />
