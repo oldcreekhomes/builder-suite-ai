@@ -357,7 +357,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         <div className="space-y-6">
           {/* Header with Navigation */}
           <div className="flex items-center justify-between border-b pb-4 mb-6">
-            <h2 className="text-3xl font-bold">CREDIT CARD</h2>
+            <h1 className="text-3xl font-bold">CREDIT CARD</h1>
             
             <div className="flex items-center gap-4">
               {/* Navigation Controls */}
@@ -712,10 +712,17 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 Total: ${calculateTotal().toFixed(2)}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={clearForm} size="sm" className="h-8">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={clearForm} 
+                  size="sm" 
+                  className="h-8"
+                >
                   Clear
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   className="h-8"
@@ -725,6 +732,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   {createCreditCard.isPending ? "Saving..." : "Save & New"}
                 </Button>
                 <Button
+                  type="button"
                   size="sm"
                   className="h-8"
                   onClick={() => handleSave(false)}

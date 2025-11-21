@@ -687,10 +687,17 @@ export default function MakeDeposits() {
                         Total: ${getDisplayAmount()}
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          onClick={handleClear} 
+                          size="sm" 
+                          className="h-8"
+                        >
                           Clear
                         </Button>
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           className="h-8"
@@ -700,6 +707,7 @@ export default function MakeDeposits() {
                           {createDeposit.isPending ? "Saving..." : "Save & New"}
                         </Button>
                         <Button
+                          type="button"
                           size="sm"
                           className="h-8"
                           onClick={() => handleSave(false)}
