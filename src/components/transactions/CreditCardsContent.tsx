@@ -510,7 +510,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 onChange={setVendor}
                 onCompanySelect={(company) => {
                   setVendor(company.company_name);
-                  setVendorId(company.id);
                 }}
                 placeholder="Enter vendor name"
               />
