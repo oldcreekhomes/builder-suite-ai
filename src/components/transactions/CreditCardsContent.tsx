@@ -527,7 +527,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 onDeleteFile={deleteFile}
                 isUploading={isUploading}
                 entityType="credit_card"
-                isReadOnly={!currentCreditCardId}
+                isReadOnly={false}
               />
             </div>
 
