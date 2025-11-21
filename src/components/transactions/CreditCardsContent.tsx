@@ -537,7 +537,14 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </div>
 
             <div className="col-span-2">
-              {/* Empty space for alignment */}
+              <Label>Attachments</Label>
+              <AttachmentFilesRow
+                files={attachments}
+                onFileUpload={uploadFiles}
+                onDeleteFile={deleteFile}
+                isUploading={isUploading}
+                entityType="credit_card"
+              />
             </div>
           </div>
 
@@ -705,17 +712,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               </div>
             </TabsContent>
             </Tabs>
-
-        {/* Attachments Section */}
-        <div className="mt-4">
-          <AttachmentFilesRow
-            files={attachments}
-            onFileUpload={uploadFiles}
-            onDeleteFile={deleteFile}
-            isUploading={isUploading}
-            entityType="credit_card"
-          />
-        </div>
 
             {/* Footer with Total and Actions */}
           <div className="p-3 bg-muted border rounded-lg">
