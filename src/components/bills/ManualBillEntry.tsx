@@ -214,6 +214,7 @@ export function ManualBillEntry() {
         description: "Please select a vendor",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -223,6 +224,7 @@ export function ManualBillEntry() {
         description: "Bills must be associated with a project. Please navigate to a specific project to enter bills.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -252,10 +254,49 @@ export function ManualBillEntry() {
         description: "All job cost items must have a cost code selected. Please select a cost code from the dropdown.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
-    const invalidExpenseRows = expenseRows.filter(row => 
+    // Auto-resolve account IDs for expense rows (similar to cost code resolution)
+    const { data: allAccounts } = await supabase
+      .from('accounts')
+      .select('id, code, name');
+
+    const resolvedExpenseRows = expenseRows.map(row => {
+      if ((parseFloat(row.amount) || 0) > 0 && !row.accountId && row.account?.trim() && allAccounts) {
+        const trimmed = row.account.trim();
+        const code = trimmed.includes(" - ") 
+          ? trimmed.split(" - ")[0].trim()
+          : trimmed.includes(" ") 
+          ? trimmed.split(" ")[0].trim()
+          : trimmed;
+        
+        const normalized = trimmed.toLowerCase();
+        
+        // Try exact match by code
+        const exactMatch = allAccounts.find(acc => acc.code === code);
+        if (exactMatch) return { ...row, accountId: exactMatch.id };
+        
+        // Try case-insensitive code match
+        const caseInsensitiveMatch = allAccounts.find(
+          acc => acc.code.toLowerCase() === code.toLowerCase()
+        );
+        if (caseInsensitiveMatch) return { ...row, accountId: caseInsensitiveMatch.id };
+        
+        // Try full text match
+        const fullMatch = allAccounts.find(
+          acc => `${acc.code} - ${acc.name}`.toLowerCase() === normalized ||
+                 `${acc.code} ${acc.name}`.toLowerCase() === normalized
+        );
+        if (fullMatch) return { ...row, accountId: fullMatch.id };
+      }
+      return row;
+    });
+
+    setExpenseRows(resolvedExpenseRows);
+
+    const invalidExpenseRows = resolvedExpenseRows.filter(row => 
       parseFloat(row.amount) > 0 && !row.accountId
     );
     
@@ -265,6 +306,7 @@ export function ManualBillEntry() {
         description: "All expense items must have an account selected. Please select an account from the dropdown.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -280,7 +322,7 @@ export function ManualBillEntry() {
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
           memo: row.memo || undefined
         })),
-      ...expenseRows
+      ...resolvedExpenseRows
         .filter(row => row.accountId || row.amount)
         .map(row => ({
           line_type: 'expense' as const,
@@ -299,6 +341,7 @@ export function ManualBillEntry() {
         description: "Please add at least one line item",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -316,6 +359,7 @@ export function ManualBillEntry() {
         description: "Bills must be associated with a project.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
