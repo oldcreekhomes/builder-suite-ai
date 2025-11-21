@@ -65,7 +65,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [currentCreditCardId, setCurrentCreditCardId] = useState<string | null>(null);
 
   // Attachments
-  const { attachments, isUploading, uploadFiles, deleteFile } = useCreditCardAttachments(currentCreditCardId);
+  const draftId = `draft-${Date.now()}`;
+  const { attachments, isUploading, uploadFiles, deleteFile, finalizePendingAttachments } = useCreditCardAttachments(currentCreditCardId, draftId);
 
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00' }]);
@@ -277,7 +278,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       return;
     }
 
-    await createCreditCard.mutateAsync({
+    const result = await createCreditCard.mutateAsync({
       transaction_date: transactionDate,
       transaction_type: transactionType,
       credit_card_account_id: creditCardAccountId,
@@ -286,6 +287,11 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       amount: calculateTotal(),
       lines,
     });
+
+    // Finalize any pending attachments
+    if (result?.id) {
+      await finalizePendingAttachments(result.id);
+    }
 
     if (saveAndNew) {
       createNewTransaction();
@@ -527,7 +533,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 onDeleteFile={deleteFile}
                 isUploading={isUploading}
                 entityType="credit_card"
-                isReadOnly={false}
               />
             </div>
 
