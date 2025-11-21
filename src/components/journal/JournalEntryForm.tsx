@@ -512,7 +512,6 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             <JournalEntryAttachmentUpload
               attachments={attachments}
               onAttachmentsChange={setAttachments}
-              journalEntryId={currentJournalEntryId || undefined}
             />
           </div>
 
