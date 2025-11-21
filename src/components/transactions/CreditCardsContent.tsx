@@ -129,7 +129,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   const goToPrevious = () => {
     if (currentIndex === -1) {
-      // Currently viewing "new", go to most recent
       if (creditCards.length > 0) {
         navigateToTransaction(0);
       }
@@ -172,7 +171,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       return;
     }
 
-    // Check if cost codes are still loading
     if (costCodesLoading) {
       toast({
         title: "Please Wait",
@@ -182,18 +180,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       return;
     }
 
-    // Auto-resolve typed cost codes before validation
     const updatedJobCostRows = jobCostRows.map(row => {
       const amount = parseFloat(row.amount) || 0;
       if (amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim()) {
         const typed = row.costCode.trim();
         
-        // Try exact code match (case-insensitive)
         let match = costCodes.find(cc => 
           cc.code.toLowerCase() === typed.split(' - ')[0].toLowerCase()
         );
         
-        // Try full "code - name" match
         if (!match) {
           match = costCodes.find(cc => 
             `${cc.code} - ${cc.name}`.toLowerCase() === typed.toLowerCase() ||
@@ -201,7 +196,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           );
         }
         
-        // Try partial match if unique
         if (!match) {
           const partialMatches = costCodes.filter(cc =>
             cc.code.toLowerCase().includes(typed.toLowerCase()) ||
@@ -223,7 +217,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       return row;
     });
 
-    // Update state with resolved cost codes so UI reflects the matches
     if (updatedJobCostRows.some((row, idx) => row.costCodeId !== jobCostRows[idx].costCodeId)) {
       setJobCostRows(updatedJobCostRows);
     }
@@ -257,7 +250,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     });
 
     if (lines.length === 0) {
-      // Find first invalid row for better error message
       let errorDetail = "Please add at least one line item with an amount. ";
       
       const invalidExpense = expenseRows.find(r => parseFloat(r.amount) > 0 && !r.accountId);
@@ -309,7 +301,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setCurrentCreditCardId(card.id);
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
     setTransactionDate(card.transaction_date);
-    // Set credit card account ID and display text
+    
     const creditCardAcct = accounts.find(a => a.id === card.credit_card_account_id);
     if (creditCardAcct) {
       setCreditCardAccountId(creditCardAcct.id);
@@ -319,9 +311,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       setCreditCardAccount('');
     }
 
-    // Set vendor
     setVendor(card.vendor);
-    setVendorId(''); // Vendor is stored as text, not a company ID
+    setVendorId('');
     setSelectedProjectId(card.project_id || '');
 
     const expenseLines: CreditCardRow[] = [];
@@ -337,7 +328,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
       if (line.line_type === 'expense') {
         row.accountId = line.account_id;
-        // Populate account display text from accounts data
         if (line.account_id) {
           const account = accounts.find(a => a.id === line.account_id);
           if (account) {
@@ -347,7 +337,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         expenseLines.push(row);
       } else {
         row.costCodeId = line.cost_code_id;
-        // Populate cost code display text from costCodes data
         if (line.cost_code_id) {
           const costCode = costCodes.find(cc => cc.id === line.cost_code_id);
           if (costCode) {
@@ -367,11 +356,11 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       <TooltipProvider>
         <div className="space-y-6">
           {/* Header with Navigation */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Credit Card Transaction</h2>
+          <div className="flex items-center justify-between border-b pb-4 mb-6">
+            <h2 className="text-3xl font-bold">CREDIT CARD</h2>
             
             <div className="flex items-center gap-4">
-              {/* Navigation Controls Group */}
+              {/* Navigation Controls */}
               <div className="flex items-center gap-2">
                 <Button 
                   onClick={createNewTransaction} 
@@ -445,248 +434,257 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 )}
               </div>
               
-              {/* Type and Date Controls Group */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Label>Type:</Label>
-                  <ToggleGroup 
-                    type="single" 
-                    value={transactionType} 
-                    onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
-                    className="bg-muted p-1 rounded-md"
+              {/* Type Toggle */}
+              <div className="flex items-center gap-2">
+                <Label>Type:</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={transactionType} 
+                  onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
+                  className="bg-muted p-1 rounded-md"
+                >
+                  <ToggleGroupItem 
+                    value="purchase" 
+                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
                   >
-                    <ToggleGroupItem 
-                      value="purchase" 
-                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                    Purchase
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="refund"
+                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                  >
+                    Refund
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+
+              {/* Date Picker */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "w-[180px] justify-start text-left font-normal",
+                        !transactionDate && "text-muted-foreground"
+                      )}
                     >
-                      Purchase
-                    </ToggleGroupItem>
-                    <ToggleGroupItem 
-                      value="refund"
-                      className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
-                    >
-                      Refund
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "justify-start text-left font-normal",
-                          !transactionDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar
-                        mode="single"
-                        selected={new Date(transactionDate)}
-                        onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={new Date(transactionDate)}
+                      onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
 
-        {/* Transaction Details */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Credit Card Account *</Label>
-            <AccountSearchInput
-              value={creditCardAccount}
-              onChange={setCreditCardAccount}
-              onAccountSelect={(account) => {
-                setCreditCardAccountId(account.id);
-                setCreditCardAccount(`${account.code} - ${account.name}`);
-              }}
-              placeholder="Select credit card account"
-            />
-          </div>
-          <div>
-            <Label htmlFor="vendor">Vendor *</Label>
-            <VendorSearchInput
-              value={vendor}
-              onChange={setVendor}
-              onCompanySelect={(company) => {
-                setVendor(company.company_name);
-              }}
-              placeholder="Search vendors..."
-            />
-          </div>
-        </div>
-
-        {/* Line Items Tabs */}
-        <Tabs defaultValue="expense">
-          <TabsList>
-            <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
-            <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="expense" className="space-y-4">
-            <div className="space-y-2">
-              {expenseRows.map((row) => (
-                <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                  <div className="col-span-5">
-                    <Label>Account</Label>
-                    <AccountSearchInput
-                      value={row.account || ''}
-                      onChange={(value) => updateExpenseRow(row.id, { account: value })}
-                      onAccountSelect={(account) => {
-                        updateExpenseRow(row.id, {
-                          accountId: account.id,
-                          account: `${account.code} - ${account.name}`
-                        });
-                      }}
-                      placeholder="Select account"
-                    />
-                  </div>
-                  <div className="col-span-4">
-                    <Label>Memo</Label>
-                    <Input
-                      value={row.memo || ''}
-                      onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
-                      placeholder="Description"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={row.amount}
-                      onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeExpenseRow(row.id)}
-                    disabled={expenseRows.length === 1}
-                    className="col-span-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+          {/* Main Form Fields */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-3">
+              <Label>Credit Card Account</Label>
+              <AccountSearchInput
+                value={creditCardAccount}
+                onChange={setCreditCardAccount}
+                onAccountSelect={(account) => {
+                  setCreditCardAccount(`${account.code} - ${account.name}`);
+                  setCreditCardAccountId(account.id);
+                }}
+                placeholder="Select credit card account"
+              />
             </div>
-            <Button onClick={addExpenseRow} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Line
-            </Button>
-          </TabsContent>
 
-          <TabsContent value="job-cost" className="space-y-4">
-            <div className="space-y-2">
-              {jobCostRows.map((row) => {
-                const amount = parseFloat(row.amount) || 0;
-                const isInvalid = amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim();
-                
-                return (
-                  <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5">
-                      <Label>Cost Code</Label>
-                      <CostCodeSearchInput
-                        value={row.costCode || ''}
-                        onChange={(value) => updateJobCostRow(row.id, { costCode: value })}
-                        onCostCodeSelect={(costCode) => {
-                          updateJobCostRow(row.id, {
-                            costCodeId: costCode.id,
-                            costCode: `${costCode.code} - ${costCode.name}`
-                          });
-                        }}
-                        placeholder="Select cost code"
-                        className={isInvalid ? "ring-1 ring-destructive" : ""}
-                      />
-                      {isInvalid && (
-                        <p className="text-xs text-destructive mt-1">
-                          Select a cost code from the dropdown list
-                        </p>
-                      )}
+            <div className="col-span-4">
+              <Label>Vendor</Label>
+              <VendorSearchInput
+                value={vendor}
+                onChange={setVendor}
+                onCompanySelect={(company) => {
+                  setVendor(company.company_name);
+                  setVendorId(company.id);
+                }}
+                placeholder="Enter vendor name"
+              />
+            </div>
+
+            <div className="col-span-2">
+              <Label>Attachments</Label>
+              <AttachmentFilesRow
+                files={attachments}
+                onFileUpload={uploadFiles}
+                onDeleteFile={deleteFile}
+                isUploading={isUploading}
+                entityType="credit_card"
+                isReadOnly={!currentCreditCardId}
+              />
+            </div>
+
+            <div className="col-span-1">
+              {/* Empty space for alignment */}
+            </div>
+
+            <div className="col-span-2 flex items-end">
+              <Button
+                onClick={addExpenseRow}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Row
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Transaction Details</h3>
+            <Tabs defaultValue="expense" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
+                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="expense" className="space-y-4">
+                <div className="space-y-2">
+                  {expenseRows.map((row) => (
+                    <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
+                      <div className="col-span-5">
+                        <Label>Account</Label>
+                        <AccountSearchInput
+                          value={row.account || ''}
+                          onChange={(value) => updateExpenseRow(row.id, { account: value })}
+                          onAccountSelect={(account) => {
+                            updateExpenseRow(row.id, {
+                              accountId: account.id,
+                              account: `${account.code} - ${account.name}`
+                            });
+                          }}
+                          placeholder="Select account"
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <Label>Memo</Label>
+                        <Input
+                          value={row.memo || ''}
+                          onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
+                          placeholder="Description"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label>Amount</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={row.amount}
+                          onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeExpenseRow(row.id)}
+                        disabled={expenseRows.length === 1}
+                        className="col-span-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  <div className="col-span-4">
-                    <Label>Memo</Label>
-                    <Input
-                      value={row.memo || ''}
-                      onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
-                      placeholder="Description"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={row.amount}
-                      onChange={(e) => updateJobCostRow(row.id, { amount: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeJobCostRow(row.id)}
-                    disabled={jobCostRows.length === 1}
-                    className="col-span-1"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  ))}
                 </div>
-              );
-            })}
+              </TabsContent>
+
+              <TabsContent value="job-cost" className="space-y-4">
+                <div className="space-y-2">
+                  {jobCostRows.map((row) => {
+                    const amount = parseFloat(row.amount) || 0;
+                    const isInvalid = amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim();
+                    
+                    return (
+                      <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
+                        <div className="col-span-5">
+                          <Label>Cost Code</Label>
+                          <CostCodeSearchInput
+                            value={row.costCode || ''}
+                            onChange={(value) => updateJobCostRow(row.id, { costCode: value })}
+                            onCostCodeSelect={(costCode) => {
+                              updateJobCostRow(row.id, {
+                                costCodeId: costCode.id,
+                                costCode: `${costCode.code} - ${costCode.name}`
+                              });
+                            }}
+                            placeholder="Select cost code"
+                            className={isInvalid ? "ring-1 ring-destructive" : ""}
+                          />
+                          {isInvalid && (
+                            <p className="text-xs text-destructive mt-1">
+                              Select a cost code from the dropdown list
+                            </p>
+                          )}
+                        </div>
+                        <div className="col-span-4">
+                          <Label>Memo</Label>
+                          <Input
+                            value={row.memo || ''}
+                            onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
+                            placeholder="Description"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label>Amount</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={row.amount}
+                            onChange={(e) => updateJobCostRow(row.id, { amount: e.target.value })}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeJobCostRow(row.id)}
+                          disabled={jobCostRows.length === 1}
+                          className="col-span-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Footer with Total and Actions */}
+          <div className="flex justify-between items-center pt-4 border-t">
+            <div className="text-lg font-semibold">
+              Total Amount: ${calculateTotal().toFixed(2)}
             </div>
-            <Button onClick={addJobCostRow} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Line
-            </Button>
-          </TabsContent>
-        </Tabs>
-
-        {/* Attachments */}
-        <AttachmentFilesRow
-          files={attachments}
-          onFileUpload={uploadFiles}
-          onDeleteFile={deleteFile}
-          isUploading={isUploading}
-          entityType="credit_card"
-          isReadOnly={!currentCreditCardId}
-        />
-
-        {/* Total */}
-        <div className="flex justify-end">
-          <div className="text-right">
-            <Label>Total Amount</Label>
-            <div className="text-2xl font-bold">${calculateTotal().toFixed(2)}</div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={clearForm}>
+                Clear
+              </Button>
+              <Button variant="outline" onClick={() => handleSave(true)}>
+                Save & New
+              </Button>
+              <Button onClick={() => handleSave(false)}>
+                Save & Close
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={clearForm}>
-            Clear
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => handleSave(true)}>
-              Save & New
-            </Button>
-            <Button onClick={() => handleSave(false)}>
-              Save & Close
-            </Button>
-          </div>
-        </div>
-      </div>
       </TooltipProvider>
     </Card>
   );
