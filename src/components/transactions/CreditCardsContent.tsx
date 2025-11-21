@@ -494,12 +494,16 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               <Label>Credit Card Account</Label>
               <AccountSearchInput
                 value={creditCardAccount}
-                onChange={setCreditCardAccount}
+                onChange={(value) => { 
+                  setCreditCardAccount(value); 
+                  if (!value) setCreditCardAccountId(""); 
+                }}
                 onAccountSelect={(account) => {
                   setCreditCardAccount(`${account.code} - ${account.name}`);
                   setCreditCardAccountId(account.id);
                 }}
                 placeholder="Select credit card account"
+                className="h-10"
               />
             </div>
 
@@ -531,156 +535,204 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               {/* Empty space for alignment */}
             </div>
 
-            <div className="col-span-2 flex items-end">
-              <Button
-                onClick={addExpenseRow}
+            <div className="col-span-2">
+              {/* Empty space for alignment */}
+            </div>
+          </div>
+
+          {/* Transaction Details Section */}
+          <Tabs defaultValue="expense" className="w-full space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-medium">Transaction Details</h3>
+                <TabsList className="grid grid-cols-2 w-auto">
+                  <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
+                  <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                </TabsList>
+              </div>
+              <Button 
+                onClick={addExpenseRow} 
+                size="sm" 
                 variant="outline"
-                size="sm"
-                className="w-full"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Row
               </Button>
             </div>
-          </div>
 
-          {/* Tabs Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Transaction Details</h3>
-            <Tabs defaultValue="expense" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
-                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-              </TabsList>
+            <TabsContent value="expense" className="space-y-4">
+              <div className="border rounded-lg overflow-visible">
+                <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                  <div className="col-span-5">Account</div>
+                  <div className="col-span-4">Memo</div>
+                  <div className="col-span-2">Amount</div>
+                  <div className="col-span-1 text-center">Action</div>
+                </div>
 
-              <TabsContent value="expense" className="space-y-4">
-                <div className="space-y-2">
-                  {expenseRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                      <div className="col-span-5">
-                        <Label>Account</Label>
-                        <AccountSearchInput
-                          value={row.account || ''}
-                          onChange={(value) => updateExpenseRow(row.id, { account: value })}
-                          onAccountSelect={(account) => {
-                            updateExpenseRow(row.id, {
-                              accountId: account.id,
-                              account: `${account.code} - ${account.name}`
-                            });
-                          }}
-                          placeholder="Select account"
-                        />
-                      </div>
-                      <div className="col-span-4">
-                        <Label>Memo</Label>
-                        <Input
-                          value={row.memo || ''}
-                          onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
-                          placeholder="Description"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label>Amount</Label>
+                {expenseRows.map((row) => (
+                  <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                    <div className="col-span-5">
+                      <AccountSearchInput
+                        value={row.account || ''}
+                        onChange={(value) => {
+                          updateExpenseRow(row.id, { account: value });
+                          if (!value) {
+                            updateExpenseRow(row.id, { accountId: '' });
+                          }
+                        }}
+                        onAccountSelect={(account) => {
+                          updateExpenseRow(row.id, {
+                            accountId: account.id,
+                            account: `${account.code} - ${account.name}`
+                          });
+                        }}
+                        placeholder="Select account..."
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-4">
+                      <Input
+                        value={row.memo || ''}
+                        onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
+                        placeholder="Memo..."
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
                           type="number"
                           step="0.01"
                           value={row.amount}
                           onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
                           placeholder="0.00"
+                          className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
+                    </div>
+                    <div className="col-span-1 flex justify-center items-center">
                       <Button
-                        variant="ghost"
-                        size="icon"
                         onClick={() => removeExpenseRow(row.id)}
+                        size="sm"
+                        variant="destructive"
                         disabled={expenseRows.length === 1}
-                        className="col-span-1"
+                        className="h-8 w-8 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  ))}
-                </div>
-              </TabsContent>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
 
-              <TabsContent value="job-cost" className="space-y-4">
-                <div className="space-y-2">
-                  {jobCostRows.map((row) => {
-                    const amount = parseFloat(row.amount) || 0;
-                    const isInvalid = amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim();
-                    
-                    return (
-                      <div key={row.id} className="grid grid-cols-12 gap-2 items-end">
-                        <div className="col-span-5">
-                          <Label>Cost Code</Label>
-                          <CostCodeSearchInput
-                            value={row.costCode || ''}
-                            onChange={(value) => updateJobCostRow(row.id, { costCode: value })}
-                            onCostCodeSelect={(costCode) => {
-                              updateJobCostRow(row.id, {
-                                costCodeId: costCode.id,
-                                costCode: `${costCode.code} - ${costCode.name}`
-                              });
-                            }}
-                            placeholder="Select cost code"
-                            className={isInvalid ? "ring-1 ring-destructive" : ""}
-                          />
-                          {isInvalid && (
-                            <p className="text-xs text-destructive mt-1">
-                              Select a cost code from the dropdown list
-                            </p>
-                          )}
-                        </div>
-                        <div className="col-span-4">
-                          <Label>Memo</Label>
-                          <Input
-                            value={row.memo || ''}
-                            onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
-                            placeholder="Description"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Label>Amount</Label>
+            <TabsContent value="job-cost" className="space-y-4">
+              <div className="border rounded-lg overflow-visible">
+                <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                  <div className="col-span-5">Cost Code</div>
+                  <div className="col-span-4">Memo</div>
+                  <div className="col-span-2">Amount</div>
+                  <div className="col-span-1 text-center">Action</div>
+                </div>
+
+                {jobCostRows.map((row) => {
+                  const amount = parseFloat(row.amount) || 0;
+                  const isInvalid = amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim();
+                  
+                  return (
+                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                      <div className="col-span-5">
+                        <CostCodeSearchInput
+                          value={row.costCode || ''}
+                          onChange={(value) => {
+                            updateJobCostRow(row.id, { costCode: value });
+                            if (!value) {
+                              updateJobCostRow(row.id, { costCodeId: '' });
+                            }
+                          }}
+                          onCostCodeSelect={(costCode) => {
+                            updateJobCostRow(row.id, {
+                              costCodeId: costCode.id,
+                              costCode: `${costCode.code} - ${costCode.name}`
+                            });
+                          }}
+                          placeholder="Select cost code..."
+                          className={cn("h-8", isInvalid && "ring-1 ring-destructive")}
+                        />
+                        {isInvalid && (
+                          <p className="text-xs text-destructive mt-1">
+                            Select a cost code from the dropdown list
+                          </p>
+                        )}
+                      </div>
+                      <div className="col-span-4">
+                        <Input
+                          value={row.memo || ''}
+                          onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
+                          placeholder="Memo..."
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             type="number"
                             step="0.01"
                             value={row.amount}
                             onChange={(e) => updateJobCostRow(row.id, { amount: e.target.value })}
                             placeholder="0.00"
+                            className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
+                      </div>
+                      <div className="col-span-1 flex justify-center items-center">
                         <Button
-                          variant="ghost"
-                          size="icon"
                           onClick={() => removeJobCostRow(row.id)}
+                          size="sm"
+                          variant="destructive"
                           disabled={jobCostRows.length === 1}
-                          className="col-span-1"
+                          className="h-8 w-8 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    );
-                  })}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Footer with Total and Actions */}
-          <div className="flex justify-between items-center pt-4 border-t">
-            <div className="text-lg font-semibold">
-              Total Amount: ${calculateTotal().toFixed(2)}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={clearForm}>
-                Clear
-              </Button>
-              <Button variant="outline" onClick={() => handleSave(true)}>
-                Save & New
-              </Button>
-              <Button onClick={() => handleSave(false)}>
-                Save & Close
-              </Button>
+          <div className="p-3 bg-muted border rounded-lg">
+            <div className="flex justify-between items-center">
+              <div className="text-base font-semibold">
+                Total: ${calculateTotal().toFixed(2)}
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={clearForm} size="sm" className="h-8">
+                  Clear
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => handleSave(true)}
+                  disabled={createCreditCard.isPending}
+                >
+                  {createCreditCard.isPending ? "Saving..." : "Save & New"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8"
+                  onClick={() => handleSave(false)}
+                  disabled={createCreditCard.isPending}
+                >
+                  {createCreditCard.isPending ? "Saving..." : "Save & Close"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
