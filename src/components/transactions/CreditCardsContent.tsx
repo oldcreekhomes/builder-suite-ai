@@ -65,8 +65,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [currentCreditCardId, setCurrentCreditCardId] = useState<string | null>(null);
 
   // Attachments
-  const draftId = `draft-${Date.now()}`;
-  const { attachments, isUploading, uploadFiles, deleteFile, finalizePendingAttachments } = useCreditCardAttachments(currentCreditCardId, draftId);
+  const { attachments, isUploading, uploadFiles, deleteFile } = useCreditCardAttachments(currentCreditCardId);
 
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00' }]);
@@ -287,11 +286,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       amount: calculateTotal(),
       lines,
     });
-
-    // Finalize any pending attachments
-    if (result?.id) {
-      await finalizePendingAttachments(result.id);
-    }
 
     if (saveAndNew) {
       createNewTransaction();
@@ -525,17 +519,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               />
             </div>
 
-            <div className="col-span-2">
-              <Label>Attachments</Label>
-              <AttachmentFilesRow
-                files={attachments}
-                onFileUpload={uploadFiles}
-                onDeleteFile={deleteFile}
-                isUploading={isUploading}
-                entityType="credit_card"
-              />
-            </div>
-
             <div className="col-span-1">
               {/* Empty space for alignment */}
             </div>
@@ -709,6 +692,18 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               </div>
             </TabsContent>
             </Tabs>
+
+            {/* Attachments Section */}
+            <div className="mt-4">
+              <AttachmentFilesRow
+                files={attachments}
+                onFileUpload={(files) => currentCreditCardId && uploadFiles(files)}
+                onDeleteFile={deleteFile}
+                isReadOnly={!currentCreditCardId}
+                isUploading={isUploading}
+                entityType="credit_card"
+              />
+            </div>
 
             {/* Footer with Total and Actions */}
           <div className="p-3 bg-muted border rounded-lg">
