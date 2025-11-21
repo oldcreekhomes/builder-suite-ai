@@ -519,18 +519,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               />
             </div>
 
-            <div className="col-span-2">
-              <Label>Attachments</Label>
-              <AttachmentFilesRow
-                files={attachments}
-                onFileUpload={uploadFiles}
-                onDeleteFile={deleteFile}
-                isUploading={isUploading}
-                entityType="credit_card"
-                isReadOnly={!currentCreditCardId}
-              />
-            </div>
-
             <div className="col-span-1">
               {/* Empty space for alignment */}
             </div>
@@ -703,9 +691,21 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 })}
               </div>
             </TabsContent>
-          </Tabs>
+            </Tabs>
 
-          {/* Footer with Total and Actions */}
+            {/* Attachments Section */}
+            <div className="mt-4">
+              <AttachmentFilesRow
+                files={attachments}
+                onFileUpload={(files) => currentCreditCardId && uploadFiles(files)}
+                onDeleteFile={deleteFile}
+                isReadOnly={!currentCreditCardId}
+                isUploading={isUploading}
+                entityType="credit_card"
+              />
+            </div>
+
+            {/* Footer with Total and Actions */}
           <div className="p-3 bg-muted border rounded-lg">
             <div className="flex justify-between items-center">
               <div className="text-base font-semibold">
