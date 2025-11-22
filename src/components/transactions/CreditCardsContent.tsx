@@ -505,7 +505,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           </div>
 
           {/* Main Form Fields */}
-          <div className="grid grid-cols-12 gap-2 p-3">
+          <div className="grid grid-cols-12 gap-2 p-3 w-full">
               <div className="col-span-4">
                 <Label>Credit Card Account</Label>
                 <AccountSearchInput
