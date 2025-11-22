@@ -562,8 +562,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                   <div className="col-span-4">Account</div>
-                  <div className="col-span-6">Memo</div>
-                  <div className="col-span-1">Amount</div>
+                  <div className="col-span-5">Memo</div>
+                  <div className="col-span-2">Amount</div>
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
@@ -588,7 +588,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-6">
+                    <div className="col-span-5">
                       <Input
                         value={row.memo || ''}
                         onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
@@ -596,7 +596,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
@@ -638,8 +638,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                   <div className="col-span-4">Cost Code</div>
-                  <div className="col-span-6">Memo</div>
-                  <div className="col-span-1">Amount</div>
+                  <div className="col-span-5">Memo</div>
+                  <div className="col-span-2">Amount</div>
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
@@ -673,7 +673,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           </p>
                         )}
                       </div>
-                      <div className="col-span-6">
+                      <div className="col-span-5">
                         <Input
                           value={row.memo || ''}
                           onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
@@ -681,7 +681,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           className="h-10"
                         />
                       </div>
-                      <div className="col-span-1">
+                      <div className="col-span-2">
                         <div className="relative">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
