@@ -546,16 +546,16 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 />
               </div>
 
-              <div className="col-span-1 flex flex-col">
-                <Label>Action</Label>
+              <div className="col-span-1 flex flex-col items-center justify-end">
+                <Label className="text-center">Action</Label>
                 <Button 
                   type="button"
                   onClick={addExpenseRow} 
                   size="sm" 
                   variant="outline"
-                  className="h-10 px-3"
+                  className="h-10 w-10 p-0"
                 >
-                  Add Row
+                  +
                 </Button>
               </div>
             </div>
