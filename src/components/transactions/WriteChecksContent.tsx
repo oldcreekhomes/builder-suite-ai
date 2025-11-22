@@ -1021,38 +1021,37 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                   ))}
                 </div>
               </TabsContent>
-              
-              {/* Total Section - Matching Make Deposits */}
-              <div className="p-3 bg-muted border rounded-lg">
-                <div className="flex justify-between items-center">
-                  <div className="text-base font-semibold">
-                    Total: ${getDisplayAmount()}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
-                      Clear
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-10"
-                      onClick={handleSaveAndNew}
-                      disabled={createCheck.isPending}
-                    >
-                      {createCheck.isPending ? "Saving..." : "Save & New"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-10"
-                      onClick={handleSaveAndClose}
-                      disabled={createCheck.isPending}
-                    >
-                      {createCheck.isPending ? "Saving..." : "Save & Close"}
-                    </Button>
-                  </div>
+            </Tabs>
+            
+            <div className="p-3 bg-muted border rounded-lg">
+              <div className="flex justify-between items-center">
+                <div className="text-base font-semibold">
+                  Total: ${getDisplayAmount()}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    onClick={handleSaveAndNew}
+                    disabled={createCheck.isPending}
+                  >
+                    {createCheck.isPending ? "Saving..." : "Save & New"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-10"
+                    onClick={handleSaveAndClose}
+                    disabled={createCheck.isPending}
+                  >
+                    {createCheck.isPending ? "Saving..." : "Save & Close"}
+                  </Button>
                 </div>
               </div>
-            </Tabs>
+            </div>
           </div>
         </Card>
       </div>
