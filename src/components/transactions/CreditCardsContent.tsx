@@ -552,7 +552,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   variant="outline"
                   className="h-10 px-3"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
                   Add Row
                 </Button>
               </div>
