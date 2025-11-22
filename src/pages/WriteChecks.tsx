@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -11,11 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
@@ -27,6 +29,8 @@ import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CheckRow {
   id: string;
@@ -46,6 +50,12 @@ export default function WriteChecks() {
   const [payTo, setPayTo] = useState<string>("");
   const [checkNumber, setCheckNumber] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
+  
+  // Navigation and viewing state
+  const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1);
+  const [isViewingMode, setIsViewingMode] = useState(false);
+  const [currentCheckId, setCurrentCheckId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<any[]>([]);
   
   // Company information state
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
@@ -82,6 +92,31 @@ export default function WriteChecks() {
     getNextCheckNumber,
     incrementCheckNumber 
   } = useProjectCheckSettings(projectId);
+
+  // Fetch existing checks for navigation
+  const { data: checks = [], isLoading: checksLoading } = useQuery({
+    queryKey: ['checks', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('checks')
+        .select('*')
+        .order('check_date', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const filteredChecks = useMemo(() => {
+    if (!projectId) return checks;
+    return checks.filter(c => c.project_id === projectId);
+  }, [checks, projectId]);
+
+  const sortedChecks = useMemo(() => {
+    return [...filteredChecks].sort((a, b) => 
+      b.check_date.localeCompare(a.check_date)
+    );
+  }, [filteredChecks]);
 
   // Load saved settings when available
   useEffect(() => {
@@ -156,6 +191,43 @@ export default function WriteChecks() {
     if (field === 'accountId' && value) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
+  };
+
+  // Navigation functions
+  const createNewCheck = () => {
+    setCurrentEntryIndex(-1);
+    setIsViewingMode(false);
+    setCurrentCheckId(null);
+    setCheckDate(new Date());
+    setPayTo("");
+    setBankAccount("");
+    setCheckNumber(getNextCheckNumber());
+    handleClear();
+  };
+
+  const navigateToPrevious = () => {
+    if (currentEntryIndex < sortedChecks.length - 1) {
+      const newIndex = currentEntryIndex + 1;
+      setCurrentEntryIndex(newIndex);
+      // Load check data here if needed
+    }
+  };
+
+  const navigateToNext = () => {
+    if (currentEntryIndex > 0) {
+      const newIndex = currentEntryIndex - 1;
+      setCurrentEntryIndex(newIndex);
+      // Load check data here if needed
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentCheckId) return;
+    // Implement delete logic here
+    toast({
+      title: "Info",
+      description: "Delete functionality to be implemented",
+    });
   };
 
   const calculateTotal = () => {
@@ -605,7 +677,7 @@ export default function WriteChecks() {
   };
 
   return (
-    <UniversalFilePreviewProvider>
+    <TooltipProvider>
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <AppSidebar />
@@ -614,284 +686,176 @@ export default function WriteChecks() {
               title="Write Checks" 
               projectId={projectId}
             />
-          
-          <div className="flex-1 p-4 space-y-4">
-            <Card>
-              <CardContent className="space-y-4 pt-4">
-                 {/* Check Header Information - Styled like a real check */}
-                <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-2">
-                  {/* Check header with date and check number */}
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-0.5 max-w-xl">
-                        <Input
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          className="text-xs font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                          placeholder="Your Company Name"
-                        />
-                        <Input
-                          value={companyAddress}
-                          onChange={(e) => setCompanyAddress(e.target.value)}
-                          className="text-[10px] text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                          placeholder="123 Business Street"
-                        />
-                        <Input
-                          value={companyCityState}
-                          onChange={(e) => setCompanyCityState(e.target.value)}
-                          className="text-[10px] text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                          placeholder="City, State 12345"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-end">
-                          <Label className="text-[10px] text-gray-600 mr-2">CHECK #</Label>
-                          <Input 
-                            value={checkNumber}
-                            onChange={(e) => setCheckNumber(e.target.value)}
-                            placeholder="001"
-                            className="w-24 text-center text-xs border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono h-6"
-                          />
-                        </div>
-                        <div className="flex items-center justify-end">
-                          <Label className="text-[10px] text-gray-600 mr-2">DATE</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                            variant="outline"
-                            className={cn(
-                              "w-24 h-6 justify-start text-left font-normal text-xs border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent px-1",
-                              !checkDate && "text-muted-foreground"
-                            )}
-                          >
-                                {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={checkDate}
-                                onSelect={setCheckDate}
-                                initialFocus
-                                className="p-3 pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
+            
+            <div className="flex-1 p-4 space-y-4">
+              <Card className="p-6">
+                <div className="space-y-6">
+                  {/* Header with Navigation - Matching Make Deposits */}
+                  <div className="flex items-center justify-between border-b pb-4 mb-6">
+                    <div className="flex items-center gap-4">
+                      <h1 className="text-3xl font-bold">WRITE CHECKS</h1>
                     </div>
-
-                  {/* Pay to line */}
-                  <div className="space-y-2">
-                    {/* PAY TO THE ORDER OF line with $ amount box on the same line */}
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-xs font-medium whitespace-nowrap">PAY TO</span>
-                        <div className="flex-1 border-b-2 border-gray-400">
-                          <VendorSearchInput
-                            value={payTo}
-                            onChange={setPayTo}
-                            placeholder="Payee name..."
-                            className="border-0 bg-transparent h-6 text-sm font-medium"
+                    
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={createNewCheck}
+                          size="sm"
+                          variant="outline"
+                          className="h-10"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          New
+                        </Button>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={navigateToPrevious}
+                              size="sm"
+                              variant="outline"
+                              disabled={currentEntryIndex >= sortedChecks.length - 1 || sortedChecks.length === 0}
+                              className="h-10 w-10 p-0"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Older check</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={navigateToNext}
+                              size="sm"
+                              variant="outline"
+                              disabled={currentEntryIndex <= 0 || sortedChecks.length === 0}
+                              className="h-10 w-10 p-0"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Newer check</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        {currentCheckId && isViewingMode ? (
+                          <DeleteButton
+                            onDelete={handleDelete}
+                            title="Delete Check"
+                            description="Are you sure you want to delete this check? This action cannot be undone."
+                            size="sm"
+                            variant="destructive"
+                            isLoading={false}
+                            className="h-10 w-10"
                           />
-                        </div>
-                      </div>
-                      <div className="border-2 border-gray-400 px-2 py-0.5 min-w-[120px] text-right relative">
-                        <span className="text-xs text-gray-600">$</span>
-                        <Input
-                          type="text"
-                          value={useManualAmount ? manualAmount : getDisplayAmount()}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/,/g, '');
-                            if (!isNaN(Number(value)) || value === '') {
-                              setManualAmount(value);
-                              setUseManualAmount(true);
-                            }
-                          }}
-                          onFocus={() => setUseManualAmount(true)}
-                          className="inline-block w-20 text-base font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
-                          placeholder="0.00"
-                        />
-                        {useManualAmount && (
-                          <button
-                            onClick={() => {
-                              setUseManualAmount(false);
-                              setManualAmount("");
-                            }}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 text-[10px] flex items-center justify-center hover:bg-red-600"
-                            title="Reset to calculated"
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled
+                            className="h-10 w-10 opacity-50"
                           >
-                            ×
-                          </button>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
-                    </div>
-
-                    {/* Written amount with DOLLARS label */}
-                    <div className="flex items-center justify-between gap-2 border-b-2 border-gray-400 pb-0.5">
-                      <span className="text-xs italic text-gray-700 pl-2 flex-1">
-                        {numberToWords(parseFloat(getDisplayAmount().replace(/,/g, '')))}
-                      </span>
-                      <span className="text-xs font-medium pr-2">DOLLARS</span>
-                    </div>
-
-                    {/* Bank account and signature aligned by bottom edge */}
-                    <div className="flex items-end justify-between pt-8 pb-8">
+                      
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">BANK ACCOUNT</span>
-                        <div className="w-64 border-b-2 border-gray-400">
-                          <AccountSearchInput
-                            value={bankAccount}
-                            onChange={setBankAccount}
-                            placeholder="Select bank account..."
-                            className="border-0 bg-transparent h-8 text-sm"
-                            accountType="asset"
-                            bankAccountsOnly={true}
-                          />
-                        </div>
+                        <Label htmlFor="checkDate" className="text-sm whitespace-nowrap">Date:</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "justify-start text-left font-normal h-10 flex items-center",
+                                !checkDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {checkDate ? format(checkDate, "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={checkDate}
+                              onSelect={(date) => date && setCheckDate(date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                        <div className="w-80 text-center relative">
-                          <div className="border-b-2 border-gray-400 h-8"></div>
-                          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-3 text-xs text-gray-600">Authorized Signature</span>
-                        </div>
                     </div>
                   </div>
 
-                </div>
+                  {/* Main Form Fields - Matching Make Deposits Layout */}
+                  <div className="grid grid-cols-12 gap-2 p-3 !w-full">
+                    <div className="col-span-3">
+                      <Label htmlFor="bankAccount">Bank Account</Label>
+                      <AccountSearchInput
+                        value={bankAccount}
+                        onChange={setBankAccount}
+                        placeholder="Select bank account..."
+                        accountType="asset"
+                        bankAccountsOnly={true}
+                        className="h-10"
+                      />
+                    </div>
 
-                {/* Expenses Section with Tabs */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Expenses</h3>
-                  
-                  <Tabs defaultValue="job-cost" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-                      <TabsTrigger value="expense">Expense</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="job-cost" className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Button onClick={addJobCostRow} size="sm" variant="outline">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Row
+                    <div className="col-span-5">
+                      <Label htmlFor="payTo">Pay To</Label>
+                      <VendorSearchInput
+                        value={payTo}
+                        onChange={setPayTo}
+                        placeholder="Search or add vendor"
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="col-span-2">
+                      <Label htmlFor="checkNumber">Check #</Label>
+                      <Input
+                        id="checkNumber"
+                        value={checkNumber}
+                        onChange={(e) => setCheckNumber(e.target.value)}
+                        placeholder="Optional"
+                        maxLength={10}
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="col-span-2 min-w-0">
+                      <Label>Attachments</Label>
+                      <div className="h-10 flex items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                        >
+                          Add Files
                         </Button>
                       </div>
+                    </div>
+                  </div>
 
-                      <div className="border rounded-lg overflow-visible">
-                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                          <div className="col-span-3">Cost Code</div>
-                          <div className="col-span-5">Description</div>
-                          <div className="col-span-1">Quantity</div>
-                          <div className="col-span-1">Cost</div>
-                          <div className="col-span-1">Total</div>
-                          <div className="col-span-1 text-center">Action</div>
-                        </div>
-
-                        {jobCostRows.map((row, index) => (
-                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                            <div className="col-span-3">
-                              <CostCodeSearchInput
-                                value={row.account}
-                                onChange={(value) => updateJobCostRow(row.id, "account", value)}
-                                onCostCodeSelect={(costCode) => {
-                                  updateJobCostRow(row.id, "accountId", costCode.id);
-                                  updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
-                                }}
-                                placeholder="Select cost code..."
-                                className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
-                              />
-                              {rowErrors[row.id] && (
-                                <p className="text-xs text-red-500 mt-1">Select a cost code</p>
-                              )}
-                            </div>
-                            <div className="col-span-5">
-                              <Input
-                                value={row.memo}
-                                onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
-                                placeholder="Description..."
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={row.quantity || "1"}
-                                onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
-                                placeholder="1"
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
-                            </div>
-                            <div className="col-span-1">
-                              <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={row.amount}
-                                  onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
-                                  placeholder="0.00"
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                              </div>
-                            </div>
-                            <div className="col-span-1 flex items-center">
-                              <span className="text-sm font-medium">
-                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="col-span-1 flex justify-center items-center">
-                              <Button
-                                onClick={() => removeJobCostRow(row.id)}
-                                size="sm"
-                                variant="destructive"
-                                disabled={jobCostRows.length === 1}
-                                className="h-8 w-8 p-0"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="p-3 bg-muted border-t">
-                          <div className="flex justify-between items-center">
-                            <div className="text-base font-semibold">
-                              Total: ${calculateTotal()}
-                            </div>
-                            <div className="flex gap-2">
-                              <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
-                                Clear
-                              </Button>
-                              <Button 
-                                variant="outline"
-                                size="sm"
-                                className="h-8"
-                                onClick={handleSaveAndNew}
-                                disabled={createCheck.isPending || !canSave()}
-                              >
-                                {createCheck.isPending ? "Saving..." : "Save & New"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="h-8"
-                                onClick={handleSaveAndClose}
-                                disabled={createCheck.isPending || !canSave()}
-                              >
-                                {createCheck.isPending ? "Saving..." : "Save & Close"}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
+                  {/* Tabs Section - Matching Make Deposits */}
+                  <Tabs defaultValue="other" className="space-y-4">
+                    <div className="grid grid-cols-12 gap-2 p-3">
+                      <div className="col-span-3">
+                        <TabsList className="grid grid-cols-2 w-auto">
+                          <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
+                          <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                        </TabsList>
                       </div>
-                    </TabsContent>
+                    </div>
                     
-                    <TabsContent value="expense" className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Button onClick={addExpenseRow} size="sm" variant="outline">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Row
-                        </Button>
-                      </div>
-
+                    {/* Chart of Accounts Tab */}
+                    <TabsContent value="other" className="space-y-4">
                       <div className="border rounded-lg overflow-visible">
                         <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                           <div className="col-span-3">Account</div>
@@ -902,7 +866,7 @@ export default function WriteChecks() {
                           <div className="col-span-1 text-center">Action</div>
                         </div>
 
-                        {expenseRows.map((row, index) => (
+                        {expenseRows.map((row) => (
                           <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                             <div className="col-span-3">
                               <AccountSearchInputInline
@@ -914,18 +878,15 @@ export default function WriteChecks() {
                                 }}
                                 placeholder="Select account..."
                                 accountType="expense"
-                                className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
+                                className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
                               />
-                              {rowErrors[row.id] && (
-                                <p className="text-xs text-red-500 mt-1">Select an expense account</p>
-                              )}
                             </div>
                             <div className="col-span-5">
                               <Input
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
                                 placeholder="Description..."
-                                className="h-8"
+                                className="h-10"
                               />
                             </div>
                             <div className="col-span-1">
@@ -935,7 +896,7 @@ export default function WriteChecks() {
                                 value={row.quantity || "1"}
                                 onChange={(e) => updateExpenseRow(row.id, "quantity", e.target.value)}
                                 placeholder="1"
-                                className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </div>
                             <div className="col-span-1">
@@ -947,68 +908,164 @@ export default function WriteChecks() {
                                   value={row.amount}
                                   onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
                                   placeholder="0.00"
-                                  className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                               </div>
                             </div>
-                            <div className="col-span-1 flex items-center">
-                              <span className="text-sm font-medium">
+                            <div className="col-span-1">
+                              <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
                                 ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
-                              </span>
+                              </div>
                             </div>
-                            <div className="col-span-1 flex justify-center items-center">
+                            <div className="col-span-1 flex justify-center items-center gap-1">
                               <Button
                                 onClick={() => removeExpenseRow(row.id)}
                                 size="sm"
                                 variant="destructive"
                                 disabled={expenseRows.length === 1}
-                                className="h-8 w-8 p-0"
+                                className="h-10 w-10 p-0"
                               >
                                 <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={addExpenseRow}
+                                size="sm"
+                                variant="outline"
+                                className="h-10 w-10 p-0"
+                              >
+                                +
                               </Button>
                             </div>
                           </div>
                         ))}
-                        <div className="p-3 bg-muted border-t">
-                          <div className="flex justify-between items-center">
-                            <div className="text-base font-semibold">
-                              Total: ${calculateTotal()}
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Job Cost Tab */}
+                    <TabsContent value="job-cost" className="space-y-4">
+                      <div className="border rounded-lg overflow-visible">
+                        <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                          <div className="col-span-3">Cost Code</div>
+                          <div className="col-span-5">Description</div>
+                          <div className="col-span-1">Quantity</div>
+                          <div className="col-span-1">Cost</div>
+                          <div className="col-span-1">Total</div>
+                          <div className="col-span-1 text-center">Action</div>
+                        </div>
+
+                        {jobCostRows.map((row) => (
+                          <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                            <div className="col-span-3">
+                              <CostCodeSearchInput
+                                value={row.account}
+                                onChange={(value) => updateJobCostRow(row.id, "account", value)}
+                                onCostCodeSelect={(costCode) => {
+                                  updateJobCostRow(row.id, "accountId", costCode.id);
+                                  updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
+                                }}
+                                placeholder="Select cost code..."
+                                className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
+                              />
                             </div>
-                            <div className="flex gap-2">
-                              <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
-                                Clear
-                              </Button>
-                              <Button 
-                                variant="outline"
+                            <div className="col-span-5">
+                              <Input
+                                value={row.memo}
+                                onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
+                                placeholder="Description..."
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={row.quantity || "1"}
+                                onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
+                                placeholder="1"
+                                className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.amount}
+                                  onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
+                                  placeholder="0.00"
+                                  className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1">
+                              <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
+                                ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="col-span-1 flex justify-center items-center gap-1">
+                              <Button
+                                onClick={() => removeJobCostRow(row.id)}
                                 size="sm"
-                                className="h-8"
-                                onClick={handleSaveAndNew}
-                                disabled={createCheck.isPending || !canSave()}
+                                variant="destructive"
+                                disabled={jobCostRows.length === 1}
+                                className="h-10 w-10 p-0"
                               >
-                                {createCheck.isPending ? "Saving..." : "Save & New"}
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                               <Button
+                                type="button"
+                                onClick={addJobCostRow}
                                 size="sm"
-                                className="h-8"
-                                onClick={handleSaveAndClose}
-                                disabled={createCheck.isPending || !canSave()}
+                                variant="outline"
+                                className="h-10 w-10 p-0"
                               >
-                                {createCheck.isPending ? "Saving..." : "Save & Close"}
+                                +
                               </Button>
                             </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
                     </TabsContent>
                   </Tabs>
+                  
+                  {/* Total Section - Matching Make Deposits */}
+                  <div className="p-3 bg-muted border rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <div className="text-base font-semibold">
+                        Total: ${getDisplayAmount()}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                          Clear
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          onClick={handleSaveAndNew}
+                          disabled={createCheck.isPending || !canSave()}
+                        >
+                          {createCheck.isPending ? "Saving..." : "Save & New"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-10"
+                          onClick={handleSaveAndClose}
+                          disabled={createCheck.isPending || !canSave()}
+                        >
+                          {createCheck.isPending ? "Saving..." : "Save & Close"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-              </CardContent>
-            </Card>
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
-    </UniversalFilePreviewProvider>
+              </Card>
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }
