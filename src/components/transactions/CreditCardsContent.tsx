@@ -502,58 +502,60 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           </div>
 
           {/* Main Form Fields */}
-          <div className="grid grid-cols-12 gap-2">
-            <div className="col-span-4">
-              <Label>Credit Card Account</Label>
-              <AccountSearchInput
-                value={creditCardAccount}
-                onChange={(value) => { 
-                  setCreditCardAccount(value); 
-                  if (!value) setCreditCardAccountId(""); 
-                }}
-                onAccountSelect={(account) => {
-                  setCreditCardAccount(`${account.code} - ${account.name}`);
-                  setCreditCardAccountId(account.id);
-                }}
-                placeholder="Select credit card account"
-                className="h-10"
-              />
-            </div>
+          <div className="border rounded-lg overflow-visible">
+            <div className="grid grid-cols-12 gap-2 p-3 bg-muted">
+              <div className="col-span-5">
+                <Label>Credit Card Account</Label>
+                <AccountSearchInput
+                  value={creditCardAccount}
+                  onChange={(value) => { 
+                    setCreditCardAccount(value); 
+                    if (!value) setCreditCardAccountId(""); 
+                  }}
+                  onAccountSelect={(account) => {
+                    setCreditCardAccount(`${account.code} - ${account.name}`);
+                    setCreditCardAccountId(account.id);
+                  }}
+                  placeholder="Select credit card account"
+                  className="h-10"
+                />
+              </div>
 
-            <div className="col-span-5">
-              <Label>Vendor</Label>
-              <VendorSearchInput
-                value={vendor}
-                onChange={setVendor}
-                onCompanySelect={(company) => {
-                  setVendor(company.company_name);
-                }}
-                placeholder="Enter vendor name"
-              />
-            </div>
+              <div className="col-span-4">
+                <Label>Vendor</Label>
+                <VendorSearchInput
+                  value={vendor}
+                  onChange={setVendor}
+                  onCompanySelect={(company) => {
+                    setVendor(company.company_name);
+                  }}
+                  placeholder="Enter vendor name"
+                />
+              </div>
 
-            <div className="col-span-2">
-              <Label>Attachments</Label>
-              <AttachmentFilesRow
-                files={attachments}
-                onFileUpload={uploadFiles}
-                onDeleteFile={deleteFile}
-                isUploading={isUploading}
-                entityType="credit_card"
-              />
-            </div>
+              <div className="col-span-2">
+                <Label>Attachments</Label>
+                <AttachmentFilesRow
+                  files={attachments}
+                  onFileUpload={uploadFiles}
+                  onDeleteFile={deleteFile}
+                  isUploading={isUploading}
+                  entityType="credit_card"
+                />
+              </div>
 
-            <div className="col-span-1">
-              <Label>Action</Label>
-              <Button 
-                onClick={addExpenseRow} 
-                size="sm" 
-                variant="outline"
-                className="h-10"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Row
-              </Button>
+              <div className="col-span-1">
+                <Label>Action</Label>
+                <Button 
+                  onClick={addExpenseRow} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-10"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Row
+                </Button>
+              </div>
             </div>
           </div>
 
