@@ -724,7 +724,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   variant="outline" 
                   onClick={clearForm} 
                   size="sm" 
-                  className="h-8"
+                  className="h-10"
                 >
                   Clear
                 </Button>
@@ -732,7 +732,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-8"
+                  className="h-10"
                   onClick={() => handleSave(true)}
                   disabled={createCreditCard.isPending}
                 >
@@ -741,7 +741,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 <Button
                   type="button"
                   size="sm"
-                  className="h-8"
+                  className="h-10"
                   onClick={() => handleSave(false)}
                   disabled={createCreditCard.isPending}
                 >
