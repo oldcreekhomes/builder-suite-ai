@@ -392,7 +392,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       size="sm" 
                       variant="outline" 
                       disabled={(currentIndex >= creditCards.length - 1 && currentIndex !== -1) || creditCards.length === 0}
-                      className="h-8 w-8 p-0"
+                      className="h-10 w-10 p-0"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -409,7 +409,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       size="sm" 
                       variant="outline" 
                       disabled={currentIndex <= 0 || creditCards.length === 0}
-                      className="h-8 w-8 p-0"
+                      className="h-10 w-10 p-0"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -427,12 +427,14 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     size="sm"
                     variant="ghost"
                     isLoading={deleteCreditCard.isPending}
+                    className="h-10 w-10"
                   />
                 ) : currentCreditCardId && isViewingMode && isDateLocked(transactionDate) ? (
                   <Button
                     size="sm"
                     variant="ghost"
                     disabled
+                    className="h-10 w-10"
                   >
                     <span className="text-lg">🔒</span>
                   </Button>
@@ -441,7 +443,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     size="sm"
                     variant="ghost"
                     disabled
-                    className="opacity-50"
+                    className="opacity-50 h-10 w-10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
