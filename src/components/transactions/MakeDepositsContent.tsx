@@ -627,71 +627,69 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       New
                     </Button>
                     
-                    <div className="flex items-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={navigateToPrevious}
-                            size="sm"
-                            variant="outline"
-                            disabled={currentEntryIndex >= sortedDeposits.length - 1 || sortedDeposits.length === 0}
-                            className="h-10 w-10 p-0"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Older deposit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={navigateToNext}
-                            size="sm"
-                            variant="outline"
-                            disabled={currentEntryIndex <= 0 || sortedDeposits.length === 0}
-                            className="h-10 w-10 p-0"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Newer deposit</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      
-                      {currentDepositId && isViewingMode && !isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
-                        <DeleteButton
-                          onDelete={handleDelete}
-                          title="Delete Deposit"
-                          description="Are you sure you want to delete this deposit? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteDeposit.isPending}
-                          className="ml-2"
-                        />
-                      ) : currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
+                          onClick={navigateToPrevious}
                           size="sm"
-                          variant="ghost"
-                          disabled
-                          className="ml-2"
+                          variant="outline"
+                          disabled={currentEntryIndex >= sortedDeposits.length - 1 || sortedDeposits.length === 0}
+                          className="h-10 w-10 p-0"
                         >
-                          <span className="text-lg">🔒</span>
+                          <ChevronLeft className="h-4 w-4" />
                         </Button>
-                      ) : (
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Older deposit</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
                         <Button
+                          onClick={navigateToNext}
                           size="sm"
-                          variant="ghost"
-                          disabled
-                          className="ml-2 opacity-50"
+                          variant="outline"
+                          disabled={currentEntryIndex <= 0 || sortedDeposits.length === 0}
+                          className="h-10 w-10 p-0"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <ChevronRight className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Newer deposit</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {currentDepositId && isViewingMode && !isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                      <DeleteButton
+                        onDelete={handleDelete}
+                        title="Delete Deposit"
+                        description="Are you sure you want to delete this deposit? This action cannot be undone."
+                        size="icon"
+                        variant="destructive"
+                        isLoading={deleteDeposit.isPending}
+                        className="h-10 w-10"
+                      />
+                    ) : currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        disabled
+                        className="h-10 w-10"
+                      >
+                        <span className="text-lg">🔒</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        disabled
+                        className="h-10 w-10 opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">
