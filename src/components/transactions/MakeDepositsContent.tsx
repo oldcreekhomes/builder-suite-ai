@@ -610,11 +610,9 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-8">
-            <div className="border-b pb-4 mb-6">
-              <div className="flex items-center justify-between gap-4">
+      <div className="space-y-6">
+        <Card className="p-6">
+            <div className="flex items-center justify-between border-b pb-4 mb-6">
                 <h1 className="text-3xl font-bold">DEPOSIT</h1>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -622,7 +620,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       onClick={createNewDeposit}
                       size="sm"
                       variant="outline"
-                      className="flex items-center gap-2"
+                      className="h-10"
                     >
                       <Plus className="h-4 w-4" />
                       New
@@ -723,9 +721,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   </div>
                 </div>
               </div>
-            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+          <div className="grid grid-cols-12 gap-2 p-3 !w-full">
             <div className="md:col-span-3 space-y-2">
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
               <AccountSearchInputInline
@@ -992,8 +989,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               </div>
             </div>
           </Tabs>
-        </CardContent>
-      </Card>
+        </Card>
     </div>
     </TooltipProvider>
   );
