@@ -483,7 +483,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "w-[180px] justify-start text-left font-normal h-10 flex items-center",
+                        "justify-start text-left font-normal h-10 flex items-center",
                         !transactionDate && "text-muted-foreground"
                       )}
                     >
