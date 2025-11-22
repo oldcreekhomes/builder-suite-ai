@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,6 +66,7 @@ export function ManualBillEntry() {
   ]);
   const [savedBillId, setSavedBillId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
+  const [internalNotes, setInternalNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { createBill } = useBills();
@@ -370,7 +372,7 @@ export function ManualBillEntry() {
       due_date: billDueDate?.toISOString().split('T')[0],
       terms,
       reference_number: (document.getElementById('refNo') as HTMLInputElement)?.value || undefined,
-      notes: undefined
+      notes: internalNotes || undefined
     };
 
     try {
@@ -453,6 +455,7 @@ export function ManualBillEntry() {
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }]);
     setSavedBillId(null);
     setAttachments([]);
+    setInternalNotes("");
     setIsSubmitting(false);
     
     const refNoInput = document.getElementById('refNo') as HTMLInputElement;
@@ -506,8 +509,8 @@ export function ManualBillEntry() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="md:col-span-4 space-y-2">
             <Label>Bill Due Date</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -534,7 +537,7 @@ export function ManualBillEntry() {
             </Popover>
           </div>
 
-          <div className="space-y-2">
+          <div className="md:col-span-4 space-y-2">
             <Label htmlFor="terms">Terms</Label>
             <Select value={terms} onValueChange={setTerms}>
               <SelectTrigger>
@@ -549,11 +552,23 @@ export function ManualBillEntry() {
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="md:col-span-2 space-y-2">
             <BillAttachmentUpload 
               attachments={attachments}
               onAttachmentsChange={setAttachments}
               billId={savedBillId || undefined}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="internalNotes">Internal Notes</Label>
+            <Textarea
+              id="internalNotes"
+              placeholder="Add internal notes..."
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              className="h-[106px] resize-none"
               disabled={isSubmitting}
             />
           </div>
