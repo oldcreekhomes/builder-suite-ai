@@ -32,6 +32,7 @@ interface CreditCardRow {
   costCodeId?: string;
   projectId?: string;
   amount: string;
+  quantity?: string;
   memo?: string;
 }
 
@@ -54,10 +55,10 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [selectedProjectId, setSelectedProjectId] = useState('');
 
   const [expenseRows, setExpenseRows] = useState<CreditCardRow[]>([
-    { id: crypto.randomUUID(), amount: '0.00' }
+    { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }
   ]);
   const [jobCostRows, setJobCostRows] = useState<CreditCardRow[]>([
-    { id: crypto.randomUUID(), amount: '0.00' }
+    { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }
   ]);
 
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -75,7 +76,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   } = useCreditCardAttachments(currentCreditCardId, `credit-card-draft-${Date.now()}`);
 
   const addExpenseRow = () => {
-    setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00' }]);
+    setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
   };
 
   const removeExpenseRow = (id: string) => {
@@ -91,7 +92,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   };
 
   const addJobCostRow = () => {
-    setJobCostRows([...jobCostRows, { id: crypto.randomUUID(), amount: '0.00' }]);
+    setJobCostRows([...jobCostRows, { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
   };
 
   const removeJobCostRow = (id: string) => {
@@ -120,8 +121,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setVendor('');
     setVendorId('');
     setSelectedProjectId('');
-    setExpenseRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
-    setJobCostRows([{ id: crypto.randomUUID(), amount: '0.00' }]);
+    setExpenseRows([{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
+    setJobCostRows([{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
     setCurrentIndex(-1);
     setIsViewingMode(false);
     setCurrentCreditCardId(null);
@@ -335,6 +336,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       const row: CreditCardRow = {
         id: line.id,
         amount: line.amount.toString(),
+        quantity: line.quantity?.toString() || '1',
         memo: line.memo || '',
         projectId: line.project_id,
       };
@@ -360,8 +362,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       }
     });
 
-    setExpenseRows(expenseLines.length > 0 ? expenseLines : [{ id: crypto.randomUUID(), amount: '0.00' }]);
-    setJobCostRows(jobCostLines.length > 0 ? jobCostLines : [{ id: crypto.randomUUID(), amount: '0.00' }]);
+    setExpenseRows(expenseLines.length > 0 ? expenseLines : [{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
+    setJobCostRows(jobCostLines.length > 0 ? jobCostLines : [{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
   };
 
   return (
@@ -561,95 +563,123 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             <TabsContent value="expense" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                  <div className="col-span-4">Account</div>
-                  <div className="col-span-5">Memo</div>
-                  <div className="col-span-2">Amount</div>
+                  <div className="col-span-3">Account</div>
+                  <div className="col-span-5">Description</div>
+                  <div className="col-span-1">Quantity</div>
+                  <div className="col-span-1">Cost</div>
+                  <div className="col-span-1">Total</div>
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
-                {expenseRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                    <div className="col-span-4">
-                      <AccountSearchInput
-                        value={row.account || ''}
-                        onChange={(value) => {
-                          updateExpenseRow(row.id, { account: value });
-                          if (!value) {
-                            updateExpenseRow(row.id, { accountId: '' });
-                          }
-                        }}
-                        onAccountSelect={(account) => {
-                          updateExpenseRow(row.id, {
-                            accountId: account.id,
-                            account: `${account.code} - ${account.name}`
-                          });
-                        }}
-                        placeholder="Select account..."
-                        className="h-10"
-                      />
-                    </div>
-                    <div className="col-span-5">
-                      <Input
-                        value={row.memo || ''}
-                        onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
-                        placeholder="Memo..."
-                        className="h-10"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={row.amount}
-                          onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
-                          placeholder="0.00"
-                          className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                {expenseRows.map((row) => {
+                  const quantity = parseFloat(row.quantity || '1') || 1;
+                  const cost = parseFloat(row.amount) || 0;
+                  const total = quantity * cost;
+                  
+                  return (
+                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                      <div className="col-span-3">
+                        <AccountSearchInput
+                          value={row.account || ''}
+                          onChange={(value) => {
+                            updateExpenseRow(row.id, { account: value });
+                            if (!value) {
+                              updateExpenseRow(row.id, { accountId: '' });
+                            }
+                          }}
+                          onAccountSelect={(account) => {
+                            updateExpenseRow(row.id, {
+                              accountId: account.id,
+                              account: `${account.code} - ${account.name}`
+                            });
+                          }}
+                          placeholder="Select account..."
+                          className="h-10"
                         />
                       </div>
+                      <div className="col-span-5">
+                        <Input
+                          value={row.memo || ''}
+                          onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
+                          placeholder="Description..."
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Input
+                          type="number"
+                          step="1"
+                          value={row.quantity || '1'}
+                          onChange={(e) => updateExpenseRow(row.id, { quantity: e.target.value })}
+                          placeholder="1"
+                          className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={row.amount}
+                            onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
+                            placeholder="0.00"
+                            className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
+                          ${total.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="col-span-1 flex justify-center items-center gap-1">
+                        <Button
+                          onClick={() => removeExpenseRow(row.id)}
+                          size="sm"
+                          variant="destructive"
+                          disabled={expenseRows.length === 1}
+                          className="h-10 w-10 p-0"
+                        >
+                          <Trash2 className="h-4 w-4 text-white" />
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={addExpenseRow}
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-10 p-0"
+                        >
+                          +
+                        </Button>
+                      </div>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center gap-1">
-                      <Button
-                        onClick={() => removeExpenseRow(row.id)}
-                        size="sm"
-                        variant="destructive"
-                        disabled={expenseRows.length === 1}
-                        className="h-10 w-10 p-0"
-                      >
-                        <Trash2 className="h-4 w-4 text-white" />
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={addExpenseRow}
-                        size="sm"
-                        variant="outline"
-                        className="h-10 w-10 p-0"
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </TabsContent>
 
             <TabsContent value="job-cost" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                  <div className="col-span-4">Cost Code</div>
-                  <div className="col-span-5">Memo</div>
-                  <div className="col-span-2">Amount</div>
+                  <div className="col-span-3">Cost Code</div>
+                  <div className="col-span-5">Description</div>
+                  <div className="col-span-1">Quantity</div>
+                  <div className="col-span-1">Cost</div>
+                  <div className="col-span-1">Total</div>
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
                 {jobCostRows.map((row) => {
                   const amount = parseFloat(row.amount) || 0;
                   const isInvalid = amount > 0 && !row.costCodeId && row.costCode && row.costCode.trim();
+                  const quantity = parseFloat(row.quantity || '1') || 1;
+                  const cost = parseFloat(row.amount) || 0;
+                  const total = quantity * cost;
                   
                   return (
                     <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                      <div className="col-span-4">
+                      <div className="col-span-3">
                         <CostCodeSearchInput
                           value={row.costCode || ''}
                           onChange={(value) => {
@@ -677,11 +707,21 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         <Input
                           value={row.memo || ''}
                           onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
-                          placeholder="Memo..."
+                          placeholder="Description..."
                           className="h-10"
                         />
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1">
+                        <Input
+                          type="number"
+                          step="1"
+                          value={row.quantity || '1'}
+                          onChange={(e) => updateJobCostRow(row.id, { quantity: e.target.value })}
+                          placeholder="1"
+                          className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <div className="col-span-1">
                         <div className="relative">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
@@ -692,6 +732,11 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                             placeholder="0.00"
                             className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
+                          ${total.toFixed(2)}
                         </div>
                       </div>
                       <div className="col-span-1 flex justify-center items-center gap-1">
