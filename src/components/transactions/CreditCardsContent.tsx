@@ -561,15 +561,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             <TabsContent value="expense" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                  <div className="col-span-5">Account</div>
-                  <div className="col-span-4">Memo</div>
+                  <div className="col-span-4">Account</div>
+                  <div className="col-span-5">Memo</div>
                   <div className="col-span-2">Amount</div>
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
                 {expenseRows.map((row) => (
                   <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <AccountSearchInput
                         value={row.account || ''}
                         onChange={(value) => {
@@ -588,7 +588,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-4">
+                    <div className="col-span-5">
                       <Input
                         value={row.memo || ''}
                         onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
@@ -637,8 +637,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             <TabsContent value="job-cost" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                  <div className="col-span-5">Cost Code</div>
-                  <div className="col-span-4">Memo</div>
+                  <div className="col-span-4">Cost Code</div>
+                  <div className="col-span-5">Memo</div>
                   <div className="col-span-2">Amount</div>
                   <div className="col-span-1 text-center">Action</div>
                 </div>
@@ -649,7 +649,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   
                   return (
                     <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                      <div className="col-span-5">
+                      <div className="col-span-4">
                         <CostCodeSearchInput
                           value={row.costCode || ''}
                           onChange={(value) => {
@@ -673,7 +673,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           </p>
                         )}
                       </div>
-                      <div className="col-span-4">
+                      <div className="col-span-5">
                         <Input
                           value={row.memo || ''}
                           onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
