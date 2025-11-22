@@ -751,16 +751,6 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="col-span-2 min-w-0">
-              <Label>Attachments</Label>
-              <DepositAttachmentUpload
-                attachments={attachments}
-                onAttachmentsChange={setAttachments}
-                depositId={currentDepositId || undefined}
-                disabled={false}
-              />
-            </div>
-
             <div className="col-span-2">
               <Label htmlFor="checkNumber">Check #</Label>
               <Input
@@ -770,6 +760,16 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 placeholder="Optional"
                 maxLength={10}
                 className="h-10"
+              />
+            </div>
+
+            <div className="col-span-2 min-w-0">
+              <Label>Attachments</Label>
+              <DepositAttachmentUpload
+                attachments={attachments}
+                onAttachmentsChange={setAttachments}
+                depositId={currentDepositId || undefined}
+                disabled={false}
               />
             </div>
 
