@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -35,6 +35,8 @@ import { EditBillDialog } from './EditBillDialog';
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { BillNotesDialog } from './BillNotesDialog';
+import { toast } from "@/hooks/use-toast";
 
 interface BillForApproval {
   id: string;
@@ -93,6 +95,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { canDeleteBills, isOwner } = useUserRole();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
+  const queryClient = useQueryClient();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
     defaultSortBy === 'due_date' ? 'due_date' : 'bill_date'
   );
@@ -114,12 +117,48 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const [selectedBillForPayment, setSelectedBillForPayment] = useState<BillForApproval | null>(null);
   const [notesDialog, setNotesDialog] = useState<{
     open: boolean;
-    billInfo?: BillForApproval;
+    billId: string;
+    billInfo?: {
+      vendor: string;
+      amount: number;
+    };
+    initialNotes: string;
   }>({
     open: false,
+    billId: '',
     billInfo: undefined,
+    initialNotes: '',
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ billId, notes }: { billId: string; notes: string }) => {
+      const { error } = await supabase
+        .from('bills')
+        .update({ notes })
+        .eq('id', billId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      toast({
+        title: "Notes updated",
+        description: "Bill notes have been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update notes.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveNotes = (notes: string) => {
+    updateNotesMutation.mutate({ billId: notesDialog.billId, notes });
+  };
 
   const handleSort = (column: 'project' | 'due_date' | 'vendor' | 'bill_date') => {
     if (sortColumn === column) {
@@ -548,16 +587,35 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               <BillFilesCell attachments={bill.bill_attachments || []} />
             </TableCell>
             <TableCell className="px-2 py-1 text-center">
-              {bill.notes?.trim() && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 hover:bg-muted"
-                  onClick={() => setNotesDialog({ open: true, billInfo: bill })}
-                >
-                  <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
-                </Button>
-              )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-muted"
+                      onClick={() => setNotesDialog({ 
+                        open: true, 
+                        billId: bill.id,
+                        billInfo: {
+                          vendor: bill.companies?.company_name || 'Unknown Vendor',
+                          amount: bill.total_amount
+                        },
+                        initialNotes: bill.notes || ''
+                      })}
+                    >
+                      {bill.notes?.trim() ? (
+                        <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Add</span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{bill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </TableCell>
             {isPaidTab && (
               <TableCell className="px-2 py-1 text-center">
@@ -699,50 +757,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         isLoading={payBill.isPending}
       />
 
-      <Dialog open={notesDialog.open} onOpenChange={(open) => !open && setNotesDialog({ open: false, billInfo: undefined })}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <StickyNote className="h-4 w-4 text-yellow-600" />
-              Bill Notes
-            </DialogTitle>
-            {notesDialog.billInfo && (
-              <div className="text-sm text-muted-foreground mt-1">
-                {notesDialog.billInfo.companies?.company_name} - {formatCurrency(notesDialog.billInfo.total_amount)}
-              </div>
-            )}
-          </DialogHeader>
-          
-          <div className="space-y-2">
-            <div className="rounded-md border border-input bg-muted/50 p-3 text-sm">
-              {notesDialog.billInfo?.notes ? (
-                notesDialog.billInfo.notes.split('\n').map((line, idx) => {
-                  const colonIndex = line.indexOf(':');
-                  if (colonIndex > 0 && colonIndex < 50) {
-                    const name = line.substring(0, colonIndex);
-                    const note = line.substring(colonIndex + 1);
-                    return (
-                      <div key={idx} className="mb-2 last:mb-0">
-                        <span className="font-semibold text-foreground">{name}:</span>
-                        <span>{note}</span>
-                      </div>
-                    );
-                  }
-                  return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
-                }).filter(Boolean)
-              ) : (
-                "No notes available"
-              )}
-            </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={() => setNotesDialog({ open: false, billInfo: undefined })}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BillNotesDialog
+        open={notesDialog.open}
+        onOpenChange={(open) => !open && setNotesDialog({ 
+          open: false, 
+          billId: '', 
+          billInfo: undefined, 
+          initialNotes: '' 
+        })}
+        billInfo={notesDialog.billInfo || { vendor: '', amount: 0 }}
+        initialValue={notesDialog.initialNotes}
+        onSave={handleSaveNotes}
+      />
 
       <EditBillDialog
         open={editingBillId !== null}
