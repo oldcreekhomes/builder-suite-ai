@@ -503,7 +503,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           {/* Main Form Fields */}
           <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-3">
+            <div className="col-span-4">
               <Label>Credit Card Account</Label>
               <AccountSearchInput
                 value={creditCardAccount}
@@ -543,13 +543,13 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               />
             </div>
 
-            <div className="col-span-2">
+            <div className="col-span-1">
               <Label>Action</Label>
               <Button 
                 onClick={addExpenseRow} 
                 size="sm" 
                 variant="outline"
-                className="w-full h-10"
+                className="h-10"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Row
