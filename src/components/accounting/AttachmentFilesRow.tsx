@@ -75,7 +75,7 @@ export function AttachmentFilesRow({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full">
       {/* Show file icons if any exist */}
       {files.length > 0 && (
         <div className="flex items-center gap-1">
