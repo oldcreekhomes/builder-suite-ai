@@ -614,7 +614,9 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         <Card className="p-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b pb-4 mb-6">
+              <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold">MAKE DEPOSITS</h1>
+              </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Button
@@ -623,7 +625,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       variant="outline"
                       className="h-10"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4 mr-2" />
                       New
                     </Button>
                     
@@ -666,15 +668,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         onDelete={handleDelete}
                         title="Delete Deposit"
                         description="Are you sure you want to delete this deposit? This action cannot be undone."
-                        size="icon"
+                        size="sm"
                         variant="destructive"
                         isLoading={deleteDeposit.isPending}
                         className="h-10 w-10"
                       />
                     ) : currentDepositId && isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd')) ? (
                       <Button
-                        size="icon"
-                        variant="destructive"
+                        size="sm"
+                        variant="ghost"
                         disabled
                         className="h-10 w-10"
                       >
@@ -682,7 +684,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       </Button>
                     ) : (
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="destructive"
                         disabled
                         className="h-10 w-10 opacity-50"
