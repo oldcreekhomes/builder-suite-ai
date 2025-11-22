@@ -13,13 +13,15 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
 import { toast } from "@/hooks/use-toast";
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 import { supabase } from "@/integrations/supabase/client";
+import { BillNotesDialog } from "./BillNotesDialog";
+import { useQuery } from "@tanstack/react-query";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -68,8 +70,20 @@ export function ManualBillEntry() {
   const [attachments, setAttachments] = useState<BillPDFAttachment[]>([]);
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   
   const { createBill } = useBills();
+
+  const { data: companies } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, company_name');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   // Calculate due date when bill date or terms change
   useEffect(() => {
@@ -571,6 +585,23 @@ export function ManualBillEntry() {
               className="h-[106px] resize-none"
               disabled={isSubmitting}
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setNotesDialogOpen(true)}
+              disabled={isSubmitting}
+            >
+              {internalNotes.trim() ? (
+                <>
+                  <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
+                  View Notes
+                </>
+              ) : (
+                "Add Internal Notes"
+              )}
+            </Button>
           </div>
         </div>
 
@@ -827,6 +858,21 @@ export function ManualBillEntry() {
           </Button>
         </div>
       </CardContent>
+
+      <BillNotesDialog
+        open={notesDialogOpen}
+        onOpenChange={setNotesDialogOpen}
+        billInfo={{
+          vendor: vendor ? companies?.find(c => c.id === vendor)?.company_name || 'New Bill' : 'New Bill',
+          amount: [...jobCostRows, ...expenseRows].reduce((sum, row) => {
+            const amount = parseFloat(row.amount) || 0;
+            const qty = parseFloat(row.quantity) || 1;
+            return sum + (amount * qty);
+          }, 0)
+        }}
+        initialValue={internalNotes}
+        onSave={(notes) => setInternalNotes(notes)}
+      />
     </Card>
   );
 }
