@@ -503,7 +503,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           {/* Main Form Fields */}
           <div className="border rounded-lg overflow-visible">
-            <div className="grid grid-cols-12 gap-2 p-3 bg-muted">
+            <div className="grid grid-cols-12 gap-2 p-3">
               <div className="col-span-5">
                 <Label>Credit Card Account</Label>
                 <AccountSearchInput
