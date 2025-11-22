@@ -543,7 +543,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 />
               </div>
 
-              <div className="col-span-1">
+              <div className="col-span-1 flex flex-col items-end">
                 <Label>Action</Label>
                 <Button 
                   onClick={addExpenseRow} 
