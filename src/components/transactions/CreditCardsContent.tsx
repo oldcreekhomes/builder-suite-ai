@@ -543,20 +543,13 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 />
               </div>
 
-              <div className="col-span-1 flex justify-center items-center">
-                <Label className="w-full text-center">Action</Label>
-              </div>
-            </div>
-            <div className="grid grid-cols-12 gap-2 px-3 pb-3">
-              <div className="col-span-5"></div>
-              <div className="col-span-4"></div>
-              <div className="col-span-2"></div>
-              <div className="col-span-1 flex justify-center items-center">
+              <div className="col-span-1 flex flex-col items-end">
+                <Label>Action</Label>
                 <Button 
                   onClick={addExpenseRow} 
                   size="sm" 
                   variant="outline"
-                  className="h-10"
+                  className="h-10 mt-1"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Row
