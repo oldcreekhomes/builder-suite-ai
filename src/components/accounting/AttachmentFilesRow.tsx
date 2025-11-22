@@ -75,7 +75,7 @@ export function AttachmentFilesRow({
   };
 
   return (
-    <div className="flex items-center gap-2 w-full">
+    <div className="flex items-center gap-2 w-full flex-1 min-w-0">
       {/* Show file icons if any exist */}
       {files.length > 0 && (
         <div className="flex items-center gap-1">
@@ -118,7 +118,7 @@ export function AttachmentFilesRow({
         size="sm"
         onClick={handleFileUpload}
         disabled={isUploading || isReadOnly}
-        className="h-10"
+        className="h-10 flex-1"
       >
         {isUploading ? 'Uploading...' : 'Add Files'}
       </Button>
