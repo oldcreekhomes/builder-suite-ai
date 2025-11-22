@@ -581,15 +581,26 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           </div>
         </div>
 
-        {/* Main Form Fields */}
+        {/* Main Form Fields - Matching Make Deposits Layout */}
         <div className="grid grid-cols-12 gap-2 p-3 !w-full">
-          <div className="col-span-10">
-            <Label>Description</Label>
+          <div className="col-span-8">
+            <Label htmlFor="description">Description</Label>
             <Input
+              id="description"
               placeholder="Entry description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="h-10"
+            />
+          </div>
+
+          <div className="col-span-2">
+            <Label htmlFor="journalEntryNumber">Journal Entry #</Label>
+            <Input
+              id="journalEntryNumber"
+              value={isViewingMode ? (currentEntryIndex + 1).toString() : (filteredEntries.length + 1).toString()}
+              readOnly
+              className="h-10 bg-muted"
             />
           </div>
 
