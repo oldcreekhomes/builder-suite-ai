@@ -503,7 +503,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           {/* Main Form Fields */}
           <div className="grid grid-cols-12 gap-2">
-            <div className="col-span-5">
+            <div className="col-span-4">
               <Label>Credit Card Account</Label>
               <AccountSearchInput
                 value={creditCardAccount}
@@ -520,7 +520,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               />
             </div>
 
-            <div className="col-span-4">
+            <div className="col-span-5">
               <Label>Vendor</Label>
               <VendorSearchInput
                 value={vendor}
@@ -543,19 +543,17 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               />
             </div>
 
-            <div className="col-span-1 flex justify-center">
-              <div className="w-full">
-                <Label>Action</Label>
-                <Button 
-                  onClick={addExpenseRow} 
-                  size="sm" 
-                  variant="outline"
-                  className="h-10 w-full"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Row
-                </Button>
-              </div>
+            <div className="col-span-1">
+              <Label>Action</Label>
+              <Button 
+                onClick={addExpenseRow} 
+                size="sm" 
+                variant="outline"
+                className="h-10"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Row
+              </Button>
             </div>
           </div>
 
