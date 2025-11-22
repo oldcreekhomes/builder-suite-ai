@@ -614,7 +614,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         <Card className="p-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b pb-4 mb-6">
-                <h1 className="text-3xl font-bold">Make Deposits</h1>
+                <h1 className="text-3xl font-bold">MAKE DEPOSITS</h1>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Button
@@ -776,13 +776,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-medium">Deposit Details</h3>
-              <TabsList className="grid grid-cols-2 w-auto">
-                <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
-                <TabsTrigger value="revenue">Job Cost</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="grid grid-cols-2 w-auto">
+              <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
+              <TabsTrigger value="revenue">Job Cost</TabsTrigger>
+            </TabsList>
               
             <TabsContent value="other" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
