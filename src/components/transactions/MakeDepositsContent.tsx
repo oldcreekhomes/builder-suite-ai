@@ -844,10 +844,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         />
                       </div>
                     </div>
-                    <div className="col-span-1 flex items-center">
-                      <span className="text-sm font-medium">
-                        ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                    <div className="col-span-1">
+                      <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
+                        ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                      </div>
                     </div>
                     <div className="col-span-1 flex justify-center items-center gap-1">
                       <Button
@@ -935,10 +935,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         />
                       </div>
                     </div>
-                    <div className="col-span-1 flex items-center">
-                      <span className="text-sm font-medium">
-                        ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                    <div className="col-span-1">
+                      <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
+                        ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                      </div>
                     </div>
                     <div className="col-span-1 flex justify-center items-center gap-1">
                       <Button
