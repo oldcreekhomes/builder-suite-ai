@@ -552,13 +552,10 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           {/* Transaction Details Section */}
           <Tabs defaultValue="expense" className="w-full space-y-4">
-            <div className="flex items-center gap-4">
-              <h3 className="text-lg font-medium">Transaction Details</h3>
-              <TabsList className="grid grid-cols-2 w-auto">
-                <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
-                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="grid grid-cols-2 w-auto">
+              <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
+              <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+            </TabsList>
 
             <TabsContent value="expense" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
