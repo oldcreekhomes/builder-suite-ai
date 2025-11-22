@@ -776,7 +776,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="grid grid-cols-12 gap-2 px-3">
+            <div className="grid grid-cols-12 gap-2 p-3">
               <div className="col-span-4">
                 <TabsList className="grid grid-cols-2 w-auto">
                   <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
