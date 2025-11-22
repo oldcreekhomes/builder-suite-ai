@@ -508,7 +508,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           {/* Main Form Fields */}
           <div className="grid grid-cols-12 gap-2 p-3 !w-full">
-              <div className="col-span-4">
+              <div className="col-span-3">
                 <Label>Credit Card Account</Label>
                 <AccountSearchInput
                   value={creditCardAccount}
@@ -525,7 +525,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 />
               </div>
 
-              <div className="col-span-6">
+              <div className="col-span-7">
                 <Label>Vendor</Label>
                 <VendorSearchInput
                   value={vendor}
@@ -553,7 +553,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           {/* Transaction Details Section */}
           <Tabs defaultValue="expense" className="space-y-4">
             <div className="grid grid-cols-12 gap-2 p-3">
-              <div className="col-span-4">
+              <div className="col-span-3">
                 <TabsList className="grid grid-cols-2 w-auto">
                   <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
                   <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
