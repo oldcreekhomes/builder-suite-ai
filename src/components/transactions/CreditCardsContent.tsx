@@ -551,13 +551,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </div>
 
           {/* Transaction Details Section */}
-          <div className="grid grid-cols-12 gap-2 px-3">
-            <div className="col-span-4">
-              <Tabs defaultValue="expense" className="space-y-4">
+          <Tabs defaultValue="expense" className="space-y-4">
+            <div className="grid grid-cols-12 gap-2 px-3">
+              <div className="col-span-4">
                 <TabsList className="grid grid-cols-2 w-auto">
                   <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
                   <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
                 </TabsList>
+              </div>
+            </div>
 
             <TabsContent value="expense" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
@@ -763,9 +765,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 })}
               </div>
             </TabsContent>
-              </Tabs>
-            </div>
-          </div>
+          </Tabs>
 
             {/* Footer with Total and Actions */}
           <div className="p-3 bg-muted border rounded-lg">

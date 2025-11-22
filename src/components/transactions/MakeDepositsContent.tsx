@@ -775,13 +775,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
           </div>
 
-          <div className="grid grid-cols-12 gap-2 px-3">
-            <div className="col-span-4">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <div className="grid grid-cols-12 gap-2 px-3">
+              <div className="col-span-4">
                 <TabsList className="grid grid-cols-2 w-auto">
                   <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
                   <TabsTrigger value="revenue">Job Cost</TabsTrigger>
                 </TabsList>
+              </div>
+            </div>
               
             <TabsContent value="other" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
@@ -964,9 +966,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 ))}
               </div>
             </TabsContent>
-              </Tabs>
-            </div>
-          </div>
+          </Tabs>
           
           <div className="p-3 bg-muted border rounded-lg">
             <div className="flex justify-between items-center">
