@@ -612,14 +612,6 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
                 </TabsList>
               </div>
-              <Button 
-                onClick={activeTab === 'job_cost' ? addJobCostLine : addExpenseLine} 
-                size="sm" 
-                variant="outline"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Line
-              </Button>
             </div>
 
             {/* Job Cost Tab */}
@@ -634,7 +626,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
-                        <th className="w-12"></th>
+                  <th className="text-center p-3 font-medium w-12">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -700,15 +692,28 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               onChange={(e) => updateJobCostLine(line.id, "memo", e.target.value)}
                             />
                           </td>
-                          <td className="py-3 pl-2 pr-3">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeJobCostLine(line.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </td>
+                  <td className="py-3 pl-2 pr-3">
+                    <div className="flex justify-center items-center gap-1">
+                      <Button
+                        onClick={() => removeJobCostLine(line.id)}
+                        size="sm"
+                        variant="destructive"
+                        disabled={jobCostLines.length === 1}
+                        className="h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={addJobCostLine}
+                        size="sm"
+                        variant="outline"
+                        className="h-10 w-10 p-0"
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </td>
                         </tr>
                       ))}
                     </tbody>
@@ -728,7 +733,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
-                        <th className="w-12"></th>
+                        <th className="text-center p-3 font-medium w-12">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -794,15 +799,28 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               onChange={(e) => updateExpenseLine(line.id, "memo", e.target.value)}
                             />
                           </td>
-                          <td className="py-3 pl-2 pr-3">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeExpenseLine(line.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </td>
+                  <td className="py-3 pl-2 pr-3">
+                    <div className="flex justify-center items-center gap-1">
+                      <Button
+                        onClick={() => removeExpenseLine(line.id)}
+                        size="sm"
+                        variant="destructive"
+                        disabled={expenseLines.length === 1}
+                        className="h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={addExpenseLine}
+                        size="sm"
+                        variant="outline"
+                        className="h-10 w-10 p-0"
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </td>
                         </tr>
                       ))}
                     </tbody>
