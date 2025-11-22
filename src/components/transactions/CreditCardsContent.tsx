@@ -379,6 +379,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   onClick={createNewTransaction} 
                   size="sm" 
                   variant="outline"
+                  className="h-10"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New
