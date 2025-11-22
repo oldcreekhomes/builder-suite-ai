@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +25,7 @@ import { toast } from "@/hooks/use-toast";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
-import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
-import { useCheckAttachments } from "@/hooks/useCheckAttachments";
+import { CheckAttachmentUpload, CheckAttachment } from "@/components/checks/CheckAttachmentUpload";
 
 interface CheckRow {
   id: string;
@@ -79,7 +79,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const [currentCheckId, setCurrentCheckId] = useState<string | null>(null);
 
   // Attachments
-  const { attachments, isUploading, uploadFiles, deleteFile } = useCheckAttachments(currentCheckId);
+  const [attachments, setAttachments] = useState<CheckAttachment[]>([]);
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
@@ -627,7 +627,36 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     };
 
     try {
-      await createCheck.mutateAsync({ checkData, checkLines });
+      const newCheck = await createCheck.mutateAsync({ checkData, checkLines });
+      
+      // Upload temporary attachments after check is created
+      if (newCheck?.id && attachments.length > 0) {
+        const tempAttachments = attachments.filter(att => !att.id && att.file);
+        
+        for (const tempAtt of tempAttachments) {
+          if (tempAtt.file) {
+            const timestamp = Date.now();
+            const sanitizedName = tempAtt.file_name
+              .replace(/\s+/g, '_')
+              .replace(/[^\w.-]/g, '_')
+              .replace(/_+/g, '_');
+            const fileName = `${timestamp}_${sanitizedName}`;
+            const filePath = `check-attachments/${newCheck.id}/${fileName}`;
+            
+            await supabase.storage.from('project-files').upload(filePath, tempAtt.file);
+            
+            await supabase.from('check_attachments').insert({
+              check_id: newCheck.id,
+              file_name: tempAtt.file_name,
+              file_path: filePath,
+              file_size: tempAtt.file_size,
+              content_type: tempAtt.content_type,
+              uploaded_by: (await supabase.auth.getUser()).data.user?.id
+            });
+          }
+        }
+      }
+      
       toast({
         title: "Success",
         description: "Check saved successfully",
@@ -658,6 +687,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setRoutingNumber("123456789");
     setAccountNumber("1234567890");
     setBankName("Your Bank Name");
+    setAttachments([]);
     setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "1", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "1", amount: "", memo: "" }]);
   };
@@ -826,13 +856,11 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
               <div className="col-span-2 min-w-0">
                 <Label>Attachments</Label>
-                <AttachmentFilesRow
-                  files={attachments}
-                  isUploading={isUploading}
-                  onFileUpload={uploadFiles}
-                  onDeleteFile={deleteFile}
-                  entityType="check"
-                  isReadOnly={!currentCheckId}
+                <CheckAttachmentUpload
+                  attachments={attachments}
+                  onAttachmentsChange={setAttachments}
+                  checkId={currentCheckId || undefined}
+                  disabled={false}
                 />
               </div>
             </div>
