@@ -772,18 +772,6 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="md:col-span-2 space-y-2">
-              <Label>Action</Label>
-              <Button 
-                onClick={activeTab === "other" ? addOtherRow : addRevenueRow} 
-                size="sm" 
-                variant="outline"
-                className="w-full h-10"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Row
-              </Button>
-            </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
@@ -861,7 +849,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center">
+                    <div className="col-span-1 flex justify-center items-center gap-1">
                       <Button
                         onClick={() => removeOtherRow(row.id)}
                         size="sm"
@@ -870,6 +858,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10 w-10 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={addOtherRow}
+                        size="sm"
+                        variant="outline"
+                        className="h-10 w-10 p-0"
+                      >
+                        +
                       </Button>
                     </div>
                   </div>
@@ -943,7 +940,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center">
+                    <div className="col-span-1 flex justify-center items-center gap-1">
                       <Button
                         onClick={() => removeRevenueRow(row.id)}
                         size="sm"
@@ -952,6 +949,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10 w-10 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={addRevenueRow}
+                        size="sm"
+                        variant="outline"
+                        className="h-10 w-10 p-0"
+                      >
+                        +
                       </Button>
                     </div>
                   </div>
