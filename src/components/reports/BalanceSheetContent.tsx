@@ -124,7 +124,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
             break;
             
           case 'liability':
-            displayBalance = Math.abs(rawBalance);
+            displayBalance = -rawBalance;
             const liabilityBalance: AccountBalance = {
               id: account.id,
               code: account.code,

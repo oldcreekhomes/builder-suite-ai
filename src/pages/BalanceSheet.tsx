@@ -121,7 +121,7 @@ export default function BalanceSheet() {
             
           case 'liability':
             // Liabilities: Credit balances are positive for balance sheet presentation
-            displayBalance = Math.abs(rawBalance);
+            displayBalance = -rawBalance;
             const liabilityBalance: AccountBalance = {
               id: account.id,
               code: account.code,
