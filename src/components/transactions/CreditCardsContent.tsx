@@ -551,7 +551,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </div>
 
           {/* Transaction Details Section */}
-          <Tabs defaultValue="expense" className="w-full space-y-4">
+          <Tabs defaultValue="expense" className="space-y-4">
             <TabsList className="grid grid-cols-2 w-auto">
               <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
               <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
