@@ -457,17 +457,17 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   type="single" 
                   value={transactionType} 
                   onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
-                  className="bg-muted p-1 rounded-md h-10"
+                  className="bg-muted p-0.5 rounded-md h-10"
                 >
                   <ToggleGroupItem 
                     value="purchase" 
-                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-8"
+                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
                   >
                     Purchase
                   </ToggleGroupItem>
                   <ToggleGroupItem 
                     value="refund"
-                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-8"
+                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
                   >
                     Refund
                   </ToggleGroupItem>
