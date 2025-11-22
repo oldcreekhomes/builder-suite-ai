@@ -546,18 +546,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 />
               </div>
 
-              <div className="col-span-1 flex flex-col items-center justify-end">
-                <Label className="text-center">Action</Label>
-                <Button 
-                  type="button"
-                  onClick={addExpenseRow} 
-                  size="sm" 
-                  variant="outline"
-                  className="h-10 w-10 p-0"
-                >
-                  +
-                </Button>
-              </div>
             </div>
 
           {/* Transaction Details Section */}
@@ -621,7 +609,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         />
                       </div>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center">
+                    <div className="col-span-1 flex justify-center items-center gap-1">
                       <Button
                         onClick={() => removeExpenseRow(row.id)}
                         size="sm"
@@ -630,6 +618,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         className="h-10 w-10 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={addExpenseRow}
+                        size="sm"
+                        variant="outline"
+                        className="h-10 w-10 p-0"
+                      >
+                        +
                       </Button>
                     </div>
                   </div>
@@ -697,7 +694,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           />
                         </div>
                       </div>
-                      <div className="col-span-1 flex justify-center items-center">
+                      <div className="col-span-1 flex justify-center items-center gap-1">
                         <Button
                           onClick={() => removeJobCostRow(row.id)}
                           size="sm"
@@ -706,6 +703,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           className="h-10 w-10 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={addJobCostRow}
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-10 p-0"
+                        >
+                          +
                         </Button>
                       </div>
                     </div>
