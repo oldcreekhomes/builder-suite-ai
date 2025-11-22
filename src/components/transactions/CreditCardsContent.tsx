@@ -523,7 +523,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 />
               </div>
 
-              <div className="col-span-5">
+              <div className="col-span-6">
                 <Label>Vendor</Label>
                 <VendorSearchInput
                   value={vendor}
