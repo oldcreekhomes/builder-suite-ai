@@ -665,141 +665,113 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={createNewCheck}
-            size="sm"
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New
-          </Button>
-          
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={navigateToPrevious}
-                  size="sm"
-                  variant="outline"
-                  disabled={(currentEntryIndex >= filteredChecks.length - 1 && currentEntryIndex !== -1) || filteredChecks.length === 0}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Older check</p>
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={navigateToNext}
-                  size="sm"
-                  variant="outline"
-                  disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Newer check</p>
-              </TooltipContent>
-            </Tooltip>
-            
-            {currentCheckId && isViewingMode && !isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
-              <DeleteButton
-                onDelete={handleDelete}
-                title="Delete Check"
-                description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}${checkNumber ? ` #${checkNumber}` : ''} for $${getDisplayAmount()}? This will permanently delete the check and all associated journal entries. This action cannot be undone.`}
-                size="sm"
-                variant="ghost"
-                isLoading={deleteCheck.isPending}
-                className="ml-2"
-              />
-            ) : currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled
-                className="ml-2"
-              >
-                <span className="text-lg">🔒</span>
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled
-                className="ml-2 opacity-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <Card>
-        <CardContent className="space-y-4 pt-4">
-          <div className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between items-start">
-              <div className="space-y-0.5 max-w-xl">
-                <Input
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="text-xs font-medium text-gray-800 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                  placeholder="Your Company Name"
-                />
-                <Input
-                  value={companyAddress}
-                  onChange={(e) => setCompanyAddress(e.target.value)}
-                  className="text-[10px] text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                  placeholder="123 Business Street"
-                />
-                <Input
-                  value={companyCityState}
-                  onChange={(e) => setCompanyCityState(e.target.value)}
-                  className="text-[10px] text-gray-600 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 w-full"
-                  placeholder="City, State 12345"
-                />
+        <Card className="p-6">
+          <div className="space-y-6">
+            {/* Header with Navigation - Matching Make Deposits */}
+            <div className="flex items-center justify-between border-b pb-4 mb-6">
+              <div className="flex items-center gap-4">
+                <h1 className="text-3xl font-bold">WRITE CHECKS</h1>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-end">
-                  <Label className="text-[10px] text-gray-600 mr-2">CHECK #</Label>
-                  <Input 
-                    value={checkNumber}
-                    onChange={(e) => setCheckNumber(e.target.value)}
-                    placeholder="001"
-                    className="w-24 text-center text-xs border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent font-mono h-6"
-                  />
+              
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={createNewCheck}
+                    size="sm"
+                    variant="outline"
+                    className="h-10"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New
+                  </Button>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={navigateToPrevious}
+                        size="sm"
+                        variant="outline"
+                        disabled={(currentEntryIndex >= filteredChecks.length - 1 && currentEntryIndex !== -1) || filteredChecks.length === 0}
+                        className="h-10 w-10 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Older check</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={navigateToNext}
+                        size="sm"
+                        variant="outline"
+                        disabled={currentEntryIndex <= 0 || filteredChecks.length === 0}
+                        className="h-10 w-10 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Newer check</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  {currentCheckId && isViewingMode && !isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
+                    <DeleteButton
+                      onDelete={handleDelete}
+                      title="Delete Check"
+                      description={`Are you sure you want to delete this check${payTo ? ` to ${payTo}` : ''}? This action cannot be undone.`}
+                      size="sm"
+                      variant="destructive"
+                      isLoading={deleteCheck.isPending}
+                      className="h-10 w-10"
+                    />
+                  ) : currentCheckId && isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd')) ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled
+                      className="h-10 w-10"
+                    >
+                      <span className="text-lg">🔒</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled
+                      className="h-10 w-10 opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <div className="flex items-center justify-end">
-                  <Label className="text-[10px] text-gray-600 mr-2">DATE</Label>
+                
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="checkDate" className="text-sm whitespace-nowrap">Date:</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
+                        size="sm"
                         className={cn(
-                          "w-24 h-6 justify-start text-left font-normal text-xs border-b-2 border-t-0 border-l-0 border-r-0 rounded-none bg-transparent px-1",
+                          "justify-start text-left font-normal h-10 flex items-center",
                           !checkDate && "text-muted-foreground"
                         )}
                       >
-                        {checkDate ? format(checkDate, "MM/dd/yyyy") : "Select date"}
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {checkDate ? format(checkDate, "PPP") : "Pick a date"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white shadow-lg border z-50" align="start">
+                    <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
                         mode="single"
                         selected={checkDate}
-                        onSelect={setCheckDate}
+                        onSelect={(date) => date && setCheckDate(date)}
                         initialFocus
-                        className="p-3 pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -807,191 +779,77 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-xs font-medium whitespace-nowrap">PAY TO</span>
-                  <div className="flex-1 border-b-2 border-gray-400">
-                    <VendorSearchInput
-                      value={payTo}
-                      onChange={setPayTo}
-                      onCompanySelect={(company) => setPayToName(company.company_name)}
-                      placeholder="Payee name..."
-                      className="border-0 bg-transparent h-6 text-sm font-medium"
-                    />
-                  </div>
-                </div>
-                <div className="border-2 border-gray-400 px-2 py-0.5 min-w-[120px] text-right relative">
-                  <span className="text-xs text-gray-600">$</span>
-                  <Input
-                    type="text"
-                    value={useManualAmount ? manualAmount : getDisplayAmount()}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/,/g, '');
-                      if (!isNaN(Number(value)) || value === '') {
-                        setManualAmount(value);
-                        setUseManualAmount(true);
-                      }
-                    }}
-                    onFocus={() => setUseManualAmount(true)}
-                    className="inline-block w-20 text-base font-bold ml-1 border-0 bg-transparent p-0 h-auto focus:ring-0 focus:border-0 text-right"
-                    placeholder="0.00"
-                  />
-                  {useManualAmount && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => {
-                            setUseManualAmount(false);
-                            setManualAmount("");
-                          }}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 text-[10px] flex items-center justify-center hover:bg-red-600"
-                        >
-                          ×
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Reset to calculated</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
+            {/* Main Form Fields - Matching Make Deposits Layout */}
+            <div className="grid grid-cols-12 gap-2 p-3 !w-full">
+              <div className="col-span-3">
+                <Label htmlFor="bankAccount">Bank Account</Label>
+                <AccountSearchInput
+                  value={bankAccount}
+                  onChange={(value) => {
+                    setBankAccount(value);
+                    const account = accounts.find(a => `${a.code} - ${a.name}` === value);
+                    if (account) setBankAccountId(account.id);
+                  }}
+                  onAccountSelect={(account) => {
+                    setBankAccount(`${account.code} - ${account.name}`);
+                    setBankAccountId(account.id);
+                  }}
+                  placeholder="Select bank account..."
+                  accountType="asset"
+                  bankAccountsOnly={true}
+                  className="h-10"
+                />
               </div>
 
-              <div className="flex items-center justify-between gap-2 border-b-2 border-gray-400 pb-0.5">
-                <span className="text-xs italic text-gray-700 pl-2 flex-1">
-                  {numberToWords(parseFloat(getDisplayAmount().replace(/,/g, '')))}
-                </span>
-                <span className="text-xs font-medium pr-2">DOLLARS</span>
+              <div className="col-span-5">
+                <Label htmlFor="payTo">Pay To</Label>
+                <VendorSearchInput
+                  value={payTo}
+                  onChange={setPayTo}
+                  onCompanySelect={(company) => setPayToName(company.company_name)}
+                  placeholder="Search or add vendor"
+                  className="h-10"
+                />
               </div>
 
-              <div className="flex items-end justify-between pt-8 pb-8">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">BANK ACCOUNT</span>
-                  <div className="w-64 border-b-2 border-gray-400">
-                  <AccountSearchInput
-                    value={bankAccount}
-                    onChange={setBankAccount}
-                    onAccountSelect={(account) => setBankAccountId(account.id)}
-                    placeholder="Select bank account..."
-                    className="border-0 bg-transparent h-8 text-sm"
-                    accountType="asset"
-                    bankAccountsOnly={true}
-                  />
-                  </div>
-                </div>
-                <div className="w-80 text-center relative">
-                  <div className="border-b-2 border-gray-400 h-8"></div>
-                  <span className="absolute left-1/2 -translate-x-1/2 top-full mt-3 text-xs text-gray-600">Authorized Signature</span>
-                </div>
+              <div className="col-span-2">
+                <Label htmlFor="checkNumber">Check #</Label>
+                <Input
+                  id="checkNumber"
+                  value={checkNumber}
+                  onChange={(e) => setCheckNumber(e.target.value)}
+                  placeholder="Optional"
+                  maxLength={10}
+                  className="h-10"
+                />
+              </div>
+
+              <div className="col-span-2 min-w-0">
+                <Label>Attachments</Label>
+                <AttachmentFilesRow
+                  files={attachments}
+                  isUploading={isUploading}
+                  onFileUpload={uploadFiles}
+                  onDeleteFile={deleteFile}
+                  entityType="check"
+                  isReadOnly={!currentCheckId}
+                />
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Expenses</h3>
-            
-            <Tabs defaultValue="job-cost" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-                <TabsTrigger value="expense">Expense</TabsTrigger>
-              </TabsList>
+            {/* Tabs Section - Matching Make Deposits */}
+            <Tabs defaultValue="other" className="space-y-4">
+              <div className="grid grid-cols-12 gap-2 p-3">
+                <div className="col-span-3">
+                  <TabsList className="grid grid-cols-2 w-auto">
+                    <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
+                    <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                  </TabsList>
+                </div>
+              </div>
               
-              <TabsContent value="job-cost" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Button onClick={addJobCostRow} size="sm" variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                  </Button>
-                </div>
-
-                <div className="border rounded-lg overflow-visible">
-                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                    <div className="col-span-3">Cost Code</div>
-                    <div className="col-span-5">Description</div>
-                    <div className="col-span-1">Quantity</div>
-                    <div className="col-span-1">Cost</div>
-                    <div className="col-span-1">Total</div>
-                    <div className="col-span-1 text-center">Action</div>
-                  </div>
-
-                  {jobCostRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                      <div className="col-span-3">
-                        <CostCodeSearchInput
-                          value={row.account}
-                          onChange={(value) => updateJobCostRow(row.id, "account", value)}
-                          onCostCodeSelect={(costCode) => {
-                            updateJobCostRow(row.id, "accountId", costCode.id);
-                            updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
-                          }}
-                          placeholder="Select cost code..."
-                          className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
-                        />
-                        {rowErrors[row.id] && (
-                          <p className="text-xs text-red-500 mt-1">Select a cost code</p>
-                        )}
-                      </div>
-                      <div className="col-span-5">
-                        <Input
-                          value={row.memo}
-                          onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
-                          placeholder="Description..."
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={row.quantity || "1"}
-                          onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
-                          placeholder="1"
-                          className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={row.amount}
-                            onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
-                            placeholder="0.00"
-                            className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                        </div>
-                      </div>
-                      <div className="col-span-1 flex items-center">
-                        <span className="text-sm font-medium">
-                          ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="col-span-1 flex justify-center items-center">
-                        <Button
-                          onClick={() => removeJobCostRow(row.id)}
-                          size="sm"
-                          variant="destructive"
-                          disabled={jobCostRows.length === 1}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="expense" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Button onClick={addExpenseRow} size="sm" variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                  </Button>
-                </div>
-
+              {/* Chart of Accounts Tab */}
+              <TabsContent value="other" className="space-y-4">
                 <div className="border rounded-lg overflow-visible">
                   <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                     <div className="col-span-3">Account</div>
@@ -1013,18 +871,15 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                             updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
                           }}
                           placeholder="Select account..."
-                          className={cn("h-8", rowErrors[row.id] && "border-red-500 border-2")}
+                          className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
                         />
-                        {rowErrors[row.id] && (
-                          <p className="text-xs text-red-500 mt-1">Select an account</p>
-                        )}
                       </div>
                       <div className="col-span-5">
                         <Input
                           value={row.memo}
                           onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
                           placeholder="Description..."
-                          className="h-8"
+                          className="h-10"
                         />
                       </div>
                       <div className="col-span-1">
@@ -1034,7 +889,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                           value={row.quantity || "1"}
                           onChange={(e) => updateExpenseRow(row.id, "quantity", e.target.value)}
                           placeholder="1"
-                          className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <div className="col-span-1">
@@ -1046,24 +901,33 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                             value={row.amount}
                             onChange={(e) => updateExpenseRow(row.id, "amount", e.target.value)}
                             placeholder="0.00"
-                            className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
                       </div>
-                      <div className="col-span-1 flex items-center">
-                        <span className="text-sm font-medium">
+                      <div className="col-span-1">
+                        <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
                           ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
-                        </span>
+                        </div>
                       </div>
-                      <div className="col-span-1 flex justify-center items-center">
+                      <div className="col-span-1 flex justify-center items-center gap-1">
                         <Button
                           onClick={() => removeExpenseRow(row.id)}
                           size="sm"
                           variant="destructive"
                           disabled={expenseRows.length === 1}
-                          className="h-8 w-8 p-0"
+                          className="h-10 w-10 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={addExpenseRow}
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-10 p-0"
+                        >
+                          +
                         </Button>
                       </div>
                     </div>
@@ -1071,31 +935,107 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 </div>
               </TabsContent>
               
-              {/* Attachments */}
-              <div className="mt-4">
-                <AttachmentFilesRow
-                  files={attachments}
-                  onFileUpload={uploadFiles}
-                  onDeleteFile={deleteFile}
-                  isUploading={isUploading}
-                  entityType="check"
-                  isReadOnly={!currentCheckId}
-                />
-              </div>
+              {/* Job Cost Tab */}
+              <TabsContent value="job-cost" className="space-y-4">
+                <div className="border rounded-lg overflow-visible">
+                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                    <div className="col-span-3">Cost Code</div>
+                    <div className="col-span-5">Description</div>
+                    <div className="col-span-1">Quantity</div>
+                    <div className="col-span-1">Cost</div>
+                    <div className="col-span-1">Total</div>
+                    <div className="col-span-1 text-center">Action</div>
+                  </div>
+
+                  {jobCostRows.map((row) => (
+                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                      <div className="col-span-3">
+                        <CostCodeSearchInput
+                          value={row.account}
+                          onChange={(value) => updateJobCostRow(row.id, "account", value)}
+                          onCostCodeSelect={(costCode) => {
+                            updateJobCostRow(row.id, "accountId", costCode.id);
+                            updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
+                          }}
+                          placeholder="Select cost code..."
+                          className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
+                        />
+                      </div>
+                      <div className="col-span-5">
+                        <Input
+                          value={row.memo}
+                          onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
+                          placeholder="Description..."
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={row.quantity || "1"}
+                          onChange={(e) => updateJobCostRow(row.id, "quantity", e.target.value)}
+                          placeholder="1"
+                          className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={row.amount}
+                            onChange={(e) => updateJobCostRow(row.id, "amount", e.target.value)}
+                            placeholder="0.00"
+                            className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
+                          ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="col-span-1 flex justify-center items-center gap-1">
+                        <Button
+                          onClick={() => removeJobCostRow(row.id)}
+                          size="sm"
+                          variant="destructive"
+                          disabled={jobCostRows.length === 1}
+                          className="h-10 w-10 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={addJobCostRow}
+                          size="sm"
+                          variant="outline"
+                          className="h-10 w-10 p-0"
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
               
-              <div className="p-3 bg-muted border rounded-lg mt-4">
+              {/* Total Section - Matching Make Deposits */}
+              <div className="p-3 bg-muted border rounded-lg">
                 <div className="flex justify-between items-center">
                   <div className="text-base font-semibold">
                     Total: ${getDisplayAmount()}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
+                    <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
                       Clear
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8"
+                      className="h-10"
                       onClick={handleSaveAndNew}
                       disabled={createCheck.isPending}
                     >
@@ -1103,7 +1043,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                     </Button>
                     <Button
                       size="sm"
-                      className="h-8"
+                      className="h-10"
                       onClick={handleSaveAndClose}
                       disabled={createCheck.isPending}
                     >
@@ -1114,9 +1054,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </div>
             </Tabs>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </Card>
+      </div>
     </TooltipProvider>
   );
 }
