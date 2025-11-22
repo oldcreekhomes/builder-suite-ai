@@ -425,7 +425,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     title="Delete Credit Card Transaction"
                     description="Are you sure you want to delete this credit card transaction? This action cannot be undone."
                     size="sm"
-                    variant="ghost"
+                    variant="destructive"
                     isLoading={deleteCreditCard.isPending}
                     className="h-10 w-10"
                   />
@@ -441,7 +441,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 ) : (
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="destructive"
                     disabled
                     className="opacity-50 h-10 w-10"
                   >
