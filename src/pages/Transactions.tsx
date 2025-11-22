@@ -20,7 +20,7 @@ export default function Transactions() {
                 title="Transactions" 
                 projectId={projectId}
               />
-              <div className="container mx-auto p-6">
+              <div className="mx-auto p-6 w-full">
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold">Transactions</h1>
                   <p className="text-muted-foreground">Manage all transaction types in one place.</p>
