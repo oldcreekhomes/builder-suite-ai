@@ -724,7 +724,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               </div>
 
           <div className="grid grid-cols-12 gap-2 p-3 !w-full">
-            <div className="col-span-4">
+            <div className="col-span-3">
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
               <AccountSearchInputInline
                 value={bankAccount}
@@ -738,7 +738,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               />
             </div>
 
-            <div className="col-span-4">
+            <div className="col-span-5">
               <Label htmlFor="receivedFrom">Received From</Label>
               <DepositSourceSearchInput
                 value={depositSourceName}
@@ -777,7 +777,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <div className="grid grid-cols-12 gap-2 p-3">
-              <div className="col-span-4">
+              <div className="col-span-3">
                 <TabsList className="grid grid-cols-2 w-auto">
                   <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
                   <TabsTrigger value="revenue">Job Cost</TabsTrigger>
