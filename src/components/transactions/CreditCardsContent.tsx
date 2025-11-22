@@ -47,7 +47,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
   const [transactionType, setTransactionType] = useState<'purchase' | 'refund'>('purchase');
-  const [transactionDate, setTransactionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [transactionDate, setTransactionDate] = useState<Date>(new Date());
   const [creditCardAccount, setCreditCardAccount] = useState('');
   const [creditCardAccountId, setCreditCardAccountId] = useState('');
   const [vendor, setVendor] = useState('');
@@ -115,7 +115,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   const clearForm = () => {
     setTransactionType('purchase');
-    setTransactionDate(format(new Date(), 'yyyy-MM-dd'));
+    setTransactionDate(new Date());
     setCreditCardAccount('');
     setCreditCardAccountId('');
     setVendor('');
@@ -286,7 +286,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     }
 
     const result = await createCreditCard.mutateAsync({
-      transaction_date: transactionDate,
+      transaction_date: transactionDate.toISOString().split('T')[0],
       transaction_type: transactionType,
       credit_card_account_id: creditCardAccountId,
       vendor,
@@ -314,7 +314,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setIsViewingMode(true);
     setCurrentCreditCardId(card.id);
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
-    setTransactionDate(card.transaction_date);
+    setTransactionDate(new Date(card.transaction_date));
     
     const creditCardAcct = accounts.find(a => a.id === card.credit_card_account_id);
     if (creditCardAcct) {
@@ -447,7 +447,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   </TooltipContent>
                 </Tooltip>
                 
-                {currentCreditCardId && isViewingMode && !isDateLocked(transactionDate) ? (
+                {currentCreditCardId && isViewingMode && !isDateLocked(format(transactionDate, 'yyyy-MM-dd')) ? (
                   <DeleteButton
                     onDelete={handleDelete}
                     title="Delete Credit Card Transaction"
@@ -457,7 +457,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     isLoading={deleteCreditCard.isPending}
                     className="h-10 w-10"
                   />
-                ) : currentCreditCardId && isViewingMode && isDateLocked(transactionDate) ? (
+                ) : currentCreditCardId && isViewingMode && isDateLocked(format(transactionDate, 'yyyy-MM-dd')) ? (
                   <Button
                     size="sm"
                     variant="ghost"
@@ -492,14 +492,14 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {transactionDate ? format(new Date(transactionDate), "PPP") : "Pick a date"}
+                      {transactionDate ? format(transactionDate, "PPP") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="end">
                     <Calendar
                       mode="single"
-                      selected={new Date(transactionDate)}
-                      onSelect={(date) => date && setTransactionDate(format(date, 'yyyy-MM-dd'))}
+                      selected={transactionDate}
+                      onSelect={(date) => date && setTransactionDate(date)}
                       initialFocus
                     />
                   </PopoverContent>
