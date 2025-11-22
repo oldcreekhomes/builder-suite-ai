@@ -261,7 +261,7 @@ export function DepositAttachmentUpload({
         size="sm"
         onClick={() => document.getElementById('deposit-file-input')?.click()}
         disabled={disabled || isUploading}
-        className="h-10"
+        className="h-10 flex-1"
       >
         {isUploading ? 'Uploading...' : 'Add Files'}
       </Button>
