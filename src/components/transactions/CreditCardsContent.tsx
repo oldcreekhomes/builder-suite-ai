@@ -372,7 +372,33 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         <div className="space-y-6">
           {/* Header with Navigation */}
           <div className="flex items-center justify-between border-b pb-4 mb-6">
-            <h1 className="text-3xl font-bold">CREDIT CARD</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold">CREDIT CARD</h1>
+              
+              {/* Type Toggle */}
+              <div className="flex items-center gap-2">
+                <Label>Type:</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={transactionType} 
+                  onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
+                  className="bg-muted p-0.5 rounded-md h-10"
+                >
+                  <ToggleGroupItem 
+                    value="purchase" 
+                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
+                  >
+                    Purchase
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="refund"
+                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
+                  >
+                    Refund
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
             
             <div className="flex items-center gap-4">
               {/* Navigation Controls */}
@@ -450,30 +476,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
-              </div>
-              
-              {/* Type Toggle */}
-              <div className="flex items-center gap-2">
-                <Label>Type:</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={transactionType} 
-                  onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
-                  className="bg-muted p-0.5 rounded-md h-10"
-                >
-                  <ToggleGroupItem 
-                    value="purchase" 
-                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
-                  >
-                    Purchase
-                  </ToggleGroupItem>
-                  <ToggleGroupItem 
-                    value="refund"
-                    className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
-                  >
-                    Refund
-                  </ToggleGroupItem>
-                </ToggleGroup>
               </div>
 
               {/* Date Picker */}
