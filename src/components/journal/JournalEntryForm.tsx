@@ -467,139 +467,151 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     <TooltipProvider>
       <Card>
       <CardContent className="space-y-6 pt-6">
-        {/* Row 1: Entry Date, Description, Attachments, and Navigation Controls */}
-        <div className="flex flex-wrap items-end gap-3">
-          {/* Entry Date */}
-          <div className="space-y-2" style={{ minWidth: '200px' }}>
-            <Label>Entry Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal h-10",
-                    !entryDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {entryDate ? format(entryDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={entryDate}
-                  onSelect={(date) => date && setEntryDate(date)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+        {/* Header with Navigation - Matching Credit Cards */}
+        <div className="flex items-center justify-between border-b pb-4 mb-6">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold">JOURNAL ENTRY</h1>
           </div>
+          
+          <div className="flex items-center gap-4">
+            {/* Navigation Controls */}
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={createNewEntry} 
+                size="sm" 
+                variant="outline"
+                className="h-10"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New
+              </Button>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={goToPrevious} 
+                    size="sm" 
+                    variant="outline" 
+                    disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
+                    className="h-10 w-10 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Older entry</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={goToNext} 
+                    size="sm" 
+                    variant="outline" 
+                    disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
+                    className="h-10 w-10 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Newer entry</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              {currentJournalEntryId && isViewingMode && !isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+                <DeleteButton
+                  onDelete={handleDelete}
+                  title="Delete Journal Entry"
+                  description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
+                  size="sm"
+                  variant="destructive"
+                  isLoading={deleteManualJournalEntry.isPending}
+                  className="h-10 w-10"
+                />
+              ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled
+                  className="h-10 w-10"
+                >
+                  <span className="text-lg">🔒</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled
+                  className="opacity-50 h-10 w-10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
 
-          {/* Description */}
-          <div className="space-y-2 flex-1" style={{ minWidth: '250px' }}>
+            {/* Date Picker */}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "justify-start text-left font-normal h-10 flex items-center",
+                      !entryDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {entryDate ? format(entryDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={entryDate}
+                    onSelect={(date) => date && setEntryDate(date)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Form Fields */}
+        <div className="grid grid-cols-12 gap-2 p-3 !w-full">
+          <div className="col-span-10">
             <Label>Description</Label>
             <Input
               placeholder="Entry description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="h-10"
             />
           </div>
 
-          {/* Attachments - Inline */}
-          <div className="space-y-2" style={{ minWidth: '140px' }}>
+          <div className="col-span-2 min-w-0">
             <Label>Attachments</Label>
             <JournalEntryAttachmentUpload
               attachments={attachments}
               onAttachmentsChange={setAttachments}
             />
           </div>
-
-          {/* New Entry Button */}
-          <Button
-            onClick={createNewEntry}
-            size="sm"
-            variant={!isViewingMode ? "default" : "outline"}
-            className="h-10"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New
-          </Button>
-
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToPrevious}
-                  disabled={(currentEntryIndex >= filteredEntries.length - 1 && currentEntryIndex !== -1) || filteredEntries.length === 0}
-                  className="h-10"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Older entry</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToNext}
-                  disabled={currentEntryIndex <= 0 || filteredEntries.length === 0}
-                  className="h-10"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Newer entry</p>
-              </TooltipContent>
-            </Tooltip>
-            {currentJournalEntryId && isViewingMode && !isDateLocked(entryDate.toISOString().split('T')[0]) ? (
-              <DeleteButton
-                onDelete={handleDelete}
-                title="Delete Journal Entry"
-                description={`Are you sure you want to delete this journal entry${description ? ` "${description}"` : ''}? This will permanently delete the entry and all associated lines. This action cannot be undone.`}
-                size="sm"
-                variant="ghost"
-                isLoading={deleteManualJournalEntry.isPending}
-                className="h-10"
-              />
-            ) : currentJournalEntryId && isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]) ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled
-                className="h-10"
-              >
-                <span className="text-lg">🔒</span>
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled
-                className="opacity-50 h-10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
         </div>
 
-        {/* Row 2: Job Cost/Expense Tabs with Add Line Button */}
+        {/* Tabs Section */}
         <div className="space-y-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'job_cost' | 'expense')}>
-            <div className="flex items-center justify-between">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="job_cost">Job Cost</TabsTrigger>
-                <TabsTrigger value="expense">Expense</TabsTrigger>
-              </TabsList>
+            <div className="grid grid-cols-12 gap-2 p-3">
+              <div className="col-span-3">
+                <TabsList className="grid grid-cols-2 w-auto">
+                  <TabsTrigger value="job_cost">Job Cost</TabsTrigger>
+                  <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
+                </TabsList>
+              </div>
               <Button 
                 onClick={activeTab === 'job_cost' ? addJobCostLine : addExpenseLine} 
                 size="sm" 
