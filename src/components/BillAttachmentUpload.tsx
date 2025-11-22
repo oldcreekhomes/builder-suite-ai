@@ -264,7 +264,7 @@ export function BillAttachmentUpload({
           size="sm"
           onClick={() => document.getElementById('bill-file-input')?.click()}
           disabled={disabled || isUploading}
-          className="h-10 text-sm px-3"
+          className="h-10 text-sm px-3 flex-1"
         >
           {isUploading ? 'Uploading...' : 'Add Files'}
         </Button>
