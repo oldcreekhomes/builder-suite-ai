@@ -576,20 +576,11 @@ export function ManualBillEntry() {
           </div>
 
           <div className="md:col-span-2 space-y-2">
-            <Label htmlFor="internalNotes">Internal Notes</Label>
-            <Textarea
-              id="internalNotes"
-              placeholder="Add internal notes..."
-              value={internalNotes}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              className="h-[106px] resize-none"
-              disabled={isSubmitting}
-            />
+            <Label>Internal Notes</Label>
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="w-full"
+              className="w-full h-10"
               onClick={() => setNotesDialogOpen(true)}
               disabled={isSubmitting}
             >
