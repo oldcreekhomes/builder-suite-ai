@@ -614,7 +614,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         <Card className="p-6">
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b pb-4 mb-6">
-                <h1 className="text-3xl font-bold">DEPOSIT</h1>
+                <h1 className="text-3xl font-bold">Make Deposits</h1>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Button
