@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 
 interface BillForPayment {
@@ -57,7 +61,7 @@ export function PayBillDialog({
   const isMultiple = billsArray.length > 1;
   const { accounts } = useAccounts();
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
-  const [paymentDate, setPaymentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [memo, setMemo] = useState<string>("");
   
   // For single bill, calculate remaining balance and allow partial payment
@@ -106,12 +110,12 @@ export function PayBillDialog({
     
     const billIds = billsArray.map(b => b.id);
     const amount = !isMultiple ? parseFloat(paymentAmount) : undefined;
-    onConfirm(billIds, paymentAccountId, paymentDate, memo || undefined, amount);
+    onConfirm(billIds, paymentAccountId, format(paymentDate, 'yyyy-MM-dd'), memo || undefined, amount);
   };
 
   const resetForm = () => {
     setPaymentAccountId("");
-    setPaymentDate(format(new Date(), 'yyyy-MM-dd'));
+    setPaymentDate(new Date());
     setMemo("");
     setPaymentAmount("");
     setPaymentAmountError("");
@@ -271,12 +275,29 @@ export function PayBillDialog({
 
             <div className="space-y-2">
               <Label htmlFor="payment-date">Payment Date *</Label>
-              <Input
-                id="payment-date"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(date) => date && setPaymentDate(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
