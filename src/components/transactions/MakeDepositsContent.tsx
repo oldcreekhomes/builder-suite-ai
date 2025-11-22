@@ -636,7 +636,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                             size="sm"
                             variant="outline"
                             disabled={currentEntryIndex >= sortedDeposits.length - 1 || sortedDeposits.length === 0}
-                            className="h-8 w-8 p-0"
+                            className="h-10 w-10 p-0"
                           >
                             <ChevronLeft className="h-4 w-4" />
                           </Button>
@@ -653,7 +653,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                             size="sm"
                             variant="outline"
                             disabled={currentEntryIndex <= 0 || sortedDeposits.length === 0}
-                            className="h-8 w-8 p-0"
+                            className="h-10 w-10 p-0"
                           >
                             <ChevronRight className="h-4 w-4" />
                           </Button>
@@ -703,7 +703,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                           variant="outline"
                           size="sm"
                           className={cn(
-                            "justify-start text-left font-normal",
+                            "justify-start text-left font-normal h-10 flex items-center",
                             !depositDate && "text-muted-foreground"
                           )}
                         >
@@ -825,7 +825,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                           updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
                         }}
                         placeholder="Select account..."
-                        className="h-8"
+                        className="h-10"
                       />
                     </div>
                     <div className="col-span-5">
@@ -833,7 +833,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         value={row.memo}
                         onChange={(e) => updateOtherRow(row.id, "memo", e.target.value)}
                         placeholder="Description..."
-                        className="h-8"
+                        className="h-10"
                       />
                     </div>
                     <div className="col-span-1">
@@ -843,7 +843,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         value={row.quantity || "1"}
                         onChange={(e) => updateOtherRow(row.id, "quantity", e.target.value)}
                         placeholder="1"
-                        className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
                     <div className="col-span-1">
@@ -855,7 +855,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                           value={row.amount}
                           onChange={(e) => updateOtherRow(row.id, "amount", e.target.value)}
                           placeholder="0.00"
-                          className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -870,7 +870,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         size="sm"
                         variant="destructive"
                         disabled={otherRows.length === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-10 w-10 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -907,7 +907,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                           updateRevenueRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
                         }}
                         placeholder="Select cost code..."
-                        className="h-8"
+                        className="h-10"
                       />
                     </div>
                     <div className="col-span-5">
@@ -915,7 +915,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         value={row.memo}
                         onChange={(e) => updateRevenueRow(row.id, "memo", e.target.value)}
                         placeholder="Description..."
-                        className="h-8"
+                        className="h-10"
                       />
                     </div>
                     <div className="col-span-1">
@@ -925,7 +925,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         value={row.quantity || "1"}
                         onChange={(e) => updateRevenueRow(row.id, "quantity", e.target.value)}
                         placeholder="1"
-                        className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
                     <div className="col-span-1">
@@ -937,7 +937,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                           value={row.amount}
                           onChange={(e) => updateRevenueRow(row.id, "amount", e.target.value)}
                           placeholder="0.00"
-                          className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -952,7 +952,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         size="sm"
                         variant="destructive"
                         disabled={revenueRows.length === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-10 w-10 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -968,13 +968,13 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   Total: ${getDisplayAmount()}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleClear} size="sm" className="h-8">
+                  <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
                     Clear
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8"
+                    className="h-10"
                     onClick={() => handleSave(true)}
                     disabled={createDeposit.isPending}
                   >
@@ -982,7 +982,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   </Button>
                   <Button
                     size="sm"
-                    className="h-8"
+                    className="h-10"
                     onClick={() => handleSave(false)}
                     disabled={createDeposit.isPending}
                   >
