@@ -594,7 +594,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           });
                         }}
                         placeholder="Select account..."
-                        className="h-8"
+                        className="h-10"
                       />
                     </div>
                     <div className="col-span-4">
@@ -602,7 +602,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         value={row.memo || ''}
                         onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
                         placeholder="Memo..."
-                        className="h-8"
+                        className="h-10"
                       />
                     </div>
                     <div className="col-span-2">
@@ -614,7 +614,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           value={row.amount}
                           onChange={(e) => updateExpenseRow(row.id, { amount: e.target.value })}
                           placeholder="0.00"
-                          className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -624,7 +624,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         size="sm"
                         variant="destructive"
                         disabled={expenseRows.length === 1}
-                        className="h-8 w-8 p-0"
+                        className="h-10 w-10 p-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -665,7 +665,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                             });
                           }}
                           placeholder="Select cost code..."
-                          className={cn("h-8", isInvalid && "ring-1 ring-destructive")}
+                          className={cn("h-10", isInvalid && "ring-1 ring-destructive")}
                         />
                         {isInvalid && (
                           <p className="text-xs text-destructive mt-1">
@@ -678,7 +678,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           value={row.memo || ''}
                           onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
                           placeholder="Memo..."
-                          className="h-8"
+                          className="h-10"
                         />
                       </div>
                       <div className="col-span-2">
@@ -690,7 +690,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                             value={row.amount}
                             onChange={(e) => updateJobCostRow(row.id, { amount: e.target.value })}
                             placeholder="0.00"
-                            className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
                       </div>
@@ -700,7 +700,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           size="sm"
                           variant="destructive"
                           disabled={jobCostRows.length === 1}
-                          className="h-8 w-8 p-0"
+                          className="h-10 w-10 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
