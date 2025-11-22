@@ -520,7 +520,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               />
             </div>
 
-            <div className="col-span-4">
+            <div className="col-span-5">
               <Label>Vendor</Label>
               <VendorSearchInput
                 value={vendor}
@@ -530,10 +530,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 }}
                 placeholder="Enter vendor name"
               />
-            </div>
-
-            <div className="col-span-1">
-              {/* Empty space for alignment */}
             </div>
 
             <div className="col-span-2">
@@ -546,26 +542,29 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 entityType="credit_card"
               />
             </div>
-          </div>
 
-          {/* Transaction Details Section */}
-          <Tabs defaultValue="expense" className="w-full space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg font-medium">Transaction Details</h3>
-                <TabsList className="grid grid-cols-2 w-auto">
-                  <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
-                  <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-                </TabsList>
-              </div>
+            <div className="col-span-2">
+              <Label>Action</Label>
               <Button 
                 onClick={addExpenseRow} 
                 size="sm" 
                 variant="outline"
+                className="w-full h-10"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Row
               </Button>
+            </div>
+          </div>
+
+          {/* Transaction Details Section */}
+          <Tabs defaultValue="expense" className="w-full space-y-4">
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-medium">Transaction Details</h3>
+              <TabsList className="grid grid-cols-2 w-auto">
+                <TabsTrigger value="expense">Chart of Accounts</TabsTrigger>
+                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+              </TabsList>
             </div>
 
             <TabsContent value="expense" className="space-y-4">
