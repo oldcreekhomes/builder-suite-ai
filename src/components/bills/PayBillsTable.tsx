@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
@@ -10,7 +10,9 @@ import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Check, ArrowUpDown, ArrowUp, ArrowDown, X } from "lucide-react";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, StickyNote } from "lucide-react";
+import { BillNotesDialog } from "./BillNotesDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -20,7 +22,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
 interface BillAttachment {
@@ -77,12 +78,56 @@ interface PayBillsTableProps {
 
 export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate }: PayBillsTableProps) {
   const { payBill, payMultipleBills, deleteBill } = useBills();
+  const queryClient = useQueryClient();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<'vendor' | 'bill_date' | 'due_date' | null>('bill_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
+  const [notesDialog, setNotesDialog] = useState<{
+    open: boolean;
+    billId: string;
+    billInfo?: {
+      vendor: string;
+      amount: number;
+    };
+    initialNotes: string;
+  }>({
+    open: false,
+    billId: '',
+    billInfo: undefined,
+    initialNotes: '',
+  });
+
+  const updateNotesMutation = useMutation({
+    mutationFn: async ({ billId, notes }: { billId: string; notes: string }) => {
+      const { error } = await supabase
+        .from('bills')
+        .update({ notes })
+        .eq('id', billId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      toast({
+        title: "Notes updated",
+        description: "Bill notes have been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update notes.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveNotes = (notes: string) => {
+    updateNotesMutation.mutate({ billId: notesDialog.billId, notes });
+  };
 
   const handleSort = (column: 'vendor' | 'bill_date' | 'due_date') => {
     if (sortColumn === column) {
@@ -666,6 +711,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -733,6 +779,37 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   <TableCell className="px-2 py-1 text-xs">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
+                  <TableCell className="px-2 py-1 text-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-muted"
+                            onClick={() => setNotesDialog({ 
+                              open: true, 
+                              billId: bill.id,
+                              billInfo: {
+                                vendor: bill.companies?.company_name || 'Unknown Vendor',
+                                amount: bill.total_amount
+                              },
+                              initialNotes: bill.notes || ''
+                            })}
+                          >
+                            {bill.notes?.trim() ? (
+                              <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Add</span>
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{bill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     <div className="flex items-center gap-2">
                       <Button
@@ -784,6 +861,19 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
         bills={selectedBill ? selectedBill : selectedBills}
         onConfirm={handleConfirmPayment}
         isLoading={payBill.isPending || payMultipleBills.isPending}
+      />
+
+      <BillNotesDialog
+        open={notesDialog.open}
+        onOpenChange={(open) => !open && setNotesDialog({ 
+          open: false, 
+          billId: '', 
+          billInfo: undefined, 
+          initialNotes: '' 
+        })}
+        billInfo={notesDialog.billInfo || { vendor: '', amount: 0 }}
+        initialValue={notesDialog.initialNotes}
+        onSave={handleSaveNotes}
       />
     </>
   );
