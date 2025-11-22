@@ -502,8 +502,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           </div>
 
           {/* Main Form Fields */}
-          <div className="border rounded-lg overflow-visible">
-            <div className="grid grid-cols-12 gap-2 p-3">
+          <div className="grid grid-cols-12 gap-2 p-3">
               <div className="col-span-5">
                 <Label>Credit Card Account</Label>
                 <AccountSearchInput
@@ -557,7 +556,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 </Button>
               </div>
             </div>
-          </div>
 
           {/* Transaction Details Section */}
           <Tabs defaultValue="expense" className="w-full space-y-4">
