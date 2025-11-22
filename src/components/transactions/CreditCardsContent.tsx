@@ -617,7 +617,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                         disabled={expenseRows.length === 1}
                         className="h-10 w-10 p-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-white" />
                       </Button>
                       <Button
                         type="button"
@@ -702,7 +702,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           disabled={jobCostRows.length === 1}
                           className="h-10 w-10 p-0"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-white" />
                         </Button>
                         <Button
                           type="button"
