@@ -9,7 +9,6 @@ export function PurchaseOrdersTableHeader() {
         <TableHead className="font-bold py-2 text-sm">PO Number</TableHead>
         <TableHead className="font-bold py-2 text-sm">Cost Code</TableHead>
         <TableHead className="font-bold py-2 text-sm">Company</TableHead>
-        <TableHead className="font-bold py-2 text-sm">Status</TableHead>
         <TableHead className="font-bold py-2 text-sm">Amount</TableHead>
         <TableHead className="font-bold py-2 text-sm">Notes</TableHead>
         <TableHead className="font-bold py-2 text-sm">Files</TableHead>

@@ -158,7 +158,6 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
                        key={item.id}
                        item={item}
                        onDelete={onDeleteItem}
-                       onUpdateStatus={handleUpdateStatus}
                        onUpdateNotes={handleUpdateNotes}
                        isSelected={selectedItems.has(item.id)}
                        onCheckboxChange={handleItemCheckboxChange}
