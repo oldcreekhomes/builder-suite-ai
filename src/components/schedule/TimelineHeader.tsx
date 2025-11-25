@@ -39,7 +39,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
   }
 
   return (
-    <div className="bg-background sticky top-0 z-20 h-12">
+    <div className="bg-background sticky top-0 z-20 flex flex-col h-12">
       {/* Month Row */}
       <div className="relative h-6 border-b border-border/50" style={{ width: timelineWidth }}>
         {months.map((month, index) => (
@@ -57,7 +57,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
       </div>
       
       {/* Day/Week Row */}
-      <div className="relative h-6 border-b border-border" style={{ width: timelineWidth }}>
+      <div className="relative flex-1 border-b" style={{ width: timelineWidth }}>
         {showWeekly ? (
           // Weekly view - show 4 weeks per month
           months.map((month, monthIndex) => {
