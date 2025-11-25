@@ -88,13 +88,19 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
 
   // Always show selected resources as plain text when not editing and has resources
   if (selectedResources.length > 0 && !isEditing) {
+    const additionalCount = selectedResources.length - 1;
     return (
       <span 
-        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs", className)}
+        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex items-center gap-1 whitespace-nowrap", className)}
         onClick={handleStartEdit}
-        title="Click to edit resources"
+        title={selectedResources.join(', ')}
       >
-        {selectedResources.join(', ')}
+        <span className="truncate max-w-[100px]">{selectedResources[0]}</span>
+        {additionalCount > 0 && (
+          <span className="bg-muted text-muted-foreground px-1 rounded text-[10px] flex-shrink-0 font-medium">
+            +{additionalCount}
+          </span>
+        )}
       </span>
     );
   }
