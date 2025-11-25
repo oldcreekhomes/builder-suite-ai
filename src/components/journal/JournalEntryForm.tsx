@@ -565,7 +565,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         </div>
 
         {/* Header Section Continued */}
-        <div className="flex items-center justify-between border-b pb-4 mb-6">
+        <div className="flex items-center justify-between mb-6">
           {/* Date Picker */}
           <div className="flex items-center gap-2">
               <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
