@@ -14,7 +14,7 @@ import { AccountSearchInputInline } from "@/components/AccountSearchInputInline"
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
@@ -619,6 +619,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-10"
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </Button>
+                    
                     <Button
                       onClick={createNewDeposit}
                       size="sm"
