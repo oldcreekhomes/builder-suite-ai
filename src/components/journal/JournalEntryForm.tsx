@@ -57,6 +57,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   const [viewedEntryId, setViewedEntryId] = useState<string | null>(null);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Attachments - local state management like Bills
   const [attachments, setAttachments] = useState<JournalEntryAttachment[]>([]);
@@ -561,10 +562,26 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
-            </div>
+          </div>
+        </div>
 
-            {/* Date Picker */}
-            <div className="flex items-center gap-2">
+        {/* Search Input Box - Same as Manage Bills */}
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search entries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {/* Header Section Continued */}
+        <div className="flex items-center justify-between border-b pb-4 mb-6">
+          {/* Date Picker */}
+          <div className="flex items-center gap-2">
               <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
               <Popover>
                 <PopoverTrigger asChild>
