@@ -84,7 +84,6 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
   // Search dialog state
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
@@ -833,18 +832,6 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               </div>
             </div>
 
-            {/* Search Input Box - Same as Manage Bills */}
-            <div className="mb-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search checks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
 
             {/* Main Form Fields - Matching Make Deposits Layout */}
             <div className="grid grid-cols-12 gap-2 p-3 !w-full">

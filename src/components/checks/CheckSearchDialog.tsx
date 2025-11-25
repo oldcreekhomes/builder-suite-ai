@@ -1,8 +1,10 @@
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -26,6 +28,22 @@ export function CheckSearchDialog({
   onCheckSelect,
   onDeleteCheck,
 }: CheckSearchDialogProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter checks based on search query
+  const filteredChecks = useMemo(() => {
+    if (!searchQuery.trim()) return checks;
+    
+    const query = searchQuery.toLowerCase();
+    return checks.filter(check => {
+      const dateStr = format(new Date(check.check_date + 'T00:00:00'), 'MM/dd/yyyy');
+      const payTo = (check.pay_to || '').toLowerCase();
+      const memo = (check.memo || '').toLowerCase();
+      
+      return dateStr.includes(query) || payTo.includes(query) || memo.includes(query);
+    });
+  }, [checks, searchQuery]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -37,7 +55,7 @@ export function CheckSearchDialog({
 
   const calculateRunningBalance = () => {
     let balance = 0;
-    return checks.map(check => {
+    return filteredChecks.map(check => {
       balance -= check.amount; // Checks decrease balance
       return { ...check, balance };
     });
@@ -76,6 +94,19 @@ export function CheckSearchDialog({
           <DialogTitle>Search Checks</DialogTitle>
         </DialogHeader>
         
+        {/* Search Input Box */}
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search checks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        
         <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="space-y-2 p-4">
@@ -100,7 +131,7 @@ export function CheckSearchDialog({
                 {checksWithBalance.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No checks found
+                      {searchQuery ? 'No checks match your search.' : 'No checks found'}
                     </TableCell>
                   </TableRow>
                 ) : (
