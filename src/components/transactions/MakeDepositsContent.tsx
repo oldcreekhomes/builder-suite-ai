@@ -27,6 +27,7 @@ import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { useDepositAttachments } from "@/hooks/useDepositAttachments";
 import { DepositAttachmentUpload, DepositAttachment } from "@/components/deposits/DepositAttachmentUpload";
+import { DepositSearchDialog } from "@/components/deposits/DepositSearchDialog";
 
 interface DepositRow {
   id: string;
@@ -62,6 +63,9 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   
   // Attachments state
   const [attachments, setAttachments] = useState<DepositAttachment[]>([]);
+  
+  // Search dialog state
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
@@ -255,6 +259,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     // Set rows with at least one empty row as default
     setRevenueRows(newRevenueRows.length > 0 ? newRevenueRows : [{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
     setOtherRows(newOtherRows.length > 0 ? newOtherRows : [{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+  };
+
+  const handleDepositSelect = (deposit: any) => {
+    // Find the index of the selected deposit in sortedDeposits
+    const index = sortedDeposits.findIndex(d => d.id === deposit.id);
+    if (index !== -1) {
+      setCurrentEntryIndex(index);
+      void loadDepositData(deposit);
+    }
   };
 
   const navigateToPrevious = () => {
@@ -623,6 +636,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       size="sm"
                       variant="outline"
                       className="h-10"
+                      onClick={() => setSearchDialogOpen(true)}
                     >
                       <Search className="h-4 w-4 mr-2" />
                       Search
@@ -1009,6 +1023,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           </div>
         </Card>
     </div>
+    
+    <DepositSearchDialog
+      open={searchDialogOpen}
+      onOpenChange={setSearchDialogOpen}
+      deposits={sortedDeposits}
+      isLoading={depositsLoading}
+      isDateLocked={isDateLocked}
+      onDepositSelect={handleDepositSelect}
+      onDeleteDeposit={async (depositId) => {
+        await deleteDeposit.mutateAsync(depositId);
+      }}
+    />
     </TooltipProvider>
   );
 }

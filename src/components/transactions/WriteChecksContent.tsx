@@ -26,6 +26,7 @@ import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { CheckAttachmentUpload, CheckAttachment } from "@/components/checks/CheckAttachmentUpload";
+import { CheckSearchDialog } from "@/components/checks/CheckSearchDialog";
 
 interface CheckRow {
   id: string;
@@ -80,6 +81,9 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
   // Attachments
   const [attachments, setAttachments] = useState<CheckAttachment[]>([]);
+
+  // Search dialog state
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
@@ -395,6 +399,15 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     ]);
   };
 
+  const handleCheckSelect = (check: any) => {
+    // Find the index of the selected check in filteredChecks
+    const index = filteredChecks.findIndex(c => c.id === check.id);
+    if (index !== -1) {
+      setCurrentEntryIndex(index);
+      loadCheckData(check);
+    }
+  };
+
   const handleDelete = async () => {
     if (!currentCheckId) return;
     
@@ -705,14 +718,15 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
               
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-10"
-                  >
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="h-10"
+                onClick={() => setSearchDialogOpen(true)}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
                   
                   <Button
                     onClick={createNewCheck}
@@ -1092,6 +1106,18 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           </div>
         </Card>
       </div>
+      
+      <CheckSearchDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+        checks={filteredChecks}
+        isLoading={checksLoading}
+        isDateLocked={isDateLocked}
+        onCheckSelect={handleCheckSelect}
+        onDeleteCheck={async (checkId) => {
+          await deleteCheck.mutateAsync(checkId);
+        }}
+      />
     </TooltipProvider>
   );
 }
