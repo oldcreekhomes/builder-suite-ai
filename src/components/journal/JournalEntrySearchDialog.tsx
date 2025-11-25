@@ -20,7 +20,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Check } from "lucide-react";
 
 interface JournalEntry {
   id: string;
@@ -89,7 +88,6 @@ export function JournalEntrySearchDialog({
                   <TableHead className="h-8 px-2 py-1">Description</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Total Debit</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Total Credit</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -118,13 +116,6 @@ export function JournalEntrySearchDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1 text-right">
                         ${formatAmount(totalCredit)}
-                      </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <div className="flex items-center justify-center">
-                          {entry.posted_at && (
-                            <Check className="h-4 w-4 text-green-600" />
-                          )}
-                        </div>
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
