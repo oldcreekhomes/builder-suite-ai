@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -565,31 +564,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                 
                 {/* Date Picker */}
                 <div className="flex items-center gap-2">
-                <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "justify-start text-left font-normal h-10 flex items-center",
-                        !entryDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {entryDate ? format(entryDate, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={entryDate}
-                      onSelect={(date) => date && setEntryDate(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                  <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+                  <DateInputPicker 
+                    date={entryDate} 
+                    onDateChange={setEntryDate}
+                  />
+                </div>
           </div>
         </div>
 

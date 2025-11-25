@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Search } from "lucide-react";
@@ -502,29 +501,10 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               {/* Date Picker */}
               <div className="flex items-center gap-2">
                 <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={cn(
-                        "justify-start text-left font-normal h-10 flex items-center",
-                        !transactionDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {transactionDate ? format(transactionDate, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={transactionDate}
-                      onSelect={(date) => date && setTransactionDate(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DateInputPicker 
+                  date={transactionDate} 
+                  onDateChange={setTransactionDate}
+                />
               </div>
             </div>
           </div>
