@@ -20,7 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Check } from "lucide-react";
+
 
 interface JournalEntry {
   id: string;
@@ -121,9 +121,7 @@ export function JournalEntrySearchDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {entry.posted_at && (
-                            <Check className="h-4 w-4 text-green-600" />
-                          )}
+                          {/* Journal entries don't have reconciliation - column kept for UI consistency */}
                         </div>
                       </TableCell>
                       <TableCell className="px-2 py-1">
