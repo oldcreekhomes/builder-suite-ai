@@ -5,8 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toDateLocal } from "@/utils/dateOnly";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -719,29 +718,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   
                   <div className="flex items-center gap-2">
                     <Label htmlFor="depositDate" className="text-sm whitespace-nowrap">Date:</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            "justify-start text-left font-normal h-10 flex items-center",
-                            !depositDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {depositDate ? format(depositDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                          mode="single"
-                          selected={depositDate}
-                          onSelect={(date) => date && setDepositDate(date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DateInputPicker 
+                      date={depositDate} 
+                      onDateChange={setDepositDate}
+                    />
                   </div>
                 </div>
               </div>
