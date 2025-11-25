@@ -87,13 +87,13 @@ export function CheckSearchDialog({
             <Table containerClassName="max-h-[calc(85vh-8rem)]">
               <TableHeader>
                 <TableRow className="h-8">
-                  <TableHead className="px-2 py-1 text-xs">Date</TableHead>
-                  <TableHead className="px-2 py-1 text-xs">Pay To</TableHead>
-                  <TableHead className="px-2 py-1 text-xs">Description</TableHead>
-                  <TableHead className="px-2 py-1 text-xs text-right">Amount</TableHead>
-                  <TableHead className="px-2 py-1 text-xs text-right">Balance</TableHead>
-                  <TableHead className="px-2 py-1 text-xs text-center">Cleared</TableHead>
-                  <TableHead className="px-2 py-1 text-xs text-center">Actions</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Pay To</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Amount</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Balance</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -154,6 +154,7 @@ export function CheckSearchDialog({
                                 size="sm"
                                 variant="ghost"
                                 showIcon={true}
+                                className="h-6 w-6 p-0"
                               />
                             )}
                           </div>
