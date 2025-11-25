@@ -561,38 +561,35 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
-          </div>
-        </div>
-
-        {/* Header Section Continued */}
-        <div className="flex items-center justify-between mb-6">
-          {/* Date Picker */}
-          <div className="flex items-center gap-2">
-              <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "justify-start text-left font-normal h-10 flex items-center",
-                      !entryDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {entryDate ? format(entryDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={entryDate}
-                    onSelect={(date) => date && setEntryDate(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+                </div>
+                
+                {/* Date Picker */}
+                <div className="flex items-center gap-2">
+                <Label htmlFor="date" className="text-sm whitespace-nowrap">Date:</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "justify-start text-left font-normal h-10 flex items-center",
+                        !entryDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {entryDate ? format(entryDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={entryDate}
+                      onSelect={(date) => date && setEntryDate(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
           </div>
         </div>
 
