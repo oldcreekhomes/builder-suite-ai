@@ -2,7 +2,6 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PurchaseOrdersTableRowActions } from './PurchaseOrdersTableRowActions';
-import { StatusSelector } from './StatusSelector';
 import { NotesEditor } from './NotesEditor';
 import { FilesCell } from './FilesCell';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
@@ -12,7 +11,6 @@ interface PurchaseOrdersTableRowContentProps {
   isSelected: boolean;
   isDeleting: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
-  onUpdateStatus: (itemId: string, status: string) => void;
   onUpdateNotes: (itemId: string, notes: string) => void;
   onDelete: (itemId: string) => void;
   onSendClick: () => void;
@@ -26,7 +24,6 @@ export function PurchaseOrdersTableRowContent({
   isSelected,
   isDeleting,
   onCheckboxChange,
-  onUpdateStatus,
   onUpdateNotes,
   onDelete,
   onSendClick,
@@ -63,13 +60,6 @@ export function PurchaseOrdersTableRowContent({
         <div className="text-sm font-medium">
           {item.companies?.company_name || 'N/A'}
         </div>
-      </TableCell>
-      
-      <TableCell className="py-1">
-        <StatusSelector
-          value={item.status}
-          onChange={(status) => onUpdateStatus(item.id, status)}
-        />
       </TableCell>
       
       <TableCell className="py-1">

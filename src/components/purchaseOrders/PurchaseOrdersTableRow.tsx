@@ -7,7 +7,6 @@ import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 interface PurchaseOrdersTableRowProps {
   item: PurchaseOrder;
   onDelete: (itemId: string) => void;
-  onUpdateStatus: (itemId: string, status: string) => void;
   onUpdateNotes: (itemId: string, notes: string) => void;
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
@@ -20,7 +19,6 @@ interface PurchaseOrdersTableRowProps {
 export function PurchaseOrdersTableRow({
   item,
   onDelete,
-  onUpdateStatus,
   onUpdateNotes,
   isSelected,
   onCheckboxChange,
@@ -39,7 +37,6 @@ export function PurchaseOrdersTableRow({
         isSelected={isSelected}
         isDeleting={isDeleting}
         onCheckboxChange={onCheckboxChange}
-        onUpdateStatus={onUpdateStatus}
         onUpdateNotes={onUpdateNotes}
         onDelete={onDelete}
         onSendClick={() => setShowSendModal(true)}
