@@ -92,13 +92,13 @@ export function CreditCardSearchDialog({
             <Table containerClassName="max-h-[calc(85vh-8rem)]">
               <TableHeader>
                 <TableRow className="h-8">
-                  <TableHead className="px-2 py-0.5 text-xs">Date</TableHead>
-                  <TableHead className="px-2 py-0.5 text-xs">Vendor</TableHead>
-                  <TableHead className="px-2 py-0.5 text-xs">Description</TableHead>
-                  <TableHead className="px-2 py-0.5 text-xs text-right">Amount</TableHead>
-                  <TableHead className="px-2 py-0.5 text-xs text-right">Balance</TableHead>
-                  <TableHead className="px-2 py-0.5 text-xs text-center">Cleared</TableHead>
-                  <TableHead className="px-2 py-0.5 text-xs text-center">Actions</TableHead>
+                  <TableHead className="px-2 py-1 text-xs">Date</TableHead>
+                  <TableHead className="px-2 py-1 text-xs">Vendor</TableHead>
+                  <TableHead className="px-2 py-1 text-xs">Description</TableHead>
+                  <TableHead className="px-2 py-1 text-xs text-right">Amount</TableHead>
+                  <TableHead className="px-2 py-1 text-xs text-right">Balance</TableHead>
+                  <TableHead className="px-2 py-1 text-xs text-center">Cleared</TableHead>
+                  <TableHead className="px-2 py-1 text-xs text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -122,23 +122,23 @@ export function CreditCardSearchDialog({
                           onOpenChange(false);
                         }}
                       >
-                        <TableCell className="px-2 py-0.5 text-xs">
+                        <TableCell className="px-2 py-1 text-xs">
                           {format(new Date(cc.transaction_date + 'T00:00:00'), 'MM/dd/yyyy')}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-xs">{cc.vendor}</TableCell>
-                        <TableCell className="px-2 py-0.5 text-xs">{cc.memo || ''}</TableCell>
-                        <TableCell className="px-2 py-0.5 text-xs text-right">
+                        <TableCell className="px-2 py-1 text-xs">{cc.vendor}</TableCell>
+                        <TableCell className="px-2 py-1 text-xs">{cc.memo || ''}</TableCell>
+                        <TableCell className="px-2 py-1 text-xs text-right">
                           {formatCurrency(-cc.amount)}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-xs text-right">
+                        <TableCell className="px-2 py-1 text-xs text-right">
                           {formatCurrency(cc.balance)}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-center">
+                        <TableCell className="px-2 py-1 text-center">
                           {isReconciled && (
                             <Check className="h-4 w-4 text-green-600 mx-auto" />
                           )}
                         </TableCell>
-                        <TableCell className="px-2 py-0.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="px-2 py-1 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
                             {isLocked ? (
                               <TooltipProvider>

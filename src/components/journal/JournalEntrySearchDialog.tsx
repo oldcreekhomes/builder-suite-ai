@@ -82,15 +82,15 @@ export function JournalEntrySearchDialog({
               No journal entries found for this project.
             </div>
           ) : (
-            <Table className="text-xs">
+            <Table>
               <TableHeader>
                 <TableRow className="h-8">
-                  <TableHead className="h-8 px-2 py-1">Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Total Debit</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Total Credit</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Total Debit</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Total Credit</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -107,24 +107,24 @@ export function JournalEntrySearchDialog({
                       className="h-8 cursor-pointer hover:bg-muted/50"
                       onClick={() => onSelectEntry(entry)}
                     >
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 text-xs">
                         {format(new Date(entry.entry_date), 'MM/dd/yyyy')}
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 text-xs">
                         {entry.description || '-'}
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-right">
+                      <TableCell className="px-2 py-1 text-xs text-right">
                         ${formatAmount(totalDebit)}
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-right">
+                      <TableCell className="px-2 py-1 text-xs text-right">
                         ${formatAmount(totalCredit)}
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 text-xs">
                         <div className="flex items-center justify-center">
                           {/* Journal entries don't have reconciliation - column kept for UI consistency */}
                         </div>
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 text-xs">
                         <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                           {isLocked ? (
                             <TooltipProvider>
