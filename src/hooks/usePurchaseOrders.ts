@@ -53,9 +53,9 @@ export const usePurchaseOrders = (projectId: string, lotId?: string | null) => {
         .select('*, po_number')
         .eq('project_id', projectId);
       
-      // Filter by lot_id if provided
+      // Filter by lot_id if provided (include POs with no lot assigned)
       if (lotId) {
-        query = query.eq('lot_id', lotId);
+        query = query.or(`lot_id.eq.${lotId},lot_id.is.null`);
       }
       
       const { data: pos, error: posError } = await query.order('updated_at', { ascending: false });
