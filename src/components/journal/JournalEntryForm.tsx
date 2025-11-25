@@ -14,7 +14,7 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
@@ -473,18 +473,27 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             <h1 className="text-3xl font-bold">JOURNAL ENTRY</h1>
           </div>
           
-          <div className="flex items-center gap-4">
-            {/* Navigation Controls */}
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={createNewEntry} 
-                size="sm" 
-                variant="outline"
-                className="h-10"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New
-              </Button>
+            <div className="flex items-center gap-4">
+              {/* Navigation Controls */}
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-10"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </Button>
+                
+                <Button
+                  onClick={createNewEntry}
+                  size="sm"
+                  variant="outline"
+                  className="h-10"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New
+                </Button>
               
               <Tooltip>
                 <TooltipTrigger asChild>
