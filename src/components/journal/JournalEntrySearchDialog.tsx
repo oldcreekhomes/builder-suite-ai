@@ -13,13 +13,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Check } from "lucide-react";
 
 interface JournalEntry {
   id: string;
   entry_date: string;
   description: string | null;
+  posted_at?: string | null;
+  reversed_at?: string | null;
   lines?: Array<{
     debit: number;
     credit: number;
@@ -31,6 +39,8 @@ interface JournalEntrySearchDialogProps {
   onOpenChange: (open: boolean) => void;
   entries: JournalEntry[];
   onSelectEntry: (entry: JournalEntry) => void;
+  onDeleteEntry: (entry: JournalEntry) => void;
+  isDateLocked: (date: string) => boolean;
   projectId?: string;
 }
 
@@ -39,6 +49,8 @@ export function JournalEntrySearchDialog({
   onOpenChange,
   entries,
   onSelectEntry,
+  onDeleteEntry,
+  isDateLocked,
   projectId,
 }: JournalEntrySearchDialogProps) {
   // Calculate totals for each entry
@@ -77,12 +89,18 @@ export function JournalEntrySearchDialog({
                   <TableHead className="h-8 px-2 py-1">Description</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Total Debit</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Total Credit</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {entries.map((entry) => {
                   const { totalDebit, totalCredit } = getEntryTotals(entry);
+                  const isLocked = isDateLocked(entry.entry_date) || !!entry.reversed_at;
+                  const lockReason = entry.reversed_at 
+                    ? "This entry has been reversed and cannot be deleted"
+                    : "This entry is in a closed accounting period and cannot be deleted";
+                  
                   return (
                     <TableRow 
                       key={entry.id} 
@@ -103,17 +121,34 @@ export function JournalEntrySearchDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectEntry(entry);
-                            }}
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
+                          {entry.posted_at && (
+                            <Check className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                          {isLocked ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-not-allowed text-base">🔒</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">{lockReason}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <DeleteButton
+                              onDelete={() => onDeleteEntry(entry)}
+                              title="Delete Journal Entry"
+                              description="Are you sure you want to delete this journal entry? This action cannot be undone."
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                            />
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

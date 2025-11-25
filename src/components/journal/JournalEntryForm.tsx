@@ -927,6 +927,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         loadJournalEntry(entry);
         setSearchDialogOpen(false);
       }}
+      onDeleteEntry={(entry) => {
+        deleteManualJournalEntry.mutate(entry.id, {
+          onSuccess: () => {
+            setSearchDialogOpen(false);
+          }
+        });
+      }}
+      isDateLocked={isDateLocked}
       projectId={projectId}
     />
     </TooltipProvider>
