@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { JournalEntryAttachmentUpload, JournalEntryAttachment } from "@/components/journal/JournalEntryAttachmentUpload";
+import { JournalEntrySearchDialog } from "@/components/journal/JournalEntrySearchDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 interface JournalLine {
@@ -55,6 +56,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [viewedEntryId, setViewedEntryId] = useState<string | null>(null);
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   
   // Attachments - local state management like Bills
   const [attachments, setAttachments] = useState<JournalEntryAttachment[]>([]);
@@ -480,6 +482,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   size="sm"
                   variant="outline"
                   className="h-10"
+                  onClick={() => setSearchDialogOpen(true)}
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Search
@@ -913,6 +916,19 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         </div>
       </CardContent>
     </Card>
+
+    <JournalEntrySearchDialog
+      open={searchDialogOpen}
+      onOpenChange={setSearchDialogOpen}
+      entries={filteredEntries}
+      onSelectEntry={(entry) => {
+        const entryIndex = filteredEntries.findIndex(e => e.id === entry.id);
+        setCurrentEntryIndex(entryIndex);
+        loadJournalEntry(entry);
+        setSearchDialogOpen(false);
+      }}
+      projectId={projectId}
+    />
     </TooltipProvider>
   );
 };
