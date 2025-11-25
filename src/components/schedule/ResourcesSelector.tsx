@@ -3,6 +3,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Check, ChevronsUpDown, X, Users, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjectResources } from "@/hooks/useProjectResources";
@@ -90,18 +91,30 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   if (selectedResources.length > 0 && !isEditing) {
     const additionalCount = selectedResources.length - 1;
     return (
-      <span 
-        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex items-center gap-1 whitespace-nowrap", className)}
-        onClick={handleStartEdit}
-        title={selectedResources.join(', ')}
-      >
-        <span className="truncate max-w-[100px]">{selectedResources[0]}</span>
-        {additionalCount > 0 && (
-          <span className="bg-muted text-muted-foreground px-1 rounded text-[10px] flex-shrink-0 font-medium">
-            +{additionalCount}
-          </span>
-        )}
-      </span>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span 
+              className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex items-center gap-1 whitespace-nowrap", className)}
+              onClick={handleStartEdit}
+            >
+              <span className="truncate max-w-[100px]">{selectedResources[0]}</span>
+              {additionalCount > 0 && (
+                <span className="bg-muted text-muted-foreground px-1 rounded text-[10px] flex-shrink-0 font-medium">
+                  +{additionalCount}
+                </span>
+              )}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="flex flex-col gap-1">
+              {selectedResources.map((resource, index) => (
+                <span key={index}>{resource}</span>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
