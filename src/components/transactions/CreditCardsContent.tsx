@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
+import { CreditCardSearchDialog } from "@/components/creditcards/CreditCardSearchDialog";
 
 interface CreditCardRow {
   id: string;
@@ -64,6 +65,9 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentCreditCardId, setCurrentCreditCardId] = useState<string | null>(null);
+
+  // Search dialog state
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
   // Attachments
   const { 
@@ -366,6 +370,13 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setJobCostRows(jobCostLines.length > 0 ? jobCostLines : [{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
   };
 
+  const handleCreditCardSelect = (creditCard: any) => {
+    const index = creditCards.findIndex(cc => cc.id === creditCard.id);
+    if (index !== -1) {
+      navigateToTransaction(index);
+    }
+  };
+
   return (
     <Card className="p-6">
       <TooltipProvider>
@@ -407,6 +418,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   size="sm" 
                   variant="outline"
                   className="h-10"
+                  onClick={() => setSearchDialogOpen(true)}
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Search
@@ -817,6 +829,18 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </div>
           </div>
         </div>
+        
+        <CreditCardSearchDialog
+          open={searchDialogOpen}
+          onOpenChange={setSearchDialogOpen}
+          creditCards={creditCards}
+          isLoading={false}
+          isDateLocked={isDateLocked}
+          onCreditCardSelect={handleCreditCardSelect}
+          onDeleteCreditCard={async (creditCardId) => {
+            await deleteCreditCard.mutateAsync(creditCardId);
+          }}
+        />
       </TooltipProvider>
     </Card>
   );
