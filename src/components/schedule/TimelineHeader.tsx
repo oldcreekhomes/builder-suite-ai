@@ -39,7 +39,7 @@ export function TimelineHeader({ startDate, endDate, dayWidth, timelineWidth }: 
   }
 
   return (
-    <div className="bg-background sticky top-0 z-20 flex flex-col shadow-sm">
+    <div className="bg-background sticky top-0 z-20 flex flex-col h-12 shadow-sm">
       {/* Month Row */}
       <div className="relative h-6 border-b border-border/50" style={{ width: timelineWidth }}>
         {months.map((month, index) => (
