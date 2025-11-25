@@ -1,8 +1,10 @@
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -26,6 +28,22 @@ export function CreditCardSearchDialog({
   onCreditCardSelect,
   onDeleteCreditCard,
 }: CreditCardSearchDialogProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter credit cards based on search query
+  const filteredCreditCards = useMemo(() => {
+    if (!searchQuery.trim()) return creditCards;
+    
+    const query = searchQuery.toLowerCase();
+    return creditCards.filter(cc => {
+      const dateStr = format(new Date(cc.transaction_date + 'T00:00:00'), 'MM/dd/yyyy');
+      const vendor = (cc.vendor || '').toLowerCase();
+      const memo = (cc.memo || '').toLowerCase();
+      
+      return dateStr.includes(query) || vendor.includes(query) || memo.includes(query);
+    });
+  }, [creditCards, searchQuery]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -37,7 +55,7 @@ export function CreditCardSearchDialog({
 
   const calculateRunningBalance = () => {
     let balance = 0;
-    return creditCards.map(cc => {
+    return filteredCreditCards.map(cc => {
       // Purchases increase balance (credit card liability), refunds decrease it
       if (cc.transaction_type === 'purchase') {
         balance += cc.amount;
@@ -81,6 +99,19 @@ export function CreditCardSearchDialog({
           <DialogTitle>Search Credit Card Transactions</DialogTitle>
         </DialogHeader>
         
+        {/* Search Input Box */}
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search transactions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        
         <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="space-y-2 p-4">
@@ -105,7 +136,7 @@ export function CreditCardSearchDialog({
                 {creditCardsWithBalance.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No credit card transactions found
+                      {searchQuery ? 'No credit card transactions match your search.' : 'No credit card transactions found'}
                     </TableCell>
                   </TableRow>
                 ) : (

@@ -1,8 +1,10 @@
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteButton } from "@/components/ui/delete-button";
-import { Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -26,6 +28,21 @@ export function DepositSearchDialog({
   onDepositSelect,
   onDeleteDeposit,
 }: DepositSearchDialogProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter deposits based on search query
+  const filteredDeposits = useMemo(() => {
+    if (!searchQuery.trim()) return deposits;
+    
+    const query = searchQuery.toLowerCase();
+    return deposits.filter(deposit => {
+      const dateStr = format(new Date(deposit.deposit_date + 'T00:00:00'), 'MM/dd/yyyy');
+      const memo = (deposit.memo || '').toLowerCase();
+      
+      return dateStr.includes(query) || memo.includes(query);
+    });
+  }, [deposits, searchQuery]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -37,7 +54,7 @@ export function DepositSearchDialog({
 
   const calculateRunningBalance = () => {
     let balance = 0;
-    return deposits.map(deposit => {
+    return filteredDeposits.map(deposit => {
       balance += deposit.amount; // Deposits increase balance
       return { ...deposit, balance };
     });
@@ -76,6 +93,19 @@ export function DepositSearchDialog({
           <DialogTitle>Search Deposits</DialogTitle>
         </DialogHeader>
         
+        {/* Search Input Box */}
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search deposits..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        
         <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="space-y-2 p-4">
@@ -100,7 +130,7 @@ export function DepositSearchDialog({
                 {depositsWithBalance.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No deposits found
+                      {searchQuery ? 'No deposits match your search.' : 'No deposits found'}
                     </TableCell>
                   </TableRow>
                 ) : (

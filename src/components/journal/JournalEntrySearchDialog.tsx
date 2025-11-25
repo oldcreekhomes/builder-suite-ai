@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -5,6 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -53,6 +56,21 @@ export function JournalEntrySearchDialog({
   isDateLocked,
   projectId,
 }: JournalEntrySearchDialogProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter entries based on search query
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery.trim()) return entries;
+    
+    const query = searchQuery.toLowerCase();
+    return entries.filter(entry => {
+      const dateStr = format(new Date(entry.entry_date), 'MM/dd/yyyy');
+      const description = (entry.description || '').toLowerCase();
+      
+      return dateStr.includes(query) || description.includes(query);
+    });
+  }, [entries, searchQuery]);
+
   // Calculate totals for each entry
   const getEntryTotals = (entry: JournalEntry) => {
     const totalDebit = entry.lines?.reduce((sum, line) => sum + (line.debit || 0), 0) || 0;
@@ -76,10 +94,23 @@ export function JournalEntrySearchDialog({
           </DialogTitle>
         </DialogHeader>
         
+        {/* Search Input Box */}
+        <div className="mb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search entries..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        
         <div className="space-y-4">
-          {entries.length === 0 ? (
+          {filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No journal entries found for this project.
+              {searchQuery ? 'No journal entries match your search.' : 'No journal entries found for this project.'}
             </div>
           ) : (
             <Table>
@@ -94,7 +125,7 @@ export function JournalEntrySearchDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {entries.map((entry) => {
+                {filteredEntries.map((entry) => {
                   const { totalDebit, totalCredit } = getEntryTotals(entry);
                   const isLocked = isDateLocked(entry.entry_date) || !!entry.reversed_at;
                   const lockReason = entry.reversed_at 
