@@ -66,6 +66,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   
   // Search dialog state
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [companyName, setCompanyName] = useState<string>("Your Company Name");
   const [companyAddress, setCompanyAddress] = useState<string>("123 Business Street");
@@ -745,6 +746,19 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   </div>
                 </div>
               </div>
+
+            {/* Search Input Box - Same as Manage Bills */}
+            <div className="mb-4">
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search deposits..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
 
           <div className="grid grid-cols-12 gap-2 p-3 !w-full">
             <div className="col-span-3">
