@@ -29,6 +29,8 @@ interface TaskTableProps {
   onBulkDelete: () => void;
   onMoveUp: (taskId: string) => void;
   onMoveDown: (taskId: string) => void;
+  scrollRef?: React.RefObject<HTMLDivElement>;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
 }
 
 export function TaskTable({ 
@@ -46,7 +48,9 @@ export function TaskTable({
   onDeleteTask,
   onBulkDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  scrollRef,
+  onScroll
 }: TaskTableProps) {
 
   // Enhanced onTaskUpdate that also updates parent tasks
@@ -158,7 +162,11 @@ export function TaskTable({
 
   return (
     <div className="h-full">
-      <Table containerClassName="relative w-full h-full overflow-auto">
+      <Table 
+        containerClassName="relative w-full h-full overflow-auto"
+        containerRef={scrollRef}
+        onContainerScroll={onScroll}
+      >
         <TableHeader>
           <TableRow className="h-8">
             <TableHead className="sticky top-0 z-30 bg-background w-10 text-xs py-1 px-2">

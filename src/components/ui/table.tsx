@@ -7,9 +7,15 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement> & {
     containerClassName?: string;
+    containerRef?: React.RefObject<HTMLDivElement>;
+    onContainerScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
   }
->(({ className, containerClassName, ...props }, ref) => (
-  <div className={containerClassName || "relative w-full overflow-auto max-h-[70vh]"}>
+>(({ className, containerClassName, containerRef, onContainerScroll, ...props }, ref) => (
+  <div 
+    ref={containerRef}
+    className={containerClassName || "relative w-full overflow-auto max-h-[70vh]"}
+    onScroll={onContainerScroll}
+  >
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
