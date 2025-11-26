@@ -508,7 +508,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className={`text-xs ${isTaskOverdue(task.end_date, task.progress) ? "text-red-600 font-semibold" : ""}`}
+                      className="text-xs"
                     />
                   </TableCell>
 
@@ -539,7 +539,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className="text-xs"
+                      className={`text-xs ${isTaskOverdue(task.end_date, task.progress) ? "text-red-600 font-semibold" : ""}`}
                     />
                   </TableCell>
 
