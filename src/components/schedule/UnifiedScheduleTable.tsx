@@ -337,14 +337,15 @@ export function UnifiedScheduleTable({
   };
 
   return (
-    <Table 
-      containerClassName="relative w-full overflow-auto h-[calc(100vh-200px)]"
-      containerRef={scrollContainerRef}
+    <div 
+      ref={scrollContainerRef}
+      className="h-full overflow-auto"
     >
-        <TableHeader>
+      <Table>
+        <TableHeader className="z-50">
           <TableRow className="h-8">
             {/* Sticky Task Data Columns */}
-            <TableHead className="sticky left-0 top-0 z-50 bg-background w-10 h-8 text-xs py-1 px-2 border-r">
+            <TableHead className="sticky left-0 z-40 bg-background w-10 h-8 text-xs py-1 px-2 border-r">
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
@@ -352,14 +353,14 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead className="sticky left-10 top-0 z-50 bg-background w-20 h-8 text-xs py-1 px-2 border-r">#</TableHead>
-            <TableHead className="sticky left-30 top-0 z-50 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
-            <TableHead className="sticky left-78 top-0 z-50 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
-            <TableHead className="sticky left-102 top-0 z-50 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
-            <TableHead className="sticky left-122 top-0 z-50 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">End Date</TableHead>
-            <TableHead className="sticky left-146 top-0 z-50 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
-            <TableHead className="sticky left-170 top-0 z-50 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
-            <TableHead className="sticky left-190 top-0 z-50 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
+            <TableHead className="sticky left-10 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">#</TableHead>
+            <TableHead className="sticky left-30 z-40 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
+            <TableHead className="sticky left-78 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
+            <TableHead className="sticky left-102 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
+            <TableHead className="sticky left-122 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">End Date</TableHead>
+            <TableHead className="sticky left-146 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
+            <TableHead className="sticky left-170 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
+            <TableHead className="sticky left-190 z-40 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
             
             {/* Timeline Header */}
             <TableHead className="sticky top-0 z-40 h-8 p-0" style={{ width: timelineWidth }}>
@@ -673,5 +674,6 @@ export function UnifiedScheduleTable({
           })}
         </TableBody>
       </Table>
+    </div>
   );
 }
