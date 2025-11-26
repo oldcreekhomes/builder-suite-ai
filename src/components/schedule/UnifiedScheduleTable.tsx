@@ -28,7 +28,8 @@ import {
   today,
   getMonthName,
   getDayOfMonth,
-  formatYMD
+  formatYMD,
+  formatDisplayDateFull
 } from "@/utils/dateOnly";
 
 interface UnifiedScheduleTableProps {
@@ -487,6 +488,7 @@ export function UnifiedScheduleTable({
                           handleTaskUpdate(task.id, { start_date: value });
                         }
                       }}
+                      displayFormat={(val) => formatDisplayDateFull(val as string)}
                       className="text-xs"
                     />
                   </TableCell>
@@ -517,6 +519,7 @@ export function UnifiedScheduleTable({
                           handleTaskUpdate(task.id, { end_date: value });
                         }
                       }}
+                      displayFormat={(val) => formatDisplayDateFull(val as string)}
                       className="text-xs"
                     />
                   </TableCell>
