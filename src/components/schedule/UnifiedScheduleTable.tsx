@@ -357,7 +357,7 @@ export function UnifiedScheduleTable({
                   ))}
                 </div>
                 
-                <div className="relative h-4 border-b border-border">
+              <div className="relative h-4">
                   {showWeekly ? (
                     months.flatMap((month, monthIndex) => {
                       const weekWidth = month.width / 4;
