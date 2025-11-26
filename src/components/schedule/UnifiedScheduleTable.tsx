@@ -341,7 +341,6 @@ export function UnifiedScheduleTable({
             <TableHead className="sticky left-142 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
             <TableHead className="sticky left-166 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
             <TableHead className="sticky left-186 z-40 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
-            <TableHead className="sticky left-218 z-40 bg-background w-8 h-8 text-xs py-1 px-2 border-r"></TableHead>
             
             {/* Timeline Header */}
             <TableHead className="h-8 p-0" style={{ width: timelineWidth }}>
@@ -549,11 +548,6 @@ export function UnifiedScheduleTable({
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
                     />
-                  </TableCell>
-
-                  {/* Actions */}
-                  <TableCell className="sticky left-218 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
-                    {/* Empty - context menu handles actions */}
                   </TableCell>
                   
                   {/* Timeline Cell */}
