@@ -343,7 +343,7 @@ export function UnifiedScheduleTable({
     >
       <Table>
         <TableHeader>
-          <TableRow className="h-8">
+          <TableRow className="sticky top-0 z-50 h-8 bg-background">
             {/* Sticky Task Data Columns */}
             <TableHead className="sticky left-0 z-40 bg-background w-10 h-8 text-xs py-1 px-2 border-r">
               <Checkbox
