@@ -353,14 +353,14 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead className="sticky left-10 z-40 bg-background w-16 h-8 text-xs py-1 px-2 border-r">#</TableHead>
-            <TableHead className="sticky left-26 z-40 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
-            <TableHead className="sticky left-74 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
-            <TableHead className="sticky left-98 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
-            <TableHead className="sticky left-118 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">End Date</TableHead>
-            <TableHead className="sticky left-142 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
-            <TableHead className="sticky left-166 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
-            <TableHead className="sticky left-186 z-40 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
+            <TableHead className="sticky left-10 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">#</TableHead>
+            <TableHead className="sticky left-30 z-40 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
+            <TableHead className="sticky left-78 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
+            <TableHead className="sticky left-102 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
+            <TableHead className="sticky left-122 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">End Date</TableHead>
+            <TableHead className="sticky left-146 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
+            <TableHead className="sticky left-170 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
+            <TableHead className="sticky left-190 z-40 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
             
             {/* Timeline Header */}
             <TableHead className="h-8 p-0" style={{ width: timelineWidth }}>
@@ -461,12 +461,12 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="sticky left-10 z-30 bg-background text-xs py-1 px-1 w-16 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-10 z-30 bg-background text-xs py-1 px-2 w-20 h-8 overflow-hidden border-r">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </TableCell>
 
                   {/* Task Name with Indentation */}
-                  <TableCell className="sticky left-26 z-30 bg-background py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-30 z-30 bg-background py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r">
                     <div className="flex items-center">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
@@ -492,7 +492,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Start Date */}
-                  <TableCell className="sticky left-74 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-78 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -513,7 +513,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Duration */}
-                  <TableCell className="sticky left-98 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-102 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
@@ -523,7 +523,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* End Date */}
-                  <TableCell className="sticky left-118 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-122 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -544,7 +544,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Predecessors */}
-                  <TableCell className="sticky left-142 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-146 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
@@ -554,7 +554,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Progress */}
-                  <TableCell className="sticky left-166 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-170 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
@@ -563,7 +563,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Resources */}
-                  <TableCell className="sticky left-186 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-190 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
