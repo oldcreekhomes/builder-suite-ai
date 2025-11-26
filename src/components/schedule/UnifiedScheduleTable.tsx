@@ -337,11 +337,10 @@ export function UnifiedScheduleTable({
   };
 
   return (
-    <div 
-      ref={scrollContainerRef}
-      className="h-full overflow-auto"
+    <Table 
+      containerClassName="relative w-full overflow-auto h-[calc(100vh-200px)]"
+      containerRef={scrollContainerRef}
     >
-      <Table>
         <TableHeader>
           <TableRow className="h-8">
             {/* Sticky Task Data Columns */}
@@ -674,6 +673,5 @@ export function UnifiedScheduleTable({
           })}
         </TableBody>
       </Table>
-    </div>
   );
 }
