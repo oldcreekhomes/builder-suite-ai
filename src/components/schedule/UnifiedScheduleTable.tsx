@@ -574,33 +574,37 @@ export function UnifiedScheduleTable({
                   
                   {/* Timeline Cell */}
                   <TableCell className="p-0 h-8 relative" style={{ width: timelineWidth }}>
-                    {/* Vertical Grid Lines - CSS Grid Layout */}
+                    {/* Vertical Grid Lines - Matching Header Pattern */}
                     <div 
                       className="absolute top-0 left-0 h-full pointer-events-none"
-                      style={{
-                        width: timelineWidth,
-                        display: 'grid',
-                        gridTemplateColumns: showWeekly 
-                          ? `repeat(${months.reduce((sum, m) => sum + 5, 0)}, ${dayWidth * 7}px)`
-                          : `repeat(${safeTotalDays}, ${dayWidth}px)`
-                      }}
+                      style={{ width: timelineWidth }}
                     >
                       {showWeekly ? (
-                        months.flatMap(month => 
-                          [0, 1, 2, 3, 4].map(weekNum => (
+                        months.flatMap((month, monthIndex) => {
+                          const weekWidth = month.width / 4;
+                          return [0, 1, 2, 3].map(weekNum => (
                             <div
-                              key={`${month.name}-week-${weekNum}`}
-                              className="h-full border-r border-border/30"
+                              key={`${monthIndex}-week-${weekNum}`}
+                              className="absolute top-0 h-full border-r border-border/30 bg-transparent"
+                              style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
                             />
-                          ))
-                        )
+                          ));
+                        })
                       ) : (
-                        Array.from({ length: safeTotalDays }, (_, i) => (
-                          <div
-                            key={i}
-                            className="h-full border-r border-border/30"
-                          />
-                        ))
+                        Array.from({ length: safeTotalDays }, (_, i) => {
+                          const dayDate = addDays(startDate, i);
+                          const isWeekend = !isBusinessDay(dayDate);
+                          
+                          return (
+                            <div
+                              key={i}
+                              className={`absolute top-0 h-full border-r border-border/30 ${
+                                isWeekend ? "bg-blue-50/50" : ""
+                              }`}
+                              style={{ left: i * dayWidth, width: dayWidth }}
+                            />
+                          );
+                        })
                       )}
                     </div>
                     
