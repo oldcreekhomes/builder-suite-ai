@@ -9,8 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, getBusinessDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
-import { TaskTable } from "./TaskTable";
-import { Timeline } from "./Timeline";
+import { UnifiedScheduleTable } from "./UnifiedScheduleTable";
 import { AddTaskDialog } from "./AddTaskDialog";
 import { PublishScheduleDialog } from "./PublishScheduleDialog";
 import { ScheduleToolbar } from "./ScheduleToolbar";
@@ -288,10 +287,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
   
-  // Scroll synchronization refs
-  const taskTableScrollRef = useRef<HTMLDivElement>(null);
-  const timelineScrollRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
   
   // Performance optimization states
   const [isCalculating, setIsCalculating] = useState(false);
@@ -301,24 +296,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { triggerParentRecalculation, clearCalculationCache } = useOptimizedTaskCalculations(projectId);
   useOptimizedRealtime(projectId);
 
-  // Scroll synchronization handlers
-  const handleTaskTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isScrollingRef.current) return;
-    isScrollingRef.current = true;
-    if (timelineScrollRef.current) {
-      timelineScrollRef.current.scrollTop = e.currentTarget.scrollTop;
-    }
-    requestAnimationFrame(() => { isScrollingRef.current = false; });
-  };
-
-  const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isScrollingRef.current) return;
-    isScrollingRef.current = true;
-    if (taskTableScrollRef.current) {
-      taskTableScrollRef.current.scrollTop = e.currentTarget.scrollTop;
-    }
-    requestAnimationFrame(() => { isScrollingRef.current = false; });
-  };
 
   // Helper function to calculate end date from start date + duration
 
@@ -1608,10 +1585,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onZoomOut={handleZoomOut}
         />
         
-        <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
-          {/* Left Side - Task Table */}
-          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-        <TaskTable
+        <UnifiedScheduleTable
           tasks={tasks}
           visibleTasks={visibleTasks}
           expandedTasks={expandedTasks}
@@ -1627,27 +1601,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onBulkDelete={handleBulkDelete}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
-          scrollRef={taskTableScrollRef}
-          onScroll={handleTaskTableScroll}
+          startDate={timelineStart}
+          endDate={timelineEnd}
+          dayWidth={dayWidth}
         />
-          </ResizablePanel>
-
-          {/* Resizable Handle */}
-          <ResizableHandle withHandle />
-
-          {/* Right Side - Timeline */}
-          <ResizablePanel defaultSize={50} minSize={30} maxSize={70}>
-            <Timeline
-              tasks={visibleTasks}
-              startDate={timelineStart}
-              endDate={timelineEnd}
-              onTaskUpdate={handleTaskUpdate}
-              dayWidth={dayWidth}
-              scrollRef={timelineScrollRef}
-              onScroll={handleTimelineScroll}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
       </div>
 
       {/* DISABLED: AddTaskDialog during refactoring - using simple add instead */}
