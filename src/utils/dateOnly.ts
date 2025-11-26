@@ -165,6 +165,15 @@ export const formatDisplayDate = (dateStr: DateString): string => {
 };
 
 /**
+ * Format date string for display with full year (MM/DD/YYYY)
+ */
+export const formatDisplayDateFull = (dateStr: DateString): string => {
+  if (!dateStr) return '';
+  const { year, month, day } = parseDateString(dateStr);
+  return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
+};
+
+/**
  * Get month name from date string
  */
 export const getMonthName = (dateStr: DateString, format: 'short' | 'long' = 'short'): string => {
