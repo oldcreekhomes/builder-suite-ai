@@ -284,7 +284,7 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 4
         </svg>
 
         {/* Task Bars - Now properly aligned */}
-        <div className="relative" style={{ marginTop: 17 }}>
+        <div className="relative">
           {visibleTasks.map((task, index) => {
             const position = getTaskPosition(task);
             return (

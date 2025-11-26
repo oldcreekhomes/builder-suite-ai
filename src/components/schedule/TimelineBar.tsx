@@ -55,7 +55,7 @@ export function TimelineBar({ task, position, rowIndex, rowHeight, onTaskUpdate 
     <div
       className="absolute"
       style={{
-        top: rowIndex * rowHeight,
+        top: rowIndex * rowHeight - 17,
         height: rowHeight,
         width: "100%"
       }}
