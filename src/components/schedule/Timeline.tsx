@@ -18,9 +18,11 @@ interface TimelineProps {
   endDate: DateString;
   onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => void;
   dayWidth?: number;
+  scrollRef?: React.RefObject<HTMLDivElement>;
+  onScroll?: (e: React.UIEvent<HTMLDivElement>) => void;
 }
 
-export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 40 }: TimelineProps) {
+export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 40, scrollRef, onScroll }: TimelineProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Calculate timeline width with hard limits for performance
@@ -170,7 +172,11 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 4
   const connections = generateDependencyConnections();
 
   return (
-    <div ref={scrollContainerRef} className="h-full overflow-auto">
+    <div 
+      ref={scrollRef || scrollContainerRef} 
+      className="h-full overflow-auto"
+      onScroll={onScroll}
+    >
       {/* Timeline Header */}
       <TimelineHeader
         startDate={startDate}

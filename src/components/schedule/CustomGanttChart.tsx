@@ -288,6 +288,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
   
+  // Scroll synchronization refs
+  const taskTableScrollRef = useRef<HTMLDivElement>(null);
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+  
   // Performance optimization states
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
@@ -295,6 +300,25 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   // Use optimized hooks for performance
   const { triggerParentRecalculation, clearCalculationCache } = useOptimizedTaskCalculations(projectId);
   useOptimizedRealtime(projectId);
+
+  // Scroll synchronization handlers
+  const handleTaskTableScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingRef.current) return;
+    isScrollingRef.current = true;
+    if (timelineScrollRef.current) {
+      timelineScrollRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    requestAnimationFrame(() => { isScrollingRef.current = false; });
+  };
+
+  const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingRef.current) return;
+    isScrollingRef.current = true;
+    if (taskTableScrollRef.current) {
+      taskTableScrollRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    requestAnimationFrame(() => { isScrollingRef.current = false; });
+  };
 
   // Helper function to calculate end date from start date + duration
 
@@ -1603,6 +1627,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onBulkDelete={handleBulkDelete}
           onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
           onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
+          scrollRef={taskTableScrollRef}
+          onScroll={handleTaskTableScroll}
         />
           </ResizablePanel>
 
@@ -1617,6 +1643,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
               endDate={timelineEnd}
               onTaskUpdate={handleTaskUpdate}
               dayWidth={dayWidth}
+              scrollRef={timelineScrollRef}
+              onScroll={handleTimelineScroll}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
