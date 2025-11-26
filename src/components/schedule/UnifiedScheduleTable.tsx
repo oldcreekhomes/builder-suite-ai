@@ -75,6 +75,26 @@ export function UnifiedScheduleTable({
 }: UnifiedScheduleTableProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Helper function to check if a task is overdue
+  const isTaskOverdue = (endDate: string | null | undefined, progress: number | null | undefined): boolean => {
+    if (!endDate) return false;
+    
+    // Don't mark as overdue if task is 100% complete
+    if (progress === 100) return false;
+    
+    try {
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      
+      const taskEndDate = new Date(endDate.split("T")[0] + "T12:00:00");
+      taskEndDate.setHours(0, 0, 0, 0);
+      
+      return taskEndDate < todayDate;
+    } catch {
+      return false;
+    }
+  };
+
   // Calculate timeline width
   const totalDays = getCalendarDaysBetween(startDate, endDate);
   const maxDays = 1095;
@@ -488,7 +508,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className="text-xs"
+                      className={`text-xs ${isTaskOverdue(task.end_date, task.progress) ? "text-red-600 font-semibold" : ""}`}
                     />
                   </TableCell>
 
