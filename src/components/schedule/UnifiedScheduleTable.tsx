@@ -576,8 +576,9 @@ export function UnifiedScheduleTable({
                   <TableCell className="p-0 h-8 relative" style={{ width: timelineWidth }}>
                     {/* Vertical Grid Lines - CSS Grid Layout */}
                     <div 
-                      className="absolute inset-0 pointer-events-none"
+                      className="absolute top-0 left-0 h-full pointer-events-none"
                       style={{
+                        width: timelineWidth,
                         display: 'grid',
                         gridTemplateColumns: showWeekly 
                           ? `repeat(${months.reduce((sum, m) => sum + 5, 0)}, ${dayWidth * 7}px)`
