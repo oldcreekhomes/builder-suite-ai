@@ -1543,12 +1543,14 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   };
 
   // Expand/Collapse handlers
-  const handleExpandAll = () => {
-    setExpandAllTasks(true);
-  };
-
-  const handleCollapseAll = () => {
-    setCollapseAllTasks(true);
+  const handleToggleExpandCollapse = () => {
+    if (expandAllTasks) {
+      setCollapseAllTasks(true);
+      setExpandAllTasks(false);
+    } else {
+      setExpandAllTasks(true);
+      setCollapseAllTasks(false);
+    }
   };
 
   if (isLoading) {
@@ -1579,8 +1581,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
           onCopySchedule={handleCopySchedule}
-          onExpandAll={handleExpandAll}
-          onCollapseAll={handleCollapseAll}
+          allExpanded={expandAllTasks}
+          onToggleExpandCollapse={handleToggleExpandCollapse}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
         />
