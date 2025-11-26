@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -10,8 +10,8 @@ interface ScheduleToolbarProps {
   onAddTask: () => void;
   onPublish: () => void;
   onCopySchedule: () => void;
-  onExpandAll: () => void;
-  onCollapseAll: () => void;
+  allExpanded: boolean;
+  onToggleExpandCollapse: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
 }
@@ -23,8 +23,8 @@ export function ScheduleToolbar({
   onAddTask,
   onPublish,
   onCopySchedule,
-  onExpandAll,
-  onCollapseAll,
+  allExpanded,
+  onToggleExpandCollapse,
   onZoomIn,
   onZoomOut
 }: ScheduleToolbarProps) {
@@ -34,64 +34,58 @@ export function ScheduleToolbar({
       <Button
         onClick={onAddTask}
         size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+        variant="outline"
       >
-        <Plus className="h-4 w-4 text-white" />
-        <span className="text-white">Add</span>
+        <Plus className="h-4 w-4" />
+        <span>Add</span>
       </Button>
 
       <Button
         onClick={onCopySchedule}
         size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+        variant="outline"
       >
-        <Copy className="h-4 w-4 text-white" />
-        <span className="text-white">Copy</span>
+        <Copy className="h-4 w-4" />
+        <span>Copy</span>
       </Button>
 
       <Button
-        onClick={onExpandAll}
+        onClick={onToggleExpandCollapse}
         size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+        variant="outline"
       >
-        <ChevronDown className="h-4 w-4 text-white" />
-        <span className="text-white">Expand All</span>
-      </Button>
-
-      <Button
-        onClick={onCollapseAll}
-        size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
-      >
-        <ChevronUp className="h-4 w-4 text-white" />
-        <span className="text-white">Collapse All</span>
+        {allExpanded ? (
+          <ChevronsDownUp className="h-4 w-4" />
+        ) : (
+          <ChevronsUpDown className="h-4 w-4" />
+        )}
       </Button>
 
       <Button
         onClick={onZoomIn}
         size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+        variant="outline"
       >
-        <ZoomIn className="h-4 w-4 text-white" />
-        <span className="text-white">Zoom In</span>
+        <ZoomIn className="h-4 w-4" />
+        <span>Zoom In</span>
       </Button>
 
       <Button
         onClick={onZoomOut}
         size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+        variant="outline"
       >
-        <ZoomOut className="h-4 w-4 text-white" />
-        <span className="text-white">Zoom Out</span>
+        <ZoomOut className="h-4 w-4" />
+        <span>Zoom Out</span>
       </Button>
 
       <Button
         onClick={onPublish}
         size="sm"
-        className="flex items-center gap-2 bg-black hover:bg-gray-800 text-white"
+        variant="outline"
       >
-        <Send className="h-4 w-4 text-white" />
-        <span className="text-white">Publish</span>
+        <Send className="h-4 w-4" />
+        <span>Publish</span>
       </Button>
     </div>
   );
