@@ -341,7 +341,7 @@ export function UnifiedScheduleTable({
       ref={scrollContainerRef}
       className="h-full overflow-auto"
     >
-      <Table>
+      <Table containerClassName="relative w-full">
         <TableHeader className="z-50">
           <TableRow className="h-8">
             {/* Sticky Task Data Columns */}
@@ -585,7 +585,7 @@ export function UnifiedScheduleTable({
                           return [0, 1, 2, 3].map(weekNum => (
                             <div
                               key={`${monthIndex}-week-${weekNum}`}
-                              className="absolute top-0 h-full border-r border-border/30 bg-transparent"
+                              className="absolute top-0 h-full border-r border-border/50 bg-white/5"
                               style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
                             />
                           ));
@@ -598,8 +598,8 @@ export function UnifiedScheduleTable({
                           return (
                             <div
                               key={i}
-                              className={`absolute top-0 h-full border-r border-border/30 ${
-                                isWeekend ? "bg-blue-50/50" : ""
+                              className={`absolute top-0 h-full border-r border-border/50 ${
+                                isWeekend ? "bg-blue-50/30" : "bg-white/5"
                               }`}
                               style={{ left: i * dayWidth, width: dayWidth }}
                             />
