@@ -591,8 +591,8 @@ export function UnifiedScheduleTable({
                         Array.from({ length: safeTotalDays }, (_, i) => (
                           <div
                             key={i}
-                            className="absolute top-0 bottom-0 border-r border-border/30"
-                            style={{ left: i * dayWidth, width: dayWidth }}
+                            className="absolute top-0 bottom-0 border-l border-border/30"
+                            style={{ left: i * dayWidth }}
                           />
                         ))
                       )}
