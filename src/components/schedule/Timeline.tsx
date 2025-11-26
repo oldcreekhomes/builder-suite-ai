@@ -186,8 +186,23 @@ export function Timeline({ tasks, startDate, endDate, onTaskUpdate, dayWidth = 4
       />
 
       {/* Timeline Content */}
-      <div className="relative" style={{ width: timelineWidth }}>
-        {/* Grid Lines */}
+      <div className="relative bg-background" style={{ width: timelineWidth, minHeight: visibleTasks.length * 32 }}>
+        {/* Horizontal Row Lines - match table rows */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Top border for first row */}
+          <div className="absolute left-0 right-0 border-t border-border" style={{ top: 0 }} />
+          
+          {/* Horizontal lines at each row boundary */}
+          {visibleTasks.map((_, index) => (
+            <div
+              key={`row-${index}`}
+              className="absolute left-0 right-0 border-b border-border"
+              style={{ top: (index + 1) * 32 }}
+            />
+          ))}
+        </div>
+
+        {/* Vertical Grid Lines */}
         <div className="absolute inset-0 pointer-events-none">
           {dayWidth <= 12 ? (
             // Weekly grid lines - show lines at weekly boundaries
