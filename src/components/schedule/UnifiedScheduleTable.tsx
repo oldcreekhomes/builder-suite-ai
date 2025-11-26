@@ -575,28 +575,26 @@ export function UnifiedScheduleTable({
                   {/* Timeline Cell */}
                   <TableCell className="p-0 h-8 relative" style={{ width: timelineWidth }}>
                     {/* Vertical Grid Lines */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      {showWeekly ? (
-                        months.flatMap(month => {
-                          const weekWidth = month.width / 4;
-                          return [0, 1, 2, 3, 4].map(weekNum => (
-                            <div
-                              key={`${month.name}-week-${weekNum}`}
-                              className="absolute top-0 h-full border-r border-border/30"
-                              style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
-                            />
-                          ));
-                        })
-                      ) : (
-                        Array.from({ length: safeTotalDays }, (_, i) => (
+                    {showWeekly ? (
+                      months.flatMap(month => {
+                        const weekWidth = month.width / 4;
+                        return [0, 1, 2, 3, 4].map(weekNum => (
                           <div
-                            key={i}
-                            className="absolute top-0 h-full border-r border-border/30"
-                            style={{ left: i * dayWidth, width: dayWidth }}
+                            key={`${month.name}-week-${weekNum}`}
+                            className="absolute top-0 h-full border-r border-border/30 pointer-events-none"
+                            style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
                           />
-                        ))
-                      )}
-                    </div>
+                        ));
+                      })
+                    ) : (
+                      Array.from({ length: safeTotalDays }, (_, i) => (
+                        <div
+                          key={i}
+                          className="absolute top-0 h-full border-r border-border/30 pointer-events-none"
+                          style={{ left: i * dayWidth, width: dayWidth }}
+                        />
+                      ))
+                    )}
                     
                     {/* Task Bar */}
                     <div
