@@ -1544,12 +1544,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Expand/Collapse handlers
   const handleToggleExpandCollapse = () => {
-    if (expandAllTasks) {
+    // Check if tasks are currently expanded based on expandedTasks state
+    if (expandedTasks.size > 0) {
       setCollapseAllTasks(true);
-      setExpandAllTasks(false);
     } else {
       setExpandAllTasks(true);
-      setCollapseAllTasks(false);
     }
   };
 
@@ -1581,7 +1580,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddTask={handleAddTask}
           onPublish={() => setShowPublishDialog(true)}
           onCopySchedule={handleCopySchedule}
-          allExpanded={expandAllTasks}
+          allExpanded={expandedTasks.size > 0}
           onToggleExpandCollapse={handleToggleExpandCollapse}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
