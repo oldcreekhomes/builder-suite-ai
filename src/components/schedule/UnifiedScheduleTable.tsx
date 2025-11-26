@@ -523,7 +523,9 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* End Date */}
-                  <TableCell className="sticky left-122 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className={`sticky left-122 z-30 py-1 px-2 h-8 overflow-hidden border-r ${
+                    isTaskOverdue(task.end_date, task.progress) ? "bg-red-500" : "bg-background"
+                  }`}>
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -539,7 +541,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className={`text-xs ${isTaskOverdue(task.end_date, task.progress) ? "text-red-600 font-semibold" : ""}`}
+                      className={`text-xs ${isTaskOverdue(task.end_date, task.progress) ? "text-white font-semibold" : ""}`}
                     />
                   </TableCell>
 
