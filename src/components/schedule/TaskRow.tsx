@@ -215,7 +215,7 @@ export function TaskRow({
       >
         <TableRow className={`h-8 hover:bg-muted/50 ${isContextMenuOpen ? 'bg-primary/10' : ''}`}>
           {/* Selection Checkbox */}
-          <TableCell className="py-1 px-2 w-10">
+          <TableCell className="py-1 px-2 w-10 h-8">
             <div
               className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
                 isSelected ? 'bg-black' : 'bg-white'
@@ -225,14 +225,14 @@ export function TaskRow({
           </TableCell>
 
           {/* Hierarchy Number */}
-          <TableCell className="text-xs py-1 px-1 w-16">
+          <TableCell className="text-xs py-1 px-1 w-16 h-8">
             <div className="flex items-center">
               <span className="text-xs">{task.hierarchy_number || "—"}</span>
             </div>
           </TableCell>
 
           {/* Task Name with Indentation */}
-          <TableCell className="py-1 pl-2 pr-2 w-48">
+          <TableCell className="py-1 pl-2 pr-2 w-48 h-8">
             <div className="flex items-center">
               {/* Indentation spacer - only for child tasks (level > 0) */}
               {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
@@ -290,7 +290,7 @@ export function TaskRow({
           </TableCell>
 
           {/* Start Date */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             <InlineEditCell
               value={(() => {
                 try {
@@ -324,7 +324,7 @@ export function TaskRow({
           </TableCell>
 
           {/* Duration */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             <InlineEditCell
               value={task.duration?.toString() || "1"}
               type="number"
@@ -334,7 +334,7 @@ export function TaskRow({
           </TableCell>
 
           {/* End Date */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             <InlineEditCell
               value={(() => {
                 try {
@@ -369,7 +369,7 @@ export function TaskRow({
           </TableCell>
 
           {/* Predecessors */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             <PredecessorSelector
               value={getPredecessorArray()}
               onValueChange={handleFieldUpdate("predecessor")}
@@ -380,7 +380,7 @@ export function TaskRow({
           </TableCell>
 
           {/* Progress */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             <ProgressSelector
               value={task.progress || 0}
               onSave={(value) => handleFieldUpdate("progress")(value)}
@@ -389,7 +389,7 @@ export function TaskRow({
           </TableCell>
 
           {/* Resources */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             <ResourcesSelector
               value={task.resources || ""}
               onValueChange={(value) => handleFieldUpdate("resources")(value)}
@@ -398,7 +398,7 @@ export function TaskRow({
           </TableCell>
 
           {/* Actions */}
-          <TableCell className="py-1 px-2">
+          <TableCell className="py-1 px-2 h-8">
             {/* Empty cell - actions now handled by context menu */}
           </TableCell>
         </TableRow>
