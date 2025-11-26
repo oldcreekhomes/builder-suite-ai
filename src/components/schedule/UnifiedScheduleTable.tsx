@@ -582,8 +582,8 @@ export function UnifiedScheduleTable({
                           return [0, 1, 2, 3, 4].map(weekNum => (
                             <div
                               key={`${month.name}-week-${weekNum}`}
-                              className="absolute top-0 bottom-0 border-l border-border/30"
-                              style={{ left: month.left + weekNum * weekWidth }}
+                              className="absolute top-0 h-full border-r border-border/30"
+                              style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
                             />
                           ));
                         })
@@ -591,8 +591,8 @@ export function UnifiedScheduleTable({
                         Array.from({ length: safeTotalDays }, (_, i) => (
                           <div
                             key={i}
-                            className="absolute top-0 bottom-0 border-l border-border/30"
-                            style={{ left: i * dayWidth }}
+                            className="absolute top-0 h-full border-r border-border/30"
+                            style={{ left: i * dayWidth, width: dayWidth }}
                           />
                         ))
                       )}
