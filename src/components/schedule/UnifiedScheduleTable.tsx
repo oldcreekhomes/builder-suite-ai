@@ -574,27 +574,34 @@ export function UnifiedScheduleTable({
                   
                   {/* Timeline Cell */}
                   <TableCell className="p-0 h-8 relative" style={{ width: timelineWidth }}>
-                    {/* Vertical Grid Lines */}
-                    {showWeekly ? (
-                      months.flatMap(month => {
-                        const weekWidth = month.width / 4;
-                        return [0, 1, 2, 3, 4].map(weekNum => (
+                    {/* Vertical Grid Lines - CSS Grid Layout */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: showWeekly 
+                          ? `repeat(${months.reduce((sum, m) => sum + 5, 0)}, ${dayWidth * 7}px)`
+                          : `repeat(${safeTotalDays}, ${dayWidth}px)`
+                      }}
+                    >
+                      {showWeekly ? (
+                        months.flatMap(month => 
+                          [0, 1, 2, 3, 4].map(weekNum => (
+                            <div
+                              key={`${month.name}-week-${weekNum}`}
+                              className="h-full border-r border-border/30"
+                            />
+                          ))
+                        )
+                      ) : (
+                        Array.from({ length: safeTotalDays }, (_, i) => (
                           <div
-                            key={`${month.name}-week-${weekNum}`}
-                            className="absolute top-0 h-full border-r border-border/30 pointer-events-none"
-                            style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
+                            key={i}
+                            className="h-full border-r border-border/30"
                           />
-                        ));
-                      })
-                    ) : (
-                      Array.from({ length: safeTotalDays }, (_, i) => (
-                        <div
-                          key={i}
-                          className="absolute top-0 h-full border-r border-border/30 pointer-events-none"
-                          style={{ left: i * dayWidth, width: dayWidth }}
-                        />
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
                     
                     {/* Task Bar */}
                     <div
