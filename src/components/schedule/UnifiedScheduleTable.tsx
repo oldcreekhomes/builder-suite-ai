@@ -353,7 +353,7 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead className="sticky left-10 z-40 bg-background w-28 h-8 text-xs py-1 pl-4 pr-2 border-r">#</TableHead>
+            <TableHead className="sticky left-10 z-40 bg-background w-28 h-8 text-xs py-1 pl-4 pr-4 border-r">#</TableHead>
             <TableHead className="sticky left-38 z-40 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
             <TableHead className="sticky left-86 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
             <TableHead className="sticky left-110 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
@@ -461,7 +461,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="sticky left-10 z-30 bg-background text-xs py-1 pl-4 pr-2 w-28 h-8 border-r">
+                  <TableCell className="sticky left-10 z-30 bg-background text-xs py-1 pl-4 pr-4 w-28 h-8 border-r">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </TableCell>
 
