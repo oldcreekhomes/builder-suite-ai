@@ -644,32 +644,60 @@ export function UnifiedScheduleTable({
               const position = getTaskPosition(task);
               const barColorClass = getBarColorClass(task);
               const progressWidth = (position.width * position.progress) / 100;
+              
+              // Estimate text width (text-xs is ~7px per character + 16px for padding)
+              const taskName = task.task_name || '';
+              const estimatedTextWidth = taskName.length * 7 + 16;
+              const textFitsInside = estimatedTextWidth <= position.width;
 
               return (
                 <div
                   key={task.id}
-                  className="absolute h-6 rounded cursor-move border"
-                  style={{
-                    left: position.left,
-                    width: position.width,
-                    top: index * ROW_HEIGHT + 3,
-                    backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
-                    borderColor: `hsl(var(--timeline-${barColorClass}))`
-                  }}
+                  className="absolute"
+                  style={{ top: index * ROW_HEIGHT + 3 }}
                 >
+                  {/* The bar itself */}
                   <div
-                    className="h-full rounded-l opacity-80"
+                    className="absolute h-6 rounded cursor-move border"
                     style={{
-                      width: progressWidth,
-                      backgroundColor: `hsl(var(--timeline-confirmed))`
+                      left: position.left,
+                      width: position.width,
+                      backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
+                      borderColor: `hsl(var(--timeline-${barColorClass}))`
                     }}
-                  />
-                  
-                  <div className="absolute inset-0 flex items-center px-2">
-                    <span className="text-xs font-medium text-foreground truncate">
-                      {task.task_name}
-                    </span>
+                  >
+                    {/* Progress fill */}
+                    <div
+                      className="h-full rounded-l opacity-80"
+                      style={{
+                        width: progressWidth,
+                        backgroundColor: `hsl(var(--timeline-confirmed))`
+                      }}
+                    />
+                    
+                    {/* Text INSIDE bar - only when it fits */}
+                    {textFitsInside && (
+                      <div className="absolute inset-0 flex items-center px-2">
+                        <span className="text-xs font-medium text-foreground truncate">
+                          {taskName}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Text OUTSIDE bar - when it doesn't fit */}
+                  {!textFitsInside && (
+                    <div
+                      className="absolute h-6 flex items-center pl-2 whitespace-nowrap"
+                      style={{
+                        left: position.left + position.width,
+                      }}
+                    >
+                      <span className="text-xs font-medium text-foreground">
+                        {taskName}
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
