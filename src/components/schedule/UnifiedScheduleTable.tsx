@@ -334,7 +334,7 @@ export function UnifiedScheduleTable({
       {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
       <div 
         className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md"
-        style={{ width: '936px' }}
+        style={{ width: '952px' }}
       >
         {/* Left Panel Header */}
         <div 
@@ -350,7 +350,7 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-8 flex items-center border-r border-gray-200 px-2 text-xs font-medium">#</div>
+            <div className="w-12 flex items-center border-r border-gray-200 px-2 text-xs font-medium">#</div>
             <div className="w-72 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Task Name</div>
             <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
             <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Duration</div>
@@ -406,7 +406,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Hierarchy Number */}
-                  <div className="w-8 flex items-center border-r border-gray-200 px-2">
+                  <div className="w-12 flex items-center border-r border-gray-200 px-2">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </div>
 
