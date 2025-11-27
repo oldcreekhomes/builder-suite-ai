@@ -573,11 +573,11 @@ export function UnifiedScheduleTable({
                   </TableCell>
                   
                   {/* Timeline Cell */}
-                  <TableCell className="p-0 h-8 relative" style={{ width: timelineWidth }}>
+                  <TableCell className="p-0 h-8 relative overflow-visible" style={{ width: timelineWidth, minWidth: timelineWidth }}>
                     {/* Vertical Grid Lines - Matching Header Pattern */}
                     <div 
-                      className="absolute top-0 left-0 h-full pointer-events-none"
-                      style={{ width: timelineWidth }}
+                      className="absolute top-0 left-0 h-full pointer-events-none overflow-visible"
+                      style={{ width: timelineWidth, minWidth: timelineWidth }}
                     >
                       {showWeekly ? (
                         months.flatMap((month, monthIndex) => {
