@@ -75,6 +75,14 @@ export function UnifiedScheduleTable({
     }
   };
 
+  // Handle wheel events on left panel - forward to timeline for synchronized scrolling
+  const handleLeftPanelWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (timelineScrollRef.current) {
+      timelineScrollRef.current.scrollTop += e.deltaY;
+    }
+  };
+
   // Helper function to check if a task is overdue
   const isTaskOverdue = (endDate: string | null | undefined, progress: number | null | undefined): boolean => {
     if (!endDate) return false;
@@ -344,6 +352,7 @@ export function UnifiedScheduleTable({
         ref={leftPanelRef}
         className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md overflow-hidden"
         style={{ width: '952px' }}
+        onWheel={handleLeftPanelWheel}
       >
         {/* Left Panel Header */}
         <div 
