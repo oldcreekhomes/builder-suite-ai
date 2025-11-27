@@ -599,7 +599,7 @@ export function UnifiedScheduleTable({
                             <div
                               key={i}
                               className={`absolute top-0 h-full border-r border-border/30 ${
-                                isWeekend ? "bg-blue-50/50" : ""
+                                isWeekend ? "bg-blue-50/50" : "bg-white/5"
                               }`}
                               style={{ left: i * dayWidth, width: dayWidth }}
                             />
