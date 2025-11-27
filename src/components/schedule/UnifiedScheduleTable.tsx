@@ -345,7 +345,7 @@ export function UnifiedScheduleTable({
         <TableHeader className="z-50">
           <TableRow className="h-8">
             {/* Sticky Task Data Columns */}
-            <TableHead className="sticky left-0 w-10 h-8 text-xs py-1 px-2 border-r" style={{ zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+            <TableHead className="w-10 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 0, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
@@ -353,14 +353,14 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead className="sticky left-10 w-16 h-8 text-xs py-1 pl-4 pr-4 border-r" style={{ zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>#</TableHead>
-            <TableHead className="sticky w-48 h-8 text-xs py-1 px-2 border-r" style={{ left: '104px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Task Name</TableHead>
-            <TableHead className="sticky w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '296px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Start Date</TableHead>
-            <TableHead className="sticky w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '392px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Duration</TableHead>
-            <TableHead className="sticky w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '472px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>End Date</TableHead>
-            <TableHead className="sticky w-24 h-8 text-xs py-1 px-2 border-r" style={{ left: '568px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Predecessors</TableHead>
-            <TableHead className="sticky w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '664px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Progress</TableHead>
-            <TableHead className="sticky w-32 h-8 text-xs py-1 px-2 border-r-4 border-gray-300" style={{ left: '744px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Resources</TableHead>
+            <TableHead className="w-16 h-8 text-xs py-1 pl-4 pr-4 border-r border-gray-300" style={{ position: 'sticky', left: 40, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>#</TableHead>
+            <TableHead className="w-48 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 104, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Task Name</TableHead>
+            <TableHead className="w-24 h-8 text-xs py-1 px-2 border-r border-gray-300 whitespace-nowrap" style={{ position: 'sticky', left: 296, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Start Date</TableHead>
+            <TableHead className="w-20 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 392, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Duration</TableHead>
+            <TableHead className="w-24 h-8 text-xs py-1 px-2 border-r border-gray-300 whitespace-nowrap" style={{ position: 'sticky', left: 472, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>End Date</TableHead>
+            <TableHead className="w-24 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 568, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Predecessors</TableHead>
+            <TableHead className="w-20 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 664, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Progress</TableHead>
+            <TableHead className="w-32 h-8 text-xs py-1 px-2 border-r-4 border-gray-300" style={{ position: 'sticky', left: 744, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Resources</TableHead>
             
             {/* Timeline Header */}
             <TableHead className="sticky top-0 z-40 h-8 p-0" style={{ width: timelineWidth }}>
@@ -451,7 +451,7 @@ export function UnifiedScheduleTable({
                   style={{ height: '32px', maxHeight: '32px' }}
                 >
                   {/* Selection Checkbox */}
-                  <TableCell className="sticky left-0 py-1 px-2 w-10 h-8 overflow-hidden border-r" style={{ zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 px-2 w-10 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 0, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <div
                       className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
                         isSelected ? 'bg-black' : 'bg-white'
@@ -461,12 +461,12 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="sticky left-10 text-xs py-1 pl-4 pr-4 w-16 h-8 border-r" style={{ zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="text-xs py-1 pl-4 pr-4 w-16 h-8 border-r border-gray-300" style={{ position: 'sticky', left: 40, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </TableCell>
 
                   {/* Task Name with Indentation */}
-                  <TableCell className="sticky py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r" style={{ left: '104px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 104, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <div className="flex items-center">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
@@ -492,7 +492,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Start Date */}
-                  <TableCell className="sticky py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '296px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 px-2 w-24 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 296, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -513,7 +513,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Duration */}
-                  <TableCell className="sticky py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '392px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 px-2 w-20 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 392, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
@@ -524,9 +524,10 @@ export function UnifiedScheduleTable({
 
                   {/* End Date */}
                   <TableCell 
-                    className="sticky py-1 px-2 w-24 h-8 overflow-hidden border-r"
+                    className="py-1 px-2 w-24 h-8 overflow-hidden border-r border-gray-300"
                     style={{ 
-                      left: '472px', 
+                      position: 'sticky',
+                      left: 472, 
                       zIndex: 50,
                       opacity: 1, 
                       backgroundColor: isTaskOverdue(task.end_date, task.progress) ? '#EF4444' : '#FFFFFF' 
@@ -552,7 +553,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Predecessors */}
-                  <TableCell className="sticky py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '568px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 px-2 w-24 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 568, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
@@ -562,7 +563,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Progress */}
-                  <TableCell className="sticky py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '664px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 px-2 w-20 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 664, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
@@ -571,7 +572,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Resources */}
-                  <TableCell className="sticky py-1 px-2 w-32 h-8 overflow-hidden border-r-4 border-gray-300" style={{ left: '744px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="py-1 px-2 w-32 h-8 overflow-hidden border-r-4 border-gray-300" style={{ position: 'sticky', left: 744, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
