@@ -341,7 +341,7 @@ export function UnifiedScheduleTable({
       ref={scrollContainerRef}
       className="h-full overflow-auto"
     >
-      <Table>
+      <Table containerClassName="relative w-full">
         <TableHeader className="z-50">
           <TableRow className="h-8">
             {/* Sticky Task Data Columns */}
