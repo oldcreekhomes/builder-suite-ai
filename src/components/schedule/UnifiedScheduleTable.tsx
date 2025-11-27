@@ -336,15 +336,44 @@ export function UnifiedScheduleTable({
     return "default";
   };
 
+  // Memoize grid lines to render once as background
+  const gridLines = React.useMemo(() => {
+    if (showWeekly) {
+      return months.flatMap((month, monthIndex) => {
+        const weekWidth = month.width / 4;
+        return [0, 1, 2, 3].map(weekNum => (
+          <div
+            key={`grid-${monthIndex}-week-${weekNum}`}
+            className="absolute top-0 h-full border-r border-border/30 bg-transparent pointer-events-none"
+            style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
+          />
+        ));
+      });
+    }
+    return Array.from({ length: safeTotalDays }, (_, i) => {
+      const dayDate = addDays(startDate, i);
+      const isWeekend = !isBusinessDay(dayDate);
+      return (
+        <div
+          key={`grid-${i}`}
+          className={`absolute top-0 h-full border-r border-border/30 pointer-events-none ${
+            isWeekend ? "bg-blue-50/50" : "bg-white/5"
+          }`}
+          style={{ left: i * dayWidth, width: dayWidth }}
+        />
+      );
+    });
+  }, [showWeekly, months, safeTotalDays, startDate, dayWidth]);
+
   return (
     <div 
       ref={scrollContainerRef}
-      className="h-full overflow-auto"
+      className="h-full overflow-auto will-change-scroll"
     >
       <Table containerClassName="relative w-full">
         <TableHeader className="z-50">
           <TableRow className="h-8">
-            {/* Sticky Task Data Columns */}
+            {/* Sticky Task Data Columns - using proper pixel values */}
             <TableHead className="sticky left-0 z-40 bg-background w-10 h-8 text-xs py-1 px-2 border-r">
               <Checkbox
                 checked={isAllSelected}
@@ -353,14 +382,14 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead className="sticky left-10 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">#</TableHead>
-            <TableHead className="sticky left-30 z-40 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
-            <TableHead className="sticky left-78 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
-            <TableHead className="sticky left-102 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
-            <TableHead className="sticky left-122 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">End Date</TableHead>
-            <TableHead className="sticky left-146 z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
-            <TableHead className="sticky left-170 z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
-            <TableHead className="sticky left-190 z-40 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
+            <TableHead className="sticky left-[40px] z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">#</TableHead>
+            <TableHead className="sticky left-[120px] z-40 bg-background w-48 h-8 text-xs py-1 px-2 border-r">Task Name</TableHead>
+            <TableHead className="sticky left-[312px] z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">Start Date</TableHead>
+            <TableHead className="sticky left-[408px] z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Duration</TableHead>
+            <TableHead className="sticky left-[488px] z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap">End Date</TableHead>
+            <TableHead className="sticky left-[584px] z-40 bg-background w-24 h-8 text-xs py-1 px-2 border-r">Predecessors</TableHead>
+            <TableHead className="sticky left-[680px] z-40 bg-background w-20 h-8 text-xs py-1 px-2 border-r">Progress</TableHead>
+            <TableHead className="sticky left-[760px] z-40 bg-background w-32 h-8 text-xs py-1 px-2 border-r">Resources</TableHead>
             
             {/* Timeline Header */}
             <TableHead className="sticky top-0 z-40 h-8 p-0" style={{ width: timelineWidth }}>
@@ -461,12 +490,12 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="sticky left-10 z-30 bg-background text-xs py-1 px-2 w-20 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[40px] z-30 bg-background text-xs py-1 px-2 w-20 h-8 overflow-hidden border-r">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </TableCell>
 
                   {/* Task Name with Indentation */}
-                  <TableCell className="sticky left-30 z-30 bg-background py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[120px] z-30 bg-background py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r">
                     <div className="flex items-center">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
@@ -492,7 +521,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Start Date */}
-                  <TableCell className="sticky left-78 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[312px] z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -513,7 +542,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Duration */}
-                  <TableCell className="sticky left-102 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[408px] z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
@@ -523,7 +552,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* End Date */}
-                  <TableCell className={`sticky left-122 z-30 py-1 px-2 h-8 overflow-hidden border-r ${
+                  <TableCell className={`sticky left-[488px] z-30 py-1 px-2 h-8 overflow-hidden border-r ${
                     isTaskOverdue(task.end_date, task.progress) ? "bg-red-500" : "bg-background"
                   }`}>
                     <InlineEditCell
@@ -546,7 +575,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Predecessors */}
-                  <TableCell className="sticky left-146 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[584px] z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
@@ -556,7 +585,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Progress */}
-                  <TableCell className="sticky left-170 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[680px] z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
@@ -565,52 +594,33 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Resources */}
-                  <TableCell className="sticky left-190 z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-[760px] z-30 bg-background py-1 px-2 h-8 overflow-hidden border-r">
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
                     />
                   </TableCell>
                   
-                  {/* Timeline Cell */}
+                  {/* Timeline Cell - Grid lines rendered as background layer */}
                   <TableCell className="p-0 h-8 relative" style={{ width: timelineWidth }}>
-                    {/* Vertical Grid Lines - Matching Header Pattern */}
-                    <div 
-                      className="absolute top-0 left-0 h-full pointer-events-none"
-                      style={{ width: timelineWidth }}
-                    >
-                      {showWeekly ? (
-                        months.flatMap((month, monthIndex) => {
-                          const weekWidth = month.width / 4;
-                          return [0, 1, 2, 3].map(weekNum => (
-                            <div
-                              key={`${monthIndex}-week-${weekNum}`}
-                              className="absolute top-0 h-full border-r border-border/30 bg-transparent"
-                              style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
-                            />
-                          ));
-                        })
-                      ) : (
-                        Array.from({ length: safeTotalDays }, (_, i) => {
-                          const dayDate = addDays(startDate, i);
-                          const isWeekend = !isBusinessDay(dayDate);
-                          
-                          return (
-                            <div
-                              key={i}
-                              className={`absolute top-0 h-full border-r border-border/30 ${
-                                isWeekend ? "bg-blue-50/50" : "bg-white/5"
-                              }`}
-                              style={{ left: i * dayWidth, width: dayWidth }}
-                            />
-                          );
-                        })
-                      )}
-                    </div>
+                    {/* Grid lines - only render on first row as absolute background */}
+                    {index === 0 && (
+                      <div 
+                        className="absolute left-0 pointer-events-none"
+                        style={{ 
+                          width: timelineWidth, 
+                          height: visibleTasks.length * 32,
+                          top: 0,
+                          zIndex: 0
+                        }}
+                      >
+                        {gridLines}
+                      </div>
+                    )}
                     
                     {/* Task Bar */}
                     <div
-                      className="absolute h-6 rounded cursor-move border"
+                      className="absolute h-6 rounded cursor-move border z-10"
                       style={{
                         left: position.left,
                         width: position.width,
@@ -637,7 +647,7 @@ export function UnifiedScheduleTable({
                     {/* Dependency Lines (only render once on first row) */}
                     {index === 0 && connections.length > 0 && (
                       <svg
-                        className="absolute pointer-events-none"
+                        className="absolute pointer-events-none z-20"
                         style={{ 
                           left: 0, 
                           top: 0,
