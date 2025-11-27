@@ -11,14 +11,6 @@ import { PredecessorSelector } from "./PredecessorSelector";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { ChevronRight, ChevronDown } from "lucide-react";
 import { TaskContextMenu } from "./TaskContextMenu";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
 import {  
   DateString, 
   addDays, 
@@ -73,13 +65,11 @@ export function UnifiedScheduleTable({
   endDate,
   dayWidth
 }: UnifiedScheduleTableProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
 
   // Helper function to check if a task is overdue
   const isTaskOverdue = (endDate: string | null | undefined, progress: number | null | undefined): boolean => {
     if (!endDate) return false;
-    
-    // Don't mark as overdue if task is 100% complete
     if (progress === 100) return false;
     
     try {
@@ -101,18 +91,18 @@ export function UnifiedScheduleTable({
   const safeTotalDays = Math.min(totalDays, maxDays);
   const timelineWidth = safeTotalDays * dayWidth;
 
-  // Auto-scroll to today
+  // Auto-scroll timeline to today
   useEffect(() => {
-    if (!scrollContainerRef.current) return;
+    if (!timelineScrollRef.current) return;
 
     const todayStr = today();
     const daysFromStart = getCalendarDaysBetween(startDate, todayStr) - 1;
     const todayPosition = Math.max(0, daysFromStart) * dayWidth;
     
-    const containerWidth = scrollContainerRef.current.clientWidth;
+    const containerWidth = timelineScrollRef.current.clientWidth;
     const scrollPosition = todayPosition - (containerWidth / 2);
     
-    scrollContainerRef.current.scrollLeft = Math.max(0, scrollPosition);
+    timelineScrollRef.current.scrollLeft = Math.max(0, scrollPosition);
   }, [startDate, dayWidth]);
 
   // Enhanced task update with parent cascade
@@ -336,95 +326,50 @@ export function UnifiedScheduleTable({
     return "default";
   };
 
+  // Row height constant
+  const ROW_HEIGHT = 32;
+
   return (
-    <div 
-      ref={scrollContainerRef}
-      className="h-full overflow-auto"
-    >
-      <Table containerClassName="relative w-full">
-        <TableHeader className="z-50">
-          <TableRow className="h-8">
-            {/* Sticky Task Data Columns */}
-            <TableHead className="w-10 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 0, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+    <div className="h-full flex overflow-y-auto">
+      {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
+      <div 
+        className="flex-shrink-0 bg-white border-r-4 border-gray-300 shadow-md"
+        style={{ width: '872px' }}
+      >
+        {/* Left Panel Header */}
+        <div 
+          className="sticky top-0 z-20 bg-white border-b border-gray-200"
+          style={{ height: ROW_HEIGHT }}
+        >
+          <div className="flex h-full">
+            <div className="w-10 flex items-center justify-center border-r border-gray-300 px-2">
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
                 className="h-3 w-3"
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
-            </TableHead>
-            <TableHead className="w-16 h-8 text-xs py-1 pl-4 pr-4 border-r border-gray-300" style={{ position: 'sticky', left: 40, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>#</TableHead>
-            <TableHead className="w-48 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 104, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Task Name</TableHead>
-            <TableHead className="w-24 h-8 text-xs py-1 px-2 border-r border-gray-300 whitespace-nowrap" style={{ position: 'sticky', left: 296, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Start Date</TableHead>
-            <TableHead className="w-20 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 392, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Duration</TableHead>
-            <TableHead className="w-24 h-8 text-xs py-1 px-2 border-r border-gray-300 whitespace-nowrap" style={{ position: 'sticky', left: 472, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>End Date</TableHead>
-            <TableHead className="w-24 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 568, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Predecessors</TableHead>
-            <TableHead className="w-20 h-8 text-xs py-1 px-2 border-r border-gray-300" style={{ position: 'sticky', left: 664, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Progress</TableHead>
-            <TableHead className="w-32 h-8 text-xs py-1 px-2 border-r-4 border-gray-300" style={{ position: 'sticky', left: 744, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Resources</TableHead>
-            
-            {/* Timeline Header */}
-            <TableHead className="sticky top-0 z-40 h-8 p-0" style={{ width: timelineWidth }}>
-              <div className="flex flex-col h-8">
-                <div className="relative h-4 border-b border-border">
-                  {months.map((month, index) => (
-                    <div
-                      key={index}
-                      className="absolute top-0 h-full flex items-center justify-center border-r border-border bg-muted/30 font-medium text-xs"
-                      style={{ left: month.left, width: month.width }}
-                    >
-                      {month.name}
-                    </div>
-                  ))}
-                </div>
-                
-              <div className="relative h-4">
-                  {showWeekly ? (
-                    months.flatMap((month, monthIndex) => {
-                      const weekWidth = month.width / 4;
-                      return [1, 2, 3, 4].map(weekNum => (
-                        <div
-                          key={`${monthIndex}-week-${weekNum}`}
-                          className="absolute top-0 h-full flex items-center justify-center border-r border-border text-xs bg-background"
-                          style={{ left: month.left + (weekNum - 1) * weekWidth, width: weekWidth }}
-                        >
-                          {weekNum}
-                        </div>
-                      ));
-                    })
-                  ) : (
-                    Array.from({ length: safeTotalDays }, (_, i) => {
-                      const dayDate = addDays(startDate, i);
-                      const isWeekend = !isBusinessDay(dayDate);
-                      
-                      return (
-                        <div
-                          key={i}
-                          className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
-                            isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
-                          }`}
-                          style={{ left: i * dayWidth, width: dayWidth }}
-                        >
-                          {getDayOfMonth(dayDate)}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        
-        <TableBody>
-          {visibleTasks.map((task, index) => {
-            const position = getTaskPosition(task);
-            const barColorClass = getBarColorClass(task);
-            const progressWidth = (position.width * position.progress) / 100;
+            </div>
+            <div className="w-16 flex items-center border-r border-gray-300 pl-4 pr-4 text-xs font-medium">#</div>
+            <div className="w-48 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Task Name</div>
+            <div className="w-24 flex items-center border-r border-gray-300 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
+            <div className="w-20 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Duration</div>
+            <div className="w-24 flex items-center border-r border-gray-300 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
+            <div className="w-24 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Predecessors</div>
+            <div className="w-20 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Progress</div>
+            <div className="w-32 flex items-center px-2 text-xs font-medium">Resources</div>
+          </div>
+        </div>
+
+        {/* Left Panel Body */}
+        <div>
+          {visibleTasks.map((task) => {
             const indentLevel = getIndentLevel(task.hierarchy_number);
             const taskHasChildren = hasChildren(task.id);
             const isExpanded = expandedTasks.has(task.id);
             const isSelected = selectedTasks.has(task.id);
-            
+            const overdue = isTaskOverdue(task.end_date, task.progress);
+
             return (
               <TaskContextMenu
                 key={task.id}
@@ -446,28 +391,28 @@ export function UnifiedScheduleTable({
                 canMoveDown={getCanMoveDown(task)}
                 onContextMenuChange={() => {}}
               >
-                <TableRow 
-                  className="hover:bg-transparent"
-                  style={{ height: '32px', maxHeight: '32px' }}
+                <div 
+                  className="flex border-b border-gray-100 bg-white hover:bg-gray-50"
+                  style={{ height: ROW_HEIGHT }}
                 >
-                  {/* Selection Checkbox */}
-                  <TableCell className="py-1 px-2 w-10 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 0, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  {/* Checkbox */}
+                  <div className="w-10 flex items-center justify-center border-r border-gray-300 px-2">
                     <div
                       className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
                         isSelected ? 'bg-black' : 'bg-white'
                       }`}
                       onClick={() => handleTaskSelection(task.id, !isSelected)}
                     />
-                  </TableCell>
+                  </div>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="text-xs py-1 pl-4 pr-4 w-16 h-8 border-r border-gray-300" style={{ position: 'sticky', left: 40, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <div className="w-16 flex items-center border-r border-gray-300 pl-4 pr-4">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
-                  </TableCell>
+                  </div>
 
-                  {/* Task Name with Indentation */}
-                  <TableCell className="py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 104, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
-                    <div className="flex items-center">
+                  {/* Task Name */}
+                  <div className="w-48 flex items-center border-r border-gray-300 px-2 overflow-hidden">
+                    <div className="flex items-center w-full">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
                         <button
@@ -489,10 +434,10 @@ export function UnifiedScheduleTable({
                         className="text-xs flex-1"
                       />
                     </div>
-                  </TableCell>
+                  </div>
 
                   {/* Start Date */}
-                  <TableCell className="py-1 px-2 w-24 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 296, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <div className="w-24 flex items-center border-r border-gray-300 px-2">
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -510,28 +455,23 @@ export function UnifiedScheduleTable({
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
                       className="text-xs"
                     />
-                  </TableCell>
+                  </div>
 
                   {/* Duration */}
-                  <TableCell className="py-1 px-2 w-20 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 392, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <div className="w-20 flex items-center border-r border-gray-300 px-2">
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
                       onSave={(value) => handleTaskUpdate(task.id, { duration: parseInt(value.toString()) || 1 })}
                       className="text-xs"
                     />
-                  </TableCell>
+                  </div>
 
                   {/* End Date */}
-                  <TableCell 
-                    className="py-1 px-2 w-24 h-8 overflow-hidden border-r border-gray-300"
-                    style={{ 
-                      position: 'sticky',
-                      left: 472, 
-                      zIndex: 50,
-                      opacity: 1, 
-                      backgroundColor: isTaskOverdue(task.end_date, task.progress) ? '#EF4444' : '#FFFFFF' 
-                    }}
+                  <div 
+                    className={`w-24 flex items-center border-r border-gray-300 px-2 ${
+                      overdue ? 'bg-red-500' : ''
+                    }`}
                   >
                     <InlineEditCell
                       value={(() => {
@@ -548,149 +488,228 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className={`text-xs ${isTaskOverdue(task.end_date, task.progress) ? "text-white font-semibold" : ""}`}
+                      className={`text-xs ${overdue ? "text-white font-semibold" : ""}`}
                     />
-                  </TableCell>
+                  </div>
 
                   {/* Predecessors */}
-                  <TableCell className="py-1 px-2 w-24 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 568, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <div className="w-24 flex items-center border-r border-gray-300 px-2">
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
                       allTasks={tasks}
                       currentTaskId={task.id}
                     />
-                  </TableCell>
+                  </div>
 
                   {/* Progress */}
-                  <TableCell className="py-1 px-2 w-20 h-8 overflow-hidden border-r border-gray-300" style={{ position: 'sticky', left: 664, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <div className="w-20 flex items-center border-r border-gray-300 px-2">
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
                       readOnly={taskHasChildren}
                     />
-                  </TableCell>
+                  </div>
 
                   {/* Resources */}
-                  <TableCell className="py-1 px-2 w-32 h-8 overflow-hidden border-r-4 border-gray-300" style={{ position: 'sticky', left: 744, zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <div className="w-32 flex items-center px-2">
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
                     />
-                  </TableCell>
-                  
-                  {/* Timeline Cell */}
-                  <TableCell className="p-0 h-8 relative overflow-hidden" style={{ width: timelineWidth, minWidth: timelineWidth, isolation: 'isolate' }}>
-                    {/* Vertical Grid Lines - Matching Header Pattern */}
-                    <div 
-                      className="absolute top-0 left-0 h-full pointer-events-none"
-                      style={{ width: timelineWidth, minWidth: timelineWidth, zIndex: -1 }}
-                    >
-                      {showWeekly ? (
-                        months.flatMap((month, monthIndex) => {
-                          const weekWidth = month.width / 4;
-                          return [0, 1, 2, 3].map(weekNum => (
-                            <div
-                              key={`${monthIndex}-week-${weekNum}`}
-                              className="absolute top-0 h-full border-r border-border/30 bg-transparent"
-                              style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
-                            />
-                          ));
-                        })
-                      ) : (
-                        Array.from({ length: safeTotalDays }, (_, i) => {
-                          const dayDate = addDays(startDate, i);
-                          const isWeekend = !isBusinessDay(dayDate);
-                          
-                          return (
-                            <div
-                              key={i}
-className={`absolute top-0 h-full border-r border-border/30 ${
-                              isWeekend ? "bg-blue-50" : "bg-white"
-                            }`}
-                              style={{ left: i * dayWidth, width: dayWidth }}
-                            />
-                          );
-                        })
-                      )}
-                    </div>
-                    
-                    {/* Task Bar */}
-                    <div
-                      className="absolute h-6 rounded cursor-move border"
-                      style={{
-                        left: position.left,
-                        width: position.width,
-                        top: 3,
-                        backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
-                        borderColor: `hsl(var(--timeline-${barColorClass}))`
-                      }}
-                    >
-                      <div
-                        className="h-full rounded-l opacity-80"
-                        style={{
-                          width: progressWidth,
-                          backgroundColor: `hsl(var(--timeline-confirmed))`
-                        }}
-                      />
-                      
-                      <div className="absolute inset-0 flex items-center px-2">
-                        <span className="text-xs font-medium text-foreground truncate">
-                          {task.task_name}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Dependency Lines (only render once on first row) */}
-                    {index === 0 && connections.length > 0 && (
-                      <svg
-                        className="absolute pointer-events-none"
-                        style={{ 
-                          left: 0, 
-                          top: 0,
-                          width: timelineWidth, 
-                          height: visibleTasks.length * 32 
-                        }}
-                      >
-                        {connections.map((connection, connIndex) => {
-                          const { from, to } = connection;
-                          const rightOffset = 10;
-                          const leftOffset = 23;
-                          const rightTurnX = from.x + rightOffset;
-                          const intermediateY = from.y + (to.y - from.y) * 0.47;
-                          const leftTurnX = rightTurnX - leftOffset;
-                          
-                          const pathData = `M ${from.x} ${from.y} 
-                                           L ${rightTurnX} ${from.y} 
-                                           L ${rightTurnX} ${intermediateY}
-                                           L ${leftTurnX} ${intermediateY}
-                                           L ${leftTurnX} ${to.y}
-                                           L ${to.x} ${to.y}`;
-
-                          return (
-                            <g key={connIndex}>
-                              <path
-                                d={pathData}
-                                stroke="black"
-                                strokeWidth="1"
-                                fill="none"
-                              />
-                              <polygon
-                                points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
-                                fill="black"
-                              />
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    )}
-                  </TableCell>
-                </TableRow>
+                  </div>
+                </div>
               </TaskContextMenu>
             );
           })}
-        </TableBody>
-      </Table>
+        </div>
+      </div>
+
+      {/* RIGHT PANEL - Timeline (independent horizontal scroll) */}
+      <div 
+        ref={timelineScrollRef}
+        className="flex-1 overflow-x-auto"
+      >
+        <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
+          {/* Timeline Header */}
+          <div 
+            className="sticky top-0 z-10 bg-white border-b border-gray-200"
+            style={{ height: ROW_HEIGHT }}
+          >
+            <div className="flex flex-col h-full">
+              {/* Month Headers */}
+              <div className="relative h-4 border-b border-border">
+                {months.map((month, index) => (
+                  <div
+                    key={index}
+                    className="absolute top-0 h-full flex items-center justify-center border-r border-border bg-muted/30 font-medium text-xs"
+                    style={{ left: month.left, width: month.width }}
+                  >
+                    {month.name}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Day/Week Headers */}
+              <div className="relative h-4">
+                {showWeekly ? (
+                  months.flatMap((month, monthIndex) => {
+                    const weekWidth = month.width / 4;
+                    return [1, 2, 3, 4].map(weekNum => (
+                      <div
+                        key={`${monthIndex}-week-${weekNum}`}
+                        className="absolute top-0 h-full flex items-center justify-center border-r border-border text-xs bg-background"
+                        style={{ left: month.left + (weekNum - 1) * weekWidth, width: weekWidth }}
+                      >
+                        {weekNum}
+                      </div>
+                    ));
+                  })
+                ) : (
+                  Array.from({ length: safeTotalDays }, (_, i) => {
+                    const dayDate = addDays(startDate, i);
+                    const isWeekend = !isBusinessDay(dayDate);
+                    
+                    return (
+                      <div
+                        key={i}
+                        className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
+                          isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
+                        }`}
+                        style={{ left: i * dayWidth, width: dayWidth }}
+                      >
+                        {getDayOfMonth(dayDate)}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline Body */}
+          <div className="relative" style={{ height: visibleTasks.length * ROW_HEIGHT }}>
+            {/* Grid Lines Background */}
+            <div className="absolute inset-0 pointer-events-none">
+              {showWeekly ? (
+                months.flatMap((month, monthIndex) => {
+                  const weekWidth = month.width / 4;
+                  return [0, 1, 2, 3].map(weekNum => (
+                    <div
+                      key={`grid-${monthIndex}-week-${weekNum}`}
+                      className="absolute top-0 h-full border-r border-border/30 bg-transparent"
+                      style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
+                    />
+                  ));
+                })
+              ) : (
+                Array.from({ length: safeTotalDays }, (_, i) => {
+                  const dayDate = addDays(startDate, i);
+                  const isWeekend = !isBusinessDay(dayDate);
+                  
+                  return (
+                    <div
+                      key={`grid-${i}`}
+                      className={`absolute top-0 h-full border-r border-border/30 ${
+                        isWeekend ? "bg-blue-50" : "bg-white"
+                      }`}
+                      style={{ left: i * dayWidth, width: dayWidth }}
+                    />
+                  );
+                })
+              )}
+            </div>
+
+            {/* Row Separators */}
+            {visibleTasks.map((_, index) => (
+              <div
+                key={`row-sep-${index}`}
+                className="absolute w-full border-b border-gray-100"
+                style={{ top: (index + 1) * ROW_HEIGHT - 1 }}
+              />
+            ))}
+
+            {/* Task Bars */}
+            {visibleTasks.map((task, index) => {
+              const position = getTaskPosition(task);
+              const barColorClass = getBarColorClass(task);
+              const progressWidth = (position.width * position.progress) / 100;
+
+              return (
+                <div
+                  key={task.id}
+                  className="absolute h-6 rounded cursor-move border"
+                  style={{
+                    left: position.left,
+                    width: position.width,
+                    top: index * ROW_HEIGHT + 3,
+                    backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
+                    borderColor: `hsl(var(--timeline-${barColorClass}))`
+                  }}
+                >
+                  <div
+                    className="h-full rounded-l opacity-80"
+                    style={{
+                      width: progressWidth,
+                      backgroundColor: `hsl(var(--timeline-confirmed))`
+                    }}
+                  />
+                  
+                  <div className="absolute inset-0 flex items-center px-2">
+                    <span className="text-xs font-medium text-foreground truncate">
+                      {task.task_name}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Dependency Lines */}
+            {connections.length > 0 && (
+              <svg
+                className="absolute pointer-events-none"
+                style={{ 
+                  left: 0, 
+                  top: 0,
+                  width: timelineWidth, 
+                  height: visibleTasks.length * ROW_HEIGHT 
+                }}
+              >
+                {connections.map((connection, connIndex) => {
+                  const { from, to } = connection;
+                  const rightOffset = 10;
+                  const leftOffset = 23;
+                  const rightTurnX = from.x + rightOffset;
+                  const intermediateY = from.y + (to.y - from.y) * 0.47;
+                  const leftTurnX = rightTurnX - leftOffset;
+                  
+                  const pathData = `M ${from.x} ${from.y} 
+                                   L ${rightTurnX} ${from.y} 
+                                   L ${rightTurnX} ${intermediateY}
+                                   L ${leftTurnX} ${intermediateY}
+                                   L ${leftTurnX} ${to.y}
+                                   L ${to.x} ${to.y}`;
+
+                  return (
+                    <g key={connIndex}>
+                      <path
+                        d={pathData}
+                        stroke="black"
+                        strokeWidth="1"
+                        fill="none"
+                      />
+                      <polygon
+                        points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
+                        fill="black"
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
