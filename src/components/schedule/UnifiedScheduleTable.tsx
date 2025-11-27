@@ -360,7 +360,7 @@ export function UnifiedScheduleTable({
             <TableHead className="sticky w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '472px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>End Date</TableHead>
             <TableHead className="sticky w-24 h-8 text-xs py-1 px-2 border-r" style={{ left: '568px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Predecessors</TableHead>
             <TableHead className="sticky w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '664px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Progress</TableHead>
-            <TableHead className="sticky w-32 h-8 text-xs py-1 px-2 border-r" style={{ left: '744px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Resources</TableHead>
+            <TableHead className="sticky w-32 h-8 text-xs py-1 px-2 border-r-4 border-gray-300" style={{ left: '744px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>Resources</TableHead>
             
             {/* Timeline Header */}
             <TableHead className="sticky top-0 z-40 h-8 p-0" style={{ width: timelineWidth }}>
@@ -447,6 +447,7 @@ export function UnifiedScheduleTable({
                 onContextMenuChange={() => {}}
               >
                 <TableRow 
+                  className="hover:bg-transparent"
                   style={{ height: '32px', maxHeight: '32px' }}
                 >
                   {/* Selection Checkbox */}
@@ -570,7 +571,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Resources */}
-                  <TableCell className="sticky py-1 px-2 w-32 h-8 overflow-hidden border-r" style={{ left: '744px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
+                  <TableCell className="sticky py-1 px-2 w-32 h-8 overflow-hidden border-r-4 border-gray-300" style={{ left: '744px', zIndex: 50, opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
