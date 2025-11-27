@@ -466,35 +466,31 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   }, [collapseAllTasks]);
 
-  const handleTaskMove = async (taskId: string, direction: 'up' | 'down') => {
-    if (direction === 'up') {
-      // TODO: Implement move up logic
-      console.log(`Moving task ${taskId} ${direction}`);
+  // Handle drag-and-drop task reordering
+  const handleDragDrop = async (draggedTaskId: string, targetTaskId: string, dropPosition: 'before' | 'after') => {
+    const draggedTask = tasks.find(t => t.id === draggedTaskId);
+    const targetTask = tasks.find(t => t.id === targetTaskId);
+    
+    if (!draggedTask || !targetTask || !user) {
+      console.error('❌ Task or user not found for drag-drop');
       return;
     }
     
-    // Handle move down
-    const task = tasks.find(t => t.id === taskId);
-    if (!task || !user) {
-      console.error('❌ Task or user not found for move down');
-      return;
-    }
-    
-    // Import the move down logic
-    const { computeMoveDownUpdates } = await import("@/utils/moveDownLogic");
+    // Import the drag-drop logic
+    const { computeDragDropUpdates } = await import("@/utils/dragDropLogic");
     
     // Capture original tasks before any optimistic updates
     const originalTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
-    const result = computeMoveDownUpdates(task, originalTasks);
+    const result = computeDragDropUpdates(draggedTask, targetTask, dropPosition, originalTasks);
     
     if (result.hierarchyUpdates.length === 0) {
-      toast({ title: "Error", description: "Cannot move this task down", variant: "destructive" });
+      console.log('No hierarchy updates needed');
       return;
     }
     
     try {
-      console.log('🔄 Starting move down for task:', task.task_name);
-      console.log('📊 Move down updates computed:', {
+      console.log('🔄 Starting drag-drop for task:', draggedTask.task_name, '→', targetTask.task_name, dropPosition);
+      console.log('📊 Drag-drop updates computed:', {
         hierarchyUpdates: result.hierarchyUpdates.length,
         predecessorUpdates: result.predecessorUpdates.length
       });
@@ -515,7 +511,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       await bulkUpdateHierarchies.mutateAsync({
         updates: result.hierarchyUpdates,
         originalTasks,
-        ordered: true, // Use ordered execution for move operations
+        ordered: true, // Use ordered execution for reorder operations
         options: { suppressInvalidate: true }
       });
       
@@ -535,15 +531,15 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Final cache invalidation
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
       
-      toast({ title: "Success", description: `Moved "${task.task_name}" down successfully` });
+      toast({ title: "Success", description: `Moved "${draggedTask.task_name}" successfully` });
       
     } catch (error) {
-      console.error('❌ Failed to move task down:', error);
+      console.error('❌ Failed to drag-drop task:', error);
       
       // Revert optimistic update on error
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
       
-      toast({ title: "Error", description: "Failed to move task down", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to reorder task", variant: "destructive" });
     }
   };
 
@@ -1600,8 +1596,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onAddBelow={handleAddBelow}
           onDeleteTask={handleDeleteTask}
           onBulkDelete={handleBulkDelete}
-          onMoveUp={(taskId) => handleTaskMove(taskId, 'up')}
-          onMoveDown={(taskId) => handleTaskMove(taskId, 'down')}
+          onDragDrop={handleDragDrop}
           startDate={timelineStart}
           endDate={timelineEnd}
           dayWidth={dayWidth}

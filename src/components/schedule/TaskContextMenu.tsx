@@ -1,36 +1,29 @@
-import React, { useState } from "react";
+import React from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { 
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Indent, Outdent, Plus, Trash2, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import { Indent, Outdent, Plus, Trash2, StickyNote } from "lucide-react";
 
 interface TaskContextMenuProps {
   children: React.ReactNode;
   task: ProjectTask;
   selectedTasks: Set<string>;
-  allTasks: ProjectTask[]; // Need all tasks to check for children
+  allTasks: ProjectTask[];
   onIndent: (taskId: string) => void;
   onOutdent: (taskId: string) => void;
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onBulkDelete: () => void;
-  onMoveUp: (taskId: string) => void;
-  onMoveDown: (taskId: string) => void;
   onOpenNotes: (taskId: string) => void;
   canIndent: boolean;
   canOutdent: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   onContextMenuChange?: (isOpen: boolean) => void;
 }
 
@@ -45,13 +38,9 @@ export function TaskContextMenu({
   onAddBelow,
   onDelete,
   onBulkDelete,
-  onMoveUp,
-  onMoveDown,
   onOpenNotes,
   canIndent,
   canOutdent,
-  canMoveUp,
-  canMoveDown,
   onContextMenuChange,
 }: TaskContextMenuProps) {
   const isMultipleSelected = (selectedTasks?.size || 0) > 1;
@@ -69,32 +58,13 @@ export function TaskContextMenu({
 
   const taskHasChildren = hasChildren(task);
   const canDeleteTask = !taskHasChildren;
+  
   return (
     <ContextMenu onOpenChange={onContextMenuChange}>
       <ContextMenuTrigger asChild>
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        <ContextMenuItem
-          onClick={() => onMoveUp(task.id)}
-          disabled={!canMoveUp}
-          className="flex items-center gap-2"
-        >
-          <ArrowUp className="h-4 w-4" />
-          Move Up
-        </ContextMenuItem>
-        
-        <ContextMenuItem
-          onClick={() => onMoveDown(task.id)}
-          disabled={!canMoveDown}
-          className="flex items-center gap-2"
-        >
-          <ArrowDown className="h-4 w-4" />
-          Move Down
-        </ContextMenuItem>
-        
-        <ContextMenuSeparator />
-        
         <ContextMenuItem
           onClick={() => onIndent(task.id)}
           disabled={!canIndent}
@@ -138,7 +108,7 @@ export function TaskContextMenu({
             <TooltipTrigger asChild>
               <ContextMenuItem
                 onClick={() => {
-                  if (!canDeleteTask) return; // Prevent action if disabled
+                  if (!canDeleteTask) return;
                   if (isMultipleSelected && isThisTaskSelected) {
                     onBulkDelete();
                   } else {
