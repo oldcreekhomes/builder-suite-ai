@@ -67,25 +67,12 @@ export function UnifiedScheduleTable({
 }: UnifiedScheduleTableProps) {
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
-  const isScrollingSyncRef = useRef(false);
 
-  // Sync vertical scroll between left panel and timeline
-  const handleLeftScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isScrollingSyncRef.current) return;
-    isScrollingSyncRef.current = true;
-    if (timelineScrollRef.current) {
-      timelineScrollRef.current.scrollTop = e.currentTarget.scrollTop;
-    }
-    setTimeout(() => { isScrollingSyncRef.current = false; }, 10);
-  };
-
+  // Sync left panel vertical scroll when timeline scrolls (only timeline has scrollbar)
   const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isScrollingSyncRef.current) return;
-    isScrollingSyncRef.current = true;
     if (leftPanelRef.current) {
       leftPanelRef.current.scrollTop = e.currentTarget.scrollTop;
     }
-    setTimeout(() => { isScrollingSyncRef.current = false; }, 10);
   };
 
   // Helper function to check if a task is overdue
@@ -355,9 +342,8 @@ export function UnifiedScheduleTable({
       {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
       <div 
         ref={leftPanelRef}
-        className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md overflow-y-auto"
+        className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md overflow-hidden"
         style={{ width: '952px' }}
-        onScroll={handleLeftScroll}
       >
         {/* Left Panel Header */}
         <div 
