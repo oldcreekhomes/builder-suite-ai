@@ -690,7 +690,7 @@ export function UnifiedScheduleTable({
                     <div
                       className="absolute h-6 flex items-center pl-2 whitespace-nowrap"
                       style={{
-                        left: position.left + position.width,
+                        left: position.left + position.width + 16,
                       }}
                     >
                       <span className="text-xs font-medium text-foreground">
