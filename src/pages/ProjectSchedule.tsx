@@ -37,8 +37,8 @@ export default function ProjectSchedule() {
             projectId={projectId}
           />
           
-          <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center space-x-2">
+          <div className="flex-1 flex flex-col p-4 md:p-8 pt-6 overflow-hidden">
+            <div className="flex items-center space-x-2 mb-4">
               <Calendar className="h-6 w-6" />
               <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
             </div>

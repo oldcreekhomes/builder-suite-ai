@@ -66,6 +66,27 @@ export function UnifiedScheduleTable({
   dayWidth
 }: UnifiedScheduleTableProps) {
   const timelineScrollRef = useRef<HTMLDivElement>(null);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const isScrollingSyncRef = useRef(false);
+
+  // Sync vertical scroll between left panel and timeline
+  const handleLeftScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingSyncRef.current) return;
+    isScrollingSyncRef.current = true;
+    if (timelineScrollRef.current) {
+      timelineScrollRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    setTimeout(() => { isScrollingSyncRef.current = false; }, 10);
+  };
+
+  const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingSyncRef.current) return;
+    isScrollingSyncRef.current = true;
+    if (leftPanelRef.current) {
+      leftPanelRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    setTimeout(() => { isScrollingSyncRef.current = false; }, 10);
+  };
 
   // Helper function to check if a task is overdue
   const isTaskOverdue = (endDate: string | null | undefined, progress: number | null | undefined): boolean => {
@@ -330,11 +351,13 @@ export function UnifiedScheduleTable({
   const ROW_HEIGHT = 32;
 
   return (
-    <div className="h-full flex overflow-y-auto">
+    <div className="flex" style={{ height: 'calc(100vh - 220px)' }}>
       {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
       <div 
-        className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md"
+        ref={leftPanelRef}
+        className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md overflow-y-auto"
         style={{ width: '952px' }}
+        onScroll={handleLeftScroll}
       >
         {/* Left Panel Header */}
         <div 
@@ -525,10 +548,11 @@ export function UnifiedScheduleTable({
         </div>
       </div>
 
-      {/* RIGHT PANEL - Timeline (independent horizontal scroll) */}
+      {/* RIGHT PANEL - Timeline (independent horizontal & vertical scroll) */}
       <div 
         ref={timelineScrollRef}
-        className="flex-1 overflow-x-auto"
+        className="flex-1 overflow-auto"
+        onScroll={handleTimelineScroll}
       >
         <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
           {/* Timeline Header */}
