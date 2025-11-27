@@ -451,7 +451,7 @@ export function UnifiedScheduleTable({
                   style={{ height: '32px', maxHeight: '32px' }}
                 >
                   {/* Selection Checkbox */}
-                  <TableCell className="sticky left-0 z-50 bg-background py-1 px-2 w-10 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-0 z-50 bg-background hover:bg-background py-1 px-2 w-10 h-8 overflow-hidden border-r">
                     <div
                       className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
                         isSelected ? 'bg-black' : 'bg-white'
@@ -461,12 +461,12 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="sticky left-10 z-50 bg-background text-xs py-1 pl-4 pr-4 w-16 h-8 border-r">
+                  <TableCell className="sticky left-10 z-50 bg-background hover:bg-background text-xs py-1 pl-4 pr-4 w-16 h-8 border-r">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </TableCell>
 
                   {/* Task Name with Indentation */}
-                  <TableCell className="sticky z-50 bg-background py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r" style={{ left: '104px' }}>
+                  <TableCell className="sticky z-50 bg-background hover:bg-background py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r" style={{ left: '104px' }}>
                     <div className="flex items-center">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
@@ -492,7 +492,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Start Date */}
-                  <TableCell className="sticky z-50 bg-background py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '296px' }}>
+                  <TableCell className="sticky z-50 bg-background hover:bg-background py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '296px' }}>
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -513,7 +513,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Duration */}
-                  <TableCell className="sticky z-50 bg-background py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '392px' }}>
+                  <TableCell className="sticky z-50 bg-background hover:bg-background py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '392px' }}>
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
@@ -525,7 +525,7 @@ export function UnifiedScheduleTable({
                   {/* End Date */}
                   <TableCell 
                     className={`sticky z-50 py-1 px-2 w-24 h-8 overflow-hidden border-r ${
-                      isTaskOverdue(task.end_date, task.progress) ? "bg-red-500" : "bg-background"
+                      isTaskOverdue(task.end_date, task.progress) ? "bg-red-500 hover:bg-red-500" : "bg-background hover:bg-background"
                     }`}
                     style={{ left: '472px' }}
                   >
@@ -549,7 +549,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Predecessors */}
-                  <TableCell className="sticky z-50 bg-background py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '568px' }}>
+                  <TableCell className="sticky z-50 bg-background hover:bg-background py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '568px' }}>
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
@@ -559,7 +559,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Progress */}
-                  <TableCell className="sticky z-50 bg-background py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '664px' }}>
+                  <TableCell className="sticky z-50 bg-background hover:bg-background py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '664px' }}>
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
@@ -568,7 +568,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Resources */}
-                  <TableCell className="sticky z-50 bg-background py-1 px-2 w-32 h-8 overflow-hidden border-r" style={{ left: '744px' }}>
+                  <TableCell className="sticky z-50 bg-background hover:bg-background py-1 px-2 w-32 h-8 overflow-hidden border-r" style={{ left: '744px' }}>
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
