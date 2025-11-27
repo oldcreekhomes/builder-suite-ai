@@ -345,7 +345,7 @@ export function UnifiedScheduleTable({
         <TableHeader className="z-50">
           <TableRow className="h-8">
             {/* Sticky Task Data Columns */}
-            <TableHead className="sticky left-0 z-50 bg-white w-10 h-8 text-xs py-1 px-2 border-r">
+            <TableHead className="sticky left-0 z-50 w-10 h-8 text-xs py-1 px-2 border-r" style={{ opacity: 1, backgroundColor: '#FFFFFF' }}>
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
@@ -353,14 +353,14 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead className="sticky left-10 z-50 bg-white w-16 h-8 text-xs py-1 pl-4 pr-4 border-r">#</TableHead>
-            <TableHead className="sticky z-50 bg-white w-48 h-8 text-xs py-1 px-2 border-r" style={{ left: '104px' }}>Task Name</TableHead>
-            <TableHead className="sticky z-50 bg-white w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '296px' }}>Start Date</TableHead>
-            <TableHead className="sticky z-50 bg-white w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '392px' }}>Duration</TableHead>
-            <TableHead className="sticky z-50 bg-white w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '472px' }}>End Date</TableHead>
-            <TableHead className="sticky z-50 bg-white w-24 h-8 text-xs py-1 px-2 border-r" style={{ left: '568px' }}>Predecessors</TableHead>
-            <TableHead className="sticky z-50 bg-white w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '664px' }}>Progress</TableHead>
-            <TableHead className="sticky z-50 bg-white w-32 h-8 text-xs py-1 px-2 border-r" style={{ left: '744px' }}>Resources</TableHead>
+            <TableHead className="sticky left-10 z-50 w-16 h-8 text-xs py-1 pl-4 pr-4 border-r" style={{ opacity: 1, backgroundColor: '#FFFFFF' }}>#</TableHead>
+            <TableHead className="sticky z-50 w-48 h-8 text-xs py-1 px-2 border-r" style={{ left: '104px', opacity: 1, backgroundColor: '#FFFFFF' }}>Task Name</TableHead>
+            <TableHead className="sticky z-50 w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '296px', opacity: 1, backgroundColor: '#FFFFFF' }}>Start Date</TableHead>
+            <TableHead className="sticky z-50 w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '392px', opacity: 1, backgroundColor: '#FFFFFF' }}>Duration</TableHead>
+            <TableHead className="sticky z-50 w-24 h-8 text-xs py-1 px-2 border-r whitespace-nowrap" style={{ left: '472px', opacity: 1, backgroundColor: '#FFFFFF' }}>End Date</TableHead>
+            <TableHead className="sticky z-50 w-24 h-8 text-xs py-1 px-2 border-r" style={{ left: '568px', opacity: 1, backgroundColor: '#FFFFFF' }}>Predecessors</TableHead>
+            <TableHead className="sticky z-50 w-20 h-8 text-xs py-1 px-2 border-r" style={{ left: '664px', opacity: 1, backgroundColor: '#FFFFFF' }}>Progress</TableHead>
+            <TableHead className="sticky z-50 w-32 h-8 text-xs py-1 px-2 border-r" style={{ left: '744px', opacity: 1, backgroundColor: '#FFFFFF' }}>Resources</TableHead>
             
             {/* Timeline Header */}
             <TableHead className="sticky top-0 z-40 h-8 p-0" style={{ width: timelineWidth }}>
@@ -451,7 +451,7 @@ export function UnifiedScheduleTable({
                   style={{ height: '32px', maxHeight: '32px' }}
                 >
                   {/* Selection Checkbox */}
-                  <TableCell className="sticky left-0 z-50 bg-white py-1 px-2 w-10 h-8 overflow-hidden border-r">
+                  <TableCell className="sticky left-0 z-50 py-1 px-2 w-10 h-8 overflow-hidden border-r" style={{ opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <div
                       className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
                         isSelected ? 'bg-black' : 'bg-white'
@@ -461,12 +461,12 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Hierarchy Number */}
-                  <TableCell className="sticky left-10 z-50 bg-white text-xs py-1 pl-4 pr-4 w-16 h-8 border-r">
+                  <TableCell className="sticky left-10 z-50 text-xs py-1 pl-4 pr-4 w-16 h-8 border-r" style={{ opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </TableCell>
 
                   {/* Task Name with Indentation */}
-                  <TableCell className="sticky z-50 bg-white py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r" style={{ left: '104px' }}>
+                  <TableCell className="sticky z-50 py-1 pl-2 pr-2 w-48 h-8 overflow-hidden border-r" style={{ left: '104px', opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <div className="flex items-center">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
@@ -492,7 +492,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Start Date */}
-                  <TableCell className="sticky z-50 bg-white py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '296px' }}>
+                  <TableCell className="sticky z-50 py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '296px', opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -513,7 +513,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Duration */}
-                  <TableCell className="sticky z-50 bg-white py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '392px' }}>
+                  <TableCell className="sticky z-50 py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '392px', opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
@@ -524,10 +524,12 @@ export function UnifiedScheduleTable({
 
                   {/* End Date */}
                   <TableCell 
-                    className={`sticky z-50 py-1 px-2 w-24 h-8 overflow-hidden border-r ${
-                      isTaskOverdue(task.end_date, task.progress) ? "bg-red-500" : "bg-white"
-                    }`}
-                    style={{ left: '472px' }}
+                    className="sticky z-50 py-1 px-2 w-24 h-8 overflow-hidden border-r"
+                    style={{ 
+                      left: '472px', 
+                      opacity: 1, 
+                      backgroundColor: isTaskOverdue(task.end_date, task.progress) ? '#EF4444' : '#FFFFFF' 
+                    }}
                   >
                     <InlineEditCell
                       value={(() => {
@@ -549,7 +551,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Predecessors */}
-                  <TableCell className="sticky z-50 bg-white py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '568px' }}>
+                  <TableCell className="sticky z-50 py-1 px-2 w-24 h-8 overflow-hidden border-r" style={{ left: '568px', opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
@@ -559,7 +561,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Progress */}
-                  <TableCell className="sticky z-50 bg-white py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '664px' }}>
+                  <TableCell className="sticky z-50 py-1 px-2 w-20 h-8 overflow-hidden border-r" style={{ left: '664px', opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
@@ -568,7 +570,7 @@ export function UnifiedScheduleTable({
                   </TableCell>
 
                   {/* Resources */}
-                  <TableCell className="sticky z-50 bg-white py-1 px-2 w-32 h-8 overflow-hidden border-r" style={{ left: '744px' }}>
+                  <TableCell className="sticky z-50 py-1 px-2 w-32 h-8 overflow-hidden border-r" style={{ left: '744px', opacity: 1, backgroundColor: '#FFFFFF' }}>
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
@@ -576,10 +578,10 @@ export function UnifiedScheduleTable({
                   </TableCell>
                   
                   {/* Timeline Cell */}
-                  <TableCell className="p-0 h-8 relative overflow-visible" style={{ width: timelineWidth, minWidth: timelineWidth }}>
+                  <TableCell className="p-0 h-8 relative overflow-hidden" style={{ width: timelineWidth, minWidth: timelineWidth }}>
                     {/* Vertical Grid Lines - Matching Header Pattern */}
                     <div 
-                      className="absolute top-0 left-0 h-full pointer-events-none overflow-visible"
+                      className="absolute top-0 left-0 h-full pointer-events-none z-0"
                       style={{ width: timelineWidth, minWidth: timelineWidth }}
                     >
                       {showWeekly ? (
@@ -602,7 +604,7 @@ export function UnifiedScheduleTable({
                             <div
                               key={i}
 className={`absolute top-0 h-full border-r border-border/30 ${
-                              isWeekend ? "bg-blue-50" : "bg-background"
+                              isWeekend ? "bg-blue-50" : "bg-white"
                             }`}
                               style={{ left: i * dayWidth, width: dayWidth }}
                             />
