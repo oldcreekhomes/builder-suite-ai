@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { canIndent } from "@/utils/hierarchyUtils";
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
-import * as moveDownUtils from "@/utils/moveDownLogic";
+import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parsePredecessors } from "@/utils/predecessorValidation";
 import { InlineEditCell } from "./InlineEditCell";
 import { ProgressSelector } from "./ProgressSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
 import { ResourcesSelector } from "./ResourcesSelector";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown, GripVertical } from "lucide-react";
 import { TaskContextMenu } from "./TaskContextMenu";
 import {  
   DateString, 
@@ -38,8 +38,7 @@ interface UnifiedScheduleTableProps {
   onAddBelow: (relativeTaskId: string) => void;
   onDeleteTask: (taskId: string) => void;
   onBulkDelete: () => void;
-  onMoveUp: (taskId: string) => void;
-  onMoveDown: (taskId: string) => void;
+  onDragDrop: (draggedTaskId: string, targetTaskId: string, dropPosition: 'before' | 'after') => void;
   startDate: DateString;
   endDate: DateString;
   dayWidth: number;
@@ -59,14 +58,18 @@ export function UnifiedScheduleTable({
   onAddBelow,
   onDeleteTask,
   onBulkDelete,
-  onMoveUp,
-  onMoveDown,
+  onDragDrop,
   startDate,
   endDate,
   dayWidth
 }: UnifiedScheduleTableProps) {
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
+
+  // Drag-and-drop state
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
 
   // Sync left panel vertical scroll when timeline scrolls (only timeline has scrollbar)
   const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -201,15 +204,6 @@ export function UnifiedScheduleTable({
            task.hierarchy_number.split('.').length === 2;
   };
 
-  const getCanMoveUp = (task: ProjectTask) => {
-    const currentIndex = visibleTasks.findIndex(t => t.id === task.id);
-    return currentIndex > 0;
-  };
-
-  const getCanMoveDown = (task: ProjectTask) => {
-    return moveDownUtils.canMoveDown(task, visibleTasks);
-  };
-
   const getIndentLevel = (hierarchyNumber: string | null) => {
     if (!hierarchyNumber) return 0;
     return (hierarchyNumber.match(/\./g) || []).length;
@@ -225,6 +219,97 @@ export function UnifiedScheduleTable({
       return [task.predecessor];
     }
   };
+
+  // Drag-and-drop handlers
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
+    setDraggedTaskId(taskId);
+    
+    // Create a custom drag image (optional)
+    const draggedElement = e.currentTarget as HTMLElement;
+    e.dataTransfer.setDragImage(draggedElement, 20, 16);
+  };
+
+  const handleDragOver = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    
+    if (!draggedTaskId || draggedTaskId === taskId) {
+      setDropTargetId(null);
+      setDropPosition(null);
+      return;
+    }
+
+    const draggedTask = tasks.find(t => t.id === draggedTaskId);
+    const targetTask = tasks.find(t => t.id === taskId);
+    
+    if (!draggedTask || !targetTask || !canDropAt(draggedTask, targetTask, tasks)) {
+      e.dataTransfer.dropEffect = 'none';
+      setDropTargetId(null);
+      setDropPosition(null);
+      return;
+    }
+
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Determine if dropping before or after based on mouse position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    const position = e.clientY < midpoint ? 'before' : 'after';
+    
+    setDropTargetId(taskId);
+    setDropPosition(position);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if we're leaving the row entirely
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDropTargetId(null);
+      setDropPosition(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    
+    if (!draggedTaskId || !dropPosition || draggedTaskId === taskId) {
+      resetDragState();
+      return;
+    }
+
+    const draggedTask = tasks.find(t => t.id === draggedTaskId);
+    const targetTask = tasks.find(t => t.id === taskId);
+    
+    if (!draggedTask || !targetTask || !canDropAt(draggedTask, targetTask, tasks)) {
+      resetDragState();
+      return;
+    }
+
+    // Trigger the drag-drop handler in parent
+    onDragDrop(draggedTaskId, taskId, dropPosition);
+    resetDragState();
+  };
+
+  const handleDragEnd = () => {
+    resetDragState();
+  };
+
+  const resetDragState = () => {
+    setDraggedTaskId(null);
+    setDropTargetId(null);
+    setDropPosition(null);
+  };
+
+  // Get descendant IDs for styling during drag
+  const getDraggedDescendants = (): Set<string> => {
+    if (!draggedTaskId) return new Set();
+    const draggedTask = tasks.find(t => t.id === draggedTaskId);
+    if (!draggedTask) return new Set();
+    return new Set(getDescendantIds(draggedTask, tasks));
+  };
+
+  const draggedDescendants = getDraggedDescendants();
 
   // Timeline functions
   const parseTaskDate = (dateStr: string): DateString => {
@@ -387,6 +472,12 @@ export function UnifiedScheduleTable({
             const isExpanded = expandedTasks.has(task.id);
             const isSelected = selectedTasks.has(task.id);
             const overdue = isTaskOverdue(task.end_date, task.progress);
+            
+            // Drag state styling
+            const isDragging = draggedTaskId === task.id;
+            const isDraggedDescendant = draggedDescendants.has(task.id);
+            const isDropTarget = dropTargetId === task.id;
+            const canDrop = draggedTaskId && !isDragging && !isDraggedDescendant;
 
             return (
               <TaskContextMenu
@@ -400,19 +491,33 @@ export function UnifiedScheduleTable({
                 onAddBelow={() => onAddBelow(task.id)}
                 onDelete={() => onDeleteTask(task.id)}
                 onBulkDelete={selectedTasks.size > 1 ? onBulkDelete : () => {}}
-                onMoveUp={() => getCanMoveUp(task) && onMoveUp(task.id)}
-                onMoveDown={() => getCanMoveDown(task) && onMoveDown(task.id)}
                 onOpenNotes={() => {}}
                 canIndent={getCanIndent(task)}
                 canOutdent={getCanOutdent(task)}
-                canMoveUp={getCanMoveUp(task)}
-                canMoveDown={getCanMoveDown(task)}
                 onContextMenuChange={() => {}}
               >
                 <div 
-                  className="flex border-b border-gray-100 bg-white hover:bg-gray-50"
+                  className={`flex border-b border-gray-100 bg-white hover:bg-gray-50 relative ${
+                    isDragging ? 'opacity-50 bg-blue-50' : ''
+                  } ${isDraggedDescendant ? 'opacity-30' : ''}`}
                   style={{ height: ROW_HEIGHT }}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, task.id)}
+                  onDragOver={(e) => handleDragOver(e, task.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, task.id)}
+                  onDragEnd={handleDragEnd}
                 >
+                  {/* Drop indicator line */}
+                  {isDropTarget && dropPosition && (
+                    <div 
+                      className="absolute left-0 right-0 h-0.5 bg-blue-500 z-30 pointer-events-none"
+                      style={{ 
+                        top: dropPosition === 'before' ? 0 : ROW_HEIGHT - 2
+                      }}
+                    />
+                  )}
+
                   {/* Checkbox */}
                   <div className="w-10 flex items-center justify-center border-r border-gray-200 px-2">
                     <div
@@ -423,8 +528,9 @@ export function UnifiedScheduleTable({
                     />
                   </div>
 
-                  {/* Hierarchy Number */}
-                  <div className="w-12 flex items-center border-r border-gray-200 px-2">
+                  {/* Hierarchy Number with Drag Handle */}
+                  <div className="w-12 flex items-center border-r border-gray-200 px-1 gap-1">
+                    <GripVertical className="h-3 w-3 text-gray-400 cursor-grab hover:text-gray-600 flex-shrink-0" />
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </div>
 

@@ -33,12 +33,8 @@ interface TaskRowProps {
   onAddBelow: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onBulkDelete: () => void;
-  onMoveUp: (taskId: string) => void;
-  onMoveDown: (taskId: string) => void;
   canIndent: boolean;
   canOutdent: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
 }
 
 export function TaskRow({
@@ -58,12 +54,8 @@ export function TaskRow({
   onAddBelow,
   onDelete,
   onBulkDelete,
-  onMoveUp,
-  onMoveDown,
   canIndent,
   canOutdent,
-  canMoveUp,
-  canMoveDown,
 }: TaskRowProps) {
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
@@ -76,7 +68,7 @@ export function TaskRow({
     
     try {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset to midnight for accurate comparison
+      today.setHours(0, 0, 0, 0);
       
       const taskEndDate = new Date(endDate.split("T")[0] + "T12:00:00");
       taskEndDate.setHours(0, 0, 0, 0);
@@ -89,36 +81,29 @@ export function TaskRow({
 
   const formatDate = (dateString: string) => {
     try {
-      // Handle invalid or empty date strings
       if (!dateString || dateString === 'Invalid Date' || dateString === 'null' || dateString === 'undefined') {
         return "—";
       }
       
-      // Convert to string if not already
       const dateStr = String(dateString);
-      
-      // Extract date part and validate format
       const datePart = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
-      if (!datePart || datePart.length < 8) { // Minimum YYYY-MM-DD is 10, but be more lenient
+      if (!datePart || datePart.length < 8) {
         console.warn('Invalid date format:', dateString);
         return "—";
       }
       
-      // Further validate the date parts
       const [year, month, day] = datePart.split('-');
       if (!year || !month || !day || year.length !== 4) {
         console.warn('Invalid date parts:', { year, month, day });
         return "—";
       }
       
-      // Try to create a Date object to validate
-      const testDate = new Date(datePart + 'T12:00:00'); // Use noon to avoid timezone issues
+      const testDate = new Date(datePart + 'T12:00:00');
       if (isNaN(testDate.getTime())) {
         console.warn('Date parsing failed:', datePart);
         return "—";
       }
       
-      // Format as MM/dd/yy
       return format(testDate, "MM/dd/yy");
     } catch (error) {
       console.error('Error formatting date:', dateString, error);
@@ -139,7 +124,7 @@ export function TaskRow({
         return new Date().toISOString().split('T')[0] + 'T00:00:00';
       }
 
-      const start = startDate.split('T')[0]; // Get just the date part
+      const start = startDate.split('T')[0];
       const endDate = calculateBusinessEndDate(start as DateString, duration);
       
       return endDate + 'T00:00:00';
@@ -152,9 +137,7 @@ export function TaskRow({
   const handleFieldUpdate = (field: string) => (value: string | number | string[]) => {
     const updates: any = { [field]: value };
     
-    // Special handling for predecessor changes
     if (field === "predecessor") {
-      // Calculate new dates based on predecessors
       const tempTask = { ...task, predecessor: value as string | string[] };
       const dateUpdate = calculateTaskDatesFromPredecessors(tempTask, allTasks);
       
@@ -164,7 +147,6 @@ export function TaskRow({
         updates.duration = dateUpdate.duration;
       }
     } else if (field === "start_date" || field === "duration") {
-      // For start date or duration changes, recalculate end date
       const newStartDate = field === "start_date" ? value as string : task.start_date;
       const newDuration = field === "duration" ? value as number : task.duration;
       
@@ -176,12 +158,10 @@ export function TaskRow({
     onTaskUpdate(task.id, updates);
   };
 
-  // Parse predecessors for display
   const getPredecessorArray = (): string[] => {
     return safeParsePredecessors(task.predecessor);
   };
 
-  // Check if this is an optimistic (unsaved) task
   const isOptimistic = task.id.startsWith('optimistic-');
 
   const handleOpenNotes = () => {
@@ -204,13 +184,9 @@ export function TaskRow({
         onAddBelow={onAddBelow}
         onDelete={onDelete}
         onBulkDelete={onBulkDelete}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
         onOpenNotes={handleOpenNotes}
         canIndent={canIndent}
         canOutdent={canOutdent}
-        canMoveUp={canMoveUp}
-        canMoveDown={canMoveDown}
         onContextMenuChange={setIsContextMenuOpen}
       >
         <TableRow 
@@ -237,10 +213,8 @@ export function TaskRow({
           {/* Task Name with Indentation */}
           <TableCell className="py-1 pl-2 pr-2 w-48 h-8 overflow-hidden">
             <div className="flex items-center">
-              {/* Indentation spacer - only for child tasks (level > 0) */}
               {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
               
-              {/* Fixed-width space for expand/collapse button - ensures alignment */}
               <div className="w-4 flex-shrink-0 mr-1 flex items-center justify-center">
                 {hasChildren ? (
                   <button
@@ -256,7 +230,6 @@ export function TaskRow({
                 ) : null}
               </div>
               
-              {/* Task name aligned with column header */}
               <div className="flex-1 flex items-center">
                 <InlineEditCell
                   value={task.task_name}
@@ -265,7 +238,6 @@ export function TaskRow({
                   className="truncate text-left"
                 />
                 
-                {/* Sticky note icon for tasks with notes */}
                 {task.notes?.trim() && (
                   <TooltipProvider>
                     <Tooltip>
@@ -299,7 +271,6 @@ export function TaskRow({
                 try {
                   if (!task.start_date) return "";
                   const datePart = task.start_date.split("T")[0];
-                  // Validate the date part before using it
                   const testDate = new Date(datePart + "T12:00:00");
                   if (isNaN(testDate.getTime())) {
                     console.warn('Invalid start_date for task:', task.task_name, task.start_date);
@@ -343,7 +314,6 @@ export function TaskRow({
                 try {
                   if (!task.end_date) return "";
                   const datePart = task.end_date.split("T")[0];
-                  // Validate the date part before using it
                   const testDate = new Date(datePart + "T12:00:00");
                   if (isNaN(testDate.getTime())) {
                     console.warn('Invalid end_date for task:', task.task_name, task.end_date);
