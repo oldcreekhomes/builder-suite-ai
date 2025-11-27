@@ -1569,9 +1569,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full">
       {/* Gantt Chart Container */}
-      <div className="bg-card text-card-foreground rounded-lg border overflow-hidden">
+      <div className="bg-card text-card-foreground rounded-lg border overflow-hidden flex flex-col flex-1">
         {/* Toolbar */}
         <ScheduleToolbar
           selectedTasks={selectedTasks}
