@@ -333,8 +333,8 @@ export function UnifiedScheduleTable({
     <div className="h-full flex overflow-y-auto">
       {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
       <div 
-        className="flex-shrink-0 bg-white border-r-4 border-gray-300 shadow-md"
-        style={{ width: '896px' }}
+        className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md"
+        style={{ width: '920px' }}
       >
         {/* Left Panel Header */}
         <div 
@@ -342,7 +342,7 @@ export function UnifiedScheduleTable({
           style={{ height: ROW_HEIGHT }}
         >
           <div className="flex h-full">
-            <div className="w-10 flex items-center justify-center border-r border-gray-300 px-2">
+            <div className="w-10 flex items-center justify-center border-r border-gray-200 px-2">
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
@@ -350,13 +350,13 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-8 flex items-center border-r border-gray-300 px-2 text-xs font-medium">#</div>
-            <div className="w-72 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Task Name</div>
-            <div className="w-24 flex items-center border-r border-gray-300 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
-            <div className="w-20 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Duration</div>
-            <div className="w-24 flex items-center border-r border-gray-300 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
-            <div className="w-20 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Predecessors</div>
-            <div className="w-16 flex items-center border-r border-gray-300 px-2 text-xs font-medium">Progress</div>
+            <div className="w-8 flex items-center border-r border-gray-200 px-2 text-xs font-medium">#</div>
+            <div className="w-72 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Task Name</div>
+            <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
+            <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Duration</div>
+            <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
+            <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Predecessors</div>
+            <div className="w-16 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Progress</div>
             <div className="w-32 flex items-center px-2 text-xs font-medium">Resources</div>
           </div>
         </div>
@@ -396,7 +396,7 @@ export function UnifiedScheduleTable({
                   style={{ height: ROW_HEIGHT }}
                 >
                   {/* Checkbox */}
-                  <div className="w-10 flex items-center justify-center border-r border-gray-300 px-2">
+                  <div className="w-10 flex items-center justify-center border-r border-gray-200 px-2">
                     <div
                       className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
                         isSelected ? 'bg-black' : 'bg-white'
@@ -406,12 +406,12 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Hierarchy Number */}
-                  <div className="w-8 flex items-center border-r border-gray-300 px-2">
+                  <div className="w-8 flex items-center border-r border-gray-200 px-2">
                     <span className="text-xs">{task.hierarchy_number || "—"}</span>
                   </div>
 
                   {/* Task Name */}
-                  <div className="w-72 flex items-center border-r border-gray-300 px-2 overflow-hidden">
+                  <div className="w-72 flex items-center border-r border-gray-200 px-2 overflow-hidden">
                     <div className="flex items-center w-full">
                       {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
                       {taskHasChildren && (
@@ -437,7 +437,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Start Date */}
-                  <div className="w-24 flex items-center border-r border-gray-300 px-2">
+                  <div className="w-24 flex items-center border-r border-gray-200 px-2">
                     <InlineEditCell
                       value={(() => {
                         try {
@@ -458,7 +458,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Duration */}
-                  <div className="w-20 flex items-center border-r border-gray-300 px-2">
+                  <div className="w-20 flex items-center border-r border-gray-200 px-2">
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
@@ -469,7 +469,7 @@ export function UnifiedScheduleTable({
 
                   {/* End Date */}
                   <div 
-                    className={`w-24 flex items-center border-r border-gray-300 px-2 ${
+                    className={`w-24 flex items-center border-r border-gray-200 px-2 ${
                       overdue ? 'bg-red-500' : ''
                     }`}
                   >
@@ -493,7 +493,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Predecessors */}
-                  <div className="w-20 flex items-center border-r border-gray-300 px-2">
+                  <div className="w-24 flex items-center border-r border-gray-200 px-2">
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
@@ -503,7 +503,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Progress */}
-                  <div className="w-16 flex items-center border-r border-gray-300 px-2">
+                  <div className="w-16 flex items-center border-r border-gray-200 px-2">
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
