@@ -334,7 +334,7 @@ export function UnifiedScheduleTable({
       {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
       <div 
         className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md"
-        style={{ width: '920px' }}
+        style={{ width: '936px' }}
       >
         {/* Left Panel Header */}
         <div 
@@ -356,7 +356,7 @@ export function UnifiedScheduleTable({
             <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Duration</div>
             <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
             <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Predecessors</div>
-            <div className="w-16 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Progress</div>
+            <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Progress</div>
             <div className="w-32 flex items-center px-2 text-xs font-medium">Resources</div>
           </div>
         </div>
@@ -503,7 +503,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Progress */}
-                  <div className="w-16 flex items-center border-r border-gray-200 px-2">
+                  <div className="w-20 flex items-center border-r border-gray-200 px-2">
                     <ProgressSelector
                       value={task.progress || 0}
                       onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
