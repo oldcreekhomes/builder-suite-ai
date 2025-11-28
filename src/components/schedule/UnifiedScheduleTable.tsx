@@ -434,13 +434,15 @@ export function UnifiedScheduleTable({
   return (
     <ResizablePanelGroup direction="horizontal" style={{ height: 'calc(100vh - 220px)' }}>
       {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
-      <ResizablePanel defaultSize={55} minSize={30} maxSize={70}>
+      <ResizablePanel defaultSize={55} minSize={20} maxSize={80}>
         <div 
           ref={leftPanelRef}
           className="h-full bg-white overflow-hidden"
           onWheel={handleLeftPanelWheel}
         >
-        {/* Left Panel Header */}
+          {/* Fixed-width inner wrapper - columns never shrink, just get clipped */}
+          <div style={{ width: '952px', minWidth: '952px' }}>
+          {/* Left Panel Header */}
         <div 
           className="sticky top-0 z-20 bg-white border-b border-gray-200"
           style={{ height: ROW_HEIGHT }}
@@ -647,6 +649,7 @@ export function UnifiedScheduleTable({
               </TaskContextMenu>
             );
           })}
+          </div>
         </div>
         </div>
       </ResizablePanel>
