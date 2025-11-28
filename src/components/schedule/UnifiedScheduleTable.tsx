@@ -5,6 +5,7 @@ import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskC
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parsePredecessors } from "@/utils/predecessorValidation";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { InlineEditCell } from "./InlineEditCell";
 import { ProgressSelector } from "./ProgressSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
@@ -436,14 +437,15 @@ export function UnifiedScheduleTable({
   const ROW_HEIGHT = 32;
 
   return (
-    <div className="flex" style={{ height: 'calc(100vh - 220px)' }}>
-      {/* LEFT PANEL - Task Data (fixed, no horizontal scroll) */}
-      <div 
-        ref={leftPanelRef}
-        className="flex-shrink-0 bg-white border-r-4 border-gray-200 shadow-md overflow-hidden"
-        style={{ width: '952px' }}
-        onWheel={handleLeftPanelWheel}
-      >
+    <ResizablePanelGroup direction="horizontal" style={{ height: 'calc(100vh - 220px)' }}>
+      {/* LEFT PANEL - Task Data (fixed width content, panel acts as viewport) */}
+      <ResizablePanel defaultSize={55} minSize={20} className="overflow-hidden">
+        <div 
+          ref={leftPanelRef}
+          className="bg-white border-r-4 border-gray-200 shadow-md overflow-hidden"
+          style={{ width: '952px' }}
+          onWheel={handleLeftPanelWheel}
+        >
         {/* Left Panel Header */}
         <div 
           className="sticky top-0 z-20 bg-white border-b border-gray-200"
@@ -659,13 +661,18 @@ export function UnifiedScheduleTable({
           })}
         </div>
       </div>
+      </ResizablePanel>
+
+      {/* Resizable Handle */}
+      <ResizableHandle withHandle className="bg-gray-200 hover:bg-blue-400 transition-colors" />
 
       {/* RIGHT PANEL - Timeline (independent horizontal & vertical scroll) */}
-      <div 
-        ref={timelineScrollRef}
-        className="flex-1 overflow-auto"
-        onScroll={handleTimelineScroll}
-      >
+      <ResizablePanel defaultSize={45} minSize={20}>
+        <div 
+          ref={timelineScrollRef}
+          className="h-full overflow-auto"
+          onScroll={handleTimelineScroll}
+        >
         <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
           {/* Timeline Header */}
           <div 
@@ -857,7 +864,8 @@ export function UnifiedScheduleTable({
             )}
           </div>
         </div>
-      </div>
-    </div>
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
