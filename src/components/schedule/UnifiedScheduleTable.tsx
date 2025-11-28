@@ -42,6 +42,7 @@ interface UnifiedScheduleTableProps {
   startDate: DateString;
   endDate: DateString;
   dayWidth: number;
+  recentlySavedTasks?: Set<string>;
 }
 
 export function UnifiedScheduleTable({ 
@@ -61,7 +62,8 @@ export function UnifiedScheduleTable({
   onDragDrop,
   startDate,
   endDate,
-  dayWidth
+  dayWidth,
+  recentlySavedTasks = new Set()
 }: UnifiedScheduleTableProps) {
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -471,7 +473,8 @@ export function UnifiedScheduleTable({
             const taskHasChildren = hasChildren(task.id);
             const isExpanded = expandedTasks.has(task.id);
             const isSelected = selectedTasks.has(task.id);
-            const overdue = isTaskOverdue(task.end_date, task.progress);
+            const isOverdue = isTaskOverdue(task.end_date, task.progress);
+            const isRecentlySaved = recentlySavedTasks.has(task.id);
             
             // Drag state styling
             const isDragging = draggedTaskId === task.id;
@@ -497,9 +500,11 @@ export function UnifiedScheduleTable({
                 onContextMenuChange={() => {}}
               >
                 <div 
-                  className={`flex border-b border-gray-100 bg-white hover:bg-gray-50 relative ${
+                  className={`flex border-b border-gray-100 bg-white hover:bg-gray-50 relative transition-colors duration-300 ${
                     isDragging ? 'opacity-50 bg-blue-50' : ''
-                  } ${isDraggedDescendant ? 'opacity-30' : ''}`}
+                  } ${isDraggedDescendant ? 'opacity-30' : ''} ${
+                    isRecentlySaved ? 'bg-green-100 animate-pulse' : ''
+                  }`}
                   style={{ height: ROW_HEIGHT }}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task.id)}
@@ -594,7 +599,7 @@ export function UnifiedScheduleTable({
                   {/* End Date */}
                   <div 
                     className={`w-24 flex items-center border-r border-gray-200 px-2 ${
-                      overdue ? 'bg-red-500' : ''
+                      isOverdue ? 'bg-red-500' : ''
                     }`}
                   >
                     <InlineEditCell
@@ -612,7 +617,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className={`text-xs ${overdue ? "text-white font-semibold" : ""}`}
+                      className={`text-xs ${isOverdue ? "text-white font-semibold" : ""}`}
                     />
                   </div>
 
