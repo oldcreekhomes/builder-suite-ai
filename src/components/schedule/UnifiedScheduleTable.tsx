@@ -439,7 +439,7 @@ export function UnifiedScheduleTable({
   return (
     <ResizablePanelGroup direction="horizontal" style={{ height: 'calc(100vh - 220px)' }}>
       {/* LEFT PANEL - Task Data (fixed width content, panel acts as viewport) */}
-      <ResizablePanel defaultSize={55} minSize={20} maxSize={55} className="overflow-hidden">
+      <ResizablePanel defaultSize={70} minSize={20} maxSize={70} className="overflow-hidden">
         <div 
           ref={leftPanelRef}
           className="bg-white border-r border-gray-300 overflow-hidden"
