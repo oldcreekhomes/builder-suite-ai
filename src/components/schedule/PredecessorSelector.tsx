@@ -119,12 +119,26 @@ export function PredecessorSelector({
     return parsePredecessors(safeValue, allTasks);
   };
 
+  // Helper to reconstruct full predecessor string for display
+  const getFullPredecessorString = (pred: ParsedPredecessor): string => {
+    let result = pred.taskId;
+    if (pred.linkType === 'SF') {
+      result += 'SF';
+    }
+    if (pred.lagDays > 0) {
+      result += `+${pred.lagDays}d`;
+    } else if (pred.lagDays < 0) {
+      result += `${pred.lagDays}d`;
+    }
+    return result;
+  };
+
   // If readOnly, always show as non-editable text
   if (readOnly) {
     const parsed = getParsedPredecessors();
     return (
       <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
-        {parsed.length > 0 ? parsed.map(p => p.taskId).join(', ') : "None"}
+        {parsed.length > 0 ? parsed.map(p => getFullPredecessorString(p)).join(', ') : "None"}
       </span>
     );
   }
@@ -143,7 +157,7 @@ export function PredecessorSelector({
       >
         {parsed.map((pred, index) => (
           <span key={index} className="text-xs">
-            {pred.taskId}
+            {getFullPredecessorString(pred)}
             {index < parsed.length - 1 ? ', ' : ''}
           </span>
         ))}
