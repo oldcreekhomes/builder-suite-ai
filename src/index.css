@@ -56,9 +56,10 @@
     --sidebar-ring: 240 10% 3.9%;
     
     /* Timeline colors */
-    --timeline-default: 0 70% 85%;
-    --timeline-confirmed: 142 76% 36%;
-    --timeline-unconfirmed: 0 84% 60%;
+    --timeline-default: 217 91% 60%;      /* Blue - pending/initial tasks */
+    --timeline-confirmed: 142 76% 36%;    /* Green - confirmed via email */
+    --timeline-unconfirmed: 0 84% 60%;    /* Red - denied via email */
+    --timeline-progress: 217 91% 35%;     /* Dark Blue - progress fill */
     
     /* Bidding tab colors */
     --bidding-draft: 60 100% 50%;
@@ -103,9 +104,10 @@
     --sidebar-ring: 240 4.9% 83.9%;
     
     /* Timeline colors */
-    --timeline-default: 0 70% 85%;
-    --timeline-confirmed: 142 76% 36%;
-    --timeline-unconfirmed: 0 84% 60%;
+    --timeline-default: 217 91% 60%;      /* Blue - pending/initial tasks */
+    --timeline-confirmed: 142 76% 36%;    /* Green - confirmed via email */
+    --timeline-unconfirmed: 0 84% 60%;    /* Red - denied via email */
+    --timeline-progress: 217 91% 35%;     /* Dark Blue - progress fill */
     
     /* Bidding tab colors */
     --bidding-draft: 60 100% 50%;
