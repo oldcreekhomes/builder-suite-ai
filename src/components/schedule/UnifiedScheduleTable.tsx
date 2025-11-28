@@ -786,7 +786,7 @@ export function UnifiedScheduleTable({
                       className="h-full rounded-l opacity-80"
                       style={{
                         width: progressWidth,
-                        backgroundColor: `hsl(var(--timeline-confirmed))`
+                        backgroundColor: `hsl(var(--timeline-progress))`
                       }}
                     />
                   </div>
