@@ -33,7 +33,7 @@ interface UnifiedScheduleTableProps {
   visibleTasks: ProjectTask[];
   expandedTasks: Set<string>;
   onToggleExpand: (taskId: string) => void;
-  onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => void;
+  onTaskUpdate: (taskId: string, updates: any, options?: { silent?: boolean }) => boolean | void | Promise<boolean>;
   selectedTasks: Set<string>;
   onSelectedTasksChange: (selectedTasks: Set<string>) => void;
   onIndent: (taskId: string) => void;
@@ -183,8 +183,11 @@ export function UnifiedScheduleTable({
   }, [startDate, dayWidth]);
 
   // Enhanced task update with parent cascade
-  const handleTaskUpdate = (taskId: string, updates: any, options?: { silent?: boolean }) => {
-    onTaskUpdate(taskId, updates, options);
+  const handleTaskUpdate = async (taskId: string, updates: any, options?: { silent?: boolean }) => {
+    const success = await onTaskUpdate(taskId, updates, options);
+    
+    // Only cascade to parents if the update was accepted (validation passed)
+    if (success === false) return;
     
     requestAnimationFrame(() => {
       const updatedTask = tasks.find(t => t.id === taskId);
