@@ -170,7 +170,6 @@ export const useTaskMutations = (projectId: string) => {
     },
     onSuccess: async (data, variables) => {
       console.log('🔧 Task update success with data:', data);
-      console.log('🔧 Variables:', variables);
       
       // Add task to pending updates to ignore realtime echoes
       addPendingUpdate(data.id);
@@ -180,32 +179,37 @@ export const useTaskMutations = (projectId: string) => {
       const predecessorChanged = variables.predecessor !== undefined;
       const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
       
-      // Always invalidate cache immediately for direct updates (instant UI feedback)
+      // CRITICAL: Get cached data BEFORE invalidating the cache!
+      let cachedTasks: ProjectTask[] | null = null;
+      if (shouldCascade) {
+        cachedTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || null;
+      }
+      
+      // Now invalidate cache for UI refresh (after we've captured the data we need)
       if (!variables.suppressInvalidate) {
         console.log('✅ Task updated - immediate cache refresh');
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
-      if (shouldCascade) {
-        // Use cached data for instant cascade - no database fetch needed
-        const cachedTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]);
+      // Run cascade with the cached data we captured earlier
+      if (shouldCascade && cachedTasks && cachedTasks.length > 0) {
+        // Update the changed task in our working copy
+        const workingTasks = cachedTasks.map(t => {
+          if (t.id !== data.id) return t;
+          return {
+            ...t,
+            start_date: data.start_date,
+            end_date: data.end_date,
+            duration: data.duration,
+            predecessor: t.predecessor // Keep existing predecessor type
+          };
+        });
         
-        if (cachedTasks && cachedTasks.length > 0) {
-          // Update the changed task in our working copy
-          const workingTasks = cachedTasks.map(t => {
-            if (t.id !== data.id) return t;
-            return {
-              ...t,
-              start_date: data.start_date,
-              end_date: data.end_date,
-              duration: data.duration,
-              predecessor: t.predecessor // Keep existing predecessor type
-            };
-          });
-          
-          // Run cascade synchronously with cached data - instant!
-          cascadeDependentUpdates(data.id, workingTasks);
-        }
+        // Run cascade with cached data
+        await cascadeDependentUpdates(data.id, workingTasks);
+        
+        // Invalidate again after cascade to ensure UI shows all cascaded updates
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
       // Only trigger parent recalculation if not suppressed, dates/duration changed, and no batch operation
