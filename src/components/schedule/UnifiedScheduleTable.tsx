@@ -72,6 +72,9 @@ export function UnifiedScheduleTable({
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
+  
+  // Context menu highlight state
+  const [contextMenuTaskId, setContextMenuTaskId] = useState<string | null>(null);
 
   // Sync left panel vertical scroll when timeline scrolls (only timeline has scrollbar)
   const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -497,14 +500,14 @@ export function UnifiedScheduleTable({
                 onOpenNotes={() => {}}
                 canIndent={getCanIndent(task)}
                 canOutdent={getCanOutdent(task)}
-                onContextMenuChange={() => {}}
+                onContextMenuChange={(isOpen) => setContextMenuTaskId(isOpen ? task.id : null)}
               >
                 <div 
                   className={`flex border-b border-gray-100 bg-white hover:bg-gray-50 relative transition-colors duration-300 ${
                     isDragging ? 'opacity-50 bg-blue-50' : ''
                   } ${isDraggedDescendant ? 'opacity-30' : ''} ${
                     isRecentlySaved ? 'bg-green-100 animate-pulse' : ''
-                  }`}
+                  } ${contextMenuTaskId === task.id ? 'bg-blue-100' : ''}`}
                   style={{ height: ROW_HEIGHT }}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task.id)}
