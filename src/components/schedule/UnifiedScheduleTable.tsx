@@ -528,11 +528,10 @@ export function UnifiedScheduleTable({
 
                   {/* Checkbox */}
                   <div className="w-10 flex items-center justify-center border-r border-gray-200 px-2">
-                    <div
-                      className={`h-3 w-3 border border-border rounded-sm cursor-pointer ${
-                        isSelected ? 'bg-black' : 'bg-white'
-                      }`}
-                      onClick={() => handleTaskSelection(task.id, !isSelected)}
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => handleTaskSelection(task.id, !!checked)}
+                      className="h-3 w-3"
                     />
                   </div>
 
