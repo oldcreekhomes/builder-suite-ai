@@ -493,7 +493,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
             description: validation.error,
             variant: "destructive"
           });
-          return; // Stop the update entirely
+          return false; // Stop the update entirely
         }
       }
     }
@@ -624,6 +624,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     updateTask.mutate(mutationData);
     
     // Instant success feedback (removed toast for cleaner UX - flash is sufficient)
+    return true; // Update was accepted
   };
 
   const handleIndent = async (taskId: string) => {
