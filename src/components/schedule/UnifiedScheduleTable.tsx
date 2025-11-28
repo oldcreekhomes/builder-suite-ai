@@ -586,6 +586,7 @@ export function UnifiedScheduleTable({
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
                       className="text-xs"
+                      readOnly={taskHasChildren}
                     />
                   </div>
 
@@ -596,6 +597,7 @@ export function UnifiedScheduleTable({
                       type="number"
                       onSave={(value) => handleTaskUpdate(task.id, { duration: parseInt(value.toString()) || 1 })}
                       className="text-xs"
+                      readOnly={taskHasChildren}
                     />
                   </div>
 
@@ -621,6 +623,7 @@ export function UnifiedScheduleTable({
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
                       className={`text-xs ${isOverdue ? "text-white font-semibold" : ""}`}
+                      readOnly={taskHasChildren}
                     />
                   </div>
 
@@ -631,6 +634,7 @@ export function UnifiedScheduleTable({
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
                       allTasks={tasks}
                       currentTaskId={task.id}
+                      readOnly={taskHasChildren}
                     />
                   </div>
 
@@ -648,6 +652,7 @@ export function UnifiedScheduleTable({
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
+                      readOnly={taskHasChildren}
                     />
                   </div>
                 </div>
