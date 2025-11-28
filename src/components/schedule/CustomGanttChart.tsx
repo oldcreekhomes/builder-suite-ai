@@ -72,82 +72,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     };
   }, [isRecalculatingParents, skipRecalc, tasks, projectId, user?.id, queryClient, updateTask]);
 
-  // Repair pass on load to fix stale schedules
-  useEffect(() => {
-    if (!tasks || tasks.length === 0 || (window as any).__batchOperationInProgress) return;
-    
-    const repairSchedule = async () => {
-      console.log('🔧 Starting repair pass to fix stale schedules');
-      
-      const { calculateTaskDatesFromPredecessors } = await import('@/utils/taskCalculations');
-      const { safeParsePredecessors } = await import('@/utils/predecessorValidation');
-      
-      // Find tasks with predecessors that might need repair
-      const tasksWithPredecessors = tasks.filter(task => {
-        const predecessors = safeParsePredecessors(task.predecessor);
-        return predecessors.length > 0;
-      });
-      
-      console.log(`🔧 Repair pass: Found ${tasksWithPredecessors.length} tasks with predecessors`);
-      
-      const repairUpdates: Array<{ task: ProjectTask; dateUpdate: any }> = [];
-      
-      for (const task of tasksWithPredecessors) {
-        const dateUpdate = calculateTaskDatesFromPredecessors(task, tasks);
-        if (dateUpdate) {
-          const currentStartDate = task.start_date.split('T')[0];
-          const currentEndDate = task.end_date.split('T')[0];
-          
-          if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
-            console.log(`🔧 Repair needed: ${task.hierarchy_number}: ${task.task_name}`, 
-              `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
-            repairUpdates.push({ task, dateUpdate });
-          }
-        }
-      }
-      
-      if (repairUpdates.length > 0) {
-        console.log(`🔧 Repairing ${repairUpdates.length} tasks`);
-        
-        // Batch repair updates
-        for (const { task, dateUpdate } of repairUpdates) {
-          try {
-            await updateTask.mutateAsync({
-              id: task.id,
-              start_date: dateUpdate.startDate,
-              end_date: dateUpdate.endDate,
-              duration: dateUpdate.duration,
-              suppressInvalidate: true,
-              skipCascade: true
-            });
-          } catch (error) {
-            console.error(`❌ Failed to repair task ${task.id}:`, error);
-          }
-        }
-        
-        // Single invalidation after all repairs
-        setTimeout(() => {
-          console.log('✅ Repair pass complete - refreshing cache');
-          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-        }, 300);
-      } else {
-        console.log('🔧 Repair pass: No repairs needed');
-      }
-    };
-    
-    // Run repair pass during idle time to avoid blocking user interactions
-    const scheduleRepair = () => {
-      if (typeof requestIdleCallback !== 'undefined') {
-        requestIdleCallback(repairSchedule, { timeout: 5000 });
-      } else {
-        // Fallback for environments without requestIdleCallback
-        setTimeout(repairSchedule, 2000);
-      }
-    };
-    
-    const timeoutId = setTimeout(scheduleRepair, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [tasks, projectId, user?.id, queryClient, updateTask]);
+  // REMOVED: Repair pass that was overwriting user edits
+  // The old repair pass would recalculate tasks from their predecessors on page load,
+  // which caused user-edited dates to revert. Per user requirement, when a user edits
+  // a task, only its DEPENDENTS should update - the edited task itself should never
+  // be recalculated from its predecessors.
 
   // Auto-normalize hierarchy on load if needed (run only once per project load)
   useEffect(() => {
@@ -543,6 +472,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Track recently saved tasks for visual flash feedback
+  const [recentlySavedTasks, setRecentlySavedTasks] = useState<Set<string>>(new Set());
+
   const handleTaskUpdate = async (taskId: string, updates: any, options?: { silent?: boolean }) => {
     // Prevent updates to optimistic (unsaved) tasks
     if (taskId.startsWith('optimistic-')) {
@@ -559,6 +491,16 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     // OPTIMISTIC UPDATE: Immediately update cache for instant UI feedback
     const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+    
+    // Build mutation data with computed end_date
+    const mutationData: any = {
+      id: taskId,
+      suppressInvalidate: true
+    };
+    
+    let computedEndDate: string | null = null;
+    let computedDuration: number | null = null;
+    
     const optimisticTasks = currentTasks.map(task => {
       if (task.id === taskId) {
         const optimisticTask = { ...task };
@@ -566,24 +508,35 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         // Apply updates and normalize dates
         if (updates.start_date) {
           optimisticTask.start_date = updates.start_date.split('T')[0] + 'T00:00:00';
+          mutationData.start_date = updates.start_date;
         }
         if (updates.end_date) {
           optimisticTask.end_date = updates.end_date.split('T')[0] + 'T00:00:00';
+          mutationData.end_date = updates.end_date;
         }
         if (updates.duration !== undefined) {
           optimisticTask.duration = updates.duration;
+          mutationData.duration = updates.duration;
         }
         if (updates.task_name !== undefined) {
           optimisticTask.task_name = updates.task_name;
+          mutationData.task_name = updates.task_name;
         }
         if (updates.progress !== undefined) {
           optimisticTask.progress = updates.progress;
+          mutationData.progress = updates.progress;
         }
         if (updates.resources !== undefined) {
           optimisticTask.resources = updates.resources;
+          mutationData.resources = updates.resources;
+        }
+        if (updates.predecessor !== undefined) {
+          optimisticTask.predecessor = updates.predecessor;
+          mutationData.predecessor = updates.predecessor;
         }
         if (updates.notes !== undefined) {
           optimisticTask.notes = updates.notes;
+          mutationData.notes = updates.notes;
         }
         
         // Always keep start/end/duration in sync for instant UI feedback
@@ -594,6 +547,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           const startYmd = optimisticTask.start_date.split('T')[0];
           const endYmd = calculateBusinessEndDate(startYmd as DateString, currentDuration);
           optimisticTask.end_date = endYmd + 'T00:00:00';
+          computedEndDate = endYmd;
         }
         
         // If duration changed and end_date not provided, compute end_date
@@ -601,6 +555,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           const startYmd = optimisticTask.start_date.split('T')[0];
           const endYmd = calculateBusinessEndDate(startYmd as DateString, updates.duration);
           optimisticTask.end_date = endYmd + 'T00:00:00';
+          computedEndDate = endYmd;
         }
         
         // If end_date changed, recompute duration
@@ -608,12 +563,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           const startYmd = optimisticTask.start_date.split('T')[0];
           const endYmd = optimisticTask.end_date.split('T')[0];
           optimisticTask.duration = getBusinessDaysBetween(startYmd as DateString, endYmd as DateString);
+          computedDuration = optimisticTask.duration;
         }
         
         return optimisticTask;
       }
       return task;
     });
+    
+    // CRITICAL: Include computed end_date in mutation to persist it to database
+    if (computedEndDate && !mutationData.end_date) {
+      mutationData.end_date = computedEndDate;
+    }
+    // Also include computed duration when end_date changed
+    if (computedDuration !== null && mutationData.duration === undefined) {
+      mutationData.duration = computedDuration;
+    }
     
     // Apply optimistic update immediately
     queryClient.setQueryData(['project-tasks', projectId, user?.id], optimisticTasks);
@@ -622,17 +587,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
     addPendingUpdate(taskId, 6000); // 6s TTL to cover cascade processing
     
-    // Fire-and-forget mutation (async cascade will refresh cache when complete)
-    updateTask.mutate({
-      id: taskId,
-      ...updates,
-      suppressInvalidate: true // Cache already updated optimistically
-    });
+    // Visual flash feedback - add task to recently saved set
+    setRecentlySavedTasks(prev => new Set(prev).add(taskId));
+    setTimeout(() => {
+      setRecentlySavedTasks(prev => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }, 500); // Flash duration
     
-    // Instant success feedback
-    if (!options?.silent) {
-      toast({ title: "Success", description: "Task updated successfully" });
-    }
+    console.log('📤 Sending mutation with data:', mutationData);
+    
+    // Fire-and-forget mutation (async cascade will refresh cache when complete)
+    updateTask.mutate(mutationData);
+    
+    // Instant success feedback (removed toast for cleaner UX - flash is sufficient)
   };
 
   const handleIndent = async (taskId: string) => {
@@ -1600,6 +1570,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           startDate={timelineStart}
           endDate={timelineEnd}
           dayWidth={dayWidth}
+          recentlySavedTasks={recentlySavedTasks}
         />
       </div>
 
