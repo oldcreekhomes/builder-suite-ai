@@ -90,6 +90,14 @@ export function InlineEditCell({
     );
   }
 
+  // Helper to get calendar date - existing date or today for new tasks
+  const getCalendarDate = (): Date => {
+    if (value && String(value).trim()) {
+      return new Date(value + "T12:00:00");
+    }
+    return new Date();
+  };
+
   if (type === "date") {
     return (
       <Popover open={showCalendar} onOpenChange={setShowCalendar}>
@@ -107,7 +115,8 @@ export function InlineEditCell({
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={value ? new Date(value + "T12:00:00") : undefined}
+            selected={getCalendarDate()}
+            defaultMonth={getCalendarDate()}
             onSelect={handleDateSelect}
             initialFocus
             className={cn("p-3 pointer-events-auto")}
