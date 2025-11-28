@@ -442,7 +442,7 @@ export function UnifiedScheduleTable({
       <ResizablePanel defaultSize={55} minSize={20} className="overflow-hidden">
         <div 
           ref={leftPanelRef}
-          className="bg-white border-r-4 border-gray-200 shadow-md overflow-hidden"
+          className="bg-white border-r border-gray-300 overflow-hidden"
           style={{ width: '952px' }}
           onWheel={handleLeftPanelWheel}
         >
