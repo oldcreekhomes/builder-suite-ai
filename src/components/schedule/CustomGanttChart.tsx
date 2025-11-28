@@ -7,7 +7,7 @@ import { useOptimizedRealtime } from "@/hooks/useOptimizedRealtime";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
+import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, getBusinessDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
 import { UnifiedScheduleTable } from "./UnifiedScheduleTable";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -533,6 +533,22 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         if (updates.predecessor !== undefined) {
           optimisticTask.predecessor = updates.predecessor;
           mutationData.predecessor = updates.predecessor;
+          
+          // Recalculate this task's dates based on new predecessor
+          if (updates.predecessor && updates.predecessor.trim() !== '') {
+            const taskWithNewPredecessor = { ...optimisticTask };
+            const dateUpdate = calculateTaskDatesFromPredecessors(taskWithNewPredecessor, currentTasks);
+            
+            if (dateUpdate) {
+              optimisticTask.start_date = dateUpdate.startDate + 'T00:00:00';
+              optimisticTask.end_date = dateUpdate.endDate + 'T00:00:00';
+              optimisticTask.duration = dateUpdate.duration;
+              
+              mutationData.start_date = dateUpdate.startDate;
+              mutationData.end_date = dateUpdate.endDate;
+              mutationData.duration = dateUpdate.duration;
+            }
+          }
         }
         if (updates.notes !== undefined) {
           optimisticTask.notes = updates.notes;
