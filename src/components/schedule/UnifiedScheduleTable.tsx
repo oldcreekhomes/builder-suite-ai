@@ -463,7 +463,7 @@ export function UnifiedScheduleTable({
             <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
             <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Predecessors</div>
             <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Progress</div>
-            <div className="w-32 flex items-center px-2 text-xs font-medium">Resources</div>
+            <div className="w-32 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Resources</div>
           </div>
         </div>
 
@@ -639,7 +639,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Resources */}
-                  <div className="w-32 flex items-center px-2">
+                  <div className="w-32 flex items-center border-r border-gray-200 px-2">
                     <ResourcesSelector
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
