@@ -187,39 +187,25 @@ export const useTaskMutations = (projectId: string) => {
       }
       
       if (shouldCascade) {
-        console.log('🔄 Scheduling async cascade for task:', data.id);
+        // Use cached data for instant cascade - no database fetch needed
+        const cachedTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]);
         
-        // Schedule cascade using background processing
-        const scheduleBackgroundCascade = () => {
-          const callback = async () => {
-            try {
-              // Fetch all tasks for cascade calculations
-              const { data: allTasks } = await supabase
-                .from('project_schedule_tasks')
-                .select('*')
-                .eq('project_id', projectId);
-                
-              if (allTasks) {
-                await cascadeDependentUpdates(data.id, allTasks as ProjectTask[]);
-                
-                // Fire cascade complete event for any listeners
-                window.dispatchEvent(new CustomEvent('cascade-complete'));
-                console.log('✅ Background cascade complete');
-              }
-            } catch (error) {
-              console.error('❌ Background cascade failed:', error);
-            }
-          };
-
-          // Use requestIdleCallback if available, otherwise setTimeout
-          if ('requestIdleCallback' in window) {
-            (window as any).requestIdleCallback(callback, { timeout: 2000 });
-          } else {
-            setTimeout(callback, 100);
-          }
-        };
-
-        scheduleBackgroundCascade();
+        if (cachedTasks && cachedTasks.length > 0) {
+          // Update the changed task in our working copy
+          const workingTasks = cachedTasks.map(t => {
+            if (t.id !== data.id) return t;
+            return {
+              ...t,
+              start_date: data.start_date,
+              end_date: data.end_date,
+              duration: data.duration,
+              predecessor: t.predecessor // Keep existing predecessor type
+            };
+          });
+          
+          // Run cascade synchronously with cached data - instant!
+          cascadeDependentUpdates(data.id, workingTasks);
+        }
       }
       
       // Only trigger parent recalculation if not suppressed, dates/duration changed, and no batch operation
