@@ -69,11 +69,35 @@ export const useTaskBulkMutations = (projectId: string) => {
 
       console.log('🔄 Performing smart hierarchy update for', updates.length, 'tasks');
       
-      // If ordered execution is requested, apply updates sequentially
+      // If ordered execution is requested, use two-phase update to avoid unique constraint violations
       if (ordered) {
-        console.log('📋 Applying updates in provided order');
+        console.log('📋 Applying updates with two-phase swap (avoiding unique constraint violations)');
         const results = [];
         
+        // PHASE 1: Move all tasks to temporary hierarchy numbers
+        console.log('🔄 Phase 1: Moving to temporary hierarchies');
+        const tempUpdates = updates.map((update, index) => ({
+          id: update.id,
+          temp_hierarchy: `TEMP-${index}-${Date.now()}`
+        }));
+        
+        for (const tempUpdate of tempUpdates) {
+          const { error } = await supabase
+            .from('project_schedule_tasks')
+            .update({ 
+              hierarchy_number: tempUpdate.temp_hierarchy,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', tempUpdate.id);
+            
+          if (error) {
+            console.error('❌ Phase 1 temp hierarchy update failed:', error);
+            throw error;
+          }
+        }
+        
+        // PHASE 2: Move all tasks to their final hierarchy numbers
+        console.log('🔄 Phase 2: Moving to final hierarchies');
         for (const update of updates) {
           const { data, error } = await supabase
             .from('project_schedule_tasks')
@@ -85,7 +109,7 @@ export const useTaskBulkMutations = (projectId: string) => {
             .select();
             
           if (error) {
-            console.error('❌ Hierarchy update failed:', error, 'for task:', update.id);
+            console.error('❌ Phase 2 final hierarchy update failed:', error);
             throw error;
           }
           
@@ -94,7 +118,7 @@ export const useTaskBulkMutations = (projectId: string) => {
           }
         }
         
-        console.log('✅ All ordered hierarchy updates completed successfully');
+        console.log('✅ Two-phase hierarchy swap completed successfully');
         return results;
       }
       
