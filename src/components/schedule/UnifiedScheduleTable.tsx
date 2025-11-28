@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { canIndent } from "@/utils/hierarchyUtils";
-import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parsePredecessors } from "@/utils/predecessorValidation";
@@ -182,46 +181,11 @@ export function UnifiedScheduleTable({
     timelineScrollRef.current.scrollLeft = Math.max(0, scrollPosition);
   }, [startDate, dayWidth]);
 
-  // Enhanced task update with parent cascade
+  // Task update handler - parent cascade is handled by useTaskMutations
   const handleTaskUpdate = async (taskId: string, updates: any, options?: { silent?: boolean }) => {
     const success = await onTaskUpdate(taskId, updates, options);
-    
-    // Only cascade to parents if the update was accepted (validation passed)
-    if (success === false) return;
-    
-    requestAnimationFrame(() => {
-      const updatedTask = tasks.find(t => t.id === taskId);
-      if (!updatedTask?.hierarchy_number) return;
-      
-      const simulatedTasks = tasks.map(task => 
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      const parentTasks = tasks.filter(task => {
-        if (!task.hierarchy_number || task.id === taskId) return false;
-        
-        const taskParts = updatedTask.hierarchy_number.split('.');
-        const parentParts = task.hierarchy_number.split('.');
-        
-        if (parentParts.length >= taskParts.length) return false;
-        
-        return parentParts.every((part, index) => part === taskParts[index]);
-      });
-      
-      parentTasks.forEach(parentTask => {
-        const calculations = calculateParentTaskValues(parentTask, simulatedTasks);
-        if (calculations && shouldUpdateParentTask(parentTask, calculations)) {
-          setTimeout(() => {
-            onTaskUpdate(parentTask.id, {
-              start_date: calculations.startDate,
-              end_date: calculations.endDate,
-              duration: calculations.duration,
-              progress: calculations.progress
-            }, { silent: true });
-          }, 50);
-        }
-      });
-    });
+    // Parent cascade and dependent updates are handled centrally in useTaskMutations
+    return success;
   };
 
   const hasChildren = (taskId: string) => {
