@@ -68,7 +68,7 @@ export function useCopySchedule() {
           predecessor: task.predecessor,
           resources: removeAllResources ? null : task.resources, // Remove resources if requested
           hierarchy_number: task.hierarchy_number,
-          confirmed: false // Reset confirmation status
+          confirmed: null // Reset to pending status (light blue)
         };
       });
 
