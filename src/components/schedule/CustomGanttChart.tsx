@@ -1,26 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useProjectTasks, addPendingUpdate } from "@/hooks/useProjectTasks";
+import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
+import { useOptimizedTaskCalculations } from "@/hooks/useOptimizedTaskCalculations";
 import { useOptimizedRealtime } from "@/hooks/useOptimizedRealtime";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  calculateParentTaskValues, 
-  shouldUpdateParentTask,
-  getDependentTasks as getTasksWithDependency 
-} from "@/utils/scheduleCalculations";
-import { 
-  computeDeleteUpdates, 
-  computeBulkDeleteUpdates,
-  generateIndentUpdates,
-  computeOutdentUpdates,
-  computeDragDropUpdates,
-  computeNormalizationUpdates,
-  needsNormalization,
-  getDescendantIds
-} from "@/utils/scheduleOperations";
+import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, getBusinessDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
 import { UnifiedScheduleTable } from "./UnifiedScheduleTable";
 import { AddTaskDialog } from "./AddTaskDialog";
@@ -31,8 +18,11 @@ import { useCopySchedule } from "@/hooks/useCopySchedule";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { getTasksWithDependency } from "@/utils/predecessorValidation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { getLevel } from "@/utils/hierarchyUtils";
+// Simplified hierarchy imports - only basic functions
+import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
+import { computeBulkDeleteUpdates, computeDeleteUpdates } from "@/utils/deleteTaskLogic";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -47,8 +37,239 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Simplified flags - removed complex auto-recalc machinery
+  // Add flags to prevent infinite loops  
+  const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
+  const [skipRecalc, setSkipRecalc] = useState(false);
   const hasNormalizedRef = useRef(false);
+  const lastAutoRecalcAtRef = useRef(0);
+  
+  // Listen for parent recalculation events from mutations
+  useEffect(() => {
+    const handleParentRecalculation = (event: CustomEvent) => {
+      const { hierarchyNumber } = event.detail;
+      // Skip during batch operations or if already recalculating
+      if (hierarchyNumber && !isRecalculatingParents && !skipRecalc && !(window as any).__batchOperationInProgress) {
+        setSkipRecalc(true); // Prevent new events during processing
+        setTimeout(() => {
+          recalculateParentHierarchy(hierarchyNumber);
+          setTimeout(() => setSkipRecalc(false), 1000); // Reset after cooldown
+        }, 200);
+      }
+    };
+
+    const handleCascadeComplete = () => {
+      console.log('✅ Cascade complete event received - refreshing cache');
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+    };
+
+    
+    window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
+    window.addEventListener('cascade-complete', handleCascadeComplete);
+    
+    return () => {
+      window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
+      window.removeEventListener('cascade-complete', handleCascadeComplete);
+    };
+  }, [isRecalculatingParents, skipRecalc, tasks, projectId, user?.id, queryClient, updateTask]);
+
+  // Repair pass on load to fix stale schedules
+  useEffect(() => {
+    if (!tasks || tasks.length === 0 || (window as any).__batchOperationInProgress) return;
+    
+    const repairSchedule = async () => {
+      console.log('🔧 Starting repair pass to fix stale schedules');
+      
+      const { calculateTaskDatesFromPredecessors } = await import('@/utils/taskCalculations');
+      const { safeParsePredecessors } = await import('@/utils/predecessorValidation');
+      
+      // Find tasks with predecessors that might need repair
+      const tasksWithPredecessors = tasks.filter(task => {
+        const predecessors = safeParsePredecessors(task.predecessor);
+        return predecessors.length > 0;
+      });
+      
+      console.log(`🔧 Repair pass: Found ${tasksWithPredecessors.length} tasks with predecessors`);
+      
+      const repairUpdates: Array<{ task: ProjectTask; dateUpdate: any }> = [];
+      
+      for (const task of tasksWithPredecessors) {
+        const dateUpdate = calculateTaskDatesFromPredecessors(task, tasks);
+        if (dateUpdate) {
+          const currentStartDate = task.start_date.split('T')[0];
+          const currentEndDate = task.end_date.split('T')[0];
+          
+          if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
+            console.log(`🔧 Repair needed: ${task.hierarchy_number}: ${task.task_name}`, 
+              `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
+            repairUpdates.push({ task, dateUpdate });
+          }
+        }
+      }
+      
+      if (repairUpdates.length > 0) {
+        console.log(`🔧 Repairing ${repairUpdates.length} tasks`);
+        
+        // Batch repair updates
+        for (const { task, dateUpdate } of repairUpdates) {
+          try {
+            await updateTask.mutateAsync({
+              id: task.id,
+              start_date: dateUpdate.startDate,
+              end_date: dateUpdate.endDate,
+              duration: dateUpdate.duration,
+              suppressInvalidate: true,
+              skipCascade: true
+            });
+          } catch (error) {
+            console.error(`❌ Failed to repair task ${task.id}:`, error);
+          }
+        }
+        
+        // Single invalidation after all repairs
+        setTimeout(() => {
+          console.log('✅ Repair pass complete - refreshing cache');
+          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+        }, 300);
+      } else {
+        console.log('🔧 Repair pass: No repairs needed');
+      }
+    };
+    
+    // Run repair pass during idle time to avoid blocking user interactions
+    const scheduleRepair = () => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(repairSchedule, { timeout: 5000 });
+      } else {
+        // Fallback for environments without requestIdleCallback
+        setTimeout(repairSchedule, 2000);
+      }
+    };
+    
+    const timeoutId = setTimeout(scheduleRepair, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [tasks, projectId, user?.id, queryClient, updateTask]);
+
+  // Auto-normalize hierarchy on load if needed (run only once per project load)
+  useEffect(() => {
+    const autoNormalize = async () => {
+      if (!tasks || tasks.length === 0 || hasNormalizedRef.current || (window as any).__batchOperationInProgress) return;
+      
+      const { needsNormalization, computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+      
+      if (needsNormalization(tasks)) {
+        console.log('🔢 Normalization run: yes');
+        hasNormalizedRef.current = true;
+        (window as any).__batchOperationInProgress = true;
+        
+        try {
+          const normalizationResult = computeNormalizationUpdates(tasks);
+          
+          if (normalizationResult.hierarchyUpdates.length > 0) {
+            await bulkUpdateHierarchies.mutateAsync({ 
+              updates: normalizationResult.hierarchyUpdates, 
+              options: { suppressInvalidate: true },
+              ordered: true // Use ordered execution to reduce constraint edge cases
+            });
+          }
+          
+          if (normalizationResult.predecessorUpdates.length > 0) {
+            const predecessorUpdates = normalizationResult.predecessorUpdates.map(update => ({
+              id: update.taskId,
+              predecessor: update.newPredecessors
+            }));
+            await bulkUpdatePredecessors.mutateAsync({ 
+              updates: predecessorUpdates, 
+              options: { suppressInvalidate: true } 
+            });
+          }
+          
+          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+        } catch (error) {
+          console.error('Failed to auto-normalize:', error);
+        } finally {
+          (window as any).__batchOperationInProgress = false;
+        }
+      } else {
+        console.log('🔢 Normalization run: no');
+      }
+    };
+    
+    // Debounce auto-normalize to prevent rapid-fire calls
+    const timeoutId = setTimeout(autoNormalize, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [tasks, projectId, user?.id]);
+
+  // Debounced parent recalculation when tasks change  
+  useEffect(() => {
+    // Skip if batch operation is in progress or other skip conditions
+    if (!tasks || tasks.length === 0 || isRecalculatingParents || skipRecalc || (window as any).__batchOperationInProgress) return;
+    
+    // Add cooldown to prevent repeated executions
+    const now = Date.now();
+    if (now - lastAutoRecalcAtRef.current < 3000) { // 3s cooldown
+      return;
+    }
+    
+    const recalculateParents = async () => {
+      console.log('🔄 Auto-recalc starting');
+      lastAutoRecalcAtRef.current = Date.now();
+      
+      // Find all parent tasks that have children and need updates
+      const parentTasks = tasks.filter(task => {
+        if (!task.hierarchy_number) return false;
+        return tasks.some(child => 
+          child.hierarchy_number?.startsWith(task.hierarchy_number + '.')
+        );
+      });
+      
+      // Compute the set of parents that actually need an update
+      const parentsToUpdate = parentTasks.filter(parentTask => {
+        const calculations = calculateParentTaskValues(parentTask, tasks);
+        return calculations && shouldUpdateParentTask(parentTask, calculations);
+      });
+      
+      if (parentsToUpdate.length === 0) {
+        console.log('🔄 Auto-recalc skip (none needed)');
+        return;
+      }
+      
+      console.log(`🔄 Auto-recalc starting, parentsToUpdate: ${parentsToUpdate.length}`);
+      setIsRecalculatingParents(true);
+      
+      try {
+        // Add pending updates to ignore realtime echoes
+        const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
+        
+        for (const parentTask of parentsToUpdate) {
+          addPendingUpdate(parentTask.id); // Mark as pending local update
+          
+          const calculations = calculateParentTaskValues(parentTask, tasks);
+          if (calculations) {
+            console.log(`🔄 Updating parent: ${parentTask.task_name}`, calculations);
+            await updateTask.mutateAsync({
+              id: parentTask.id,
+              start_date: calculations.startDate,
+              end_date: calculations.endDate,
+              duration: calculations.duration,
+              progress: calculations.progress,
+              suppressInvalidate: true
+            });
+          }
+        }
+        
+        // REMOVED: Manual queryClient.invalidateQueries - rely on realtime to bring fresh data
+      } catch (error) {
+        console.error('❌ Failed to recalculate parents:', error);
+      } finally {
+        setIsRecalculatingParents(false);
+      }
+    };
+    
+    // Increased debounce for stability
+    const debounceMs = 1500;
+    const timeoutId = setTimeout(recalculateParents, debounceMs);
+    return () => clearTimeout(timeoutId);
+  }, [tasks, updateTask, projectId, user?.id, isRecalculatingParents, skipRecalc]);
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
@@ -67,7 +288,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
   
   
-  // Use optimized realtime hook
+  // Performance optimization states
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
+
+  // Use optimized hooks for performance
+  const { triggerParentRecalculation, clearCalculationCache } = useOptimizedTaskCalculations(projectId);
   useOptimizedRealtime(projectId);
 
 
@@ -359,9 +585,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         if (updates.notes !== undefined) {
           optimisticTask.notes = updates.notes;
         }
-        if (updates.predecessor !== undefined) {
-          optimisticTask.predecessor = updates.predecessor;
-        }
         
         // Always keep start/end/duration in sync for instant UI feedback
         
@@ -520,7 +743,70 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  // Parent recalculation is now handled by useTaskMutations batch cascade
+  // Comprehensive function to recalculate all parent tasks in a hierarchy
+  const recalculateParentHierarchy = (hierarchyNumber: string) => {
+    if (!hierarchyNumber || !user || isRecalculatingParents) return;
+    
+    console.log('🔄 Starting parent hierarchy recalculation for:', hierarchyNumber);
+    setIsRecalculatingParents(true);
+    
+    // Get fresh task data from React Query cache
+    const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+    console.log('🔄 Using fresh task data. Total tasks:', freshTasks.length);
+    
+    // Find all parent levels for this hierarchy (e.g., for "1.2.3" find ["1", "1.2"])
+    const hierarchyParts = hierarchyNumber.split('.');
+    const parentHierarchies: string[] = [];
+    
+    for (let i = 1; i < hierarchyParts.length; i++) {
+      parentHierarchies.push(hierarchyParts.slice(0, i).join('.'));
+    }
+    
+    console.log('🔄 Parent hierarchies to recalculate:', parentHierarchies);
+    
+    // Recalculate each parent level from deepest to shallowest
+    parentHierarchies.reverse().forEach(parentHierarchy => {
+      const parentTask = freshTasks.find(task => task.hierarchy_number === parentHierarchy);
+      
+      if (parentTask) {
+        console.log(`🔄 Recalculating parent task: ${parentTask.task_name} (${parentHierarchy})`);
+        
+        const calculations = calculateParentTaskValues(parentTask, freshTasks);
+        
+        if (calculations) {
+          console.log(`🔄 Calculated values for ${parentTask.task_name}:`, {
+            startDate: calculations.startDate,
+            endDate: calculations.endDate,
+            duration: calculations.duration,
+            progress: calculations.progress,
+            currentDuration: parentTask.duration,
+            currentEndDate: parentTask.end_date.split('T')[0]
+          });
+          
+          if (shouldUpdateParentTask(parentTask, calculations)) {
+            console.log(`✅ Updating parent task: ${parentTask.task_name}`);
+            updateTask.mutate({
+              id: parentTask.id,
+              start_date: calculations.startDate + 'T00:00:00',
+              end_date: calculations.endDate + 'T00:00:00',
+              duration: calculations.duration,
+              progress: calculations.progress,
+              suppressInvalidate: true // Prevent infinite loops
+            });
+          } else {
+            console.log(`⏸️ Parent task ${parentTask.task_name} is already up to date`);
+          }
+        } else {
+          console.log(`⚠️ No calculations available for parent task: ${parentTask.task_name}`);
+        }
+      } else {
+        console.log(`⚠️ Parent task not found for hierarchy: ${parentHierarchy}`);
+      }
+    });
+    
+    // Reset the flag after completion
+    setTimeout(() => setIsRecalculatingParents(false), 500);
+  };
 
   // SIMPLE: Just add tasks at the end for now
   const getNextTopLevelNumber = (tasks: ProjectTask[]): string => {
@@ -925,9 +1211,19 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         throw error;
       }
       
-      // Phase 5: Parent recalculation now handled automatically by useTaskMutations batch cascade
-      console.log('✅ Phase 5: Parent recalculation will be handled by cascade system');
-      console.log('✅ Phase 5 completed successfully');
+      // Phase 5: Recalculate affected task dates and parent groups
+      try {
+        console.log(`🔄 Phase 5: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+        for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
+          recalculateParentHierarchy(parentHierarchy);
+        }
+        console.log('✅ Phase 5 completed successfully');
+      } catch (error) {
+        console.error('❌ Phase 5 (Parent Recalculation) failed:', error);
+        // Don't throw - deletion is essentially complete at this point
+        console.log('⚠️ Task deleted successfully but parent recalculation failed');
+        toast({ title: "Error", description: `Task deleted but parent date recalculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
+      }
       
       // Remove from selected tasks if it was selected
       if (selectedTasks.has(taskId)) {
@@ -1095,8 +1391,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         });
       }
       
-      // Phase 5: Parent recalculation now handled automatically by useTaskMutations batch cascade
-      console.log('✅ Phase 5: Parent recalculation will be handled by cascade system');
+      // Phase 5: Recalculate affected task dates and parent groups
+      console.log(`🔄 Phase 5: Recalculating ${deleteResult.parentGroupsToRecalculate.length} parent groups`);
+      for (const parentHierarchy of deleteResult.parentGroupsToRecalculate) {
+        recalculateParentHierarchy(parentHierarchy);
+      }
       
       // Clear selection after successful deletion
       setSelectedTasks(new Set());
