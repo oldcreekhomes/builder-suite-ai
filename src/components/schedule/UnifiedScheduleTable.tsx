@@ -439,11 +439,11 @@ export function UnifiedScheduleTable({
   return (
     <ResizablePanelGroup direction="horizontal" style={{ height: 'calc(100vh - 220px)' }}>
       {/* LEFT PANEL - Task Data (fixed width content, panel acts as viewport) */}
-      <ResizablePanel defaultSize={70} minSize={20} maxSize={70} className="overflow-hidden">
+      <ResizablePanel defaultSize={70} minSize={20} className="overflow-hidden flex justify-end">
         <div 
           ref={leftPanelRef}
           className="bg-white border-r border-gray-300 overflow-hidden"
-          style={{ width: '952px' }}
+          style={{ width: '952px', minWidth: '952px', maxWidth: '952px' }}
           onWheel={handleLeftPanelWheel}
         >
         {/* Left Panel Header */}
