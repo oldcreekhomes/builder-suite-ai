@@ -45,15 +45,16 @@ export const addBusinessDays = (startDate: Date, businessDays: number): Date => 
   if (businessDays === 0) return startOfLocalDay(startDate);
   
   let currentDate = startOfLocalDay(startDate);
-  let remainingDays = businessDays;
+  let remainingDays = Math.abs(businessDays);
+  const direction = businessDays > 0 ? 1 : -1; // +1 for forward, -1 for backward
   
-  // If start date is not a business day, move to next business day first
+  // If start date is not a business day, move to next/previous business day first
   if (!isBusinessDay(currentDate)) {
-    currentDate = getNextBusinessDay(currentDate);
+    currentDate = direction > 0 ? getNextBusinessDay(currentDate) : getPreviousBusinessDay(currentDate);
   }
   
   while (remainingDays > 0) {
-    currentDate.setDate(currentDate.getDate() + 1);
+    currentDate.setDate(currentDate.getDate() + direction); // Move forward or backward
     if (isBusinessDay(currentDate)) {
       remainingDays--;
     }
