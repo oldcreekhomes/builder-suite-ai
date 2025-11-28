@@ -18,7 +18,8 @@ import { useCopySchedule } from "@/hooks/useCopySchedule";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { getTasksWithDependency } from "@/utils/predecessorValidation";
+import { getTasksWithDependency, validateStartDateAgainstPredecessors } from "@/utils/predecessorValidation";
+import { addPendingUpdate } from "@/hooks/useProjectTasks";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 // Simplified hierarchy imports - only basic functions
 import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
@@ -167,8 +168,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       
       try {
         // Add pending updates to ignore realtime echoes
-        const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
-        
         for (const parentTask of parentsToUpdate) {
           addPendingUpdate(parentTask.id); // Mark as pending local update
           
@@ -425,7 +424,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       });
       
       // Add affected task ids to pending set to ignore realtime echoes
-      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
       result.hierarchyUpdates.forEach(update => addPendingUpdate(update.id));
       
       // Apply optimistic update to cache first for instant UI feedback
@@ -487,7 +485,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     if (updates.start_date) {
       const taskToValidate = currentTasks.find(t => t.id === taskId);
       if (taskToValidate && taskToValidate.predecessor) {
-        const { validateStartDateAgainstPredecessors } = await import('@/utils/predecessorValidation');
         const validation = validateStartDateAgainstPredecessors(taskToValidate, updates.start_date, currentTasks);
         
         if (!validation.isValid) {
@@ -609,7 +606,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     queryClient.setQueryData(['project-tasks', projectId, user?.id], optimisticTasks);
     
     // Add to pending updates to ignore real-time echoes (longer TTL for cascades)
-    const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
     addPendingUpdate(taskId, 6000); // 6s TTL to cover cascade processing
     
     // Visual flash feedback - add task to recently saved set
@@ -645,7 +641,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     try {
       // Add affected task ids to pending set to ignore realtime echoes
-      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
       updates.forEach(update => addPendingUpdate(update.id));
       
       // Apply optimistic update to cache first for instant UI feedback

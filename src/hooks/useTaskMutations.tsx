@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { ProjectTask } from "./useProjectTasks";
+import { ProjectTask, addPendingUpdate } from "./useProjectTasks";
+import { getDependentTasks, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 
 interface CreateTaskParams {
   project_id: string;
@@ -132,57 +133,14 @@ export const useTaskMutations = (projectId: string) => {
         return date.split('T')[0] + 'T00:00:00';
       };
 
+      // Build update data - validation already done on client side
       const updateData: any = {};
       if (params.task_name !== undefined) updateData.task_name = params.task_name;
-      if (params.start_date !== undefined) {
-        // Validate start date against predecessor end dates
-        const { data: taskData } = await supabase
-          .from('project_schedule_tasks')
-          .select('*')
-          .eq('id', params.id)
-          .single();
-          
-        if (taskData && taskData.predecessor) {
-          const { data: allTasks } = await supabase
-            .from('project_schedule_tasks')
-            .select('*')
-            .eq('project_id', projectId);
-            
-          if (allTasks) {
-            const { validateStartDateAgainstPredecessors } = await import('@/utils/predecessorValidation');
-            const validation = validateStartDateAgainstPredecessors(taskData as ProjectTask, params.start_date, allTasks as ProjectTask[]);
-            
-            if (!validation.isValid) {
-              throw new Error(validation.error || 'Invalid start date');
-            }
-          }
-        }
-        
-        updateData.start_date = normalizeDate(params.start_date);
-      }
+      if (params.start_date !== undefined) updateData.start_date = normalizeDate(params.start_date);
       if (params.end_date !== undefined) updateData.end_date = normalizeDate(params.end_date);
       if (params.duration !== undefined) updateData.duration = params.duration;
       if (params.progress !== undefined) updateData.progress = params.progress;
       if (params.predecessor !== undefined) {
-        // Validate predecessors before updating
-        const { data: allTasks } = await supabase
-          .from('project_schedule_tasks')
-          .select('*')
-          .eq('project_id', projectId);
-
-        if (allTasks) {
-          const predecessorArray = Array.isArray(params.predecessor) 
-            ? params.predecessor 
-            : params.predecessor ? [params.predecessor] : [];
-          
-          const { validatePredecessors } = await import('@/utils/predecessorValidation');
-          const validation = validatePredecessors(params.id, predecessorArray, allTasks as ProjectTask[]);
-          
-          if (!validation.isValid) {
-            throw new Error(validation.errors[0]);
-          }
-        }
-        
         updateData.predecessor = Array.isArray(params.predecessor) ? params.predecessor : (params.predecessor ? [params.predecessor] : null);
       }
       if (params.resources !== undefined) updateData.resources = params.resources;
@@ -215,7 +173,6 @@ export const useTaskMutations = (projectId: string) => {
       console.log('🔧 Variables:', variables);
       
       // Add task to pending updates to ignore realtime echoes
-      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
       addPendingUpdate(data.id);
       
       // Check if we need to cascade updates to dependent tasks
@@ -316,7 +273,6 @@ export const useTaskMutations = (projectId: string) => {
 
   // Centralized cascade function with parallel processing for speed
   const cascadeDependentUpdates = async (changedTaskId: string, allTasks: ProjectTask[]) => {
-    const { getDependentTasks, calculateTaskDatesFromPredecessors } = await import('@/utils/taskCalculations');
     
     const queue: string[] = [changedTaskId];
     const processed = new Set<string>();
