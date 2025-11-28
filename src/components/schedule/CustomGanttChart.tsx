@@ -925,8 +925,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       // Phase 5: Parent recalculation now handled automatically by useTaskMutations batch cascade
       console.log('✅ Phase 5: Parent recalculation will be handled by cascade system');
       console.log('✅ Phase 5 completed successfully');
-        toast({ title: "Error", description: `Task deleted but parent date recalculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
-      }
       
       // Remove from selected tasks if it was selected
       if (selectedTasks.has(taskId)) {
