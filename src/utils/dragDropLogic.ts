@@ -130,34 +130,9 @@ const computeTopLevelDragDrop = (
     }
   });
   
-  // Update predecessor references
-  allTasks.forEach(task => {
-    if (!task.predecessor) return;
-    
-    const predecessors = parsePredecessorArray(task.predecessor);
-    if (predecessors.length === 0) return;
-    
-    let updated = false;
-    const newPredecessors = predecessors.map(pred => {
-      // Check if this predecessor hierarchy needs updating
-      for (const [oldH, newH] of oldToNewHierarchy.entries()) {
-        if (pred === oldH) {
-          updated = true;
-          return newH;
-        }
-        // Handle child references too
-        if (pred.startsWith(oldH + '.')) {
-          updated = true;
-          return pred.replace(oldH, newH);
-        }
-      }
-      return pred;
-    });
-    
-    if (updated) {
-      predecessorUpdates.push({ taskId: task.id, newPredecessors });
-    }
-  });
+  // Predecessors are NOT updated during drag-drop - they stay as-is
+  // This matches competitor software behavior where only task numbers change
+  // and users can see/fix any resulting dependency issues in the Gantt chart
   
   return { hierarchyUpdates, predecessorUpdates };
 };
@@ -235,43 +210,11 @@ const computeChildDragDrop = (
     }
   });
   
-  // Update predecessor references
-  allTasks.forEach(task => {
-    if (!task.predecessor) return;
-    
-    const predecessors = parsePredecessorArray(task.predecessor);
-    if (predecessors.length === 0) return;
-    
-    let updated = false;
-    const newPredecessors = predecessors.map(pred => {
-      const newH = oldToNewHierarchy.get(pred);
-      if (newH) {
-        updated = true;
-        return newH;
-      }
-      return pred;
-    });
-    
-    if (updated) {
-      predecessorUpdates.push({ taskId: task.id, newPredecessors });
-    }
-  });
+  // Predecessors are NOT updated during drag-drop - they stay as-is
+  // This matches competitor software behavior where only task numbers change
+  // and users can see/fix any resulting dependency issues in the Gantt chart
   
   return { hierarchyUpdates, predecessorUpdates };
-};
-
-/**
- * Helper to parse predecessor field into array
- */
-const parsePredecessorArray = (predecessor: string | string[] | null): string[] => {
-  if (!predecessor) return [];
-  if (Array.isArray(predecessor)) return predecessor;
-  try {
-    const parsed = JSON.parse(predecessor);
-    return Array.isArray(parsed) ? parsed : [predecessor];
-  } catch {
-    return [predecessor];
-  }
 };
 
 /**
