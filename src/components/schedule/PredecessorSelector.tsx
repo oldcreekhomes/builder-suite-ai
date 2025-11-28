@@ -157,7 +157,7 @@ export function PredecessorSelector({
       <span 
         className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
         onClick={handleStartEdit}
-        title="Click to enter predecessors (e.g., 1.1, 1.2+5d)"
+        title="Click to enter predecessors (e.g., 1.1, 1.2+5d, 1.3SF)"
       >
         None
       </span>
