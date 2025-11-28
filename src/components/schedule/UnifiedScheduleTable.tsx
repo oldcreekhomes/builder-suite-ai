@@ -12,6 +12,7 @@ import { PredecessorSelector } from "./PredecessorSelector";
 import { ResourcesSelector } from "./ResourcesSelector";
 import { ChevronRight, ChevronDown, GripVertical } from "lucide-react";
 import { TaskContextMenu } from "./TaskContextMenu";
+import { TaskNotesDialog } from "./TaskNotesDialog";
 import {  
   DateString, 
   addDays, 
@@ -71,6 +72,19 @@ export function UnifiedScheduleTable({
 
   // Custom divider state - pixel-based width control (max 952px = full table width)
   const [leftPanelWidth, setLeftPanelWidth] = useState(952);
+  
+  // Notes dialog state
+  const [notesDialogTaskId, setNotesDialogTaskId] = useState<string | null>(null);
+  
+  const handleOpenNotes = (taskId: string) => {
+    setNotesDialogTaskId(taskId);
+  };
+  
+  const handleSaveNotes = (notes: string) => {
+    if (notesDialogTaskId) {
+      onTaskUpdate(notesDialogTaskId, { notes });
+    }
+  };
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const dividerDragStartX = useRef<number>(0);
   const dividerDragStartWidth = useRef<number>(952);
@@ -542,7 +556,7 @@ export function UnifiedScheduleTable({
                 onAddBelow={() => onAddBelow(task.id)}
                 onDelete={() => onDeleteTask(task.id)}
                 onBulkDelete={selectedTasks.size > 1 ? onBulkDelete : () => {}}
-                onOpenNotes={() => {}}
+                onOpenNotes={() => handleOpenNotes(task.id)}
                 canIndent={getCanIndent(task)}
                 canOutdent={getCanOutdent(task)}
                 onContextMenuChange={(isOpen) => setContextMenuTaskId(isOpen ? task.id : null)}
@@ -912,6 +926,17 @@ export function UnifiedScheduleTable({
           </div>
         </div>
       </div>
+      
+      {/* Task Notes Dialog */}
+      {notesDialogTaskId && (
+        <TaskNotesDialog
+          open={!!notesDialogTaskId}
+          onOpenChange={(open) => !open && setNotesDialogTaskId(null)}
+          taskName={tasks.find(t => t.id === notesDialogTaskId)?.task_name || ""}
+          initialValue={tasks.find(t => t.id === notesDialogTaskId)?.notes || ""}
+          onSave={handleSaveNotes}
+        />
+      )}
     </div>
   );
 }
