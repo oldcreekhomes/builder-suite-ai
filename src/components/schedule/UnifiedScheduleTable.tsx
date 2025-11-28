@@ -5,7 +5,7 @@ import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskC
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parsePredecessors } from "@/utils/predecessorValidation";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+
 import { InlineEditCell } from "./InlineEditCell";
 import { ProgressSelector } from "./ProgressSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
@@ -68,6 +68,42 @@ export function UnifiedScheduleTable({
 }: UnifiedScheduleTableProps) {
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
+
+  // Custom divider state - pixel-based width control (max 952px = full table width)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(952);
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false);
+  const dividerDragStartX = useRef<number>(0);
+  const dividerDragStartWidth = useRef<number>(952);
+
+  // Divider drag handlers
+  const handleDividerMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingDivider(true);
+    dividerDragStartX.current = e.clientX;
+    dividerDragStartWidth.current = leftPanelWidth;
+  };
+
+  useEffect(() => {
+    if (!isDraggingDivider) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - dividerDragStartX.current;
+      const newWidth = Math.max(300, Math.min(952, dividerDragStartWidth.current + delta));
+      setLeftPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingDivider(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingDivider]);
 
   // Drag-and-drop state
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -437,16 +473,18 @@ export function UnifiedScheduleTable({
   const ROW_HEIGHT = 32;
 
   return (
-    <ResizablePanelGroup direction="horizontal" style={{ height: 'calc(100vh - 220px)' }}>
-      {/* LEFT PANEL - Task Data (fixed width content, panel acts as viewport) */}
-      <ResizablePanel defaultSize={70} minSize={20} maxSize={70} className="overflow-hidden">
-        <div style={{ maxWidth: '952px', height: '100%' }}>
-          <div 
-            ref={leftPanelRef}
-            className="bg-white border-r border-gray-300 overflow-hidden"
-            style={{ width: '952px' }}
-            onWheel={handleLeftPanelWheel}
-          >
+    <div className="flex" style={{ height: 'calc(100vh - 220px)' }}>
+      {/* LEFT PANEL - Task Data (pixel-controlled width, no gap possible) */}
+      <div 
+        style={{ width: leftPanelWidth, flexShrink: 0 }} 
+        className="overflow-hidden"
+      >
+        <div 
+          ref={leftPanelRef}
+          className="bg-white border-r border-gray-300 overflow-hidden"
+          style={{ width: '952px' }}
+          onWheel={handleLeftPanelWheel}
+        >
         {/* Left Panel Header */}
         <div 
           className="sticky top-0 z-20 bg-white border-b border-gray-200"
@@ -662,19 +700,22 @@ export function UnifiedScheduleTable({
           })}
         </div>
         </div>
-        </div>
-      </ResizablePanel>
+      </div>
 
-      {/* Resizable Handle */}
-      <ResizableHandle withHandle className="bg-gray-200 hover:bg-blue-400 transition-colors" />
+      {/* CUSTOM DRAGGABLE DIVIDER - pixel-based control */}
+      <div 
+        className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
+          isDraggingDivider ? 'bg-blue-500' : 'bg-gray-300 hover:bg-blue-400'
+        }`}
+        onMouseDown={handleDividerMouseDown}
+      />
 
-      {/* RIGHT PANEL - Timeline (independent horizontal & vertical scroll) */}
-      <ResizablePanel defaultSize={45} minSize={20}>
-        <div 
-          ref={timelineScrollRef}
-          className="h-full overflow-auto"
-          onScroll={handleTimelineScroll}
-        >
+      {/* RIGHT PANEL - Timeline (always flush against divider, no gap) */}
+      <div 
+        ref={timelineScrollRef}
+        className="flex-1 overflow-auto"
+        onScroll={handleTimelineScroll}
+      >
         <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
           {/* Timeline Header */}
           <div 
@@ -866,8 +907,7 @@ export function UnifiedScheduleTable({
             )}
           </div>
         </div>
-        </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+      </div>
+    </div>
   );
 }
