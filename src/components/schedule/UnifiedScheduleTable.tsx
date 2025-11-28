@@ -531,7 +531,6 @@ export function UnifiedScheduleTable({
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={(checked) => handleTaskSelection(task.id, !!checked)}
-                      className="h-3 w-3"
                     />
                   </div>
 
