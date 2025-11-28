@@ -10,7 +10,9 @@ import { InlineEditCell } from "./InlineEditCell";
 import { ProgressSelector } from "./ProgressSelector";
 import { PredecessorSelector } from "./PredecessorSelector";
 import { ResourcesSelector } from "./ResourcesSelector";
-import { ChevronRight, ChevronDown, GripVertical } from "lucide-react";
+import { ChevronRight, ChevronDown, GripVertical, StickyNote } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { TaskNotesDialog } from "./TaskNotesDialog";
 import {  
@@ -622,6 +624,28 @@ export function UnifiedScheduleTable({
                         onSave={(value) => handleTaskUpdate(task.id, { task_name: value.toString() })}
                         className="text-xs flex-1"
                       />
+                      {task.notes?.trim() && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 ml-1 hover:bg-muted flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenNotes(task.id);
+                                }}
+                              >
+                                <StickyNote className="h-3 w-3 text-yellow-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View notes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                   </div>
 
