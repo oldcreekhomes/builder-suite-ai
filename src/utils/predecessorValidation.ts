@@ -37,9 +37,12 @@ export function safeParsePredecessors(predecessors: any): string[] {
   return [];
 }
 
+export type LinkType = 'FS' | 'SF';
+
 export interface ParsedPredecessor {
   taskId: string;
   lagDays: number;
+  linkType: LinkType;
   displayName: string;
   isValid: boolean;
 }
@@ -50,33 +53,47 @@ export interface ValidationResult {
   warnings: string[];
 }
 
+// Regex to parse predecessor format: "taskId", "taskIdSF", "taskId+Nd", "taskIdSF-Nd"
+// Group 1: taskId, Group 2: optional SF, Group 3: optional lag (+Nd or -Nd)
+const PREDECESSOR_REGEX = /^(.+?)(SF)?([+-]\d+d?)?$/i;
+
+export function parsePredecessorString(pred: string): { taskId: string; linkType: LinkType; lagDays: number } | null {
+  const match = pred.trim().match(PREDECESSOR_REGEX);
+  if (!match) return null;
+  
+  const taskId = match[1].trim();
+  const linkType: LinkType = match[2]?.toUpperCase() === 'SF' ? 'SF' : 'FS';
+  const lagPart = match[3] || '';
+  
+  // Extract lag days (e.g., "+3d" -> 3, "-2d" -> -2, "+5" -> 5)
+  let lagDays = 0;
+  if (lagPart) {
+    const lagStr = lagPart.endsWith('d') ? lagPart.slice(0, -1) : lagPart;
+    const lagValue = parseInt(lagStr);
+    if (!isNaN(lagValue)) {
+      lagDays = lagValue;
+    }
+  }
+  
+  return { taskId, linkType, lagDays };
+}
+
 export function parsePredecessors(predecessors: any, allTasks: ProjectTask[]): ParsedPredecessor[] {
   const predecessorArray = safeParsePredecessors(predecessors);
   return predecessorArray.map(pred => {
-    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd" 
-    const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
-    if (!match) {
+    const parsed = parsePredecessorString(pred);
+    
+    if (!parsed) {
       return {
         taskId: pred.trim(),
         lagDays: 0,
+        linkType: 'FS' as LinkType,
         displayName: `${pred.trim()}: Invalid format`,
         isValid: false
       };
     }
     
-    const taskId = match[1].trim();
-    const lagPart = match[2] || '';
-    
-    // Extract lag days (e.g., "+3d" -> 3, "-2d" -> -2, "+5" -> 5)
-    let lagDays = 0;
-    if (lagPart) {
-      // Remove 'd' suffix if present and parse the number
-      const lagStr = lagPart.endsWith('d') ? lagPart.slice(0, -1) : lagPart;
-      const lagValue = parseInt(lagStr);
-      if (!isNaN(lagValue)) {
-        lagDays = lagValue;
-      }
-    }
+    const { taskId, linkType, lagDays } = parsed;
 
     // Find the task to get display name (support both hierarchy number and task ID)
     const task = allTasks.find(t => t.hierarchy_number === taskId || t.id === taskId);
@@ -86,6 +103,7 @@ export function parsePredecessors(predecessors: any, allTasks: ProjectTask[]): P
     return {
       taskId,
       lagDays,
+      linkType,
       displayName,
       isValid
     };
@@ -189,11 +207,9 @@ function detectCircularDependencies(
     if (task && task.predecessor) {
       const taskPredecessors = safeParsePredecessors(task.predecessor);
       for (const pred of taskPredecessors) {
-        // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
-        const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
-        if (!match) continue;
-        const predTaskId = match[1].trim();
-        if (hasCycle(predTaskId)) {
+        const parsed = parsePredecessorString(pred);
+        if (!parsed) continue;
+        if (hasCycle(parsed.taskId)) {
           return true;
         }
       }
@@ -206,19 +222,17 @@ function detectCircularDependencies(
   // Check if adding these predecessors would create a cycle
   const predecessorArray = safeParsePredecessors(predecessors);
   for (const pred of predecessorArray) {
-    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
-    const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
-    if (!match) continue;
-    const predTaskId = match[1].trim();
+    const parsed = parsePredecessorString(pred);
+    if (!parsed) continue;
     visited.clear();
     path.length = 0;
     path.push(currentTask.hierarchy_number!);
     
-    if (hasCycle(predTaskId)) {
+    if (hasCycle(parsed.taskId)) {
       // Build the cycle path for error message
-      const cycleStart = path.indexOf(predTaskId);
+      const cycleStart = path.indexOf(parsed.taskId);
       if (cycleStart >= 0) {
-        return [...path.slice(cycleStart), predTaskId];
+        return [...path.slice(cycleStart), parsed.taskId];
       }
     }
   }
@@ -231,35 +245,51 @@ function findDuplicates(array: string[]): string[] {
   const duplicates = new Set<string>();
   
   for (const item of array) {
-    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
-    const match = item.trim().match(/^(.+?)([+-]\d+d?)?$/);
-    if (!match) continue;
-    const taskId = match[1].trim();
-    if (seen.has(taskId)) {
-      duplicates.add(taskId);
+    const parsed = parsePredecessorString(item);
+    if (!parsed) continue;
+    if (seen.has(parsed.taskId)) {
+      duplicates.add(parsed.taskId);
     }
-    seen.add(taskId);
+    seen.add(parsed.taskId);
   }
   
   return Array.from(duplicates);
 }
 
 export function formatPredecessorForDisplay(pred: ParsedPredecessor): string {
-  if (pred.lagDays > 0) {
-    return `${pred.displayName} +${pred.lagDays}d`;
-  } else if (pred.lagDays < 0) {
-    return `${pred.displayName} ${pred.lagDays}d`;
+  let result = pred.displayName;
+  
+  // Add link type if SF
+  if (pred.linkType === 'SF') {
+    result += ' SF';
   }
-  return pred.displayName;
+  
+  // Add lag days
+  if (pred.lagDays > 0) {
+    result += ` +${pred.lagDays}d`;
+  } else if (pred.lagDays < 0) {
+    result += ` ${pred.lagDays}d`;
+  }
+  
+  return result;
 }
 
-export function formatPredecessorForStorage(taskId: string, lagDays: number): string {
-  if (lagDays > 0) {
-    return `${taskId}+${lagDays}d`;
-  } else if (lagDays < 0) {
-    return `${taskId}${lagDays}d`;
+export function formatPredecessorForStorage(taskId: string, lagDays: number, linkType: LinkType = 'FS'): string {
+  let result = taskId;
+  
+  // Add link type if SF
+  if (linkType === 'SF') {
+    result += 'SF';
   }
-  return taskId;
+  
+  // Add lag days
+  if (lagDays > 0) {
+    result += `+${lagDays}d`;
+  } else if (lagDays < 0) {
+    result += `${lagDays}d`;
+  }
+  
+  return result;
 }
 
 export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTask[]): ProjectTask[] {
@@ -269,11 +299,9 @@ export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTa
     if (task.predecessor) {
       const predecessors = safeParsePredecessors(task.predecessor);
       const hasDependency = predecessors.some((pred: string) => {
-        // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
-        const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
-        if (!match) return false;
-        const predTaskId = match[1].trim();
-        return predTaskId === targetTaskId;
+        const parsed = parsePredecessorString(pred);
+        if (!parsed) return false;
+        return parsed.taskId === targetTaskId;
       });
 
       if (hasDependency) {
@@ -287,6 +315,7 @@ export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTa
 
 /**
  * Validate that a task's start date is on or after its predecessor's end date (plus lag days)
+ * Note: This validation only applies to FS relationships. SF relationships are validated differently.
  */
 export interface StartDateValidationResult {
   isValid: boolean;
@@ -313,27 +342,18 @@ export function validateStartDateAgainstPredecessors(
   // Normalize the new start date to YYYY-MM-DD format
   const newStartYmd = newStartDate.split('T')[0];
 
-  // Find the latest predecessor end date (including lag days)
+  // Find the latest predecessor end date (including lag days) - only for FS relationships
   let latestPredEndDate: string | null = null;
   let latestPredInfo: string | null = null;
 
   for (const pred of predecessorArray) {
-    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
-    const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
-    if (!match) continue;
+    const parsed = parsePredecessorString(pred);
+    if (!parsed) continue;
+    
+    // Skip SF relationships - they constrain end date, not start date
+    if (parsed.linkType === 'SF') continue;
 
-    const predTaskId = match[1].trim();
-    const lagPart = match[2] || '';
-
-    // Extract lag days
-    let lagDays = 0;
-    if (lagPart) {
-      const lagStr = lagPart.endsWith('d') ? lagPart.slice(0, -1) : lagPart;
-      const lagValue = parseInt(lagStr);
-      if (!isNaN(lagValue)) {
-        lagDays = lagValue;
-      }
-    }
+    const { taskId: predTaskId, lagDays } = parsed;
 
     // Find the predecessor task (by hierarchy number or task ID)
     const predTask = allTasks.find(t => t.hierarchy_number === predTaskId || t.id === predTaskId);
@@ -352,7 +372,7 @@ export function validateStartDateAgainstPredecessors(
     }
   }
 
-  // If no valid predecessor found, allow any date
+  // If no valid FS predecessor found, allow any date
   if (!latestPredEndDate) {
     return { isValid: true, error: null, minAllowedDate: null, predecessorInfo: null };
   }
