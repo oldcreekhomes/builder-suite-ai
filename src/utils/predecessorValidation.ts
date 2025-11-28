@@ -1,4 +1,5 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { addBusinessDays } from "@/utils/dateOnly";
 
 /**
  * Safely parse predecessors from any format (string, array, or JSON string) 
@@ -340,9 +341,6 @@ export function validateStartDateAgainstPredecessors(
 
     // Calculate effective end date (predecessor end + lag days)
     const predEndYmd = predTask.end_date.split('T')[0];
-    
-    // Import date utility dynamically to avoid circular imports
-    const { addBusinessDays } = require('@/utils/dateOnly');
     
     // The minimum start date is the day AFTER predecessor ends (plus lag)
     // So we add 1 + lagDays business days from the predecessor end date
