@@ -481,8 +481,12 @@ export function UnifiedScheduleTable({
       >
         <div 
           ref={leftPanelRef}
-          className="bg-white border-r border-gray-300 overflow-hidden"
-          style={{ width: '952px' }}
+          className="bg-white border-r border-gray-300 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden"
+          style={{ 
+            width: '952px', 
+            height: '100%',
+            scrollbarWidth: 'none'
+          }}
           onWheel={handleLeftPanelWheel}
         >
         {/* Left Panel Header */}
