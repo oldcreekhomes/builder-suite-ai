@@ -359,6 +359,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         if (updates.notes !== undefined) {
           optimisticTask.notes = updates.notes;
         }
+        if (updates.predecessor !== undefined) {
+          optimisticTask.predecessor = updates.predecessor;
+        }
         
         // Always keep start/end/duration in sync for instant UI feedback
         
