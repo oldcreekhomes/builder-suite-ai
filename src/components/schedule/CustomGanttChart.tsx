@@ -483,6 +483,24 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     // OPTIMISTIC UPDATE: Immediately update cache for instant UI feedback
     const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
     
+    // Validate start date against predecessor end dates BEFORE any updates
+    if (updates.start_date) {
+      const taskToValidate = currentTasks.find(t => t.id === taskId);
+      if (taskToValidate && taskToValidate.predecessor) {
+        const { validateStartDateAgainstPredecessors } = await import('@/utils/predecessorValidation');
+        const validation = validateStartDateAgainstPredecessors(taskToValidate, updates.start_date, currentTasks);
+        
+        if (!validation.isValid) {
+          toast({
+            title: "Invalid Start Date",
+            description: validation.error,
+            variant: "destructive"
+          });
+          return; // Stop the update entirely
+        }
+      }
+    }
+    
     // Build mutation data with computed end_date
     const mutationData: any = {
       id: taskId,

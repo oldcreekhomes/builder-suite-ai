@@ -134,7 +134,32 @@ export const useTaskMutations = (projectId: string) => {
 
       const updateData: any = {};
       if (params.task_name !== undefined) updateData.task_name = params.task_name;
-      if (params.start_date !== undefined) updateData.start_date = normalizeDate(params.start_date);
+      if (params.start_date !== undefined) {
+        // Validate start date against predecessor end dates
+        const { data: taskData } = await supabase
+          .from('project_schedule_tasks')
+          .select('*')
+          .eq('id', params.id)
+          .single();
+          
+        if (taskData && taskData.predecessor) {
+          const { data: allTasks } = await supabase
+            .from('project_schedule_tasks')
+            .select('*')
+            .eq('project_id', projectId);
+            
+          if (allTasks) {
+            const { validateStartDateAgainstPredecessors } = await import('@/utils/predecessorValidation');
+            const validation = validateStartDateAgainstPredecessors(taskData as ProjectTask, params.start_date, allTasks as ProjectTask[]);
+            
+            if (!validation.isValid) {
+              throw new Error(validation.error || 'Invalid start date');
+            }
+          }
+        }
+        
+        updateData.start_date = normalizeDate(params.start_date);
+      }
       if (params.end_date !== undefined) updateData.end_date = normalizeDate(params.end_date);
       if (params.duration !== undefined) updateData.duration = params.duration;
       if (params.progress !== undefined) updateData.progress = params.progress;

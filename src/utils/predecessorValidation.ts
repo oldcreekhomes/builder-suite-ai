@@ -283,3 +283,91 @@ export function getTasksWithDependency(targetTaskId: string, allTasks: ProjectTa
 
   return dependentTasks;
 }
+
+/**
+ * Validate that a task's start date is on or after its predecessor's end date (plus lag days)
+ */
+export interface StartDateValidationResult {
+  isValid: boolean;
+  error: string | null;
+  minAllowedDate: string | null;
+  predecessorInfo: string | null;
+}
+
+export function validateStartDateAgainstPredecessors(
+  task: ProjectTask,
+  newStartDate: string,
+  allTasks: ProjectTask[]
+): StartDateValidationResult {
+  // If task has no predecessor, any start date is valid
+  if (!task.predecessor) {
+    return { isValid: true, error: null, minAllowedDate: null, predecessorInfo: null };
+  }
+
+  const predecessorArray = safeParsePredecessors(task.predecessor);
+  if (predecessorArray.length === 0) {
+    return { isValid: true, error: null, minAllowedDate: null, predecessorInfo: null };
+  }
+
+  // Normalize the new start date to YYYY-MM-DD format
+  const newStartYmd = newStartDate.split('T')[0];
+
+  // Find the latest predecessor end date (including lag days)
+  let latestPredEndDate: string | null = null;
+  let latestPredInfo: string | null = null;
+
+  for (const pred of predecessorArray) {
+    // Parse predecessor format: "taskId" or "taskId+Nd" or "taskId-Nd"
+    const match = pred.trim().match(/^(.+?)([+-]\d+d?)?$/);
+    if (!match) continue;
+
+    const predTaskId = match[1].trim();
+    const lagPart = match[2] || '';
+
+    // Extract lag days
+    let lagDays = 0;
+    if (lagPart) {
+      const lagStr = lagPart.endsWith('d') ? lagPart.slice(0, -1) : lagPart;
+      const lagValue = parseInt(lagStr);
+      if (!isNaN(lagValue)) {
+        lagDays = lagValue;
+      }
+    }
+
+    // Find the predecessor task (by hierarchy number or task ID)
+    const predTask = allTasks.find(t => t.hierarchy_number === predTaskId || t.id === predTaskId);
+    if (!predTask || !predTask.end_date) continue;
+
+    // Calculate effective end date (predecessor end + lag days)
+    const predEndYmd = predTask.end_date.split('T')[0];
+    
+    // Import date utility dynamically to avoid circular imports
+    const { addBusinessDays } = require('@/utils/dateOnly');
+    
+    // The minimum start date is the day AFTER predecessor ends (plus lag)
+    // So we add 1 + lagDays business days from the predecessor end date
+    const minStartDate = addBusinessDays(predEndYmd, 1 + lagDays);
+
+    if (!latestPredEndDate || minStartDate > latestPredEndDate) {
+      latestPredEndDate = minStartDate;
+      latestPredInfo = predTaskId;
+    }
+  }
+
+  // If no valid predecessor found, allow any date
+  if (!latestPredEndDate) {
+    return { isValid: true, error: null, minAllowedDate: null, predecessorInfo: null };
+  }
+
+  // Compare dates
+  if (newStartYmd < latestPredEndDate) {
+    return {
+      isValid: false,
+      error: `Start date must be on or after ${latestPredEndDate} (after predecessor ${latestPredInfo} ends)`,
+      minAllowedDate: latestPredEndDate,
+      predecessorInfo: latestPredInfo
+    };
+  }
+
+  return { isValid: true, error: null, minAllowedDate: latestPredEndDate, predecessorInfo: latestPredInfo };
+}
