@@ -6,6 +6,9 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
 } from "@/components/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Indent, Outdent, Plus, Trash2, StickyNote } from "lucide-react";
@@ -85,13 +88,26 @@ export function TaskContextMenu({
         
         <ContextMenuSeparator />
         
-        <ContextMenuItem
-          onClick={() => onAddAbove(task.id)}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Above
-        </ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Task
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-36">
+            <ContextMenuItem 
+              onClick={() => onAddAbove(task.id)} 
+              className="flex items-center gap-2"
+            >
+              Add Above
+            </ContextMenuItem>
+            <ContextMenuItem 
+              onClick={() => onAddBelow(task.id)} 
+              className="flex items-center gap-2"
+            >
+              Add Below
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         
         <ContextMenuItem
           onClick={() => onOpenNotes(task.id)}
