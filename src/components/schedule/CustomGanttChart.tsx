@@ -535,7 +535,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           mutationData.predecessor = updates.predecessor;
           
           // Recalculate this task's dates based on new predecessor
-          if (updates.predecessor && updates.predecessor.trim() !== '') {
+          if (updates.predecessor && updates.predecessor.length > 0) {
             const taskWithNewPredecessor = { ...optimisticTask };
             const dateUpdate = calculateTaskDatesFromPredecessors(taskWithNewPredecessor, currentTasks);
             
