@@ -515,7 +515,6 @@ export function UnifiedScheduleTable({
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
-                className="h-3 w-3"
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
