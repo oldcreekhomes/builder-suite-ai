@@ -194,16 +194,56 @@ export const useTaskMutations = (projectId: string) => {
       // Run cascade with the cached data we captured earlier
       if (shouldCascade && cachedTasks && cachedTasks.length > 0) {
         // Update the changed task in our working copy
-        const workingTasks = cachedTasks.map(t => {
+        const workingTasks: ProjectTask[] = cachedTasks.map(t => {
           if (t.id !== data.id) return t;
+          // Cast predecessor to correct type
+          const newPredecessor = data.predecessor as string[] | string | null;
           return {
             ...t,
             start_date: data.start_date,
             end_date: data.end_date,
             duration: data.duration,
-            predecessor: t.predecessor // Keep existing predecessor type
+            predecessor: newPredecessor // Use new predecessor from database
           };
         });
+        
+        // When predecessor changed, recalculate THIS task's dates first
+        if (predecessorChanged) {
+          const taskWithNewPredecessor = workingTasks.find(t => t.id === data.id);
+          if (taskWithNewPredecessor) {
+            const dateUpdate = calculateTaskDatesFromPredecessors(taskWithNewPredecessor, workingTasks);
+            
+            if (dateUpdate) {
+              const currentStartDate = data.start_date.split('T')[0];
+              const currentEndDate = data.end_date.split('T')[0];
+              
+              if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
+                console.log(`📅 Recalculating task dates from new predecessor:`, dateUpdate);
+                
+                // Update the task's own dates
+                await updateTask.mutateAsync({
+                  id: data.id,
+                  start_date: dateUpdate.startDate,
+                  end_date: dateUpdate.endDate,
+                  duration: dateUpdate.duration,
+                  suppressInvalidate: true,
+                  skipCascade: false // Allow this update to cascade to dependents
+                });
+                
+                // Update working tasks array with new dates
+                const taskIndex = workingTasks.findIndex(t => t.id === data.id);
+                if (taskIndex !== -1) {
+                  workingTasks[taskIndex] = {
+                    ...workingTasks[taskIndex],
+                    start_date: dateUpdate.startDate + 'T00:00:00',
+                    end_date: dateUpdate.endDate + 'T00:00:00',
+                    duration: dateUpdate.duration
+                  };
+                }
+              }
+            }
+          }
+        }
         
         // Run cascade with cached data
         await cascadeDependentUpdates(data.id, workingTasks);
