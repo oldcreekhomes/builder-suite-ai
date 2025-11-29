@@ -44,61 +44,38 @@ export function calculateAddBelowUpdates(
 
 /**
  * Handle adding below a group (top-level task)
- * Creates a new group and renumbers all subsequent groups (AFTER the target)
+ * Creates a CHILD task under the group (not a sibling group)
+ * e.g., "Add Below" on task "1" creates "1.1" (or "1.N+1" if children exist)
  */
 function handleAddBelowGroup(targetTask: ProjectTask, allTasks: ProjectTask[]): AddBelowResult {
-  const targetNumber = parseInt(targetTask.hierarchy_number!);
-  // New task goes AFTER target, so it gets targetNumber + 1
-  const newTaskHierarchy = (targetNumber + 1).toString();
+  const targetNumber = targetTask.hierarchy_number!;
   
-  // Find all tasks that need renumbering (groups > target and their children)
-  // Key difference from Add Above: we use > instead of >=
-  const tasksToRenumber = allTasks.filter(task => {
+  // Check if this group has existing children
+  const existingChildren = allTasks.filter(task => {
     if (!task.hierarchy_number) return false;
-    
-    const firstPart = parseInt(task.hierarchy_number.split('.')[0]);
-    return firstPart > targetNumber; // > not >= (target keeps its position)
+    return task.hierarchy_number.startsWith(targetNumber + '.');
   });
   
-  // Sort by hierarchy in DESCENDING order to avoid conflicts
-  tasksToRenumber.sort((a, b) => {
-    const aHier = a.hierarchy_number!;
-    const bHier = b.hierarchy_number!;
-    return bHier.localeCompare(aHier, undefined, { numeric: true });
-  });
+  if (existingChildren.length === 0) {
+    // No children - create first child (e.g., "1" -> "1.1")
+    return {
+      newTaskHierarchy: `${targetNumber}.1`,
+      hierarchyUpdates: [],
+      predecessorUpdates: []
+    };
+  }
   
-  // Generate hierarchy updates (increment group numbers)
-  const hierarchyUpdates: HierarchyUpdate[] = [];
-  const hierarchyMapping = new Map<string, string>();
-  
-  tasksToRenumber.forEach(task => {
+  // Has children - add after the last child (no renumbering needed)
+  const childNumbers = existingChildren.map(task => {
     const parts = task.hierarchy_number!.split('.');
-    const groupNumber = parseInt(parts[0]);
-    const newGroupNumber = groupNumber + 1;
-    
-    let newHierarchy: string;
-    if (parts.length === 1) {
-      // Group level
-      newHierarchy = newGroupNumber.toString();
-    } else {
-      // Child level - update the group part
-      newHierarchy = [newGroupNumber, ...parts.slice(1)].join('.');
-    }
-    
-    hierarchyMapping.set(task.hierarchy_number!, newHierarchy);
-    hierarchyUpdates.push({
-      id: task.id,
-      hierarchy_number: newHierarchy
-    });
+    return parseInt(parts[1]) || 0;
   });
-  
-  // Generate predecessor updates
-  const predecessorUpdates = calculatePredecessorUpdates(allTasks, hierarchyMapping);
+  const maxChildNumber = Math.max(...childNumbers);
   
   return {
-    newTaskHierarchy,
-    hierarchyUpdates,
-    predecessorUpdates
+    newTaskHierarchy: `${targetNumber}.${maxChildNumber + 1}`,
+    hierarchyUpdates: [],
+    predecessorUpdates: []
   };
 }
 
