@@ -884,15 +884,21 @@ export function UnifiedScheduleTable({
                 {connections.map((connection, connIndex) => {
                   const { from, to } = connection;
                   
-                  // Vertical line positioned LEFT of target bar (15px gap for arrow space)
-                  const verticalX = to.x - 15;
+                  // 5-segment path matching BuildTools pattern:
+                  // 1. Exit RIGHT from predecessor bar end
+                  // 2. Small vertical DROP
+                  // 3. Go LEFT to vertical line position
+                  // 4. Go DOWN to target row
+                  // 5. Go RIGHT to arrow
                   
-                  // Path: 
-                  // 1. Exit predecessor horizontally to the vertical line position
-                  // 2. Drop vertically to target row
-                  // 3. Short horizontal segment RIGHT to target bar (arrow points in)
+                  const exitX = from.x + 12;        // Exit 12px RIGHT of predecessor end
+                  const dropY = from.y + 8;         // Small drop (8px down from predecessor)
+                  const verticalX = to.x - 15;      // Vertical line position (15px left of target)
+                  
                   const pathData = `M ${from.x} ${from.y}
-                                   L ${verticalX} ${from.y}
+                                   L ${exitX} ${from.y}
+                                   L ${exitX} ${dropY}
+                                   L ${verticalX} ${dropY}
                                    L ${verticalX} ${to.y}
                                    L ${to.x - 8} ${to.y}`;
 
