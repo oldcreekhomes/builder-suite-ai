@@ -1032,8 +1032,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({ title: "Error", description: `Failed to add task above: ${errorMessage}`, variant: "destructive" });
     } finally {
-      // Clear batch operation flag
+      // Clear batch operation flag and set cooldown
       (window as any).__batchOperationInProgress = false;
+      // Set 3-second cooldown to prevent realtime interference
+      (window as any).__batchOperationCooldownUntil = Date.now() + 3000;
     }
   };
 
@@ -1199,8 +1201,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({ title: "Error", description: `Failed to add task below: ${errorMessage}`, variant: "destructive" });
     } finally {
-      // Clear batch operation flag
+      // Clear batch operation flag and set cooldown
       (window as any).__batchOperationInProgress = false;
+      // Set 3-second cooldown to prevent realtime interference
+      (window as any).__batchOperationCooldownUntil = Date.now() + 3000;
     }
   };
 

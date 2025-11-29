@@ -30,6 +30,7 @@ export function useOptimizedRealtime(projectId: string) {
       const userEditCooldownUntil = (window as any).__userEditCooldownUntil;
       const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
       const isBatchOperationInProgress = (window as any).__batchOperationInProgress;
+      const batchOperationCooldownUntil = (window as any).__batchOperationCooldownUntil;
 
       if (userEditCooldownUntil && Date.now() < userEditCooldownUntil) {
         console.log('🚫 Skipping batched updates - user edit cooldown active');
@@ -38,6 +39,12 @@ export function useOptimizedRealtime(projectId: string) {
 
       if (isSyncfusionOperationInProgress || isBatchOperationInProgress) {
         console.log('🚫 Skipping batched updates - operations in progress');
+        return;
+      }
+
+      // Post-operation cooldown to prevent realtime from interfering
+      if (batchOperationCooldownUntil && Date.now() < batchOperationCooldownUntil) {
+        console.log('🚫 Skipping batched updates - post-operation cooldown active');
         return;
       }
 
