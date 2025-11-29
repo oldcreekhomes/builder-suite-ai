@@ -478,21 +478,21 @@ export function UnifiedScheduleTable({
           style={{ height: ROW_HEIGHT }}
         >
           <div className="flex h-full">
-            <div className="w-10 flex items-center justify-center border-r border-gray-200 px-2">
+            <div className="w-10 h-full flex items-center justify-center border-r border-gray-200 px-2">
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-12 flex items-center border-r border-gray-200 px-2 text-xs font-medium">#</div>
-            <div className="w-72 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Task Name</div>
-            <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
-            <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Duration</div>
-            <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
-            <div className="w-24 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Predecessors</div>
-            <div className="w-20 flex items-center border-r border-gray-200 px-2 text-xs font-medium">Progress</div>
-            <div className="w-32 flex items-center px-2 text-xs font-medium">Resources</div>
+            <div className="w-12 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium">#</div>
+            <div className="w-72 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium">Task Name</div>
+            <div className="w-24 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
+            <div className="w-20 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium">Duration</div>
+            <div className="w-24 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
+            <div className="w-24 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium">Predecessors</div>
+            <div className="w-20 h-full flex items-center border-r border-gray-200 px-2 text-xs font-medium">Progress</div>
+            <div className="w-32 h-full flex items-center px-2 text-xs font-medium">Resources</div>
           </div>
         </div>
 
