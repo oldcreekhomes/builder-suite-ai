@@ -67,146 +67,55 @@ export const useTaskBulkMutations = (projectId: string) => {
     }) => {
       if (!user || updates.length === 0) return [];
 
-      console.log('🔄 Performing smart hierarchy update for', updates.length, 'tasks');
+      console.log('🚀 Performing PARALLEL batch hierarchy update for', updates.length, 'tasks');
       
-      // If ordered execution is requested, use two-phase update to avoid unique constraint violations
-      if (ordered) {
-        console.log('📋 Applying updates with two-phase swap (avoiding unique constraint violations)');
-        const results = [];
-        
-        // PHASE 1: Move all tasks to temporary hierarchy numbers
-        console.log('🔄 Phase 1: Moving to temporary hierarchies');
-        const tempUpdates = updates.map((update, index) => ({
-          id: update.id,
-          temp_hierarchy: `TEMP-${index}-${Date.now()}`
-        }));
-        
-        for (const tempUpdate of tempUpdates) {
-          const { error } = await supabase
-            .from('project_schedule_tasks')
-            .update({ 
-              hierarchy_number: tempUpdate.temp_hierarchy,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', tempUpdate.id);
-            
-          if (error) {
-            console.error('❌ Phase 1 temp hierarchy update failed:', error);
-            throw error;
-          }
-        }
-        
-        // PHASE 2: Move all tasks to their final hierarchy numbers
-        console.log('🔄 Phase 2: Moving to final hierarchies');
-        for (const update of updates) {
-          const { data, error } = await supabase
-            .from('project_schedule_tasks')
-            .update({ 
-              hierarchy_number: update.hierarchy_number,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', update.id)
-            .select();
-            
-          if (error) {
-            console.error('❌ Phase 2 final hierarchy update failed:', error);
-            throw error;
-          }
-          
-          if (data) {
-            results.push(...data);
-          }
-        }
-        
-        console.log('✅ Two-phase hierarchy swap completed successfully');
-        return results;
+      // Two-phase approach using PARALLEL updates to avoid unique constraint violations
+      // This reduces 260 sequential calls to 2 batches of parallel calls
+      
+      const timestamp = Date.now();
+      
+      // PHASE 1: Move all to temporary hierarchies in PARALLEL
+      console.log('📋 Phase 1: Moving to temporary hierarchies (parallel)');
+      const tempPromises = updates.map((update, index) => 
+        supabase
+          .from('project_schedule_tasks')
+          .update({ 
+            hierarchy_number: `TEMP-${index}-${timestamp}`,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', update.id)
+      );
+      
+      const tempResults = await Promise.all(tempPromises);
+      const tempError = tempResults.find(r => r.error);
+      if (tempError?.error) {
+        console.error('❌ Phase 1 parallel update failed:', tempError.error);
+        throw tempError.error;
       }
       
-      // Use provided originalTasks or get current tasks from cache to compare directions
-      const currentTasks = originalTasks || queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
-      
-      // Analyze update directions: increment (1 -> 2) vs decrement (3 -> 2)
-      const incrementUpdates: BulkHierarchyUpdate[] = [];
-      const decrementUpdates: BulkHierarchyUpdate[] = [];
-      
-      updates.forEach(update => {
-        const currentTask = currentTasks.find(t => t.id === update.id);
-        if (currentTask && currentTask.hierarchy_number) {
-          // Use hierarchy-aware comparison instead of parseFloat
-          const currentHierarchy = currentTask.hierarchy_number.split('.').map(n => parseInt(n));
-          const targetHierarchy = update.hierarchy_number.split('.').map(n => parseInt(n));
-          
-          // Compare hierarchies segment by segment
-          let isIncrement = false;
-          for (let i = 0; i < Math.max(currentHierarchy.length, targetHierarchy.length); i++) {
-            const currentPart = currentHierarchy[i] || 0;
-            const targetPart = targetHierarchy[i] || 0;
-            
-            if (targetPart > currentPart) {
-              isIncrement = true;
-              break;
-            } else if (targetPart < currentPart) {
-              break;
-            }
-          }
-          
-          if (isIncrement) {
-            incrementUpdates.push(update);
-          } else {
-            decrementUpdates.push(update);
-          }
-        } else {
-          // If we can't find current task, treat as increment (safer)
-          incrementUpdates.push(update);
-        }
-      });
-      
-      console.log(`📊 Direction analysis: ${incrementUpdates.length} increments, ${decrementUpdates.length} decrements`);
-      
-      // Sort increments descending (higher numbers first to clear the way)
-      const sortedIncrements = incrementUpdates.sort((a, b) => {
-        return b.hierarchy_number.localeCompare(a.hierarchy_number, undefined, { numeric: true });
-      });
-      
-      // Sort decrements by current hierarchy ascending (for safe renumbering: 1.5->1.4, then 1.6->1.5)
-      const sortedDecrements = decrementUpdates.sort((a, b) => {
-        const taskA = currentTasks.find(t => t.id === a.id);
-        const taskB = currentTasks.find(t => t.id === b.id);
-        const hierarchyA = taskA?.hierarchy_number || a.hierarchy_number;
-        const hierarchyB = taskB?.hierarchy_number || b.hierarchy_number;
-        return hierarchyA.localeCompare(hierarchyB, undefined, { numeric: true });
-      });
-      
-      // Execute in safe order: increments first (desc), then decrements (asc)
-      const finalOrder = [...sortedIncrements, ...sortedDecrements];
-      
-      console.log('📊 Safe update order:', finalOrder.map(u => `${u.id}: ${u.hierarchy_number}`));
-      
-      const results = [];
-      
-      // Process updates one by one to avoid unique constraint violations
-      for (const update of finalOrder) {
-        console.log(`🔄 Updating task ${update.id} to hierarchy ${update.hierarchy_number}`);
-        
-        const { data, error } = await supabase
+      // PHASE 2: Move all to final hierarchies in PARALLEL
+      console.log('📋 Phase 2: Moving to final hierarchies (parallel)');
+      const finalPromises = updates.map(update => 
+        supabase
           .from('project_schedule_tasks')
-          .update({ hierarchy_number: update.hierarchy_number })
+          .update({ 
+            hierarchy_number: update.hierarchy_number,
+            updated_at: new Date().toISOString()
+          })
           .eq('id', update.id)
-          .select('id');
-          
-        if (error) {
-          console.error('Sequential hierarchy update error:', error.message);
-          throw new Error(`Failed to update hierarchy: ${error.message}`);
-        }
-        
-        if (data) results.push(...data);
-        
-        // Reduced delay for faster operations
-        await new Promise(resolve => setTimeout(resolve, 1));
+          .select('id')
+      );
+      
+      const finalResults = await Promise.all(finalPromises);
+      const finalError = finalResults.find(r => r.error);
+      if (finalError?.error) {
+        console.error('❌ Phase 2 parallel update failed:', finalError.error);
+        throw finalError.error;
       }
 
-      console.log('✅ Smart hierarchy update completed for', results.length, 'tasks');
-      return results;
+      const data = finalResults.flatMap(r => r.data || []);
+      console.log(`✅ Parallel batch update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms`);
+      return data;
     },
     onSuccess: async (data, variables) => {
       // Add all updated tasks to pending set to ignore realtime echoes  
