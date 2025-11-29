@@ -892,7 +892,7 @@ export function UnifiedScheduleTable({
                   // 5. Go RIGHT to arrow
                   
                   const exitX = from.x + 12;        // Exit 12px RIGHT of predecessor end
-                  const dropY = from.y + 8;         // Small drop (8px down from predecessor)
+                  const dropY = from.y + 16;        // Drop 16px down to clear below predecessor bar
                   const verticalX = to.x - 15;      // Vertical line position (15px left of target)
                   
                   const pathData = `M ${from.x} ${from.y}
