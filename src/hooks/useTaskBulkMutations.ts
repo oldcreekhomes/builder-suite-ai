@@ -67,35 +67,35 @@ export const useTaskBulkMutations = (projectId: string) => {
     }) => {
       if (!user || updates.length === 0) return [];
 
-      console.log('🚀 Performing PARALLEL batch hierarchy update for', updates.length, 'tasks');
-      
-      // Two-phase approach using PARALLEL updates to avoid unique constraint violations
-      // This reduces 260 sequential calls to 2 batches of parallel calls
-      
       const timestamp = Date.now();
+      console.log('🚀 Performing SINGLE-BATCH hierarchy update for', updates.length, 'tasks');
       
-      // PHASE 1: Move all to temporary hierarchies in PARALLEL
-      console.log('📋 Phase 1: Moving to temporary hierarchies (parallel)');
-      const tempPromises = updates.map((update, index) => 
-        supabase
-          .from('project_schedule_tasks')
-          .update({ 
-            hierarchy_number: `TEMP-${index}-${timestamp}`,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', update.id)
-      );
-      
-      const tempResults = await Promise.all(tempPromises);
-      const tempError = tempResults.find(r => r.error);
-      if (tempError?.error) {
-        console.error('❌ Phase 1 parallel update failed:', tempError.error);
-        throw tempError.error;
+      // For large updates (>10), try the edge function first for atomic execution
+      if (updates.length > 10) {
+        try {
+          console.log('📦 Using edge function for atomic batch update...');
+          const { data: edgeResult, error: edgeError } = await supabase.functions.invoke('bulk-update-hierarchies', {
+            body: { updates, projectId }
+          });
+          
+          if (!edgeError && edgeResult?.success) {
+            console.log(`✅ Edge function batch update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms`);
+            return updates.map(u => ({ id: u.id }));
+          }
+          
+          if (edgeError) {
+            console.warn('⚠️ Edge function failed, falling back to parallel updates:', edgeError);
+          }
+        } catch (err) {
+          console.warn('⚠️ Edge function unavailable, using parallel update fallback:', err);
+        }
       }
       
-      // PHASE 2: Move all to final hierarchies in PARALLEL
-      console.log('📋 Phase 2: Moving to final hierarchies (parallel)');
-      const finalPromises = updates.map(update => 
+      // Fallback: Use parallel updates (all sent at once via Promise.all)
+      // This is much faster than sequential and avoids the upsert column requirements
+      console.log('📋 Using parallel update batch for hierarchy changes');
+      
+      const updatePromises = updates.map(update => 
         supabase
           .from('project_schedule_tasks')
           .update({ 
@@ -106,14 +106,16 @@ export const useTaskBulkMutations = (projectId: string) => {
           .select('id')
       );
       
-      const finalResults = await Promise.all(finalPromises);
-      const finalError = finalResults.find(r => r.error);
-      if (finalError?.error) {
-        console.error('❌ Phase 2 parallel update failed:', finalError.error);
-        throw finalError.error;
+      const results = await Promise.all(updatePromises);
+      
+      // Check for any errors
+      const errorResult = results.find(r => r.error);
+      if (errorResult?.error) {
+        console.error('❌ Parallel batch update failed:', errorResult.error);
+        throw errorResult.error;
       }
 
-      const data = finalResults.flatMap(r => r.data || []);
+      const data = results.flatMap(r => r.data || []);
       console.log(`✅ Parallel batch update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms`);
       return data;
     },
