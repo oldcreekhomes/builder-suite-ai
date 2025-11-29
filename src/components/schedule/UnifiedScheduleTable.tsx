@@ -477,22 +477,22 @@ export function UnifiedScheduleTable({
           className="sticky top-0 z-20 bg-white"
           style={{ height: ROW_HEIGHT }}
         >
-          <div className="flex h-full">
-            <div className="w-10 h-full flex items-center justify-center border-r border-b border-gray-200 px-2">
+          <div className="flex" style={{ height: ROW_HEIGHT }}>
+            <div className="w-10 flex items-center justify-center border-r border-b border-gray-200 px-2" style={{ height: ROW_HEIGHT }}>
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-12 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium">#</div>
-            <div className="w-72 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium">Task Name</div>
-            <div className="w-24 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium whitespace-nowrap">Start Date</div>
-            <div className="w-20 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium">Duration</div>
-            <div className="w-24 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium whitespace-nowrap">End Date</div>
-            <div className="w-24 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium">Predecessors</div>
-            <div className="w-20 h-full flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium">Progress</div>
-            <div className="w-32 h-full flex items-center border-b border-gray-200 px-2 text-xs font-medium">Resources</div>
+            <div className="w-12 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium" style={{ height: ROW_HEIGHT }}>#</div>
+            <div className="w-72 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium" style={{ height: ROW_HEIGHT }}>Task Name</div>
+            <div className="w-24 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium whitespace-nowrap" style={{ height: ROW_HEIGHT }}>Start Date</div>
+            <div className="w-20 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium" style={{ height: ROW_HEIGHT }}>Duration</div>
+            <div className="w-24 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium whitespace-nowrap" style={{ height: ROW_HEIGHT }}>End Date</div>
+            <div className="w-24 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium" style={{ height: ROW_HEIGHT }}>Predecessors</div>
+            <div className="w-20 flex items-center border-r border-b border-gray-200 px-2 text-xs font-medium" style={{ height: ROW_HEIGHT }}>Progress</div>
+            <div className="w-32 flex items-center border-b border-gray-200 px-2 text-xs font-medium" style={{ height: ROW_HEIGHT }}>Resources</div>
           </div>
         </div>
 
