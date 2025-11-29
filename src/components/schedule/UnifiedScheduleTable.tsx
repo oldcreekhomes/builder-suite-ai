@@ -884,14 +884,17 @@ export function UnifiedScheduleTable({
                 {connections.map((connection, connIndex) => {
                   const { from, to } = connection;
                   
-                  // Simple 3-segment right-angle connector: EXIT → DROP → ENTER
-                  const exitX = from.x + 12;  // Exit 12px right of predecessor bar end
+                  // Vertical line positioned LEFT of target bar (15px gap for arrow space)
+                  const verticalX = to.x - 15;
                   
-                  // Path: horizontal exit → vertical drop → horizontal to target
+                  // Path: 
+                  // 1. Exit predecessor horizontally to the vertical line position
+                  // 2. Drop vertically to target row
+                  // 3. Short horizontal segment RIGHT to target bar (arrow points in)
                   const pathData = `M ${from.x} ${from.y}
-                                   L ${exitX} ${from.y}
-                                   L ${exitX} ${to.y}
-                                   L ${to.x} ${to.y}`;
+                                   L ${verticalX} ${from.y}
+                                   L ${verticalX} ${to.y}
+                                   L ${to.x - 8} ${to.y}`;
 
                   return (
                     <g key={connIndex}>
