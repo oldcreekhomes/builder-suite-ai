@@ -91,11 +91,32 @@ export const useTaskBulkMutations = (projectId: string) => {
         }
       }
       
-      // Fallback: Use parallel updates (all sent at once via Promise.all)
-      // This is much faster than sequential and avoids the upsert column requirements
-      console.log('📋 Using parallel update batch for hierarchy changes');
+      // Fallback: TWO-PHASE update to avoid unique constraint violations
+      // Phase 1: Set all to temporary values (frees up real hierarchy numbers)
+      // Phase 2: Set all to final values (no conflicts since all real values are free)
+      console.log('📋 Using two-phase update fallback for hierarchy changes');
       
-      const updatePromises = updates.map(update => 
+      // PHASE 1: Clear all hierarchies to temporary unique values
+      console.log('🔄 Phase 1: Setting temporary hierarchy values...');
+      const phase1Promises = updates.map((update, index) => 
+        supabase
+          .from('project_schedule_tasks')
+          .update({ hierarchy_number: `__TEMP_${index}__` })
+          .eq('id', update.id)
+      );
+      
+      const phase1Results = await Promise.all(phase1Promises);
+      const phase1Error = phase1Results.find(r => r.error);
+      if (phase1Error?.error) {
+        console.error('❌ Phase 1 failed:', phase1Error.error);
+        throw phase1Error.error;
+      }
+      console.log(`✅ Phase 1 completed in ~${Date.now() - timestamp}ms`);
+      
+      // PHASE 2: Set final hierarchy values (no conflicts now)
+      console.log('🔄 Phase 2: Setting final hierarchy values...');
+      const phase2Start = Date.now();
+      const phase2Promises = updates.map(update => 
         supabase
           .from('project_schedule_tasks')
           .update({ 
@@ -106,17 +127,15 @@ export const useTaskBulkMutations = (projectId: string) => {
           .select('id')
       );
       
-      const results = await Promise.all(updatePromises);
-      
-      // Check for any errors
-      const errorResult = results.find(r => r.error);
-      if (errorResult?.error) {
-        console.error('❌ Parallel batch update failed:', errorResult.error);
-        throw errorResult.error;
+      const phase2Results = await Promise.all(phase2Promises);
+      const phase2Error = phase2Results.find(r => r.error);
+      if (phase2Error?.error) {
+        console.error('❌ Phase 2 failed:', phase2Error.error);
+        throw phase2Error.error;
       }
 
-      const data = results.flatMap(r => r.data || []);
-      console.log(`✅ Parallel batch update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms`);
+      const data = phase2Results.flatMap(r => r.data || []);
+      console.log(`✅ Two-phase update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms (Phase 2: ${Date.now() - phase2Start}ms)`);
       return data;
     },
     onSuccess: async (data, variables) => {

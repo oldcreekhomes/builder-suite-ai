@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`📦 Bulk updating ${updates.length} task hierarchies for project ${projectId}`);
+    console.log(`📦 Two-phase bulk update: ${updates.length} tasks for project ${projectId}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -44,11 +44,40 @@ Deno.serve(async (req) => {
 
     const startTime = Date.now();
 
-    // Use parallel updates - all sent simultaneously via Promise.all
-    // This is atomic per-row and very fast (single round-trip for all promises)
-    console.log('🔄 Executing parallel batch updates...');
+    // ============================================
+    // PHASE 1: Clear all to temporary unique values
+    // This frees up all real hierarchy numbers
+    // ============================================
+    console.log('🔄 Phase 1: Setting temporary hierarchy values...');
     
-    const updatePromises = updates.map(update => 
+    const phase1Promises = updates.map((update, index) => 
+      supabase
+        .from('project_schedule_tasks')
+        .update({ hierarchy_number: `__TEMP_${index}__` })
+        .eq('id', update.id)
+        .eq('project_id', projectId)
+    );
+    
+    const phase1Results = await Promise.all(phase1Promises);
+    
+    // Check for Phase 1 errors
+    const phase1Error = phase1Results.find(r => r.error);
+    if (phase1Error?.error) {
+      console.error('❌ Phase 1 failed:', phase1Error.error);
+      throw phase1Error.error;
+    }
+    
+    const phase1Time = Date.now() - startTime;
+    console.log(`✅ Phase 1 completed in ${phase1Time}ms`);
+
+    // ============================================
+    // PHASE 2: Set final hierarchy values
+    // No conflicts since all real values are now free
+    // ============================================
+    console.log('🔄 Phase 2: Setting final hierarchy values...');
+    
+    const phase2Start = Date.now();
+    const phase2Promises = updates.map(update => 
       supabase
         .from('project_schedule_tasks')
         .update({ 
@@ -60,26 +89,30 @@ Deno.serve(async (req) => {
         .select('id')
     );
     
-    const results = await Promise.all(updatePromises);
+    const phase2Results = await Promise.all(phase2Promises);
     
-    // Check for any errors
-    const errorResult = results.find(r => r.error);
-    if (errorResult?.error) {
-      console.error('❌ Batch update failed:', errorResult.error);
-      throw errorResult.error;
+    // Check for Phase 2 errors
+    const phase2Error = phase2Results.find(r => r.error);
+    if (phase2Error?.error) {
+      console.error('❌ Phase 2 failed:', phase2Error.error);
+      throw phase2Error.error;
     }
 
-    const successCount = results.filter(r => r.data && r.data.length > 0).length;
-    const elapsed = Date.now() - startTime;
+    const successCount = phase2Results.filter(r => r.data && r.data.length > 0).length;
+    const totalTime = Date.now() - startTime;
+    const phase2Time = Date.now() - phase2Start;
     
-    console.log(`✅ Parallel batch update completed: ${successCount}/${updates.length} tasks in ${elapsed}ms`);
+    console.log(`✅ Phase 2 completed in ${phase2Time}ms`);
+    console.log(`✅ Two-phase update completed: ${successCount}/${updates.length} tasks in ${totalTime}ms`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         updated: successCount,
         total: updates.length,
-        elapsed_ms: elapsed
+        elapsed_ms: totalTime,
+        phase1_ms: phase1Time,
+        phase2_ms: phase2Time
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
