@@ -42,81 +42,44 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Build a single SQL CASE statement for atomic update
-    // This executes as ONE database operation, avoiding race conditions
-    const caseStatements = updates.map(u => 
-      `WHEN id = '${u.id}'::uuid THEN '${u.hierarchy_number}'`
-    ).join('\n        ');
-    
-    const taskIds = updates.map(u => `'${u.id}'::uuid`).join(', ');
-    
-    const sql = `
-      UPDATE project_schedule_tasks 
-      SET 
-        hierarchy_number = CASE 
-          ${caseStatements}
-          ELSE hierarchy_number
-        END,
-        updated_at = NOW()
-      WHERE id IN (${taskIds})
-        AND project_id = '${projectId}'::uuid
-      RETURNING id, hierarchy_number;
-    `;
+    const startTime = Date.now();
 
-    console.log(`🔄 Executing atomic batch update SQL...`);
+    // Use parallel updates - all sent simultaneously via Promise.all
+    // This is atomic per-row and very fast (single round-trip for all promises)
+    console.log('🔄 Executing parallel batch updates...');
     
-    const { data, error } = await supabase.rpc('exec_sql', { sql_query: sql });
-    
-    // If exec_sql doesn't exist, fall back to individual upserts in a transaction
-    if (error && error.message?.includes('function') && error.message?.includes('does not exist')) {
-      console.log('⚠️ exec_sql not available, using upsert fallback...');
-      
-      // Use upsert which is still atomic per-row but very fast
-      const records = updates.map(u => ({
-        id: u.id,
-        hierarchy_number: u.hierarchy_number,
-        updated_at: new Date().toISOString()
-      }));
-      
-      const { data: upsertData, error: upsertError } = await supabase
+    const updatePromises = updates.map(update => 
+      supabase
         .from('project_schedule_tasks')
-        .upsert(records, { 
-          onConflict: 'id',
-          ignoreDuplicates: false 
+        .update({ 
+          hierarchy_number: update.hierarchy_number,
+          updated_at: new Date().toISOString()
         })
-        .select('id, hierarchy_number');
-      
-      if (upsertError) {
-        console.error('❌ Upsert failed:', upsertError);
-        throw upsertError;
-      }
-      
-      console.log(`✅ Upsert completed for ${updates.length} tasks`);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          updated: updates.length,
-          method: 'upsert',
-          data: upsertData 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+        .eq('id', update.id)
+        .eq('project_id', projectId)
+        .select('id')
+    );
     
-    if (error) {
-      console.error('❌ Batch update failed:', error);
-      throw error;
+    const results = await Promise.all(updatePromises);
+    
+    // Check for any errors
+    const errorResult = results.find(r => r.error);
+    if (errorResult?.error) {
+      console.error('❌ Batch update failed:', errorResult.error);
+      throw errorResult.error;
     }
 
-    console.log(`✅ Atomic batch update completed for ${updates.length} tasks`);
+    const successCount = results.filter(r => r.data && r.data.length > 0).length;
+    const elapsed = Date.now() - startTime;
+    
+    console.log(`✅ Parallel batch update completed: ${successCount}/${updates.length} tasks in ${elapsed}ms`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        updated: updates.length,
-        method: 'atomic_sql',
-        data 
+        updated: successCount,
+        total: updates.length,
+        elapsed_ms: elapsed
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
