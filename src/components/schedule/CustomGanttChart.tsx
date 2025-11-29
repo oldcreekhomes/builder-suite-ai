@@ -40,36 +40,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   
   // Add flags to prevent infinite loops  
   const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
-  const [skipRecalc, setSkipRecalc] = useState(false);
   const hasNormalizedRef = useRef(false);
   const lastAutoRecalcAtRef = useRef(0);
   
-  // Listen for parent recalculation events from mutations
-  useEffect(() => {
-    const handleParentRecalculation = (event: CustomEvent) => {
-      const { hierarchyNumber } = event.detail;
-      // Skip during batch operations or if already recalculating
-      if (hierarchyNumber && !isRecalculatingParents && !skipRecalc && !(window as any).__batchOperationInProgress) {
-        setSkipRecalc(true);
-        recalculateParentHierarchy(hierarchyNumber);
-        setTimeout(() => setSkipRecalc(false), 500); // Reduced cooldown
-      }
-    };
-
-    const handleCascadeComplete = () => {
-      console.log('✅ Cascade complete event received - refreshing cache');
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-    };
-
-    
-    window.addEventListener('optimized-recalculate-parents', handleParentRecalculation as EventListener);
-    window.addEventListener('cascade-complete', handleCascadeComplete);
-    
-    return () => {
-      window.removeEventListener('optimized-recalculate-parents', handleParentRecalculation as EventListener);
-      window.removeEventListener('cascade-complete', handleCascadeComplete);
-    };
-  }, [isRecalculatingParents, skipRecalc, tasks, projectId, user?.id, queryClient, updateTask]);
+  // REMOVED: Event-based parent recalculation - now handled directly in useTaskMutations
+  // This eliminates cooldowns and race conditions, making parent updates instant and reliable
 
   // REMOVED: Repair pass that was overwriting user edits
   // The old repair pass would recalculate tasks from their predecessors on page load,
@@ -130,7 +105,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   // Debounced parent recalculation when tasks change  
   useEffect(() => {
     // Skip if batch operation is in progress or other skip conditions
-    if (!tasks || tasks.length === 0 || isRecalculatingParents || skipRecalc || (window as any).__batchOperationInProgress) return;
+    if (!tasks || tasks.length === 0 || isRecalculatingParents || (window as any).__batchOperationInProgress) return;
     
     // Add cooldown to prevent repeated executions
     const now = Date.now();
@@ -195,7 +170,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const debounceMs = 1500;
     const timeoutId = setTimeout(recalculateParents, debounceMs);
     return () => clearTimeout(timeoutId);
-  }, [tasks, updateTask, projectId, user?.id, isRecalculatingParents, skipRecalc]);
+  }, [tasks, updateTask, projectId, user?.id, isRecalculatingParents]);
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
