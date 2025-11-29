@@ -38,71 +38,113 @@ export const useTaskMutations = (projectId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Direct parent recalculation - simple MIN/MAX on children dates
+  // Optimized parent recalculation - calculates ALL parents in memory, then single batch write
   const recalculateParentDates = useCallback(async (hierarchyNumber: string) => {
     if (!hierarchyNumber || !hierarchyNumber.includes('.')) return; // Top-level task has no parent
     
-    const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+    let freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
     if (freshTasks.length === 0) return;
     
-    // Get parent hierarchy (e.g., "8.3" -> "8")
-    const parentHierarchy = hierarchyNumber.split('.').slice(0, -1).join('.');
-    const parentTask = freshTasks.find(t => t.hierarchy_number === parentHierarchy);
+    // Make a mutable copy for in-memory calculations
+    freshTasks = [...freshTasks.map(t => ({ ...t }))];
     
-    if (!parentTask) return;
+    // 1. CALCULATE ALL parent updates in memory (no DB calls yet)
+    const parentUpdates: Array<{ id: string; start_date: string; end_date: string; duration: number; progress: number }> = [];
+    let currentHierarchy = hierarchyNumber;
     
-    // Get all descendants (children at any level under this parent)
-    const children = freshTasks.filter(t => 
-      t.hierarchy_number?.startsWith(parentHierarchy + '.') &&
-      t.hierarchy_number !== parentHierarchy
-    );
-    
-    if (children.length === 0) return;
-    
-    // Simple MIN/MAX calculation
-    const validChildren = children.filter(t => t.start_date && t.end_date);
-    if (validChildren.length === 0) return;
-    
-    const earliestStart = validChildren.reduce((min, t) => {
-      const date = t.start_date.split('T')[0];
-      return date < min ? date : min;
-    }, validChildren[0].start_date.split('T')[0]);
-    
-    const latestEnd = validChildren.reduce((max, t) => {
-      const date = t.end_date.split('T')[0];
-      return date > max ? date : max;
-    }, validChildren[0].end_date.split('T')[0]);
-    
-    // Calculate progress as weighted average
-    const totalProgress = validChildren.reduce((sum, t) => sum + (t.progress || 0), 0);
-    const avgProgress = Math.round(totalProgress / validChildren.length);
-    
-    // Calculate duration in days
-    const startMs = new Date(earliestStart).getTime();
-    const endMs = new Date(latestEnd).getTime();
-    const durationDays = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24)) + 1;
-    
-    const currentStartDate = parentTask.start_date.split('T')[0];
-    const currentEndDate = parentTask.end_date.split('T')[0];
-    
-    // Only update if different
-    if (currentStartDate !== earliestStart || currentEndDate !== latestEnd || parentTask.progress !== avgProgress) {
-      console.log(`📊 Updating parent ${parentHierarchy}: ${earliestStart} - ${latestEnd} (${avgProgress}%)`);
+    while (currentHierarchy.includes('.')) {
+      const parentHierarchy = currentHierarchy.split('.').slice(0, -1).join('.');
+      const parentTask = freshTasks.find(t => t.hierarchy_number === parentHierarchy);
       
-      await supabase
-        .from('project_schedule_tasks')
-        .update({ 
+      if (!parentTask) break;
+      
+      // Get all descendants
+      const children = freshTasks.filter(t => 
+        t.hierarchy_number?.startsWith(parentHierarchy + '.') &&
+        t.hierarchy_number !== parentHierarchy
+      );
+      
+      if (children.length === 0) break;
+      
+      const validChildren = children.filter(t => t.start_date && t.end_date);
+      if (validChildren.length === 0) break;
+      
+      // Calculate MIN/MAX in memory
+      const earliestStart = validChildren.reduce((min, t) => {
+        const date = t.start_date.split('T')[0];
+        return date < min ? date : min;
+      }, validChildren[0].start_date.split('T')[0]);
+      
+      const latestEnd = validChildren.reduce((max, t) => {
+        const date = t.end_date.split('T')[0];
+        return date > max ? date : max;
+      }, validChildren[0].end_date.split('T')[0]);
+      
+      const totalProgress = validChildren.reduce((sum, t) => sum + (t.progress || 0), 0);
+      const avgProgress = Math.round(totalProgress / validChildren.length);
+      
+      const startMs = new Date(earliestStart).getTime();
+      const endMs = new Date(latestEnd).getTime();
+      const durationDays = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24)) + 1;
+      
+      const currentStartDate = parentTask.start_date.split('T')[0];
+      const currentEndDate = parentTask.end_date.split('T')[0];
+      
+      // Only include if different
+      if (currentStartDate !== earliestStart || currentEndDate !== latestEnd || parentTask.progress !== avgProgress) {
+        parentUpdates.push({
+          id: parentTask.id,
           start_date: earliestStart + 'T00:00:00',
           end_date: latestEnd + 'T00:00:00',
           duration: durationDays,
           progress: avgProgress
-        })
-        .eq('id', parentTask.id);
-      
-      // Recursively update grandparent if exists
-      if (parentHierarchy.includes('.')) {
-        await recalculateParentDates(parentHierarchy);
+        });
+        
+        // Update freshTasks array for next iteration (so grandparent calc uses new parent values)
+        const parentIndex = freshTasks.findIndex(t => t.id === parentTask.id);
+        if (parentIndex !== -1) {
+          freshTasks[parentIndex] = {
+            ...freshTasks[parentIndex],
+            start_date: earliestStart + 'T00:00:00',
+            end_date: latestEnd + 'T00:00:00',
+            duration: durationDays,
+            progress: avgProgress
+          };
+        }
       }
+      
+      currentHierarchy = parentHierarchy;
+    }
+    
+    if (parentUpdates.length === 0) return;
+    
+    // 2. OPTIMISTIC UI UPDATE - instant feedback
+    const currentCache = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+    const optimisticTasks = currentCache.map(task => {
+      const update = parentUpdates.find(u => u.id === task.id);
+      return update ? { ...task, ...update } : task;
+    });
+    queryClient.setQueryData(['project-tasks', projectId, user?.id], optimisticTasks);
+    
+    console.log(`📊 Optimistically updated ${parentUpdates.length} parent(s)`);
+    
+    // 3. BATCH DATABASE WRITE - all updates in parallel
+    const updatePromises = parentUpdates.map(u => 
+      supabase
+        .from('project_schedule_tasks')
+        .update({ start_date: u.start_date, end_date: u.end_date, duration: u.duration, progress: u.progress })
+        .eq('id', u.id)
+    );
+    
+    const results = await Promise.all(updatePromises);
+    const hasError = results.some(r => r.error);
+    
+    if (hasError) {
+      console.error('Parent update errors:', results.filter(r => r.error).map(r => r.error));
+      // Invalidate to refetch correct data on error
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+    } else {
+      console.log(`✅ Batch updated ${parentUpdates.length} parent(s) in parallel`);
     }
   }, [queryClient, projectId, user?.id]);
 
@@ -321,11 +363,12 @@ export const useTaskMutations = (projectId: string) => {
       }
       
       // Direct parent recalculation on any field change (dates, duration, or progress)
+      // Uses optimistic UI update - no invalidateQueries needed after
       const fieldsChanged = dateFieldsChanged || variables.progress !== undefined;
       if (data.hierarchy_number && fieldsChanged && !variables.suppressInvalidate && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task updated, direct parent recalculation for:', data.hierarchy_number);
         await recalculateParentDates(data.hierarchy_number);
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+        // No invalidation needed - optimistic update already applied
       }
     },
     onError: (error) => {
