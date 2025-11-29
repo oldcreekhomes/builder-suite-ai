@@ -50,11 +50,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       const { hierarchyNumber } = event.detail;
       // Skip during batch operations or if already recalculating
       if (hierarchyNumber && !isRecalculatingParents && !skipRecalc && !(window as any).__batchOperationInProgress) {
-        setSkipRecalc(true); // Prevent new events during processing
-        setTimeout(() => {
-          recalculateParentHierarchy(hierarchyNumber);
-          setTimeout(() => setSkipRecalc(false), 1000); // Reset after cooldown
-        }, 200);
+        setSkipRecalc(true);
+        recalculateParentHierarchy(hierarchyNumber);
+        setTimeout(() => setSkipRecalc(false), 500); // Reduced cooldown
       }
     };
 
@@ -64,11 +62,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     };
 
     
-    window.addEventListener('recalculate-parents', handleParentRecalculation as EventListener);
+    window.addEventListener('optimized-recalculate-parents', handleParentRecalculation as EventListener);
     window.addEventListener('cascade-complete', handleCascadeComplete);
     
     return () => {
-      window.removeEventListener('recalculate-parents', handleParentRecalculation as EventListener);
+      window.removeEventListener('optimized-recalculate-parents', handleParentRecalculation as EventListener);
       window.removeEventListener('cascade-complete', handleCascadeComplete);
     };
   }, [isRecalculatingParents, skipRecalc, tasks, projectId, user?.id, queryClient, updateTask]);
