@@ -430,7 +430,7 @@ export function UnifiedScheduleTable({
 
   const connections = generateDependencyConnections();
 
-  // Generate month headers
+  // Generate month blocks for weekly view calculations
   const months: { name: string; width: number; left: number }[] = [];
   let currentMonthStart = 0;
   let currentMonth = getMonthName(startDate);
@@ -448,6 +448,31 @@ export function UnifiedScheduleTable({
       });
       currentMonth = monthName;
       currentMonthStart = day;
+    }
+  }
+
+  // Generate month labels positioned above weekends (first Saturday of each month)
+  const monthLabels: { name: string; left: number; width: number }[] = [];
+  const processedMonths = new Set<string>();
+
+  for (let day = 0; day < safeTotalDays; day++) {
+    const dayDate = addDays(startDate, day);
+    const { year, month } = parseDateString(dayDate);
+    const monthKey = `${year}-${month}`;
+    const monthName = getMonthName(dayDate);
+    
+    // Check if this is a Saturday (start of weekend) and we haven't labeled this month yet
+    const date = new Date(year, month - 1, parseInt(getDayOfMonth(dayDate)));
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    if (dayOfWeek === 6 && !processedMonths.has(monthKey)) {
+      // Found the first Saturday of this month - place label here
+      monthLabels.push({
+        name: monthName,
+        left: day * dayWidth,
+        width: dayWidth * 2 // Span across Sat + Sun
+      });
+      processedMonths.add(monthKey);
     }
   }
 
@@ -738,15 +763,15 @@ export function UnifiedScheduleTable({
             style={{ height: ROW_HEIGHT }}
           >
             <div className="flex flex-col h-full">
-              {/* Month Headers */}
-              <div className="relative h-4 border-b border-border">
-                {months.map((month, index) => (
+              {/* Month Labels - positioned above weekends */}
+              <div className="relative h-4 border-b border-border bg-muted/30">
+                {monthLabels.map((label, index) => (
                   <div
                     key={index}
-                    className="absolute top-0 h-full flex items-center justify-center border-r border-border bg-muted/30 font-medium text-xs"
-                    style={{ left: month.left, width: month.width }}
+                    className="absolute top-0 h-full flex items-center justify-center font-semibold text-xs text-foreground"
+                    style={{ left: label.left, width: label.width }}
                   >
-                    {month.name}
+                    {label.name}
                   </div>
                 ))}
               </div>
