@@ -69,21 +69,36 @@ export function PredecessorDialog({
 }: PredecessorDialogProps) {
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
   const [relationship, setRelationship] = useState<RelationshipType>("FS");
-  const [lagDays, setLagDays] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [predecessors, setPredecessors] = useState<string[]>(currentPredecessors);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Reset state when dialog opens
+  // Reset state when dialog opens - pre-populate from existing predecessor
   React.useEffect(() => {
     if (open) {
       setPredecessors(currentPredecessors);
-      setSelectedTaskId("");
-      setRelationship("FS");
-      setLagDays("");
       setSearchQuery("");
+      setShowDropdown(false);
+      
+      // If there's an existing predecessor, pre-populate the form
+      if (currentPredecessors.length > 0) {
+        const parsed = parsePredecessorString(currentPredecessors[0]);
+        if (parsed) {
+          // Find the task by hierarchy number and set its ID
+          const task = allTasks.find(t => t.hierarchy_number === parsed.taskId);
+          if (task) {
+            setSelectedTaskId(task.id);
+          }
+          // Set the relationship type (FS, SS, SF, FF)
+          setRelationship(parsed.linkType as RelationshipType);
+        }
+      } else {
+        // No existing predecessor - reset to defaults
+        setSelectedTaskId("");
+        setRelationship("FS");
+      }
     }
-  }, [open, currentPredecessors]);
+  }, [open, currentPredecessors, allTasks]);
 
   // Filter available tasks (exclude current task and its children)
   const availableTasks = useMemo(() => {
@@ -118,14 +133,6 @@ export function PredecessorDialog({
       result += relationship;
     }
     
-    // Add lag/lead days
-    const lagNum = parseInt(lagDays) || 0;
-    if (lagNum > 0) {
-      result += `+${lagNum}d`;
-    } else if (lagNum < 0) {
-      result += `${lagNum}d`;
-    }
-    
     return result;
   };
 
@@ -151,7 +158,6 @@ export function PredecessorDialog({
       // Reset selection
       setSelectedTaskId("");
       setRelationship("FS");
-      setLagDays("");
     }
   };
 
@@ -316,26 +322,6 @@ export function PredecessorDialog({
                 </div>
               ))}
             </RadioGroup>
-          </div>
-
-          {/* Lag Days */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">3. Any delay or lead time?</Label>
-            <div className="flex items-center gap-3 px-1">
-              <Input
-                type="number"
-                value={lagDays}
-                onChange={(e) => setLagDays(e.target.value)}
-                className="w-24"
-                placeholder="0"
-              />
-              <span className="text-sm text-muted-foreground">
-                days {parseInt(lagDays) > 0 ? "(delay/gap)" : parseInt(lagDays) < 0 ? "(overlap/lead)" : ""}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Positive = wait extra days, Negative = overlap/start earlier
-            </p>
           </div>
 
         </div>
