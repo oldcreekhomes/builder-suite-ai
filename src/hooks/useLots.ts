@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 export interface ProjectLot {
   id: string;
@@ -40,11 +40,11 @@ export function useLots(projectId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-lots', projectId] });
-      toast.success('Lots initialized successfully');
+      toast({ title: "Lots initialized successfully" });
     },
     onError: (error) => {
       console.error('Error initializing lots:', error);
-      toast.error('Failed to initialize lots');
+      toast({ title: "Failed to initialize lots", variant: "destructive" });
     },
   });
 
@@ -69,11 +69,11 @@ export function useLots(projectId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-lots', projectId] });
-      toast.success('Lot created successfully');
+      toast({ title: "Lot created successfully" });
     },
     onError: (error) => {
       console.error('Error creating lot:', error);
-      toast.error('Failed to create lot');
+      toast({ title: "Failed to create lot", variant: "destructive" });
     },
   });
 
@@ -88,11 +88,11 @@ export function useLots(projectId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-lots', projectId] });
-      toast.success('Lot updated successfully');
+      toast({ title: "Lot updated successfully" });
     },
     onError: (error) => {
       console.error('Error updating lot:', error);
-      toast.error('Failed to update lot');
+      toast({ title: "Failed to update lot", variant: "destructive" });
     },
   });
 
@@ -107,11 +107,11 @@ export function useLots(projectId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-lots', projectId] });
-      toast.success('Lot deleted successfully');
+      toast({ title: "Lot deleted successfully" });
     },
     onError: (error) => {
       console.error('Error deleting lot:', error);
-      toast.error('Failed to delete lot');
+      toast({ title: "Failed to delete lot", variant: "destructive" });
     },
   });
 

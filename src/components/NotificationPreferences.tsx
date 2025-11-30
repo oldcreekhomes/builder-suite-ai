@@ -3,7 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Bell, TestTube } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { audioManager } from "@/utils/audioManager";
 
 export const NotificationPreferences = () => {
@@ -16,9 +16,9 @@ export const NotificationPreferences = () => {
     // Test toast notification
     if (preferences.toast_notifications_enabled) {
       console.log('🧪 Showing test toast notification');
-      toast("Test Chat Message", {
+      toast({
+        title: "Test Chat Message",
         description: "John Doe: Hey there! This is a test message.",
-        duration: 5000,
       });
     } else {
       console.log('🧪 Toast notifications not enabled');
