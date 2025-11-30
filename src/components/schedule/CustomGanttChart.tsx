@@ -183,75 +183,49 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Timeline range calculation using date-only approach
   const getTimelineRange = (): { start: DateString; end: DateString } => {
-    try {
-      const todayStr = today();
-      const futureBuffer = addBusinessDays(todayStr, 30); // Always include 30 business days from today
-      
-      if (!tasks || tasks.length === 0) {
-        return {
-          start: todayStr,
-          end: futureBuffer
-        };
-      }
-
-      // Get all valid dates as date strings
-      const validDates: DateString[] = [];
-      tasks.forEach(task => {
-        if (task.start_date) {
-          const datePart = task.start_date.split('T')[0];
-          if (datePart && datePart.length === 10) {
-            validDates.push(datePart);
-          }
-        }
-        if (task.end_date) {
-          const datePart = task.end_date.split('T')[0];
-          if (datePart && datePart.length === 10) {
-            validDates.push(datePart);
-          }
-        }
-      });
-
-      if (validDates.length === 0) {
-        return {
-          start: todayStr,
-          end: futureBuffer
-        };
-      }
-
-      // Find the min and max dates using string comparison (YYYY-MM-DD)
-      const minDate = validDates.reduce((min, current) => current < min ? current : min);
-      const maxDate = validDates.reduce((max, current) => current > max ? current : max);
-
-      // Timeline start: use the earlier of project start or today
-      const timelineStart = minDate < todayStr ? minDate : todayStr;
-
-      // Timeline end: use the later of project end + buffer or today + 30 business days
-      const projectEndWithBuffer = addBusinessDays(maxDate, 5);
-      const timelineEnd = projectEndWithBuffer > futureBuffer ? projectEndWithBuffer : futureBuffer;
-
-      // Cap the total range to prevent performance issues (3 years max)
-      const totalDays = getCalendarDaysBetween(timelineStart, timelineEnd);
-      const maxDays = 1095; // 3 years
-      const finalEnd = totalDays > maxDays 
-        ? addDays(timelineStart, maxDays - 1)
-        : timelineEnd;
-
-      if (totalDays > maxDays) {
-        console.warn(`⚠️ Timeline range capped at ${maxDays} days for performance`);
-      }
-
-      return {
-        start: timelineStart,
-        end: finalEnd
-      };
-    } catch (error) {
-      console.error('Error calculating timeline range:', error);
+    // Simple fallback if no tasks
+    if (!tasks || tasks.length === 0) {
       const todayStr = today();
       return {
         start: todayStr,
         end: addBusinessDays(todayStr, 30)
       };
     }
+
+    // Get all valid dates from tasks
+    const validDates: DateString[] = [];
+    tasks.forEach(task => {
+      if (task.start_date) {
+        const datePart = task.start_date.split('T')[0];
+        if (datePart && datePart.length === 10) {
+          validDates.push(datePart);
+        }
+      }
+      if (task.end_date) {
+        const datePart = task.end_date.split('T')[0];
+        if (datePart && datePart.length === 10) {
+          validDates.push(datePart);
+        }
+      }
+    });
+
+    // Fallback if no valid dates
+    if (validDates.length === 0) {
+      const todayStr = today();
+      return {
+        start: todayStr,
+        end: addBusinessDays(todayStr, 30)
+      };
+    }
+
+    // Simple: earliest date to latest date + 5 business days
+    const minDate = validDates.reduce((min, current) => current < min ? current : min);
+    const maxDate = validDates.reduce((max, current) => current > max ? current : max);
+
+    return {
+      start: minDate,
+      end: addBusinessDays(maxDate, 5)
+    };
   };
 
   const timelineRange = getTimelineRange();
