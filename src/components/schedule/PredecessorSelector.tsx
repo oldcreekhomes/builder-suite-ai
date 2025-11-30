@@ -38,7 +38,17 @@ export function PredecessorSelector({
   const [validationResult, setValidationResult] = useState({ isValid: true, errors: [], warnings: [] });
   const [dialogOpen, setDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Helper function to safely convert value to string array
   const valueToArray = (val: any): string[] => {
@@ -76,9 +86,25 @@ export function PredecessorSelector({
     }, 0);
   };
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Clear any existing timeout
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    // Set a timeout for single-click action (wait for potential double-click)
+    clickTimeoutRef.current = setTimeout(() => {
+      handleStartEdit();
+    }, 250);
+  };
+
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Cancel the pending single-click
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
     setDialogOpen(true);
   };
 
@@ -180,7 +206,7 @@ export function PredecessorSelector({
                 "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
                 className
               )}
-              onClick={handleStartEdit}
+              onClick={handleClick}
               onDoubleClick={handleDoubleClick}
             >
               {parsed.map((pred, index) => (
@@ -216,7 +242,7 @@ export function PredecessorSelector({
           <TooltipTrigger asChild>
             <span 
               className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
-              onClick={handleStartEdit}
+              onClick={handleClick}
               onDoubleClick={handleDoubleClick}
             >
               None
