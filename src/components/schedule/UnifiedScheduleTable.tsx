@@ -357,7 +357,7 @@ export function UnifiedScheduleTable({
       const taskStartDate = parseTaskDate(task.start_date);
       const taskEndDate = parseTaskDate(task.end_date);
       const daysFromStart = getCalendarDaysBetween(startDate, taskStartDate) - 1;
-      const widthDays = getCalendarDaysBetween(taskStartDate, taskEndDate) + 1;
+      const widthDays = getCalendarDaysBetween(taskStartDate, taskEndDate);
       
       return {
         left: Math.max(0, daysFromStart) * dayWidth,
