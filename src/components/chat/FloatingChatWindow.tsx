@@ -1,16 +1,16 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Minus, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { SimpleMessagesList } from '@/components/messages/SimpleMessagesList';
 import { SimpleMessageInput } from '@/components/messages/SimpleMessageInput';
 import { useMessages } from '@/hooks/useMessages';
 import { useSendMessage } from '@/hooks/useSendMessage';
-import { useMasterChatRealtime } from '@/hooks/useMasterChatRealtime';
 import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/hooks/useCompanyUsers';
+import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface FloatingChatWindowProps {
   user: User;
@@ -31,25 +31,46 @@ export function FloatingChatWindow({
   const { sendMessage: sendMessageHook } = useSendMessage();
   const { user: currentUser } = useAuth();
   const [hasInitialized, setHasInitialized] = useState(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
-  // Set up real-time subscription using master hook (notifications disabled to prevent duplicates)
-  useMasterChatRealtime(user.id, {
-    onNewMessage: (message, isActiveConversation) => {
-      if (isActiveConversation) {
-        addMessage(message);
+  // Simple realtime subscription for this conversation
+  useEffect(() => {
+    if (!currentUser?.id || !user.id) return;
+
+    const channel = supabase.channel(`floating-chat-${currentUser.id}-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_chat_messages',
+          filter: `recipient_id=eq.${currentUser.id}`,
+        },
+        (payload) => {
+          const message = payload.new as any;
+          if (message.sender_id === user.id) {
+            addMessage(message);
+          }
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
-    }
-  }, { enableNotifications: false });
+    };
+  }, [currentUser?.id, user.id, addMessage]);
 
-  // Initialize chat when opened - use useEffect with stable dependencies
+  // Initialize chat when opened
   useEffect(() => {
     const initializeChat = async () => {
-      console.log('FloatingChatWindow: initializeChat called', { hasInitialized, isMinimized, userId: user.id });
       if (!hasInitialized && !isMinimized) {
-        console.log('FloatingChatWindow: Fetching messages for user:', user.id);
         try {
           await fetchMessages(user.id, true);
-          console.log('FloatingChatWindow: Messages fetched successfully');
           setHasInitialized(true);
         } catch (error) {
           console.error('FloatingChatWindow: Error fetching messages:', error);

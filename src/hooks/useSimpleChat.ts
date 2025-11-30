@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useCompanyUsers, User } from './useCompanyUsers';
 import { useMessages, ChatMessage } from './useMessages';
 import { useSendMessage } from './useSendMessage';
 import { useChatRooms } from './useChatRooms';
-import { useMasterChatRealtime } from './useMasterChatRealtime';
+import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Re-export interfaces for backwards compatibility
 export type { User, ChatMessage };
@@ -11,7 +12,7 @@ export type { User, ChatMessage };
 export const useSimpleChat = () => {
   // Use focused hooks
   const { users, currentUserId, isLoading } = useCompanyUsers();
-  const { messages, isLoadingMessages, fetchMessages, setMessages, addMessage, clearMessages, currentConversationUserId } = useMessages();
+  const { messages, isLoadingMessages, fetchMessages, setMessages, addMessage, clearMessages } = useMessages();
   const { sendMessage: sendMessageHook } = useSendMessage();
   const { 
     selectedUser, 
@@ -20,41 +21,64 @@ export const useSimpleChat = () => {
     markConversationAsRead 
   } = useChatRooms();
 
-  // Set up master real-time subscription for chat messages
-  // NOTE: Notifications are DISABLED here - FloatingChatManager handles ALL notifications globally
-  useMasterChatRealtime(selectedUser?.id || null, {
-    onNewMessage: (message, isActiveConversation) => {
-      if (isActiveConversation) {
-        addMessage(message);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
+  // Simple realtime subscription for active conversation messages
+  useEffect(() => {
+    if (!currentUserId || !selectedUser?.id) {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
+      return;
     }
-  }, { 
-    enableNotifications: false // Let FloatingChatManager handle all notifications
-  });
+
+    const channel = supabase.channel(`chat-messages-${currentUserId}-${selectedUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_chat_messages',
+          filter: `recipient_id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          const message = payload.new as any;
+          // Only add if from the selected user
+          if (message.sender_id === selectedUser.id) {
+            addMessage(message);
+          }
+        }
+      )
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [currentUserId, selectedUser?.id, addMessage]);
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {
     try {
       console.log('Starting chat with user:', user);
-      console.log('Current conversation user ID:', currentConversationUserId);
       
       // Always clear messages first to ensure clean state
       clearMessages();
       
       const userId = await startChatWithUserHook(user);
-      console.log('Start chat returned userId:', userId);
       if (userId) {
-        console.log('Fetching messages for userId:', userId, 'with force refresh');
         // Always force refresh to ensure we get the latest messages
         await fetchMessages(userId, true);
-        console.log('Messages fetched successfully');
-      } else {
-        console.error('Failed to get userId from startChatWithUserHook');
       }
     } catch (error) {
       console.error('Error in startChatWithUser:', error);
     }
-  }, [startChatWithUserHook, fetchMessages, clearMessages, currentConversationUserId]);
+  }, [startChatWithUserHook, fetchMessages, clearMessages]);
 
   // Enhanced send message function
   const sendMessage = useCallback(async (messageText: string, files: File[] = []) => {

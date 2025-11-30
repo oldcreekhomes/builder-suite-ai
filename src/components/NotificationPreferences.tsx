@@ -1,45 +1,10 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Bell, TestTube } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
-import { toast } from "@/hooks/use-toast";
-import { audioManager } from "@/utils/audioManager";
 
 export const NotificationPreferences = () => {
   const { preferences, updatePreferences, isUpdating } = useNotificationPreferences();
-
-  const handleTestNotification = async () => {
-    console.log('=== Testing Notifications ===');
-    console.log('Preferences:', preferences);
-
-    // Test toast notification
-    if (preferences.toast_notifications_enabled) {
-      console.log('🧪 Showing test toast notification');
-      toast({
-        title: "Test Chat Message",
-        description: "John Doe: Hey there! This is a test message.",
-      });
-    } else {
-      console.log('🧪 Toast notifications not enabled');
-    }
-
-    // Test sound notification using audio manager
-    if (preferences.sound_notifications_enabled) {
-      console.log('🧪 Playing test sound');
-      const soundPlayed = await audioManager.playNotificationSound();
-      if (soundPlayed) {
-        console.log('🧪 Test sound played successfully');
-      } else {
-        console.log('🧪 Test sound failed to play');
-      }
-    } else {
-      console.log('🧪 Sound notifications not enabled');
-    }
-
-    console.log('=== Notification test complete ===');
-  };
-
 
   return (
     <div className="space-y-6">
@@ -77,22 +42,6 @@ export const NotificationPreferences = () => {
             />
           </div>
         </div>
-      </div>
-
-
-
-
-      {/* Test Notification */}
-      <div className="pt-4 border-t">
-        <Button
-          onClick={handleTestNotification}
-          variant="outline"
-          className="w-full"
-          disabled={isUpdating}
-        >
-          <TestTube className="h-4 w-4 mr-2" />
-          Test Notifications
-        </Button>
       </div>
     </div>
   );
