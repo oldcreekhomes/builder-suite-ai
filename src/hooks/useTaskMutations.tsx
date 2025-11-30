@@ -365,7 +365,7 @@ export const useTaskMutations = (projectId: string) => {
       // Direct parent recalculation on any field change (dates, duration, or progress)
       // Uses optimistic UI update - no invalidateQueries needed after
       const fieldsChanged = dateFieldsChanged || variables.progress !== undefined;
-      if (data.hierarchy_number && fieldsChanged && !variables.suppressInvalidate && !(window as any).__batchOperationInProgress) {
+      if (data.hierarchy_number && fieldsChanged && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task updated, direct parent recalculation for:', data.hierarchy_number);
         await recalculateParentDates(data.hierarchy_number);
         // No invalidation needed - optimistic update already applied
