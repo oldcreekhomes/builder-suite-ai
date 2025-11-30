@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { TaskNotesDialog } from "./TaskNotesDialog";
-import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import {  
   DateString, 
@@ -72,8 +71,7 @@ export function UnifiedScheduleTable({
   dayWidth,
   recentlySavedTasks = new Set()
 }: UnifiedScheduleTableProps) {
-  // DEMO: Shadcn toast hook for comparison
-  const { toast: shadcnToast } = useToast();
+  const { toast } = useToast();
   
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
@@ -705,28 +703,11 @@ export function UnifiedScheduleTable({
                           
                           // Validate: end date must be >= start date
                           if (taskStartDate && newEndDate < taskStartDate) {
-                            // DEMO: Show Sonner toast first (current implementation)
-                            toast.error("SONNER TOAST: End date cannot be before start date", {
+                            toast({
+                              title: "End date cannot be before start date",
                               description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`,
-                              style: {
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: 'none'
-                              },
-                              classNames: {
-                                description: '!text-white'
-                              }
+                              variant: "destructive"
                             });
-                            
-                            // DEMO: Show Shadcn toast 5 seconds later for comparison
-                            setTimeout(() => {
-                              shadcnToast({
-                                title: "SHADCN TOAST: End date cannot be before start date",
-                                description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`,
-                                variant: "destructive"
-                              });
-                            }, 5000);
-                            
                             return;
                           }
                           
