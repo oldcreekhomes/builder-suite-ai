@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
-import { UnreadCounts } from "@/hooks/useMasterChatRealtime";
+import { UnreadCounts } from "@/hooks/useChatNotifications";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 import { useProjectContextWithData } from "@/hooks/useProjectContext";
 import {
@@ -105,9 +105,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     canAccessReports,
     isLoading: permissionsLoading
   } = useAccountingPermissions();
-  // Removed useUnreadCounts hook call since it's now passed as props
-  // const userIds = users?.map(user => user.id) || [];
-  // const { unreadCounts } = useUnreadCounts(userIds);
   const { data: issueCounts } = useIssueCounts();
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   

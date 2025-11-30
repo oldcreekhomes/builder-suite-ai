@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { User } from '@/hooks/useCompanyUsers';
-import { useMasterChatRealtime } from '@/hooks/useMasterChatRealtime';
+import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { FloatingChatWindow } from '@/components/chat/FloatingChatWindow';
 
 interface ChatWindow {
@@ -10,10 +10,8 @@ interface ChatWindow {
 
 interface ChatContextType {
   unreadCounts: Record<string, number>;
-  connectionState: string;
   markConversationAsRead: (userId: string) => Promise<void>;
   openChat: (user: User) => void;
-  reconnectChannel?: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -33,9 +31,8 @@ interface ChatProviderProps {
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [chatWindows, setChatWindows] = useState<Map<string, ChatWindow>>(new Map());
 
-  // Get currently active conversation (first non-minimized chat or null)
-  const activeConversationUserId = Array.from(chatWindows.values())
-    .find(chat => !chat.isMinimized)?.user?.id || null;
+  // Simple notification hook - badges only
+  const { unreadCounts, markConversationAsRead } = useChatNotifications();
 
   const openChat = useCallback((user: User) => {
     console.log('💬 ChatContext: Opening chat for user:', user.id);
@@ -45,13 +42,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       return newWindows;
     });
   }, []);
-
-  // Set up master real-time notifications
-  const { unreadCounts, connectionState, markConversationAsRead, reconnectChannel } = useMasterChatRealtime(
-    activeConversationUserId,
-    {},
-    { enableNotifications: true, notifyWhileActive: true }
-  );
 
   const closeChat = useCallback((userId: string) => {
     console.log('💬 ChatContext: Closing chat for user:', userId);
@@ -85,10 +75,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const value: ChatContextType = {
     unreadCounts,
-    connectionState,
     markConversationAsRead,
     openChat,
-    reconnectChannel,
   };
 
   return (

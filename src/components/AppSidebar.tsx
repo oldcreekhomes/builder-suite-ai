@@ -25,7 +25,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const location = useLocation();
   const { users, currentUserId } = useCompanyUsers();
-  const { unreadCounts, connectionState, markConversationAsRead, openChat } = useChatContext();
+  const { unreadCounts, markConversationAsRead, openChat } = useChatContext();
   
   // Use openChat from context if onStartChat is not provided
   const handleStartChat = onStartChat || openChat;
