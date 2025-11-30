@@ -38,19 +38,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Add flags to prevent infinite loops  
-  const [isRecalculatingParents, setIsRecalculatingParents] = useState(false);
+  // Flag to prevent infinite loops during normalization
   const hasNormalizedRef = useRef(false);
-  const lastAutoRecalcAtRef = useRef(0);
   
-  // REMOVED: Event-based parent recalculation - now handled directly in useTaskMutations
-  // This eliminates cooldowns and race conditions, making parent updates instant and reliable
-
-  // REMOVED: Repair pass that was overwriting user edits
-  // The old repair pass would recalculate tasks from their predecessors on page load,
-  // which caused user-edited dates to revert. Per user requirement, when a user edits
-  // a task, only its DEPENDENTS should update - the edited task itself should never
-  // be recalculated from its predecessors.
+  // Parent recalculation is now handled directly in useTaskMutations.tsx
+  // This eliminates the 3-second cooldown and 1.5-second debounce that caused lag
 
   // Auto-normalize hierarchy on load if needed (run only once per project load)
   useEffect(() => {
@@ -101,76 +93,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const timeoutId = setTimeout(autoNormalize, 1000);
     return () => clearTimeout(timeoutId);
   }, [tasks, projectId, user?.id]);
-
-  // Debounced parent recalculation when tasks change  
-  useEffect(() => {
-    // Skip if batch operation is in progress or other skip conditions
-    if (!tasks || tasks.length === 0 || isRecalculatingParents || (window as any).__batchOperationInProgress) return;
-    
-    // Add cooldown to prevent repeated executions
-    const now = Date.now();
-    if (now - lastAutoRecalcAtRef.current < 3000) { // 3s cooldown
-      return;
-    }
-    
-    const recalculateParents = async () => {
-      console.log('🔄 Auto-recalc starting');
-      lastAutoRecalcAtRef.current = Date.now();
-      
-      // Find all parent tasks that have children and need updates
-      const parentTasks = tasks.filter(task => {
-        if (!task.hierarchy_number) return false;
-        return tasks.some(child => 
-          child.hierarchy_number?.startsWith(task.hierarchy_number + '.')
-        );
-      });
-      
-      // Compute the set of parents that actually need an update
-      const parentsToUpdate = parentTasks.filter(parentTask => {
-        const calculations = calculateParentTaskValues(parentTask, tasks);
-        return calculations && shouldUpdateParentTask(parentTask, calculations);
-      });
-      
-      if (parentsToUpdate.length === 0) {
-        console.log('🔄 Auto-recalc skip (none needed)');
-        return;
-      }
-      
-      console.log(`🔄 Auto-recalc starting, parentsToUpdate: ${parentsToUpdate.length}`);
-      setIsRecalculatingParents(true);
-      
-      try {
-        // Add pending updates to ignore realtime echoes
-        for (const parentTask of parentsToUpdate) {
-          addPendingUpdate(parentTask.id); // Mark as pending local update
-          
-          const calculations = calculateParentTaskValues(parentTask, tasks);
-          if (calculations) {
-            console.log(`🔄 Updating parent: ${parentTask.task_name}`, calculations);
-            await updateTask.mutateAsync({
-              id: parentTask.id,
-              start_date: calculations.startDate,
-              end_date: calculations.endDate,
-              duration: calculations.duration,
-              progress: calculations.progress,
-              suppressInvalidate: true
-            });
-          }
-        }
-        
-        // REMOVED: Manual queryClient.invalidateQueries - rely on realtime to bring fresh data
-      } catch (error) {
-        console.error('❌ Failed to recalculate parents:', error);
-      } finally {
-        setIsRecalculatingParents(false);
-      }
-    };
-    
-    // Increased debounce for stability
-    const debounceMs = 1500;
-    const timeoutId = setTimeout(recalculateParents, debounceMs);
-    return () => clearTimeout(timeoutId);
-  }, [tasks, updateTask, projectId, user?.id, isRecalculatingParents]);
 
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
@@ -709,10 +631,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
   // Comprehensive function to recalculate all parent tasks in a hierarchy
   const recalculateParentHierarchy = (hierarchyNumber: string) => {
-    if (!hierarchyNumber || !user || isRecalculatingParents) return;
+    if (!hierarchyNumber || !user) return;
     
     console.log('🔄 Starting parent hierarchy recalculation for:', hierarchyNumber);
-    setIsRecalculatingParents(true);
     
     // Get fresh task data from React Query cache
     const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
@@ -767,9 +688,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         console.log(`⚠️ Parent task not found for hierarchy: ${parentHierarchy}`);
       }
     });
-    
-    // Reset the flag after completion
-    setTimeout(() => setIsRecalculatingParents(false), 500);
   };
 
   // SIMPLE: Just add tasks at the end for now
