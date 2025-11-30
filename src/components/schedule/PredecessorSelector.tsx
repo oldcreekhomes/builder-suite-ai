@@ -170,8 +170,8 @@ export function PredecessorSelector({
   // Helper to reconstruct full predecessor string for display
   const getFullPredecessorString = (pred: ParsedPredecessor): string => {
     let result = pred.taskId;
-    if (pred.linkType === 'SF') {
-      result += 'SF';
+    if (pred.linkType !== 'FS') {
+      result += pred.linkType;
     }
     if (pred.lagDays > 0) {
       result += `+${pred.lagDays}d`;

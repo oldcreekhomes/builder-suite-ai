@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, ArrowRight, ArrowLeft, Play, Square } from "lucide-react";
+import { X, Search } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { cn } from "@/lib/utils";
 import { parsePredecessorString, LinkType } from "@/utils/predecessorValidation";
@@ -33,33 +33,28 @@ interface RelationshipOption {
   value: RelationshipType;
   label: string;
   description: string;
-  icon: React.ReactNode;
 }
 
 const relationshipOptions: RelationshipOption[] = [
   {
     value: 'FS',
     label: "Finish to Start",
-    description: "Can't start until that task finishes",
-    icon: <div className="flex items-center gap-1"><Square className="h-3 w-3" /><ArrowRight className="h-3 w-3" /><Play className="h-3 w-3" /></div>
+    description: "Can't start until that task finishes"
   },
   {
     value: 'SS',
     label: "Start to Start",
-    description: "Should start when that task starts",
-    icon: <div className="flex items-center gap-1"><Play className="h-3 w-3" /><ArrowRight className="h-3 w-3" /><Play className="h-3 w-3" /></div>
+    description: "Should start when that task starts"
   },
   {
     value: 'SF',
     label: "Start to Finish",
-    description: "Must be ready/finished BEFORE that task starts",
-    icon: <div className="flex items-center gap-1"><Play className="h-3 w-3" /><ArrowLeft className="h-3 w-3" /><Square className="h-3 w-3" /></div>
+    description: "Must be ready/finished BEFORE that task starts"
   },
   {
     value: 'FF',
     label: "Finish to Finish",
-    description: "Should finish when that task finishes",
-    icon: <div className="flex items-center gap-1"><Square className="h-3 w-3" /><ArrowRight className="h-3 w-3" /><Square className="h-3 w-3" /></div>
+    description: "Should finish when that task finishes"
   }
 ];
 
@@ -74,7 +69,7 @@ export function PredecessorDialog({
 }: PredecessorDialogProps) {
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
   const [relationship, setRelationship] = useState<RelationshipType>("FS");
-  const [lagDays, setLagDays] = useState<number>(0);
+  const [lagDays, setLagDays] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [predecessors, setPredecessors] = useState<string[]>(currentPredecessors);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -85,7 +80,7 @@ export function PredecessorDialog({
       setPredecessors(currentPredecessors);
       setSelectedTaskId("");
       setRelationship("FS");
-      setLagDays(0);
+      setLagDays("");
       setSearchQuery("");
     }
   }, [open, currentPredecessors]);
@@ -124,10 +119,11 @@ export function PredecessorDialog({
     }
     
     // Add lag/lead days
-    if (lagDays > 0) {
-      result += `+${lagDays}d`;
-    } else if (lagDays < 0) {
-      result += `${lagDays}d`;
+    const lagNum = parseInt(lagDays) || 0;
+    if (lagNum > 0) {
+      result += `+${lagNum}d`;
+    } else if (lagNum < 0) {
+      result += `${lagNum}d`;
     }
     
     return result;
@@ -155,7 +151,7 @@ export function PredecessorDialog({
       // Reset selection
       setSelectedTaskId("");
       setRelationship("FS");
-      setLagDays(0);
+      setLagDays("");
     }
   };
 
@@ -291,20 +287,12 @@ export function PredecessorDialog({
                   onClick={() => setRelationship(option.value)}
                 >
                   <RadioGroupItem value={option.value} id={option.value} />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">{option.icon}</span>
-                      <label
-                        htmlFor={option.value}
-                        className="font-medium cursor-pointer"
-                      >
-                        {option.description}
-                      </label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Technical: {option.label} ({option.value})
-                    </p>
-                  </div>
+                  <label
+                    htmlFor={option.value}
+                    className="font-medium cursor-pointer"
+                  >
+                    {option.description}
+                  </label>
                 </div>
               ))}
             </RadioGroup>
@@ -313,15 +301,16 @@ export function PredecessorDialog({
           {/* Lag Days */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">3. Any delay or lead time? (optional)</Label>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 px-1">
               <Input
                 type="number"
                 value={lagDays}
-                onChange={(e) => setLagDays(parseInt(e.target.value) || 0)}
+                onChange={(e) => setLagDays(e.target.value)}
                 className="w-24"
+                placeholder="0"
               />
               <span className="text-sm text-muted-foreground">
-                days {lagDays > 0 ? "(delay/gap)" : lagDays < 0 ? "(overlap/lead)" : ""}
+                days {parseInt(lagDays) > 0 ? "(delay/gap)" : parseInt(lagDays) < 0 ? "(overlap/lead)" : ""}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
