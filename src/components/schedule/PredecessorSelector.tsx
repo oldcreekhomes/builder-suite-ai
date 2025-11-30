@@ -39,6 +39,7 @@ export function PredecessorSelector({
   const [dialogOpen, setDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastClickTimeRef = useRef<number>(0);
   const { toast } = useToast();
 
   // Clean up timeout on unmount
@@ -86,7 +87,25 @@ export function PredecessorSelector({
     }, 0);
   };
 
+  // Manual double-click detection for reliability
   const handleClick = (e: React.MouseEvent) => {
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTimeRef.current;
+    lastClickTimeRef.current = now;
+
+    // If second click within 300ms, treat as double-click
+    if (timeSinceLastClick < 300) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Cancel any pending single-click timeout
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+      }
+      setDialogOpen(true);
+      return;
+    }
+
     // Clear any existing timeout
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
@@ -94,18 +113,7 @@ export function PredecessorSelector({
     // Set a timeout for single-click action (wait for potential double-click)
     clickTimeoutRef.current = setTimeout(() => {
       handleStartEdit();
-    }, 250);
-  };
-
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Cancel the pending single-click
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-    }
-    setDialogOpen(true);
+    }, 300);
   };
 
   const handleDialogSave = (newPredecessors: string[]) => {
@@ -207,7 +215,6 @@ export function PredecessorSelector({
                 className
               )}
               onClick={handleClick}
-              onDoubleClick={handleDoubleClick}
             >
               {parsed.map((pred, index) => (
                 <span key={index} className="text-xs">
@@ -243,7 +250,6 @@ export function PredecessorSelector({
             <span 
               className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
               onClick={handleClick}
-              onDoubleClick={handleDoubleClick}
             >
               None
             </span>
