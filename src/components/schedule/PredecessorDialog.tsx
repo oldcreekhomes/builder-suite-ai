@@ -11,11 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { X, Search } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { cn } from "@/lib/utils";
-import { parsePredecessorString, LinkType } from "@/utils/predecessorValidation";
+import { parsePredecessorString } from "@/utils/predecessorValidation";
 
 interface PredecessorDialogProps {
   open: boolean;
@@ -70,13 +69,11 @@ export function PredecessorDialog({
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
   const [relationship, setRelationship] = useState<RelationshipType>("FS");
   const [searchQuery, setSearchQuery] = useState("");
-  const [predecessors, setPredecessors] = useState<string[]>(currentPredecessors);
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Reset state when dialog opens - pre-populate from existing predecessor
   React.useEffect(() => {
     if (open) {
-      setPredecessors(currentPredecessors);
       setSearchQuery("");
       setShowDropdown(false);
       
@@ -136,76 +133,17 @@ export function PredecessorDialog({
     return result;
   };
 
-  const handleAddPredecessor = () => {
-    const predString = generatePredecessorString();
-    if (predString && !predecessors.includes(predString)) {
-      // Check if we already have this task (with different relationship)
-      const task = allTasks.find(t => t.id === selectedTaskId);
-      const existingIndex = predecessors.findIndex(p => {
-        const parsed = parsePredecessorString(p);
-        return parsed?.taskId === task?.hierarchy_number;
-      });
-      
-      if (existingIndex >= 0) {
-        // Replace existing
-        const newPreds = [...predecessors];
-        newPreds[existingIndex] = predString;
-        setPredecessors(newPreds);
-      } else {
-        setPredecessors([...predecessors, predString]);
-      }
-      
-      // Reset selection
-      setSelectedTaskId("");
-      setRelationship("FS");
-    }
-  };
-
-  const handleRemovePredecessor = (pred: string) => {
-    setPredecessors(predecessors.filter(p => p !== pred));
-  };
-
   const handleSave = () => {
-    // Auto-add current selection if there is one
-    let finalPredecessors = [...predecessors];
-    
     if (selectedTaskId) {
       const predString = generatePredecessorString();
-      if (predString && !finalPredecessors.includes(predString)) {
-        const task = allTasks.find(t => t.id === selectedTaskId);
-        const existingIndex = finalPredecessors.findIndex(p => {
-          const parsed = parsePredecessorString(p);
-          return parsed?.taskId === task?.hierarchy_number;
-        });
-        
-        if (existingIndex >= 0) {
-          finalPredecessors[existingIndex] = predString;
-        } else {
-          finalPredecessors.push(predString);
-        }
+      if (predString) {
+        onSave([predString]);
       }
+    } else {
+      // No predecessor selected - clear predecessors
+      onSave([]);
     }
-    
-    onSave(finalPredecessors);
     onOpenChange(false);
-  };
-
-  const getPredecessorDisplay = (pred: string) => {
-    const parsed = parsePredecessorString(pred);
-    if (!parsed) return pred;
-    
-    const task = allTasks.find(t => t.hierarchy_number === parsed.taskId);
-    const taskName = task ? task.task_name : "Unknown task";
-    
-    let display = `${parsed.taskId}: ${taskName}`;
-    if (parsed.linkType !== 'FS') {
-      display += ` (${parsed.linkType})`;
-    }
-    if (parsed.lagDays !== 0) {
-      display += parsed.lagDays > 0 ? ` +${parsed.lagDays}d` : ` ${parsed.lagDays}d`;
-    }
-    
-    return display;
   };
 
   return (
@@ -216,26 +154,6 @@ export function PredecessorDialog({
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-6 py-4">
-          {/* Current Predecessors */}
-          {predecessors.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Current Predecessors</Label>
-              <div className="flex flex-wrap gap-2">
-                {predecessors.map((pred, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center gap-1 py-1">
-                    <span className="text-xs">{getPredecessorDisplay(pred)}</span>
-                    <button
-                      onClick={() => handleRemovePredecessor(pred)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Task Selector */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">1. Which task does this depend on?</Label>
@@ -252,10 +170,25 @@ export function PredecessorDialog({
                   setSelectedTaskId("");
                   setShowDropdown(true);
                 }}
-                onFocus={() => setShowDropdown(true)}
+                onFocus={() => !selectedTaskId && setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                className="pl-9"
+                className={cn("pl-9", selectedTaskId && "pr-10")}
+                readOnly={!!selectedTaskId}
               />
+              {/* Red X button to clear selected task */}
+              {selectedTaskId && (
+                <button
+                  onClick={() => {
+                    setSelectedTaskId("");
+                    setSearchQuery("");
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center"
+                  title="Remove predecessor"
+                  type="button"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
               {showDropdown && searchQuery && !selectedTaskId && (
                 <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
                   <ScrollArea className="h-40">
