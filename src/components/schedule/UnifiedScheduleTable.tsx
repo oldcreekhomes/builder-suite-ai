@@ -15,6 +15,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 import { TaskContextMenu } from "./TaskContextMenu";
 import { TaskNotesDialog } from "./TaskNotesDialog";
 import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import {  
   DateString, 
   addDays, 
@@ -71,6 +72,9 @@ export function UnifiedScheduleTable({
   dayWidth,
   recentlySavedTasks = new Set()
 }: UnifiedScheduleTableProps) {
+  // DEMO: Shadcn toast hook for comparison
+  const { toast: shadcnToast } = useToast();
+  
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
@@ -701,7 +705,8 @@ export function UnifiedScheduleTable({
                           
                           // Validate: end date must be >= start date
                           if (taskStartDate && newEndDate < taskStartDate) {
-                            toast.error("End date cannot be before start date", {
+                            // DEMO: Show Sonner toast first (current implementation)
+                            toast.error("SONNER TOAST: End date cannot be before start date", {
                               description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`,
                               style: {
                                 backgroundColor: '#ef4444',
@@ -712,6 +717,16 @@ export function UnifiedScheduleTable({
                                 description: '!text-white'
                               }
                             });
+                            
+                            // DEMO: Show Shadcn toast 5 seconds later for comparison
+                            setTimeout(() => {
+                              shadcnToast({
+                                title: "SHADCN TOAST: End date cannot be before start date",
+                                description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`,
+                                variant: "destructive"
+                              });
+                            }, 5000);
+                            
                             return;
                           }
                           
