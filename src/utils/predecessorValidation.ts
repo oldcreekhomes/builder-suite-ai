@@ -37,7 +37,7 @@ export function safeParsePredecessors(predecessors: any): string[] {
   return [];
 }
 
-export type LinkType = 'FS' | 'SF';
+export type LinkType = 'FS' | 'SS' | 'SF' | 'FF';
 
 export interface ParsedPredecessor {
   taskId: string;
@@ -53,16 +53,20 @@ export interface ValidationResult {
   warnings: string[];
 }
 
-// Regex to parse predecessor format: "taskId", "taskIdSF", "taskId+Nd", "taskIdSF-Nd"
-// Group 1: taskId, Group 2: optional SF, Group 3: optional lag (+Nd or -Nd)
-const PREDECESSOR_REGEX = /^(.+?)(SF)?([+-]\d+d?)?$/i;
+// Regex to parse predecessor format: "taskId", "taskIdSF", "taskIdSS", "taskIdFF", "taskId+Nd", "taskIdSF-Nd"
+// Group 1: taskId, Group 2: optional link type (SS, SF, FF), Group 3: optional lag (+Nd or -Nd)
+const PREDECESSOR_REGEX = /^(.+?)(SS|SF|FF)?([+-]\d+d?)?$/i;
 
 export function parsePredecessorString(pred: string): { taskId: string; linkType: LinkType; lagDays: number } | null {
   const match = pred.trim().match(PREDECESSOR_REGEX);
   if (!match) return null;
   
   const taskId = match[1].trim();
-  const linkType: LinkType = match[2]?.toUpperCase() === 'SF' ? 'SF' : 'FS';
+  const linkTypePart = match[2]?.toUpperCase();
+  let linkType: LinkType = 'FS'; // Default
+  if (linkTypePart === 'SS') linkType = 'SS';
+  else if (linkTypePart === 'SF') linkType = 'SF';
+  else if (linkTypePart === 'FF') linkType = 'FF';
   const lagPart = match[3] || '';
   
   // Extract lag days (e.g., "+3d" -> 3, "-2d" -> -2, "+5" -> 5)
