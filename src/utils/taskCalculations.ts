@@ -118,8 +118,12 @@ export const calculateTaskDatesFromPredecessors = (
   
   let latestFSEndDate = new Date(0); // For FS predecessors - track latest end date
   let earliestSFEndDate: Date | null = null; // For SF predecessors - track earliest constrained end date
+  let latestSSStartDate = new Date(0); // For SS predecessors - track latest start date
+  let latestFFEndDate = new Date(0); // For FF predecessors - track latest end date
   let hasFSPredecessor = false;
   let hasSFPredecessor = false;
+  let hasSSPredecessor = false;
+  let hasFFPredecessor = false;
   
   // Process all predecessors
   for (const predStr of predecessors) {
@@ -153,6 +157,36 @@ export const calculateTaskDatesFromPredecessors = (
       if (!earliestSFEndDate || taskEndDate < earliestSFEndDate) {
         earliestSFEndDate = taskEndDate;
       }
+    } else if (linkType === 'SS') {
+      // SS (Start-to-Start): Task's START = predecessor's START (+ lag)
+      // Task starts on EXACT same day as predecessor starts
+      hasSSPredecessor = true;
+      
+      const predStartDateStr = predTask.start_date.split('T')[0];
+      const [year, month, day] = predStartDateStr.split('-').map(Number);
+      const predStartDate = new Date(year, month - 1, day);
+      
+      // Start date = predecessor start + lag (EXACT same day if lag=0)
+      const taskStartDate = addBusinessDays(predStartDate, lagDays);
+      
+      if (taskStartDate > latestSSStartDate) {
+        latestSSStartDate = taskStartDate;
+      }
+    } else if (linkType === 'FF') {
+      // FF (Finish-to-Finish): Task's END = predecessor's END (+ lag)
+      // Task ends on EXACT same day as predecessor ends
+      hasFFPredecessor = true;
+      
+      const predEndDateStr = predTask.end_date.split('T')[0];
+      const [year, month, day] = predEndDateStr.split('-').map(Number);
+      const predEndDate = new Date(year, month - 1, day);
+      
+      // End date = predecessor end + lag (EXACT same day if lag=0)
+      const taskEndDate = addBusinessDays(predEndDate, lagDays);
+      
+      if (taskEndDate > latestFFEndDate) {
+        latestFFEndDate = taskEndDate;
+      }
     } else {
       // FS (Finish-to-Start): Task's START is after predecessor's END
       hasFSPredecessor = true;
@@ -178,6 +212,44 @@ export const calculateTaskDatesFromPredecessors = (
     const newStartDate = addBusinessDays(newEndDate, -(task.duration - 1));
     
     console.log('📅 SF calculation:', {
+      taskName: task.task_name,
+      duration: task.duration,
+      newEndDate: formatYMD(newEndDate),
+      newStartDate: formatYMD(newStartDate)
+    });
+    
+    return {
+      startDate: formatYMD(newStartDate),
+      endDate: formatYMD(newEndDate),
+      duration: task.duration
+    };
+  }
+  
+  // Handle SS predecessors (task starts on EXACT same day as predecessor starts)
+  if (hasSSPredecessor && latestSSStartDate.getTime() !== 0) {
+    const newStartDate = latestSSStartDate; // EXACT same day
+    const newEndDate = calculateBusinessEndDate(newStartDate, task.duration);
+    
+    console.log('📅 SS calculation:', {
+      taskName: task.task_name,
+      duration: task.duration,
+      newStartDate: formatYMD(newStartDate),
+      newEndDate: formatYMD(newEndDate)
+    });
+    
+    return {
+      startDate: formatYMD(newStartDate),
+      endDate: formatYMD(newEndDate),
+      duration: task.duration
+    };
+  }
+  
+  // Handle FF predecessors (task ends on EXACT same day as predecessor ends)
+  if (hasFFPredecessor && latestFFEndDate.getTime() !== 0) {
+    const newEndDate = latestFFEndDate; // EXACT same day
+    const newStartDate = addBusinessDays(newEndDate, -(task.duration - 1));
+    
+    console.log('📅 FF calculation:', {
       taskName: task.task_name,
       duration: task.duration,
       newEndDate: formatYMD(newEndDate),
