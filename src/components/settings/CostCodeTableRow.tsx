@@ -7,6 +7,7 @@ import { CostCodeInlineEditor } from '@/components/CostCodeInlineEditor';
 import { AddSubcategoryDialog } from '@/components/AddSubcategoryDialog';
 import type { Tables } from '@/integrations/supabase/types';
 import { compareCostCodes } from '@/lib/costCodeSort';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -131,15 +132,22 @@ export function CostCodeTableRow({
                 hasPriceHistory={hasPriceHistory}
               />
             </div>
-            <div className="absolute right-2 flex items-center" title="View price history">
-              <LineChart 
-                className="h-3.5 w-3.5 text-primary cursor-pointer hover:text-primary/80" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewPriceHistory(costCode);
-                }}
-              />
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute right-2 flex items-center cursor-pointer">
+                  <LineChart 
+                    className="h-3.5 w-3.5 text-primary hover:text-primary/80" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewPriceHistory(costCode);
+                    }}
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View price history</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </TableCell>
         <TableCell className="py-1">

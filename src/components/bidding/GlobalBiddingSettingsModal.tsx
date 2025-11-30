@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, Upload, X } from 'lucide-react';
 import { GlobalBiddingSettingsWarningDialog } from './GlobalBiddingSettingsWarningDialog';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface GlobalBiddingSettingsModalProps {
   open: boolean;
@@ -239,9 +240,16 @@ export function GlobalBiddingSettingsModal({
                 <div className="mt-2 space-y-1 max-h-32 overflow-auto">
                   {files.map((file, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                      <span className="truncate flex-1" title={file.name}>
-                        file {index + 1}.{file.name.split('.').pop() || 'pdf'}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate flex-1 cursor-default">
+                            file {index + 1}.{file.name.split('.').pop() || 'pdf'}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{file.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
                       <Button
                         variant="ghost"
                         size="sm"

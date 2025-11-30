@@ -11,6 +11,7 @@ import { RejectBillDialog } from "./RejectBillDialog";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ExtractedData {
   vendor_name?: string;
@@ -53,20 +54,26 @@ export const BillsReviewTableRow = ({
       <TableRow className="hover:bg-muted/50">
         <TableCell>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const displayName = bill.file_name.split('/').pop() || bill.file_name;
-                openBillAttachment(bill.file_name, displayName);
-              }}
-              className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
-              title={bill.file_name}
-              type="button"
-            >
-              {(() => {
-                const IconComponent = getFileIcon(bill.file_name);
-                return <IconComponent className="h-4 w-4" />;
-              })()}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    const displayName = bill.file_name.split('/').pop() || bill.file_name;
+                    openBillAttachment(bill.file_name, displayName);
+                  }}
+                  className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
+                  type="button"
+                >
+                  {(() => {
+                    const IconComponent = getFileIcon(bill.file_name);
+                    return <IconComponent className="h-4 w-4" />;
+                  })()}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{bill.file_name}</p>
+              </TooltipContent>
+            </Tooltip>
             <div className="flex flex-col gap-1">
               <span className="font-medium">{bill.file_name.split('/').pop() || bill.file_name}</span>
               {vendorName && (
@@ -87,15 +94,21 @@ export const BillsReviewTableRow = ({
         <TableCell className="text-right">
           <div className="flex justify-end gap-2">
             {(bill.status === 'completed' || bill.status === 'reviewing') && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setShowEditDialog(true)}
-                title="Edit bill"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setShowEditDialog(true)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit bill</p>
+                </TooltipContent>
+              </Tooltip>
             )}
             {bill.status === 'reviewing' && (
               <>

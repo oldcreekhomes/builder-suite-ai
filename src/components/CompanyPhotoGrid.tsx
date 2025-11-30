@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { AllPhoto } from "@/hooks/useAllPhotos";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CompanyPhotoGridProps {
   photos: AllPhoto[];
@@ -274,9 +275,16 @@ export function CompanyPhotoGrid({ photos, onPhotoSelect, onRefresh }: CompanyPh
               </div>
             </div>
             <div className="p-3">
-              <p className="text-sm font-medium truncate" title={photo.description || ''}>
-                {photo.description || 'Untitled'}
-              </p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-sm font-medium truncate cursor-default">
+                    {photo.description || 'Untitled'}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{photo.description || 'Untitled'}</p>
+                </TooltipContent>
+              </Tooltip>
               <p className="text-xs text-gray-500 mt-1">
                 {photo.project_name}
               </p>

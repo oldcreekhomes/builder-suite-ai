@@ -18,6 +18,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type CostCode = Tables<'cost_codes'>;
 type BudgetItem = Tables<'project_budgets'> & {
@@ -439,17 +440,22 @@ export function BudgetDetailsModal({
                                       const IconComponent = getFileIcon(fileName);
                                       const iconColorClass = getFileIconColor(fileName);
                                       return (
-                                        <button
-                                          key={idx}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openProposalFile(fileName);
-                                          }}
-                                          className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
-                                          title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
-                                        >
-                                          <IconComponent className="h-4 w-4" />
-                                        </button>
+                                        <Tooltip key={idx}>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openProposalFile(fileName);
+                                              }}
+                                              className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
+                                            >
+                                              <IconComponent className="h-4 w-4" />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>View {fileName.split('.').pop()?.toUpperCase()} file - {fileName}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
                                       );
                                     })}
                                   </div>

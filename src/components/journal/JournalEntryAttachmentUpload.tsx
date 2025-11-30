@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface JournalEntryAttachment {
   id?: string;
@@ -234,24 +235,36 @@ export function JournalEntryAttachmentUpload({
           const iconColorClass = getFileIconColor(attachment.file_name);
           return (
             <div key={index} className="relative group">
-              <button
-                onClick={() => handleDownloadAttachment(attachment)}
-                className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                title={attachment.file_name}
-                type="button"
-                disabled={!attachment.id || !journalEntryId}
-              >
-                <IconComponent className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => handleRemoveAttachment(index)}
-                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center transition-colors"
-                title="Remove attachment"
-                type="button"
-                disabled={disabled}
-              >
-                <span className="text-xs font-bold leading-none">×</span>
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => handleDownloadAttachment(attachment)}
+                    className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                    type="button"
+                    disabled={!attachment.id || !journalEntryId}
+                  >
+                    <IconComponent className="h-5 w-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{attachment.file_name}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => handleRemoveAttachment(index)}
+                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                    type="button"
+                    disabled={disabled}
+                  >
+                    <span className="text-xs font-bold leading-none">×</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove attachment</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           );
         })}
