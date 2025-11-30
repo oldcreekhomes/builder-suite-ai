@@ -77,6 +77,7 @@ export function PredecessorDialog({
   const [lagDays, setLagDays] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [predecessors, setPredecessors] = useState<string[]>(currentPredecessors);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Reset state when dialog opens
   React.useEffect(() => {
@@ -130,40 +131,6 @@ export function PredecessorDialog({
     }
     
     return result;
-  };
-
-  // Get plain English preview
-  const getPreviewText = (): string => {
-    if (!selectedTaskId) return "Select a task to see preview";
-    
-    const task = allTasks.find(t => t.id === selectedTaskId);
-    if (!task) return "";
-    
-    const taskName = `"${task.hierarchy_number}: ${task.task_name}"`;
-    let text = "";
-    
-    switch (relationship) {
-      case 'FS':
-        text = `This task can't start until ${taskName} finishes`;
-        break;
-      case 'SS':
-        text = `This task should start when ${taskName} starts`;
-        break;
-      case 'SF':
-        text = `This task must finish before ${taskName} starts`;
-        break;
-      case 'FF':
-        text = `This task should finish when ${taskName} finishes`;
-        break;
-    }
-    
-    if (lagDays > 0) {
-      text += ` plus ${lagDays} day${lagDays !== 1 ? 's' : ''}`;
-    } else if (lagDays < 0) {
-      text += ` minus ${Math.abs(lagDays)} day${Math.abs(lagDays) !== 1 ? 's' : ''}`;
-    }
-    
-    return text;
   };
 
   const handleAddPredecessor = () => {
@@ -250,40 +217,58 @@ export function PredecessorDialog({
           {/* Task Selector */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">1. Which task does this depend on?</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative px-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={selectedTaskId ? (() => {
+                  const task = allTasks.find(t => t.id === selectedTaskId);
+                  return task ? `${task.hierarchy_number} - ${task.task_name}` : searchQuery;
+                })() : searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedTaskId("");
+                  setShowDropdown(true);
+                }}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                 className="pl-9"
               />
+              {showDropdown && searchQuery && !selectedTaskId && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                  <ScrollArea className="h-40">
+                    <div className="p-2 space-y-1">
+                      {availableTasks.map((task) => (
+                        <button
+                          key={task.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setSelectedTaskId(task.id);
+                            setSearchQuery("");
+                            setShowDropdown(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                            selectedTaskId === task.id
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          )}
+                        >
+                          <span className="font-medium">{task.hierarchy_number}</span>
+                          <span className="mx-2">-</span>
+                          <span>{task.task_name}</span>
+                        </button>
+                      ))}
+                      {availableTasks.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No tasks found
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </div>
-            <ScrollArea className="h-40 border rounded-md">
-              <div className="p-2 space-y-1">
-                {availableTasks.map((task) => (
-                  <button
-                    key={task.id}
-                    onClick={() => setSelectedTaskId(task.id)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-                      selectedTaskId === task.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    <span className="font-medium">{task.hierarchy_number}</span>
-                    <span className="mx-2">-</span>
-                    <span>{task.task_name}</span>
-                  </button>
-                ))}
-                {availableTasks.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No tasks found
-                  </p>
-                )}
-              </div>
-            </ScrollArea>
           </div>
 
           {/* Relationship Type */}
@@ -344,16 +329,6 @@ export function PredecessorDialog({
             </p>
           </div>
 
-          {/* Preview */}
-          {selectedTaskId && (
-            <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
-              <Label className="text-sm font-medium">Preview</Label>
-              <p className="text-sm">{getPreviewText()}</p>
-              <p className="text-xs text-muted-foreground font-mono">
-                Code: {generatePredecessorString()}
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
