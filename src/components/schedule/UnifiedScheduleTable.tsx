@@ -24,7 +24,8 @@ import {
   getMonthName,
   getDayOfMonth,
   formatYMD,
-  formatDisplayDateFull
+  formatDisplayDateFull,
+  parseDateString
 } from "@/utils/dateOnly";
 
 interface UnifiedScheduleTableProps {
@@ -356,7 +357,14 @@ export function UnifiedScheduleTable({
       
       const taskStartDate = parseTaskDate(task.start_date);
       const taskEndDate = parseTaskDate(task.end_date);
-      const daysFromStart = getCalendarDaysBetween(startDate, taskStartDate) - 1;
+      
+      // Calculate days from timeline start using direct difference (not inclusive count)
+      const startParsed = parseDateString(startDate);
+      const taskParsed = parseDateString(taskStartDate);
+      const startDateObj = new Date(startParsed.year, startParsed.month - 1, startParsed.day);
+      const taskDateObj = new Date(taskParsed.year, taskParsed.month - 1, taskParsed.day);
+      const daysFromStart = Math.round((taskDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24));
+      
       const widthDays = getCalendarDaysBetween(taskStartDate, taskEndDate);
       
       return {
