@@ -1,0 +1,377 @@
+import React, { useState, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { X, Search, ArrowRight, ArrowLeft, Play, Square } from "lucide-react";
+import { ProjectTask } from "@/hooks/useProjectTasks";
+import { cn } from "@/lib/utils";
+import { parsePredecessorString, LinkType } from "@/utils/predecessorValidation";
+
+interface PredecessorDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  currentTaskId: string;
+  currentTaskHierarchy: string | null;
+  allTasks: ProjectTask[];
+  currentPredecessors: string[];
+  onSave: (predecessors: string[]) => void;
+}
+
+type RelationshipType = 'FS' | 'SS' | 'SF' | 'FF';
+
+interface RelationshipOption {
+  value: RelationshipType;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+const relationshipOptions: RelationshipOption[] = [
+  {
+    value: 'FS',
+    label: "Finish to Start",
+    description: "Can't start until that task finishes",
+    icon: <div className="flex items-center gap-1"><Square className="h-3 w-3" /><ArrowRight className="h-3 w-3" /><Play className="h-3 w-3" /></div>
+  },
+  {
+    value: 'SS',
+    label: "Start to Start",
+    description: "Should start when that task starts",
+    icon: <div className="flex items-center gap-1"><Play className="h-3 w-3" /><ArrowRight className="h-3 w-3" /><Play className="h-3 w-3" /></div>
+  },
+  {
+    value: 'SF',
+    label: "Start to Finish",
+    description: "Must be ready/finished BEFORE that task starts",
+    icon: <div className="flex items-center gap-1"><Play className="h-3 w-3" /><ArrowLeft className="h-3 w-3" /><Square className="h-3 w-3" /></div>
+  },
+  {
+    value: 'FF',
+    label: "Finish to Finish",
+    description: "Should finish when that task finishes",
+    icon: <div className="flex items-center gap-1"><Square className="h-3 w-3" /><ArrowRight className="h-3 w-3" /><Square className="h-3 w-3" /></div>
+  }
+];
+
+export function PredecessorDialog({
+  open,
+  onOpenChange,
+  currentTaskId,
+  currentTaskHierarchy,
+  allTasks,
+  currentPredecessors,
+  onSave
+}: PredecessorDialogProps) {
+  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
+  const [relationship, setRelationship] = useState<RelationshipType>("FS");
+  const [lagDays, setLagDays] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [predecessors, setPredecessors] = useState<string[]>(currentPredecessors);
+
+  // Reset state when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      setPredecessors(currentPredecessors);
+      setSelectedTaskId("");
+      setRelationship("FS");
+      setLagDays(0);
+      setSearchQuery("");
+    }
+  }, [open, currentPredecessors]);
+
+  // Filter available tasks (exclude current task and its children)
+  const availableTasks = useMemo(() => {
+    return allTasks.filter(task => {
+      // Exclude current task
+      if (task.id === currentTaskId) return false;
+      // Exclude children of current task
+      if (currentTaskHierarchy && task.hierarchy_number?.startsWith(currentTaskHierarchy + '.')) return false;
+      // Apply search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          task.hierarchy_number?.toLowerCase().includes(query) ||
+          task.task_name.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
+  }, [allTasks, currentTaskId, currentTaskHierarchy, searchQuery]);
+
+  // Generate predecessor string from selections
+  const generatePredecessorString = (): string => {
+    if (!selectedTaskId) return "";
+    
+    const task = allTasks.find(t => t.id === selectedTaskId);
+    if (!task?.hierarchy_number) return "";
+    
+    let result = task.hierarchy_number;
+    
+    // Add relationship suffix (FS is default, no suffix needed)
+    if (relationship !== 'FS') {
+      result += relationship;
+    }
+    
+    // Add lag/lead days
+    if (lagDays > 0) {
+      result += `+${lagDays}d`;
+    } else if (lagDays < 0) {
+      result += `${lagDays}d`;
+    }
+    
+    return result;
+  };
+
+  // Get plain English preview
+  const getPreviewText = (): string => {
+    if (!selectedTaskId) return "Select a task to see preview";
+    
+    const task = allTasks.find(t => t.id === selectedTaskId);
+    if (!task) return "";
+    
+    const taskName = `"${task.hierarchy_number}: ${task.task_name}"`;
+    let text = "";
+    
+    switch (relationship) {
+      case 'FS':
+        text = `This task can't start until ${taskName} finishes`;
+        break;
+      case 'SS':
+        text = `This task should start when ${taskName} starts`;
+        break;
+      case 'SF':
+        text = `This task must finish before ${taskName} starts`;
+        break;
+      case 'FF':
+        text = `This task should finish when ${taskName} finishes`;
+        break;
+    }
+    
+    if (lagDays > 0) {
+      text += ` plus ${lagDays} day${lagDays !== 1 ? 's' : ''}`;
+    } else if (lagDays < 0) {
+      text += ` minus ${Math.abs(lagDays)} day${Math.abs(lagDays) !== 1 ? 's' : ''}`;
+    }
+    
+    return text;
+  };
+
+  const handleAddPredecessor = () => {
+    const predString = generatePredecessorString();
+    if (predString && !predecessors.includes(predString)) {
+      // Check if we already have this task (with different relationship)
+      const task = allTasks.find(t => t.id === selectedTaskId);
+      const existingIndex = predecessors.findIndex(p => {
+        const parsed = parsePredecessorString(p);
+        return parsed?.taskId === task?.hierarchy_number;
+      });
+      
+      if (existingIndex >= 0) {
+        // Replace existing
+        const newPreds = [...predecessors];
+        newPreds[existingIndex] = predString;
+        setPredecessors(newPreds);
+      } else {
+        setPredecessors([...predecessors, predString]);
+      }
+      
+      // Reset selection
+      setSelectedTaskId("");
+      setRelationship("FS");
+      setLagDays(0);
+    }
+  };
+
+  const handleRemovePredecessor = (pred: string) => {
+    setPredecessors(predecessors.filter(p => p !== pred));
+  };
+
+  const handleSave = () => {
+    onSave(predecessors);
+    onOpenChange(false);
+  };
+
+  const getPredecessorDisplay = (pred: string) => {
+    const parsed = parsePredecessorString(pred);
+    if (!parsed) return pred;
+    
+    const task = allTasks.find(t => t.hierarchy_number === parsed.taskId);
+    const taskName = task ? task.task_name : "Unknown task";
+    
+    let display = `${parsed.taskId}: ${taskName}`;
+    if (parsed.linkType !== 'FS') {
+      display += ` (${parsed.linkType})`;
+    }
+    if (parsed.lagDays !== 0) {
+      display += parsed.lagDays > 0 ? ` +${parsed.lagDays}d` : ` ${parsed.lagDays}d`;
+    }
+    
+    return display;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Add Predecessor Relationship</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto space-y-6 py-4">
+          {/* Current Predecessors */}
+          {predecessors.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Current Predecessors</Label>
+              <div className="flex flex-wrap gap-2">
+                {predecessors.map((pred, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1 py-1">
+                    <span className="text-xs">{getPredecessorDisplay(pred)}</span>
+                    <button
+                      onClick={() => handleRemovePredecessor(pred)}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Task Selector */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">1. Which task does this depend on?</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <ScrollArea className="h-40 border rounded-md">
+              <div className="p-2 space-y-1">
+                {availableTasks.map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => setSelectedTaskId(task.id)}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                      selectedTaskId === task.id
+                        ? "bg-primary text-primary-foreground"
+                        : "hover:bg-muted"
+                    )}
+                  >
+                    <span className="font-medium">{task.hierarchy_number}</span>
+                    <span className="mx-2">-</span>
+                    <span>{task.task_name}</span>
+                  </button>
+                ))}
+                {availableTasks.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No tasks found
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Relationship Type */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">2. What's the relationship?</Label>
+            <RadioGroup
+              value={relationship}
+              onValueChange={(value) => setRelationship(value as RelationshipType)}
+              className="grid grid-cols-1 gap-2"
+            >
+              {relationshipOptions.map((option) => (
+                <div
+                  key={option.value}
+                  className={cn(
+                    "flex items-center space-x-3 border rounded-lg p-3 cursor-pointer transition-colors",
+                    relationship === option.value
+                      ? "border-primary bg-primary/5"
+                      : "hover:bg-muted/50"
+                  )}
+                  onClick={() => setRelationship(option.value)}
+                >
+                  <RadioGroupItem value={option.value} id={option.value} />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">{option.icon}</span>
+                      <label
+                        htmlFor={option.value}
+                        className="font-medium cursor-pointer"
+                      >
+                        {option.description}
+                      </label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Technical: {option.label} ({option.value})
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Lag Days */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">3. Any delay or lead time? (optional)</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                value={lagDays}
+                onChange={(e) => setLagDays(parseInt(e.target.value) || 0)}
+                className="w-24"
+              />
+              <span className="text-sm text-muted-foreground">
+                days {lagDays > 0 ? "(delay/gap)" : lagDays < 0 ? "(overlap/lead)" : ""}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Positive = wait extra days, Negative = overlap/start earlier
+            </p>
+          </div>
+
+          {/* Preview */}
+          {selectedTaskId && (
+            <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+              <Label className="text-sm font-medium">Preview</Label>
+              <p className="text-sm">{getPreviewText()}</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                Code: {generatePredecessorString()}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            onClick={handleAddPredecessor}
+            disabled={!selectedTaskId}
+          >
+            Add to List
+          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave}>
+            Save Predecessors
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

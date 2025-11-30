@@ -737,6 +737,7 @@ export function UnifiedScheduleTable({
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
                       allTasks={tasks}
                       currentTaskId={task.id}
+                      currentTaskHierarchy={task.hierarchy_number}
                       readOnly={taskHasChildren}
                     />
                   </div>

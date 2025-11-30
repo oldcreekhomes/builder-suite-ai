@@ -12,12 +12,13 @@ import {
   formatPredecessorForDisplay,
   ParsedPredecessor
 } from "@/utils/predecessorValidation";
-// Fixed component after removing selectedPredecessors reference
+import { PredecessorDialog } from "./PredecessorDialog";
 
 interface PredecessorSelectorProps {
   value: string[] | string | null | undefined;
   onValueChange: (value: string[]) => void;
   currentTaskId: string;
+  currentTaskHierarchy?: string | null;
   allTasks: ProjectTask[];
   className?: string;
   readOnly?: boolean;
@@ -27,6 +28,7 @@ export function PredecessorSelector({
   value = [], 
   onValueChange, 
   currentTaskId,
+  currentTaskHierarchy,
   allTasks,
   className, 
   readOnly = false 
@@ -34,6 +36,7 @@ export function PredecessorSelector({
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState<string>("");
   const [validationResult, setValidationResult] = useState({ isValid: true, errors: [], warnings: [] });
+  const [dialogOpen, setDialogOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -71,6 +74,16 @@ export function PredecessorSelector({
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDialogOpen(true);
+  };
+
+  const handleDialogSave = (newPredecessors: string[]) => {
+    onValueChange(newPredecessors);
   };
 
   const handleFinishEdit = () => {
@@ -138,9 +151,20 @@ export function PredecessorSelector({
   if (readOnly) {
     const parsed = getParsedPredecessors();
     return (
-      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
-        {parsed.length > 0 ? parsed.map(p => getFullPredecessorString(p)).join(', ') : "None"}
-      </span>
+      <>
+        <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+          {parsed.length > 0 ? parsed.map(p => getFullPredecessorString(p)).join(', ') : "None"}
+        </span>
+        <PredecessorDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          currentTaskId={currentTaskId}
+          currentTaskHierarchy={currentTaskHierarchy || null}
+          allTasks={allTasks}
+          currentPredecessors={safeValue}
+          onSave={handleDialogSave}
+        />
+      </>
     );
   }
 
@@ -148,70 +172,105 @@ export function PredecessorSelector({
   if (safeValue.length > 0 && !isEditing) {
     const parsed = getParsedPredecessors();
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div 
-            className={cn(
-              "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
-              className
-            )}
-            onClick={handleStartEdit}
-          >
-            {parsed.map((pred, index) => (
-              <span key={index} className="text-xs">
-                {getFullPredecessorString(pred)}
-                {index < parsed.length - 1 ? ', ' : ''}
-              </span>
-            ))}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Click to edit predecessors</p>
-        </TooltipContent>
-      </Tooltip>
+      <>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className={cn(
+                "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
+                className
+              )}
+              onClick={handleStartEdit}
+              onDoubleClick={handleDoubleClick}
+            >
+              {parsed.map((pred, index) => (
+                <span key={index} className="text-xs">
+                  {getFullPredecessorString(pred)}
+                  {index < parsed.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Click to edit, double-click for guided dialog</p>
+          </TooltipContent>
+        </Tooltip>
+        <PredecessorDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          currentTaskId={currentTaskId}
+          currentTaskHierarchy={currentTaskHierarchy || null}
+          allTasks={allTasks}
+          currentPredecessors={safeValue}
+          onSave={handleDialogSave}
+        />
+      </>
     );
   }
 
   // Show "None" as plain text when no predecessors and not editing
   if (!isEditing) {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span 
-            className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
-            onClick={handleStartEdit}
-          >
-            None
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Click to enter predecessors (e.g., 1.1, 1.2+5d, 1.3SF)</p>
-        </TooltipContent>
-      </Tooltip>
+      <>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span 
+              className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
+              onClick={handleStartEdit}
+              onDoubleClick={handleDoubleClick}
+            >
+              None
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Click to edit, double-click for guided dialog</p>
+          </TooltipContent>
+        </Tooltip>
+        <PredecessorDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          currentTaskId={currentTaskId}
+          currentTaskHierarchy={currentTaskHierarchy || null}
+          allTasks={allTasks}
+          currentPredecessors={safeValue}
+          onSave={handleDialogSave}
+        />
+      </>
     );
   }
 
   // Show the input when editing
   return (
-    <div className={cn("relative", className)}>
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        onBlur={handleFinishEdit}
-        className={cn(
-          "bg-transparent border-none outline-none text-xs w-full p-0",
-          "focus:ring-0 focus:border-none",
-          className
-        )}
-        style={{
-          caretColor: "black",
-          fontSize: "inherit",
-          fontFamily: "inherit",
-        }}
+    <>
+      <div className={cn("relative", className)}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleFinishEdit}
+          className={cn(
+            "bg-transparent border-none outline-none text-xs w-full p-0",
+            "focus:ring-0 focus:border-none",
+            className
+          )}
+          style={{
+            caretColor: "black",
+            fontSize: "inherit",
+            fontFamily: "inherit",
+          }}
+        />
+      </div>
+      <PredecessorDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        currentTaskId={currentTaskId}
+        currentTaskHierarchy={currentTaskHierarchy || null}
+        allTasks={allTasks}
+        currentPredecessors={safeValue}
+        onSave={handleDialogSave}
       />
-    </div>
+    </>
   );
 }
