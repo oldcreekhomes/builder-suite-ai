@@ -16,6 +16,7 @@ import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { CompanyRepresentativesModal } from "./CompanyRepresentativesModal";
 import { CompanyCostCodesModal } from "./CompanyCostCodesModal";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type CostCode = {
   id: string;
@@ -170,14 +171,20 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {company.cost_codes && company.cost_codes.length > 0 ? (
-                      <button
-                        onClick={() => setShowingCostCodes(company)}
-                        className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
-                        title="View cost codes"
-                      >
-                        <Hash className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs">{company.cost_codes.length}</span>
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setShowingCostCodes(company)}
+                            className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                          >
+                            <Hash className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs">{company.cost_codes.length}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View cost codes</p>
+                        </TooltipContent>
+                      </Tooltip>
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
                     )}
@@ -200,36 +207,54 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     )}
                   </TableCell>
                   <TableCell className="px-2 py-1">
-                    <button
-                      onClick={() => setShowingReps(company)}
-                      className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
-                      title="View representatives"
-                    >
-                      <Users className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs">{company.representatives_count || 0}</span>
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setShowingReps(company)}
+                          className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                        >
+                          <Users className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs">{company.representatives_count || 0}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>View representatives</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingCompany(company)}
-                        className="h-6 w-6 p-0"
-                        title="Edit company"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteCompanyMutation.mutate(company.id)}
-                        disabled={deleteCompanyMutation.isPending}
-                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                        title="Delete company"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingCompany(company)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Edit company</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteCompanyMutation.mutate(company.id)}
+                            disabled={deleteCompanyMutation.isPending}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete company</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </TableCell>
                 </TableRow>

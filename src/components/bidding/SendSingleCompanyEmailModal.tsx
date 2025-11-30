@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper to get storage path for specification files
 const getProjectFileStoragePath = (fileRef: string): string => {
@@ -298,20 +299,25 @@ export function SendSingleCompanyEmailModal({
                           const IconComponent = getFileIcon(fileName);
                           const iconColorClass = getFileIconColor(fileName);
                           return (
-                            <button
-                              key={index}
-                              onClick={() => {
-                                console.log('📁 SendSingleCompanyEmailModal: Opening file', fileName);
-                                const displayName = fileName.split('/').pop() || fileName;
-                                const storagePath = getProjectFileStoragePath(fileName);
-                                openSpecificationFile(storagePath, displayName);
-                              }}
-                              className={`flex items-center justify-center p-1 ${iconColorClass} hover:bg-accent rounded transition-colors`}
-                              title={`Click to open ${fileName}`}
-                              type="button"
-                            >
-                              <IconComponent className="h-4 w-4" />
-                            </button>
+                            <Tooltip key={index}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                    console.log('📁 SendSingleCompanyEmailModal: Opening file', fileName);
+                                    const displayName = fileName.split('/').pop() || fileName;
+                                    const storagePath = getProjectFileStoragePath(fileName);
+                                    openSpecificationFile(storagePath, displayName);
+                                  }}
+                                  className={`flex items-center justify-center p-1 ${iconColorClass} hover:bg-accent rounded transition-colors`}
+                                  type="button"
+                                >
+                                  <IconComponent className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Click to open {fileName}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           );
                         })}
                       </div>

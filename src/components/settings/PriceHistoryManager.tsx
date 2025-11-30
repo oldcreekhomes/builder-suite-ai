@@ -20,6 +20,7 @@ import { CalendarIcon, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type CostCode = Tables<'cost_codes'>;
 type PriceHistory = Tables<'cost_code_price_history'>;
@@ -346,28 +347,40 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
                 />
                 {selectedFile ? (
                   <div className="relative inline-block">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const IconComponent = getFileIcon(selectedFile.name);
-                        const iconColorClass = getFileIconColor(selectedFile.name);
-                      }}
-                      className={`${getFileIconColor(selectedFile.name)} transition-colors p-2 hover:scale-110`}
-                      title={`${selectedFile.name}`}
-                    >
-                      {(() => {
-                        const IconComponent = getFileIcon(selectedFile.name);
-                        return <IconComponent className="h-5 w-5" />;
-                      })()}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleRemoveFile}
-                      className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center"
-                      title="Remove file"
-                    >
-                      <span className="text-xs font-bold leading-none">×</span>
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const IconComponent = getFileIcon(selectedFile.name);
+                            const iconColorClass = getFileIconColor(selectedFile.name);
+                          }}
+                          className={`${getFileIconColor(selectedFile.name)} transition-colors p-2 hover:scale-110`}
+                        >
+                          {(() => {
+                            const IconComponent = getFileIcon(selectedFile.name);
+                            return <IconComponent className="h-5 w-5" />;
+                          })()}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{selectedFile.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                        >
+                          <span className="text-xs font-bold leading-none">×</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Remove file</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 ) : (
                   <Button
@@ -422,32 +435,44 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
                       <div className="mt-2">
                         <div className="text-xs text-muted-foreground mb-1">File:</div>
                         <div className="relative inline-block">
-                          <button
-                            onClick={() => {
-                              const fileName = entry.file_path!.split('/').pop() || 'file';
-                              openProjectFile(entry.file_path!, fileName);
-                            }}
-                            className={`${getFileIconColor(entry.file_path)} transition-colors p-1 hover:scale-110`}
-                            title={`View ${entry.file_path.split('.').pop()?.toUpperCase()} file`}
-                            disabled={deletingFileId === entry.id}
-                          >
-                            {(() => {
-                              const IconComponent = getFileIcon(entry.file_path!);
-                              return <IconComponent className="h-4 w-4" />;
-                            })()}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteHistoricalFile(entry.id, entry.file_path!);
-                            }}
-                            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
-                            title="Delete file"
-                            type="button"
-                            disabled={deletingFileId === entry.id}
-                          >
-                            <span className="text-xs font-bold leading-none">×</span>
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => {
+                                  const fileName = entry.file_path!.split('/').pop() || 'file';
+                                  openProjectFile(entry.file_path!, fileName);
+                                }}
+                                className={`${getFileIconColor(entry.file_path)} transition-colors p-1 hover:scale-110`}
+                                disabled={deletingFileId === entry.id}
+                              >
+                                {(() => {
+                                  const IconComponent = getFileIcon(entry.file_path!);
+                                  return <IconComponent className="h-4 w-4" />;
+                                })()}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View {entry.file_path.split('.').pop()?.toUpperCase()} file</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteHistoricalFile(entry.id, entry.file_path!);
+                                }}
+                                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
+                                type="button"
+                                disabled={deletingFileId === entry.id}
+                              >
+                                <span className="text-xs font-bold leading-none">×</span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete file</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                     )}

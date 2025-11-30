@@ -20,6 +20,7 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { getThumbnailUrl } from "@/utils/thumbnailUtils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProjectPhoto {
   id: string;
@@ -187,13 +188,27 @@ export function PhotoCard({
           </div>
           <div className="p-3">
             <div className="space-y-1">
-              <p className="text-sm font-medium truncate" title={getPhotoDisplayName(photo)}>
-                {getPhotoDisplayName(photo)}
-              </p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-sm font-medium truncate cursor-default">
+                    {getPhotoDisplayName(photo)}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{getPhotoDisplayName(photo)}</p>
+                </TooltipContent>
+              </Tooltip>
               {getPhotoFolder(photo) && (
-                <p className="text-xs text-blue-600 truncate" title={`Folder: ${getPhotoFolder(photo)}`}>
-                  📁 {getPhotoFolder(photo)}
-                </p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-xs text-blue-600 truncate cursor-default">
+                      📁 {getPhotoFolder(photo)}
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Folder: {getPhotoFolder(photo)}</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">

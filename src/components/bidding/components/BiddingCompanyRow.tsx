@@ -9,6 +9,7 @@ import { Send, Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 import { ConfirmPODialog } from '../ConfirmPODialog';
 import { usePOStatus } from '@/hooks/usePOStatus';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Company {
   id: string;
@@ -139,26 +140,38 @@ export function BiddingCompanyRow({
       <TableCell className="py-1">
         <div className="flex items-center gap-1">
           {!isReadOnly && onSendEmail && (
-            <Button
-              onClick={() => onSendEmail(biddingCompany.company_id)}
-              size="sm"
-              variant="ghost"
-              title="Send Email to Company"
-              className="h-6 w-6 p-0"
-            >
-              <Send className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => onSendEmail(biddingCompany.company_id)}
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
+                >
+                  <Send className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Send Email to Company</p>
+              </TooltipContent>
+            </Tooltip>
           )}
           {isReadOnly && (
-            <Button
-              onClick={() => setShowConfirmPODialog(true)}
-              size="sm"
-              variant="ghost"
-              title="Resend PO Email"
-              className="h-6 w-6 p-0"
-            >
-              <Send className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => setShowConfirmPODialog(true)}
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0"
+                >
+                  <Send className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Resend PO Email</p>
+              </TooltipContent>
+            </Tooltip>
           )}
           {!isReadOnly && (
             <DeleteButton

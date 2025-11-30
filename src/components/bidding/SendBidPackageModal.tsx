@@ -11,6 +11,7 @@ import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper to get storage path for specification files
 const getProjectFileStoragePath = (fileRef: string): string => {
@@ -323,19 +324,24 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
                           const displayName = fileName.split('/').pop() || fileName;
                           
                           return (
-                            <button
-                              key={index}
-                              onClick={() => {
-                              console.log('📁 SendBidPackageModal: Opening file', fileName, 'as', displayName);
-                                const storagePath = getProjectFileStoragePath(fileName);
-                                openSpecificationFile(storagePath, displayName);
-                              }}
-                              className={`flex items-center justify-center p-1 hover:bg-muted-foreground/10 rounded transition-colors ${iconColorClass}`}
-                              title={`Click to open ${displayName}`}
-                              type="button"
-                            >
-                              <IconComponent className="h-4 w-4" />
-                            </button>
+                            <Tooltip key={index}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => {
+                                  console.log('📁 SendBidPackageModal: Opening file', fileName, 'as', displayName);
+                                    const storagePath = getProjectFileStoragePath(fileName);
+                                    openSpecificationFile(storagePath, displayName);
+                                  }}
+                                  className={`flex items-center justify-center p-1 hover:bg-muted-foreground/10 rounded transition-colors ${iconColorClass}`}
+                                  type="button"
+                                >
+                                  <IconComponent className="h-4 w-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Click to open {displayName}</p>
+                              </TooltipContent>
+                            </Tooltip>
                           );
                         })}
                       </div>

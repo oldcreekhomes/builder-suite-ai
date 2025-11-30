@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface SpecificationFilesCellProps {
   files: string[] | null;
@@ -45,25 +46,37 @@ export function SpecificationFilesCell({
             const iconColorClass = getFileIconColor(fileName);
             return (
               <div key={index} className="relative group">
-                <button
-                  onClick={() => handleFilePreview(filePath)}
-                  className={`${iconColorClass} transition-colors p-1`}
-                  disabled={isReadOnly}
-                  title={fileName}
-                >
-                  <IconComponent className="h-4 w-4" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleFilePreview(filePath)}
+                      className={`${iconColorClass} transition-colors p-1`}
+                      disabled={isReadOnly}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{fileName}</p>
+                  </TooltipContent>
+                </Tooltip>
                 {!isReadOnly && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFileToDelete(filePath);
-                    }}
-                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
-                    title="Delete file"
-                  >
-                    <span className="text-xs font-bold leading-none">×</span>
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFileToDelete(filePath);
+                        }}
+                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        <span className="text-xs font-bold leading-none">×</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete file</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             );

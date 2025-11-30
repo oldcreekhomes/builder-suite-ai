@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Company {
   id: string;
@@ -163,14 +164,19 @@ export function ConfirmPODialog({
                   const iconColor = getFileIconColor(fileName);
                   
                   return (
-                    <button
-                      key={index}
-                      onClick={() => handleFilePreview(fileName)}
-                      className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                      title={`Preview ${fileName.split('.').pop()?.toUpperCase()} file`}
-                    >
-                      <IconComponent className={`h-6 w-6 ${iconColor}`} />
-                    </button>
+                    <Tooltip key={index}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => handleFilePreview(fileName)}
+                          className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                          <IconComponent className={`h-6 w-6 ${iconColor}`} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Preview {fileName.split('.').pop()?.toUpperCase()} file</p>
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </div>

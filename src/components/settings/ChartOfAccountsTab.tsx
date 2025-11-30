@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { EditAccountDialog } from "./EditAccountDialog";
 import { AddAccountDialog } from "./AddAccountDialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
@@ -187,15 +188,21 @@ export const ChartOfAccountsTab = () => {
                     </TableCell>
                     <TableCell className="px-2 py-1 text-right align-middle">
                       <div className="flex justify-end items-center space-x-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          title="Edit account"
-                          onClick={() => setEditingAccount(account)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => setEditingAccount(account)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit account</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <DeleteButton
                           onDelete={() => deleteAccount.mutate(account.id)}
                           title="Delete Account"
