@@ -706,9 +706,10 @@ export function UnifiedScheduleTable({
                               style: {
                                 backgroundColor: '#ef4444',
                                 color: 'white',
-                                border: 'none'
-                              },
-                              descriptionClassName: 'text-white/90'
+                                border: 'none',
+                                '--normal-text': 'white',
+                                '--description-color': 'white'
+                              } as React.CSSProperties
                             });
                             return;
                           }
