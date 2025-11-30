@@ -702,7 +702,13 @@ export function UnifiedScheduleTable({
                           // Validate: end date must be >= start date
                           if (taskStartDate && newEndDate < taskStartDate) {
                             toast.error("End date cannot be before start date", {
-                              description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`
+                              description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`,
+                              style: {
+                                backgroundColor: '#ef4444',
+                                color: 'white',
+                                border: 'none'
+                              },
+                              descriptionClassName: 'text-white/90'
                             });
                             return;
                           }
