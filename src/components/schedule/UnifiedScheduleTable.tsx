@@ -14,10 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TaskContextMenu } from "./TaskContextMenu";
 import { TaskNotesDialog } from "./TaskNotesDialog";
+import { toast } from "sonner";
 import {  
   DateString, 
   addDays, 
-  getCalendarDaysBetween, 
+  getCalendarDaysBetween,
+  getBusinessDaysBetween,
   calculateBusinessEndDate,
   isBusinessDay,
   today,
@@ -694,7 +696,28 @@ export function UnifiedScheduleTable({
                       type="date"
                       onSave={(value) => {
                         if (value) {
-                          handleTaskUpdate(task.id, { end_date: value });
+                          const newEndDate = value.toString().split('T')[0];
+                          const taskStartDate = task.start_date?.split('T')[0];
+                          
+                          // Validate: end date must be >= start date
+                          if (taskStartDate && newEndDate < taskStartDate) {
+                            toast.error("End date cannot be before start date", {
+                              description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`
+                            });
+                            return;
+                          }
+                          
+                          // Calculate new duration (business days between start and end, inclusive)
+                          let newDuration = 1;
+                          if (taskStartDate) {
+                            newDuration = getBusinessDaysBetween(taskStartDate as DateString, newEndDate as DateString);
+                          }
+                          
+                          // Update both end_date and duration
+                          handleTaskUpdate(task.id, { 
+                            end_date: newEndDate + 'T00:00:00',
+                            duration: newDuration
+                          });
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
