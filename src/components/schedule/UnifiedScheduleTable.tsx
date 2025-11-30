@@ -451,28 +451,25 @@ export function UnifiedScheduleTable({
     }
   }
 
-  // Generate month labels positioned above weekends (first Saturday of each month)
+  // Generate month labels positioned above EVERY weekend
   const monthLabels: { name: string; left: number; width: number }[] = [];
-  const processedMonths = new Set<string>();
 
   for (let day = 0; day < safeTotalDays; day++) {
     const dayDate = addDays(startDate, day);
     const { year, month } = parseDateString(dayDate);
-    const monthKey = `${year}-${month}`;
     const monthName = getMonthName(dayDate);
     
-    // Check if this is a Saturday (start of weekend) and we haven't labeled this month yet
+    // Check if this is a Saturday (start of weekend)
     const date = new Date(year, month - 1, parseInt(getDayOfMonth(dayDate)));
     const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
     
-    if (dayOfWeek === 6 && !processedMonths.has(monthKey)) {
-      // Found the first Saturday of this month - place label here
+    if (dayOfWeek === 6) {
+      // Add label for EVERY Saturday/Sunday pair
       monthLabels.push({
         name: monthName,
         left: day * dayWidth,
         width: dayWidth * 2 // Span across Sat + Sun
       });
-      processedMonths.add(monthKey);
     }
   }
 
