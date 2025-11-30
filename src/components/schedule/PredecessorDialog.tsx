@@ -160,7 +160,27 @@ export function PredecessorDialog({
   };
 
   const handleSave = () => {
-    onSave(predecessors);
+    // Auto-add current selection if there is one
+    let finalPredecessors = [...predecessors];
+    
+    if (selectedTaskId) {
+      const predString = generatePredecessorString();
+      if (predString && !finalPredecessors.includes(predString)) {
+        const task = allTasks.find(t => t.id === selectedTaskId);
+        const existingIndex = finalPredecessors.findIndex(p => {
+          const parsed = parsePredecessorString(p);
+          return parsed?.taskId === task?.hierarchy_number;
+        });
+        
+        if (existingIndex >= 0) {
+          finalPredecessors[existingIndex] = predString;
+        } else {
+          finalPredecessors.push(predString);
+        }
+      }
+    }
+    
+    onSave(finalPredecessors);
     onOpenChange(false);
   };
 
@@ -300,7 +320,7 @@ export function PredecessorDialog({
 
           {/* Lag Days */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">3. Any delay or lead time? (optional)</Label>
+            <Label className="text-sm font-medium">3. Any delay or lead time?</Label>
             <div className="flex items-center gap-3 px-1">
               <Input
                 type="number"
@@ -321,18 +341,11 @@ export function PredecessorDialog({
         </div>
 
         <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={handleAddPredecessor}
-            disabled={!selectedTaskId}
-          >
-            Add to List
-          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSave}>
-            Save Predecessors
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>
