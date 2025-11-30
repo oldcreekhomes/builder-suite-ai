@@ -284,38 +284,31 @@ export const useTaskMutations = (projectId: string) => {
       // Add task to pending updates to ignore realtime echoes
       addPendingUpdate(data.id);
       
+      // ✅ CRITICAL FIX: IMMEDIATELY update cache with new task data
+      // This ensures recalculateParentDates reads correct child data
+      const currentCache = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      const newPredecessor = data.predecessor as string[] | string | null;
+      const updatedCache = currentCache.map(task => 
+        task.id === data.id 
+          ? { 
+              ...task, 
+              ...data,
+              predecessor: newPredecessor
+            } 
+          : task
+      );
+      queryClient.setQueryData(['project-tasks', projectId, user?.id], updatedCache);
+      console.log('📦 Cache immediately updated with new task data');
+      
       // Check if we need to cascade updates to dependent tasks
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
       const predecessorChanged = variables.predecessor !== undefined;
       const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
       
-      // CRITICAL: Get cached data BEFORE invalidating the cache!
-      let cachedTasks: ProjectTask[] | null = null;
-      if (shouldCascade) {
-        cachedTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || null;
-      }
-      
-      // Now invalidate cache for UI refresh (after we've captured the data we need)
-      if (!variables.suppressInvalidate) {
-        console.log('✅ Task updated - immediate cache refresh');
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-      }
-      
-      // Run cascade with the cached data we captured earlier
-      if (shouldCascade && cachedTasks && cachedTasks.length > 0) {
-        // Update the changed task in our working copy
-        const workingTasks: ProjectTask[] = cachedTasks.map(t => {
-          if (t.id !== data.id) return t;
-          // Cast predecessor to correct type
-          const newPredecessor = data.predecessor as string[] | string | null;
-          return {
-            ...t,
-            start_date: data.start_date,
-            end_date: data.end_date,
-            duration: data.duration,
-            predecessor: newPredecessor // Use new predecessor from database
-          };
-        });
+      // Run cascade with already-updated cache
+      if (shouldCascade && updatedCache.length > 0) {
+        // Working tasks already has the updated task from cache
+        const workingTasks: ProjectTask[] = updatedCache;
         
         // When predecessor changed, recalculate THIS task's dates first
         if (predecessorChanged) {
@@ -361,15 +354,15 @@ export const useTaskMutations = (projectId: string) => {
       
       // Direct parent recalculation on any field change (dates, duration, or progress)
       // Must run BEFORE invalidateQueries to prevent race condition
-      const fieldsChanged = dateFieldsChanged || variables.progress !== undefined;
-      if (data.hierarchy_number && fieldsChanged && !(window as any).__batchOperationInProgress) {
+      const anyFieldsChanged = dateFieldsChanged || variables.progress !== undefined;
+      if (data.hierarchy_number && anyFieldsChanged && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task updated, direct parent recalculation for:', data.hierarchy_number);
         await recalculateParentDates(data.hierarchy_number);
       }
       
-      // Invalidate AFTER parent recalculation completes to prevent race condition
-      // This ensures the refetch gets correct parent data from server
-      if (dateFieldsChanged) {
+      // Invalidate AFTER ALL operations complete to sync with server
+      // Only needed when date fields changed (cascade/parent calc may have updated other tasks)
+      if (!variables.suppressInvalidate && (dateFieldsChanged || predecessorChanged)) {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
     },
