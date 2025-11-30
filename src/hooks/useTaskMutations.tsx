@@ -357,18 +357,20 @@ export const useTaskMutations = (projectId: string) => {
         
         // Run cascade with cached data
         await cascadeDependentUpdates(data.id, workingTasks);
-        
-        // Invalidate again after cascade to ensure UI shows all cascaded updates
-        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
       
       // Direct parent recalculation on any field change (dates, duration, or progress)
-      // Uses optimistic UI update - no invalidateQueries needed after
+      // Must run BEFORE invalidateQueries to prevent race condition
       const fieldsChanged = dateFieldsChanged || variables.progress !== undefined;
       if (data.hierarchy_number && fieldsChanged && !(window as any).__batchOperationInProgress) {
         console.log('🔄 Task updated, direct parent recalculation for:', data.hierarchy_number);
         await recalculateParentDates(data.hierarchy_number);
-        // No invalidation needed - optimistic update already applied
+      }
+      
+      // Invalidate AFTER parent recalculation completes to prevent race condition
+      // This ensures the refetch gets correct parent data from server
+      if (dateFieldsChanged) {
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
     },
     onError: (error) => {
