@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { X, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { useToast } from "@/hooks/use-toast";
@@ -147,34 +148,46 @@ export function PredecessorSelector({
   if (safeValue.length > 0 && !isEditing) {
     const parsed = getParsedPredecessors();
     return (
-      <div 
-        className={cn(
-          "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
-          className
-        )}
-        onClick={handleStartEdit}
-        title="Click to edit predecessors"
-      >
-        {parsed.map((pred, index) => (
-          <span key={index} className="text-xs">
-            {getFullPredecessorString(pred)}
-            {index < parsed.length - 1 ? ', ' : ''}
-          </span>
-        ))}
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div 
+            className={cn(
+              "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
+              className
+            )}
+            onClick={handleStartEdit}
+          >
+            {parsed.map((pred, index) => (
+              <span key={index} className="text-xs">
+                {getFullPredecessorString(pred)}
+                {index < parsed.length - 1 ? ', ' : ''}
+              </span>
+            ))}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Click to edit predecessors</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   // Show "None" as plain text when no predecessors and not editing
   if (!isEditing) {
     return (
-      <span 
-        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
-        onClick={handleStartEdit}
-        title="Click to enter predecessors (e.g., 1.1, 1.2+5d, 1.3SF)"
-      >
-        None
-      </span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span 
+            className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
+            onClick={handleStartEdit}
+          >
+            None
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Click to enter predecessors (e.g., 1.1, 1.2+5d, 1.3SF)</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
