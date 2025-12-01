@@ -25,7 +25,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const location = useLocation();
   const { users, currentUserId } = useCompanyUsers();
-  const { unreadCounts, markConversationAsRead, openChat } = useChatContext();
+  const { unreadCounts, markConversationAsRead, refetchUnreadCounts, openChat } = useChatContext();
   
   // Use openChat from context if onStartChat is not provided
   const handleStartChat = onStartChat || openChat;
@@ -40,6 +40,14 @@ export function AppSidebar({
   useEffect(() => {
     localStorage.setItem('sidebar-active-tab', activeTab);
   }, [activeTab]);
+
+  // Handle tab switch with refresh for messages
+  const handleTabSwitch = (tab: 'menus' | 'messages') => {
+    setActiveTab(tab);
+    if (tab === 'messages') {
+      refetchUnreadCounts();
+    }
+  };
 
   // Calculate total unread count for Messages tab badge
   const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
@@ -58,7 +66,7 @@ export function AppSidebar({
             <Button
               variant={activeTab === 'menus' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setActiveTab('menus')}
+              onClick={() => handleTabSwitch('menus')}
               className="flex-1 rounded-none border-0 justify-center"
             >
               <Menu className="h-4 w-4 mr-2" />
@@ -67,7 +75,7 @@ export function AppSidebar({
             <Button
               variant={activeTab === 'messages' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setActiveTab('messages')}
+              onClick={() => handleTabSwitch('messages')}
               className="flex-1 rounded-none border-0 justify-center relative"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -109,7 +117,7 @@ export function AppSidebar({
           <Button
             variant={activeTab === 'menus' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setActiveTab('menus')}
+            onClick={() => handleTabSwitch('menus')}
             className="flex-1 rounded-none border-0 justify-center"
           >
             <Menu className="h-4 w-4 mr-2" />
@@ -118,7 +126,7 @@ export function AppSidebar({
           <Button
             variant={activeTab === 'messages' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setActiveTab('messages')}
+            onClick={() => handleTabSwitch('messages')}
             className="flex-1 rounded-none border-0 justify-center relative"
           >
             <MessageSquare className="h-4 w-4 mr-2" />
