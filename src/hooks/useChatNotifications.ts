@@ -76,7 +76,7 @@ export const useChatNotifications = () => {
     // Fetch initial counts
     fetchUnreadCounts();
 
-    // Subscribe to new messages
+    // Subscribe to new messages (INSERT) and read status changes (UPDATE)
     const channel = supabase.channel(`chat-notifications-${user.id}`)
       .on(
         'postgres_changes',
@@ -101,6 +101,25 @@ export const useChatNotifications = () => {
             ...prev,
             [senderId]: (prev[senderId] || 0) + 1,
           }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_chat_messages',
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const oldMsg = payload.old as any;
+          const newMsg = payload.new as any;
+          
+          // If message was just marked as read, refresh counts
+          if (oldMsg.read_at === null && newMsg.read_at !== null) {
+            console.log('💬 ChatNotifications: Message marked as read, refreshing counts');
+            fetchUnreadCounts();
+          }
         }
       )
       .subscribe((status) => {

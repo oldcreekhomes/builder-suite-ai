@@ -11,6 +11,7 @@ interface ChatWindow {
 interface ChatContextType {
   unreadCounts: Record<string, number>;
   markConversationAsRead: (userId: string) => Promise<void>;
+  refetchUnreadCounts: () => Promise<void>;
   openChat: (user: User) => void;
 }
 
@@ -32,7 +33,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [chatWindows, setChatWindows] = useState<Map<string, ChatWindow>>(new Map());
 
   // Simple notification hook - badges only
-  const { unreadCounts, markConversationAsRead } = useChatNotifications();
+  const { unreadCounts, markConversationAsRead, refetchUnreadCounts } = useChatNotifications();
 
   const openChat = useCallback((user: User) => {
     console.log('💬 ChatContext: Opening chat for user:', user.id);
@@ -76,6 +77,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const value: ChatContextType = {
     unreadCounts,
     markConversationAsRead,
+    refetchUnreadCounts,
     openChat,
   };
 
