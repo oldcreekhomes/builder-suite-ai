@@ -122,11 +122,24 @@ export const useChatNotifications = () => {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, error) => {
         console.log('💬 ChatNotifications: Channel status:', status);
+        if (error) {
+          console.error('💬 ChatNotifications: Subscription error:', error);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('💬 ChatNotifications: Successfully subscribed to realtime updates');
+          // Fetch fresh counts after successful subscription
+          fetchUnreadCounts();
+        }
       });
 
     channelRef.current = channel;
+
+    // Polling fallback - ensures badges update even if realtime fails
+    const pollInterval = setInterval(() => {
+      fetchUnreadCounts();
+    }, 15000); // Every 15 seconds
 
     // Listen for cross-tab sync
     let bc: BroadcastChannel | null = null;
@@ -148,6 +161,7 @@ export const useChatNotifications = () => {
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
+      clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibility);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);

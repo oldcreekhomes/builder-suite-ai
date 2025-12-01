@@ -46,11 +46,17 @@ export const useSimpleChat = () => {
           const message = payload.new as any;
           // Only add if from the selected user
           if (message.sender_id === selectedUser.id) {
+            console.log('💬 Chat: New message received via realtime');
             addMessage(message);
           }
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        console.log('💬 Chat: Channel status:', status);
+        if (error) {
+          console.error('💬 Chat: Subscription error:', error);
+        }
+      });
 
     channelRef.current = channel;
 
