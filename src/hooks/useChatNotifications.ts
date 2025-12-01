@@ -15,7 +15,7 @@ export const useChatNotifications = () => {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const seenMessageIdsRef = useRef(new Set<string>());
   const { preferences } = useNotificationPreferences();
-  const { showNotification, permission } = useBrowserNotifications();
+  const { showNotification } = useBrowserNotifications();
 
   // Fetch initial unread counts
   const fetchUnreadCounts = useCallback(async () => {
@@ -107,7 +107,7 @@ export const useChatNotifications = () => {
           }));
 
           // Show browser notification if enabled
-          if (preferences.browser_notifications_enabled && permission === 'granted') {
+          if (preferences.browser_notifications_enabled) {
             try {
               // Fetch sender name
               const { data: sender } = await supabase
@@ -201,7 +201,7 @@ export const useChatNotifications = () => {
       if (bc) bc.close();
       seenMessageIdsRef.current.clear();
     };
-  }, [user?.id, fetchUnreadCounts, preferences.browser_notifications_enabled, permission, showNotification]);
+  }, [user?.id, fetchUnreadCounts, preferences.browser_notifications_enabled, showNotification]);
 
   return {
     unreadCounts,
