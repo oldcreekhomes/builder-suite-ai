@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useNotificationPreferences } from './useNotificationPreferences';
+import { useBrowserNotifications } from './useBrowserNotifications';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface UnreadCounts {
@@ -12,6 +14,8 @@ export const useChatNotifications = () => {
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
   const channelRef = useRef<RealtimeChannel | null>(null);
   const seenMessageIdsRef = useRef(new Set<string>());
+  const { preferences } = useNotificationPreferences();
+  const { showNotification, permission } = useBrowserNotifications();
 
   // Fetch initial unread counts
   const fetchUnreadCounts = useCallback(async () => {
@@ -86,7 +90,7 @@ export const useChatNotifications = () => {
           table: 'user_chat_messages',
           filter: `recipient_id=eq.${user.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const message = payload.new as any;
           const senderId = message.sender_id;
 
@@ -101,6 +105,34 @@ export const useChatNotifications = () => {
             ...prev,
             [senderId]: (prev[senderId] || 0) + 1,
           }));
+
+          // Show browser notification if enabled and tab is not focused
+          if (preferences.browser_notifications_enabled && permission === 'granted' && document.hidden) {
+            try {
+              // Fetch sender name
+              const { data: sender } = await supabase
+                .from('users')
+                .select('first_name, last_name')
+                .eq('id', senderId)
+                .maybeSingle();
+
+              const senderName = sender
+                ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() || 'Someone'
+                : 'Someone';
+
+              const messagePreview = message.message?.substring(0, 100) || 'New message';
+
+              showNotification(`New message from ${senderName}`, {
+                body: messagePreview,
+                tag: `chat-${senderId}`,
+                onClick: () => {
+                  window.focus();
+                },
+              });
+            } catch (error) {
+              console.error('💬 ChatNotifications: Error showing browser notification:', error);
+            }
+          }
         }
       )
       .on(
@@ -169,7 +201,7 @@ export const useChatNotifications = () => {
       if (bc) bc.close();
       seenMessageIdsRef.current.clear();
     };
-  }, [user?.id, fetchUnreadCounts]);
+  }, [user?.id, fetchUnreadCounts, preferences.browser_notifications_enabled, permission, showNotification]);
 
   return {
     unreadCounts,

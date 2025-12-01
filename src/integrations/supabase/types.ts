@@ -3021,6 +3021,7 @@ export type Database = {
       }
       user_notification_preferences: {
         Row: {
+          browser_notifications_enabled: boolean
           can_access_accounting: boolean
           can_access_employees: boolean
           can_access_manage_bills: boolean
@@ -3037,6 +3038,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          browser_notifications_enabled?: boolean
           can_access_accounting?: boolean
           can_access_employees?: boolean
           can_access_manage_bills?: boolean
@@ -3053,6 +3055,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          browser_notifications_enabled?: boolean
           can_access_accounting?: boolean
           can_access_employees?: boolean
           can_access_manage_bills?: boolean
