@@ -13,21 +13,15 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  const currentYear = new Date().getFullYear();
-  
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      captionLayout="dropdown-buttons"
-      fromYear={currentYear - 2}
-      toYear={currentYear + 10}
       className={cn("p-3 pointer-events-auto", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex flex-col justify-center pt-1 relative items-center gap-1",
+        caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium",
-        caption_dropdowns: "flex gap-2 mt-1",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -55,10 +49,6 @@ function Calendar({
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
-        dropdown: "appearance-none bg-background border border-input rounded-md px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        dropdown_month: "relative inline-flex items-center",
-        dropdown_year: "relative inline-flex items-center",
-        vhidden: "hidden",
         ...classNames,
       }}
       components={{
