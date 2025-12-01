@@ -50,32 +50,6 @@ export const NotificationPreferences = () => {
         
         <div className="space-y-3 pl-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="toast-notifications" className="text-sm">
-              In-app toast notifications
-            </Label>
-            <Switch
-              id="toast-notifications"
-              checked={preferences.toast_notifications_enabled}
-              onCheckedChange={(checked) => 
-                updatePreferences({ toast_notifications_enabled: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="sound-notifications" className="text-sm">
-              Sound alerts
-            </Label>
-            <Switch
-              id="sound-notifications"
-              checked={preferences.sound_notifications_enabled}
-              onCheckedChange={(checked) => 
-                updatePreferences({ sound_notifications_enabled: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
             <Label htmlFor="browser-notifications" className="text-sm">
               Browser notifications
             </Label>
