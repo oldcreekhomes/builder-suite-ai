@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useNotificationPreferences } from './useNotificationPreferences';
-import { useBrowserNotifications } from './useBrowserNotifications';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface UnreadCounts {
@@ -14,8 +12,6 @@ export const useChatNotifications = () => {
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({});
   const channelRef = useRef<RealtimeChannel | null>(null);
   const seenMessageIdsRef = useRef(new Set<string>());
-  const { preferences } = useNotificationPreferences();
-  const { showNotification } = useBrowserNotifications();
 
   // Fetch initial unread counts
   const fetchUnreadCounts = useCallback(async () => {
@@ -105,34 +101,6 @@ export const useChatNotifications = () => {
             ...prev,
             [senderId]: (prev[senderId] || 0) + 1,
           }));
-
-          // Show browser notification if enabled
-          if (preferences.browser_notifications_enabled) {
-            try {
-              // Fetch sender name
-              const { data: sender } = await supabase
-                .from('users')
-                .select('first_name, last_name')
-                .eq('id', senderId)
-                .maybeSingle();
-
-              const senderName = sender
-                ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() || 'Someone'
-                : 'Someone';
-
-              const messagePreview = message.message?.substring(0, 100) || 'New message';
-
-              showNotification(`New message from ${senderName}`, {
-                body: messagePreview,
-                tag: `chat-${senderId}`,
-                onClick: () => {
-                  window.focus();
-                },
-              });
-            } catch (error) {
-              console.error('💬 ChatNotifications: Error showing browser notification:', error);
-            }
-          }
         }
       )
       .on(
@@ -201,7 +169,7 @@ export const useChatNotifications = () => {
       if (bc) bc.close();
       seenMessageIdsRef.current.clear();
     };
-  }, [user?.id, fetchUnreadCounts, preferences.browser_notifications_enabled, showNotification]);
+  }, [user?.id, fetchUnreadCounts]);
 
   return {
     unreadCounts,
