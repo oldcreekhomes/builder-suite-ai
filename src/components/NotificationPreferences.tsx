@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Globe } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { useBrowserNotifications } from "@/hooks/useBrowserNotifications";
 import { useToast } from "@/hooks/use-toast";
@@ -74,31 +74,11 @@ export const NotificationPreferences = () => {
               }
             />
           </div>
-        </div>
-      </div>
 
-      {/* Browser Notifications Section */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4" />
-          <h3 className="text-sm font-medium">Browser Notifications</h3>
-        </div>
-        
-        <div className="space-y-3 pl-6">
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="browser-notifications" className="text-sm">
-                Push notifications
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {!isSupported 
-                  ? "Your browser doesn't support notifications"
-                  : permission === 'denied'
-                  ? "Notifications blocked - enable in browser settings"
-                  : "Receive notifications even when the app is in the background"
-                }
-              </p>
-            </div>
+            <Label htmlFor="browser-notifications" className="text-sm">
+              Browser notifications
+            </Label>
             <Switch
               id="browser-notifications"
               checked={preferences.browser_notifications_enabled && permission === 'granted'}
