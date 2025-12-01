@@ -36,7 +36,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
   };
 
   const formatTime = (timestamp: string) => {
-    return format(new Date(timestamp), "h:mm a");
+    return format(new Date(timestamp), "EEE M/d, h:mm a");
   };
 
   const isMyMessage = (senderId: string) => {
