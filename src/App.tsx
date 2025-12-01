@@ -50,16 +50,11 @@ import CloseBooks from "./pages/accounting/CloseBooks";
 
 import { supabase } from "@/integrations/supabase/client";
 import { registerLicense } from '@syncfusion/ej2-base';
-import { useBrowserTitle } from "@/hooks/useBrowserTitle";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
-  
-  // Initialize browser title with unread counts (must be after QueryClientProvider)
-  console.log('🔄 Browser title hook initialized inside QueryClientProvider');
-  useBrowserTitle();
 
   // Register Syncfusion license at application startup
   useEffect(() => {

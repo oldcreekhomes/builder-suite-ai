@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { User } from '@/hooks/useCompanyUsers';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { FloatingChatWindow } from '@/components/chat/FloatingChatWindow';
@@ -34,6 +34,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // Simple notification hook - badges only
   const { unreadCounts, markConversationAsRead, refetchUnreadCounts } = useChatNotifications();
+
+  // Update browser tab title with unread count
+  useEffect(() => {
+    const baseTitle = 'BuilderSuite AI';
+    const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+    
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+  }, [unreadCounts]);
 
   const openChat = useCallback((user: User) => {
     console.log('💬 ChatContext: Opening chat for user:', user.id);

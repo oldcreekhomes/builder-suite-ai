@@ -3,12 +3,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IssuesList } from "@/components/issues/IssuesList";
-import { useBrowserTitle } from "@/hooks/useBrowserTitle";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 const Issues = () => {
-  useBrowserTitle();
   const { data: issueCounts = {} } = useIssueCounts();
 
   const categories = [
