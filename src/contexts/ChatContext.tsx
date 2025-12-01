@@ -41,7 +41,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
     
     if (totalUnread > 0) {
-      document.title = `(${totalUnread}) ${baseTitle}`;
+      document.title = `${baseTitle} (${totalUnread})`;
     } else {
       document.title = baseTitle;
     }
