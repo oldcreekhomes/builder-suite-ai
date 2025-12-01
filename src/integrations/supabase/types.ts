@@ -3032,8 +3032,6 @@ export type Database = {
           created_at: string
           id: string
           receive_bill_payment_alerts: boolean
-          sound_notifications_enabled: boolean
-          toast_notifications_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -3049,8 +3047,6 @@ export type Database = {
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
-          sound_notifications_enabled?: boolean
-          toast_notifications_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -3066,8 +3062,6 @@ export type Database = {
           created_at?: string
           id?: string
           receive_bill_payment_alerts?: boolean
-          sound_notifications_enabled?: boolean
-          toast_notifications_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
