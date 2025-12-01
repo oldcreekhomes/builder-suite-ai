@@ -106,8 +106,8 @@ export const useChatNotifications = () => {
             [senderId]: (prev[senderId] || 0) + 1,
           }));
 
-          // Show browser notification if enabled and tab is not focused
-          if (preferences.browser_notifications_enabled && permission === 'granted' && document.hidden) {
+          // Show browser notification if enabled
+          if (preferences.browser_notifications_enabled && permission === 'granted') {
             try {
               // Fetch sender name
               const { data: sender } = await supabase
