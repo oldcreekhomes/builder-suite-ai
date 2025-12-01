@@ -3435,6 +3435,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      users_in_same_company: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
