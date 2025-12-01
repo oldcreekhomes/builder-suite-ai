@@ -23,17 +23,40 @@ function CustomCaption({ displayMonth }: { displayMonth: Date }) {
     "July", "August", "September", "October", "November", "December"
   ];
   
-  const years = Array.from(
-    { length: 13 },
-    (_, i) => currentYear - 2 + i
-  );
+  const years = [2025, 2026, 2027, 2028, 2029, 2030];
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-center pt-1 relative items-center">
+      <div className="flex justify-center pt-1 relative items-center w-full">
+        <button
+          onClick={() => {
+            const newDate = new Date(displayMonth);
+            newDate.setMonth(newDate.getMonth() - 1);
+            goToMonth(newDate);
+          }}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
+          )}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
         <div className="text-sm font-medium">
           {months[displayMonth.getMonth()]} {displayMonth.getFullYear()}
         </div>
+        <button
+          onClick={() => {
+            const newDate = new Date(displayMonth);
+            newDate.setMonth(newDate.getMonth() + 1);
+            goToMonth(newDate);
+          }}
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
+          )}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
       <div className="flex justify-center gap-2">
         <Select
@@ -47,7 +70,7 @@ function CustomCaption({ displayMonth }: { displayMonth: Date }) {
           <SelectTrigger className="h-8 w-[130px]">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-none">
             {months.map((month, index) => (
               <SelectItem key={month} value={index.toString()}>
                 {month}
