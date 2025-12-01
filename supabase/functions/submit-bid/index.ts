@@ -70,10 +70,13 @@ const handler = async (req: Request): Promise<Response> => {
     // Validate due date
     if (bidPackageData?.due_date) {
       const dueDate = new Date(bidPackageData.due_date);
+      // Set due date to end of day (23:59:59.999) to allow submissions all day
+      dueDate.setHours(23, 59, 59, 999);
       const now = new Date();
       
       console.log('Due date check:', {
-        dueDate: dueDate.toISOString(),
+        originalDueDate: bidPackageData.due_date,
+        dueDateEndOfDay: dueDate.toISOString(),
         now: now.toISOString(),
         isPastDue: now > dueDate
       });
