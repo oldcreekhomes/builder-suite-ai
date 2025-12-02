@@ -85,6 +85,27 @@ export function InlineEditCell({
     }
   };
 
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    
+    // Remove all non-digit characters
+    const digitsOnly = input.replace(/\D/g, '');
+    
+    // Limit to 8 digits (MMDDYYYY)
+    const limited = digitsOnly.slice(0, 8);
+    
+    // Auto-insert slashes
+    let formatted = '';
+    for (let i = 0; i < limited.length; i++) {
+      if (i === 2 || i === 4) {
+        formatted += '/';
+      }
+      formatted += limited[i];
+    }
+    
+    setManualDateInput(formatted);
+  };
+
   const handleManualDateSubmit = () => {
     if (!manualDateInput.trim()) return;
     
@@ -156,7 +177,7 @@ export function InlineEditCell({
               <Input
                 type="text"
                 value={manualDateInput}
-                onChange={(e) => setManualDateInput(e.target.value)}
+                onChange={handleDateInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -168,9 +189,6 @@ export function InlineEditCell({
                 autoFocus={false}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Type date or pick below
-            </p>
           </div>
           <Calendar
             mode="single"
