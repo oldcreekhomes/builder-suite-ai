@@ -671,12 +671,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           <td className="p-3">
                             <div className="flex items-center gap-2">
                               {rec.status === 'completed' ? (
-                                <>
-                                  <Lock className="h-4 w-4 text-muted-foreground" />
-                                  <Badge className="bg-green-500 hover:bg-green-600">
-                                    Completed
-                                  </Badge>
-                                </>
+                                <Badge className="bg-green-500 hover:bg-green-600">
+                                  Completed
+                                </Badge>
                               ) : (
                                 <Badge variant="secondary">
                                   In Progress
@@ -726,7 +723,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                           isLatestCompleted(rec) ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"
                                         )}
                                       >
-                                        <Unlock className="h-4 w-4" />
+                                        <Lock className="h-4 w-4" />
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
