@@ -21,6 +21,7 @@ import { ProjectTask } from "@/hooks/useProjectTasks";
 import { getTasksWithDependency, validateStartDateAgainstPredecessors } from "@/utils/predecessorValidation";
 import { addPendingUpdate } from "@/hooks/useProjectTasks";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useScheduleUndo } from "@/hooks/useScheduleUndo";
 // Simplified hierarchy imports - only basic functions
 import { getLevel, generateIndentHierarchy, generateIndentUpdates } from "@/utils/hierarchyUtils";
 import { computeBulkDeleteUpdates, computeDeleteUpdates } from "@/utils/deleteTaskLogic";
@@ -37,6 +38,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { captureState, undo, canUndo, isUndoing } = useScheduleUndo(projectId, user?.id);
   
   // Flag to prevent infinite loops during normalization
   const hasNormalizedRef = useRef(false);
@@ -278,6 +280,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     // Capture original tasks before any optimistic updates
     const originalTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
+    
+    // Capture state for undo
+    captureState(originalTasks);
     const result = computeDragDropUpdates(draggedTask, targetTask, dropPosition, originalTasks);
     
     if (result.hierarchyUpdates.length === 0) {
@@ -349,6 +354,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     
     // OPTIMISTIC UPDATE: Immediately update cache for instant UI feedback
     const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+    
+    // Capture state for undo before making changes
+    captureState(currentTasks);
     
     // Validate start date against predecessor end dates BEFORE any updates
     if (updates.start_date) {
@@ -500,6 +508,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     const task = tasks?.find(t => t.id === taskId);
     if (!task || !tasks || !user) return;
     
+    // Capture state for undo
+    captureState(tasks);
+    
     // Import the new function
     const { generateIndentUpdates } = await import("@/utils/hierarchyUtils");
     const updates = generateIndentUpdates(task, tasks);
@@ -543,6 +554,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const handleOutdent = async (taskId: string) => {
     const task = tasks?.find(t => t.id === taskId);
     if (!task || !tasks || !user) return;
+    
+    // Capture state for undo
+    captureState(tasks);
     
     // Import the outdent logic
     const { computeOutdentUpdates } = await import("@/utils/outdentLogic");
@@ -744,6 +758,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         return;
       }
 
+      // Capture state for undo
+      captureState(tasks);
+
       // Import the add above logic
       const { calculateAddAboveUpdates } = await import('@/utils/addAboveLogic');
       
@@ -912,6 +929,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         toast({ title: "Error", description: "Invalid task selected", variant: "destructive" });
         return;
       }
+
+      // Capture state for undo
+      captureState(tasks);
 
       // Import the add below logic
       const { calculateAddBelowUpdates } = await import('@/utils/addBelowLogic');
@@ -1091,6 +1111,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       setPendingDelete({ taskId, dependentTasks });
       return;
     }
+
+    // Capture state for undo before deletion
+    captureState(tasks);
 
     try {
       // Import delete logic here to avoid circular dependencies
@@ -1274,6 +1297,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       toast({ title: "Error", description: "No tasks selected", variant: "destructive" });
       return;
     }
+
+    // Capture state for undo before deletion
+    captureState(tasks);
 
     const selectedTaskIds = Array.from(selectedTasks);
     
@@ -1602,6 +1628,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onToggleExpandCollapse={handleToggleExpandCollapse}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
+          onUndo={undo}
+          canUndo={canUndo}
+          isUndoing={isUndoing}
         />
         
         <UnifiedScheduleTable
