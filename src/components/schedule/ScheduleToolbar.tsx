@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2 } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -14,6 +14,9 @@ interface ScheduleToolbarProps {
   onToggleExpandCollapse: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
+  onUndo: () => void;
+  canUndo: boolean;
+  isUndoing?: boolean;
 }
 
 export function ScheduleToolbar({ 
@@ -26,7 +29,10 @@ export function ScheduleToolbar({
   allExpanded,
   onToggleExpandCollapse,
   onZoomIn,
-  onZoomOut
+  onZoomOut,
+  onUndo,
+  canUndo,
+  isUndoing
 }: ScheduleToolbarProps) {
 
   return (
@@ -38,6 +44,16 @@ export function ScheduleToolbar({
       >
         <Plus className="h-4 w-4" />
         <span>Add</span>
+      </Button>
+
+      <Button
+        onClick={onUndo}
+        size="sm"
+        variant="outline"
+        disabled={!canUndo || isUndoing}
+      >
+        <Undo2 className="h-4 w-4" />
+        <span>Undo</span>
       </Button>
 
       <Button
