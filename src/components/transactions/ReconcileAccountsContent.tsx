@@ -63,6 +63,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
 
   const { 
     useReconciliationTransactions,
@@ -157,6 +158,16 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       return;
     }
 
+    // Validate statement date is after last completed reconciliation
+    if (lastCompletedDate && statementDate <= lastCompletedDate) {
+      toast({
+        title: "Invalid Date",
+        description: `Statement date must be after ${format(lastCompletedDate, "PP")} (last reconciliation date).`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const reconciliationData = {
         owner_id: user!.id,
@@ -187,6 +198,16 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
   const handleFinishReconciliation = async () => {
     if (!selectedBankAccountId || !statementDate) {
+      return;
+    }
+
+    // Validate statement date is after last completed reconciliation
+    if (lastCompletedDate && statementDate <= lastCompletedDate) {
+      toast({
+        title: "Invalid Date",
+        description: `Statement date must be after ${format(lastCompletedDate, "PP")} (last reconciliation date).`,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -279,6 +300,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       // Reset to $0 when no history at all
       setBeginningBalance("0");
       setCurrentReconciliationId(null);
+      setLastCompletedDate(null);
       return;
     }
 
@@ -288,6 +310,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     
     // Beginning balance ALWAYS comes from last completed reconciliation (or $0 if none)
     const correctBeginningBalance = lastCompleted?.statement_ending_balance ?? 0;
+    
+    // Track last completed date for calendar validation
+    if (lastCompleted) {
+      setLastCompletedDate(new Date(lastCompleted.statement_date));
+    } else {
+      setLastCompletedDate(null);
+    }
 
     if (inProgress) {
       setCurrentReconciliationId(inProgress.id);
@@ -402,6 +431,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   onSelect={setStatementDate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
+                  disabled={(date) => {
+                    // Disable dates on or before the last completed reconciliation
+                    if (lastCompletedDate) {
+                      return date <= lastCompletedDate;
+                    }
+                    return false;
+                  }}
                 />
               </PopoverContent>
             </Popover>
