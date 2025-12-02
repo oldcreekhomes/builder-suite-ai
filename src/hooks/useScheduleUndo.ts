@@ -38,101 +38,76 @@ export function useScheduleUndo(projectId: string, userId: string | undefined) {
     setIsUndoing(true);
     const previousState = undoStack[undoStack.length - 1];
     
+    // STEP 1: INSTANT UI UPDATE (optimistic)
+    // Update cache immediately so user sees change right away
+    queryClient.setQueryData(
+      ['project-tasks', projectId, userId],
+      previousState.tasks
+    );
+    
+    // Remove from undo stack immediately
+    setUndoStack(prev => prev.slice(0, -1));
+    
+    toast({ title: "Undone", description: "Last change reverted" });
+    
+    // STEP 2: BACKGROUND DATABASE SYNC
     try {
-      // Get current tasks to compare
+      // Get current tasks to find what needs deleting
       const { data: currentTasks } = await supabase
         .from('project_schedule_tasks')
-        .select('*')
+        .select('id')
         .eq('project_id', projectId);
       
-      if (!currentTasks) throw new Error('Failed to fetch current tasks');
+      const previousIds = new Set(previousState.tasks.map(t => t.id));
+      const currentIds = new Set(currentTasks?.map(t => t.id) || []);
       
-      // Build maps for comparison
-      const previousMap = new Map(previousState.tasks.map(t => [t.id, t]));
-      const currentMap = new Map(currentTasks.map(t => [t.id, t]));
+      // Find tasks to delete (in current but not in previous)
+      const toDelete = [...currentIds].filter(id => !previousIds.has(id));
       
-      // Find tasks that need updating (exist in both, but different)
-      const updates: any[] = [];
-      for (const prevTask of previousState.tasks) {
-        if (currentMap.has(prevTask.id)) {
-          updates.push({
-            id: prevTask.id,
-            task_name: prevTask.task_name,
-            start_date: prevTask.start_date,
-            end_date: prevTask.end_date,
-            duration: prevTask.duration,
-            progress: prevTask.progress,
-            predecessor: prevTask.predecessor,
-            resources: prevTask.resources,
-            hierarchy_number: prevTask.hierarchy_number,
-            notes: prevTask.notes,
-            updated_at: new Date().toISOString()
-          });
-        }
-      }
+      // Batch operations in parallel
+      const operations = [];
       
-      // Find tasks to delete (exist in current, not in previous)
-      const deletes: string[] = [];
-      for (const currentTask of currentTasks) {
-        if (!previousMap.has(currentTask.id)) {
-          deletes.push(currentTask.id);
-        }
-      }
-      
-      // Find tasks to insert (exist in previous, not in current)
-      const inserts: any[] = [];
-      for (const prevTask of previousState.tasks) {
-        if (!currentMap.has(prevTask.id)) {
-          inserts.push({
-            id: prevTask.id,
-            project_id: projectId,
-            task_name: prevTask.task_name,
-            start_date: prevTask.start_date,
-            end_date: prevTask.end_date,
-            duration: prevTask.duration,
-            progress: prevTask.progress,
-            predecessor: prevTask.predecessor,
-            resources: prevTask.resources,
-            hierarchy_number: prevTask.hierarchy_number,
-            notes: prevTask.notes
-          });
-        }
-      }
-      
-      // Execute updates in order
-      if (deletes.length > 0) {
-        await supabase
-          .from('project_schedule_tasks')
-          .delete()
-          .in('id', deletes);
-      }
-      
-      if (inserts.length > 0) {
-        await supabase
-          .from('project_schedule_tasks')
-          .insert(inserts);
-      }
-      
-      if (updates.length > 0) {
-        for (const update of updates) {
-          await supabase
+      // Delete new tasks that shouldn't exist
+      if (toDelete.length > 0) {
+        operations.push(
+          supabase
             .from('project_schedule_tasks')
-            .update(update)
-            .eq('id', update.id);
-        }
+            .delete()
+            .in('id', toDelete)
+        );
       }
       
-      // Remove the undone state from stack
-      setUndoStack(prev => prev.slice(0, -1));
+      // Upsert all previous tasks (handles both inserts and updates in ONE call)
+      if (previousState.tasks.length > 0) {
+        const tasksToUpsert = previousState.tasks.map(t => ({
+          id: t.id,
+          project_id: projectId,
+          task_name: t.task_name,
+          start_date: t.start_date,
+          end_date: t.end_date,
+          duration: t.duration,
+          progress: t.progress,
+          predecessor: t.predecessor,
+          resources: t.resources,
+          hierarchy_number: t.hierarchy_number,
+          notes: t.notes,
+          updated_at: new Date().toISOString()
+        }));
+        
+        operations.push(
+          supabase
+            .from('project_schedule_tasks')
+            .upsert(tasksToUpsert, { onConflict: 'id' })
+        );
+      }
       
-      // Invalidate cache to refresh UI
-      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, userId] });
-      
-      toast({ title: "Undone", description: "Last change reverted" });
+      // Execute all operations in parallel
+      await Promise.all(operations);
       
     } catch (error) {
-      console.error('Undo failed:', error);
-      toast({ title: "Error", description: "Failed to undo", variant: "destructive" });
+      console.error('Undo sync failed:', error);
+      // Refetch to ensure consistency if background sync fails
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, userId] });
     } finally {
       setIsUndoing(false);
     }
