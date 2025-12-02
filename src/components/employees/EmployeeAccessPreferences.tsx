@@ -169,6 +169,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-undo-reconciliation" className="text-sm font-normal cursor-pointer">
+                Undo Reconciliation
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to reverse completed bank reconciliations and make transactions editable again
+              </p>
+            </div>
+            <Switch
+              id="can-undo-reconciliation"
+              checked={preferences.can_undo_reconciliation}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_undo_reconciliation: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 

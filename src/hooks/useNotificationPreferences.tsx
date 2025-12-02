@@ -15,6 +15,7 @@ export interface NotificationPreferences {
   can_access_employees: boolean;
   can_close_books: boolean;
   can_lock_budgets: boolean;
+  can_undo_reconciliation: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -27,6 +28,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_access_employees: false,
   can_close_books: false,
   can_lock_budgets: false,
+  can_undo_reconciliation: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {
