@@ -15,7 +15,9 @@ import { useBankReconciliation } from "@/hooks/useBankReconciliation";
 import { format, addMonths, endOfMonth, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +45,7 @@ const BankReconciliation = () => {
   const [notes, setNotes] = useState<string>("");
   const [checkedTransactions, setCheckedTransactions] = useState<Set<string>>(new Set());
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { 
     useReconciliationTransactions,
@@ -552,6 +555,59 @@ const BankReconciliation = () => {
                 </>
               )}
             </Card>
+
+            {/* Reconciliation History */}
+            {selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0 && (
+              <Collapsible open={historyOpen} onOpenChange={setHistoryOpen} className="mt-6">
+                <Card>
+                  <CollapsibleTrigger className="w-full">
+                    <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
+                      <h3 className="text-lg font-semibold">Reconciliation History</h3>
+                      {historyOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-4 pt-0">
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="p-2 text-left">Statement Date</th>
+                              <th className="p-2 text-right">Beginning Balance</th>
+                              <th className="p-2 text-right">Ending Balance</th>
+                              <th className="p-2 text-right">Difference</th>
+                              <th className="p-2 text-center">Status</th>
+                              <th className="p-2 text-left">Notes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reconciliationHistory.map((rec: any) => (
+                              <tr key={rec.id} className="border-t">
+                                <td className="p-2">{format(new Date(rec.statement_date), "MM/dd/yyyy")}</td>
+                                <td className="p-2 text-right">{formatCurrency(rec.statement_beginning_balance)}</td>
+                                <td className="p-2 text-right">{formatCurrency(rec.statement_ending_balance)}</td>
+                                <td className={cn(
+                                  "p-2 text-right",
+                                  Math.abs(rec.difference) < 0.01 ? "text-green-600" : "text-red-600"
+                                )}>
+                                  {formatCurrency(rec.difference)}
+                                </td>
+                                <td className="p-2 text-center">
+                                  <Badge variant={rec.status === 'completed' ? 'default' : 'secondary'}>
+                                    {rec.status === 'completed' ? 'Completed' : 'In Progress'}
+                                  </Badge>
+                                </td>
+                                <td className="p-2 text-sm text-muted-foreground">{rec.notes || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            )}
           </div>
         </div>
       </div>
