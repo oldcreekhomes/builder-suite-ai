@@ -9,10 +9,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
+import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, Unlock, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,23 @@ import {
 import { InlineEditCell } from "@/components/schedule/InlineEditCell";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReconcileAccountsContentProps {
   projectId?: string;
@@ -56,7 +73,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     updateCheckTransaction,
     updateDepositTransaction,
     updateBillPaymentTransaction,
+    undoReconciliation,
   } = useBankReconciliation();
+  
+  const { canUndoReconciliation } = useUndoReconciliationPermissions();
+  const { toast } = useToast();
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false);
+  const [selectedReconciliationToUndo, setSelectedReconciliationToUndo] = useState<any>(null);
 
   const { 
     data: reconciliationHistory,
@@ -280,6 +303,40 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  // Check if this is the most recent completed reconciliation
+  const isLatestCompleted = (rec: any) => {
+    if (rec.status !== 'completed') return false;
+    const completedRecs = reconciliationHistory
+      ?.filter((r: any) => r.status === 'completed')
+      .sort((a: any, b: any) => new Date(b.statement_date).getTime() - new Date(a.statement_date).getTime());
+    return completedRecs?.[0]?.id === rec.id;
+  };
+
+  const handleUndoReconciliation = (rec: any) => {
+    setSelectedReconciliationToUndo(rec);
+    setUndoDialogOpen(true);
+  };
+
+  const confirmUndoReconciliation = async () => {
+    if (!selectedReconciliationToUndo) return;
+    try {
+      await undoReconciliation.mutateAsync(selectedReconciliationToUndo.id);
+      toast({
+        title: "Reconciliation undone",
+        description: "The reconciliation has been successfully reversed.",
+      });
+      setUndoDialogOpen(false);
+      setSelectedReconciliationToUndo(null);
+    } catch (error) {
+      console.error('Error undoing reconciliation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to undo reconciliation.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -600,6 +657,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       <th className="p-3 text-right">Difference</th>
                       <th className="p-3 text-left">Completed Date</th>
                       <th className="p-3 text-left">Notes</th>
+                      {canUndoReconciliation && <th className="p-3 text-center">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -611,15 +669,20 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             {format(new Date(rec.statement_date), "MM/dd/yyyy")}
                           </td>
                           <td className="p-3">
-                            {rec.status === 'completed' ? (
-                              <Badge className="bg-green-500 hover:bg-green-600">
-                                Completed
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">
-                                In Progress
-                              </Badge>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {rec.status === 'completed' ? (
+                                <>
+                                  <Lock className="h-4 w-4 text-muted-foreground" />
+                                  <Badge className="bg-green-500 hover:bg-green-600">
+                                    Completed
+                                  </Badge>
+                                </>
+                              ) : (
+                                <Badge variant="secondary">
+                                  In Progress
+                                </Badge>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3 text-right">
                             {formatCurrency(rec.statement_beginning_balance || 0)}
@@ -647,6 +710,35 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           <td className="p-3 text-sm text-muted-foreground">
                             {rec.notes || "-"}
                           </td>
+                          {canUndoReconciliation && (
+                            <td className="p-3 text-center">
+                              {rec.status === 'completed' && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleUndoReconciliation(rec)}
+                                        disabled={!isLatestCompleted(rec)}
+                                        className={cn(
+                                          "h-8 w-8 p-0",
+                                          isLatestCompleted(rec) ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"
+                                        )}
+                                      >
+                                        <Unlock className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {isLatestCompleted(rec) 
+                                        ? "Undo this reconciliation" 
+                                        : "Only the most recent completed reconciliation can be undone"}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       ))}
                   </tbody>
@@ -656,6 +748,33 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </Collapsible>
         </Card>
       )}
+
+      {/* Undo Reconciliation Confirmation Dialog */}
+      <AlertDialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo Reconciliation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark all transactions from this reconciliation as unreconciled and delete the reconciliation record. 
+              This action cannot be undone.
+              {selectedReconciliationToUndo && (
+                <div className="mt-2 text-sm">
+                  <strong>Statement Date:</strong> {format(new Date(selectedReconciliationToUndo.statement_date), "MM/dd/yyyy")}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmUndoReconciliation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Undo Reconciliation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
