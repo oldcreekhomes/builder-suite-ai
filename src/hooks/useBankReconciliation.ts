@@ -587,6 +587,70 @@ export const useBankReconciliation = () => {
     },
   });
 
+  // Undo reconciliation - reverses all transactions and deletes the reconciliation record
+  const undoReconciliation = useMutation({
+    mutationFn: async (reconciliationId: string) => {
+      // 1. Update checks: set reconciled=false, reconciliation_id=null, reconciliation_date=null
+      const { error: checksError } = await supabase
+        .from('checks')
+        .update({ 
+          reconciled: false, 
+          reconciliation_id: null, 
+          reconciliation_date: null 
+        })
+        .eq('reconciliation_id', reconciliationId);
+      
+      if (checksError) throw checksError;
+
+      // 2. Update deposits: same pattern
+      const { error: depositsError } = await supabase
+        .from('deposits')
+        .update({ 
+          reconciled: false, 
+          reconciliation_id: null, 
+          reconciliation_date: null 
+        })
+        .eq('reconciliation_id', reconciliationId);
+      
+      if (depositsError) throw depositsError;
+
+      // 3. Update bills: same pattern
+      const { error: billsError } = await supabase
+        .from('bills')
+        .update({ 
+          reconciled: false, 
+          reconciliation_id: null, 
+          reconciliation_date: null 
+        })
+        .eq('reconciliation_id', reconciliationId);
+      
+      if (billsError) throw billsError;
+
+      // 4. Delete the reconciliation record
+      const { error: deleteError } = await supabase
+        .from('bank_reconciliations')
+        .delete()
+        .eq('id', reconciliationId);
+      
+      if (deleteError) throw deleteError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      toast({
+        title: "Reconciliation Undone",
+        description: "The reconciliation has been reversed and transactions are now editable.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     useReconciliationTransactions,
     createReconciliation,
@@ -598,5 +662,6 @@ export const useBankReconciliation = () => {
     updateCheckTransaction,
     updateDepositTransaction,
     updateBillPaymentTransaction,
+    undoReconciliation,
   };
 };

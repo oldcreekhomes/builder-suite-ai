@@ -15,7 +15,24 @@ import { useBankReconciliation } from "@/hooks/useBankReconciliation";
 import { format, addMonths, endOfMonth, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, ChevronDown, ChevronRight, Lock, Unlock } from "lucide-react";
+import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -56,7 +73,12 @@ const BankReconciliation = () => {
     updateCheckTransaction,
     updateDepositTransaction,
     updateBillPaymentTransaction,
+    undoReconciliation,
   } = useBankReconciliation();
+
+  const { canUndoReconciliation } = useUndoReconciliationPermissions();
+  const [undoDialogOpen, setUndoDialogOpen] = useState(false);
+  const [selectedReconciliationToUndo, setSelectedReconciliationToUndo] = useState<any>(null);
 
   const { 
     data: reconciliationHistory,
@@ -277,6 +299,29 @@ const BankReconciliation = () => {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  // Check if a reconciliation is the most recent completed one
+  const isLatestCompleted = (rec: any) => {
+    if (rec.status !== 'completed') return false;
+    const completedRecs = reconciliationHistory?.filter((r: any) => r.status === 'completed') || [];
+    return completedRecs[0]?.id === rec.id;
+  };
+
+  const handleUndoReconciliation = (rec: any) => {
+    setSelectedReconciliationToUndo(rec);
+    setUndoDialogOpen(true);
+  };
+
+  const confirmUndoReconciliation = async () => {
+    if (!selectedReconciliationToUndo) return;
+    try {
+      await undoReconciliation.mutateAsync(selectedReconciliationToUndo.id);
+      setUndoDialogOpen(false);
+      setSelectedReconciliationToUndo(null);
+    } catch (error) {
+      console.error('Error undoing reconciliation:', error);
+    }
   };
 
   return (
@@ -578,6 +623,7 @@ const BankReconciliation = () => {
                               <th className="p-2 text-right">Difference</th>
                               <th className="p-2 text-center">Status</th>
                               <th className="p-2 text-left">Notes</th>
+                              {canUndoReconciliation && <th className="p-2 text-center">Actions</th>}
                             </tr>
                           </thead>
                           <tbody>
@@ -593,11 +639,42 @@ const BankReconciliation = () => {
                                   {formatCurrency(rec.difference)}
                                 </td>
                                 <td className="p-2 text-center">
-                                  <Badge variant={rec.status === 'completed' ? 'default' : 'secondary'}>
-                                    {rec.status === 'completed' ? 'Completed' : 'In Progress'}
-                                  </Badge>
+                                  <div className="flex items-center justify-center gap-1">
+                                    {rec.status === 'completed' && (
+                                      <Lock className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <Badge variant={rec.status === 'completed' ? 'default' : 'secondary'}>
+                                      {rec.status === 'completed' ? 'Completed' : 'In Progress'}
+                                    </Badge>
+                                  </div>
                                 </td>
                                 <td className="p-2 text-sm text-muted-foreground">{rec.notes || '-'}</td>
+                                {canUndoReconciliation && (
+                                  <td className="p-2 text-center">
+                                    {rec.status === 'completed' && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleUndoReconciliation(rec)}
+                                              disabled={!isLatestCompleted(rec) || undoReconciliation.isPending}
+                                              className="h-8 w-8 p-0"
+                                            >
+                                              <Unlock className="h-4 w-4" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            {isLatestCompleted(rec) 
+                                              ? "Undo this reconciliation" 
+                                              : "Must undo most recent reconciliation first"}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
@@ -611,6 +688,30 @@ const BankReconciliation = () => {
           </div>
         </div>
       </div>
+
+      {/* Undo Reconciliation Confirmation Dialog */}
+      <AlertDialog open={undoDialogOpen} onOpenChange={setUndoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo Reconciliation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reverse the reconciliation for{' '}
+              {selectedReconciliationToUndo && format(new Date(selectedReconciliationToUndo.statement_date), "MM/dd/yyyy")}.
+              All transactions will be marked as unreconciled and become editable again.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmUndoReconciliation}
+              disabled={undoReconciliation.isPending}
+            >
+              {undoReconciliation.isPending ? "Processing..." : "Undo Reconciliation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 };
