@@ -54,6 +54,17 @@ export function InlineEditCell({
     }
   }, [isEditing, type]);
 
+  // Pre-fill manual date input when calendar opens with existing date
+  useEffect(() => {
+    if (showCalendar && type === "date" && value && String(value).trim()) {
+      // value is in YYYY-MM-DD format, convert to MM/DD/YYYY
+      const dateObj = new Date(value + "T12:00:00");
+      if (isValid(dateObj)) {
+        setManualDateInput(format(dateObj, "MM/dd/yyyy"));
+      }
+    }
+  }, [showCalendar, type, value]);
+
   const handleSave = () => {
     // Handle empty values for number inputs
     let saveValue = editValue;
