@@ -81,6 +81,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { toast } = useToast();
   const [undoDialogOpen, setUndoDialogOpen] = useState(false);
   const [selectedReconciliationToUndo, setSelectedReconciliationToUndo] = useState<any>(null);
+  const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
+  const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
 
   const { 
     data: reconciliationHistory,
@@ -221,10 +223,18 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     const uncheckedDeposits = transactions?.deposits.filter(d => !d.reconciled && !checkedTransactions.has(d.id)) || [];
     
     if ((uncheckedChecks.length > 0 || uncheckedDeposits.length > 0) && Math.abs(difference) < 0.01) {
-      const message = `Warning: You have ${uncheckedChecks.length} unchecked check(s)/bill payment(s) and ${uncheckedDeposits.length} unchecked deposit(s), but the difference is $0.00.\n\nThis may indicate that transactions were manually adjusted to balance without being properly reconciled.\n\nAre you sure you want to complete this reconciliation?`;
-      if (!confirm(message)) {
-        return;
-      }
+      const message = `You have ${uncheckedChecks.length} unchecked check(s)/bill payment(s) and ${uncheckedDeposits.length} unchecked deposit(s), but the difference is $0.00. This may indicate that transactions were manually adjusted to balance without being properly reconciled.`;
+      setUncheckedWarningMessage(message);
+      setUncheckedWarningDialogOpen(true);
+      return;
+    }
+
+    await completeReconciliation();
+  };
+
+  const completeReconciliation = async () => {
+    if (!selectedBankAccountId || !statementDate) {
+      return;
     }
 
     try {
@@ -288,9 +298,26 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       }
 
       await Promise.all(promises);
-      navigate(`/project/${projectId}/accounting`);
+      
+      // Show success toast and reset form for next month
+      toast({
+        title: "Reconciliation Completed",
+        description: "The reconciliation has been saved successfully. You can now start the next month.",
+      });
+      
+      // Reset form for next month
+      setEndingBalance("");
+      setNotes("");
+      setCurrentReconciliationId(null);
+      setCheckedTransactions(new Set());
+      // The useEffect will automatically populate the new beginning balance and statement date
     } catch (error) {
       console.error('Error completing reconciliation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete reconciliation. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -797,6 +824,32 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Undo Reconciliation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Unchecked Transactions Warning Dialog */}
+      <AlertDialog open={uncheckedWarningDialogOpen} onOpenChange={setUncheckedWarningDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Warning: Unchecked Transactions</AlertDialogTitle>
+            <AlertDialogDescription>
+              {uncheckedWarningMessage}
+              <div className="mt-3 font-medium">
+                Are you sure you want to complete this reconciliation?
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setUncheckedWarningDialogOpen(false);
+                completeReconciliation();
+              }}
+            >
+              Continue
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
