@@ -322,6 +322,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setCurrentReconciliationId(inProgress.id);
       setBeginningBalance(String(correctBeginningBalance));
       setStatementDate(new Date(inProgress.statement_date));
+      setEndingBalance(String(inProgress.statement_ending_balance || ""));
+      setNotes(inProgress.notes || "");
       return;
     }
 
@@ -698,7 +700,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   <thead className="bg-muted">
                     <tr>
                       <th className="p-3 text-left">Statement Date</th>
-                      <th className="p-3 text-left">Status</th>
                       <th className="p-3 text-right">Beginning Balance</th>
                       <th className="p-3 text-right">Ending Balance</th>
                       <th className="p-3 text-right">Difference</th>
@@ -709,24 +710,12 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   </thead>
                   <tbody>
                     {reconciliationHistory
+                      .filter((rec: any) => rec.status === 'completed')
                       .sort((a: any, b: any) => new Date(b.statement_date).getTime() - new Date(a.statement_date).getTime())
                       .map((rec: any) => (
                         <tr key={rec.id} className="border-t hover:bg-muted/50">
                           <td className="p-3">
                             {format(new Date(rec.statement_date), "MM/dd/yyyy")}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              {rec.status === 'completed' ? (
-                                <Badge className="bg-green-500 hover:bg-green-600">
-                                  Completed
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">
-                                  In Progress
-                                </Badge>
-                              )}
-                            </div>
                           </td>
                           <td className="p-3 text-right">
                             {formatCurrency(rec.statement_beginning_balance || 0)}
@@ -751,31 +740,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           </td>
                           {canUndoReconciliation && (
                             <td className="p-3 text-center">
-                              {rec.status === 'completed' && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleUndoReconciliation(rec)}
-                                        disabled={!isLatestCompleted(rec)}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleUndoReconciliation(rec)}
+                                      disabled={!isLatestCompleted(rec)}
                                       className={cn(
-                                          "h-8 w-8 p-0",
-                                          isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
-                                        )}
-                                      >
-                                        <Lock className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      {isLatestCompleted(rec) 
-                                        ? "Undo this reconciliation" 
-                                        : "Only the most recent completed reconciliation can be undone"}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
+                                        "h-8 w-8 p-0",
+                                        isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
+                                      )}
+                                    >
+                                      <Lock className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {isLatestCompleted(rec) 
+                                      ? "Undo this reconciliation" 
+                                      : "Only the most recent completed reconciliation can be undone"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </td>
                           )}
                         </tr>
