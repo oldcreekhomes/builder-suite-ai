@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { Input } from "@/components/ui/input";
+import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface InlineEditCellProps {
   value: string | number;
@@ -39,6 +41,7 @@ export function InlineEditCell({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(getEditValue());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [manualDateInput, setManualDateInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const spanRef = useRef<HTMLSpanElement>(null);
 
@@ -78,6 +81,41 @@ export function InlineEditCell({
       const formattedDate = format(adjustedDate, "yyyy-MM-dd");
       onSave(formattedDate);
       setShowCalendar(false);
+      setManualDateInput("");
+    }
+  };
+
+  const handleManualDateSubmit = () => {
+    if (!manualDateInput.trim()) return;
+    
+    // Try to parse various date formats
+    const formats = ["MM/dd/yyyy", "M/d/yyyy", "MM-dd-yyyy", "M-d-yyyy"];
+    let parsedDate: Date | null = null;
+
+    for (const formatStr of formats) {
+      try {
+        const parsed = parse(manualDateInput, formatStr, new Date());
+        if (isValid(parsed)) {
+          parsedDate = parsed;
+          break;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (parsedDate && isValid(parsedDate)) {
+      parsedDate.setHours(12, 0, 0, 0);
+      const formattedDate = format(parsedDate, "yyyy-MM-dd");
+      onSave(formattedDate);
+      setShowCalendar(false);
+      setManualDateInput("");
+    } else {
+      toast({
+        title: "Invalid Date",
+        description: "Please enter a valid date (MM/DD/YYYY)",
+        variant: "destructive",
+      });
     }
   };
 
@@ -113,12 +151,32 @@ export function InlineEditCell({
         </span>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
+          <div className="p-3 border-b">
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={manualDateInput}
+                onChange={(e) => setManualDateInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleManualDateSubmit();
+                  }
+                }}
+                placeholder="MM/DD/YYYY"
+                className="h-8 w-full text-sm"
+                autoFocus={false}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Type date or pick below
+            </p>
+          </div>
           <Calendar
             mode="single"
             selected={getCalendarDate()}
             defaultMonth={getCalendarDate()}
             onSelect={handleDateSelect}
-            initialFocus
             className={cn("p-3 pointer-events-auto")}
           />
         </PopoverContent>
