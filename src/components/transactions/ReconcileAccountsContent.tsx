@@ -13,7 +13,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, Unlock, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -718,9 +718,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                         size="sm"
                                         onClick={() => handleUndoReconciliation(rec)}
                                         disabled={!isLatestCompleted(rec)}
-                                        className={cn(
+                                      className={cn(
                                           "h-8 w-8 p-0",
-                                          isLatestCompleted(rec) ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground"
+                                          isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
                                         )}
                                       >
                                         <Lock className="h-4 w-4" />
