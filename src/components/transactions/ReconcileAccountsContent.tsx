@@ -276,24 +276,35 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   // Auto-populate beginning balance and statement date from reconciliation history
   useEffect(() => {
     if (!selectedBankAccountId || !reconciliationHistory || reconciliationHistory.length === 0) {
+      // Reset to $0 when no history at all
+      setBeginningBalance("0");
+      setCurrentReconciliationId(null);
       return;
     }
 
-    // Find in-progress first
+    // Find in-progress and last completed
     const inProgress = reconciliationHistory.find((r: any) => r.status === 'in_progress');
+    const lastCompleted = reconciliationHistory.find((r: any) => r.status === 'completed');
+    
+    // Beginning balance ALWAYS comes from last completed reconciliation (or $0 if none)
+    const correctBeginningBalance = lastCompleted?.statement_ending_balance ?? 0;
+
     if (inProgress) {
       setCurrentReconciliationId(inProgress.id);
-      setBeginningBalance(String(inProgress.statement_beginning_balance ?? 0));
+      setBeginningBalance(String(correctBeginningBalance));
       setStatementDate(new Date(inProgress.statement_date));
       return;
     }
 
-    // Otherwise use last completed
-    const lastCompleted = reconciliationHistory.find((r: any) => r.status === 'completed');
+    // No in-progress, use last completed for date calculation
     if (lastCompleted) {
       setCurrentReconciliationId(null);
-      setBeginningBalance(String(lastCompleted.statement_ending_balance ?? 0));
+      setBeginningBalance(String(correctBeginningBalance));
       setStatementDate(endOfMonth(addMonths(new Date(lastCompleted.statement_date), 1)));
+    } else {
+      // No completed, no in-progress - start fresh at $0
+      setCurrentReconciliationId(null);
+      setBeginningBalance("0");
     }
   }, [selectedBankAccountId, reconciliationHistory]);
 
@@ -689,14 +700,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           </td>
                           <td className={cn(
                             "p-3 text-right font-medium",
-                            Math.abs(rec.difference || 0) < 0.01 ? "text-green-600" : "text-amber-600"
+                            Math.abs(rec.difference || 0) < 0.01 ? "text-green-600" : "text-red-600"
                           )}>
                             {formatCurrency(rec.difference || 0)}
-                            {Math.abs(rec.difference || 0) > 0.01 && (
-                              <Badge variant="outline" className="ml-2 text-amber-600 border-amber-600">
-                                Unbalanced
-                              </Badge>
-                            )}
                           </td>
                           <td className="p-3">
                             {rec.completed_at 

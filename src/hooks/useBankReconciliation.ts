@@ -590,6 +590,15 @@ export const useBankReconciliation = () => {
   // Undo reconciliation - reverses all transactions and deletes the reconciliation record
   const undoReconciliation = useMutation({
     mutationFn: async (reconciliationId: string) => {
+      // FIRST: Get the reconciliation details we're about to delete
+      const { data: recToUndo, error: fetchError } = await supabase
+        .from('bank_reconciliations')
+        .select('bank_account_id, project_id')
+        .eq('id', reconciliationId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+
       // 1. Update checks: set reconciled=false, reconciliation_id=null, reconciliation_date=null
       const { error: checksError } = await supabase
         .from('checks')
@@ -633,6 +642,40 @@ export const useBankReconciliation = () => {
         .eq('id', reconciliationId);
       
       if (deleteError) throw deleteError;
+
+      // 5. Find the NEW "last completed" reconciliation for this bank/project
+      let lastCompletedQuery = supabase
+        .from('bank_reconciliations')
+        .select('statement_ending_balance')
+        .eq('bank_account_id', recToUndo.bank_account_id)
+        .eq('status', 'completed')
+        .order('statement_date', { ascending: false })
+        .limit(1);
+      
+      if (recToUndo.project_id) {
+        lastCompletedQuery = lastCompletedQuery.eq('project_id', recToUndo.project_id);
+      } else {
+        lastCompletedQuery = lastCompletedQuery.is('project_id', null);
+      }
+      
+      const { data: lastCompleted } = await lastCompletedQuery.maybeSingle();
+      
+      // 6. Update any in-progress reconciliations with the correct beginning balance
+      const newBeginningBalance = lastCompleted?.statement_ending_balance ?? 0;
+      
+      let updateInProgressQuery = supabase
+        .from('bank_reconciliations')
+        .update({ statement_beginning_balance: newBeginningBalance })
+        .eq('bank_account_id', recToUndo.bank_account_id)
+        .eq('status', 'in_progress');
+      
+      if (recToUndo.project_id) {
+        updateInProgressQuery = updateInProgressQuery.eq('project_id', recToUndo.project_id);
+      } else {
+        updateInProgressQuery = updateInProgressQuery.is('project_id', null);
+      }
+      
+      await updateInProgressQuery;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
