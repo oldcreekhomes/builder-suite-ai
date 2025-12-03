@@ -44,6 +44,13 @@ export const useSimpleChat = () => {
         },
         async (payload) => {
           const message = payload.new as any;
+          
+          // Validate essential fields exist to prevent crashes
+          if (!message?.id || !message?.sender_id) {
+            console.warn('💬 Chat: Received invalid message payload, skipping:', message);
+            return;
+          }
+          
           // Only add if from the selected user
           if (message.sender_id === selectedUser.id) {
             console.log('💬 Chat: New message received via realtime');
@@ -58,7 +65,8 @@ export const useSimpleChat = () => {
             const enrichedMessage = {
               ...message,
               sender_name: sender ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
-              sender_avatar: sender?.avatar_url || null
+              sender_avatar: sender?.avatar_url || null,
+              created_at: message.created_at || new Date().toISOString() // Fallback for missing timestamp
             };
 
             addMessage(enrichedMessage);
