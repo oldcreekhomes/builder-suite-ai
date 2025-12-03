@@ -1517,7 +1517,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         }));
         await bulkUpdatePredecessors.mutateAsync({ 
           updates: predecessorUpdates, 
-          options: { suppressInvalidate: true } 
+          options: { suppressInvalidate: true, skipValidation: true } 
         });
       }
       
@@ -1557,7 +1557,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         }));
         await bulkUpdatePredecessors.mutateAsync({ 
           updates: predecessorNormUpdates, 
-          options: { suppressInvalidate: true } 
+          options: { suppressInvalidate: true, skipValidation: true } 
         });
       }
       
