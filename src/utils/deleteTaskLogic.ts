@@ -54,10 +54,12 @@ export const cleanupPredecessors = (
 
 /**
  * Remaps predecessor references when hierarchy numbers change
+ * Also prevents self-references by checking against the task's NEW hierarchy number
  */
 export const remapPredecessors = (
   allTasks: ProjectTask[],
-  hierarchyMapping: Map<string, string>
+  hierarchyMapping: Map<string, string>,
+  deletedHierarchyNumbers: string[] = []
 ): PredecessorUpdate[] => {
   const updates: PredecessorUpdate[] = [];
   
@@ -66,24 +68,48 @@ export const remapPredecessors = (
     
     const predecessors = safeParsePredecessors(task.predecessor);
     
-    // Remap predecessor hierarchy numbers
-    const remappedPredecessors = predecessors.map(predStr => {
-      const match = predStr.match(/^(.+?)([+-]\d+)?$/);
-      if (!match) return predStr;
-      
-      const predTaskId = match[1].trim();
-      const lag = match[2] || '';
-      
-      // Check if this predecessor's hierarchy changed
-      const newHierarchy = hierarchyMapping.get(predTaskId);
-      return newHierarchy ? `${newHierarchy}${lag}` : predStr;
-    });
+    // Get this task's NEW hierarchy number (after remapping)
+    const taskNewHierarchy = hierarchyMapping.get(task.hierarchy_number || '') || task.hierarchy_number;
+    
+    // First: remove deleted references, then remap remaining
+    let processedPredecessors = predecessors
+      // Step 1: Remove deleted hierarchy references
+      .filter(predStr => {
+        const match = predStr.match(/^(.+?)(?:[+-]\d+)?(?:FS|SS|SF|FF)?$/i);
+        if (!match) return true;
+        const predTaskId = match[1].trim().replace(/(FS|SS|SF|FF)$/i, '');
+        return !deletedHierarchyNumbers.includes(predTaskId);
+      })
+      // Step 2: Remap remaining predecessors
+      .map(predStr => {
+        const match = predStr.match(/^(.+?)([+-]\d+)?(FS|SS|SF|FF)?$/i);
+        if (!match) return predStr;
+        
+        const predTaskId = match[1].trim().replace(/(FS|SS|SF|FF)$/i, '');
+        const lag = match[2] || '';
+        const linkType = match[3] || (predStr.match(/(FS|SS|SF|FF)$/i)?.[1]) || '';
+        
+        // Check if this predecessor's hierarchy changed
+        const newHierarchy = hierarchyMapping.get(predTaskId);
+        return newHierarchy ? `${newHierarchy}${linkType}${lag}` : predStr;
+      })
+      // Step 3: CRITICAL - Remove any self-references (predecessor pointing to task's own NEW hierarchy)
+      .filter(predStr => {
+        const match = predStr.match(/^(.+?)(?:[+-]\d+)?(?:FS|SS|SF|FF)?$/i);
+        if (!match) return true;
+        const predTaskId = match[1].trim().replace(/(FS|SS|SF|FF)$/i, '');
+        const isSelfReference = predTaskId === taskNewHierarchy;
+        if (isSelfReference) {
+          console.log(`🚫 Preventing self-reference: Task ${task.hierarchy_number} (becoming ${taskNewHierarchy}) had predecessor ${predStr}`);
+        }
+        return !isSelfReference;
+      });
     
     // Only update if predecessors changed
-    if (JSON.stringify(predecessors) !== JSON.stringify(remappedPredecessors)) {
+    if (JSON.stringify(predecessors) !== JSON.stringify(processedPredecessors)) {
       updates.push({
         taskId: task.id,
-        newPredecessors: remappedPredecessors
+        newPredecessors: processedPredecessors
       });
     }
   });
@@ -155,18 +181,8 @@ export const computeDeleteChildUpdates = (
     }
   });
   
-  // Cleanup deleted references and remap changed hierarchies
-  const cleanupUpdates = cleanupPredecessors(allTasks, [targetTask.hierarchy_number]);
-  const remapUpdates = remapPredecessors(allTasks, hierarchyMapping);
-  
-  // Merge predecessor updates (cleanup takes precedence over remapping)
-  const predecessorUpdatesMap = new Map<string, string[]>();
-  remapUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
-  cleanupUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
-  
-  const predecessorUpdates: PredecessorUpdate[] = Array.from(predecessorUpdatesMap.entries()).map(
-    ([taskId, newPredecessors]) => ({ taskId, newPredecessors })
-  );
+  // Use unified remapPredecessors which handles cleanup, remapping, AND self-reference prevention
+  const predecessorUpdates = remapPredecessors(allTasks, hierarchyMapping, [targetTask.hierarchy_number]);
   
   return {
     tasksToDelete: [targetTask.id],
@@ -280,18 +296,8 @@ export const computeDeleteGroupUpdates = (
     }
   });
   
-  // Cleanup deleted references and remap changed hierarchies
-  const cleanupUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
-  const remapUpdates = remapPredecessors(allTasks, hierarchyMapping);
-  
-  // Merge predecessor updates (cleanup takes precedence over remapping)
-  const predecessorUpdatesMap = new Map<string, string[]>();
-  remapUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
-  cleanupUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
-  
-  const predecessorUpdates: PredecessorUpdate[] = Array.from(predecessorUpdatesMap.entries()).map(
-    ([taskId, newPredecessors]) => ({ taskId, newPredecessors })
-  );
+  // Use unified remapPredecessors which handles cleanup, remapping, AND self-reference prevention
+  const predecessorUpdates = remapPredecessors(allTasks, hierarchyMapping, deletedHierarchyNumbers);
   
   // All tasks to delete
   const tasksToDelete = [targetTask.id, ...childrenToDelete.map(task => task.id)];
@@ -473,18 +479,8 @@ export const computeBulkDeleteUpdates = (
     }
   });
   
-  // Cleanup deleted references and remap changed hierarchies
-  const cleanupUpdates = cleanupPredecessors(allTasks, deletedHierarchyNumbers);
-  const remapUpdates = remapPredecessors(allTasks, hierarchyMapping);
-  
-  // Merge predecessor updates (cleanup takes precedence over remapping)
-  const predecessorUpdatesMap = new Map<string, string[]>();
-  remapUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
-  cleanupUpdates.forEach(update => predecessorUpdatesMap.set(update.taskId, update.newPredecessors));
-  
-  const predecessorUpdates: PredecessorUpdate[] = Array.from(predecessorUpdatesMap.entries()).map(
-    ([taskId, newPredecessors]) => ({ taskId, newPredecessors })
-  );
+  // Use unified remapPredecessors which handles cleanup, remapping, AND self-reference prevention
+  const predecessorUpdates = remapPredecessors(allTasks, hierarchyMapping, deletedHierarchyNumbers);
   
   // Remove duplicates from parent groups to recalculate
   parentGroupsToRecalculate = [...new Set(parentGroupsToRecalculate)];
