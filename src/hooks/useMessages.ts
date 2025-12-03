@@ -75,9 +75,14 @@ export const useMessages = () => {
         throw receivedError;
       }
 
-      // Combine and sort messages
+      // Combine and sort messages (with defensive date checks)
       const allMessages = [...(sentMessages || []), ...(receivedMessages || [])]
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .filter(msg => msg && msg.id && msg.created_at) // Filter out invalid messages
+        .sort((a, b) => {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return timeA - timeB;
+        })
         .slice(-50); // Keep only the last 50 messages
 
       console.log('Raw messages fetched:', {
@@ -142,7 +147,10 @@ export const useMessages = () => {
             return false;
           }
           
-          // Check timing (within 10 seconds)
+          // Check timing (within 10 seconds) - with defensive null checks
+          if (!msg.created_at || !newMessage.created_at) {
+            return false;
+          }
           const timeDiff = Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime());
           if (timeDiff >= 10000) {
             return false;

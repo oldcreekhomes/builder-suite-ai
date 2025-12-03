@@ -69,10 +69,10 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
             {getDisplayName(message.sender_name)}
           </span>
           <span className="text-xs text-gray-500">
-            {new Date(message.created_at).toLocaleTimeString([], { 
+            {message.created_at ? new Date(message.created_at).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
-            })}
+            }) : ''}
           </span>
           
           {/* Actions Menu */}

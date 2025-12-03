@@ -35,8 +35,14 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
     return sender?.first_name?.charAt(0)?.toUpperCase() || "U";
   };
 
-  const formatTime = (timestamp: string) => {
-    return format(new Date(timestamp), "EEE M/d, h:mm a");
+  const formatTime = (timestamp: string | undefined | null) => {
+    if (!timestamp) return '';
+    try {
+      return format(new Date(timestamp), "EEE M/d, h:mm a");
+    } catch (e) {
+      console.warn('Invalid timestamp:', timestamp);
+      return '';
+    }
   };
 
   const isMyMessage = (senderId: string) => {
@@ -140,6 +146,12 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden p-4 space-y-4">
       {messages.map((message) => {
+        // Defensive check - skip invalid messages
+        if (!message?.id) {
+          console.warn('Skipping invalid message without ID');
+          return null;
+        }
+        
         const isOwn = isMyMessage(message.sender_id);
         
         return (

@@ -48,6 +48,13 @@ export function FloatingChatWindow({
         },
         async (payload) => {
           const message = payload.new as any;
+          
+          // Validate essential fields exist to prevent crashes
+          if (!message?.id || !message?.sender_id) {
+            console.warn('💬 FloatingChat: Received invalid message payload, skipping:', message);
+            return;
+          }
+          
           if (message.sender_id === user.id) {
             // Fetch sender info to enrich the message (prevents white-out screens)
             const { data: sender } = await supabase
@@ -59,7 +66,8 @@ export function FloatingChatWindow({
             const enrichedMessage = {
               ...message,
               sender_name: sender ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
-              sender_avatar: sender?.avatar_url || null
+              sender_avatar: sender?.avatar_url || null,
+              created_at: message.created_at || new Date().toISOString() // Fallback for missing timestamp
             };
 
             addMessage(enrichedMessage);
