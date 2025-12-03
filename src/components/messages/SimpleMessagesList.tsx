@@ -153,7 +153,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={message.sender_avatar || undefined} />
                   <AvatarFallback className="text-xs">
-                    {message.sender_name.substring(0, 2).toUpperCase()}
+                    {(message.sender_name || 'U').substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -163,7 +163,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
                 {/* Sender name and time */}
                 <div className={`text-xs text-muted-foreground mb-1 ${isOwn ? 'text-right' : 'text-left'}`}>
                   <span className="font-medium">
-                    {message.sender_name}
+                    {message.sender_name || 'Unknown'}
                   </span>
                   <span className="ml-2">{formatTime(message.created_at)}</span>
                 </div>
