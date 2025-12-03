@@ -60,7 +60,7 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
       <Avatar className="h-8 w-8">
         <AvatarImage src={message.sender_avatar || ""} />
         <AvatarFallback className="bg-gray-200 text-gray-600 text-xs">
-          {message.sender_name.substring(0, 2).toUpperCase()}
+          {(message.sender_name || 'U').substring(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1">

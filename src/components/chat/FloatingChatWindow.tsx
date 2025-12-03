@@ -46,10 +46,23 @@ export function FloatingChatWindow({
           table: 'user_chat_messages',
           filter: `recipient_id=eq.${currentUser.id}`,
         },
-        (payload) => {
+        async (payload) => {
           const message = payload.new as any;
           if (message.sender_id === user.id) {
-            addMessage(message);
+            // Fetch sender info to enrich the message (prevents white-out screens)
+            const { data: sender } = await supabase
+              .from('users')
+              .select('first_name, last_name, avatar_url')
+              .eq('id', message.sender_id)
+              .maybeSingle();
+
+            const enrichedMessage = {
+              ...message,
+              sender_name: sender ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() || 'Unknown' : 'Unknown',
+              sender_avatar: sender?.avatar_url || null
+            };
+
+            addMessage(enrichedMessage);
           }
         }
       )

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SharedPhoto from "./pages/SharedPhoto";
@@ -94,10 +95,11 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
-      <ChatProvider>
-        <SidebarProvider>
-          <ImpersonationBanner />
-          <Routes>
+      <ErrorBoundary>
+        <ChatProvider>
+          <SidebarProvider>
+            <ImpersonationBanner />
+            <Routes>
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
           
@@ -206,11 +208,12 @@ const AppContent = () => {
             <Route key={to} path={to} element={<ProtectedRoute><Page /></ProtectedRoute>} />
           ))}
           
-          {/* Catch all route */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        </SidebarProvider>
-      </ChatProvider>
+            {/* Catch all route */}
+            <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarProvider>
+        </ChatProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 };
