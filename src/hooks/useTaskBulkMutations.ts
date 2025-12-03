@@ -20,6 +20,7 @@ interface BulkDeleteOptions {
 
 interface BulkUpdateOptions {
   suppressInvalidate?: boolean;
+  skipValidation?: boolean; // Skip validation for internal system operations (e.g., delete cascades)
 }
 
 export const useTaskBulkMutations = (projectId: string) => {
@@ -157,35 +158,39 @@ export const useTaskBulkMutations = (projectId: string) => {
     mutationFn: async ({ updates, options }: { updates: BulkPredecessorUpdate[], options?: BulkUpdateOptions }) => {
       if (!user || updates.length === 0) return [];
 
-      console.log('🔄 Performing bulk predecessor update for', updates.length, 'tasks');
+      console.log('🔄 Performing bulk predecessor update for', updates.length, 'tasks', options?.skipValidation ? '(validation skipped)' : '');
 
-      // Get all tasks for validation
-      const { data: allTasks, error: fetchError } = await supabase
-        .from('project_schedule_tasks')
-        .select('*')
-        .eq('project_id', projectId);
+      // Get all tasks for validation (only if not skipping)
+      let allTasks: any[] = [];
+      if (!options?.skipValidation) {
+        const { data, error: fetchError } = await supabase
+          .from('project_schedule_tasks')
+          .select('*')
+          .eq('project_id', projectId);
 
-      if (fetchError) throw fetchError;
-      if (!allTasks) throw new Error('Failed to fetch tasks for validation');
+        if (fetchError) throw fetchError;
+        if (!data) throw new Error('Failed to fetch tasks for validation');
+        allTasks = data;
 
-      // Validate all predecessor updates before applying any
-      const invalidUpdates: string[] = [];
-      for (const update of updates) {
-        const predecessorArray = Array.isArray(update.predecessor) 
-          ? update.predecessor 
-          : update.predecessor ? [update.predecessor] : [];
-        
-        const { validatePredecessors } = await import('@/utils/predecessorValidation');
-        const validation = validatePredecessors(update.id, predecessorArray, allTasks as ProjectTask[]);
-        
-        if (!validation.isValid) {
-          const task = allTasks.find(t => t.id === update.id);
-          invalidUpdates.push(`${task?.hierarchy_number || update.id}: ${validation.errors[0]}`);
+        // Validate all predecessor updates before applying any
+        const invalidUpdates: string[] = [];
+        for (const update of updates) {
+          const predecessorArray = Array.isArray(update.predecessor) 
+            ? update.predecessor 
+            : update.predecessor ? [update.predecessor] : [];
+          
+          const { validatePredecessors } = await import('@/utils/predecessorValidation');
+          const validation = validatePredecessors(update.id, predecessorArray, allTasks as ProjectTask[]);
+          
+          if (!validation.isValid) {
+            const task = allTasks.find(t => t.id === update.id);
+            invalidUpdates.push(`${task?.hierarchy_number || update.id}: ${validation.errors[0]}`);
+          }
         }
-      }
 
-      if (invalidUpdates.length > 0) {
-        throw new Error(`Invalid predecessor updates:\n${invalidUpdates.join('\n')}`);
+        if (invalidUpdates.length > 0) {
+          throw new Error(`Invalid predecessor updates:\n${invalidUpdates.join('\n')}`);
+        }
       }
       
       // Use batch updates for better performance

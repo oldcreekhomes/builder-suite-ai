@@ -1181,18 +1181,35 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       if (deleteResult.predecessorUpdates.length > 0) {
         try {
           console.log(`🔄 Phase 3: Bulk updating ${deleteResult.predecessorUpdates.length} predecessor references`);
-          const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
-            id: update.taskId,
-            // Always store predecessor as array for consistency
-            predecessor: update.newPredecessors
-          }));
+          
+          // Build a map of task id -> new hierarchy number for self-reference prevention
+          const hierarchyMap = new Map<string, string>();
+          deleteResult.hierarchyUpdates.forEach(u => hierarchyMap.set(u.id, u.hierarchy_number));
+          
+          // Filter out self-references as a safety net
+          const predecessorUpdates = deleteResult.predecessorUpdates.map(update => {
+            const newHierarchy = hierarchyMap.get(update.taskId) || tasks.find(t => t.id === update.taskId)?.hierarchy_number;
+            
+            // Filter out any predecessor that would point to itself
+            const safePredecessors = update.newPredecessors.filter(pred => {
+              const predHierarchy = pred.replace(/[+-]\d+$/, '').replace(/(FS|SS|SF|FF)$/i, '');
+              return predHierarchy !== newHierarchy;
+            });
+            
+            return {
+              id: update.taskId,
+              predecessor: safePredecessors
+            };
+          });
+          
           await bulkUpdatePredecessors.mutateAsync({ 
             updates: predecessorUpdates, 
-            options: { suppressInvalidate: true } 
+            options: { suppressInvalidate: true, skipValidation: true } 
           });
           console.log('✅ Phase 3 completed successfully');
         } catch (error) {
           console.error('❌ Phase 3 (Predecessor Updates) failed:', error);
+          console.error('Failed updates:', deleteResult.predecessorUpdates);
           // Don't throw - allow deletion to complete even if predecessor cleanup fails
           console.log('⚠️ Continuing deletion despite predecessor update failure');
           toast({ title: "Error", description: `Task deleted but some predecessor references may need manual cleanup: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
@@ -1246,7 +1263,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           }));
           await bulkUpdatePredecessors.mutateAsync({ 
             updates: predecessorNormUpdates, 
-            options: { suppressInvalidate: true } 
+            options: { suppressInvalidate: true, skipValidation: true } 
           });
         }
         console.log('✅ Phase 4 completed successfully');
