@@ -528,6 +528,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     };
 
     try {
+      console.log('handleSaveAndClose - currentCheckId:', currentCheckId, 'isViewingMode:', isViewingMode);
+      
       if (currentCheckId) {
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
@@ -538,8 +540,19 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
             amount: checkData.amount
           }
         });
+        toast({ title: "Success", description: "Check updated successfully" });
+      } else if (isViewingMode) {
+        // Safety check - if we're in viewing mode but currentCheckId is null, don't create duplicate
+        console.error('SAFETY CHECK TRIGGERED: isViewingMode=true but currentCheckId is null!');
+        toast({
+          title: "Error",
+          description: "Cannot save: Check ID not found. Please reload the check and try again.",
+          variant: "destructive"
+        });
+        return;
       } else {
         await createCheck.mutateAsync({ checkData, checkLines });
+        toast({ title: "Success", description: "Check created successfully" });
       }
       createNewCheck();
       navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
@@ -651,6 +664,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     };
 
     try {
+      console.log('handleSaveAndNew - currentCheckId:', currentCheckId, 'isViewingMode:', isViewingMode);
+      
       if (currentCheckId) {
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
@@ -667,6 +682,15 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         });
         setCurrentCheckId(null);
         createNewCheck();
+        return;
+      } else if (isViewingMode) {
+        // Safety check - if we're in viewing mode but currentCheckId is null, don't create duplicate
+        console.error('SAFETY CHECK TRIGGERED: isViewingMode=true but currentCheckId is null!');
+        toast({
+          title: "Error",
+          description: "Cannot save: Check ID not found. Please reload the check and try again.",
+          variant: "destructive"
+        });
         return;
       }
       
