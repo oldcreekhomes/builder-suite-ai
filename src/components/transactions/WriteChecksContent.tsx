@@ -86,7 +86,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const { checks = [], isLoading: checksLoading, createCheck, deleteCheck } = useChecks();
+  const { checks = [], isLoading: checksLoading, createCheck, updateCheck, deleteCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
   const {
     settings,
@@ -528,7 +528,19 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     };
 
     try {
-      await createCheck.mutateAsync({ checkData, checkLines });
+      if (currentCheckId) {
+        await updateCheck.mutateAsync({ 
+          checkId: currentCheckId, 
+          updates: {
+            check_date: checkData.check_date,
+            check_number: checkData.check_number,
+            pay_to: checkData.pay_to,
+            amount: checkData.amount
+          }
+        });
+      } else {
+        await createCheck.mutateAsync({ checkData, checkLines });
+      }
       createNewCheck();
       navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
     } catch (error) {
@@ -639,6 +651,25 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     };
 
     try {
+      if (currentCheckId) {
+        await updateCheck.mutateAsync({ 
+          checkId: currentCheckId, 
+          updates: {
+            check_date: checkData.check_date,
+            check_number: checkData.check_number,
+            pay_to: checkData.pay_to,
+            amount: checkData.amount
+          }
+        });
+        toast({
+          title: "Success",
+          description: "Check updated successfully",
+        });
+        setCurrentCheckId(null);
+        createNewCheck();
+        return;
+      }
+      
       const newCheck = await createCheck.mutateAsync({ checkData, checkLines });
       
       // Upload temporary attachments after check is created
