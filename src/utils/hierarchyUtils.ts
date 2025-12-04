@@ -207,6 +207,7 @@ export function generateOutdentHierarchy(task: ProjectTask, tasks: ProjectTask[]
 }
 
 // SIMPLE: Basic renumbering function that actually works
+// BUG FIX: Filter children from ORIGINAL sortedTasks, not from result array (which has modified hierarchy numbers)
 export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
   // Sort tasks by hierarchy for proper processing
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -218,8 +219,12 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
   // Deep clone all tasks to avoid mutation
   const result = sortedTasks.map(task => ({ ...task }));
   
-  // First: Get all top-level tasks and their original numbers
-  const topLevelTasks = result.filter(task => 
+  // Create a map from task ID to result array entry for quick updates
+  const resultMap = new Map<string, ProjectTask>();
+  result.forEach(task => resultMap.set(task.id, task));
+  
+  // First: Get all top-level tasks from ORIGINAL sortedTasks (before any modifications)
+  const topLevelTasks = sortedTasks.filter(task => 
     task.hierarchy_number && !task.hierarchy_number.includes(".")
   );
   
@@ -231,18 +236,21 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
     const oldNumber = task.hierarchy_number!;
     const newNumber = topLevelCounter.toString();
     parentMapping.set(oldNumber, newNumber);
-    task.hierarchy_number = newNumber;
+    // Update the result entry
+    const resultTask = resultMap.get(task.id);
+    if (resultTask) resultTask.hierarchy_number = newNumber;
     topLevelCounter++;
   });
   
   // Second: Update all children based on the parent mapping
+  // CRITICAL: Filter from ORIGINAL sortedTasks, not from result (which has modified hierarchy numbers)
   parentMapping.forEach((newParentNumber, oldParentNumber) => {
-    const children = result.filter(task => 
+    const children = sortedTasks.filter(task => 
       task.hierarchy_number && 
       task.hierarchy_number.startsWith(oldParentNumber + ".")
     );
     
-    // Sort children by their current hierarchy number
+    // Sort children by their ORIGINAL hierarchy number
     children.sort((a, b) => {
       const aNum = a.hierarchy_number || "999";
       const bNum = b.hierarchy_number || "999";
@@ -252,8 +260,11 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
     // Renumber children sequentially
     let childCounter = 1;
     children.forEach(child => {
-      child.hierarchy_number = `${newParentNumber}.${childCounter}`;
-      childCounter++;
+      const resultTask = resultMap.get(child.id);
+      if (resultTask) {
+        resultTask.hierarchy_number = `${newParentNumber}.${childCounter}`;
+        childCounter++;
+      }
     });
   });
   
