@@ -84,7 +84,7 @@ export default function WriteChecks() {
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
   const { projects } = useProjectSearch();
-  const { createCheck } = useChecks();
+  const { createCheck, updateCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
   const { 
     settings, 
@@ -506,10 +506,24 @@ export default function WriteChecks() {
     console.debug('Saving Check - Lines:', checkLines);
 
     try {
-      await createCheck.mutateAsync({ checkData, checkLines });
+      if (currentCheckId) {
+        // Update existing check
+        await updateCheck.mutateAsync({ 
+          checkId: currentCheckId, 
+          updates: {
+            check_date: checkData.check_date,
+            check_number: checkData.check_number,
+            pay_to: checkData.pay_to,
+            amount: checkData.amount
+          }
+        });
+      } else {
+        // Create new check
+        await createCheck.mutateAsync({ checkData, checkLines });
+      }
       navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
     } catch (error) {
-      console.error('Error creating check:', error);
+      console.error('Error saving check:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save check",
@@ -635,14 +649,29 @@ export default function WriteChecks() {
     console.debug('Saving Check - Lines:', checkLines);
 
     try {
-      await createCheck.mutateAsync({ checkData, checkLines });
+      if (currentCheckId) {
+        // Update existing check
+        await updateCheck.mutateAsync({ 
+          checkId: currentCheckId, 
+          updates: {
+            check_date: checkData.check_date,
+            check_number: checkData.check_number,
+            pay_to: checkData.pay_to,
+            amount: checkData.amount
+          }
+        });
+      } else {
+        // Create new check
+        await createCheck.mutateAsync({ checkData, checkLines });
+      }
       toast({
         title: "Success",
         description: "Check saved successfully",
       });
       handleClear();
+      setCurrentCheckId(null); // Reset to new check mode
     } catch (error) {
-      console.error('Error creating check:', error);
+      console.error('Error saving check:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save check",
