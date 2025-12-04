@@ -40,62 +40,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { toast } = useToast();
   const { captureState, undo, canUndo, isUndoing } = useScheduleUndo(projectId, user?.id);
   
-  // Flag to prevent infinite loops during normalization
-  const hasNormalizedRef = useRef(false);
-  
   // Parent recalculation is now handled directly in useTaskMutations.tsx
   // This eliminates the 3-second cooldown and 1.5-second debounce that caused lag
-
-  // Auto-normalize hierarchy on load if needed (run only once per project load)
-  useEffect(() => {
-    const autoNormalize = async () => {
-      if (!tasks || tasks.length === 0 || hasNormalizedRef.current || (window as any).__batchOperationInProgress) return;
-      
-      const { needsNormalization, computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
-      
-      if (needsNormalization(tasks)) {
-        console.log('🔢 Normalization run: yes');
-        hasNormalizedRef.current = true;
-        (window as any).__batchOperationInProgress = true;
-        
-        try {
-          const normalizationResult = computeNormalizationUpdates(tasks);
-          
-          if (normalizationResult.hierarchyUpdates.length > 0) {
-            await bulkUpdateHierarchies.mutateAsync({ 
-              updates: normalizationResult.hierarchyUpdates, 
-              options: { suppressInvalidate: true },
-              ordered: true // Use ordered execution to reduce constraint edge cases
-            });
-          }
-          
-          if (normalizationResult.predecessorUpdates.length > 0) {
-            const predecessorUpdates = normalizationResult.predecessorUpdates.map(update => ({
-              id: update.taskId,
-              predecessor: update.newPredecessors
-            }));
-            await bulkUpdatePredecessors.mutateAsync({ 
-              updates: predecessorUpdates, 
-              options: { suppressInvalidate: true } 
-            });
-          }
-          
-          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
-        } catch (error) {
-          console.error('Failed to auto-normalize:', error);
-        } finally {
-          (window as any).__batchOperationInProgress = false;
-        }
-      } else {
-        console.log('🔢 Normalization run: no');
-      }
-    };
-    
-    // Debounce auto-normalize to prevent rapid-fire calls
-    const timeoutId = setTimeout(autoNormalize, 1000);
-    return () => clearTimeout(timeoutId);
-  }, [tasks, projectId, user?.id]);
-
+  // AUTO-NORMALIZE ON LOAD REMOVED - was causing hierarchy corruption by collapsing all children under one parent
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
