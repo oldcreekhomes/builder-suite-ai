@@ -579,41 +579,12 @@ export function AccountDetailDialog({
 
       switch (transaction.source_type) {
         case 'check':
-          // Fetch check to determine status
-          const { data: checkData } = await supabase
-            .from('checks')
-            .select('*, check_lines(*)')
-            .eq('id', transaction.source_id)
-            .single();
-          
-          if (checkData && (checkData.status === 'posted' || checkData.status === 'cleared')) {
-            // Use correction for posted/cleared checks
-            const correctedCheckData: any = {
-              check_number: checkData.check_number,
-              check_date: field === "date" ? format(value as Date, "yyyy-MM-dd") : checkData.check_date,
-              pay_to: field === "reference" ? value as string : checkData.pay_to,
-              bank_account_id: checkData.bank_account_id,
-              project_id: checkData.project_id,
-              amount: field === "amount" ? value as number : checkData.amount,
-              memo: checkData.memo
-            };
-            const correctedCheckLines = checkData.check_lines.map((line: any) => ({
-              line_type: line.line_type,
-              account_id: line.account_id,
-              cost_code_id: line.cost_code_id,
-              project_id: line.project_id,
-              amount: field === "amount" ? (value as number) * (line.amount / checkData.amount) : line.amount,
-              memo: line.memo
-            }));
-            await correctCheck.mutateAsync({ checkId: transaction.source_id, correctedCheckData, correctedCheckLines });
-          } else {
-            // Use update for draft checks
-            const checkUpdates: any = {};
-            if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
-            if (field === "reference") checkUpdates.pay_to = value as string;
-            if (field === "amount") checkUpdates.amount = value as number;
-            await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
-          }
+          // Always use updateCheck for inline edits (no correction/duplicate creation)
+          const checkUpdates: any = {};
+          if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
+          if (field === "reference") checkUpdates.pay_to = value as string;
+          if (field === "amount") checkUpdates.amount = value as number;
+          await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
           
           // Immediately refresh the dialog and balance sheet
           await queryClient.invalidateQueries({ queryKey });
