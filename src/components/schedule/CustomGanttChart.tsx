@@ -46,6 +46,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
   
   // Zoom state for timeline
   const [dayWidth, setDayWidth] = useState(40); // pixels per day
@@ -1560,6 +1561,34 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Check for corrupted tasks (with __TEMP__ hierarchy numbers)
+  const hasCorruptedTasks = tasks.some(t => t.hierarchy_number?.startsWith('__TEMP_'));
+
+  // Repair schedule handler
+  const handleRepairSchedule = async () => {
+    if (!user) return;
+    setIsRepairing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('repair-schedule-hierarchies', {
+        body: { projectId, deleteOrphans: true }
+      });
+      
+      if (error) throw error;
+      
+      toast({ 
+        title: "Schedule Repaired", 
+        description: `Repaired ${data.repaired} tasks, deleted ${data.deleted} orphans` 
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
+    } catch (error: any) {
+      console.error('Repair failed:', error);
+      toast({ title: "Repair Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsRepairing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-card text-card-foreground rounded-lg border p-6">
@@ -1595,6 +1624,9 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onUndo={undo}
           canUndo={canUndo}
           isUndoing={isUndoing}
+          onRepairSchedule={handleRepairSchedule}
+          isRepairing={isRepairing}
+          hasCorruptedTasks={hasCorruptedTasks}
         />
         
         <UnifiedScheduleTable
