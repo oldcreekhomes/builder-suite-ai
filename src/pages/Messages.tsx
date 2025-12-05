@@ -17,7 +17,8 @@ export default function Messages() {
     currentUserId,
     isLoadingMessages,
     startChatWithEmployee,
-    sendMessage
+    sendMessage,
+    fetchMessages
   } = useSimpleChat();
 
   // Debug logging
@@ -54,7 +55,10 @@ export default function Messages() {
             <div className="flex-1 flex flex-col bg-white min-h-0 border-l border-gray-200">
               {selectedRoom ? (
                   <>
-                   <ChatHeader selectedRoom={selectedRoom} />
+                   <ChatHeader 
+                     selectedRoom={selectedRoom} 
+                     onRefresh={() => selectedRoom && fetchMessages(selectedRoom.id, true)}
+                   />
                    <div className="flex-1 flex flex-col min-h-0">
                      <SimpleMessagesList 
                        messages={messages} 
