@@ -92,31 +92,34 @@ export const useMessages = () => {
         messages: allMessages.map(m => ({ id: m.id, text: m.message_text?.substring(0, 30), sender: m.sender_id, created: m.created_at }))
       });
 
-      // Get sender info for each message
-      const messagesWithSenders = await Promise.all(
-        allMessages.map(async (msg) => {
-          let senderName = 'Unknown';
-          let senderAvatar = null;
+      // Get unique sender IDs and fetch all senders in ONE query (prevents race condition)
+      const uniqueSenderIds = [...new Set(allMessages.map(msg => msg.sender_id))];
+      
+      const { data: senders } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, avatar_url')
+        .in('id', uniqueSenderIds);
 
-          // Get sender info from unified users table
-          const { data: sender } = await supabase
-            .from('users')
-            .select('first_name, last_name, avatar_url')
-            .eq('id', msg.sender_id)
-            .maybeSingle();
+      // Create a lookup map for O(1) access
+      const senderMap = new Map(senders?.map(s => [s.id, s]) || []);
+      
+      console.log('💬 Sender lookup:', {
+        uniqueSenderIds,
+        sendersFound: senders?.length,
+        senderDetails: senders?.map(s => ({ id: s.id, name: `${s.first_name} ${s.last_name}` }))
+      });
 
-          if (sender) {
-            senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
-            senderAvatar = sender.avatar_url;
-          }
-
-          return {
-            ...msg,
-            sender_name: senderName,
-            sender_avatar: senderAvatar
-          };
-        })
-      );
+      // Enrich messages using the map (no async, no race condition!)
+      const messagesWithSenders = allMessages.map(msg => {
+        const sender = senderMap.get(msg.sender_id);
+        return {
+          ...msg,
+          sender_name: sender 
+            ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() 
+            : 'Unknown',
+          sender_avatar: sender?.avatar_url || null
+        };
+      });
 
       console.log('Messages with senders:', messagesWithSenders);
       setMessages(messagesWithSenders);
