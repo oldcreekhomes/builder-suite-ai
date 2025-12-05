@@ -835,7 +835,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         hierarchy_number: createdTask.hierarchy_number,
         created_at: createdTask.created_at,
         updated_at: createdTask.updated_at,
-        confirmed: true,
+        confirmed: null,
         notes: createdTask.notes || undefined
       };
 
