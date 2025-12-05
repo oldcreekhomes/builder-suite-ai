@@ -169,9 +169,6 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
         
         const isOwn = isMyMessage(message.sender_id);
         
-        // Per-message debug log
-        console.log(`🔍 Rendering msg ${message.id?.substring(0,8)}: sender_id=${message.sender_id} currentUserId=${currentUserId} isOwn=${isOwn} name=${message.sender_name}`);
-        
         return (
           <div
             key={message.id}

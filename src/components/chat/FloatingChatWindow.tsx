@@ -155,8 +155,8 @@ export function FloatingChatWindow({
   useEffect(() => {
     console.log('🔍 FloatingChat passing to SimpleMessagesList:', {
       currentUserId: currentUser?.id,
-      messagesCount: messages.length,
-      messagesSenderIds: messages.map(m => m.sender_id)
+      messagesCount: messages?.length || 0,
+      messagesSenderIds: messages?.map(m => m?.sender_id) || []
     });
   }, [currentUser?.id, messages]);
 
