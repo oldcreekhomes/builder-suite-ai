@@ -143,21 +143,6 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
     );
   }
 
-  // Debug: Log sender_id comparison for each message
-  useEffect(() => {
-    console.log('🔍 SimpleMessagesList RENDER DEBUG:', {
-      currentUserId,
-      totalMessages: messages.length,
-      messageDetails: messages.map(m => ({
-        id: m.id?.substring(0, 8),
-        sender_id: m.sender_id,
-        sender_name: m.sender_name,
-        isOwn: m.sender_id === currentUserId,
-        text: m.message_text?.substring(0, 20)
-      }))
-    });
-  }, [messages, currentUserId]);
-
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden p-4 space-y-4">
       {messages.map((message) => {
