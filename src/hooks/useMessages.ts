@@ -51,19 +51,24 @@ export const useMessages = () => {
       console.log('Current user ID:', currentUser.user.id, 'Other user ID:', otherUserId);
 
       // Simplified query approach - fetch messages in both directions separately then combine
+      // LIMIT to 50 most recent to prevent overwhelming queries for high-volume conversations
       const { data: sentMessages, error: sentError } = await supabase
         .from('user_chat_messages')
         .select('*')
         .eq('sender_id', currentUser.user.id)
         .eq('recipient_id', otherUserId)
-        .eq('is_deleted', false);
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       const { data: receivedMessages, error: receivedError } = await supabase
         .from('user_chat_messages')
         .select('*')
         .eq('sender_id', otherUserId)
         .eq('recipient_id', currentUser.user.id)
-        .eq('is_deleted', false);
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (sentError) {
         console.error('Error fetching sent messages:', sentError);
@@ -92,31 +97,24 @@ export const useMessages = () => {
         messages: allMessages.map(m => ({ id: m.id, text: m.message_text?.substring(0, 30), sender: m.sender_id, created: m.created_at }))
       });
 
-      // Get sender info for each message
-      const messagesWithSenders = await Promise.all(
-        allMessages.map(async (msg) => {
-          let senderName = 'Unknown';
-          let senderAvatar = null;
+      // Batch fetch all unique senders in ONE query instead of individual queries per message
+      const uniqueSenderIds = [...new Set(allMessages.map(m => m.sender_id))];
+      
+      const { data: senders } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, avatar_url')
+        .in('id', uniqueSenderIds);
 
-          // Get sender info from unified users table
-          const { data: sender } = await supabase
-            .from('users')
-            .select('first_name, last_name, avatar_url')
-            .eq('id', msg.sender_id)
-            .maybeSingle();
+      const senderMap = new Map(senders?.map(s => [s.id, s]) || []);
 
-          if (sender) {
-            senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
-            senderAvatar = sender.avatar_url;
-          }
-
-          return {
-            ...msg,
-            sender_name: senderName,
-            sender_avatar: senderAvatar
-          };
-        })
-      );
+      const messagesWithSenders = allMessages.map(msg => {
+        const sender = senderMap.get(msg.sender_id);
+        return {
+          ...msg,
+          sender_name: sender ? `${sender.first_name || ''} ${sender.last_name || ''}`.trim() : 'Unknown',
+          sender_avatar: sender?.avatar_url || null
+        };
+      });
 
       console.log('Messages with senders:', messagesWithSenders);
       setMessages(messagesWithSenders);
