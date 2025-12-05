@@ -16,6 +16,7 @@ export interface NotificationPreferences {
   can_close_books: boolean;
   can_lock_budgets: boolean;
   can_undo_reconciliation: boolean;
+  dashboard_type: 'project_manager' | 'accountant';
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -29,6 +30,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_close_books: false,
   can_lock_budgets: false,
   can_undo_reconciliation: false,
+  dashboard_type: 'project_manager',
 };
 
 export const useNotificationPreferences = (userId?: string) => {
