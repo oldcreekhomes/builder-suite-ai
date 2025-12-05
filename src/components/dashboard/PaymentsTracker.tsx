@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-import { DollarSign, FileText, CheckCircle, CreditCard } from "lucide-react";
 
 interface ProjectBillSummary {
   projectId: string;
@@ -26,7 +24,6 @@ export function PaymentsTracker() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get owner_id for the current user
       const { data: userData } = await supabase
         .from('users')
         .select('home_builder_id, role')
@@ -36,7 +33,6 @@ export function PaymentsTracker() {
       const ownerId = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
       if (!ownerId) return [];
 
-      // Fetch all bills with project info
       const { data: bills, error } = await supabase
         .from('bills')
         .select(`
@@ -54,7 +50,6 @@ export function PaymentsTracker() {
         return [];
       }
 
-      // Group by project and status
       const projectMap = new Map<string, ProjectBillSummary>();
 
       bills?.forEach((bill: any) => {
@@ -77,7 +72,6 @@ export function PaymentsTracker() {
         const summary = projectMap.get(projectId)!;
         const amount = Number(bill.total_amount) || 0;
 
-        // Map statuses: draft → Review (Tue), posted → Fund (Wed), paid → Pay (Thu)
         if (bill.status === 'draft') {
           summary.reviewCount++;
           summary.reviewAmount += amount;
@@ -94,19 +88,15 @@ export function PaymentsTracker() {
         a.projectAddress.localeCompare(b.projectAddress)
       );
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const formatCompact = (amount: number) => {
+    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `$${Math.round(amount / 1000)}K`;
+    return `$${amount.toFixed(0)}`;
   };
 
-  // Calculate totals
   const totals = summaries.reduce(
     (acc, s) => ({
       reviewCount: acc.reviewCount + s.reviewCount,
@@ -122,14 +112,11 @@ export function PaymentsTracker() {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Payments Workflow
-          </CardTitle>
+        <CardHeader className="pb-2">
+          <Skeleton className="h-5 w-24" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-32 w-full" />
         </CardContent>
       </Card>
     );
@@ -137,48 +124,24 @@ export function PaymentsTracker() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          Payments Workflow
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Track bills through Review (Tue) → Fund (Wed) → Pay (Thu)
-        </p>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">Payments</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <CardContent className="pt-0">
+        <div className="max-h-[280px] overflow-y-auto">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left py-3 px-2 font-medium">Project</th>
-                <th className="text-center py-3 px-2 font-medium">
-                  <div className="flex flex-col items-center">
-                    <FileText className="h-4 w-4 mb-1 text-yellow-600" />
-                    <span>Review (Tue)</span>
-                    <span className="text-xs text-muted-foreground">Draft</span>
-                  </div>
-                </th>
-                <th className="text-center py-3 px-2 font-medium">
-                  <div className="flex flex-col items-center">
-                    <DollarSign className="h-4 w-4 mb-1 text-blue-600" />
-                    <span>Fund (Wed)</span>
-                    <span className="text-xs text-muted-foreground">Posted</span>
-                  </div>
-                </th>
-                <th className="text-center py-3 px-2 font-medium">
-                  <div className="flex flex-col items-center">
-                    <CheckCircle className="h-4 w-4 mb-1 text-green-600" />
-                    <span>Pay (Thu)</span>
-                    <span className="text-xs text-muted-foreground">Paid</span>
-                  </div>
-                </th>
+                <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Project</th>
+                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Review</th>
+                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Fund</th>
+                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Pay</th>
               </tr>
             </thead>
             <tbody>
               {summaries.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <td colSpan={4} className="text-center py-4 text-xs text-muted-foreground">
                     No bills found
                   </td>
                 </tr>
@@ -187,100 +150,45 @@ export function PaymentsTracker() {
                   {summaries.map((summary) => (
                     <tr 
                       key={summary.projectId} 
-                      className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="border-b hover:bg-muted/50 cursor-pointer"
                       onClick={() => navigate(`/project/${summary.projectId}/accounting`)}
                     >
-                      <td className="py-3 px-2">
-                        <span className="font-medium">{summary.projectAddress}</span>
+                      <td className="py-1.5 px-2 text-xs font-medium truncate max-w-[140px]">
+                        {summary.projectAddress}
                       </td>
-                      <td className="text-center py-3 px-2">
-                        {summary.reviewCount > 0 ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                              {summary.reviewCount}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatCurrency(summary.reviewAmount)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                      <td className="text-center py-1.5 px-2 text-xs">
+                        {summary.reviewCount > 0 
+                          ? `${summary.reviewCount} • ${formatCompact(summary.reviewAmount)}` 
+                          : "—"}
                       </td>
-                      <td className="text-center py-3 px-2">
-                        {summary.fundCount > 0 ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              {summary.fundCount}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatCurrency(summary.fundAmount)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                      <td className="text-center py-1.5 px-2 text-xs">
+                        {summary.fundCount > 0 
+                          ? `${summary.fundCount} • ${formatCompact(summary.fundAmount)}` 
+                          : "—"}
                       </td>
-                      <td className="text-center py-3 px-2">
-                        {summary.payCount > 0 ? (
-                          <div className="flex flex-col items-center gap-1">
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                              {summary.payCount}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatCurrency(summary.payAmount)}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
+                      <td className="text-center py-1.5 px-2 text-xs">
+                        {summary.payCount > 0 
+                          ? `${summary.payCount} • ${formatCompact(summary.payAmount)}` 
+                          : "—"}
                       </td>
                     </tr>
                   ))}
-                  {/* Totals Row */}
                   <tr className="bg-muted/30 font-medium">
-                    <td className="py-3 px-2">Total</td>
-                    <td className="text-center py-3 px-2">
-                      {totals.reviewCount > 0 ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <Badge className="bg-yellow-600">
-                            {totals.reviewCount}
-                          </Badge>
-                          <span className="text-sm">
-                            {formatCurrency(totals.reviewAmount)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                    <td className="py-1.5 px-2 text-xs">Total</td>
+                    <td className="text-center py-1.5 px-2 text-xs">
+                      {totals.reviewCount > 0 
+                        ? `${totals.reviewCount} • ${formatCompact(totals.reviewAmount)}` 
+                        : "—"}
                     </td>
-                    <td className="text-center py-3 px-2">
-                      {totals.fundCount > 0 ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <Badge className="bg-blue-600">
-                            {totals.fundCount}
-                          </Badge>
-                          <span className="text-sm">
-                            {formatCurrency(totals.fundAmount)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                    <td className="text-center py-1.5 px-2 text-xs">
+                      {totals.fundCount > 0 
+                        ? `${totals.fundCount} • ${formatCompact(totals.fundAmount)}` 
+                        : "—"}
                     </td>
-                    <td className="text-center py-3 px-2">
-                      {totals.payCount > 0 ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <Badge className="bg-green-600">
-                            {totals.payCount}
-                          </Badge>
-                          <span className="text-sm">
-                            {formatCurrency(totals.payAmount)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                    <td className="text-center py-1.5 px-2 text-xs">
+                      {totals.payCount > 0 
+                        ? `${totals.payCount} • ${formatCompact(totals.payAmount)}` 
+                        : "—"}
                     </td>
                   </tr>
                 </>
