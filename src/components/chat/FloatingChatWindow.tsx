@@ -151,6 +151,15 @@ export function FloatingChatWindow({
     }
   }, [isMinimized, hasInitialized, user.id, fetchMessages]);
 
+  // Debug: Log what currentUserId is being passed to SimpleMessagesList
+  useEffect(() => {
+    console.log('🔍 FloatingChat passing to SimpleMessagesList:', {
+      currentUserId: currentUser?.id,
+      messagesCount: messages.length,
+      messagesSenderIds: messages.map(m => m.sender_id)
+    });
+  }, [currentUser?.id, messages]);
+
   const sendMessage = useCallback(async (messageText: string, files: File[] = []) => {
     await sendMessageHook(messageText, user, setMessages, files);
   }, [sendMessageHook, user, setMessages]);
