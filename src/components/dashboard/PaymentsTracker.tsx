@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
+import { PendingInvoicesDialog } from "@/components/bills/PendingInvoicesDialog";
 
 interface ProjectBillSummary {
   projectId: string;
@@ -16,7 +17,8 @@ interface ProjectBillSummary {
 }
 
 export function PaymentsTracker() {
-  const navigate = useNavigate();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: summaries = [], isLoading } = useQuery({
     queryKey: ['payments-tracker-summary'],
@@ -91,10 +93,9 @@ export function PaymentsTracker() {
     refetchInterval: 30000,
   });
 
-  const formatCompact = (amount: number) => {
-    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `$${Math.round(amount / 1000)}K`;
-    return `$${amount.toFixed(0)}`;
+  const handleCountClick = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setDialogOpen(true);
   };
 
   const totals = summaries.reduce(
@@ -128,75 +129,78 @@ export function PaymentsTracker() {
         <CardTitle className="text-base font-medium">Payments</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="max-h-[280px] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Project</th>
-                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Review</th>
-                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Fund</th>
-                <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Pay</th>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground">Project</th>
+              <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Review</th>
+              <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Fund</th>
+              <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">Pay</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summaries.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-4 text-xs text-muted-foreground">
+                  No bills found
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {summaries.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-4 text-xs text-muted-foreground">
-                    No bills found
-                  </td>
-                </tr>
-              ) : (
-                <>
-                  {summaries.map((summary) => (
-                    <tr 
-                      key={summary.projectId} 
-                      className="border-b hover:bg-muted/50 cursor-pointer"
-                      onClick={() => navigate(`/project/${summary.projectId}/accounting`)}
-                    >
-                      <td className="py-1.5 px-2 text-xs font-medium truncate max-w-[140px]">
-                        {summary.projectAddress}
-                      </td>
-                      <td className="text-center py-1.5 px-2 text-xs">
-                        {summary.reviewCount > 0 
-                          ? `${summary.reviewCount} • ${formatCompact(summary.reviewAmount)}` 
-                          : "—"}
-                      </td>
-                      <td className="text-center py-1.5 px-2 text-xs">
-                        {summary.fundCount > 0 
-                          ? `${summary.fundCount} • ${formatCompact(summary.fundAmount)}` 
-                          : "—"}
-                      </td>
-                      <td className="text-center py-1.5 px-2 text-xs">
-                        {summary.payCount > 0 
-                          ? `${summary.payCount} • ${formatCompact(summary.payAmount)}` 
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                  <tr className="bg-muted/30 font-medium">
-                    <td className="py-1.5 px-2 text-xs">Total</td>
-                    <td className="text-center py-1.5 px-2 text-xs">
-                      {totals.reviewCount > 0 
-                        ? `${totals.reviewCount} • ${formatCompact(totals.reviewAmount)}` 
-                        : "—"}
+            ) : (
+              <>
+                {summaries.map((summary) => (
+                  <tr key={summary.projectId} className="border-b">
+                    <td className="py-1.5 px-2 text-xs font-medium truncate max-w-[140px]">
+                      {summary.projectAddress}
                     </td>
                     <td className="text-center py-1.5 px-2 text-xs">
-                      {totals.fundCount > 0 
-                        ? `${totals.fundCount} • ${formatCompact(totals.fundAmount)}` 
-                        : "—"}
+                      {summary.reviewCount > 0 ? (
+                        <span 
+                          className="cursor-pointer hover:text-primary hover:underline"
+                          onClick={() => handleCountClick(summary.projectId)}
+                        >
+                          {summary.reviewCount}
+                        </span>
+                      ) : "—"}
                     </td>
                     <td className="text-center py-1.5 px-2 text-xs">
-                      {totals.payCount > 0 
-                        ? `${totals.payCount} • ${formatCompact(totals.payAmount)}` 
-                        : "—"}
+                      {summary.fundCount > 0 ? (
+                        <span 
+                          className="cursor-pointer hover:text-primary hover:underline"
+                          onClick={() => handleCountClick(summary.projectId)}
+                        >
+                          {summary.fundCount}
+                        </span>
+                      ) : "—"}
+                    </td>
+                    <td className="text-center py-1.5 px-2 text-xs">
+                      {summary.payCount > 0 ? (
+                        <span 
+                          className="cursor-pointer hover:text-primary hover:underline"
+                          onClick={() => handleCountClick(summary.projectId)}
+                        >
+                          {summary.payCount}
+                        </span>
+                      ) : "—"}
                     </td>
                   </tr>
-                </>
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+                <tr className="bg-muted/30 font-medium">
+                  <td className="py-1.5 px-2 text-xs">Total</td>
+                  <td className="text-center py-1.5 px-2 text-xs">{totals.reviewCount || "—"}</td>
+                  <td className="text-center py-1.5 px-2 text-xs">{totals.fundCount || "—"}</td>
+                  <td className="text-center py-1.5 px-2 text-xs">{totals.payCount || "—"}</td>
+                </tr>
+              </>
+            )}
+          </tbody>
+        </table>
       </CardContent>
+
+      <PendingInvoicesDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        projectIds={selectedProjectId ? [selectedProjectId] : undefined}
+      />
     </Card>
   );
 }
