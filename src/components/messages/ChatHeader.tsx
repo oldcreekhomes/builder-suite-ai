@@ -1,14 +1,11 @@
-import { RefreshCw } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import type { User } from "@/hooks/useSimpleChat";
 
 interface ChatHeaderProps {
   selectedRoom: User;
-  onRefresh?: () => void;
 }
 
-export function ChatHeader({ selectedRoom, onRefresh }: ChatHeaderProps) {
+export function ChatHeader({ selectedRoom }: ChatHeaderProps) {
   const getInitials = (firstName: string | null, lastName: string | null) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
@@ -31,17 +28,6 @@ export function ChatHeader({ selectedRoom, onRefresh }: ChatHeaderProps) {
             {getDisplayName(selectedRoom)}
           </h2>
         </div>
-        {onRefresh && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onRefresh}
-            className="h-8 w-8 p-0"
-            title="Refresh messages"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        )}
       </div>
     </div>
   );

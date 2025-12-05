@@ -1,8 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
-import { LayoutDashboard, Calculator } from "lucide-react";
 
 interface EmployeeAccessPreferencesProps {
   employeeId: string;
@@ -24,50 +22,6 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
 
   return (
     <div className="space-y-6 py-4">
-      {/* Dashboard Section */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Dashboard</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Choose which dashboard this employee sees when logging in
-          </p>
-        </div>
-        
-        <div className="pl-6">
-          <RadioGroup
-            value={preferences.dashboard_type || 'project_manager'}
-            onValueChange={(value: 'project_manager' | 'accountant') => 
-              updatePreferences({ dashboard_type: value })
-            }
-            className="space-y-3"
-          >
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="project_manager" id="dashboard-pm" />
-              <Label htmlFor="dashboard-pm" className="flex items-center gap-2 cursor-pointer">
-                <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <span className="font-normal">Project Manager Dashboard</span>
-                  <p className="text-xs text-muted-foreground">
-                    Construction-focused view with projects, warnings, and weather
-                  </p>
-                </div>
-              </Label>
-            </div>
-            <div className="flex items-center space-x-3">
-              <RadioGroupItem value="accountant" id="dashboard-accountant" />
-              <Label htmlFor="dashboard-accountant" className="flex items-center gap-2 cursor-pointer">
-                <Calculator className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <span className="font-normal">Accountant Dashboard</span>
-                  <p className="text-xs text-muted-foreground">
-                    Payments workflow with Review, Fund, and Pay tracking
-                  </p>
-                </div>
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-      </div>
       {/* Budgets Section */}
       <div className="space-y-4">
         <div>

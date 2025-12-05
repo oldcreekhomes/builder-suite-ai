@@ -3031,7 +3031,6 @@ export type Database = {
           can_lock_budgets: boolean | null
           can_undo_reconciliation: boolean
           created_at: string
-          dashboard_type: string
           id: string
           receive_bill_payment_alerts: boolean
           updated_at: string
@@ -3048,7 +3047,6 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
-          dashboard_type?: string
           id?: string
           receive_bill_payment_alerts?: boolean
           updated_at?: string
@@ -3065,7 +3063,6 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
-          dashboard_type?: string
           id?: string
           receive_bill_payment_alerts?: boolean
           updated_at?: string

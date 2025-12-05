@@ -2,37 +2,17 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
-import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
-import { ProjectManagerDashboard } from "@/components/dashboard/ProjectManagerDashboard";
-import { AccountantDashboard } from "@/components/dashboard/AccountantDashboard";
-import { useDashboardAccess } from "@/hooks/useDashboardAccess";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProjectsOverview } from "@/components/ProjectsOverview";
+import { RecentActivity } from "@/components/RecentActivity";
+import { QuickStats } from "@/components/QuickStats";
+import { RecentPhotos } from "@/components/RecentPhotos";
+import { WeatherForecast } from "@/components/WeatherForecast";
+import { ProjectWarnings } from "@/components/ProjectWarnings";
+import { useProjects } from "@/hooks/useProjects";
 
 export default function Index() {
-  const { showTabs, dashboardType, isLoading } = useDashboardAccess();
-
-  const renderDashboard = () => {
-    if (isLoading) {
-      return (
-        <div className="flex flex-1 flex-col gap-6 p-6">
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      );
-    }
-
-    // Owner sees tabs with both dashboards
-    if (showTabs) {
-      return <DashboardTabs />;
-    }
-
-    // Employees see their assigned dashboard
-    if (dashboardType === 'accountant') {
-      return <AccountantDashboard />;
-    }
-
-    return <ProjectManagerDashboard />;
-  };
+  const { data: projects = [] } = useProjects();
+  const primaryProjectAddress = projects[0]?.address || "Alexandria, VA";
 
   return (
     <SidebarProvider>
@@ -40,7 +20,26 @@ export default function Index() {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <CompanyDashboardHeader />
-          {renderDashboard()}
+          <div className="flex flex-1 flex-col gap-6 p-6">
+            <div className="grid gap-6 md:grid-cols-4">
+              <div className="md:col-span-2">
+                <div className="rounded-xl bg-muted/50 h-full">
+                  <ProjectsOverview />
+                </div>
+              </div>
+              <div className="h-full">
+                <ProjectWarnings />
+              </div>
+              <div className="h-full">
+                <div className="rounded-xl bg-muted/50 h-full">
+                  <RecentPhotos />
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-muted/50">
+              <WeatherForecast address={primaryProjectAddress} />
+            </div>
+          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>

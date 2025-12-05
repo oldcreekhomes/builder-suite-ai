@@ -45,16 +45,6 @@ export const useSimpleChat = () => {
         async (payload) => {
           const message = payload.new as any;
           
-          // Debug logging to identify comparison issues
-          console.log('💬 Chat: Message received via realtime', {
-            messageId: message?.id,
-            messageSenderId: message?.sender_id,
-            expectedUserId: selectedUser.id,
-            match: message?.sender_id === selectedUser.id,
-            senderIdType: typeof message?.sender_id,
-            userIdType: typeof selectedUser.id
-          });
-          
           // Validate essential fields exist to prevent crashes
           if (!message?.id || !message?.sender_id) {
             console.warn('💬 Chat: Received invalid message payload, skipping:', message);
@@ -63,7 +53,7 @@ export const useSimpleChat = () => {
           
           // Only add if from the selected user
           if (message.sender_id === selectedUser.id) {
-            console.log('💬 Chat: Sender matched, adding message');
+            console.log('💬 Chat: New message received via realtime');
             
             // Fetch sender info to enrich the message (prevents white-out screens)
             const { data: sender } = await supabase
@@ -80,17 +70,11 @@ export const useSimpleChat = () => {
             };
 
             addMessage(enrichedMessage);
-          } else {
-            console.log('💬 Chat: Sender did NOT match, skipping message');
           }
         }
       )
       .subscribe((status, error) => {
         console.log('💬 Chat: Channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          // Refresh messages when subscription connects/reconnects
-          fetchMessages(selectedUser.id, true);
-        }
         if (error) {
           console.error('💬 Chat: Subscription error:', error);
         }
@@ -104,32 +88,7 @@ export const useSimpleChat = () => {
         channelRef.current = null;
       }
     };
-  }, [currentUserId, selectedUser?.id, addMessage, fetchMessages]);
-
-  // Polling fallback - refresh messages every 10 seconds as backup for unreliable WebSocket
-  useEffect(() => {
-    if (!selectedUser?.id) return;
-    
-    const interval = setInterval(() => {
-      console.log('💬 Chat: Polling for messages');
-      fetchMessages(selectedUser.id, true);
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [selectedUser?.id, fetchMessages]);
-
-  // Visibility change handler - refresh when tab becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && selectedUser?.id) {
-        console.log('💬 Chat: Tab became visible, refreshing messages');
-        fetchMessages(selectedUser.id, true);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [selectedUser?.id, fetchMessages]);
+  }, [currentUserId, selectedUser?.id, addMessage]);
 
   // Enhanced start chat function that also fetches messages
   const startChatWithUser = useCallback(async (user: User) => {

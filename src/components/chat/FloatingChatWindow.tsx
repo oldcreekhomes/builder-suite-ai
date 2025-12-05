@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Minus, MessageCircle, RefreshCw } from 'lucide-react';
+import { X, Minus, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -49,16 +49,6 @@ export function FloatingChatWindow({
         async (payload) => {
           const message = payload.new as any;
           
-          // Debug logging to identify comparison issues
-          console.log('💬 FloatingChat: Message received via realtime', {
-            messageId: message?.id,
-            messageSenderId: message?.sender_id,
-            expectedUserId: user.id,
-            match: message?.sender_id === user.id,
-            senderIdType: typeof message?.sender_id,
-            userIdType: typeof user.id
-          });
-          
           // Validate essential fields exist to prevent crashes
           if (!message?.id || !message?.sender_id) {
             console.warn('💬 FloatingChat: Received invalid message payload, skipping:', message);
@@ -66,7 +56,6 @@ export function FloatingChatWindow({
           }
           
           if (message.sender_id === user.id) {
-            console.log('💬 FloatingChat: Sender matched, adding message');
             // Fetch sender info to enrich the message (prevents white-out screens)
             const { data: sender } = await supabase
               .from('users')
@@ -82,21 +71,10 @@ export function FloatingChatWindow({
             };
 
             addMessage(enrichedMessage);
-          } else {
-            console.log('💬 FloatingChat: Sender did NOT match, skipping message');
           }
         }
       )
-      .subscribe((status, error) => {
-        console.log('💬 FloatingChat: Channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          // Refresh messages when subscription connects/reconnects
-          fetchMessages(user.id, true);
-        }
-        if (error) {
-          console.error('💬 FloatingChat: Subscription error:', error);
-        }
-      });
+      .subscribe();
 
     channelRef.current = channel;
 
@@ -106,32 +84,7 @@ export function FloatingChatWindow({
         channelRef.current = null;
       }
     };
-  }, [currentUser?.id, user.id, addMessage, fetchMessages]);
-
-  // Polling fallback - refresh messages every 10 seconds as backup for unreliable WebSocket
-  useEffect(() => {
-    if (!user.id || isMinimized) return;
-    
-    const interval = setInterval(() => {
-      console.log('💬 FloatingChat: Polling for messages');
-      fetchMessages(user.id, true);
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [user.id, isMinimized, fetchMessages]);
-
-  // Visibility change handler - refresh when tab becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user.id && !isMinimized) {
-        console.log('💬 FloatingChat: Tab became visible, refreshing messages');
-        fetchMessages(user.id, true);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user.id, isMinimized, fetchMessages]);
+  }, [currentUser?.id, user.id, addMessage]);
 
   // Initialize chat when opened
   useEffect(() => {
@@ -150,15 +103,6 @@ export function FloatingChatWindow({
       initializeChat();
     }
   }, [isMinimized, hasInitialized, user.id, fetchMessages]);
-
-  // Debug: Log what currentUserId is being passed to SimpleMessagesList
-  useEffect(() => {
-    console.log('🔍 FloatingChat passing to SimpleMessagesList:', {
-      currentUserId: currentUser?.id,
-      messagesCount: messages?.length || 0,
-      messagesSenderIds: messages?.map(m => m?.sender_id) || []
-    });
-  }, [currentUser?.id, messages]);
 
   const sendMessage = useCallback(async (messageText: string, files: File[] = []) => {
     await sendMessageHook(messageText, user, setMessages, files);
@@ -216,15 +160,6 @@ export function FloatingChatWindow({
           </div>
         </div>
         <div className="flex items-center space-x-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => fetchMessages(user.id, true)}
-            className="h-6 w-6 p-0"
-            title="Refresh messages"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </Button>
           <Button 
             variant="ghost" 
             size="sm" 
