@@ -95,10 +95,15 @@ export const useMessages = () => {
       // Get unique sender IDs and fetch all senders in ONE query (prevents race condition)
       const uniqueSenderIds = [...new Set(allMessages.map(msg => msg.sender_id))];
       
-      const { data: senders } = await supabase
-        .from('users')
-        .select('id, first_name, last_name, avatar_url')
-        .in('id', uniqueSenderIds);
+      // Guard against empty array - Supabase .in() crashes with empty array
+      let senders: { id: string; first_name: string; last_name: string; avatar_url: string | null }[] | null = null;
+      if (uniqueSenderIds.length > 0) {
+        const { data } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', uniqueSenderIds);
+        senders = data;
+      }
 
       // Create a lookup map for O(1) access
       const senderMap = new Map(senders?.map(s => [s.id, s]) || []);
