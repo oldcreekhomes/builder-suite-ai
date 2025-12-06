@@ -516,6 +516,7 @@ export const useBankReconciliation = () => {
           .from('bank_reconciliations')
           .select('*')
           .eq('bank_account_id', bankAccountId)
+          .eq('status', 'completed')
           .order('statement_date', { ascending: false });
 
         if (projectId) {
