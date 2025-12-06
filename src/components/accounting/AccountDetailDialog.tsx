@@ -91,6 +91,9 @@ export function AccountDetailDialog({
           debit,
           credit,
           account_id,
+          reconciled,
+          reconciliation_id,
+          reconciliation_date,
         journal_entries!inner(
           id,
           entry_date,
@@ -371,6 +374,12 @@ export function AccountDetailDialog({
             reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
             reconciliation_date = bill.reconciliation_date;
           }
+        }
+
+        // For manual journal entries, use the line's own reconciliation data
+        if (line.journal_entries.source_type === 'manual') {
+          reconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
+          reconciliation_date = line.reconciliation_date;
         }
 
         return {
