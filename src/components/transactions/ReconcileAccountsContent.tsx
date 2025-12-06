@@ -466,6 +466,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   mode="single"
                   selected={statementDate}
                   onSelect={setStatementDate}
+                  month={statementDate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                   disabled={(date) => {
@@ -501,6 +502,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   mode="single"
                   selected={hideTransactionsAfterDate}
                   onSelect={setHideTransactionsAfterDate}
+                  month={hideTransactionsAfterDate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
