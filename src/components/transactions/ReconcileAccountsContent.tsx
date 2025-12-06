@@ -861,8 +861,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               checked={allChecksSelected}
                               onCheckedChange={handleSelectAllChecks}
                               disabled={visibleChecks.length === 0}
-                              data-indeterminate={someChecksSelected && !allChecksSelected}
-                              className={cn(someChecksSelected && !allChecksSelected && "data-[state=unchecked]:bg-primary/50 data-[state=unchecked]:border-primary")}
                             />
                           </th>
                           <th className="p-2 text-left">Date</th>
@@ -929,8 +927,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               checked={allDepositsSelected}
                               onCheckedChange={handleSelectAllDeposits}
                               disabled={visibleDeposits.length === 0}
-                              data-indeterminate={someDepositsSelected && !allDepositsSelected}
-                              className={cn(someDepositsSelected && !allDepositsSelected && "data-[state=unchecked]:bg-primary/50 data-[state=unchecked]:border-primary")}
                             />
                           </th>
                           <th className="p-2 text-left">Date</th>
