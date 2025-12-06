@@ -1016,13 +1016,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 </div>
 
                 <div className="flex gap-3 justify-end">
-                  <Button variant="outline" onClick={() => navigate(`/project/${projectId}/accounting`)}>
-                    Cancel
-                  </Button>
-                  <Button variant="outline" onClick={handleSaveProgress}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Progress
-                  </Button>
                   <Button 
                     onClick={handleFinishReconciliation}
                     disabled={Math.abs(difference) > 0.01}
