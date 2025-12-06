@@ -57,6 +57,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
   const [statementDate, setStatementDate] = useState<Date>();
+  const [hideTransactionsAfterDate, setHideTransactionsAfterDate] = useState<Date | undefined>();
   const [beginningBalance, setBeginningBalance] = useState<string>("");
   const [endingBalance, setEndingBalance] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
@@ -123,6 +124,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setCheckedTransactions(reconciledIds);
     }
   }, [transactions]);
+
+  // Sync hideTransactionsAfterDate with statementDate
+  useEffect(() => {
+    if (statementDate) {
+      setHideTransactionsAfterDate(statementDate);
+    }
+  }, [statementDate]);
 
   const handleToggleTransaction = (id: string) => {
     setCheckedTransactions(prev => {
@@ -437,7 +445,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             </Select>
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <Label>Statement Date</Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -472,7 +480,35 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             </Popover>
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
+            <Label>Hide transactions after</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={!selectedBankAccountId}
+                  className={cn(
+                    "w-full justify-start text-left font-normal mt-1",
+                    !hideTransactionsAfterDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {hideTransactionsAfterDate ? format(hideTransactionsAfterDate, "PP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={hideTransactionsAfterDate}
+                  onSelect={setHideTransactionsAfterDate}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="lg:col-span-2">
             <Label htmlFor="beginning-balance">
               Beginning Balance
             </Label>
@@ -537,6 +573,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       <tbody>
                         {transactions?.checks
                           .filter(c => !c.reconciled)
+                          .filter(c => !hideTransactionsAfterDate || new Date(c.date) <= hideTransactionsAfterDate)
                           .map((check) => (
                             <tr key={check.id} className="border-t">
                               <td className="p-2">
@@ -594,6 +631,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       <tbody>
                         {transactions?.deposits
                           .filter(d => !d.reconciled)
+                          .filter(d => !hideTransactionsAfterDate || new Date(d.date) <= hideTransactionsAfterDate)
                           .map((deposit) => (
                             <tr key={deposit.id} className="border-t">
                               <td className="p-2">
