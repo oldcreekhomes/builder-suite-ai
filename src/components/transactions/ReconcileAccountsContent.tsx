@@ -14,7 +14,13 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,6 +86,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   // Sorting state for Outstanding Deposits
   const [depositsSortColumn, setDepositsSortColumn] = useState<'date' | 'amount' | null>(null);
   const [depositsSortDirection, setDepositsSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Notes dialog state
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [selectedReconciliationNotes, setSelectedReconciliationNotes] = useState("");
+  const [selectedReconciliationDate, setSelectedReconciliationDate] = useState("");
   
   // Track if we need to save on unmount
   const hasUnsavedChangesRef = useRef(false);
@@ -1216,8 +1227,23 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               : "-"
                             }
                           </td>
-                          <td className="p-3 text-sm text-muted-foreground">
-                            {rec.notes || "-"}
+                          <td className="p-3 text-center">
+                            {rec.notes ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedReconciliationNotes(rec.notes);
+                                  setSelectedReconciliationDate(format(new Date(rec.statement_date + "T00:00:00"), "MM/dd/yyyy"));
+                                  setNotesDialogOpen(true);
+                                }}
+                                className="h-8 w-8 p-0"
+                              >
+                                <StickyNote className="h-4 w-4 text-amber-500" />
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </td>
                           {canUndoReconciliation && (
                             <td className="p-3 text-center">
@@ -1308,6 +1334,24 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Notes View Dialog */}
+      <Dialog open={notesDialogOpen} onOpenChange={setNotesDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="h-4 w-4" />
+              Reconciliation Notes
+            </DialogTitle>
+            <div className="text-sm text-muted-foreground mt-1">
+              Statement Date: {selectedReconciliationDate}
+            </div>
+          </DialogHeader>
+          <div className="p-4 bg-muted rounded-md">
+            <p className="text-sm whitespace-pre-wrap">{selectedReconciliationNotes}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
