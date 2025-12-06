@@ -235,9 +235,13 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
             )}
           </div>
 
-          {/* Software Issues Section - Show for all authenticated users except when on issues page */}
-          {!isIssuesPage && (
-            <div className="pt-2 mt-2 border-t border-gray-200">
+        </div>
+
+        {/* Software Issues Section - Show for all authenticated users except when on issues page */}
+        {!isIssuesPage && (
+          <>
+            <div className="border-t border-gray-200 mt-2" />
+            <div className="px-3 pt-2">
               <div>
                 <Link to="/issues" className="flex items-center px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm">
                   <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -257,8 +261,8 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                 </Link>
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </TooltipProvider>
   );

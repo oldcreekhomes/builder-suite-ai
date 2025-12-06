@@ -69,10 +69,10 @@ export function SidebarUserDropdown() {
 
   return (
     <>
-      <SidebarFooter className="py-4 border-t border-gray-200 h-[72px]">
+      <SidebarFooter className="p-0 border-t border-gray-200 h-[72px]">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start p-2 h-auto mx-4">
+            <Button variant="ghost" className="w-full justify-start p-2 h-auto mx-4 my-4">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
                   <AvatarImage 
