@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +109,24 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     selectedBankAccountId
   );
 
+  // Separate query for in-progress reconciliation (since history now only shows completed)
+  const { data: inProgressReconciliation } = useQuery({
+    queryKey: ['in-progress-reconciliation', projectId, selectedBankAccountId],
+    queryFn: async () => {
+      if (!selectedBankAccountId) return null;
+      const { data } = await supabase
+        .from('bank_reconciliations')
+        .select('*')
+        .eq('bank_account_id', selectedBankAccountId)
+        .eq('status', 'in_progress')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!selectedBankAccountId
+  });
+
   const bankAccounts = accounts?.filter(
     (acc) => acc.type === 'asset' && acc.is_active
   ) || [];
@@ -132,9 +151,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
   // Initialize checked transactions from saved in-progress reconciliation OR already reconciled transactions
   useEffect(() => {
-    if (!reconciliationHistory || !transactions || initialCheckedTransactionsLoaded) return;
-    
-    const inProgress = reconciliationHistory.find((r: any) => r.status === 'in_progress');
+    if (!transactions || initialCheckedTransactionsLoaded) return;
     
     // Start with already reconciled transactions
     const reconciledIds = new Set<string>();
@@ -145,15 +162,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     });
     
     // Add saved checked transaction IDs from in-progress reconciliation
-    if (inProgress?.checked_transaction_ids?.length > 0) {
-      inProgress.checked_transaction_ids.forEach((id: string) => {
+    if (inProgressReconciliation?.checked_transaction_ids?.length > 0) {
+      inProgressReconciliation.checked_transaction_ids.forEach((id: string) => {
         reconciledIds.add(id);
       });
     }
     
     setCheckedTransactions(reconciledIds);
     setInitialCheckedTransactionsLoaded(true);
-  }, [reconciliationHistory, transactions, initialCheckedTransactionsLoaded]);
+  }, [inProgressReconciliation, transactions, initialCheckedTransactionsLoaded]);
 
   // Reset initialCheckedTransactionsLoaded when bank account changes
   useEffect(() => {
@@ -476,17 +493,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
   // Auto-populate beginning balance and statement date from reconciliation history
   useEffect(() => {
-    if (!selectedBankAccountId || !reconciliationHistory || reconciliationHistory.length === 0) {
-      // Reset to $0 when no history at all
+    if (!selectedBankAccountId) {
       setBeginningBalance("0");
       setCurrentReconciliationId(null);
       setLastCompletedDate(null);
       return;
     }
 
-    // Find in-progress and last completed
-    const inProgress = reconciliationHistory.find((r: any) => r.status === 'in_progress');
-    const lastCompleted = reconciliationHistory.find((r: any) => r.status === 'completed');
+    // Get last completed from history (history now only contains completed records)
+    const lastCompleted = reconciliationHistory?.[0];
     
     // Beginning balance ALWAYS comes from last completed reconciliation (or $0 if none)
     const correctBeginningBalance = lastCompleted?.statement_ending_balance ?? 0;
@@ -498,12 +513,17 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setLastCompletedDate(null);
     }
 
-    if (inProgress) {
-      setCurrentReconciliationId(inProgress.id);
+    // Restore in-progress reconciliation state
+    if (inProgressReconciliation) {
+      setCurrentReconciliationId(inProgressReconciliation.id);
       setBeginningBalance(String(correctBeginningBalance));
-      setStatementDate(new Date(inProgress.statement_date));
-      setEndingBalance(String(inProgress.statement_ending_balance || ""));
-      setNotes(inProgress.notes || "");
+      setStatementDate(new Date(inProgressReconciliation.statement_date));
+      setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
+      setNotes(inProgressReconciliation.notes || "");
+      // Restore Phase 2 mode if ending balance was set
+      if (inProgressReconciliation.statement_ending_balance > 0) {
+        setIsReconciliationMode(true);
+      }
       return;
     }
 
@@ -517,7 +537,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setCurrentReconciliationId(null);
       setBeginningBalance("0");
     }
-  }, [selectedBankAccountId, reconciliationHistory]);
+  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation]);
 
 
   const formatCurrency = (amount: number) => {
