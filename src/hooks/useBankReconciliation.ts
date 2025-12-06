@@ -122,11 +122,13 @@ export const useBankReconciliation = () => {
         if (depositsError) throw depositsError;
 
         // Fetch bill payments using two-step approach
-        // Step 1: Get journal entries for bill payments
+        // Step 1: Get journal entries for bill payments (exclude reversed entries)
         const { data: journalEntries, error: jeError } = await supabase
           .from('journal_entries')
           .select('id, entry_date, source_id')
-          .eq('source_type', 'bill_payment');
+          .eq('source_type', 'bill_payment')
+          .eq('is_reversal', false)
+          .is('reversed_at', null);
 
         if (jeError) {
           console.error('[Reconciliation] Journal entries query failed:', jeError);
