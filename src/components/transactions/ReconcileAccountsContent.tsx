@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { data: project } = useProject(projectId!);
   const { accounts } = useAccounts();
 
-  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
+  // Restore selected bank account from localStorage
+  const storageKey = `reconciliation_bank_${projectId || 'global'}`;
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(() => {
+    return localStorage.getItem(storageKey);
+  });
   const [statementDate, setStatementDate] = useState<Date>();
   const [hideTransactionsAfterDate, setHideTransactionsAfterDate] = useState<Date | undefined>();
   const [beginningBalance, setBeginningBalance] = useState<string>("");
@@ -66,6 +70,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
   const [isReconciliationMode, setIsReconciliationMode] = useState(false);
+  const [initialCheckedTransactionsLoaded, setInitialCheckedTransactionsLoaded] = useState(false);
+  
+  // Track if we need to save on unmount
+  const hasUnsavedChangesRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { 
     useReconciliationTransactions,
@@ -114,17 +123,42 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   
   const difference = calculatedEndingBalance - parseFloat(endingBalance || "0");
 
+  // Persist selected bank account to localStorage
   useEffect(() => {
-    if (transactions) {
-      const reconciledIds = new Set<string>();
-      [...transactions.checks, ...transactions.deposits].forEach(t => {
-        if (t.reconciled) {
-          reconciledIds.add(t.id);
-        }
-      });
-      setCheckedTransactions(reconciledIds);
+    if (selectedBankAccountId) {
+      localStorage.setItem(storageKey, selectedBankAccountId);
     }
-  }, [transactions]);
+  }, [selectedBankAccountId, storageKey]);
+
+  // Initialize checked transactions from saved in-progress reconciliation OR already reconciled transactions
+  useEffect(() => {
+    if (!reconciliationHistory || !transactions || initialCheckedTransactionsLoaded) return;
+    
+    const inProgress = reconciliationHistory.find((r: any) => r.status === 'in_progress');
+    
+    // Start with already reconciled transactions
+    const reconciledIds = new Set<string>();
+    [...transactions.checks, ...transactions.deposits].forEach(t => {
+      if (t.reconciled) {
+        reconciledIds.add(t.id);
+      }
+    });
+    
+    // Add saved checked transaction IDs from in-progress reconciliation
+    if (inProgress?.checked_transaction_ids?.length > 0) {
+      inProgress.checked_transaction_ids.forEach((id: string) => {
+        reconciledIds.add(id);
+      });
+    }
+    
+    setCheckedTransactions(reconciledIds);
+    setInitialCheckedTransactionsLoaded(true);
+  }, [reconciliationHistory, transactions, initialCheckedTransactionsLoaded]);
+
+  // Reset initialCheckedTransactionsLoaded when bank account changes
+  useEffect(() => {
+    setInitialCheckedTransactionsLoaded(false);
+  }, [selectedBankAccountId]);
 
   // Sync hideTransactionsAfterDate with statementDate
   useEffect(() => {
@@ -132,6 +166,109 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setHideTransactionsAfterDate(statementDate);
     }
   }, [statementDate]);
+
+  // Mark changes as unsaved when checked transactions change
+  useEffect(() => {
+    if (initialCheckedTransactionsLoaded && selectedBankAccountId && statementDate) {
+      hasUnsavedChangesRef.current = true;
+    }
+  }, [checkedTransactions, initialCheckedTransactionsLoaded, selectedBankAccountId, statementDate]);
+
+  // Auto-save function
+  const autoSave = useCallback(async () => {
+    if (!selectedBankAccountId || !statementDate || !user || !hasUnsavedChangesRef.current) {
+      return;
+    }
+
+    try {
+      const reconciliationData = {
+        owner_id: user.id,
+        project_id: projectId || null,
+        bank_account_id: selectedBankAccountId,
+        statement_date: format(statementDate, 'yyyy-MM-dd'),
+        statement_beginning_balance: parseFloat(beginningBalance || "0"),
+        statement_ending_balance: parseFloat(endingBalance || "0"),
+        reconciled_balance: calculatedEndingBalance,
+        difference: difference,
+        status: 'in_progress' as const,
+        notes,
+        checked_transaction_ids: Array.from(checkedTransactions),
+      };
+
+      if (currentReconciliationId) {
+        await supabase
+          .from('bank_reconciliations')
+          .update(reconciliationData)
+          .eq('id', currentReconciliationId);
+      } else {
+        const { data: result } = await supabase
+          .from('bank_reconciliations')
+          .insert([reconciliationData])
+          .select()
+          .single();
+        if (result) {
+          setCurrentReconciliationId(result.id);
+        }
+      }
+      hasUnsavedChangesRef.current = false;
+    } catch (error) {
+      console.error('Error auto-saving reconciliation:', error);
+    }
+  }, [selectedBankAccountId, statementDate, user, projectId, beginningBalance, endingBalance, calculatedEndingBalance, difference, notes, checkedTransactions, currentReconciliationId]);
+
+  // Auto-save on unmount or when leaving the tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (hasUnsavedChangesRef.current) {
+        autoSave();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && hasUnsavedChangesRef.current) {
+        autoSave();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Clear any pending save timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      // Save on unmount
+      if (hasUnsavedChangesRef.current) {
+        autoSave();
+      }
+    };
+  }, [autoSave]);
+
+  // Debounced auto-save when state changes
+  useEffect(() => {
+    if (!initialCheckedTransactionsLoaded || !selectedBankAccountId || !statementDate) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      if (hasUnsavedChangesRef.current) {
+        autoSave();
+      }
+    }, 3000); // Auto-save 3 seconds after last change
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [checkedTransactions, endingBalance, notes, autoSave, initialCheckedTransactionsLoaded, selectedBankAccountId, statementDate]);
 
   const handleToggleTransaction = (id: string) => {
     setCheckedTransactions(prev => {
@@ -143,6 +280,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       }
       return newSet;
     });
+    hasUnsavedChangesRef.current = true;
   };
 
   const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry', field: string, value: any) => {
@@ -192,6 +330,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         difference: difference,
         status: 'in_progress' as const,
         notes,
+        checked_transaction_ids: Array.from(checkedTransactions),
       };
 
       if (currentReconciliationId) {
@@ -203,6 +342,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         const result = await createReconciliation.mutateAsync(reconciliationData);
         setCurrentReconciliationId(result.id);
       }
+      hasUnsavedChangesRef.current = false;
     } catch (error) {
       console.error('Error saving reconciliation:', error);
     }
@@ -321,6 +461,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setCurrentReconciliationId(null);
       setCheckedTransactions(new Set());
       setIsReconciliationMode(false);
+      setInitialCheckedTransactionsLoaded(false);
+      hasUnsavedChangesRef.current = false;
       // The useEffect will automatically populate the new beginning balance and statement date
     } catch (error) {
       console.error('Error completing reconciliation:', error);

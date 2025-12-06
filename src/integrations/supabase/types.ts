@@ -151,6 +151,7 @@ export type Database = {
       bank_reconciliations: {
         Row: {
           bank_account_id: string
+          checked_transaction_ids: string[] | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
@@ -168,6 +169,7 @@ export type Database = {
         }
         Insert: {
           bank_account_id: string
+          checked_transaction_ids?: string[] | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
@@ -185,6 +187,7 @@ export type Database = {
         }
         Update: {
           bank_account_id?: string
+          checked_transaction_ids?: string[] | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
