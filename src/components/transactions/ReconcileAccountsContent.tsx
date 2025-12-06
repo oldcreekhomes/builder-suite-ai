@@ -486,7 +486,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </div>
 
           <div className="lg:col-span-2">
-            <Label>Hide transactions after</Label>
+            <Label>Hide Transactions After</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
