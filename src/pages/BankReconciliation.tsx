@@ -135,7 +135,7 @@ const BankReconciliation = () => {
     });
   };
 
-  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment', field: string, value: any) => {
+  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry', field: string, value: any) => {
     try {
       if (type === 'check') {
         await updateCheckTransaction.mutateAsync({ id, field, value });
@@ -149,6 +149,7 @@ const BankReconciliation = () => {
           bankAccountId: selectedBankAccountId!
         });
       }
+      // Journal entries are read-only in reconciliation view - no update handler needed
     } catch (error) {
       console.error('Error updating transaction:', error);
     }

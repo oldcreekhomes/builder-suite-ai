@@ -145,7 +145,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     });
   };
 
-  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment', field: string, value: any) => {
+  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry', field: string, value: any) => {
     try {
       if (type === 'check') {
         await updateCheckTransaction.mutateAsync({ id, field, value });
@@ -159,6 +159,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           bankAccountId: selectedBankAccountId!
         });
       }
+      // Journal entries are read-only in reconciliation view - no update handler needed
     } catch (error) {
       console.error('Error updating transaction:', error);
     }
@@ -615,7 +616,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     />
                   </td>
                               <td className="p-2">
-                                {check.type === 'bill_payment' ? 'Bill Payment' : 'Check'}
+                                {check.type === 'bill_payment' ? 'Bill Payment' : check.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">
                                 <InlineEditCell

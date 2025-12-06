@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 interface ReconciliationTransaction {
   id: string;
   date: string;
-  type: 'check' | 'deposit' | 'bill_payment';
+  type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
   payee?: string;
   source?: string;
   reference_number?: string;
@@ -13,6 +13,8 @@ interface ReconciliationTransaction {
   reconciled: boolean;
   reconciliation_date?: string;
   reconciliation_id?: string;
+  // For journal entries, we need the line id to mark as reconciled
+  journal_entry_line_id?: string;
 }
 
 interface BankReconciliation {
@@ -226,6 +228,99 @@ export const useBankReconciliation = () => {
           }
         }
 
+        // ========== FETCH MANUAL JOURNAL ENTRIES ==========
+        // Get manual journal entries that affect this bank account
+        const { data: manualJournalEntries, error: mjeError } = await supabase
+          .from('journal_entries')
+          .select(`
+            id,
+            entry_date,
+            description,
+            source_type
+          `)
+          .eq('source_type', 'manual')
+          .eq('is_reversal', false)
+          .is('reversed_at', null);
+
+        if (mjeError) {
+          console.error('[Reconciliation] Manual journal entries query failed:', mjeError);
+        }
+
+        let manualJournalCredits: ReconciliationTransaction[] = [];
+        let manualJournalDebits: ReconciliationTransaction[] = [];
+
+        if (manualJournalEntries && manualJournalEntries.length > 0) {
+          const mjeIds = manualJournalEntries.map(je => je.id);
+
+          // Get journal entry lines that affect this bank account (both debits and credits)
+          const { data: manualLines, error: mlError } = await supabase
+            .from('journal_entry_lines')
+            .select('id, journal_entry_id, debit, credit, project_id, reconciled, reconciliation_id, reconciliation_date')
+            .in('journal_entry_id', mjeIds)
+            .eq('account_id', bankAccountId)
+            .eq('reconciled', false);
+
+          if (mlError) {
+            console.error('[Reconciliation] Manual journal lines query failed:', mlError);
+          }
+
+          if (manualLines && manualLines.length > 0) {
+            // Create a map of journal entry id to entry data
+            const jeMap = new Map(manualJournalEntries.map(je => [je.id, je]));
+
+            // Process each line - filter by project if needed
+            manualLines.forEach(line => {
+              const je = jeMap.get(line.journal_entry_id);
+              if (!je) return;
+
+              // Apply project filter
+              if (projectId) {
+                if (line.project_id !== projectId) return;
+              } else {
+                if (line.project_id) return;
+              }
+
+              const debit = Number(line.debit) || 0;
+              const credit = Number(line.credit) || 0;
+
+              if (credit > 0) {
+                // Credits to bank account = money going OUT (like checks)
+                manualJournalCredits.push({
+                  id: line.id, // Use line id as the transaction id
+                  journal_entry_line_id: line.id,
+                  date: je.entry_date,
+                  type: 'journal_entry' as const,
+                  payee: je.description || 'Journal Entry',
+                  reference_number: 'JE',
+                  amount: credit,
+                  reconciled: line.reconciled || false,
+                  reconciliation_date: line.reconciliation_date || undefined,
+                  reconciliation_id: line.reconciliation_id || undefined,
+                });
+              } else if (debit > 0) {
+                // Debits to bank account = money coming IN (like deposits)
+                manualJournalDebits.push({
+                  id: line.id, // Use line id as the transaction id
+                  journal_entry_line_id: line.id,
+                  date: je.entry_date,
+                  type: 'journal_entry' as const,
+                  source: je.description || 'Journal Entry',
+                  reference_number: 'JE',
+                  amount: debit,
+                  reconciled: line.reconciled || false,
+                  reconciliation_date: line.reconciliation_date || undefined,
+                  reconciliation_id: line.reconciliation_id || undefined,
+                });
+              }
+            });
+
+            console.log('[Reconciliation] Manual journal entries processed:', {
+              credits: manualJournalCredits.length,
+              debits: manualJournalDebits.length
+            });
+          }
+        }
+
         // Transform checks into transactions
         const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => ({
           id: check.id,
@@ -250,8 +345,20 @@ export const useBankReconciliation = () => {
           reconciliation_id: deposit.reconciliation_id || undefined,
         }));
 
-        // Combine checks and bill payments, sort by date
-        const allChecksAndPayments = [...checkTransactions, ...billPaymentTransactions].sort((a, b) => 
+        // Combine checks, bill payments, and journal entry credits (all are money out)
+        const allChecksAndPayments = [
+          ...checkTransactions, 
+          ...billPaymentTransactions,
+          ...manualJournalCredits
+        ].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        // Combine deposits and journal entry debits (all are money in)
+        const allDeposits = [
+          ...depositTransactions,
+          ...manualJournalDebits
+        ].sort((a, b) => 
           new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
@@ -259,12 +366,14 @@ export const useBankReconciliation = () => {
           totalChecksAndPayments: allChecksAndPayments.length,
           checkTransactions: checkTransactions.length,
           billPaymentTransactions: billPaymentTransactions.length,
-          deposits: depositTransactions.length 
+          manualJournalCredits: manualJournalCredits.length,
+          deposits: allDeposits.length,
+          manualJournalDebits: manualJournalDebits.length
         });
 
         return {
           checks: allChecksAndPayments,
-          deposits: depositTransactions,
+          deposits: allDeposits,
         };
       },
       enabled: !!bankAccountId,
@@ -334,7 +443,7 @@ export const useBankReconciliation = () => {
       reconciliationId,
       reconciliationDate,
     }: {
-      type: 'check' | 'deposit' | 'bill_payment';
+      type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
       id: string;
       reconciled: boolean;
       reconciliationId?: string;
@@ -363,6 +472,17 @@ export const useBankReconciliation = () => {
       } else if (type === 'bill_payment') {
         const { error } = await supabase
           .from('bills')
+          .update({
+            reconciled,
+            reconciliation_id: reconciliationId || null,
+            reconciliation_date: reconciliationDate || null,
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else if (type === 'journal_entry') {
+        // For journal entries, update the journal_entry_lines table
+        const { error } = await supabase
+          .from('journal_entry_lines')
           .update({
             reconciled,
             reconciliation_id: reconciliationId || null,
@@ -635,7 +755,19 @@ export const useBankReconciliation = () => {
       
       if (billsError) throw billsError;
 
-      // 4. Delete the reconciliation record
+      // 4. Update journal_entry_lines: same pattern for manual journal entries
+      const { error: jelError } = await supabase
+        .from('journal_entry_lines')
+        .update({ 
+          reconciled: false, 
+          reconciliation_id: null, 
+          reconciliation_date: null 
+        })
+        .eq('reconciliation_id', reconciliationId);
+      
+      if (jelError) throw jelError;
+
+      // 5. Delete the reconciliation record
       const { error: deleteError } = await supabase
         .from('bank_reconciliations')
         .delete()
@@ -643,7 +775,7 @@ export const useBankReconciliation = () => {
       
       if (deleteError) throw deleteError;
 
-      // 5. Find the NEW "last completed" reconciliation for this bank/project
+      // 6. Find the NEW "last completed" reconciliation for this bank/project
       let lastCompletedQuery = supabase
         .from('bank_reconciliations')
         .select('statement_ending_balance')
@@ -660,7 +792,7 @@ export const useBankReconciliation = () => {
       
       const { data: lastCompleted } = await lastCompletedQuery.maybeSingle();
       
-      // 6. Update any in-progress reconciliations with the correct beginning balance
+      // 7. Update any in-progress reconciliations with the correct beginning balance
       const newBeginningBalance = lastCompleted?.statement_ending_balance ?? 0;
       
       let updateInProgressQuery = supabase
