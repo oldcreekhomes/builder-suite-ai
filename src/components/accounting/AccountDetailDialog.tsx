@@ -754,8 +754,8 @@ export function AccountDetailDialog({
 
                   return (
                     <TableRow key={txn.line_id} className="h-8">
-                      <TableCell className="px-2 py-1 whitespace-nowrap">
-                        {getTypeLabel(txn.source_type)}
+              <TableCell className="px-2 py-1 whitespace-nowrap">
+                <span className="text-xs">{getTypeLabel(txn.source_type)}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <AccountTransactionInlineEditor
@@ -781,14 +781,14 @@ export function AccountDetailDialog({
                           readOnly={!canDeleteBills || txn.reconciled}
                         />
                       </TableCell>
-                      <TableCell className="px-2 py-1 text-right">
-                        {txn.debit > 0 ? formatCurrency(txn.debit) : ''}
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-right">
-                        {txn.credit > 0 ? formatCurrency(txn.credit) : ''}
-                      </TableCell>
-                      <TableCell className="px-2 py-1 text-right font-medium">
-                        {formatAmountWithSign(balances[index])}
+              <TableCell className="px-2 py-1 text-right">
+                <span className="text-xs">{txn.debit > 0 ? formatCurrency(txn.debit) : ''}</span>
+              </TableCell>
+              <TableCell className="px-2 py-1 text-right">
+                <span className="text-xs">{txn.credit > 0 ? formatCurrency(txn.credit) : ''}</span>
+              </TableCell>
+              <TableCell className="px-2 py-1 text-right">
+                <span className="text-xs">{formatAmountWithSign(balances[index])}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1 text-center">
                         <div className="flex items-center justify-center">
