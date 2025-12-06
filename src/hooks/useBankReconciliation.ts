@@ -31,6 +31,7 @@ interface BankReconciliation {
   completed_at?: string;
   completed_by?: string;
   notes?: string;
+  checked_transaction_ids?: string[];
   created_at: string;
   updated_at: string;
 }
