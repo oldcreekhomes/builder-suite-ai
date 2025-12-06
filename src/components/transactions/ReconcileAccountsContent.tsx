@@ -14,7 +14,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -771,9 +771,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
             <Separator className="my-6" />
 
-            {transactionsLoading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Loading transactions...</p>
+            {transactionsLoading || !initialCheckedTransactionsLoaded ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+                <p className="text-muted-foreground">Restoring your reconciliation...</p>
               </div>
             ) : !transactions || (transactions.checks.length === 0 && transactions.deposits.length === 0) ? (
               <div className="text-center py-8 border rounded-lg bg-muted/20">
