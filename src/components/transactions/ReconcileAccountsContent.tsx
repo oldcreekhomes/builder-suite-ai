@@ -556,13 +556,22 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setLastCompletedDate(null);
     }
 
-    // Restore in-progress reconciliation state
+    // Restore in-progress reconciliation state - ONLY on initial load, not on refetches
     if (inProgressReconciliation) {
       setCurrentReconciliationId(inProgressReconciliation.id);
       setBeginningBalance(String(correctBeginningBalance));
-      setStatementDate(new Date(inProgressReconciliation.statement_date));
-      setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
-      setNotes(inProgressReconciliation.notes || "");
+      
+      // Only set these values if not already set by user (prevent overwriting during refetches)
+      if (!statementDate) {
+        setStatementDate(new Date(inProgressReconciliation.statement_date));
+      }
+      if (!endingBalance) {
+        setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
+      }
+      if (!notes) {
+        setNotes(inProgressReconciliation.notes || "");
+      }
+      
       // Restore Phase 2 mode if ending balance was set
       if (inProgressReconciliation.statement_ending_balance > 0) {
         setIsReconciliationMode(true);
@@ -574,7 +583,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     if (lastCompleted) {
       setCurrentReconciliationId(null);
       setBeginningBalance(String(correctBeginningBalance));
-      setStatementDate(endOfMonth(addMonths(new Date(lastCompleted.statement_date), 1)));
+      // Only set statement date if not already set by user
+      if (!statementDate) {
+        setStatementDate(endOfMonth(addMonths(new Date(lastCompleted.statement_date), 1)));
+      }
     } else {
       // No completed, no in-progress - start fresh at $0
       setCurrentReconciliationId(null);
