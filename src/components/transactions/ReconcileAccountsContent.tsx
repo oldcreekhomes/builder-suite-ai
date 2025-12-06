@@ -1196,7 +1196,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       <th className="p-3 text-left">Ending Balance</th>
                       <th className="p-3 text-left">Difference</th>
                       <th className="p-3 text-left">Completed Date</th>
-                      <th className="p-3 text-left">Notes</th>
+                      <th className="p-3 text-center">Notes</th>
                       {canUndoReconciliation && <th className="p-3 text-center">Actions</th>}
                     </tr>
                   </thead>
