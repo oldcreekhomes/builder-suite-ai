@@ -1156,7 +1156,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               This action cannot be undone.
               {selectedReconciliationToUndo && (
                 <div className="mt-2 text-sm">
-                  <strong>Statement Date:</strong> {format(new Date(selectedReconciliationToUndo.statement_date), "MM/dd/yyyy")}
+                  <strong>Statement Date:</strong> {format(new Date(selectedReconciliationToUndo.statement_date + "T00:00:00"), "MM/dd/yyyy")}
                 </div>
               )}
             </AlertDialogDescription>
