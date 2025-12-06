@@ -996,9 +996,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   <thead className="bg-muted">
                     <tr>
                       <th className="p-3 text-left">Statement Date</th>
-                      <th className="p-3 text-right">Beginning Balance</th>
-                      <th className="p-3 text-right">Ending Balance</th>
-                      <th className="p-3 text-right">Difference</th>
+                      <th className="p-3 text-left">Beginning Balance</th>
+                      <th className="p-3 text-left">Ending Balance</th>
+                      <th className="p-3 text-left">Difference</th>
                       <th className="p-3 text-left">Completed Date</th>
                       <th className="p-3 text-left">Notes</th>
                       {canUndoReconciliation && <th className="p-3 text-center">Actions</th>}
@@ -1011,16 +1011,16 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       .map((rec: any) => (
                         <tr key={rec.id} className="border-t hover:bg-muted/50">
                           <td className="p-3">
-                            {format(new Date(rec.statement_date), "MM/dd/yyyy")}
+                            {format(new Date(rec.statement_date + "T00:00:00"), "MM/dd/yyyy")}
                           </td>
-                          <td className="p-3 text-right">
+                          <td className="p-3">
                             {formatCurrency(rec.statement_beginning_balance || 0)}
                           </td>
-                          <td className="p-3 text-right">
+                          <td className="p-3">
                             {formatCurrency(rec.statement_ending_balance || 0)}
                           </td>
                           <td className={cn(
-                            "p-3 text-right font-medium",
+                            "p-3 font-medium",
                             Math.abs(rec.difference || 0) < 0.01 ? "text-green-600" : "text-red-600"
                           )}>
                             {formatCurrency(rec.difference || 0)}
