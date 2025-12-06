@@ -743,7 +743,7 @@ export function AccountDetailDialog({
                   const getTypeLabel = (sourceType: string) => {
                     switch (sourceType) {
                       case 'bill': return 'Bill';
-                      case 'bill_payment': return 'Bill Pmt -Check';
+                      case 'bill_payment': return 'Bill Pmt - Check';
                       case 'check': return 'Check';
                       case 'deposit': return 'Deposit';
                       case 'credit_card': return 'Credit Card';
