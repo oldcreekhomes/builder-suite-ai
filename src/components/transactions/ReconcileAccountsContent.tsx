@@ -150,6 +150,57 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   
   const difference = calculatedEndingBalance - parseFloat(endingBalance || "0");
 
+  // Compute visible transactions for "Select All" functionality
+  const visibleChecks = transactions?.checks
+    .filter(c => !c.reconciled)
+    .filter(c => !hideTransactionsAfterDate || new Date(c.date) <= hideTransactionsAfterDate) || [];
+
+  const visibleDeposits = transactions?.deposits
+    .filter(d => !d.reconciled)
+    .filter(d => !hideTransactionsAfterDate || new Date(d.date) <= hideTransactionsAfterDate) || [];
+
+  // "Select All" checkbox states
+  const allChecksSelected = visibleChecks.length > 0 && 
+    visibleChecks.every(check => checkedTransactions.has(check.id));
+  const someChecksSelected = visibleChecks.some(check => checkedTransactions.has(check.id));
+
+  const allDepositsSelected = visibleDeposits.length > 0 && 
+    visibleDeposits.every(deposit => checkedTransactions.has(deposit.id));
+  const someDepositsSelected = visibleDeposits.some(deposit => checkedTransactions.has(deposit.id));
+
+  // "Select All" handlers
+  const handleSelectAllChecks = (checked: boolean) => {
+    setCheckedTransactions(prev => {
+      const newSet = new Set(prev);
+      visibleChecks.forEach(check => {
+        if (checked) {
+          newSet.add(check.id);
+        } else {
+          newSet.delete(check.id);
+        }
+      });
+      checkedTransactionsRef.current = newSet;
+      return newSet;
+    });
+    hasUnsavedChangesRef.current = true;
+  };
+
+  const handleSelectAllDeposits = (checked: boolean) => {
+    setCheckedTransactions(prev => {
+      const newSet = new Set(prev);
+      visibleDeposits.forEach(deposit => {
+        if (checked) {
+          newSet.add(deposit.id);
+        } else {
+          newSet.delete(deposit.id);
+        }
+      });
+      checkedTransactionsRef.current = newSet;
+      return newSet;
+    });
+    hasUnsavedChangesRef.current = true;
+  };
+
   // Persist selected bank account to localStorage
   useEffect(() => {
     if (selectedBankAccountId) {
@@ -805,7 +856,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-12"></th>
+                          <th className="p-2 text-left w-12">
+                            <Checkbox
+                              checked={allChecksSelected}
+                              onCheckedChange={handleSelectAllChecks}
+                              disabled={visibleChecks.length === 0}
+                              data-indeterminate={someChecksSelected && !allChecksSelected}
+                              className={cn(someChecksSelected && !allChecksSelected && "data-[state=unchecked]:bg-primary/50 data-[state=unchecked]:border-primary")}
+                            />
+                          </th>
                           <th className="p-2 text-left">Date</th>
                           <th className="p-2 text-left">Type</th>
                           <th className="p-2 text-left">Ref #</th>
@@ -865,7 +924,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-12"></th>
+                          <th className="p-2 text-left w-12">
+                            <Checkbox
+                              checked={allDepositsSelected}
+                              onCheckedChange={handleSelectAllDeposits}
+                              disabled={visibleDeposits.length === 0}
+                              data-indeterminate={someDepositsSelected && !allDepositsSelected}
+                              className={cn(someDepositsSelected && !allDepositsSelected && "data-[state=unchecked]:bg-primary/50 data-[state=unchecked]:border-primary")}
+                            />
+                          </th>
                           <th className="p-2 text-left">Date</th>
                           <th className="p-2 text-left">Source</th>
                           <th className="p-2 text-right">Amount</th>
