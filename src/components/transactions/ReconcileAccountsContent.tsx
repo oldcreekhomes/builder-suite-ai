@@ -14,7 +14,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +72,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
   const [isReconciliationMode, setIsReconciliationMode] = useState(false);
   const [initialCheckedTransactionsLoaded, setInitialCheckedTransactionsLoaded] = useState(false);
+  
+  // Sorting state for Outstanding Checks & Bill Payments
+  const [checksSortColumn, setChecksSortColumn] = useState<'date' | 'amount' | null>(null);
+  const [checksSortDirection, setChecksSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Sorting state for Outstanding Deposits
+  const [depositsSortColumn, setDepositsSortColumn] = useState<'date' | 'amount' | null>(null);
+  const [depositsSortDirection, setDepositsSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Track if we need to save on unmount
   const hasUnsavedChangesRef = useRef(false);
@@ -876,17 +884,65 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">Date</th>
+                          <th className="p-2 text-left">
+                            <button 
+                              onClick={() => {
+                                if (checksSortColumn === 'date') {
+                                  setChecksSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                } else {
+                                  setChecksSortColumn('date');
+                                  setChecksSortDirection('asc');
+                                }
+                              }} 
+                              className="flex items-center gap-1 hover:text-primary"
+                            >
+                              {checksSortColumn === 'date' ? (
+                                checksSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              Date
+                            </button>
+                          </th>
                           <th className="p-2 text-left">Type</th>
                           <th className="p-2 text-left">Ref #</th>
                           <th className="p-2 text-left">Payee</th>
-                          <th className="p-2 text-right">Amount</th>
+                          <th className="p-2 text-right">
+                            <button 
+                              onClick={() => {
+                                if (checksSortColumn === 'amount') {
+                                  setChecksSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                } else {
+                                  setChecksSortColumn('amount');
+                                  setChecksSortDirection('asc');
+                                }
+                              }} 
+                              className="flex items-center gap-1 ml-auto hover:text-primary"
+                            >
+                              {checksSortColumn === 'amount' ? (
+                                checksSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              Amount
+                            </button>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {transactions?.checks
                           .filter(c => !c.reconciled)
                           .filter(c => !hideTransactionsAfterDate || new Date(c.date) <= hideTransactionsAfterDate)
+                          .sort((a, b) => {
+                            if (!checksSortColumn) return 0;
+                            let comparison = 0;
+                            if (checksSortColumn === 'date') {
+                              comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                            } else if (checksSortColumn === 'amount') {
+                              comparison = a.amount - b.amount;
+                            }
+                            return checksSortDirection === 'asc' ? comparison : -comparison;
+                          })
                           .map((check) => (
                             <tr key={check.id} className="border-t">
                               <td className="p-2">
@@ -942,15 +998,63 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">Date</th>
+                          <th className="p-2 text-left">
+                            <button 
+                              onClick={() => {
+                                if (depositsSortColumn === 'date') {
+                                  setDepositsSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                } else {
+                                  setDepositsSortColumn('date');
+                                  setDepositsSortDirection('asc');
+                                }
+                              }} 
+                              className="flex items-center gap-1 hover:text-primary"
+                            >
+                              {depositsSortColumn === 'date' ? (
+                                depositsSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              Date
+                            </button>
+                          </th>
                           <th className="p-2 text-left">Source</th>
-                          <th className="p-2 text-right">Amount</th>
+                          <th className="p-2 text-right">
+                            <button 
+                              onClick={() => {
+                                if (depositsSortColumn === 'amount') {
+                                  setDepositsSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                } else {
+                                  setDepositsSortColumn('amount');
+                                  setDepositsSortDirection('asc');
+                                }
+                              }} 
+                              className="flex items-center gap-1 ml-auto hover:text-primary"
+                            >
+                              {depositsSortColumn === 'amount' ? (
+                                depositsSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              Amount
+                            </button>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {transactions?.deposits
                           .filter(d => !d.reconciled)
                           .filter(d => !hideTransactionsAfterDate || new Date(d.date) <= hideTransactionsAfterDate)
+                          .sort((a, b) => {
+                            if (!depositsSortColumn) return 0;
+                            let comparison = 0;
+                            if (depositsSortColumn === 'date') {
+                              comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                            } else if (depositsSortColumn === 'amount') {
+                              comparison = a.amount - b.amount;
+                            }
+                            return depositsSortDirection === 'asc' ? comparison : -comparison;
+                          })
                           .map((deposit) => (
                             <tr key={deposit.id} className="border-t">
                               <td className="p-2">
