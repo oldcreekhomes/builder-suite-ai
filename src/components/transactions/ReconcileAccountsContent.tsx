@@ -65,6 +65,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [currentReconciliationId, setCurrentReconciliationId] = useState<string | null>(null);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
+  const [isReconciliationMode, setIsReconciliationMode] = useState(false);
 
   const { 
     useReconciliationTransactions,
@@ -318,6 +319,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setNotes("");
       setCurrentReconciliationId(null);
       setCheckedTransactions(new Set());
+      setIsReconciliationMode(false);
       // The useEffect will automatically populate the new beginning balance and statement date
     } catch (error) {
       console.error('Error completing reconciliation:', error);
@@ -421,7 +423,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       <Card className="p-6">
         {/* All fields in one row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <Label htmlFor="bank-account">Bank Account</Label>
             <Select
               value={selectedBankAccountId || ""}
@@ -430,7 +432,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 setEndingBalance("");
                 setNotes("");
                 setCheckedTransactions(new Set());
+                setIsReconciliationMode(false);
               }}
+              disabled={isReconciliationMode}
             >
               <SelectTrigger className="w-full mt-1">
                 <SelectValue placeholder="Select a bank account..." />
@@ -451,7 +455,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  disabled={!selectedBankAccountId}
+                  disabled={!selectedBankAccountId || isReconciliationMode}
                   className={cn(
                     "w-full justify-start text-left font-normal mt-1",
                     !statementDate && "text-muted-foreground"
@@ -524,7 +528,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <Label htmlFor="ending-balance">Ending Balance</Label>
             <Input
               id="ending-balance"
@@ -532,13 +536,31 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               step="0.01"
               value={selectedBankAccountId ? endingBalance : ""}
               onChange={(e) => setEndingBalance(e.target.value)}
-              disabled={!selectedBankAccountId}
-              className="mt-1"
+              disabled={!selectedBankAccountId || isReconciliationMode}
+              className={cn("mt-1", isReconciliationMode && "bg-muted cursor-not-allowed")}
             />
+          </div>
+
+          <div className="lg:col-span-2 flex items-end gap-2 mt-1">
+            <Button
+              onClick={() => setIsReconciliationMode(true)}
+              disabled={isReconciliationMode || !selectedBankAccountId || !statementDate}
+              className="flex-1"
+            >
+              Continue
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsReconciliationMode(false)}
+              disabled={!isReconciliationMode}
+              className="flex-1"
+            >
+              Edit
+            </Button>
           </div>
         </div>
 
-          {selectedBankAccountId && (
+          {selectedBankAccountId && isReconciliationMode && (
             <>
 
             <Separator className="my-6" />
