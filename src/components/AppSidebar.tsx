@@ -60,9 +60,9 @@ export function AppSidebar({
       <Sidebar className="border-r border-border overflow-hidden">
         <SidebarBranding />
         
-        {/* Tab Navigation */}
-        <div className="px-3">
-          <div className="flex border-b border-border">
+      {/* Tab Navigation */}
+      <div className="px-3">
+        <div className="flex">
             <Button
               variant={activeTab === 'menus' ? 'default' : 'ghost'}
               size="sm"
@@ -84,13 +84,14 @@ export function AppSidebar({
                 <UnreadBadge count={totalUnreadCount} className="ml-1" />
               )}
             </Button>
-          </div>
         </div>
+      </div>
+      <div className="border-b border-border" />
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-hidden">
-          {activeTab === 'menus' ? (
-            <CompanyDashboardNav />
+      {/* Tab Content */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab === 'menus' ? (
+          <CompanyDashboardNav />
           ) : (
             <MessagesSidebar
               selectedUser={selectedUser || null}
@@ -113,7 +114,7 @@ export function AppSidebar({
       
       {/* Tab Navigation */}
       <div className="px-3">
-        <div className="flex border-b border-border">
+        <div className="flex">
           <Button
             variant={activeTab === 'menus' ? 'default' : 'ghost'}
             size="sm"
@@ -137,6 +138,7 @@ export function AppSidebar({
           </Button>
         </div>
       </div>
+      <div className="border-b border-border" />
 
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
