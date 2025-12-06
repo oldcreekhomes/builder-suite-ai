@@ -336,6 +336,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       } else {
         newSet.add(id);
       }
+      // Sync ref immediately so auto-save always has current value (prevents race condition)
+      checkedTransactionsRef.current = newSet;
       return newSet;
     });
     hasUnsavedChangesRef.current = true;
