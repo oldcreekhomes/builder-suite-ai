@@ -726,104 +726,117 @@ export function AccountDetailDialog({
             <Table className="text-xs">
               <TableHeader>
                 <TableRow className="h-8">
+                  <TableHead className="h-8 px-2 py-1">Type</TableHead>
                   <TableHead className="h-8 px-2 py-1">Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Received From</TableHead>
-              <TableHead className="h-8 px-2 py-1">Description</TableHead>
-              <TableHead className="h-8 px-2 py-1">Amount</TableHead>
-              <TableHead className="h-8 px-2 py-1">Balance</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Name</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Memo</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Debit</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Credit</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((txn, index) => (
-                  <TableRow key={txn.line_id} className="h-8">
-                    <TableCell className="px-2 py-1">
-                  <AccountTransactionInlineEditor
-                    value={toLocalDate(txn.date)}
-                    field="date"
-                    onSave={(value) => handleUpdate(txn, "date", value)}
-                    readOnly={!canDeleteBills || txn.reconciled}
-                  />
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <AccountTransactionInlineEditor
-                        value={txn.reference || '-'}
-                        field="reference"
-                        onSave={(value) => handleUpdate(txn, "reference", value)}
-                        readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type)}
-                      />
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <AccountTransactionInlineEditor
-                        value={txn.description || '-'}
-                        field="description"
-                        onSave={(value) => handleUpdate(txn, "description", value)}
-                        readOnly={!canDeleteBills || txn.reconciled}
-                      />
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <AccountTransactionInlineEditor
-                        value={txn.credit > 0 ? txn.credit : txn.debit}
-                        field="amount"
-                        onSave={(value) => handleUpdate(txn, "amount", value)}
-                        readOnly={!canDeleteBills || txn.reconciled}
-                        isNegative={
-                          (accountType === 'asset' || accountType === 'expense') 
-                            ? txn.credit > 0 
-                            : txn.debit > 0
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="px-2 py-1 font-medium">
-                      {formatAmountWithSign(balances[index])}
-                    </TableCell>
-                    <TableCell className="px-2 py-1 text-center">
-                      <div className="flex items-center justify-center">
-                        {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-2 py-1">
-                      <div className="flex items-center justify-center">
-                        {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && (
-                          <DeleteButton
-                            onDelete={() => handleDelete(txn)}
-                            title="Delete Transaction"
-                            description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                          />
-                        )}
-                        {(txn.reconciled || isDateLocked(txn.date)) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-muted-foreground text-lg cursor-help">🔒</span>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" align="center">
-                              {txn.reconciled && isDateLocked(txn.date) ? (
-                                <>
-                                  <p className="font-medium">Reconciled and Books Closed</p>
-                                  <p className="text-xs">Cannot be edited or deleted</p>
-                                </>
-                              ) : txn.reconciled ? (
-                                <>
-                                  <p className="font-medium">Reconciled</p>
-                                  <p className="text-xs">Cannot be edited or deleted</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="font-medium">Books Closed</p>
-                                  <p className="text-xs">Cannot be edited or deleted</p>
-                                </>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {transactions.map((txn, index) => {
+                  // Determine transaction type label matching QuickBooks
+                  const getTypeLabel = (sourceType: string) => {
+                    switch (sourceType) {
+                      case 'bill': return 'Bill';
+                      case 'bill_payment': return 'Bill Pmt -Check';
+                      case 'check': return 'Check';
+                      case 'deposit': return 'Deposit';
+                      case 'credit_card': return 'Credit Card';
+                      case 'manual': return 'Journal Entry';
+                      default: return sourceType;
+                    }
+                  };
+
+                  return (
+                    <TableRow key={txn.line_id} className="h-8">
+                      <TableCell className="px-2 py-1 whitespace-nowrap">
+                        {getTypeLabel(txn.source_type)}
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <AccountTransactionInlineEditor
+                          value={toLocalDate(txn.date)}
+                          field="date"
+                          onSave={(value) => handleUpdate(txn, "date", value)}
+                          readOnly={!canDeleteBills || txn.reconciled}
+                        />
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <AccountTransactionInlineEditor
+                          value={txn.reference || '-'}
+                          field="reference"
+                          onSave={(value) => handleUpdate(txn, "reference", value)}
+                          readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type)}
+                        />
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <AccountTransactionInlineEditor
+                          value={txn.description || '-'}
+                          field="description"
+                          onSave={(value) => handleUpdate(txn, "description", value)}
+                          readOnly={!canDeleteBills || txn.reconciled}
+                        />
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-right">
+                        {txn.debit > 0 ? formatCurrency(txn.debit) : ''}
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-right">
+                        {txn.credit > 0 ? formatCurrency(txn.credit) : ''}
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-right font-medium">
+                        {formatAmountWithSign(balances[index])}
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-center">
+                        <div className="flex items-center justify-center">
+                          {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <div className="flex items-center justify-center">
+                          {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && (
+                            <DeleteButton
+                              onDelete={() => handleDelete(txn)}
+                              title="Delete Transaction"
+                              description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                            />
+                          )}
+                          {(txn.reconciled || isDateLocked(txn.date)) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-muted-foreground text-lg cursor-help">🔒</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" align="center">
+                                {txn.reconciled && isDateLocked(txn.date) ? (
+                                  <>
+                                    <p className="font-medium">Reconciled and Books Closed</p>
+                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                  </>
+                                ) : txn.reconciled ? (
+                                  <>
+                                    <p className="font-medium">Reconciled</p>
+                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-medium">Books Closed</p>
+                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                  </>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
