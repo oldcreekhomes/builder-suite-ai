@@ -600,9 +600,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     // Beginning balance ALWAYS comes from last completed reconciliation (or $0 if none)
     const correctBeginningBalance = lastCompleted?.statement_ending_balance ?? 0;
     
-    // Track last completed date for calendar validation
+    // Track last completed date for calendar validation - parse without timezone shift
     if (lastCompleted) {
-      setLastCompletedDate(new Date(lastCompleted.statement_date));
+      const [year, month, day] = lastCompleted.statement_date.split('-').map(Number);
+      setLastCompletedDate(new Date(year, month - 1, day)); // Creates local midnight
     } else {
       setLastCompletedDate(null);
     }
@@ -745,7 +746,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   disabled={(date) => {
                     // Disable dates on or before the last completed reconciliation
                     if (lastCompletedDate) {
-                      return date <= lastCompletedDate;
+                      // Normalize both to start of day in local timezone for accurate comparison
+                      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                      const lastOnly = new Date(
+                        lastCompletedDate.getFullYear(), 
+                        lastCompletedDate.getMonth(), 
+                        lastCompletedDate.getDate()
+                      );
+                      return dateOnly <= lastOnly;
                     }
                     return false;
                   }}
