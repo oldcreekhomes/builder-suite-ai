@@ -615,7 +615,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       
       // Only set these values if not already set by user (prevent overwriting during refetches)
       if (!statementDate) {
-        setStatementDate(new Date(inProgressReconciliation.statement_date));
+        // Parse without timezone shift - creates local midnight
+        const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
+        setStatementDate(new Date(year, month - 1, day));
       }
       if (!endingBalance) {
         setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
@@ -637,7 +639,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setBeginningBalance(String(correctBeginningBalance));
       // Only set statement date if not already set by user
       if (!statementDate) {
-        setStatementDate(endOfMonth(addMonths(new Date(lastCompleted.statement_date), 1)));
+        // Parse without timezone shift - creates local midnight
+        const [lcYear, lcMonth, lcDay] = lastCompleted.statement_date.split('-').map(Number);
+        const lastCompletedLocal = new Date(lcYear, lcMonth - 1, lcDay);
+        setStatementDate(endOfMonth(addMonths(lastCompletedLocal, 1)));
       }
     } else {
       // No completed, no in-progress - start fresh at $0
