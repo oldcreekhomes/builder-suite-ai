@@ -109,7 +109,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
       console.log(`🔍 Job Costs: Found ${budgetData?.length || 0} budget items`);
 
       // Step 3: Get actual WIP costs
-      const { data: wipLines, error: wipError } = await supabase
+      let wipQuery = supabase
         .from('journal_entry_lines')
         .select(`
           cost_code_id,
@@ -121,6 +121,13 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
         .eq('project_id', projectId)
         .not('cost_code_id', 'is', null)
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
+      
+      // Filter by lot if selected
+      if (selectedLotId) {
+        wipQuery = wipQuery.eq('lot_id', selectedLotId);
+      }
+      
+      const { data: wipLines, error: wipError } = await wipQuery;
 
       if (wipError) {
         console.error("🔍 Job Costs: WIP lines query failed:", wipError);

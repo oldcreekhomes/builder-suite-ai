@@ -1788,6 +1788,7 @@ export type Database = {
           is_reversal: boolean
           journal_entry_id: string
           line_number: number
+          lot_id: string | null
           memo: string | null
           owner_id: string
           project_id: string | null
@@ -1807,6 +1808,7 @@ export type Database = {
           is_reversal?: boolean
           journal_entry_id: string
           line_number?: number
+          lot_id?: string | null
           memo?: string | null
           owner_id: string
           project_id?: string | null
@@ -1826,6 +1828,7 @@ export type Database = {
           is_reversal?: boolean
           journal_entry_id?: string
           line_number?: number
+          lot_id?: string | null
           memo?: string | null
           owner_id?: string
           project_id?: string | null
@@ -1855,6 +1858,13 @@ export type Database = {
             columns: ["journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
           {
