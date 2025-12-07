@@ -159,7 +159,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
               <>
                 {lots.map((lot) => (
                   <TableRow key={lot.id} className="h-8">
-                    <TableCell className="py-1.5 text-sm text-muted-foreground">{lot.lot_number}</TableCell>
+                    <TableCell className="py-1.5 text-sm font-medium">{lot.lot_number}</TableCell>
                     <TableCell className="py-1.5">
                       {editingLotId === lot.id ? (
                         <Input
@@ -174,7 +174,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                           }}
                         />
                       ) : (
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm">
                           {lot.lot_name || `Lot ${lot.lot_number}`}
                         </span>
                       )}
@@ -229,7 +229,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                 ))}
                 {isAdding && (
                   <TableRow className="h-8">
-                    <TableCell className="py-1.5 text-sm text-muted-foreground">{nextLotNumber}</TableCell>
+                    <TableCell className="py-1.5 text-sm font-medium">{nextLotNumber}</TableCell>
                     <TableCell className="py-1.5">
                       <Input
                         value={newLotName}
