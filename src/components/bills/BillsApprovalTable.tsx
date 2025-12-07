@@ -631,7 +631,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       return (
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger className="cursor-help underline decoration-dotted">
+                            <TooltipTrigger className="underline decoration-dotted">
                               {display}
                             </TooltipTrigger>
                             <TooltipContent>
