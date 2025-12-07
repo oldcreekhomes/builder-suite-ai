@@ -619,18 +619,18 @@ export function ManualBillEntry() {
               </div>
 
               <div className="border rounded-lg overflow-hidden">
-                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", showAddressColumn ? "grid-cols-11" : "grid-cols-10")}>
+                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                   <div className="col-span-2">Cost Code</div>
-                  <div className={showAddressColumn ? "col-span-3" : "col-span-4"}>Memo</div>
+                  <div className="col-span-3">Memo</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
                   <div className="col-span-1">Total</div>
-                  {showAddressColumn && <div className="col-span-1">Address</div>}
-                  <div className="col-span-1 text-center">Action</div>
+                  {showAddressColumn && <div className="col-span-2">Address</div>}
+                  <div className={cn(showAddressColumn ? "col-span-2" : "col-span-1", "text-center")}>Action</div>
                 </div>
 
                 {jobCostRows.map((row) => (
-                  <div key={row.id} className={cn("grid gap-2 p-3 border-t", showAddressColumn ? "grid-cols-11" : "grid-cols-10")}>
+                  <div key={row.id} className={cn("grid gap-2 p-3 border-t", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                     <div className="col-span-2">
                       <CostCodeSearchInput 
                         value={row.account}
@@ -643,7 +643,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-3" : "col-span-4"}>
+                    <div className="col-span-3">
                       <Input 
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -680,7 +680,7 @@ export function ManualBillEntry() {
                       </span>
                     </div>
                     {showAddressColumn && (
-                      <div className="col-span-1">
+                      <div className="col-span-2">
                         <Select
                           value={row.lotId || ''}
                           onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
@@ -698,7 +698,7 @@ export function ManualBillEntry() {
                         </Select>
                       </div>
                     )}
-                    <div className="col-span-1 flex justify-center items-center">
+                    <div className={cn(showAddressColumn ? "col-span-2" : "col-span-1", "flex justify-center items-center")}>
                       <Button
                         onClick={() => removeJobCostRow(row.id)}
                         size="sm"
@@ -713,8 +713,8 @@ export function ManualBillEntry() {
                 ))}
 
                 <div className="p-3 bg-muted border-t">
-                  <div className={cn("grid gap-2", showAddressColumn ? "grid-cols-11" : "grid-cols-10")}>
-                    <div className={cn("font-medium", showAddressColumn ? "col-span-6" : "col-span-6")}>
+                  <div className={cn("grid gap-2", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
+                    <div className="col-span-6 font-medium">
                       {jobCostRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;
                         const c = parseFloat(row.amount) || 0;
@@ -735,7 +735,7 @@ export function ManualBillEntry() {
                         return total + q * c;
                       }, 0).toFixed(2)}
                     </div>
-                    <div className={showAddressColumn ? "col-span-4" : "col-span-3"}></div>
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-3"}></div>
                   </div>
                 </div>
               </div>
@@ -846,7 +846,7 @@ export function ManualBillEntry() {
                         return total + q * c;
                       }, 0).toFixed(2)}
                     </div>
-                    <div className="col-span-3"></div>
+                    <div className={showAddressColumn ? "col-span-3" : "col-span-4"}></div>
                   </div>
                 </div>
               </div>
