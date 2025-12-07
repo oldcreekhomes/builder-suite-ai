@@ -12,6 +12,8 @@ import { LotSelector } from './LotSelector';
 
 interface BudgetPrintToolbarProps {
   projectId: string;
+  selectedLotId: string | null;
+  onSelectLot: (lotId: string) => void;
   onPrint: () => void;
   onExportPdf: () => void;
   onAddBudget: () => void;
@@ -25,6 +27,8 @@ interface BudgetPrintToolbarProps {
 
 export function BudgetPrintToolbar({ 
   projectId,
+  selectedLotId,
+  onSelectLot,
   onPrint, 
   onExportPdf, 
   onAddBudget, 
@@ -82,7 +86,7 @@ export function BudgetPrintToolbar({
               )}
             </Button>
           )}
-          <LotSelector projectId={projectId} />
+          <LotSelector projectId={projectId} selectedLotId={selectedLotId} onSelectLot={onSelectLot} />
           <Button onClick={onAddBudget} variant="outline" size="sm">
             <PlusIcon className="h-4 w-4 mr-2" />
             Budget

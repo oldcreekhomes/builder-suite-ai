@@ -8,18 +8,18 @@ import {
   SelectSeparator,
 } from "@/components/ui/select";
 import { useLots } from "@/hooks/useLots";
-import { useLotManagement } from "@/hooks/useLotManagement";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddLotDialog } from "./AddLotDialog";
 import { Plus } from "lucide-react";
 
 interface LotSelectorProps {
   projectId: string;
+  selectedLotId: string | null;
+  onSelectLot: (lotId: string) => void;
 }
 
-export function LotSelector({ projectId }: LotSelectorProps) {
+export function LotSelector({ projectId, selectedLotId, onSelectLot }: LotSelectorProps) {
   const { lots, isLoading, initializeLots, createLot } = useLots(projectId);
-  const { selectedLotId, selectLot } = useLotManagement(projectId);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const nextLotNumber = lots.length > 0 
@@ -37,9 +37,9 @@ export function LotSelector({ projectId }: LotSelectorProps) {
   // Auto-select first lot if none selected
   useEffect(() => {
     if (lots.length > 0 && !selectedLotId) {
-      selectLot(lots[0].id);
+      onSelectLot(lots[0].id);
     }
-  }, [lots, selectedLotId, selectLot]);
+  }, [lots, selectedLotId, onSelectLot]);
 
   if (isLoading) {
     return <Skeleton className="h-9 w-32" />;
@@ -49,7 +49,7 @@ export function LotSelector({ projectId }: LotSelectorProps) {
     if (value === "add-new") {
       setShowAddDialog(true);
     } else {
-      selectLot(value);
+      onSelectLot(value);
     }
   };
 
@@ -58,7 +58,7 @@ export function LotSelector({ projectId }: LotSelectorProps) {
       { projectId, lotNumber, lotName },
       {
         onSuccess: (newLot) => {
-          selectLot(newLot.id);
+          onSelectLot(newLot.id);
           setShowAddDialog(false);
         },
       }
