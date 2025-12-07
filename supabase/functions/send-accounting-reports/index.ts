@@ -110,13 +110,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Helper function to convert Uint8Array to base64 without stack overflow
     function uint8ArrayToBase64(bytes: Uint8Array): string {
-      const chunkSize = 8192;
-      let result = '';
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        result += String.fromCharCode(...chunk);
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
       }
-      return btoa(result);
+      return btoa(binary);
     }
 
     // Prepare attachments
