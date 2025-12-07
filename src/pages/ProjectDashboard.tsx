@@ -13,8 +13,10 @@ import {
   Plus,
   ChevronRight,
   Building2,
-  ArrowLeft
+  ArrowLeft,
+  Pencil
 } from "lucide-react";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
@@ -28,6 +30,7 @@ export default function ProjectDashboard() {
   const { data: photos = [], refetch } = useProjectPhotos(projectId || '');
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
@@ -117,7 +120,20 @@ export default function ProjectDashboard() {
                 <div className="flex items-center space-x-2">
                   <Building2 className="h-6 w-6 text-gray-600" />
                   <div>
-                    <h1 className="text-2xl font-bold text-black">{currentProject.address}</h1>
+                    <h1 className="text-2xl font-bold text-black flex items-center gap-2">
+                      {currentProject.address}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditDialogOpen(true);
+                        }}
+                        className="h-7 w-7"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </h1>
                   </div>
                 </div>
               </div>
@@ -172,6 +188,14 @@ export default function ProjectDashboard() {
             isOpen={showPhotoViewer}
             onClose={() => setShowPhotoViewer(false)}
             onPhotoDeleted={handlePhotoDeleted}
+          />
+        )}
+
+        {currentProject && (
+          <EditProjectDialog
+            project={currentProject}
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
           />
         )}
       </div>
