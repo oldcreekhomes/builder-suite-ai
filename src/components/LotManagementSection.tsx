@@ -137,7 +137,6 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="w-12 whitespace-nowrap py-1.5 text-xs">Lot #</TableHead>
               <TableHead className="py-1.5 text-xs">Name / Address</TableHead>
               <TableHead className="w-20 text-right py-1.5 text-xs">Actions</TableHead>
             </TableRow>
@@ -145,13 +144,13 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={2} className="text-center text-muted-foreground">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : lots.length === 0 && !isAdding ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={2} className="text-center text-muted-foreground">
                   No lots created yet
                 </TableCell>
               </TableRow>
@@ -159,7 +158,6 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
               <>
                 {lots.map((lot) => (
                   <TableRow key={lot.id} className="h-8">
-                    <TableCell className="py-1.5 text-sm font-medium">{lot.lot_number}</TableCell>
                     <TableCell className="py-1.5">
                       {editingLotId === lot.id ? (
                         <Input
@@ -229,7 +227,6 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                 ))}
                 {isAdding && (
                   <TableRow className="h-8">
-                    <TableCell className="py-1.5 text-sm font-medium">{nextLotNumber}</TableCell>
                     <TableCell className="py-1.5">
                       <Input
                         value={newLotName}
@@ -284,7 +281,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
       <AlertDialog open={!!deleteConfirmLot} onOpenChange={(open) => !open && setDeleteConfirmLot(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Lot {deleteConfirmLot?.lot_number}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {deleteConfirmLot?.lot_name || 'Lot'}?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 {hasAffectedItems ? (
