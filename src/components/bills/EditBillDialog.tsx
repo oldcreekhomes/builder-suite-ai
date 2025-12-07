@@ -663,7 +663,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
                     {showAddressColumn && <div className="col-span-1">Address</div>}
-                    <div className="col-span-1 text-right">Action</div>
+                    <div className="col-span-1">Action</div>
                   </div>
 
                   {jobCostRows.map((row) => (
@@ -735,7 +735,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           </Select>
                         </div>
                       )}
-                      <div className="col-span-1 flex justify-end items-center">
+                      <div className="col-span-1 flex items-center">
                         <Button
                           onClick={() => removeJobCostRow(row.id, row.dbId)}
                           size="sm"
