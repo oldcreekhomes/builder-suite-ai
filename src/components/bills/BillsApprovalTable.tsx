@@ -433,7 +433,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     if (breakdown.length === 0) return { display: '-', breakdown: [], count: 0 };
     if (breakdown.length === 1) return { display: breakdown[0].name, breakdown, count: 1 };
     
-    return { display: String(breakdown.length), breakdown, count: breakdown.length };
+    return { display: `+${breakdown.length}`, breakdown, count: breakdown.length };
   };
 
   const canShowActions = status === 'draft';
@@ -631,7 +631,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       return (
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger className="underline decoration-dotted">
+                            <TooltipTrigger>
                               {display}
                             </TooltipTrigger>
                             <TooltipContent>
