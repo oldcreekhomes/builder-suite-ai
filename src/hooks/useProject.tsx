@@ -23,7 +23,7 @@ export const useProject = (projectId: string) => {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('id, address')
+        .select('id, address, status, construction_manager, accounting_manager, total_lots, created_at, updated_at')
         .eq('id', projectId)
         .maybeSingle();
 
@@ -32,7 +32,7 @@ export const useProject = (projectId: string) => {
         throw error;
       }
 
-      return data as Pick<Project, 'id' | 'address'>;
+      return data as Project;
     },
     enabled: !!user && !!projectId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

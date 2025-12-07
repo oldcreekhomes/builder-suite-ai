@@ -1,6 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, Pencil } from "lucide-react";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
@@ -15,6 +16,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { profile } = useUserProfile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,11 +63,21 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
               </Button>
-              <div>
+              <div className="flex items-center gap-2">
                 {projectLoading ? (
                   <div className="h-5 w-32 bg-muted animate-pulse rounded"></div>
                 ) : project?.address ? (
-                  <p className="text-sm text-gray-600">{project.address}</p>
+                  <>
+                    <p className="text-sm text-gray-600">{project.address}</p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditDialogOpen(true)}
+                      className="h-6 w-6"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </>
                 ) : projectError ? (
                   <p className="text-sm text-gray-400">Address unavailable</p>
                 ) : (
@@ -75,6 +87,12 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
             </div>
           </div>
         </header>
+
+        <EditProjectDialog
+          project={project || null}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+        />
       </>
     );
   }
