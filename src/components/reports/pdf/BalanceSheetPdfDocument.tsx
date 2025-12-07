@@ -21,6 +21,13 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 2,
   },
+  asOfDate: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginTop: 12,
+    color: '#000',
+    textAlign: 'center',
+  },
   sectionHeader: {
     fontSize: 11,
     fontWeight: 'bold',
@@ -169,13 +176,18 @@ export const BalanceSheetPdfDocument: React.FC<BalanceSheetPdfDocumentProps> = (
     }).format(value);
   };
 
+  const formatAsOfDate = (dateString: string): string => {
+    const [year, month, day] = dateString.split('-');
+    return `${month}-${day}-${year}`;
+  };
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>Balance Sheet</Text>
           {projectAddress && <Text style={styles.subtitle}>{projectAddress}</Text>}
-          <Text style={styles.subtitle}>As of {asOfDate}</Text>
+          <Text style={styles.asOfDate}>As of {formatAsOfDate(asOfDate)}</Text>
         </View>
 
         <View style={styles.twoColumnLayout}>
