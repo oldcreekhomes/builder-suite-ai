@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { calculateBudgetItemTotal } from "@/utils/budgetUtils";
+import { LotSelector } from "@/components/budget/LotSelector";
 
 const getTopLevelGroup = (costCode: string): string => {
   const num = parseFloat(costCode);
@@ -49,9 +50,10 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
   const [selectedCostCode, setSelectedCostCode] = useState<JobCostRow | null>(null);
   const [dialogType, setDialogType] = useState<'budget' | 'actual' | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
   
   const { data: jobCostsData, isLoading, error } = useQuery({
-    queryKey: ['job-costs', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
+    queryKey: ['job-costs', user?.id, projectId, selectedLotId, asOfDate.toISOString().split('T')[0]],
     queryFn: async (): Promise<JobCostRow[]> => {
       if (!projectId) {
         throw new Error("Project ID is required for Job Costs report");
@@ -78,7 +80,7 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
       console.log("🔍 Job Costs: WIP account ID:", wipAccountId);
 
       // Step 2: Get budget data
-      const { data: budgetData, error: budgetError } = await supabase
+      let budgetQuery = supabase
         .from('project_budgets')
         .select(`
           id,
@@ -92,6 +94,12 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
           cost_codes(id, code, name, has_subcategories, price, parent_group)
         `)
         .eq('project_id', projectId);
+      
+      if (selectedLotId) {
+        budgetQuery = budgetQuery.eq('lot_id', selectedLotId);
+      }
+      
+      const { data: budgetData, error: budgetError } = await budgetQuery;
 
       if (budgetError) {
         console.error("🔍 Job Costs: Budget query failed:", budgetError);
@@ -282,7 +290,7 @@ parentRows.sort((a, b) => {
 console.log(`🔍 Job Costs: Returning ${parentRows.length} parent cost code rows`);
 return parentRows;
     },
-    enabled: !!user && !!session && !authLoading && !!projectId,
+    enabled: !!user && !!session && !authLoading && !!projectId && !!selectedLotId,
     retry: (failureCount, error: any) => {
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
         console.error("🔍 Job Costs: RLS policy violation");
@@ -460,8 +468,13 @@ return parentRows;
         </Card>
       ) : (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Budget vs. Actual</CardTitle>
+            <LotSelector
+              projectId={projectId}
+              selectedLotId={selectedLotId}
+              onSelectLot={setSelectedLotId}
+            />
           </CardHeader>
           <CardContent>
             {/* Table */}
