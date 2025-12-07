@@ -127,7 +127,10 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             credit,
             journal_entries!inner(entry_date)
           `)
-          .lte('journal_entries.entry_date', asOfDateStr);
+          .lte('journal_entries.entry_date', asOfDateStr)
+          .eq('journal_entries.is_reversal', false)
+          .is('journal_entries.reversed_at', null)
+          .is('journal_entries.reversed_by_id', null);
         
         if (projectId) {
           journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
