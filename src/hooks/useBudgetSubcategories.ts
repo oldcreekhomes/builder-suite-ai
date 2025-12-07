@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { useState, useEffect } from 'react';
+import { compareCostCodes } from '@/lib/costCodeSort';
 
 type CostCode = Tables<'cost_codes'>;
 type BudgetItem = Tables<'project_budgets'> & {
@@ -47,7 +48,7 @@ export function useBudgetSubcategories(
         .in('cost_code_id', childCodes.map(c => c.id));
 
       // Map child codes to include budget data if available
-      return childCodes.map(costCode => {
+      const mappedSubcategories = childCodes.map(costCode => {
         const budgetItem = budgetItems?.find(b => b.cost_code_id === costCode.id);
         return {
           id: budgetItem?.id || costCode.id,
@@ -61,6 +62,11 @@ export function useBudgetSubcategories(
           cost_codes: costCode,
         };
       }) as BudgetItem[];
+
+      // Sort by cost code numerically
+      return mappedSubcategories.sort((a, b) => 
+        compareCostCodes(a.cost_codes, b.cost_codes)
+      );
     },
     enabled: enabled,
     placeholderData: (prev) => prev,
