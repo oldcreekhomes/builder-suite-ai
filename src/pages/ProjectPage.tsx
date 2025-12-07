@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -14,14 +15,17 @@ import {
   FileText,
   Image,
   DollarSign,
-  Users
+  Users,
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
 
 export default function ProjectPage() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -141,7 +145,17 @@ export default function ProjectPage() {
                   <div className="flex items-center space-x-3">
                     <Building2 className="h-6 w-6 text-primary" />
                     <div>
-                      <CardTitle>{project.address}</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        {project.address}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditDialogOpen(true)}
+                          className="h-7 w-7"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </CardTitle>
                       <CardDescription className="flex items-center space-x-2 mt-1">
                         <MapPin className="h-4 w-4" />
                         <span>{project.address}</span>
@@ -238,6 +252,12 @@ export default function ProjectPage() {
           </div>
         </SidebarInset>
       </SidebarProvider>
+
+      <EditProjectDialog
+        project={project}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
     </>
   );
 }
