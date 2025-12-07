@@ -175,6 +175,7 @@ export const BalanceSheetPdfDocument: React.FC<BalanceSheetPdfDocumentProps> = (
         <View style={styles.header}>
           <Text style={styles.title}>Balance Sheet</Text>
           {projectAddress && <Text style={styles.subtitle}>{projectAddress}</Text>}
+          <Text style={styles.subtitle}>As of {asOfDate}</Text>
         </View>
 
         <View style={styles.twoColumnLayout}>
