@@ -108,6 +108,17 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Helper function to convert Uint8Array to base64 without stack overflow
+    function uint8ArrayToBase64(bytes: Uint8Array): string {
+      const chunkSize = 8192;
+      let result = '';
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        result += String.fromCharCode(...chunk);
+      }
+      return btoa(result);
+    }
+
     // Prepare attachments
     let attachments: Array<{ filename: string; content: string }> = [];
 
@@ -119,7 +130,7 @@ const handler = async (req: Request): Promise<Response> => {
         zip.file(file.name, file.data);
       }
       const zipData = await zip.generateAsync({ type: "uint8array" });
-      const zipBase64 = btoa(String.fromCharCode(...zipData));
+      const zipBase64 = uint8ArrayToBase64(zipData);
       
       attachments = [{
         filename: `Accounting_Reports_${projectName}_as_of_${asOfDate}.zip`,
@@ -129,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Individual PDFs
       attachments = pdfFiles.map(file => ({
         filename: file.name,
-        content: btoa(String.fromCharCode(...file.data)),
+        content: uint8ArrayToBase64(file.data),
       }));
     }
 
