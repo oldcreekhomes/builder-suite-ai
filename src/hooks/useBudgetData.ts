@@ -24,9 +24,9 @@ export function useBudgetData(projectId: string, lotId?: string | null) {
         `)
         .eq('project_id', projectId);
       
-      // Filter by lot_id if provided - include both assigned and unassigned items
+      // Filter by lot_id if provided - show ONLY items for the selected lot (100% independent)
       if (lotId) {
-        query = query.or(`lot_id.eq.${lotId},lot_id.is.null`);
+        query = query.eq('lot_id', lotId);
       }
       
       const { data, error } = await query;
