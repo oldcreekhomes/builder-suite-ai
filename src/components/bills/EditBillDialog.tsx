@@ -656,19 +656,19 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 </div>
 
                 <div className="border rounded-lg overflow-hidden w-full">
-                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
-                    <div className="col-span-2">Cost Code</div>
-                    <div className="col-span-3">Memo</div>
-                    <div className="col-span-1">Quantity</div>
-                    <div className="col-span-1">Cost</div>
-                    <div className="col-span-1">Total</div>
-                    {showAddressColumn && <div className="col-span-3">Address</div>}
+                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                    <div className="col-span-4">Cost Code</div>
+                    <div className="col-span-7">Memo</div>
+                    <div className="col-span-2">Quantity</div>
+                    <div className="col-span-2">Cost</div>
+                    <div className="col-span-2">Total</div>
+                    {showAddressColumn && <div className="col-span-6">Address</div>}
                     <div className="col-span-1 text-right">Action</div>
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
-                      <div className="col-span-2">
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                      <div className="col-span-4">
                         <CostCodeSearchInput
                           value={row.account}
                           onChange={(value) => updateJobCostRow(row.id, 'account', value)}
@@ -680,7 +680,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-7">
                         <Input 
                           placeholder="Job cost memo"
                           value={row.memo}
@@ -688,7 +688,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-1">
+                      <div className="col-span-2">
                         <Input 
                           type="number"
                           step="0.01"
@@ -698,7 +698,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
-                      <div className="col-span-1">
+                      <div className="col-span-2">
                         <div className="relative">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                           <Input 
@@ -711,13 +711,13 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           />
                         </div>
                       </div>
-                      <div className="col-span-1 flex items-center">
+                      <div className="col-span-2 flex items-center">
                         <div className="h-8 w-full flex items-center px-2 border rounded-md bg-muted text-sm font-medium">
                           ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
                         </div>
                       </div>
                       {showAddressColumn && (
-                        <div className="col-span-3">
+                        <div className="col-span-6">
                           <Select
                             value={row.lotId || ''}
                             onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
