@@ -20,6 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLots } from "@/hooks/useLots";
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import {
   AlertDialog,
@@ -46,6 +47,7 @@ interface ExpenseRow {
   accountId?: string;
   project: string;
   projectId?: string;
+  lotId?: string;
   quantity: string;
   amount: string;
   memo: string;
@@ -111,6 +113,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     enabled: open && !!billId
   });
 
+  const { lots } = useLots(billData?.project_id);
+  const showAddressColumn = lots.length > 1;
+
+
   // Populate form when bill data loads
   useEffect(() => {
     if (billData) {
@@ -130,13 +136,14 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           accountId: line.cost_code_id || '',
           project: '',
           projectId: line.project_id || '',
+          lotId: line.lot_id || '',
           quantity: line.quantity?.toString() || '1',
           amount: line.unit_cost?.toString() || '0',
           memo: line.memo || ''
         }));
 
       setJobCostRows(jobCosts.length > 0 ? jobCosts : [
-        { id: "1", account: "", accountId: "", project: "", projectId: billData.project_id || "", quantity: "", amount: "", memo: "" }
+        { id: "1", account: "", accountId: "", project: "", projectId: billData.project_id || "", lotId: "", quantity: "", amount: "", memo: "" }
       ]);
 
       // Populate expense rows
@@ -194,6 +201,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       accountId: "",
       project: "",
       projectId: billData?.project_id || "",
+      lotId: "",
       quantity: "",
       amount: "",
       memo: ""
@@ -396,6 +404,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
+          lot_id: row.lotId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -647,18 +656,19 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 </div>
 
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", showAddressColumn ? "grid-cols-13" : "grid-cols-12")}>
                     <div className="col-span-2">Cost Code</div>
                     <div className="col-span-2">Project</div>
-                    <div className="col-span-4">Memo</div>
+                    <div className={showAddressColumn ? "col-span-3" : "col-span-4"}>Memo</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
+                    {showAddressColumn && <div className="col-span-1">Address</div>}
                     <div className="col-span-1 text-center">Action</div>
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t", showAddressColumn ? "grid-cols-13" : "grid-cols-12")}>
                       <div className="col-span-2">
                         <CostCodeSearchInput 
                           value={row.account}
@@ -679,7 +689,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-4">
+                      <div className={showAddressColumn ? "col-span-3" : "col-span-4"}>
                         <Input 
                           placeholder="Job cost memo"
                           value={row.memo}
@@ -715,6 +725,25 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
                         </span>
                       </div>
+                      {showAddressColumn && (
+                        <div className="col-span-1">
+                          <Select
+                            value={row.lotId || ''}
+                            onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lots.map((lot) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.lot_name || `Lot ${lot.lot_number}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="col-span-1 flex justify-center items-center">
                         <Button
                           onClick={() => removeJobCostRow(row.id, row.dbId)}
@@ -730,7 +759,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   ))}
 
                   <div className="p-3 bg-muted border-t">
-                    <div className="grid grid-cols-12 gap-2">
+                    <div className={cn("grid gap-2", showAddressColumn ? "grid-cols-13" : "grid-cols-12")}>
                       <div className="col-span-8 font-medium">
                         {jobCostRows.reduce((total, row) => {
                           const q = parseFloat(row.quantity) || 0;
