@@ -219,6 +219,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+
+      {/* Projects Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Projects</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage project-related permissions
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-edit-projects" className="text-sm font-normal cursor-pointer">
+                Edit Projects
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to edit project settings, manage lots, and update project details
+              </p>
+            </div>
+            <Switch
+              id="can-edit-projects"
+              checked={preferences.can_edit_projects}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_edit_projects: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

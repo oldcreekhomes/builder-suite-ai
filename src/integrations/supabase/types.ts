@@ -3050,6 +3050,7 @@ export type Database = {
           can_access_reports: boolean
           can_access_transactions: boolean
           can_close_books: boolean
+          can_edit_projects: boolean
           can_lock_budgets: boolean | null
           can_undo_reconciliation: boolean
           created_at: string
@@ -3067,6 +3068,7 @@ export type Database = {
           can_access_reports?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
+          can_edit_projects?: boolean
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
@@ -3084,6 +3086,7 @@ export type Database = {
           can_access_reports?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
+          can_edit_projects?: boolean
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
