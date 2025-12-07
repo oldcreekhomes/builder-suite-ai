@@ -618,8 +618,8 @@ export function ManualBillEntry() {
                 </Button>
               </div>
 
-              <div className="border rounded-lg overflow-hidden">
-                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
+                <div className="border rounded-lg overflow-hidden w-full">
+                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                   <div className="col-span-2">Cost Code</div>
                   <div className="col-span-3">Memo</div>
                   <div className="col-span-1">Quantity</div>
@@ -630,7 +630,7 @@ export function ManualBillEntry() {
                 </div>
 
                 {jobCostRows.map((row) => (
-                  <div key={row.id} className={cn("grid gap-2 p-3 border-t", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
+                  <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                     <div className="col-span-2">
                       <CostCodeSearchInput 
                         value={row.account}
@@ -713,7 +713,7 @@ export function ManualBillEntry() {
                 ))}
 
                 <div className="p-3 bg-muted border-t">
-                  <div className={cn("grid gap-2", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
+                  <div className={cn("grid gap-2 w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                     <div className="col-span-6 font-medium">
                       {jobCostRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;

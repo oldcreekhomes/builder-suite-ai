@@ -655,10 +655,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </Button>
                 </div>
 
-                <div className="border rounded-lg overflow-hidden">
-                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", showAddressColumn ? "grid-cols-14" : "grid-cols-12")}>
+                <div className="border rounded-lg overflow-hidden w-full">
+                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                     <div className="col-span-2">Cost Code</div>
-                    <div className="col-span-2">Project</div>
                     <div className="col-span-3">Memo</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
@@ -668,7 +667,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t", showAddressColumn ? "grid-cols-14" : "grid-cols-12")}>
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                       <div className="col-span-2">
                         <CostCodeSearchInput 
                           value={row.account}
@@ -678,14 +677,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
                           }}
                           placeholder="Cost Code"
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <JobSearchInput 
-                          value={row.projectId || ""}
-                          onChange={(projectId) => updateJobCostRow(row.id, 'projectId', projectId)}
-                          placeholder="Select project"
                           className="h-8"
                         />
                       </div>
@@ -759,8 +750,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   ))}
 
                   <div className="p-3 bg-muted border-t">
-                    <div className={cn("grid gap-2", showAddressColumn ? "grid-cols-14" : "grid-cols-12")}>
-                      <div className="col-span-8 font-medium">
+                    <div className={cn("grid gap-2 w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
+                      <div className="col-span-6 font-medium">
                         {jobCostRows.reduce((total, row) => {
                           const q = parseFloat(row.quantity) || 0;
                           const c = parseFloat(row.amount) || 0;
