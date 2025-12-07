@@ -18,12 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Download, Pencil } from "lucide-react";
+import { Upload, Download, Pencil, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface BankStatementsDialogProps {
   projectId: string;
@@ -38,20 +41,26 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [editingDate, setEditingDate] = useState<Date | undefined>(undefined);
+  
+  // Upload dialog state
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadStatementDate, setUploadStatementDate] = useState<Date | undefined>(undefined);
 
   const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
 
-  // Fetch bank statements
+  // Fetch bank statements - sorted by statement_date ASC, nulls last
   const { data: statements, isLoading } = useQuery({
     queryKey: ['bank-statements', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_files')
-        .select('id, original_filename, storage_path, uploaded_at, mime_type, file_size')
+        .select('id, original_filename, storage_path, uploaded_at, mime_type, file_size, statement_date')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
         .like('original_filename', 'Bank Statements/%')
-        .order('uploaded_at', { ascending: false });
+        .order('statement_date', { ascending: true, nullsFirst: false });
 
       if (error) throw error;
       return data || [];
@@ -85,12 +94,15 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
     },
   });
 
-  // Update filename mutation
-  const updateFilenameMutation = useMutation({
-    mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
+  // Update mutation (filename and statement_date)
+  const updateMutation = useMutation({
+    mutationFn: async ({ fileId, newName, statementDate }: { fileId: string; newName: string; statementDate: Date | null }) => {
       const { error } = await supabase
         .from('project_files')
-        .update({ original_filename: `Bank Statements/${newName}` })
+        .update({ 
+          original_filename: `Bank Statements/${newName}`,
+          statement_date: statementDate ? format(statementDate, 'yyyy-MM-dd') : null
+        })
         .eq('id', fileId);
       
       if (error) throw error;
@@ -99,23 +111,30 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       queryClient.invalidateQueries({ queryKey: ['bank-statements', projectId] });
       setEditingId(null);
       setEditingName("");
+      setEditingDate(undefined);
       toast({
         title: "Success",
-        description: "Filename updated successfully",
+        description: "Bank statement updated successfully",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to update filename: ${error.message}`,
+        description: `Failed to update: ${error.message}`,
         variant: "destructive",
       });
     },
   });
 
-  const handleEdit = (fileId: string, currentName: string) => {
+  const handleEdit = (fileId: string, currentName: string, currentDate: string | null) => {
     setEditingId(fileId);
     setEditingName(cleanName(currentName.replace('Bank Statements/', '')));
+    if (currentDate) {
+      const [year, month, day] = currentDate.split('-').map(Number);
+      setEditingDate(new Date(year, month - 1, day));
+    } else {
+      setEditingDate(undefined);
+    }
   };
 
   const handleSaveEdit = () => {
@@ -128,13 +147,43 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       return;
     }
     if (editingId) {
-      updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
+      updateMutation.mutate({ 
+        fileId: editingId, 
+        newName: editingName.trim(),
+        statementDate: editingDate || null
+      });
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    
+    const pdfFiles = Array.from(files).filter(f => f.type === 'application/pdf');
+    if (pdfFiles.length !== files.length) {
+      toast({
+        title: "Invalid file type",
+        description: "Only PDF files are allowed",
+        variant: "destructive",
+      });
+    }
+    if (pdfFiles.length > 0) {
+      setSelectedFiles(pdfFiles);
+      setUploadDialogOpen(true);
+    }
+    e.target.value = '';
+  };
+
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    if (!uploadStatementDate) {
+      toast({
+        title: "Statement End Date Required",
+        description: "Please select the statement end date before uploading",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
 
@@ -142,16 +191,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      for (const file of Array.from(files)) {
-        if (file.type !== 'application/pdf') {
-          toast({
-            title: "Invalid file type",
-            description: `${file.name} is not a PDF file`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
+      for (const file of selectedFiles) {
         const originalFilename = `Bank Statements/${file.name}`;
         const fileId = crypto.randomUUID();
         const storageName = `${projectId}/${fileId}_${originalFilename}`;
@@ -173,7 +213,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
 
         if (!uploadResponse.ok) throw new Error('Upload failed');
 
-        // Insert record
+        // Insert record with statement_date
         const { error: insertError } = await supabase
           .from('project_files')
           .insert({
@@ -186,6 +226,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
             storage_path: storageName,
             uploaded_by: user.id,
             is_deleted: false,
+            statement_date: format(uploadStatementDate, 'yyyy-MM-dd'),
           });
 
         if (insertError) throw insertError;
@@ -196,11 +237,13 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       
       toast({
         title: "Success",
-        description: `${files.length} statement(s) uploaded successfully`,
+        description: `${selectedFiles.length} statement(s) uploaded successfully`,
       });
       
-      // Reset input
-      e.target.value = '';
+      // Reset state
+      setUploadDialogOpen(false);
+      setSelectedFiles([]);
+      setUploadStatementDate(undefined);
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -243,6 +286,12 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const formatStatementDate = (dateStr: string | null) => {
+    if (!dateStr) return '—';
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return format(new Date(year, month - 1, day), 'MMM d, yyyy');
+  };
+
   return (
     <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
       <DialogHeader>
@@ -262,7 +311,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
               accept="application/pdf"
               multiple
               className="hidden"
-              onChange={handleUpload}
+              onChange={handleFileSelect}
               disabled={isUploading}
             />
           </label>
@@ -277,6 +326,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
             <TableHeader>
               <TableRow>
                 <TableHead>File Name</TableHead>
+                <TableHead>Statement End Date</TableHead>
                 <TableHead>Uploaded</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -296,6 +346,9 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                   >
                   <TableCell className="font-medium">
                     {cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'Untitled')}
+                  </TableCell>
+                  <TableCell>
+                    {formatStatementDate(statement.statement_date)}
                   </TableCell>
                   <TableCell>
                     {statement.uploaded_at ? format(new Date(statement.uploaded_at), 'PP') : '-'}
@@ -323,7 +376,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEdit(statement.id, statement.original_filename || '');
+                          handleEdit(statement.id, statement.original_filename || '', statement.statement_date);
                         }}
                       >
                         <Pencil className="h-4 w-4" />
@@ -353,12 +406,84 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         )}
       </div>
 
+      {/* Upload Dialog with Statement End Date */}
+      <Dialog open={uploadDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setUploadDialogOpen(false);
+          setSelectedFiles([]);
+          setUploadStatementDate(undefined);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Bank Statement</DialogTitle>
+            <DialogDescription>
+              Select the statement end date for {selectedFiles.length} file(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Selected Files</Label>
+              <div className="text-sm text-muted-foreground">
+                {selectedFiles.map(f => f.name).join(', ')}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Statement End Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !uploadStatementDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {uploadStatementDate ? format(uploadStatementDate, 'PPP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={uploadStatementDate}
+                    onSelect={(date) => { if (date) setUploadStatementDate(date); }}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setUploadDialogOpen(false);
+                setSelectedFiles([]);
+                setUploadStatementDate(undefined);
+              }}
+              disabled={isUploading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpload}
+              disabled={isUploading || !uploadStatementDate}
+            >
+              {isUploading ? "Uploading..." : "Upload"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog with Statement End Date */}
       <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Bank Statement</DialogTitle>
+            <DialogTitle>Edit Bank Statement</DialogTitle>
             <DialogDescription>
-              Enter a new name for this bank statement
+              Update the file name and statement end date
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -374,20 +499,46 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                 placeholder="Enter filename"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Statement End Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !editingDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editingDate ? format(editingDate, 'PPP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editingDate}
+                    onSelect={(date) => { if (date) setEditingDate(date); }}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setEditingId(null)}
-              disabled={updateFilenameMutation.isPending}
+              disabled={updateMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSaveEdit}
-              disabled={updateFilenameMutation.isPending}
+              disabled={updateMutation.isPending}
             >
-              {updateFilenameMutation.isPending ? "Renaming..." : "Rename"}
+              {updateMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </div>
         </DialogContent>
