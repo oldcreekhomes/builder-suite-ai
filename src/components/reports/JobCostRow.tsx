@@ -35,7 +35,7 @@ export function JobCostRow({ row, onBudgetClick, onActualClick }: JobCostRowProp
 
   return (
     <TableRow className="h-10 hover:bg-muted/50 transition-colors">
-      <TableCell className="py-1 text-sm font-medium pl-6">
+      <TableCell className="py-1 text-sm font-medium pl-12">
         {row.costCode}
       </TableCell>
       <TableCell className="py-1 text-sm">
