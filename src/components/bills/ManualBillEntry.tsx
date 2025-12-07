@@ -685,7 +685,7 @@ export function ManualBillEntry() {
                           value={row.lotId || ''}
                           onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
                         >
-                          <SelectTrigger className="h-8">
+                          <SelectTrigger className="h-8 w-full">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
