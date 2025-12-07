@@ -67,6 +67,7 @@ interface BillForApproval {
     line_type: string;
     cost_code_id?: string;
     account_id?: string;
+    lot_id?: string;
     cost_codes?: {
       code: string;
       name: string;
@@ -74,6 +75,11 @@ interface BillForApproval {
     accounts?: {
       code: string;
       name: string;
+    };
+    project_lots?: {
+      id: string;
+      lot_name?: string;
+      lot_number: number;
     };
   }>;
 }
@@ -209,6 +215,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             line_type,
             cost_code_id,
             account_id,
+            lot_id,
             cost_codes!bill_lines_cost_code_id_fkey (
               code,
               name
@@ -216,6 +223,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             accounts!bill_lines_account_id_fkey (
               code,
               name
+            ),
+            project_lots!bill_lines_lot_id_fkey (
+              id,
+              lot_name,
+              lot_number
             )
           )
         `)
@@ -395,6 +407,26 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return `${items[0]} +${items.length - 1}`;
   };
 
+  const getLotAllocation = (bill: BillForApproval) => {
+    if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
+    
+    const uniqueLots = new Map<string, string>();
+    
+    bill.bill_lines.forEach(line => {
+      if (line.project_lots && line.lot_id) {
+        const lotKey = line.lot_id;
+        if (!uniqueLots.has(lotKey)) {
+          uniqueLots.set(lotKey, line.project_lots.lot_name || `Lot ${line.project_lots.lot_number}`);
+        }
+      }
+    });
+    
+    const lotNames = Array.from(uniqueLots.values());
+    if (lotNames.length === 0) return '-';
+    if (lotNames.length === 1) return lotNames[0];
+    return `${lotNames[0]} +${lotNames.length - 1}`;
+  };
+
   const canShowActions = status === 'draft';
   const canShowDeleteButton = 
     // For rejected bills (void status), owners and accountants can edit
@@ -507,6 +539,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             </TableHead>
             <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
@@ -529,7 +562,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0) + (isPaidTab ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11 + (showProjectColumn ? 1 : 0) + (isPaidTab ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowActions ? 1 : 0) + (canShowDeleteButton ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No bills found for this status.
                 </TableCell>
               </TableRow>
@@ -579,6 +612,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {bill.reference_number || '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {getLotAllocation(bill)}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {formatTerms(bill.terms)}
