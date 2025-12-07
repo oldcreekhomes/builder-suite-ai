@@ -164,7 +164,8 @@ export const useBills = () => {
             project_id: line.project_id || bill.project_id,
             cost_code_id: line.cost_code_id,
             memo: line.memo,
-            owner_id: bill.owner_id
+            owner_id: bill.owner_id,
+            lot_id: line.lot_id
           });
         } else {
           // Expense: Debit Expense Account (or Credit for credits), Credit AP (or Debit for credits)
@@ -181,7 +182,8 @@ export const useBills = () => {
             project_id: line.project_id || bill.project_id,
             cost_code_id: line.cost_code_id,
             memo: line.memo,
-            owner_id: bill.owner_id
+            owner_id: bill.owner_id,
+            lot_id: line.lot_id
           });
         }
       }
