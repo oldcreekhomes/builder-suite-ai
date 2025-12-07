@@ -2377,6 +2377,7 @@ export type Database = {
           mime_type: string
           original_filename: string
           project_id: string
+          statement_date: string | null
           storage_path: string
           updated_at: string
           uploaded_at: string
@@ -2392,6 +2393,7 @@ export type Database = {
           mime_type: string
           original_filename: string
           project_id: string
+          statement_date?: string | null
           storage_path: string
           updated_at?: string
           uploaded_at?: string
@@ -2407,6 +2409,7 @@ export type Database = {
           mime_type?: string
           original_filename?: string
           project_id?: string
+          statement_date?: string | null
           storage_path?: string
           updated_at?: string
           uploaded_at?: string
