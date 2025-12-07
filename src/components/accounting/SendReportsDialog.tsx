@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
   const { toast } = useToast();
   const { user } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
-  const [delivery, setDelivery] = useState<"combined" | "individual">("combined");
+  
   const [sending, setSending] = useState(false);
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   
@@ -568,7 +568,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         body: {
           recipientEmail: email,
           projectId,
-          delivery,
+          delivery: 'individual',
           reports: {
             ...reports,
             bankStatementIds: selectedBankStatements,
@@ -605,7 +605,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         <DialogHeader>
           <DialogTitle>Email Reports</DialogTitle>
           <DialogDescription>
-            Select reports to email and choose delivery format
+            Select reports to email
           </DialogDescription>
         </DialogHeader>
 
@@ -659,23 +659,6 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             />
           </div>
 
-          <div className="space-y-3">
-            <Label>Delivery Format</Label>
-            <RadioGroup value={delivery} onValueChange={(v) => setDelivery(v as "combined" | "individual")}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="combined" id="combined" />
-                <Label htmlFor="combined" className="font-normal cursor-pointer">
-                  Combined (ZIP file)
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="individual" id="individual" />
-                <Label htmlFor="individual" className="font-normal cursor-pointer">
-                  Individual PDF attachments
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
 
           <div className="space-y-3">
             <Label>Select Reports</Label>
