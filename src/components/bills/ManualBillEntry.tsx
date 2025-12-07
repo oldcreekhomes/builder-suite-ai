@@ -22,6 +22,7 @@ import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { useQuery } from "@tanstack/react-query";
+import { useLots } from "@/hooks/useLots";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -48,6 +49,7 @@ interface ExpenseRow {
   accountId?: string;
   project: string;
   projectId?: string;
+  lotId?: string;
   quantity: string;
   amount: string;
   memo: string;
@@ -73,6 +75,8 @@ export function ManualBillEntry() {
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   
   const { createBill } = useBills();
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
 
   const { data: companies } = useQuery({
     queryKey: ['companies'],
@@ -333,6 +337,7 @@ export function ManualBillEntry() {
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
+          lot_id: row.lotId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -614,17 +619,18 @@ export function ManualBillEntry() {
               </div>
 
               <div className="border rounded-lg overflow-hidden">
-                <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
+                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", showAddressColumn ? "grid-cols-11" : "grid-cols-10")}>
                   <div className="col-span-2">Cost Code</div>
-                  <div className="col-span-4">Memo</div>
+                  <div className={showAddressColumn ? "col-span-3" : "col-span-4"}>Memo</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
                   <div className="col-span-1">Total</div>
+                  {showAddressColumn && <div className="col-span-1">Address</div>}
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
                 {jobCostRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
+                  <div key={row.id} className={cn("grid gap-2 p-3 border-t", showAddressColumn ? "grid-cols-11" : "grid-cols-10")}>
                     <div className="col-span-2">
                       <CostCodeSearchInput 
                         value={row.account}
@@ -637,7 +643,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className="col-span-4">
+                    <div className={showAddressColumn ? "col-span-3" : "col-span-4"}>
                       <Input 
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -673,6 +679,25 @@ export function ManualBillEntry() {
                         ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
                       </span>
                     </div>
+                    {showAddressColumn && (
+                      <div className="col-span-1">
+                        <Select
+                          value={row.lotId || ''}
+                          onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lots.map((lot) => (
+                              <SelectItem key={lot.id} value={lot.id}>
+                                {lot.lot_name || `Lot ${lot.lot_number}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div className="col-span-1 flex justify-center items-center">
                       <Button
                         onClick={() => removeJobCostRow(row.id)}
@@ -688,8 +713,8 @@ export function ManualBillEntry() {
                 ))}
 
                 <div className="p-3 bg-muted border-t">
-                  <div className="grid grid-cols-10 gap-2">
-                    <div className="col-span-6 font-medium">
+                  <div className={cn("grid gap-2", showAddressColumn ? "grid-cols-11" : "grid-cols-10")}>
+                    <div className={cn("font-medium", showAddressColumn ? "col-span-6" : "col-span-6")}>
                       {jobCostRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;
                         const c = parseFloat(row.amount) || 0;
@@ -710,7 +735,7 @@ export function ManualBillEntry() {
                         return total + q * c;
                       }, 0).toFixed(2)}
                     </div>
-                    <div className="col-span-3"></div>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-3"}></div>
                   </div>
                 </div>
               </div>
