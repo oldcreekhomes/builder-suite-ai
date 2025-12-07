@@ -225,9 +225,29 @@ Object.entries(actualsByCostCode).forEach(([id, amount]) => {
   if (!cd) return;
   const parentCode = getParentCode(cd.code);
   actualsByParentCode[parentCode] = (actualsByParentCode[parentCode] || 0) + (amount as number);
+  
+  // Also capture the parent name from costCodeData if not already set
+  if (!parentNamesByCode[parentCode]) {
+    const parentEntry = Object.values(costCodeData).find(c => c.code === parentCode);
+    if (parentEntry) {
+      parentNamesByCode[parentCode] = parentEntry.name;
+    }
+  }
 });
 
-// Ensure we have a display name for all parent codes we will render
+// Fetch any still-missing parent names from database
+const stillMissingCodes = Object.keys(actualsByParentCode).filter(pc => !parentNamesByCode[pc]);
+if (stillMissingCodes.length > 0) {
+  const { data: missingNames } = await supabase
+    .from('cost_codes')
+    .select('code, name')
+    .in('code', stillMissingCodes);
+  missingNames?.forEach(cc => {
+    parentNamesByCode[cc.code] = cc.name;
+  });
+}
+
+// Only use code as fallback if we truly couldn't find the name
 Object.keys(actualsByParentCode).forEach(pc => {
   if (!parentNamesByCode[pc]) parentNamesByCode[pc] = pc;
 });
