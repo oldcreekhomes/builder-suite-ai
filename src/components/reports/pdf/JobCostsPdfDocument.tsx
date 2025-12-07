@@ -21,6 +21,13 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 2,
   },
+  asOfDate: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginTop: 12,
+    color: '#000',
+    textAlign: 'center',
+  },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -166,12 +173,18 @@ export const JobCostsPdfDocument: React.FC<JobCostsPdfDocumentProps> = ({
     return rows.reduce((sum, row) => sum + (row[field] || 0), 0);
   };
 
+  const formatAsOfDate = (dateString: string): string => {
+    const [year, month, day] = dateString.split('-');
+    return `${month}-${day}-${year}`;
+  };
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>Job Costs Report</Text>
           {projectAddress && <Text style={styles.subtitle}>{projectAddress}</Text>}
+          <Text style={styles.asOfDate}>As of {formatAsOfDate(asOfDate)}</Text>
         </View>
 
         {/* Table Header */}

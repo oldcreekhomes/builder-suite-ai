@@ -461,6 +461,11 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           if (isChild) {
             sumChildrenByParent[parentCode] = (sumChildrenByParent[parentCode] || 0) + total;
             parentsWithChildren.add(parentCode);
+            // Also capture parent name from child's parent_group if available
+            if (!parentNamesByCode[parentCode]) {
+              const parentData = Object.values(costCodeData).find(cd => cd.code === parentCode);
+              if (parentData) parentNamesByCode[parentCode] = parentData.name;
+            }
           } else {
             parentItemTotals[parentCode] = (parentItemTotals[parentCode] || 0) + total;
             parentNamesByCode[parentCode] = name;
@@ -501,9 +506,13 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           actualsByParentCode[parentCode] = (actualsByParentCode[parentCode] || 0) + (amount as number);
         });
 
-        // Ensure display names for all parent codes
+        // Ensure display names for all parent codes - look up from costCodeData first
         Object.keys(actualsByParentCode).forEach(pc => {
-          if (!parentNamesByCode[pc]) parentNamesByCode[pc] = pc;
+          if (!parentNamesByCode[pc]) {
+            // Find the cost code name from costCodeData by matching the code
+            const matchingEntry = Object.values(costCodeData).find(cd => cd.code === pc);
+            parentNamesByCode[pc] = matchingEntry?.name || pc;
+          }
         });
 
         // Step 8: Build parent-only rows for PDF
