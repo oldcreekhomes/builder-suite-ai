@@ -620,8 +620,8 @@ export function ManualBillEntry() {
 
                 <div className="border rounded-lg overflow-hidden w-full">
                   <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
-                  <div className="col-span-2">Cost Code</div>
-                  <div className="col-span-4">Memo</div>
+                  <div className="col-span-3">Cost Code</div>
+                  <div className="col-span-3">Memo</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
                   <div className="col-span-1">Total</div>
@@ -631,8 +631,8 @@ export function ManualBillEntry() {
 
                 {jobCostRows.map((row) => (
                   <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
-                    <div className="col-span-2">
-                      <CostCodeSearchInput 
+                    <div className="col-span-3">
+                      <CostCodeSearchInput
                         value={row.account}
                         onChange={(value) => updateJobCostRow(row.id, 'account', value)}
                         onCostCodeSelect={(costCode) => {
@@ -643,7 +643,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className="col-span-4">
+                    <div className="col-span-3">
                       <Input 
                         placeholder="Job cost memo"
                         value={row.memo}
