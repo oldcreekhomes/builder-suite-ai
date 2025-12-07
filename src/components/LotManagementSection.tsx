@@ -136,10 +136,10 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
       <div className="border rounded-md">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">Lot #</TableHead>
-              <TableHead>Name / Address</TableHead>
-              <TableHead className="w-20 text-right">Actions</TableHead>
+            <TableRow className="h-8">
+              <TableHead className="w-12 whitespace-nowrap py-1.5 text-xs">Lot #</TableHead>
+              <TableHead className="py-1.5 text-xs">Name / Address</TableHead>
+              <TableHead className="w-20 text-right py-1.5 text-xs">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,15 +158,15 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
             ) : (
               <>
                 {lots.map((lot) => (
-                  <TableRow key={lot.id}>
-                    <TableCell className="font-medium">{lot.lot_number}</TableCell>
-                    <TableCell>
+                  <TableRow key={lot.id} className="h-8">
+                    <TableCell className="py-1.5 text-sm text-muted-foreground">{lot.lot_number}</TableCell>
+                    <TableCell className="py-1.5">
                       {editingLotId === lot.id ? (
                         <Input
                           value={editingLotName}
                           onChange={(e) => setEditingLotName(e.target.value)}
                           placeholder="Enter lot name/address"
-                          className="h-8"
+                          className="h-7 text-sm"
                           autoFocus
                           onKeyDown={(e) => {
                             if (e.key === "Enter") handleUpdateLot(lot.id);
@@ -174,12 +174,12 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                           }}
                         />
                       ) : (
-                        <span className="text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           {lot.lot_name || `Lot ${lot.lot_number}`}
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="py-1.5 text-right">
                       {editingLotId === lot.id ? (
                         <div className="flex justify-end gap-1">
                           <Button
@@ -228,14 +228,14 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                   </TableRow>
                 ))}
                 {isAdding && (
-                  <TableRow>
-                    <TableCell className="font-medium">{nextLotNumber}</TableCell>
-                    <TableCell>
+                  <TableRow className="h-8">
+                    <TableCell className="py-1.5 text-sm text-muted-foreground">{nextLotNumber}</TableCell>
+                    <TableCell className="py-1.5">
                       <Input
                         value={newLotName}
                         onChange={(e) => setNewLotName(e.target.value)}
                         placeholder="Enter lot name/address (optional)"
-                        className="h-8"
+                        className="h-7 text-sm"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleAddLot();
@@ -246,7 +246,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                         }}
                       />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="py-1.5 text-right">
                       <div className="flex justify-end gap-1">
                         <Button
                           type="button"
