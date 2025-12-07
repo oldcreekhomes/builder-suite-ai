@@ -56,6 +56,13 @@ interface BillForPayment {
     line_type: string;
     cost_code_id?: string;
     account_id?: string;
+    lot_id?: string;
+    amount?: number;
+    project_lots?: {
+      id: string;
+      lot_name?: string;
+      lot_number: number;
+    };
     cost_codes?: {
       code: string;
       name: string;
@@ -176,6 +183,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               line_type,
               cost_code_id,
               account_id,
+              lot_id,
+              amount,
+              project_lots!bill_lines_lot_id_fkey (
+                id,
+                lot_name,
+                lot_number
+              ),
               cost_codes!bill_lines_cost_code_id_fkey (
                 code,
                 name
@@ -226,6 +240,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               line_type,
               cost_code_id,
               account_id,
+              lot_id,
+              amount,
+              project_lots!bill_lines_lot_id_fkey (
+                id,
+                lot_name,
+                lot_number
+              ),
               cost_codes!bill_lines_cost_code_id_fkey (
                 code,
                 name
@@ -269,6 +290,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               line_type,
               cost_code_id,
               account_id,
+              lot_id,
+              amount,
+              project_lots!bill_lines_lot_id_fkey (
+                id,
+                lot_name,
+                lot_number
+              ),
               cost_codes!bill_lines_cost_code_id_fkey (
                 code,
                 name
@@ -334,6 +362,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               line_type,
               cost_code_id,
               account_id,
+              lot_id,
+              amount,
+              project_lots!bill_lines_lot_id_fkey (
+                id,
+                lot_name,
+                lot_number
+              ),
               cost_codes!bill_lines_cost_code_id_fkey (
                 code,
                 name
@@ -601,6 +636,34 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     return `${items[0]} +${items.length - 1}`;
   };
 
+  const getLotAllocationData = (bill: BillForPayment) => {
+    if (!bill.bill_lines || bill.bill_lines.length === 0) {
+      return { display: '-', breakdown: [] as { name: string; amount: number }[], count: 0 };
+    }
+    
+    const lotTotals = new Map<string, { name: string; amount: number }>();
+    
+    bill.bill_lines.forEach(line => {
+      if (line.project_lots && line.lot_id) {
+        const lotKey = line.lot_id;
+        const lotName = line.project_lots.lot_name || `Lot ${line.project_lots.lot_number}`;
+        const existing = lotTotals.get(lotKey);
+        if (existing) {
+          existing.amount += line.amount || 0;
+        } else {
+          lotTotals.set(lotKey, { name: lotName, amount: line.amount || 0 });
+        }
+      }
+    });
+    
+    const breakdown = Array.from(lotTotals.values());
+    if (breakdown.length === 0) return { display: '-', breakdown: [], count: 0 };
+    if (breakdown.length === 1) return { display: breakdown[0].name, breakdown, count: 1 };
+    
+    return { display: String(breakdown.length), breakdown, count: breakdown.length };
+  };
+
+
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills for payment...</div>;
   }
@@ -709,6 +772,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               </TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
@@ -718,7 +782,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
@@ -774,6 +838,37 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {bill.reference_number || '-'}
+                  </TableCell>
+                  <TableCell className="px-2 py-1 text-xs">
+                    {(() => {
+                      const { display, breakdown, count } = getLotAllocationData(bill);
+                      if (count <= 1) {
+                        return display;
+                      }
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="underline decoration-dotted">
+                              {display}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="space-y-1">
+                                {breakdown.map((lot, i) => (
+                                  <div key={i} className="flex justify-between gap-4">
+                                    <span>{lot.name}:</span>
+                                    <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                                  <span>Total:</span>
+                                  <span>${breakdown.reduce((sum, l) => sum + l.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">{formatTerms(bill.terms)}</TableCell>
                   <TableCell className="px-2 py-1 text-xs">
