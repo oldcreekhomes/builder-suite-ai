@@ -18,7 +18,11 @@ export default {
 				'2xl': '1400px'
 			}
 		},
-		extend: {
+	extend: {
+			gridTemplateColumns: {
+				'20': 'repeat(20, minmax(0, 1fr))',
+				'24': 'repeat(24, minmax(0, 1fr))',
+			},
 			fontFamily: {
 				sans: ['Montserrat', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
 			},
