@@ -621,12 +621,12 @@ export function ManualBillEntry() {
                 <div className="border rounded-lg overflow-hidden w-full">
                   <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
                   <div className="col-span-2">Cost Code</div>
-                  <div className="col-span-3">Memo</div>
+                  <div className="col-span-4">Memo</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
                   <div className="col-span-1">Total</div>
                   {showAddressColumn && <div className="col-span-2">Address</div>}
-                  <div className={cn(showAddressColumn ? "col-span-2" : "col-span-1", "text-center")}>Action</div>
+                  <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {jobCostRows.map((row) => (
@@ -643,7 +643,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-4">
                       <Input 
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -698,7 +698,7 @@ export function ManualBillEntry() {
                         </Select>
                       </div>
                     )}
-                    <div className={cn(showAddressColumn ? "col-span-2" : "col-span-1", "flex justify-center items-center")}>
+                    <div className="col-span-1 flex justify-end items-center">
                       <Button
                         onClick={() => removeJobCostRow(row.id)}
                         size="sm"
@@ -714,7 +714,7 @@ export function ManualBillEntry() {
 
                 <div className="p-3 bg-muted border-t">
                   <div className={cn("grid gap-2 w-full", showAddressColumn ? "grid-cols-12" : "grid-cols-10")}>
-                    <div className="col-span-6 font-medium">
+                    <div className="col-span-7 font-medium">
                       {jobCostRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;
                         const c = parseFloat(row.amount) || 0;
