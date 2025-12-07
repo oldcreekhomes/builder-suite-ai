@@ -47,7 +47,7 @@ interface BudgetTableProps {
 
 export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const { toast } = useToast();
-  const { selectedLotId } = useLotManagement(projectId);
+  const { selectedLotId, selectLot } = useLotManagement(projectId);
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
@@ -390,6 +390,8 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     <div className="space-y-4">
       <BudgetPrintToolbar 
         projectId={projectId}
+        selectedLotId={selectedLotId}
+        onSelectLot={selectLot}
         onPrint={handlePrint}
         onExportPdf={handleExportPdf}
         onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}

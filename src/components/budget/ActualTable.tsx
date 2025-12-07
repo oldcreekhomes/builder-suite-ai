@@ -25,7 +25,7 @@ interface ActualTableProps {
 }
 
 export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
-  const { selectedLotId } = useLotManagement(projectId);
+  const { selectedLotId, selectLot } = useLotManagement(projectId);
   const { budgetItems, groupedBudgetItems } = useBudgetData(projectId, selectedLotId);
   const { purchaseOrders } = usePurchaseOrders(projectId, selectedLotId);
   
@@ -175,6 +175,8 @@ export function ActualTable({ projectId, projectAddress }: ActualTableProps) {
       <div className="space-y-4">
       <ActualPrintToolbar 
         projectId={projectId}
+        selectedLotId={selectedLotId}
+        onSelectLot={selectLot}
         onPrint={handlePrint} 
         budgetItems={budgetItems}
         onUpdateActual={handleUpdateActual}

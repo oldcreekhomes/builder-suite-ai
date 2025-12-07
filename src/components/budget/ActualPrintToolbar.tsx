@@ -6,6 +6,8 @@ import { LotSelector } from './LotSelector';
 
 interface ActualPrintToolbarProps {
   projectId: string;
+  selectedLotId: string | null;
+  onSelectLot: (lotId: string) => void;
   onPrint: () => void;
   budgetItems: any[];
   onUpdateActual: (itemId: string, actualAmount: number) => void;
@@ -13,7 +15,7 @@ interface ActualPrintToolbarProps {
   onCollapseAll?: () => void;
 }
 
-export function ActualPrintToolbar({ projectId, onPrint, budgetItems, onUpdateActual, onExpandAll, onCollapseAll }: ActualPrintToolbarProps) {
+export function ActualPrintToolbar({ projectId, selectedLotId, onSelectLot, onPrint, budgetItems, onUpdateActual, onExpandAll, onCollapseAll }: ActualPrintToolbarProps) {
   const [showImportDialog, setShowImportDialog] = useState(false);
 
   return (
@@ -35,7 +37,7 @@ export function ActualPrintToolbar({ projectId, onPrint, budgetItems, onUpdateAc
               </Button>
             </>
           )}
-          <LotSelector projectId={projectId} />
+          <LotSelector projectId={projectId} selectedLotId={selectedLotId} onSelectLot={onSelectLot} />
           <Button 
             onClick={() => setShowImportDialog(true)} 
             variant="outline" 
