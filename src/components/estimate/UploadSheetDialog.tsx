@@ -481,7 +481,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
                               className="h-7"
                             />
-                            {getConfidenceIcon(d.userValues.sheet_number || d.aiSuggestion.sheet_number, d.aiSuggestion.confidence)}
+                            {getConfidenceIcon(d.userValues.sheet_number, d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
                         <TableCell className="py-1">
@@ -492,7 +492,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
                               className="h-7"
                             />
-                            {getConfidenceIcon(d.userValues.sheet_title || d.aiSuggestion.sheet_title, d.aiSuggestion.confidence)}
+                            {getConfidenceIcon(d.userValues.sheet_title, d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
                         <TableCell className="py-1">
@@ -512,7 +512,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                                 ))}
                               </SelectContent>
                             </Select>
-                            {getConfidenceIcon(d.userValues.scale || d.aiSuggestion.scale, d.aiSuggestion.confidence)}
+                            {getConfidenceIcon(d.userValues.scale, d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
                       </TableRow>
