@@ -77,3 +77,9 @@ verify_jwt = true
 
 [functions.fix-deposit-reversal]
 verify_jwt = false
+
+[functions.split-bill-lines-by-lot]
+verify_jwt = false
+
+[functions.split-journal-lines-by-lot]
+verify_jwt = false
