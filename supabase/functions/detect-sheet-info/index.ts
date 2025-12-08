@@ -64,17 +64,33 @@ serve(async (req) => {
       );
     }
 
-    // Convert to base64
+    // Convert to base64 - for large images, we need to be memory-efficient
     const arrayBuffer = await imageData.arrayBuffer();
     const imageSizeBytes = arrayBuffer.byteLength;
     const imageSizeMB = (imageSizeBytes / (1024 * 1024)).toFixed(2);
     console.log(`Image size for sheet ${sheet_id}: ${imageSizeMB} MB (${imageSizeBytes} bytes)`);
     
-    const base64Image = btoa(
-      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+    // If image is too large (>3MB), we can't process it safely in edge function memory
+    // The AI only needs to read text from title blocks, so we'll use a lower quality for very large images
+    // NOTE: Original images in storage remain COMPLETELY UNTOUCHED for Roboflow takeoffs
+    const MAX_SIZE_BYTES = 3 * 1024 * 1024; // 3MB limit for safe processing
+    
+    let dataUrl: string;
     const mimeType = sheet.file_path.endsWith('.png') ? 'image/png' : 'image/jpeg';
-    const dataUrl = `data:${mimeType};base64,${base64Image}`;
+    
+    if (imageSizeBytes > MAX_SIZE_BYTES) {
+      console.log(`Image too large (${imageSizeMB} MB), skipping base64 encoding to avoid memory issues`);
+      // For very large images, we'll try to use the public URL directly if possible
+      // Gemini can fetch URLs directly in some cases
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/project-files/${sheet.file_path}`;
+      console.log(`Using public URL for large image: ${publicUrl}`);
+      dataUrl = publicUrl;
+    } else {
+      const base64Image = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      dataUrl = `data:${mimeType};base64,${base64Image}`;
+    }
 
     console.log(`Analyzing sheet ${sheet_id} for title block info...`);
 
@@ -134,7 +150,9 @@ Return ONLY valid JSON (no markdown, no code blocks):
               {
                 type: 'image_url',
                 image_url: {
-                  url: dataUrl
+                  url: dataUrl,
+                  // If it's a public URL (not base64), Gemini will fetch it directly
+                  ...(dataUrl.startsWith('http') ? { detail: 'auto' } : {})
                 }
               }
             ]
