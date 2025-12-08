@@ -14,6 +14,7 @@ interface JobCostActualDialogProps {
   projectId: string;
   totalActual: number;
   asOfDate: Date;
+  lotId?: string | null;
 }
 
 interface JournalEntryLine {
@@ -35,12 +36,13 @@ export function JobCostActualDialog({
   projectId,
   totalActual,
   asOfDate,
+  lotId,
 }: JobCostActualDialogProps) {
   const { session } = useAuth();
   const userId = session?.user?.id;
 
   const { data: journalLines, isLoading } = useQuery({
-    queryKey: ['job-cost-actual-details', projectId, costCode, asOfDate],
+    queryKey: ['job-cost-actual-details', projectId, costCode, asOfDate, lotId],
     queryFn: async () => {
       if (!userId) throw new Error("User not authenticated");
 
@@ -66,7 +68,7 @@ export function JobCostActualDialog({
       if (!costCodeData) throw new Error("Cost code not found");
 
       // Get journal entry lines
-      const { data: lines, error: linesError } = await supabase
+      let query = supabase
         .from('journal_entry_lines')
         .select(`
           id,
@@ -81,8 +83,14 @@ export function JobCostActualDialog({
         .eq('account_id', settings.wip_account_id)
         .eq('project_id', projectId)
         .eq('cost_code_id', costCodeData.id)
-        .lte('journal_entries.entry_date', format(asOfDate, 'yyyy-MM-dd'))
-        .order('journal_entries(entry_date)', { ascending: false });
+        .lte('journal_entries.entry_date', format(asOfDate, 'yyyy-MM-dd'));
+
+      // Filter by lot if provided
+      if (lotId) {
+        query = query.eq('lot_id', lotId);
+      }
+
+      const { data: lines, error: linesError } = await query.order('journal_entries(entry_date)', { ascending: false });
 
       if (linesError) throw linesError;
       return (lines as unknown as JournalEntryLine[]) || [];
