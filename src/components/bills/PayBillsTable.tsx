@@ -10,7 +10,8 @@ import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, StickyNote } from "lucide-react";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, StickyNote, Edit } from "lucide-react";
+import { EditBillDialog } from "./EditBillDialog";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -81,9 +82,10 @@ interface PayBillsTableProps {
   searchQuery?: string;
   dueDateFilter?: "all" | "due-on-or-before";
   filterDate?: Date;
+  showEditButton?: boolean;
 }
 
-export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate }: PayBillsTableProps) {
+export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate, showEditButton = false }: PayBillsTableProps) {
   const { payBill, payMultipleBills, deleteBill } = useBills();
   const queryClient = useQueryClient();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
@@ -106,6 +108,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     billInfo: undefined,
     initialNotes: '',
   });
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   const updateNotesMutation = useMutation({
     mutationFn: async ({ billId, notes }: { billId: string; notes: string }) => {
@@ -1001,6 +1004,16 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     <div className="flex items-center gap-2">
+                      {showEditButton && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+                          onClick={() => setEditingBillId(bill.id)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         onClick={() => handlePayBill(bill)}
@@ -1063,6 +1076,12 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
         billInfo={notesDialog.billInfo || { vendor: '', amount: 0 }}
         initialValue={notesDialog.initialNotes}
         onSave={handleSaveNotes}
+      />
+
+      <EditBillDialog
+        open={editingBillId !== null}
+        onOpenChange={(open) => !open && setEditingBillId(null)}
+        billId={editingBillId || ''}
       />
     </>
   );
