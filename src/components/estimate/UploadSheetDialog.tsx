@@ -337,10 +337,9 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
   const getConfidenceIcon = (confidence: 'high' | 'medium' | 'low') => {
     if (confidence === 'high') {
       return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-    } else if (confidence === 'medium') {
-      return <AlertCircle className="h-4 w-4 text-yellow-500" />;
     }
-    return null;
+    // Medium or low confidence shows warning
+    return <AlertCircle className="h-4 w-4 text-yellow-500" />;
   };
 
   return (
@@ -448,7 +447,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
                               className="h-7"
                             />
-                            {d.aiSuggestion.sheet_number && getConfidenceIcon(d.aiSuggestion.confidence)}
+                            {getConfidenceIcon(d.aiSuggestion.sheet_number ? d.aiSuggestion.confidence : 'low')}
                           </div>
                         </TableCell>
                         <TableCell className="py-1">
@@ -459,7 +458,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
                               className="h-7"
                             />
-                            {d.aiSuggestion.sheet_title && getConfidenceIcon(d.aiSuggestion.confidence)}
+                            {getConfidenceIcon(d.aiSuggestion.sheet_title ? d.aiSuggestion.confidence : 'low')}
                           </div>
                         </TableCell>
                         <TableCell className="py-1">
@@ -470,7 +469,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.scale || 'e.g., 1/4" = 1\'-0"'}
                               className="h-7"
                             />
-                            {d.aiSuggestion.scale && getConfidenceIcon(d.aiSuggestion.confidence)}
+                            {getConfidenceIcon(d.aiSuggestion.scale ? d.aiSuggestion.confidence : 'low')}
                           </div>
                         </TableCell>
                       </TableRow>
