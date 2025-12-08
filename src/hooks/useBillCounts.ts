@@ -36,7 +36,8 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       const payBillsQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'paid');
+        .eq('status', 'paid')
+        .eq('is_reversal', false);
 
       const readyToPayQuery = supabase
         .from('bills')
