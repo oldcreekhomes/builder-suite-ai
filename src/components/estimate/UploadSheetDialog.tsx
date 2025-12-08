@@ -25,6 +25,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const COMMON_SCALES = [
+  "1/16\" = 1'-0\"",
+  "3/32\" = 1'-0\"",
+  "1/8\" = 1'-0\"",
+  "3/16\" = 1'-0\"",
+  "1/4\" = 1'-0\"",
+  "3/8\" = 1'-0\"",
+  "1/2\" = 1'-0\"",
+  "3/4\" = 1'-0\"",
+  "1\" = 1'-0\"",
+  "1-1/2\" = 1'-0\"",
+  "3\" = 1'-0\"",
+  "AS NOTED",
+  "NTS",
+];
 
 interface UploadSheetDialogProps {
   open: boolean;
@@ -357,7 +380,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           <DialogDescription>
             {phase === 'upload' && "Upload a PDF or image of your construction drawing"}
             {phase === 'uploading' && null}
-            {phase === 'analyzing' && "AI is analyzing title blocks..."}
+            {phase === 'analyzing' && null}
             {phase === 'review' && "Review and edit AI-detected sheet information"}
             {phase === 'extracting' && "Extracting takeoff items..."}
           </DialogDescription>
@@ -470,12 +493,21 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                         </TableCell>
                         <TableCell className="py-1">
                           <div className="flex items-center gap-1">
-                            <Input
-                              value={d.userValues.scale}
-                              onChange={(e) => handleFieldChange(idx, 'scale', e.target.value)}
-                              placeholder={d.aiSuggestion.scale || 'e.g., 1/4" = 1\'-0"'}
-                              className="h-7"
-                            />
+                            <Select
+                              value={d.userValues.scale || ''}
+                              onValueChange={(value) => handleFieldChange(idx, 'scale', value)}
+                            >
+                              <SelectTrigger className="h-7">
+                                <SelectValue placeholder={d.aiSuggestion.scale || "Select scale"} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-background border-border z-50">
+                                {COMMON_SCALES.map(scale => (
+                                  <SelectItem key={scale} value={scale}>
+                                    {scale}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             {getConfidenceIcon(d.aiSuggestion.scale ? d.aiSuggestion.confidence : 'low')}
                           </div>
                         </TableCell>
