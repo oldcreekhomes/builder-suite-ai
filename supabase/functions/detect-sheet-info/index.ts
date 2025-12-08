@@ -66,6 +66,10 @@ serve(async (req) => {
 
     // Convert to base64
     const arrayBuffer = await imageData.arrayBuffer();
+    const imageSizeBytes = arrayBuffer.byteLength;
+    const imageSizeMB = (imageSizeBytes / (1024 * 1024)).toFixed(2);
+    console.log(`Image size for sheet ${sheet_id}: ${imageSizeMB} MB (${imageSizeBytes} bytes)`);
+    
     const base64Image = btoa(
       new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
@@ -91,35 +95,41 @@ serve(async (req) => {
                 type: 'text',
                 text: `You are analyzing an architectural/construction drawing to extract sheet information from the title block.
 
-IMPORTANT: Look for the title block, which is typically:
-- Located on the right side or bottom right corner of the drawing
-- Contains the sheet number (like A-1, A-2.1, S-1, M-1, E-1)
-- Contains the sheet title/name (like FRONT ELEVATION, FLOOR PLAN, SITE PLAN)
-- Contains the drawing scale (like 1/4" = 1'-0", 1/8" = 1'-0", 3/8" = 1'-0")
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
-Sheet number formats to look for:
-- Single letter + number: A-1, S-1, M-1, E-1
-- Letter + number with sub-number: A-2.1, A-2.2
-- Multiple letters: AR-1, ST-1
-- Just numbers: 1, 2, 3
+1. TITLE BLOCK LOCATION:
+   - The title block is ALWAYS in the RIGHT SIDE or BOTTOM RIGHT CORNER of the drawing
+   - This is where you'll find the sheet number, title, and other project info
 
-Common sheet prefixes:
-- A = Architectural
-- S = Structural  
-- M = Mechanical
-- E = Electrical
-- P = Plumbing
-- C = Civil
+2. SHEET NUMBER - Can be ANY format:
+   - Letters only: CS, COVER, T, INDEX, G, DEMO
+   - Numbers only: 1, 2, 3, 1.0, 2.0, 01, 02
+   - Single letter + number: A-1, S-1, M-1, E-1, A1, S1
+   - Letter + number with sub-number: A-2.1, A-2.2, A2.1
+   - Multiple letters + number: AR-1, ST-1, CS-1
+   - The sheet number is typically prominently displayed in the title block
 
-Common scale formats:
-- 1/4" = 1'-0"
-- 1/8" = 1'-0"
-- 3/8" = 1'-0"
-- 1" = 1'-0"
-- 1:100, 1:50, 1:20
+3. SHEET TITLE:
+   - The descriptive name of the drawing: COVER SHEET, FRONT ELEVATION, FLOOR PLAN, SITE PLAN, ELECTRICAL PLAN, etc.
+   - Usually displayed near or below the sheet number in the title block
 
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
-{"sheet_number": "exact sheet number found or null", "sheet_title": "exact sheet title found or null", "scale": "exact scale found or null", "confidence": "high or medium or low"}`
+4. SCALE - Look in TWO places:
+   - BELOW each individual drawing/view on the sheet (e.g., "SCALE: 1/4" = 1'-0"")
+   - In the title block area
+   - Common formats:
+     * 1/4" = 1'-0"
+     * 1/8" = 1'-0"
+     * 3/8" = 1'-0"
+     * 1/2" = 1'-0"
+     * 1" = 1'-0"
+     * 3/4" = 1'-0"
+     * AS NOTED or AS SHOWN (if multiple scales on sheet)
+     * NTS or NOT TO SCALE
+     * 1:100, 1:50, 1:20 (metric)
+   - Look for text starting with "SCALE:" or just the scale notation itself
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{"sheet_number": "exact value found or null", "sheet_title": "exact value found or null", "scale": "exact value found or null", "confidence": "high/medium/low"}`
               },
               {
                 type: 'image_url',
