@@ -364,12 +364,16 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
     onOpenChange(false);
   };
 
-  const getConfidenceIcon = (confidence: 'high' | 'medium' | 'low') => {
+  const getConfidenceIcon = (value: string | null | undefined, confidence: 'high' | 'medium' | 'low') => {
+    // If the field is empty, always show "please verify" regardless of AI confidence
+    if (!value || value.trim() === '') {
+      return <AlertCircle className="h-4 w-4 text-red-500" />;
+    }
     if (confidence === 'high') {
       return <CheckCircle2 className="h-4 w-4 text-green-600" />;
     }
     // Medium or low confidence shows warning
-    return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+    return <AlertCircle className="h-4 w-4 text-red-500" />;
   };
 
   return (
@@ -477,7 +481,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
                               className="h-7"
                             />
-                            {getConfidenceIcon(d.aiSuggestion.sheet_number ? d.aiSuggestion.confidence : 'low')}
+                            {getConfidenceIcon(d.userValues.sheet_number || d.aiSuggestion.sheet_number, d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
                         <TableCell className="py-1">
@@ -488,7 +492,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
                               className="h-7"
                             />
-                            {getConfidenceIcon(d.aiSuggestion.sheet_title ? d.aiSuggestion.confidence : 'low')}
+                            {getConfidenceIcon(d.userValues.sheet_title || d.aiSuggestion.sheet_title, d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
                         <TableCell className="py-1">
@@ -508,7 +512,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                                 ))}
                               </SelectContent>
                             </Select>
-                            {getConfidenceIcon(d.aiSuggestion.scale ? d.aiSuggestion.confidence : 'low')}
+                            {getConfidenceIcon(d.userValues.scale || d.aiSuggestion.scale, d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -517,11 +521,15 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                 </Table>
               </div>
               
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="h-3 w-3 text-green-600" />
-                <span>High confidence</span>
-                <AlertCircle className="h-3 w-3 text-yellow-500 ml-2" />
-                <span>Please verify</span>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <span>High confidence</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <span>Please verify</span>
+                </div>
               </div>
             </div>
           )}
