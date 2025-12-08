@@ -504,7 +504,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           searchQuery={searchQuery}
           dueDateFilter={dueDateFilter}
           filterDate={filterDate}
-          showEditButton={true}
         />
       </TabsContent>
 
