@@ -224,7 +224,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
               userValues: {
                 sheet_number: data.sheet_number || '',
                 sheet_title: data.sheet_title || '',
-                scale: data.scale || '',
+                scale: COMMON_SCALES.includes(data.scale) ? data.scale : '',
               }
             } : d
           ));
@@ -502,7 +502,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                               onValueChange={(value) => handleFieldChange(idx, 'scale', value)}
                             >
                               <SelectTrigger className="h-7">
-                                <SelectValue placeholder={d.aiSuggestion.scale || "Select scale"} />
+                                <SelectValue placeholder="" />
                               </SelectTrigger>
                               <SelectContent className="bg-background border-border z-50">
                                 {COMMON_SCALES.map(scale => (
