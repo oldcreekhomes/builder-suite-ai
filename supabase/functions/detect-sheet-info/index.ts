@@ -109,40 +109,52 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `You are analyzing an architectural/construction drawing to extract sheet information from the title block.
+                text: `You are analyzing an architectural/construction drawing to extract sheet information.
 
 CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
 1. TITLE BLOCK LOCATION:
    - The title block is ALWAYS in the RIGHT SIDE or BOTTOM RIGHT CORNER of the drawing
    - This is where you'll find the sheet number, title, and other project info
+   - Look carefully even if text appears small or faint
 
 2. SHEET NUMBER - Can be ANY format:
-   - Letters only: CS, COVER, T, INDEX, G, DEMO
+   - Letters only: CS, COVER, T, INDEX, G, DEMO, A, S, M, E
    - Numbers only: 1, 2, 3, 1.0, 2.0, 01, 02
    - Single letter + number: A-1, S-1, M-1, E-1, A1, S1
    - Letter + number with sub-number: A-2.1, A-2.2, A2.1
    - Multiple letters + number: AR-1, ST-1, CS-1
    - The sheet number is typically prominently displayed in the title block
+   - IMPORTANT: Even a single letter like "CS" or "A" is a valid sheet number
 
 3. SHEET TITLE:
-   - The descriptive name of the drawing: COVER SHEET, FRONT ELEVATION, FLOOR PLAN, SITE PLAN, ELECTRICAL PLAN, etc.
+   - The descriptive name of the drawing: COVER SHEET, FRONT ELEVATION, FLOOR PLAN, SITE PLAN, ELECTRICAL PLAN, EXTERIOR ELEVATIONS, etc.
    - Usually displayed near or below the sheet number in the title block
 
-4. SCALE - Look in TWO places:
-   - BELOW each individual drawing/view on the sheet (e.g., "SCALE: 1/4" = 1'-0"")
-   - In the title block area
-   - Common formats:
-     * 1/4" = 1'-0"
+4. SCALE - WHERE TO FIND IT (VERY IMPORTANT):
+   - The scale is printed DIRECTLY BELOW each drawing's view LABEL/TITLE
+   - Example: A drawing labeled "RIGHT ELEVATION" will have scale text like "1/4" = 1'-0"" printed immediately beneath that label
+   - Example: "FRONT ELEVATION" label → scale value directly below it
+   - Look for scale text immediately under drawing titles like:
+     * FRONT ELEVATION, REAR ELEVATION, LEFT ELEVATION, RIGHT ELEVATION
+     * FLOOR PLAN, BASEMENT PLAN, ROOF PLAN, SITE PLAN
+     * Any drawing label will have its scale printed directly below
+   - Also check the title block in the right/bottom-right corner
+   - Common scale formats:
+     * 1/4" = 1'-0" (most common for elevations)
      * 1/8" = 1'-0"
      * 3/8" = 1'-0"
      * 1/2" = 1'-0"
      * 1" = 1'-0"
-     * 3/4" = 1'-0"
-     * AS NOTED or AS SHOWN (if multiple scales on sheet)
+     * AS NOTED or AS SHOWN (if multiple scales)
      * NTS or NOT TO SCALE
-     * 1:100, 1:50, 1:20 (metric)
-   - Look for text starting with "SCALE:" or just the scale notation itself
+   - If you see ANY scale notation on the drawing, report it
+
+5. IF YOU CANNOT CLEARLY IDENTIFY ANY FIELD:
+   - Look harder in the bottom-right corner title block area
+   - Check for any boxed or bordered area containing text
+   - Even if text is small or partially visible, make your best attempt
+   - Only return null if truly nothing is visible for that field
 
 Return ONLY valid JSON (no markdown, no code blocks):
 {"sheet_number": "exact value found or null", "sheet_title": "exact value found or null", "scale": "exact value found or null", "confidence": "high/medium/low"}`
