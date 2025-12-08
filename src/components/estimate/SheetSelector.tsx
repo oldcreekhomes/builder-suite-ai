@@ -82,7 +82,7 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
 
   return (
     <div className="flex flex-col h-full border-r bg-muted/10">
-      <div className="p-4 border-b">
+      <div className="px-4 py-3 border-b">
         <h3 className="font-medium mb-2">Drawing Sheets</h3>
         <Button 
           size="sm" 
