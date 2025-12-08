@@ -83,7 +83,7 @@ export function JobCostActualDialog({
         .eq('account_id', settings.wip_account_id)
         .eq('project_id', projectId)
         .eq('cost_code_id', costCodeData.id)
-        .lte('journal_entries.entry_date', format(asOfDate, 'yyyy-MM-dd'));
+        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
 
       // Filter by lot if provided
       if (lotId) {
