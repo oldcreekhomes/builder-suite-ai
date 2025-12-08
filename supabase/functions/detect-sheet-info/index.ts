@@ -238,7 +238,120 @@ Return ONLY valid JSON (no markdown, no code blocks):
       // Return default result with low confidence
     }
 
-    console.log('Detected sheet info:', result);
+    // RETRY LOGIC: If all fields are null, retry with a more aggressive prompt
+    const MAX_RETRIES = 2;
+    let retryCount = 0;
+
+    while (
+      result.sheet_number === null && 
+      result.sheet_title === null && 
+      result.scale === null && 
+      retryCount < MAX_RETRIES
+    ) {
+      retryCount++;
+      console.log(`All fields null, retrying (attempt ${retryCount + 1}/${MAX_RETRIES + 1})...`);
+
+      const retryPrompt = `RETRY ATTEMPT ${retryCount}: You returned NO INFORMATION on the previous attempt. This is a valid construction drawing - there MUST be identifiable text.
+
+CRITICAL - LOOK VERY CAREFULLY AT THE ENTIRE IMAGE:
+
+1. SEARCH EVERYWHERE FOR THE TITLE BLOCK:
+   - Bottom right corner (MOST COMMON location)
+   - Top right corner
+   - Bottom left corner
+   - Right edge (vertical title block)
+   - Top of page (especially for cover sheets)
+   - ANY bordered/boxed area with text
+
+2. FOR COVER SHEETS / FIRST PAGES:
+   - Sheet number is often just "CS", "COVER", "T", "INDEX", "TITLE", or "1"
+   - Title might be "COVER SHEET", "TITLE SHEET", "PROJECT INDEX", etc.
+   - Look for project name and address - these pages always have text
+
+3. FOR ELECTRICAL / SPECIALTY SHEETS:
+   - Sheet numbers like "E-1", "E-2", "6.0", "7.0", "E1", "ELEC"
+   - Titles like "ELECTRICAL PLAN", "LIGHTING PLAN", "POWER PLAN"
+
+4. FOR SCALE - LOOK UNDER DRAWING LABELS:
+   - Find labels like "FLOOR PLAN", "ELEVATION", "SECTION"
+   - Scale is printed DIRECTLY BELOW these labels
+   - Common formats: 1/4" = 1'-0", 1/8" = 1'-0", NTS
+
+5. EVEN IF TEXT IS SMALL, BLURRY, OR ROTATED:
+   - Report your best guess
+   - Any visible text that could be a sheet identifier counts
+   - Do NOT return all null values again
+
+Return ONLY valid JSON: {"sheet_number": "...", "sheet_title": "...", "scale": "...", "confidence": "high/medium/low"}`;
+
+      try {
+        const retryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: retryPrompt },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: dataUrl,
+                      ...(dataUrl.startsWith('http') ? { detail: 'auto' } : {})
+                    }
+                  }
+                ]
+              }
+            ]
+          }),
+        });
+
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          const retryContent = retryData.choices?.[0]?.message?.content || '';
+          console.log(`Retry ${retryCount} response:`, retryContent);
+
+          // Parse retry response
+          let cleanedRetryContent = retryContent.trim();
+          if (cleanedRetryContent.startsWith('```json')) {
+            cleanedRetryContent = cleanedRetryContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          } else if (cleanedRetryContent.startsWith('```')) {
+            cleanedRetryContent = cleanedRetryContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+          }
+
+          const retryParsed = JSON.parse(cleanedRetryContent);
+          
+          // If we got at least one non-null value, use this result
+          if (retryParsed.sheet_number || retryParsed.sheet_title || retryParsed.scale) {
+            result = {
+              sheet_number: retryParsed.sheet_number || null,
+              sheet_title: retryParsed.sheet_title || null,
+              scale: retryParsed.scale || null,
+              confidence: retryParsed.confidence || 'medium'
+            };
+            console.log(`Retry ${retryCount} succeeded with result:`, result);
+            break; // Exit retry loop on success
+          } else {
+            console.log(`Retry ${retryCount} still returned all nulls, continuing...`);
+          }
+        } else {
+          console.error(`Retry ${retryCount} API error:`, retryResponse.status);
+        }
+      } catch (retryError) {
+        console.error(`Retry ${retryCount} failed:`, retryError);
+      }
+    }
+
+    if (retryCount > 0 && result.sheet_number === null && result.sheet_title === null && result.scale === null) {
+      console.log(`All ${MAX_RETRIES + 1} attempts failed to find any information`);
+    }
+
+    console.log('Final detected sheet info:', result);
 
     return new Response(
       JSON.stringify({
