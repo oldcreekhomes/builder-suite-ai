@@ -640,29 +640,54 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
 
   const getLotAllocationData = (bill: BillForPayment) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', breakdown: [] as { name: string; amount: number }[], count: 0 };
+      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: 0, uniqueLotCount: 0 };
     }
     
-    const lotTotals = new Map<string, { name: string; amount: number }>();
+    // Group by cost code, then by lot
+    const costCodeMap = new Map<string, Map<string, { name: string; amount: number }>>();
+    const uniqueLots = new Set<string>();
+    let totalAmount = 0;
     
     bill.bill_lines.forEach(line => {
       if (line.project_lots && line.lot_id) {
+        const costCodeKey = line.cost_codes 
+          ? `${line.cost_codes.code}: ${line.cost_codes.name}`
+          : line.accounts 
+            ? `${line.accounts.code}: ${line.accounts.name}`
+            : 'Unknown';
+        
         const lotKey = line.lot_id;
         const lotName = line.project_lots.lot_name || `Lot ${line.project_lots.lot_number}`;
-        const existing = lotTotals.get(lotKey);
+        uniqueLots.add(lotKey);
+        totalAmount += line.amount || 0;
+        
+        if (!costCodeMap.has(costCodeKey)) {
+          costCodeMap.set(costCodeKey, new Map());
+        }
+        
+        const lotMap = costCodeMap.get(costCodeKey)!;
+        const existing = lotMap.get(lotKey);
         if (existing) {
           existing.amount += line.amount || 0;
         } else {
-          lotTotals.set(lotKey, { name: lotName, amount: line.amount || 0 });
+          lotMap.set(lotKey, { name: lotName, amount: line.amount || 0 });
         }
       }
     });
     
-    const breakdown = Array.from(lotTotals.values());
-    if (breakdown.length === 0) return { display: '-', breakdown: [], count: 0 };
-    if (breakdown.length === 1) return { display: breakdown[0].name, breakdown, count: 1 };
+    const costCodeBreakdown = Array.from(costCodeMap.entries()).map(([costCode, lotMap]) => ({
+      costCode,
+      lots: Array.from(lotMap.values())
+    }));
     
-    return { display: `+${breakdown.length}`, breakdown, count: breakdown.length };
+    const uniqueLotCount = uniqueLots.size;
+    
+    if (uniqueLotCount === 0) return { display: '-', costCodeBreakdown: [], totalAmount: 0, uniqueLotCount: 0 };
+    if (uniqueLotCount === 1 && costCodeBreakdown.length > 0) {
+      return { display: costCodeBreakdown[0].lots[0]?.name || '-', costCodeBreakdown, totalAmount, uniqueLotCount: 1 };
+    }
+    
+    return { display: `+${uniqueLotCount}`, costCodeBreakdown, totalAmount, uniqueLotCount };
   };
 
 
@@ -864,8 +889,8 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     {(() => {
-                      const { display, breakdown, count } = getLotAllocationData(bill);
-                      if (count <= 1) {
+                      const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
+                      if (uniqueLotCount <= 1) {
                         return display;
                       }
                       return (
@@ -874,17 +899,24 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                             <TooltipTrigger>
                               {display}
                             </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="space-y-1">
-                                {breakdown.map((lot, i) => (
-                                  <div key={i} className="flex justify-between gap-4">
-                                    <span>{lot.name}:</span>
-                                    <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-2">
+                                {costCodeBreakdown.map((cc, i) => (
+                                  <div key={i}>
+                                    <div className="font-medium text-xs">{cc.costCode}</div>
+                                    <div className="pl-2 space-y-0.5">
+                                      {cc.lots.map((lot, j) => (
+                                        <div key={j} className="flex justify-between gap-4 text-xs">
+                                          <span className="text-muted-foreground">{lot.name}:</span>
+                                          <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 ))}
-                                <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                                <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
                                   <span>Total:</span>
-                                  <span>${breakdown.reduce((sum, l) => sum + l.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                  <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                                 </div>
                               </div>
                             </TooltipContent>
