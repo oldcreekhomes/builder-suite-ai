@@ -620,22 +620,50 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
 
   const getCostCodeOrAccountData = (bill: BillForPayment) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', allItems: [] as string[], count: 0 };
+      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: 0, count: 0 };
     }
     
-    const uniqueItems = new Set<string>();
+    // Group by cost code, then by lot
+    const costCodeMap = new Map<string, Map<string, { name: string; amount: number }>>();
+    let totalAmount = 0;
+    
     bill.bill_lines.forEach(line => {
-      if (line.cost_codes) {
-        uniqueItems.add(`${line.cost_codes.code}: ${line.cost_codes.name}`);
-      } else if (line.accounts) {
-        uniqueItems.add(`${line.accounts.code}: ${line.accounts.name}`);
+      const costCodeKey = line.cost_codes 
+        ? `${line.cost_codes.code}: ${line.cost_codes.name}`
+        : line.accounts 
+          ? `${line.accounts.code}: ${line.accounts.name}`
+          : null;
+      
+      if (!costCodeKey) return;
+      
+      const lotName = line.project_lots?.lot_name || 
+        (line.project_lots ? `Lot ${line.project_lots.lot_number}` : 'Unassigned');
+      const lotKey = line.lot_id || 'unassigned';
+      
+      totalAmount += line.amount || 0;
+      
+      if (!costCodeMap.has(costCodeKey)) {
+        costCodeMap.set(costCodeKey, new Map());
+      }
+      
+      const lotMap = costCodeMap.get(costCodeKey)!;
+      const existing = lotMap.get(lotKey);
+      if (existing) {
+        existing.amount += line.amount || 0;
+      } else {
+        lotMap.set(lotKey, { name: lotName, amount: line.amount || 0 });
       }
     });
     
-    const items = Array.from(uniqueItems);
-    if (items.length === 0) return { display: '-', allItems: [], count: 0 };
-    if (items.length === 1) return { display: items[0], allItems: items, count: 1 };
-    return { display: `${items[0]} +${items.length - 1}`, allItems: items, count: items.length };
+    const costCodeBreakdown = Array.from(costCodeMap.entries()).map(([costCode, lotMap]) => ({
+      costCode,
+      lots: Array.from(lotMap.values())
+    }));
+    
+    const count = costCodeBreakdown.length;
+    if (count === 0) return { display: '-', costCodeBreakdown: [], totalAmount: 0, count: 0 };
+    if (count === 1) return { display: costCodeBreakdown[0].costCode, costCodeBreakdown, totalAmount, count: 1 };
+    return { display: `${costCodeBreakdown[0].costCode} +${count - 1}`, costCodeBreakdown, totalAmount, count };
   };
 
   const getLotAllocationData = (bill: BillForPayment) => {
@@ -827,7 +855,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {(() => {
-                      const { display, allItems, count } = getCostCodeOrAccountData(bill);
+                      const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       if (count <= 1) {
                         return display;
                       }
@@ -837,11 +865,25 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                             <TooltipTrigger className="cursor-default">
                               {display}
                             </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="space-y-1">
-                                {allItems.map((item, i) => (
-                                  <div key={i}>{item}</div>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-2">
+                                {costCodeBreakdown.map((cc, i) => (
+                                  <div key={i}>
+                                    <div className="font-medium text-xs">{cc.costCode}</div>
+                                    <div className="pl-2 space-y-0.5">
+                                      {cc.lots.map((lot, j) => (
+                                        <div key={j} className="flex justify-between gap-4 text-xs">
+                                          <span className="text-muted-foreground">{lot.name}:</span>
+                                          <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
                                 ))}
+                                <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                                  <span>Total:</span>
+                                  <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
                               </div>
                             </TooltipContent>
                           </Tooltip>
