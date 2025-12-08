@@ -204,6 +204,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             )
           `)
           .eq('status', 'posted')
+          .eq('is_reversal', false)
           .in('project_id', projectIds)
           .order('due_date', { ascending: true, nullsFirst: false });
 
@@ -261,6 +262,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             )
           `)
           .eq('status', 'posted')
+          .eq('is_reversal', false)
           .eq('project_id', projectId)
           .order('due_date', { ascending: true, nullsFirst: false });
 
@@ -318,6 +320,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             )
           `)
           .eq('status', 'posted')
+          .eq('is_reversal', false)
           .is('project_id', null)
           .eq('bill_lines.project_id', projectId)
           .order('due_date', { ascending: true, nullsFirst: false });
