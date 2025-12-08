@@ -11,7 +11,7 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
 import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
@@ -22,6 +22,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLots } from "@/hooks/useLots";
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
+import { BillNotesDialog } from "./BillNotesDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,8 +85,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([]);
   const [deletedLineIds, setDeletedLineIds] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<BillAttachment[]>([]);
+  const [newAttachments, setNewAttachments] = useState<BillPDFAttachment[]>([]);
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [responseNote, setResponseNote] = useState('');
+  const [internalNotes, setInternalNotes] = useState<string>("");
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   
   const { updateBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
@@ -115,6 +120,18 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
   const { lots } = useLots(billData?.project_id);
   const showAddressColumn = lots.length > 1;
+
+  // Fetch companies for the notes dialog
+  const { data: companies } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, company_name');
+      if (error) throw error;
+      return data;
+    }
+  });
 
 
   // Populate form when bill data loads
@@ -371,7 +388,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   };
 
   const handleConfirmedSave = async () => {
-    let finalNotes = billData.notes || undefined;
+    // Combine internal notes with response note
+    let finalNotes = internalNotes || billData.notes || undefined;
     
     if (responseNote && responseNote.trim()) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -389,8 +407,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         
         const newNote = `${userName}: ${responseNote.trim()}`;
         
-        if (billData.notes && billData.notes.trim()) {
-          finalNotes = `${newNote}\n\n${billData.notes}`;
+        if (finalNotes && finalNotes.trim()) {
+          finalNotes = `${newNote}\n\n${finalNotes}`;
         } else {
           finalNotes = newNote;
         }
@@ -448,6 +466,45 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           billLines,
           deletedLineIds
         });
+      }
+
+      // Upload new attachments
+      if (newAttachments.length > 0) {
+        for (const attachment of newAttachments) {
+          if (attachment.id) continue; // Skip already uploaded
+
+          try {
+            const timestamp = Date.now();
+            const sanitizedName = attachment.file_name
+              .replace(/\s+/g, '_')
+              .replace(/[^\w.-]/g, '_')
+              .replace(/_+/g, '_');
+            const fileName = `${timestamp}_${sanitizedName}`;
+            const filePath = `${billId}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('bill-attachments')
+              .upload(filePath, attachment.file!);
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              continue;
+            }
+
+            await supabase
+              .from('bill_attachments')
+              .insert({
+                bill_id: billId,
+                file_name: attachment.file_name,
+                file_path: filePath,
+                file_size: attachment.file_size,
+                content_type: attachment.content_type,
+                uploaded_by: (await supabase.auth.getUser()).data.user?.id
+              });
+          } catch (error) {
+            console.error('Error uploading attachment:', error);
+          }
+        }
       }
       
       setShowSaveConfirmation(false);
@@ -536,8 +593,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="md:col-span-4 space-y-2">
               <Label>Bill Due Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -564,7 +621,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               </Popover>
             </div>
 
-            <div className="space-y-2">
+            <div className="md:col-span-4 space-y-2">
               <Label htmlFor="terms">Terms</Label>
               <Select value={terms} onValueChange={setTerms}>
                 <SelectTrigger>
@@ -579,64 +636,93 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               </Select>
             </div>
 
-            {attachments.length > 0 && (
-              <div className="space-y-2">
-                <Label>Attachments</Label>
-                <div className="flex items-center gap-2">
-                  {attachments.map((attachment) => {
-                    const IconComponent = getFileIcon(attachment.file_name);
-                    const iconColorClass = getFileIconColor(attachment.file_name);
+            <div className="md:col-span-2 space-y-2">
+              <BillAttachmentUpload 
+                attachments={newAttachments}
+                onAttachmentsChange={setNewAttachments}
+                billId={billId}
+                disabled={false}
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
+              <Label>Internal Notes</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-10"
+                onClick={() => setNotesDialogOpen(true)}
+              >
+                {internalNotes.trim() ? (
+                  <>
+                    <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
+                    View Notes
+                  </>
+                ) : (
+                  "Add Internal Notes"
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Display existing attachments */}
+          {attachments.length > 0 && (
+            <div className="space-y-2">
+              <Label>Existing Attachments</Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                {attachments.map((attachment) => {
+                  const IconComponent = getFileIcon(attachment.file_name);
+                  const iconColorClass = getFileIconColor(attachment.file_name);
+                  return (
+                    <div key={attachment.id} className="relative group">
+                      <button
+                        onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
+                          id: attachment.id,
+                          size: attachment.file_size,
+                          mimeType: attachment.content_type
+                        })}
+                        className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                        title={attachment.file_name}
+                        type="button"
+                      >
+                        <IconComponent className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAttachment(attachment)}
+                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                        title="Remove attachment"
+                        type="button"
+                      >
+                        <span className="text-xs font-bold leading-none">×</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {billData?.notes && (
+            <div className="space-y-2">
+              <Label>Review Notes</Label>
+              <div className="rounded-md border border-input bg-muted/50 p-3 text-sm">
+                {billData.notes.split('\n').map((line, idx) => {
+                  const colonIndex = line.indexOf(':');
+                  if (colonIndex > 0 && colonIndex < 50) {
+                    const name = line.substring(0, colonIndex);
+                    const note = line.substring(colonIndex + 1);
                     return (
-                      <div key={attachment.id} className="relative group">
-                        <button
-                          onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
-                            id: attachment.id,
-                            size: attachment.file_size,
-                            mimeType: attachment.content_type
-                          })}
-                          className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                          title={attachment.file_name}
-                          type="button"
-                        >
-                          <IconComponent className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAttachment(attachment)}
-                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
-                          title="Remove attachment"
-                          type="button"
-                        >
-                          <span className="text-xs font-bold leading-none">×</span>
-                        </button>
+                      <div key={idx} className="mb-2 last:mb-0">
+                        <span className="font-semibold text-foreground">{name}:</span>
+                        <span>{note}</span>
                       </div>
                     );
-                  })}
-                </div>
+                  }
+                  return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
+                }).filter(Boolean)}
               </div>
-            )}
-
-            {billData?.notes && (
-              <div className="space-y-2">
-                <Label>Review Notes</Label>
-                <div className="rounded-md border border-input bg-muted/50 p-3 text-sm">
-                  {billData.notes.split('\n').map((line, idx) => {
-                    const colonIndex = line.indexOf(':');
-                    if (colonIndex > 0 && colonIndex < 50) {
-                      const name = line.substring(0, colonIndex);
-                      const note = line.substring(colonIndex + 1);
-                      return (
-                        <div key={idx} className="mb-2 last:mb-0">
-                          <span className="font-semibold text-foreground">{name}:</span>
-                          <span>{note}</span>
-                        </div>
-                      );
-                    }
-                    return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
-                  }).filter(Boolean)}
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Line Items</h3>
@@ -956,6 +1042,21 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <BillNotesDialog
+          open={notesDialogOpen}
+          onOpenChange={setNotesDialogOpen}
+          billInfo={{
+            vendor: companies?.find(c => c.id === vendor)?.company_name || 'Unknown Vendor',
+            amount: [...jobCostRows, ...expenseRows].reduce((total, row) => {
+              const q = parseFloat(row.quantity) || 0;
+              const c = parseFloat(row.amount) || 0;
+              return total + q * c;
+            }, 0)
+          }}
+          initialValue={internalNotes}
+          onSave={setInternalNotes}
+        />
       </DialogContent>
     </Dialog>
   );
