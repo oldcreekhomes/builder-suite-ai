@@ -97,10 +97,17 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           
           if (!context) throw new Error('Could not get canvas context');
 
+          // Fill with white background first (prevents black images on complex vector pages)
+          context.fillStyle = 'white';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+
           await page.render({
             canvasContext: context,
             viewport: viewport
           }).promise;
+
+          // Small delay to ensure canvas content is fully committed before blob conversion
+          await new Promise(resolve => setTimeout(resolve, 50));
 
           // Convert canvas to PNG blob
           const blob = await new Promise<Blob>((resolve, reject) => {

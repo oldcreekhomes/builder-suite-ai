@@ -351,6 +351,32 @@ Return ONLY valid JSON: {"sheet_number": "...", "sheet_title": "...", "scale": "
       console.log(`All ${MAX_RETRIES + 1} attempts failed to find any information`);
     }
 
+    // Normalize scale format to consistent "X" = Y'-Z"" format
+    const normalizeScale = (scale: string | null): string | null => {
+      if (!scale) return null;
+      
+      let normalized = scale.trim();
+      
+      // Replace dash/en-dash/em-dash used as equals with actual equals
+      // Pattern: 1/4"-1'-0" should become 1/4" = 1'-0"
+      normalized = normalized.replace(/(\d+\/\d+")\s*[-–—]\s*(\d+'-\d+")/, '$1 = $2');
+      
+      // Ensure space around equals sign
+      // Pattern: 1/4"=1'-0" should become 1/4" = 1'-0"
+      normalized = normalized.replace(/(\d+\/\d+")\s*=\s*(\d+'-\d+")/, '$1 = $2');
+      
+      // Also handle patterns without fraction: 1"=1'-0" -> 1" = 1'-0"
+      normalized = normalized.replace(/(\d+")\s*=\s*(\d+'-\d+")/, '$1 = $2');
+      
+      // Clean up any double spaces
+      normalized = normalized.replace(/\s{2,}/g, ' ');
+      
+      return normalized;
+    };
+
+    // Apply scale normalization
+    result.scale = normalizeScale(result.scale);
+
     console.log('Final detected sheet info:', result);
 
     return new Response(
