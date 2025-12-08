@@ -35,8 +35,9 @@ interface UploadSheetDialogProps {
 
 interface SheetDetection {
   pageNum: number;
-  sheetId: string;
+  sheetId: string | null; // null until saved to database
   filePath: string;
+  fileName: string;
   aiSuggestion: {
     sheet_number: string | null;
     sheet_title: string | null;
@@ -83,7 +84,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         setUploadProgress({ current: 0, total: pdf.numPages });
 
-        // Process each page
+        // Process each page - upload to storage only, NO database insert
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           const page = await pdf.getPage(pageNum);
           
@@ -109,7 +110,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             }, 'image/png', 0.95);
           });
 
-          // Upload PNG to storage
+          // Upload PNG to storage only - no database insert yet
           const fileName = `${file.name.replace('.pdf', '')}_page_${pageNum}.png`;
           const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.png`;
           
@@ -122,26 +123,12 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
           if (uploadError) throw uploadError;
 
-          // Insert sheet record
-          const { data: insertedSheet, error: insertError } = await supabase
-            .from('takeoff_sheets')
-            .insert({
-              takeoff_project_id: takeoffId,
-              owner_id: user.id,
-              name: `${baseSheetName} - Page ${pageNum}`,
-              file_path: filePath,
-              file_name: fileName,
-              page_number: pageNum,
-            })
-            .select('id')
-            .single();
-
-          if (insertError) throw insertError;
-
+          // Store in local state only - sheetId is null until saved
           sheetsToProcess.push({
             pageNum,
-            sheetId: insertedSheet.id,
+            sheetId: null,
             filePath,
+            fileName,
             aiSuggestion: { sheet_number: null, sheet_title: null, scale: null, confidence: 'low' },
             userValues: { sheet_number: '', sheet_title: '', scale: '' },
             status: 'pending',
@@ -150,7 +137,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           setUploadProgress({ current: pageNum, total: pdf.numPages });
         }
       } else {
-        // Handle single image files
+        // Handle single image files - upload to storage only
         setUploadProgress({ current: 0, total: 1 });
         
         const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.${fileExt}`;
@@ -161,25 +148,12 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
         if (uploadError) throw uploadError;
 
-        const { data: insertedSheet, error: insertError } = await supabase
-          .from('takeoff_sheets')
-          .insert({
-            takeoff_project_id: takeoffId,
-            owner_id: user.id,
-            name: baseSheetName,
-            file_path: filePath,
-            file_name: file.name,
-            page_number: 1,
-          })
-          .select('id')
-          .single();
-
-        if (insertError) throw insertError;
-
+        // Store in local state only - sheetId is null until saved
         sheetsToProcess.push({
           pageNum: 1,
-          sheetId: insertedSheet.id,
+          sheetId: null,
           filePath,
+          fileName: file.name,
           aiSuggestion: { sheet_number: null, sheet_title: null, scale: null, confidence: 'low' },
           userValues: { sheet_number: '', sheet_title: '', scale: '' },
           status: 'pending',
@@ -191,7 +165,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
       setDetections(sheetsToProcess);
       setPhase('analyzing');
 
-      // Analyze each sheet for title block info
+      // Analyze each sheet for title block info using file path (no sheetId yet)
       for (let i = 0; i < sheetsToProcess.length; i++) {
         const sheet = sheetsToProcess[i];
         
@@ -200,8 +174,9 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
         ));
 
         try {
+          // Pass file_path instead of sheet_id since we haven't saved to DB yet
           const { data, error } = await supabase.functions.invoke('detect-sheet-info', {
-            body: { sheet_id: sheet.sheetId }
+            body: { file_path: sheet.filePath }
           });
 
           if (error) throw error;
@@ -258,38 +233,52 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
   };
 
   const handleSaveAndExtract = async () => {
+    if (!user) return;
+    
     setPhase('extracting');
     const allSheetIds: string[] = [];
     const allItemIds: string[] = [];
+    const baseSheetName = file?.name.replace(/\.[^/.]+$/, '') || 'Sheet';
 
     try {
-      // Update sheet records with user values and run extraction
+      // NOW insert sheet records and run extraction
       for (let i = 0; i < detections.length; i++) {
         const detection = detections[i];
-        allSheetIds.push(detection.sheetId);
 
         // Build the display name
         const displayName = detection.userValues.sheet_number && detection.userValues.sheet_title
           ? `${detection.userValues.sheet_number} - ${detection.userValues.sheet_title}`
-          : detection.userValues.sheet_number || detection.userValues.sheet_title || `Page ${detection.pageNum}`;
+          : detection.userValues.sheet_number || detection.userValues.sheet_title || `${baseSheetName} - Page ${detection.pageNum}`;
 
-        // Update sheet record with detected/edited values
-        await supabase
+        // Insert sheet record to database (first time)
+        const { data: insertedSheet, error: insertError } = await supabase
           .from('takeoff_sheets')
-          .update({
+          .insert({
+            takeoff_project_id: takeoffId,
+            owner_id: user.id,
             name: displayName,
+            file_path: detection.filePath,
+            file_name: detection.fileName,
+            page_number: detection.pageNum,
             sheet_number: detection.userValues.sheet_number || null,
             sheet_title: detection.userValues.sheet_title || null,
             drawing_scale: detection.userValues.scale || null,
           })
-          .eq('id', detection.sheetId);
+          .select('id')
+          .single();
 
+        if (insertError) throw insertError;
+
+        const sheetId = insertedSheet.id;
+        allSheetIds.push(sheetId);
+
+        // Update local state with sheetId
         setDetections(prev => prev.map((d, idx) => 
-          idx === i ? { ...d, status: 'extracting' } : d
+          idx === i ? { ...d, sheetId, status: 'extracting' } : d
         ));
 
-        // Run Roboflow extraction (unchanged from original)
-        const extractResult = await autoExtractAndSave(detection.sheetId);
+        // Run Roboflow extraction
+        const extractResult = await autoExtractAndSave(sheetId);
 
         if (extractResult.success) {
           allItemIds.push(...extractResult.itemIds);
@@ -331,7 +320,16 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
     setUploadProgress({ current: 0, total: 0 });
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    // Clean up any uploaded files from storage if user cancels
+    if (detections.length > 0) {
+      try {
+        const filePaths = detections.map(d => d.filePath);
+        await supabase.storage.from('project-files').remove(filePaths);
+      } catch (err) {
+        console.error('Error cleaning up files:', err);
+      }
+    }
     resetDialog();
     onOpenChange(false);
   };

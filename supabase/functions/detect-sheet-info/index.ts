@@ -13,11 +13,12 @@ serve(async (req) => {
   }
 
   try {
-    const { sheet_id } = await req.json();
+    const { sheet_id, file_path } = await req.json();
 
-    if (!sheet_id) {
+    // Accept either sheet_id (for existing sheets) or file_path (for preview before saving)
+    if (!sheet_id && !file_path) {
       return new Response(
-        JSON.stringify({ error: 'sheet_id is required' }),
+        JSON.stringify({ error: 'sheet_id or file_path is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -36,25 +37,33 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the sheet details
-    const { data: sheet, error: sheetError } = await supabase
-      .from('takeoff_sheets')
-      .select('id, file_path, name')
-      .eq('id', sheet_id)
-      .single();
+    let actualFilePath: string;
 
-    if (sheetError || !sheet) {
-      console.error('Sheet not found:', sheetError);
-      return new Response(
-        JSON.stringify({ error: 'Sheet not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (sheet_id) {
+      // Get the sheet details from database
+      const { data: sheet, error: sheetError } = await supabase
+        .from('takeoff_sheets')
+        .select('id, file_path, name')
+        .eq('id', sheet_id)
+        .single();
+
+      if (sheetError || !sheet) {
+        console.error('Sheet not found:', sheetError);
+        return new Response(
+          JSON.stringify({ error: 'Sheet not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      actualFilePath = sheet.file_path;
+    } else {
+      // Use the provided file_path directly
+      actualFilePath = file_path;
     }
 
     // Download the image from storage
     const { data: imageData, error: downloadError } = await supabase.storage
       .from('project-files')
-      .download(sheet.file_path);
+      .download(actualFilePath);
 
     if (downloadError || !imageData) {
       console.error('Failed to download image:', downloadError);
@@ -68,7 +77,8 @@ serve(async (req) => {
     const arrayBuffer = await imageData.arrayBuffer();
     const imageSizeBytes = arrayBuffer.byteLength;
     const imageSizeMB = (imageSizeBytes / (1024 * 1024)).toFixed(2);
-    console.log(`Image size for sheet ${sheet_id}: ${imageSizeMB} MB (${imageSizeBytes} bytes)`);
+    const identifier = sheet_id || file_path;
+    console.log(`Image size for ${identifier}: ${imageSizeMB} MB (${imageSizeBytes} bytes)`);
     
     // If image is too large (>3MB), we can't process it safely in edge function memory
     // The AI only needs to read text from title blocks, so we'll use a lower quality for very large images
@@ -76,13 +86,13 @@ serve(async (req) => {
     const MAX_SIZE_BYTES = 3 * 1024 * 1024; // 3MB limit for safe processing
     
     let dataUrl: string;
-    const mimeType = sheet.file_path.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    const mimeType = actualFilePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
     
     if (imageSizeBytes > MAX_SIZE_BYTES) {
       console.log(`Image too large (${imageSizeMB} MB), skipping base64 encoding to avoid memory issues`);
       // For very large images, we'll try to use the public URL directly if possible
       // Gemini can fetch URLs directly in some cases
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/project-files/${sheet.file_path}`;
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/project-files/${actualFilePath}`;
       console.log(`Using public URL for large image: ${publicUrl}`);
       dataUrl = publicUrl;
     } else {
@@ -92,7 +102,7 @@ serve(async (req) => {
       dataUrl = `data:${mimeType};base64,${base64Image}`;
     }
 
-    console.log(`Analyzing sheet ${sheet_id} for title block info...`);
+    console.log(`Analyzing ${identifier} for title block info...`);
 
     // Call Lovable AI (Gemini vision) to analyze the title block
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
