@@ -393,12 +393,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
   const getCostCodeOrAccountData = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: 0, count: 0 };
+      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: bill.total_amount, count: 0 };
     }
     
     // Group by cost code, then by lot
     const costCodeMap = new Map<string, Map<string, { name: string; amount: number }>>();
-    let totalAmount = 0;
     
     bill.bill_lines.forEach(line => {
       const costCodeKey = line.cost_codes 
@@ -412,8 +411,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       const lotName = line.project_lots?.lot_name || 
         (line.project_lots ? `Lot ${line.project_lots.lot_number}` : 'Unassigned');
       const lotKey = line.lot_id || 'unassigned';
-      
-      totalAmount += line.amount || 0;
       
       if (!costCodeMap.has(costCodeKey)) {
         costCodeMap.set(costCodeKey, new Map());
@@ -434,20 +431,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     }));
     
     const count = costCodeBreakdown.length;
-    if (count === 0) return { display: '-', costCodeBreakdown: [], totalAmount: 0, count: 0 };
-    if (count === 1) return { display: costCodeBreakdown[0].costCode, costCodeBreakdown, totalAmount, count: 1 };
-    return { display: `${costCodeBreakdown[0].costCode} +${count - 1}`, costCodeBreakdown, totalAmount, count };
+    // Use bill.total_amount as the authoritative total to avoid rounding errors
+    if (count === 0) return { display: '-', costCodeBreakdown: [], totalAmount: bill.total_amount, count: 0 };
+    if (count === 1) return { display: costCodeBreakdown[0].costCode, costCodeBreakdown, totalAmount: bill.total_amount, count: 1 };
+    return { display: `${costCodeBreakdown[0].costCode} +${count - 1}`, costCodeBreakdown, totalAmount: bill.total_amount, count };
   };
 
   const getLotAllocationData = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: 0, uniqueLotCount: 0 };
+      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: bill.total_amount, uniqueLotCount: 0 };
     }
     
     // Group by cost code, then by lot
     const costCodeMap = new Map<string, Map<string, { name: string; amount: number }>>();
     const uniqueLots = new Set<string>();
-    let totalAmount = 0;
     
     bill.bill_lines.forEach(line => {
       if (line.project_lots && line.lot_id) {
@@ -460,7 +457,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         const lotKey = line.lot_id;
         const lotName = line.project_lots.lot_name || `Lot ${line.project_lots.lot_number}`;
         uniqueLots.add(lotKey);
-        totalAmount += line.amount || 0;
         
         if (!costCodeMap.has(costCodeKey)) {
           costCodeMap.set(costCodeKey, new Map());
@@ -483,12 +479,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     
     const uniqueLotCount = uniqueLots.size;
     
-    if (uniqueLotCount === 0) return { display: '-', costCodeBreakdown: [], totalAmount: 0, uniqueLotCount: 0 };
+    // Use bill.total_amount as the authoritative total to avoid rounding errors
+    if (uniqueLotCount === 0) return { display: '-', costCodeBreakdown: [], totalAmount: bill.total_amount, uniqueLotCount: 0 };
     if (uniqueLotCount === 1 && costCodeBreakdown.length > 0) {
-      return { display: costCodeBreakdown[0].lots[0]?.name || '-', costCodeBreakdown, totalAmount, uniqueLotCount: 1 };
+      return { display: costCodeBreakdown[0].lots[0]?.name || '-', costCodeBreakdown, totalAmount: bill.total_amount, uniqueLotCount: 1 };
     }
     
-    return { display: `+${uniqueLotCount}`, costCodeBreakdown, totalAmount, uniqueLotCount };
+    return { display: `+${uniqueLotCount}`, costCodeBreakdown, totalAmount: bill.total_amount, uniqueLotCount };
   };
 
   const canShowActions = status === 'draft';
