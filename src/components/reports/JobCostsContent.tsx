@@ -590,6 +590,7 @@ return parentRows;
           projectId={projectId}
           totalActual={selectedCostCode.actual}
           asOfDate={asOfDate}
+          lotId={selectedLotId}
         />
       )}
     </div>
