@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.detect-drawing-scale]
 verify_jwt = true
 
+[functions.detect-sheet-info]
+verify_jwt = true
+
 [functions.extract-bill-data]
 verify_jwt = false
 

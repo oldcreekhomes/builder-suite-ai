@@ -2972,6 +2972,8 @@ export type Database = {
           owner_id: string
           page_number: number | null
           scale_ratio: number | null
+          sheet_number: string | null
+          sheet_title: string | null
           takeoff_project_id: string
           updated_at: string
         }
@@ -2987,6 +2989,8 @@ export type Database = {
           owner_id: string
           page_number?: number | null
           scale_ratio?: number | null
+          sheet_number?: string | null
+          sheet_title?: string | null
           takeoff_project_id: string
           updated_at?: string
         }
@@ -3002,6 +3006,8 @@ export type Database = {
           owner_id?: string
           page_number?: number | null
           scale_ratio?: number | null
+          sheet_number?: string | null
+          sheet_title?: string | null
           takeoff_project_id?: string
           updated_at?: string
         }
