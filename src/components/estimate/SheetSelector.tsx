@@ -82,11 +82,10 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
 
   return (
     <div className="flex flex-col h-full border-r bg-muted/10">
-      <div className="px-4 py-3 border-b">
-        <h3 className="font-medium mb-2">Drawing Sheets</h3>
+      <div className="px-4 py-3 border-b flex items-center justify-between">
+        <h3 className="font-medium">Drawing Sheets</h3>
         <Button 
           size="sm" 
-          className="w-full"
           onClick={() => setUploadDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
