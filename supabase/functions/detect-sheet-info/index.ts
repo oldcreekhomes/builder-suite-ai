@@ -156,6 +156,12 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
    - Even if text is small or partially visible, make your best attempt
    - Only return null if truly nothing is visible for that field
 
+6. CRITICAL RULE - NEVER RETURN ALL NULLS:
+   - You MUST make your best attempt to identify at least ONE field
+   - For cover sheets, the sheet number is often just "CS" or "COVER" - this is valid!
+   - If you see ANY text that could be a sheet identifier, title, or scale, report it
+   - Returning all null values is almost never correct for a valid drawing page
+
 Return ONLY valid JSON (no markdown, no code blocks):
 {"sheet_number": "exact value found or null", "sheet_title": "exact value found or null", "scale": "exact value found or null", "confidence": "high/medium/low"}`
               },

@@ -440,37 +440,37 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                   </TableHeader>
                   <TableBody>
                     {detections.map((d, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-medium">{d.pageNum}</TableCell>
-                        <TableCell>
+                      <TableRow key={idx} className="h-10">
+                        <TableCell className="font-medium py-1">{d.pageNum}</TableCell>
+                        <TableCell className="py-1">
                           <div className="flex items-center gap-1">
                             <Input
                               value={d.userValues.sheet_number}
                               onChange={(e) => handleFieldChange(idx, 'sheet_number', e.target.value)}
                               placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
-                              className="h-8"
+                              className="h-7"
                             />
                             {d.aiSuggestion.sheet_number && getConfidenceIcon(d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-1">
                           <div className="flex items-center gap-1">
                             <Input
                               value={d.userValues.sheet_title}
                               onChange={(e) => handleFieldChange(idx, 'sheet_title', e.target.value)}
                               placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
-                              className="h-8"
+                              className="h-7"
                             />
                             {d.aiSuggestion.sheet_title && getConfidenceIcon(d.aiSuggestion.confidence)}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-1">
                           <div className="flex items-center gap-1">
                             <Input
                               value={d.userValues.scale}
                               onChange={(e) => handleFieldChange(idx, 'scale', e.target.value)}
                               placeholder={d.aiSuggestion.scale || 'e.g., 1/4" = 1\'-0"'}
-                              className="h-8"
+                              className="h-7"
                             />
                             {d.aiSuggestion.scale && getConfidenceIcon(d.aiSuggestion.confidence)}
                           </div>
@@ -556,9 +556,8 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           
           {phase === 'review' && (
             <>
-              <Button type="button" variant="outline" onClick={handleAcceptAll}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Accept All AI Suggestions
+              <Button type="button" variant="outline" onClick={handleClose}>
+                Cancel
               </Button>
               <Button onClick={handleSaveAndExtract}>
                 Save & Extract Items
