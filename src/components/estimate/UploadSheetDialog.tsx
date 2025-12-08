@@ -13,10 +13,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, XCircle, Sparkles, AlertCircle } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { autoExtractAndSave } from "@/utils/autoExtractTakeoff";
 import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface UploadSheetDialogProps {
   open: boolean;
@@ -25,57 +33,55 @@ interface UploadSheetDialogProps {
   onSuccess: (sheetIds: string[], itemIds: string[]) => void;
 }
 
-interface SheetProgress {
+interface SheetDetection {
+  pageNum: number;
   sheetId: string;
-  name: string;
-  status: 'uploading' | 'extracting' | 'complete' | 'failed';
+  filePath: string;
+  aiSuggestion: {
+    sheet_number: string | null;
+    sheet_title: string | null;
+    scale: string | null;
+    confidence: 'high' | 'medium' | 'low';
+  };
+  userValues: {
+    sheet_number: string;
+    sheet_title: string;
+    scale: string;
+  };
+  status: 'pending' | 'analyzing' | 'ready' | 'extracting' | 'complete' | 'failed';
   itemCount?: number;
   error?: string;
 }
 
+type Phase = 'upload' | 'uploading' | 'analyzing' | 'review' | 'extracting';
+
 export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: UploadSheetDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [sheetProgress, setSheetProgress] = useState<SheetProgress[]>([]);
-  const [showProgress, setShowProgress] = useState(false);
+  const [phase, setPhase] = useState<Phase>('upload');
+  const [detections, setDetections] = useState<SheetDetection[]>([]);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFile(e.target.files?.[0] || null);
+  };
+
+  const handleUploadAndAnalyze = async () => {
     if (!file || !user) return;
 
-    setIsUploading(true);
-    setShowProgress(true);
-    const allSheetIds: string[] = [];
-    const allItemIds: string[] = [];
-    
+    setPhase('uploading');
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    const isPDF = fileExt === 'pdf';
+    const baseSheetName = file.name.replace(/\.[^/.]+$/, '');
+
     try {
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      const isPDF = fileExt === 'pdf';
-      const baseSheetName = name || file.name.replace(/\.[^/.]+$/, '');
+      const sheetsToProcess: SheetDetection[] = [];
 
       if (isPDF) {
-        // Convert PDF to PNG images
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const sheetsToInsert = [];
-        const progressEntries: SheetProgress[] = [];
-
-        // Initialize progress for all pages
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const sheetName = pdf.numPages > 1 
-            ? `${baseSheetName} - Page ${pageNum}`
-            : baseSheetName;
-          
-          progressEntries.push({
-            sheetId: `temp-${pageNum}`,
-            name: sheetName,
-            status: 'uploading',
-          });
-        }
-        setSheetProgress(progressEntries);
+        setUploadProgress({ current: 0, total: pdf.numPages });
 
         // Process each page
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -116,17 +122,13 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
           if (uploadError) throw uploadError;
 
-          const sheetName = pdf.numPages > 1 
-            ? `${baseSheetName} - Page ${pageNum}`
-            : baseSheetName;
-
-          // Insert sheet and get its ID
+          // Insert sheet record
           const { data: insertedSheet, error: insertError } = await supabase
             .from('takeoff_sheets')
             .insert({
               takeoff_project_id: takeoffId,
               owner_id: user.id,
-              name: sheetName,
+              name: `${baseSheetName} - Page ${pageNum}`,
               file_path: filePath,
               file_name: fileName,
               page_number: pageNum,
@@ -135,47 +137,22 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             .single();
 
           if (insertError) throw insertError;
-          
-          const sheetId = insertedSheet.id;
-          allSheetIds.push(sheetId);
 
-          // Update progress - extraction starting
-          setSheetProgress(prev => prev.map((p, idx) => 
-            idx === pageNum - 1 ? { ...p, sheetId, status: 'extracting' } : p
-          ));
+          sheetsToProcess.push({
+            pageNum,
+            sheetId: insertedSheet.id,
+            filePath,
+            aiSuggestion: { sheet_number: null, sheet_title: null, scale: null, confidence: 'low' },
+            userValues: { sheet_number: '', sheet_title: '', scale: '' },
+            status: 'pending',
+          });
 
-          // Auto-extract AI items
-          const extractResult = await autoExtractAndSave(sheetId);
-          
-          if (extractResult.success) {
-            allItemIds.push(...extractResult.itemIds);
-            setSheetProgress(prev => prev.map(p => 
-              p.sheetId === sheetId 
-                ? { ...p, status: 'complete', itemCount: extractResult.itemCount } 
-                : p
-            ));
-          } else {
-            setSheetProgress(prev => prev.map(p => 
-              p.sheetId === sheetId 
-                ? { ...p, status: 'failed', error: extractResult.error } 
-                : p
-            ));
-          }
+          setUploadProgress({ current: pageNum, total: pdf.numPages });
         }
-
-        const successCount = sheetProgress.filter(p => p.status === 'complete').length;
-        const totalItems = sheetProgress.reduce((sum, p) => sum + (p.itemCount || 0), 0);
-        
-        toast({ title: "Success", description: `✓ ${successCount} sheet${successCount !== 1 ? 's' : ''} uploaded, ${totalItems} items extracted` });
-        
       } else {
-        // Handle single image files (PNG, JPG, JPEG)
-        setSheetProgress([{
-          sheetId: 'temp-1',
-          name: baseSheetName,
-          status: 'uploading',
-        }]);
-
+        // Handle single image files
+        setUploadProgress({ current: 0, total: 1 });
+        
         const filePath = `takeoffs/${takeoffId}/${crypto.randomUUID()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
@@ -199,169 +176,396 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
         if (insertError) throw insertError;
 
-        const sheetId = insertedSheet.id;
-        allSheetIds.push(sheetId);
+        sheetsToProcess.push({
+          pageNum: 1,
+          sheetId: insertedSheet.id,
+          filePath,
+          aiSuggestion: { sheet_number: null, sheet_title: null, scale: null, confidence: 'low' },
+          userValues: { sheet_number: '', sheet_title: '', scale: '' },
+          status: 'pending',
+        });
 
-        // Update progress - extraction starting
-        setSheetProgress([{
-          sheetId,
-          name: baseSheetName,
-          status: 'extracting',
-        }]);
+        setUploadProgress({ current: 1, total: 1 });
+      }
 
-        // Auto-extract AI items
-        const extractResult = await autoExtractAndSave(sheetId);
+      setDetections(sheetsToProcess);
+      setPhase('analyzing');
+
+      // Analyze each sheet for title block info
+      for (let i = 0; i < sheetsToProcess.length; i++) {
+        const sheet = sheetsToProcess[i];
         
-        if (extractResult.success) {
-          allItemIds.push(...extractResult.itemIds);
-          setSheetProgress([{
-            sheetId,
-            name: baseSheetName,
-            status: 'complete',
-            itemCount: extractResult.itemCount,
-          }]);
-          toast({ title: "Success", description: `✓ Sheet uploaded, ${extractResult.itemCount} items extracted` });
-        } else {
-          setSheetProgress([{
-            sheetId,
-            name: baseSheetName,
-            status: 'failed',
-            error: extractResult.error,
-          }]);
-          toast({ title: "Success", description: "Sheet uploaded (extraction failed - use Re-extract)" });
+        setDetections(prev => prev.map((d, idx) => 
+          idx === i ? { ...d, status: 'analyzing' } : d
+        ));
+
+        try {
+          const { data, error } = await supabase.functions.invoke('detect-sheet-info', {
+            body: { sheet_id: sheet.sheetId }
+          });
+
+          if (error) throw error;
+
+          setDetections(prev => prev.map((d, idx) => 
+            idx === i ? {
+              ...d,
+              status: 'ready',
+              aiSuggestion: {
+                sheet_number: data.sheet_number,
+                sheet_title: data.sheet_title,
+                scale: data.scale,
+                confidence: data.confidence || 'low',
+              },
+              userValues: {
+                sheet_number: data.sheet_number || '',
+                sheet_title: data.sheet_title || '',
+                scale: data.scale || '',
+              }
+            } : d
+          ));
+        } catch (err) {
+          console.error('Error analyzing sheet:', err);
+          setDetections(prev => prev.map((d, idx) => 
+            idx === i ? { ...d, status: 'ready' } : d
+          ));
         }
       }
-      
-      // Wait 1.5 seconds to show complete status, then close
-      setTimeout(() => {
-        setName("");
-        setFile(null);
-        setShowProgress(false);
-        setSheetProgress([]);
-        onSuccess(allSheetIds, allItemIds);
-        onOpenChange(false);
-      }, 1500);
-      
+
+      setPhase('review');
+
     } catch (error) {
-      console.error('Error uploading sheet:', error);
-      toast({ title: "Error", description: "Failed to upload sheet", variant: "destructive" });
-      setIsUploading(false);
-      setShowProgress(false);
+      console.error('Error uploading sheets:', error);
+      toast({ title: "Error", description: "Failed to upload sheets", variant: "destructive" });
+      setPhase('upload');
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Upload Drawing Sheet</DialogTitle>
-            <DialogDescription>
-              Upload a PDF or image of your construction drawing
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            {!showProgress ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="file">File *</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="file"
-                      type="file"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      required
-                    />
-                    <Upload className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Supported formats: PDF, PNG, JPG
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="name">Sheet Name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., Front Elevation, Floor Plan"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank to use filename
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">Processing sheets...</span>
-                  <span className="text-muted-foreground">
-                    {sheetProgress.filter(s => s.status === 'complete').length} / {sheetProgress.length}
-                  </span>
-                </div>
-                
-                <div className="space-y-2">
-                  {sheetProgress.map((sheet, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        {sheet.status === 'uploading' && (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        )}
-                        {sheet.status === 'extracting' && (
-                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        )}
-                        {sheet.status === 'complete' && (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        )}
-                        {sheet.status === 'failed' && (
-                          <XCircle className="h-4 w-4 text-destructive" />
-                        )}
-                        
-                        <span className="flex-1 truncate">{sheet.name}</span>
-                        
-                        {sheet.status === 'uploading' && (
-                          <span className="text-xs text-muted-foreground">Uploading...</span>
-                        )}
-                        {sheet.status === 'extracting' && (
-                          <span className="text-xs text-muted-foreground">Extracting...</span>
-                        )}
-                        {sheet.status === 'complete' && sheet.itemCount !== undefined && (
-                          <span className="text-xs text-green-600">
-                            {sheet.itemCount} item{sheet.itemCount !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {sheet.status === 'failed' && (
-                          <span className="text-xs text-destructive">Failed</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <Progress 
-                  value={(sheetProgress.filter(s => s.status === 'complete').length / sheetProgress.length) * 100} 
-                  className="h-2"
-                />
-              </div>
-            )}
-          </div>
+  const handleAcceptAll = () => {
+    setDetections(prev => prev.map(d => ({
+      ...d,
+      userValues: {
+        sheet_number: d.userValues.sheet_number || d.aiSuggestion.sheet_number || '',
+        sheet_title: d.userValues.sheet_title || d.aiSuggestion.sheet_title || '',
+        scale: d.userValues.scale || d.aiSuggestion.scale || '',
+      }
+    })));
+  };
 
-          <DialogFooter>
-            {!showProgress && (
-              <>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isUploading || !file}>
-                  {isUploading ? 'Processing...' : 'Upload & Extract'}
-                </Button>
-              </>
-            )}
-          </DialogFooter>
-        </form>
+  const handleFieldChange = (index: number, field: keyof SheetDetection['userValues'], value: string) => {
+    setDetections(prev => prev.map((d, idx) => 
+      idx === index ? { ...d, userValues: { ...d.userValues, [field]: value } } : d
+    ));
+  };
+
+  const handleSaveAndExtract = async () => {
+    setPhase('extracting');
+    const allSheetIds: string[] = [];
+    const allItemIds: string[] = [];
+
+    try {
+      // Update sheet records with user values and run extraction
+      for (let i = 0; i < detections.length; i++) {
+        const detection = detections[i];
+        allSheetIds.push(detection.sheetId);
+
+        // Build the display name
+        const displayName = detection.userValues.sheet_number && detection.userValues.sheet_title
+          ? `${detection.userValues.sheet_number} - ${detection.userValues.sheet_title}`
+          : detection.userValues.sheet_number || detection.userValues.sheet_title || `Page ${detection.pageNum}`;
+
+        // Update sheet record with detected/edited values
+        await supabase
+          .from('takeoff_sheets')
+          .update({
+            name: displayName,
+            sheet_number: detection.userValues.sheet_number || null,
+            sheet_title: detection.userValues.sheet_title || null,
+            drawing_scale: detection.userValues.scale || null,
+          })
+          .eq('id', detection.sheetId);
+
+        setDetections(prev => prev.map((d, idx) => 
+          idx === i ? { ...d, status: 'extracting' } : d
+        ));
+
+        // Run Roboflow extraction (unchanged from original)
+        const extractResult = await autoExtractAndSave(detection.sheetId);
+
+        if (extractResult.success) {
+          allItemIds.push(...extractResult.itemIds);
+          setDetections(prev => prev.map((d, idx) => 
+            idx === i ? { ...d, status: 'complete', itemCount: extractResult.itemCount } : d
+          ));
+        } else {
+          setDetections(prev => prev.map((d, idx) => 
+            idx === i ? { ...d, status: 'failed', error: extractResult.error } : d
+          ));
+        }
+      }
+
+      const successCount = detections.filter(d => d.status === 'complete' || d.status === 'extracting').length;
+      const totalItems = detections.reduce((sum, d) => sum + (d.itemCount || 0), 0);
+      
+      toast({ 
+        title: "Success", 
+        description: `✓ ${successCount} sheet${successCount !== 1 ? 's' : ''} processed, ${totalItems} items extracted` 
+      });
+
+      // Wait to show complete status, then close
+      setTimeout(() => {
+        resetDialog();
+        onSuccess(allSheetIds, allItemIds);
+        onOpenChange(false);
+      }, 1500);
+
+    } catch (error) {
+      console.error('Error during extraction:', error);
+      toast({ title: "Error", description: "Failed to complete extraction", variant: "destructive" });
+    }
+  };
+
+  const resetDialog = () => {
+    setFile(null);
+    setPhase('upload');
+    setDetections([]);
+    setUploadProgress({ current: 0, total: 0 });
+  };
+
+  const handleClose = () => {
+    resetDialog();
+    onOpenChange(false);
+  };
+
+  const getConfidenceIcon = (confidence: 'high' | 'medium' | 'low') => {
+    if (confidence === 'high') {
+      return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+    } else if (confidence === 'medium') {
+      return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+    }
+    return null;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className={phase === 'review' || phase === 'extracting' ? "max-w-4xl" : ""}>
+        <DialogHeader>
+          <DialogTitle>Upload Drawing Sheet</DialogTitle>
+          <DialogDescription>
+            {phase === 'upload' && "Upload a PDF or image of your construction drawing"}
+            {phase === 'uploading' && "Uploading pages..."}
+            {phase === 'analyzing' && "AI is analyzing title blocks..."}
+            {phase === 'review' && "Review and edit AI-detected sheet information"}
+            {phase === 'extracting' && "Extracting takeoff items..."}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          {/* Phase: Upload */}
+          {phase === 'upload' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="file">File *</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="file"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={handleFileSelect}
+                    required
+                  />
+                  <Upload className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Supported formats: PDF, PNG, JPG
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Phase: Uploading */}
+          {phase === 'uploading' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Uploading pages...</span>
+                <span className="text-muted-foreground">
+                  {uploadProgress.current} / {uploadProgress.total}
+                </span>
+              </div>
+              <Progress value={(uploadProgress.current / uploadProgress.total) * 100} className="h-2" />
+            </div>
+          )}
+
+          {/* Phase: Analyzing */}
+          {phase === 'analyzing' && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <span>AI analyzing title blocks...</span>
+              </div>
+              <div className="space-y-2">
+                {detections.map((d, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    {d.status === 'analyzing' ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : d.status === 'ready' ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <div className="h-4 w-4" />
+                    )}
+                    <span>Page {d.pageNum}</span>
+                    {d.status === 'ready' && d.aiSuggestion.sheet_number && (
+                      <span className="text-muted-foreground">
+                        → {d.aiSuggestion.sheet_number}
+                        {d.aiSuggestion.sheet_title && ` - ${d.aiSuggestion.sheet_title}`}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Phase: Review */}
+          {phase === 'review' && (
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">Page</TableHead>
+                      <TableHead className="w-32">Sheet #</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead className="w-40">Scale</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detections.map((d, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium">{d.pageNum}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={d.userValues.sheet_number}
+                              onChange={(e) => handleFieldChange(idx, 'sheet_number', e.target.value)}
+                              placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
+                              className="h-8"
+                            />
+                            {d.aiSuggestion.sheet_number && getConfidenceIcon(d.aiSuggestion.confidence)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={d.userValues.sheet_title}
+                              onChange={(e) => handleFieldChange(idx, 'sheet_title', e.target.value)}
+                              placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
+                              className="h-8"
+                            />
+                            {d.aiSuggestion.sheet_title && getConfidenceIcon(d.aiSuggestion.confidence)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={d.userValues.scale}
+                              onChange={(e) => handleFieldChange(idx, 'scale', e.target.value)}
+                              placeholder={d.aiSuggestion.scale || 'e.g., 1/4" = 1\'-0"'}
+                              className="h-8"
+                            />
+                            {d.aiSuggestion.scale && getConfidenceIcon(d.aiSuggestion.confidence)}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 className="h-3 w-3 text-green-600" />
+                <span>High confidence</span>
+                <AlertCircle className="h-3 w-3 text-yellow-500 ml-2" />
+                <span>Please verify</span>
+              </div>
+            </div>
+          )}
+
+          {/* Phase: Extracting */}
+          {phase === 'extracting' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Extracting takeoff items...</span>
+                <span className="text-muted-foreground">
+                  {detections.filter(d => d.status === 'complete').length} / {detections.length}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                {detections.map((d, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    {d.status === 'extracting' && (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    )}
+                    {d.status === 'complete' && (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    )}
+                    {d.status === 'failed' && (
+                      <XCircle className="h-4 w-4 text-destructive" />
+                    )}
+                    {d.status !== 'extracting' && d.status !== 'complete' && d.status !== 'failed' && (
+                      <div className="h-4 w-4" />
+                    )}
+                    
+                    <span className="flex-1 truncate">
+                      {d.userValues.sheet_number && d.userValues.sheet_title
+                        ? `${d.userValues.sheet_number} - ${d.userValues.sheet_title}`
+                        : d.userValues.sheet_number || d.userValues.sheet_title || `Page ${d.pageNum}`}
+                    </span>
+                    
+                    {d.status === 'complete' && d.itemCount !== undefined && (
+                      <span className="text-xs text-green-600">
+                        {d.itemCount} item{d.itemCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {d.status === 'failed' && (
+                      <span className="text-xs text-destructive">Failed</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <Progress 
+                value={(detections.filter(d => d.status === 'complete').length / detections.length) * 100} 
+                className="h-2"
+              />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          {phase === 'upload' && (
+            <>
+              <Button type="button" variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleUploadAndAnalyze} disabled={!file}>
+                Upload & Analyze
+              </Button>
+            </>
+          )}
+          
+          {phase === 'review' && (
+            <>
+              <Button type="button" variant="outline" onClick={handleAcceptAll}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Accept All AI Suggestions
+              </Button>
+              <Button onClick={handleSaveAndExtract}>
+                Save & Extract Items
+              </Button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
