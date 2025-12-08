@@ -618,8 +618,10 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     return termMap[terms.toLowerCase()] || terms;
   };
 
-  const getCostCodeOrAccount = (bill: BillForPayment) => {
-    if (!bill.bill_lines || bill.bill_lines.length === 0) return '-';
+  const getCostCodeOrAccountData = (bill: BillForPayment) => {
+    if (!bill.bill_lines || bill.bill_lines.length === 0) {
+      return { display: '-', allItems: [] as string[], count: 0 };
+    }
     
     const uniqueItems = new Set<string>();
     bill.bill_lines.forEach(line => {
@@ -631,9 +633,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     });
     
     const items = Array.from(uniqueItems);
-    if (items.length === 0) return '-';
-    if (items.length === 1) return items[0];
-    return `${items[0]} +${items.length - 1}`;
+    if (items.length === 0) return { display: '-', allItems: [], count: 0 };
+    if (items.length === 1) return { display: items[0], allItems: items, count: 1 };
+    return { display: `${items[0]} +${items.length - 1}`, allItems: items, count: items.length };
   };
 
   const getLotAllocationData = (bill: BillForPayment) => {
@@ -795,11 +797,32 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       onChange={(e) => handleCheckboxChange(bill.id, e)}
                     />
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
                     {bill.companies?.company_name || 'Unknown Vendor'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    {getCostCodeOrAccount(bill)}
+                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                    {(() => {
+                      const { display, allItems, count } = getCostCodeOrAccountData(bill);
+                      if (count <= 1) {
+                        return display;
+                      }
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-default">
+                              {display}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="space-y-1">
+                                {allItems.map((item, i) => (
+                                  <div key={i}>{item}</div>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })()}
                   </TableCell>
                   {showProjectColumn && (
                     <TableCell className="px-2 py-1 text-xs">
