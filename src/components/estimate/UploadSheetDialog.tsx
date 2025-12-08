@@ -352,7 +352,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           <DialogTitle>Upload Drawing Sheet</DialogTitle>
           <DialogDescription>
             {phase === 'upload' && "Upload a PDF or image of your construction drawing"}
-            {phase === 'uploading' && "Uploading pages..."}
+            {phase === 'uploading' && null}
             {phase === 'analyzing' && "AI is analyzing title blocks..."}
             {phase === 'review' && "Review and edit AI-detected sheet information"}
             {phase === 'extracting' && "Extracting takeoff items..."}
