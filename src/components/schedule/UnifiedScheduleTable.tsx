@@ -406,7 +406,7 @@ export function UnifiedScheduleTable({
       if (!predecessorList.length) return;
 
       const taskPosition = getTaskPosition(task);
-      const toY = taskIndex * 32 + 16;
+      const toY = taskIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
       const toX = taskPosition.left;
 
       const parsedPreds = parsePredecessors(predecessorList, tasks);
@@ -420,7 +420,7 @@ export function UnifiedScheduleTable({
         const predIndex = visibleTasks.indexOf(predTask);
         const predPosition = getTaskPosition(predTask);
         
-        const fromY = predIndex * 32 + 16;
+        const fromY = predIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
         const fromX = predPosition.left + predPosition.width;
 
         connections.push({
@@ -886,7 +886,7 @@ export function UnifiedScheduleTable({
                 <div
                   key={task.id}
                   className="absolute"
-                  style={{ top: index * ROW_HEIGHT + 3 }}
+                  style={{ top: index * ROW_HEIGHT + (ROW_HEIGHT - 24) / 2 }}
                 >
                   {/* The bar itself */}
                   <div
