@@ -74,7 +74,7 @@ export function ActiveJobsTable() {
   });
 
   const handleSort = (column: 'address' | 'status') => {
-    if (isReorderEnabled) return; // Disable sorting when reorder mode is on
+    if (!isReorderEnabled) return; // Only allow sorting when reorder mode is on
     if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
@@ -84,7 +84,7 @@ export function ActiveJobsTable() {
   };
 
   const getSortIcon = (column: 'address' | 'status') => {
-    if (isReorderEnabled) return null; // Hide sort icons when reordering
+    if (!isReorderEnabled) return null; // Hide sort icons when reorder is off (locked)
     if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
     return sortDirection === 'asc' 
       ? <ArrowUp className="h-4 w-4 ml-1" /> 
@@ -199,7 +199,7 @@ export function ActiveJobsTable() {
               <TableHead 
                 className={cn(
                   "select-none",
-                  !isReorderEnabled && "cursor-pointer hover:bg-muted/50"
+                  isReorderEnabled && "cursor-pointer hover:bg-muted/50"
                 )}
                 onClick={() => handleSort('address')}
               >
@@ -211,7 +211,7 @@ export function ActiveJobsTable() {
               <TableHead 
                 className={cn(
                   "select-none",
-                  !isReorderEnabled && "cursor-pointer hover:bg-muted/50"
+                  isReorderEnabled && "cursor-pointer hover:bg-muted/50"
                 )}
                 onClick={() => handleSort('status')}
               >
