@@ -3239,11 +3239,12 @@ export type Database = {
         | {
             Args: {
               bill_date_param: string
-              due_date_param: string
+              due_date_param?: string
               notes_param?: string
               pending_upload_id_param: string
               project_id_param: string
               reference_number_param?: string
+              review_notes_param?: string
               terms_param?: string
               vendor_id_param: string
             }
@@ -3252,12 +3253,11 @@ export type Database = {
         | {
             Args: {
               bill_date_param: string
-              due_date_param?: string
+              due_date_param: string
               notes_param?: string
               pending_upload_id_param: string
               project_id_param: string
               reference_number_param?: string
-              review_notes_param?: string
               terms_param?: string
               vendor_id_param: string
             }
