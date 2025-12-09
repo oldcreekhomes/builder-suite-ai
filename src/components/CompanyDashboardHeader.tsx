@@ -5,6 +5,7 @@ import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { DashboardSelector } from "@/components/DashboardSelector";
+import { DensitySelector } from "@/components/DensitySelector";
 
 interface CompanyDashboardHeaderProps {
   title?: string;
@@ -43,6 +44,7 @@ export function CompanyDashboardHeader({
             {dashboardView && onDashboardViewChange && (
               <DashboardSelector value={dashboardView} onChange={onDashboardViewChange} />
             )}
+            <DensitySelector />
           </div>
           
           <div className="flex items-center space-x-4">
