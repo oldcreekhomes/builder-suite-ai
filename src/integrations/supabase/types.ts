@@ -2715,6 +2715,7 @@ export type Database = {
           created_at: string
           display_order: number | null
           id: string
+          last_schedule_published_at: string | null
           owner_id: string
           status: string
           total_lots: number | null
@@ -2731,6 +2732,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          last_schedule_published_at?: string | null
           owner_id: string
           status: string
           total_lots?: number | null
@@ -2747,6 +2749,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          last_schedule_published_at?: string | null
           owner_id?: string
           status?: string
           total_lots?: number | null

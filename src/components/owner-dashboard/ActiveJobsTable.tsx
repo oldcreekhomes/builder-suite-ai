@@ -17,6 +17,16 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+
+// Check if schedule publish date is more than 7 days old
+const isScheduleStale = (dateString: string | null | undefined): boolean => {
+  if (!dateString) return false;
+  const publishDate = new Date(dateString);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  return publishDate < sevenDaysAgo;
+};
 
 const statusColors: Record<string, string> = {
   "In Design": "bg-yellow-500/20 text-yellow-700 border-yellow-500/30",
@@ -224,12 +234,13 @@ export function ActiveJobsTable() {
               <TableHead className="text-center">Review</TableHead>
               <TableHead className="text-center">Pay</TableHead>
               <TableHead>Next Milestone</TableHead>
+              <TableHead>Schedule Update</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {activeProjects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isReorderEnabled ? 7 : 6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={isReorderEnabled ? 8 : 7} className="text-center text-muted-foreground py-8">
                   No active projects
                 </TableCell>
               </TableRow>
@@ -300,6 +311,17 @@ export function ActiveJobsTable() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {progress?.nextMilestone || "-"}
+                    </TableCell>
+                    <TableCell className={cn(
+                      project.last_schedule_published_at 
+                        ? isScheduleStale(project.last_schedule_published_at) 
+                          ? "text-red-500 font-medium" 
+                          : "text-muted-foreground"
+                        : "text-muted-foreground"
+                    )}>
+                      {project.last_schedule_published_at 
+                        ? format(new Date(project.last_schedule_published_at), "MMM dd, yyyy")
+                        : "-"}
                     </TableCell>
                   </TableRow>
                 );
