@@ -7,7 +7,7 @@ import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
-import { DashboardToggle } from "@/components/DashboardToggle";
+import { DashboardSelector } from "@/components/DashboardSelector";
 import { OwnerDashboardSummary } from "@/components/owner-dashboard/OwnerDashboardSummary";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { useProjects } from "@/hooks/useProjects";
