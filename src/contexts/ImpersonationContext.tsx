@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -39,7 +39,6 @@ interface ImpersonationProviderProps {
 export const ImpersonationProvider = ({ children }: ImpersonationProviderProps) => {
   const [impersonatedUserId, setImpersonatedUserId] = useState<string | null>(null);
   const [impersonatedProfile, setImpersonatedProfile] = useState<User | null>(null);
-  const { toast } = useToast();
 
   const startImpersonation = async (userId: string) => {
     try {
@@ -52,37 +51,22 @@ export const ImpersonationProvider = ({ children }: ImpersonationProviderProps) 
 
       if (error) {
         console.error('Error fetching user profile for impersonation:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load user profile. Please try again.",
-          variant: "destructive",
-        });
+        toast.error("Failed to load user profile. Please try again.");
         return;
       }
 
       if (!profile) {
-        toast({
-          title: "Error",
-          description: "User profile not found.",
-          variant: "destructive",
-        });
+        toast.error("User profile not found.");
         return;
       }
 
       setImpersonatedUserId(userId);
       setImpersonatedProfile(profile);
 
-      toast({
-        title: "Impersonation Started",
-        description: `Now viewing as ${profile.first_name} ${profile.last_name || ''} (${profile.email})`,
-      });
+      toast.success(`Now viewing as ${profile.first_name} ${profile.last_name || ''} (${profile.email})`);
     } catch (error) {
       console.error('Error starting impersonation:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -90,10 +74,7 @@ export const ImpersonationProvider = ({ children }: ImpersonationProviderProps) 
     setImpersonatedUserId(null);
     setImpersonatedProfile(null);
 
-    toast({
-      title: "Impersonation Ended",
-      description: "Returned to your account",
-    });
+    toast.info("Returned to your account");
   };
 
   const value = {
