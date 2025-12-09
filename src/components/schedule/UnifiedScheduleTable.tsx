@@ -499,7 +499,7 @@ export function UnifiedScheduleTable({
           ref={leftPanelRef}
           className="bg-white border-r border-gray-300 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden"
           style={{ 
-            width: '952px', 
+            width: '984px', 
             height: '100%',
             scrollbarWidth: 'none'
           }}
@@ -517,12 +517,12 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-12 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
+            <div className="w-16 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
             <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Task Name</div>
             <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
             <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Duration</div>
             <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">End Date</div>
-            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Predecessors</div>
+            <div className="w-28 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Predecessors</div>
             <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Progress</div>
             <div className="w-32 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Resources</div>
           </div>
@@ -592,7 +592,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Hierarchy Number with Drag Handle */}
-                  <div className="w-12 shrink-0 flex items-center border-r border-gray-200 px-1 gap-1">
+                  <div className="w-16 shrink-0 flex items-center border-r border-gray-200 px-1 gap-1">
                     <GripVertical className="h-3 w-3 text-gray-400 cursor-grab hover:text-gray-600 flex-shrink-0" />
                     <span className="text-[length:var(--schedule-font-size)]">{task.hierarchy_number || "—"}</span>
                   </div>
@@ -728,7 +728,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Predecessors */}
-                  <div className="w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                  <div className="w-28 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
                     <PredecessorSelector
                       value={getPredecessorArray(task)}
                       onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
