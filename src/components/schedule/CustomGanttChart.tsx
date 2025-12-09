@@ -59,6 +59,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [collapseAllTasks, setCollapseAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
+  const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   
   
   // Performance optimization states
@@ -1263,6 +1264,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       return;
     }
 
+    setIsDeletingBulk(true);
+
     // Capture state for undo before deletion
     captureState(tasks);
 
@@ -1419,6 +1422,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       toast({ title: "Error", description: "Failed to delete selected tasks", variant: "destructive" });
     } finally {
       // Clear batch flag and invalidate cache once
+      setIsDeletingBulk(false);
       (window as any).__batchOperationInProgress = false;
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
     }
@@ -1627,6 +1631,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           onRepairSchedule={handleRepairSchedule}
           isRepairing={isRepairing}
           hasCorruptedTasks={hasCorruptedTasks}
+          onBulkDelete={handleBulkDelete}
+          isDeleting={isDeletingBulk}
         />
         
         <UnifiedScheduleTable
