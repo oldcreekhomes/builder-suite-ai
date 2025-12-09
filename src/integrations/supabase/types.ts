@@ -2713,6 +2713,7 @@ export type Database = {
           budget_locked_by: string | null
           construction_manager: string | null
           created_at: string
+          display_order: number | null
           id: string
           owner_id: string
           status: string
@@ -2728,6 +2729,7 @@ export type Database = {
           budget_locked_by?: string | null
           construction_manager?: string | null
           created_at?: string
+          display_order?: number | null
           id?: string
           owner_id: string
           status: string
@@ -2743,6 +2745,7 @@ export type Database = {
           budget_locked_by?: string | null
           construction_manager?: string | null
           created_at?: string
+          display_order?: number | null
           id?: string
           owner_id?: string
           status?: string

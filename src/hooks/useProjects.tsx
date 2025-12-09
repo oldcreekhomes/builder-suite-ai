@@ -10,6 +10,7 @@ export interface Project {
   construction_manager: string;
   accounting_manager?: string;
   total_lots?: number;
+  display_order?: number;
   created_at: string;
   updated_at: string;
 }
