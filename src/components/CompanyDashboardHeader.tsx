@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { DashboardToggle } from "@/components/DashboardToggle";
+import { DashboardSelector } from "@/components/DashboardSelector";
 
 interface CompanyDashboardHeaderProps {
   title?: string;
@@ -41,7 +41,7 @@ export function CompanyDashboardHeader({
             <SidebarTrigger className="text-gray-600 hover:text-black" />
             <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
             {dashboardView && onDashboardViewChange && (
-              <DashboardToggle value={dashboardView} onChange={onDashboardViewChange} />
+              <DashboardSelector value={dashboardView} onChange={onDashboardViewChange} />
             )}
           </div>
           
