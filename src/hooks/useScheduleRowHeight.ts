@@ -1,13 +1,6 @@
-import { useDensity } from "@/contexts/DensityContext";
-
-// Maps density to row height in pixels for schedule timeline calculations
-const DENSITY_ROW_HEIGHTS: Record<string, number> = {
-  comfortable: 40,  // 2.5rem
-  cozy: 32,         // 2rem  
-  compact: 24       // 1.5rem
-};
+// Fixed row height for schedule timeline calculations (Comfortable sizing)
+const SCHEDULE_ROW_HEIGHT = 40; // 2.5rem = 40px
 
 export function useScheduleRowHeight(): number {
-  const { density } = useDensity();
-  return DENSITY_ROW_HEIGHTS[density] || 40;
+  return SCHEDULE_ROW_HEIGHT;
 }
