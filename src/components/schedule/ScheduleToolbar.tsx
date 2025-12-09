@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Wrench } from "lucide-react";
+import { DensitySelector } from "@/components/DensitySelector";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 interface ScheduleToolbarProps {
@@ -61,6 +62,8 @@ export function ScheduleToolbar({
         <Undo2 className="h-4 w-4" />
         <span>Undo</span>
       </Button>
+
+      <DensitySelector />
 
       <Button
         onClick={onCopySchedule}
