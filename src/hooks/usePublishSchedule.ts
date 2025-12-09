@@ -303,6 +303,16 @@ export const usePublishSchedule = (projectId: string) => {
         }
       }
 
+      // Update project's last_schedule_published_at timestamp
+      const { error: updateError } = await supabase
+        .from('projects')
+        .update({ last_schedule_published_at: new Date().toISOString() })
+        .eq('id', projectId);
+
+      if (updateError) {
+        console.error('Error updating last_schedule_published_at:', updateError);
+      }
+
       return {
         success: true,
         message: `Found ${usersToNotify.length} users to notify about upcoming tasks`,
