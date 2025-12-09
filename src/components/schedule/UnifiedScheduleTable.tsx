@@ -548,14 +548,10 @@ export function UnifiedScheduleTable({
               <TaskContextMenu
                 key={task.id}
                 task={task}
-                selectedTasks={selectedTasks}
-                allTasks={tasks}
                 onIndent={() => getCanIndent(task) && onIndent(task.id)}
                 onOutdent={() => getCanOutdent(task) && onOutdent(task.id)}
                 onAddAbove={() => onAddAbove(task.id)}
                 onAddBelow={() => onAddBelow(task.id)}
-                onDelete={() => onDeleteTask(task.id)}
-                onBulkDelete={selectedTasks.size > 1 ? onBulkDelete : () => {}}
                 onOpenNotes={() => handleOpenNotes(task.id)}
                 canIndent={getCanIndent(task)}
                 canOutdent={getCanOutdent(task)}
