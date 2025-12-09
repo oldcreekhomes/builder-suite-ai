@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ChatProvider } from "@/contexts/ChatContext";
-import { DensityProvider } from "@/contexts/DensityContext";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { navItems } from "./nav-items";
@@ -222,12 +221,10 @@ const AppContent = () => {
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <DensityProvider>
-        <TooltipProvider>
-          <AppContent />
-          <Toaster />
-        </TooltipProvider>
-      </DensityProvider>
+      <TooltipProvider>
+        <AppContent />
+        <Toaster />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
