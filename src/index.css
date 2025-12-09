@@ -12,6 +12,10 @@
     --table-cell-py: 1rem;
     --table-cell-px: 1rem;
     --table-head-h: 3rem;
+    
+    /* Schedule density - Comfortable (default) */
+    --schedule-row-h: 2.5rem;
+    --schedule-cell-px: 0.5rem;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
@@ -77,6 +81,8 @@
     --table-cell-py: 0.5rem;
     --table-cell-px: 0.75rem;
     --table-head-h: 2.5rem;
+    --schedule-row-h: 2rem;
+    --schedule-cell-px: 0.5rem;
   }
 
   /* Density: Compact */
@@ -84,6 +90,8 @@
     --table-cell-py: 0.25rem;
     --table-cell-px: 0.5rem;
     --table-head-h: 2rem;
+    --schedule-row-h: 1.5rem;
+    --schedule-cell-px: 0.25rem;
   }
 
   .dark {
