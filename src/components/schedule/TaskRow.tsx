@@ -26,13 +26,10 @@ interface TaskRowProps {
   onToggleExpand: (taskId: string) => void;
   isSelected: boolean;
   onTaskSelection: (taskId: string, checked: boolean) => void;
-  selectedTasks: Set<string>;
   onIndent: (taskId: string) => void;
   onOutdent: (taskId: string) => void;
   onAddAbove: (taskId: string) => void;
   onAddBelow: (taskId: string) => void;
-  onDelete: (taskId: string) => void;
-  onBulkDelete: () => void;
   canIndent: boolean;
   canOutdent: boolean;
 }
@@ -47,13 +44,10 @@ export function TaskRow({
   onToggleExpand,
   isSelected,
   onTaskSelection,
-  selectedTasks,
   onIndent,
   onOutdent,
   onAddAbove,
   onAddBelow,
-  onDelete,
-  onBulkDelete,
   canIndent,
   canOutdent,
 }: TaskRowProps) {
@@ -176,14 +170,10 @@ export function TaskRow({
     <>
       <TaskContextMenu
         task={task}
-        selectedTasks={selectedTasks}
-        allTasks={allTasks}
         onIndent={onIndent}
         onOutdent={onOutdent}
         onAddAbove={onAddAbove}
         onAddBelow={onAddBelow}
-        onDelete={onDelete}
-        onBulkDelete={onBulkDelete}
         onOpenNotes={handleOpenNotes}
         canIndent={canIndent}
         canOutdent={canOutdent}
