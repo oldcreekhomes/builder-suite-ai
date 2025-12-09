@@ -1,7 +1,18 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Wrench } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Wrench, Trash2 } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ScheduleToolbarProps {
   selectedTasks: Set<string>;
@@ -20,6 +31,8 @@ interface ScheduleToolbarProps {
   onRepairSchedule?: () => void;
   isRepairing?: boolean;
   hasCorruptedTasks?: boolean;
+  onBulkDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 export function ScheduleToolbar({ 
@@ -38,7 +51,9 @@ export function ScheduleToolbar({
   isUndoing,
   onRepairSchedule,
   isRepairing,
-  hasCorruptedTasks
+  hasCorruptedTasks,
+  onBulkDelete,
+  isDeleting
 }: ScheduleToolbarProps) {
 
   return (
@@ -120,6 +135,38 @@ export function ScheduleToolbar({
           <Wrench className="h-4 w-4" />
           <span>{isRepairing ? 'Repairing...' : 'Repair Schedule'}</span>
         </Button>
+      )}
+
+      {selectedTasks.size > 0 && onBulkDelete && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>{isDeleting ? 'Deleting...' : `Delete Selected (${selectedTasks.size})`}</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedTasks.size} task(s)?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. The selected tasks will be deleted and dependencies will be updated.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={onBulkDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
