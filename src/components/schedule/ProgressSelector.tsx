@@ -34,7 +34,7 @@ export function ProgressSelector({
   // If readOnly, always show as non-editable text
   if (readOnly) {
     return (
-      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+      <span className={cn("text-[length:var(--schedule-font-size)] px-1 py-0.5 block text-black", className)}>
         {value}%
       </span>
     );
@@ -49,7 +49,7 @@ export function ProgressSelector({
     >
       <SelectTrigger 
         className={cn(
-          "h-6 text-xs border-none shadow-none bg-transparent hover:bg-muted rounded px-1 py-0.5 w-full",
+          "h-6 text-[length:var(--schedule-font-size)] border-none shadow-none bg-transparent hover:bg-muted rounded px-1 py-0.5 w-full",
           className
         )}
       >
@@ -62,7 +62,7 @@ export function ProgressSelector({
           <SelectItem 
             key={option} 
             value={option.toString()}
-            className="text-xs hover:bg-accent cursor-pointer"
+            className="text-[length:var(--schedule-font-size)] hover:bg-accent cursor-pointer"
           >
             {option}%
           </SelectItem>

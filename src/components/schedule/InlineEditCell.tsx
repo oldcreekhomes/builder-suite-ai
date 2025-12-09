@@ -154,7 +154,7 @@ export function InlineEditCell({
   // If readOnly, always show as non-editable text
   if (readOnly) {
     return (
-      <span className={cn("text-sm px-1 py-0.5 inline-block text-black whitespace-nowrap", className)}>
+      <span className={cn("text-[length:var(--schedule-font-size)] px-1 py-0.5 inline-block text-black whitespace-nowrap", className)}>
         {getDisplayValue()}
       </span>
     );
@@ -174,7 +174,7 @@ export function InlineEditCell({
         <PopoverTrigger asChild>
         <span
           className={cn(
-            "cursor-pointer hover:bg-muted rounded px-1 py-0.5 inline-block text-sm whitespace-nowrap",
+            "cursor-pointer hover:bg-muted rounded px-1 py-0.5 inline-block text-[length:var(--schedule-font-size)] whitespace-nowrap",
             className
           )}
           onClick={() => setShowCalendar(true)}
@@ -224,7 +224,7 @@ export function InlineEditCell({
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
           className={cn(
-            "bg-transparent border-none outline-none text-xs w-full p-0",
+            "bg-transparent border-none outline-none text-[length:var(--schedule-font-size)] w-full p-0",
             "focus:ring-0 focus:border-none",
             // Hide number input spinners
             type === "number" && "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
@@ -241,7 +241,7 @@ export function InlineEditCell({
           ref={spanRef}
           onClick={() => setIsEditing(true)}
           className={cn(
-            "cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-sm text-black whitespace-nowrap",
+            "cursor-text hover:bg-muted rounded px-1 py-0.5 inline-block text-[length:var(--schedule-font-size)] text-black whitespace-nowrap",
             className
           )}
         >

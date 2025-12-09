@@ -517,14 +517,14 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-12 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium h-[var(--schedule-row-h)]">#</div>
-            <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium h-[var(--schedule-row-h)]">Task Name</div>
-            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
-            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium h-[var(--schedule-row-h)]">Duration</div>
-            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium whitespace-nowrap h-[var(--schedule-row-h)]">End Date</div>
-            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium h-[var(--schedule-row-h)]">Predecessors</div>
-            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium h-[var(--schedule-row-h)]">Progress</div>
-            <div className="w-32 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-xs font-medium h-[var(--schedule-row-h)]">Resources</div>
+            <div className="w-12 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
+            <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Task Name</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
+            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Duration</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">End Date</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Predecessors</div>
+            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Progress</div>
+            <div className="w-32 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Resources</div>
           </div>
         </div>
 
@@ -594,7 +594,7 @@ export function UnifiedScheduleTable({
                   {/* Hierarchy Number with Drag Handle */}
                   <div className="w-12 shrink-0 flex items-center border-r border-gray-200 px-1 gap-1">
                     <GripVertical className="h-3 w-3 text-gray-400 cursor-grab hover:text-gray-600 flex-shrink-0" />
-                    <span className="text-xs">{task.hierarchy_number || "—"}</span>
+                    <span className="text-[length:var(--schedule-font-size)]">{task.hierarchy_number || "—"}</span>
                   </div>
 
                   {/* Task Name */}
@@ -618,7 +618,7 @@ export function UnifiedScheduleTable({
                         value={task.task_name || ""}
                         type="text"
                         onSave={(value) => handleTaskUpdate(task.id, { task_name: value.toString() })}
-                        className="text-xs flex-1"
+                        className="text-[length:var(--schedule-font-size)] flex-1"
                       />
                       {task.notes?.trim() && (
                         <TooltipProvider>
@@ -662,7 +662,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className="text-xs"
+                      className="text-[length:var(--schedule-font-size)]"
                       readOnly={taskHasChildren}
                     />
                   </div>
@@ -673,7 +673,7 @@ export function UnifiedScheduleTable({
                       value={task.duration?.toString() || "1"}
                       type="number"
                       onSave={(value) => handleTaskUpdate(task.id, { duration: parseInt(value.toString()) || 1 })}
-                      className="text-xs"
+                      className="text-[length:var(--schedule-font-size)]"
                       readOnly={taskHasChildren}
                     />
                   </div>
@@ -722,7 +722,7 @@ export function UnifiedScheduleTable({
                         }
                       }}
                       displayFormat={(val) => formatDisplayDateFull(val as string)}
-                      className={`text-xs ${isOverdue ? "text-white font-semibold" : ""}`}
+                      className={`text-[length:var(--schedule-font-size)] ${isOverdue ? "text-white font-semibold" : ""}`}
                       readOnly={taskHasChildren}
                     />
                   </div>
@@ -789,7 +789,7 @@ export function UnifiedScheduleTable({
                 {monthLabels.map((label, index) => (
                   <div
                     key={index}
-                    className="absolute top-0 h-full flex items-center justify-center font-semibold text-xs text-foreground"
+                    className="absolute top-0 h-full flex items-center justify-center font-semibold text-[length:var(--schedule-font-size)] text-foreground"
                     style={{ left: label.left, width: label.width }}
                   >
                     {label.name}
@@ -805,7 +805,7 @@ export function UnifiedScheduleTable({
                     return [1, 2, 3, 4].map(weekNum => (
                       <div
                         key={`${monthIndex}-week-${weekNum}`}
-                        className="absolute top-0 h-full flex items-center justify-center border-r border-border text-xs bg-background"
+                        className="absolute top-0 h-full flex items-center justify-center border-r border-border text-[length:var(--schedule-font-size)] bg-background"
                         style={{ left: month.left + (weekNum - 1) * weekWidth, width: weekWidth }}
                       >
                         {weekNum}
@@ -820,7 +820,7 @@ export function UnifiedScheduleTable({
                     return (
                       <div
                         key={i}
-                        className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-xs ${
+                        className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-[length:var(--schedule-font-size)] ${
                           isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
                         }`}
                         style={{ left: i * dayWidth, width: dayWidth }}
@@ -915,7 +915,7 @@ export function UnifiedScheduleTable({
                       left: position.left + position.width + 16,
                     }}
                   >
-                    <span className="text-xs font-medium text-foreground">
+                    <span className="text-[length:var(--schedule-font-size)] font-medium text-foreground">
                       {task.task_name}
                     </span>
                   </div>
