@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectScheduleProgress } from "@/hooks/useProjectScheduleProgress";
@@ -13,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   "In Design": "bg-yellow-500/20 text-yellow-700 border-yellow-500/30",
@@ -21,13 +23,52 @@ const statusColors: Record<string, string> = {
   "Completed": "bg-green-500/20 text-green-700 border-green-500/30",
 };
 
+const statusPriority: Record<string, number> = {
+  "Under Construction": 1,
+  "Permitting": 2,
+  "In Design": 3,
+};
+
 export function ActiveJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
+  const [sortColumn, setSortColumn] = useState<'address' | 'status'>('status');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Filter to active projects only (not completed)
   const activeProjects = projects.filter(p => p.status !== "Completed");
   const projectIds = activeProjects.map(p => p.id);
+  
+  // Sort projects
+  const sortedProjects = [...activeProjects].sort((a, b) => {
+    if (sortColumn === 'status') {
+      const priorityA = statusPriority[a.status || "In Design"] || 4;
+      const priorityB = statusPriority[b.status || "In Design"] || 4;
+      return sortDirection === 'asc' ? priorityA - priorityB : priorityB - priorityA;
+    } else {
+      const addressA = (a.address || "").toLowerCase();
+      const addressB = (b.address || "").toLowerCase();
+      return sortDirection === 'asc' 
+        ? addressA.localeCompare(addressB) 
+        : addressB.localeCompare(addressA);
+    }
+  });
+
+  const handleSort = (column: 'address' | 'status') => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: 'address' | 'status') => {
+    if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-4 w-4 ml-1" /> 
+      : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
 
   const { data: scheduleProgress = {} } = useProjectScheduleProgress(projectIds);
   const { data: billCounts = {} } = useBillCountsByProject(projectIds);
@@ -45,8 +86,24 @@ export function ActiveJobsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Address</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted/50 select-none"
+                onClick={() => handleSort('address')}
+              >
+                <div className="flex items-center">
+                  Address
+                  {getSortIcon('address')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted/50 select-none"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center">
+                  Status
+                  {getSortIcon('status')}
+                </div>
+              </TableHead>
               <TableHead>Schedule Progress</TableHead>
               <TableHead className="text-center">Review</TableHead>
               <TableHead className="text-center">Pay</TableHead>
@@ -61,7 +118,7 @@ export function ActiveJobsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              activeProjects.map((project) => {
+              sortedProjects.map((project) => {
                 const progress = scheduleProgress[project.id];
                 const bills = billCounts[project.id];
                 
