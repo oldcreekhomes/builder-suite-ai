@@ -35,8 +35,8 @@ export function ActiveJobsTable() {
   const [sortColumn, setSortColumn] = useState<'address' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
-  // Filter to active projects only (not completed)
-  const activeProjects = projects.filter(p => p.status !== "Completed");
+  // Filter to active projects only (not completed, not template)
+  const activeProjects = projects.filter(p => p.status !== "Completed" && p.status !== "Template");
   const projectIds = activeProjects.map(p => p.id);
   
   // Sort projects
@@ -78,12 +78,11 @@ export function ActiveJobsTable() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Active Jobs</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
+    <div className="rounded-lg border bg-card">
+      <div className="p-4 border-b">
+        <h3 className="text-lg font-semibold">Active Jobs</h3>
+      </div>
+      <Table>
           <TableHeader>
             <TableRow>
               <TableHead 
@@ -173,7 +172,6 @@ export function ActiveJobsTable() {
             )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

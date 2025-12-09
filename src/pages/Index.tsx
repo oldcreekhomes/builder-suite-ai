@@ -58,10 +58,7 @@ export default function Index() {
                 </div>
               </>
             ) : (
-              <>
-                <OwnerDashboardSummary />
-                <ActiveJobsTable />
-              </>
+              <ActiveJobsTable />
             )}
           </div>
         </SidebarInset>
