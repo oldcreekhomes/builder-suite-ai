@@ -186,7 +186,7 @@ export function PredecessorSelector({
     const parsed = getParsedPredecessors();
     return (
       <>
-        <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+        <span className={cn("text-[length:var(--schedule-font-size)] px-1 py-0.5 block text-black", className)}>
           {parsed.length > 0 ? parsed.map(p => getFullPredecessorString(p)).join(', ') : "None"}
         </span>
         <PredecessorDialog
@@ -211,13 +211,13 @@ export function PredecessorSelector({
           <TooltipTrigger asChild>
             <div 
               className={cn(
-                "cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex flex-wrap gap-1 min-h-[20px]",
+                "cursor-text hover:bg-muted rounded px-1 py-0.5 text-[length:var(--schedule-font-size)] flex flex-wrap gap-1 min-h-[20px]",
                 className
               )}
               onClick={handleClick}
             >
               {parsed.map((pred, index) => (
-                <span key={index} className="text-xs">
+                <span key={index} className="text-[length:var(--schedule-font-size)]">
                   {getFullPredecessorString(pred)}
                   {index < parsed.length - 1 ? ', ' : ''}
                 </span>
@@ -248,7 +248,7 @@ export function PredecessorSelector({
         <Tooltip>
           <TooltipTrigger asChild>
             <span 
-              className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground min-h-[20px] block", className)}
+              className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-[length:var(--schedule-font-size)] text-muted-foreground min-h-[20px] block", className)}
               onClick={handleClick}
             >
               None
@@ -283,7 +283,7 @@ export function PredecessorSelector({
           onKeyDown={handleKeyDown}
           onBlur={handleFinishEdit}
           className={cn(
-            "bg-transparent border-none outline-none text-xs w-full p-0",
+            "bg-transparent border-none outline-none text-[length:var(--schedule-font-size)] w-full p-0",
             "focus:ring-0 focus:border-none",
             className
           )}

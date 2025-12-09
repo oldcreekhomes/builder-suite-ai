@@ -81,7 +81,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   // If readOnly, always show as non-editable text
   if (readOnly) {
     return (
-      <span className={cn("text-xs px-1 py-0.5 block text-black", className)}>
+      <span className={cn("text-[length:var(--schedule-font-size)] px-1 py-0.5 block text-black", className)}>
         {selectedResources.length > 0 ? selectedResources.join(', ') : ""}
       </span>
     );
@@ -95,7 +95,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
         <Tooltip>
           <TooltipTrigger asChild>
             <span 
-              className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs flex items-center gap-1 whitespace-nowrap", className)}
+              className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-[length:var(--schedule-font-size)] flex items-center gap-1 whitespace-nowrap", className)}
               onClick={handleStartEdit}
             >
               <span className="truncate max-w-[100px]">{selectedResources[0]}</span>
@@ -122,7 +122,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   if (!isEditing) {
     return (
       <span 
-        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-xs text-muted-foreground", className)}
+        className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-[length:var(--schedule-font-size)] text-muted-foreground", className)}
         onClick={handleStartEdit}
         title="Click to select resources"
       >
@@ -140,11 +140,11 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="h-8 text-xs justify-between"
+            className="h-8 text-[length:var(--schedule-font-size)] justify-between"
           >
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              <span className="text-xs">
+              <span className="text-[length:var(--schedule-font-size)]">
                 {getDisplayText()}
               </span>
             </div>
