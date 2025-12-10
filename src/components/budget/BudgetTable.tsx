@@ -13,6 +13,7 @@ import { BudgetTableFooter } from './BudgetTableFooter';
 import { BudgetPrintToolbar } from './BudgetPrintToolbar';
 import { BudgetPrintView } from './BudgetPrintView';
 import { BudgetPdfDocument } from './pdf/BudgetPdfDocument';
+import { HistoricalOnlyRow } from './HistoricalOnlyRow';
 import { pdf } from '@react-pdf/renderer';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
@@ -90,6 +91,40 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   
   // Fetch historical costs for all historical projects used in budget items
   const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalProjectIds);
+  
+  // Find cost codes from historical project that are NOT in current budget
+  // Group them by parent_group so we can display them in the correct section
+  const missingHistoricalByGroup = useMemo(() => {
+    if (!selectedHistoricalProject || historicalCostCodes.length === 0) {
+      return {} as Record<string, Array<{ costCode: typeof historicalCostCodes[0]; amount: number }>>;
+    }
+    
+    // Get set of cost code IDs already in budget
+    const existingCostCodeIdSet = new Set(existingCostCodeIds);
+    
+    // Find historical cost codes not in current budget
+    const missing: Record<string, Array<{ costCode: typeof historicalCostCodes[0]; amount: number }>> = {};
+    
+    historicalCostCodes.forEach(costCode => {
+      if (!existingCostCodeIdSet.has(costCode.id)) {
+        const parentGroup = costCode.parent_group || 'Other';
+        if (!missing[parentGroup]) {
+          missing[parentGroup] = [];
+        }
+        missing[parentGroup].push({
+          costCode,
+          amount: historicalActualCosts[costCode.code] || 0
+        });
+      }
+    });
+    
+    // Sort each group by code
+    Object.keys(missing).forEach(group => {
+      missing[group].sort((a, b) => a.costCode.code.localeCompare(b.costCode.code, undefined, { numeric: true }));
+    });
+    
+    return missing;
+  }, [selectedHistoricalProject, historicalCostCodes, existingCostCodeIds, historicalActualCosts]);
   
   
   const {
@@ -507,13 +542,26 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                           isLocked={isLocked}
                         />
                       ))}
+                      {/* Show historical-only cost codes that are missing from this group */}
+                      {missingHistoricalByGroup[group]?.map(({ costCode, amount }) => (
+                        <HistoricalOnlyRow
+                          key={`historical-${costCode.id}`}
+                          costCode={costCode}
+                          historicalAmount={amount}
+                          showVarianceAsPercentage={showVarianceAsPercentage}
+                          visibleColumns={visibleColumns}
+                        />
+                      ))}
                       <BudgetGroupTotalRow
                         group={group}
                         groupTotal={calculateGroupTotal(items, itemTotalsMap)}
-                        historicalTotal={items.reduce((sum, item) => {
-                          const costCode = item.cost_codes?.code;
-                          return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
-                        }, 0)}
+                        historicalTotal={
+                          items.reduce((sum, item) => {
+                            const costCode = item.cost_codes?.code;
+                            return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
+                          }, 0) + 
+                          (missingHistoricalByGroup[group]?.reduce((sum, item) => sum + item.amount, 0) || 0)
+                        }
                         showVarianceAsPercentage={showVarianceAsPercentage}
                         visibleColumns={visibleColumns}
                       />
@@ -521,6 +569,49 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                   )}
                 </tbody>
               ))}
+              
+              {/* Show groups that only exist in historical data */}
+              {Object.entries(missingHistoricalByGroup)
+                .filter(([group]) => !groupedBudgetItems[group])
+                .map(([group, items]) => (
+                  <tbody key={`historical-group-${group}`}>
+                    <BudgetGroupHeader
+                      group={group}
+                      groupName={parentCodeNames[group] || items[0]?.costCode?.name || ''}
+                      isExpanded={expandedGroups.has(group)}
+                      onToggle={handleGroupToggle}
+                      isSelected={false}
+                      isPartiallySelected={false}
+                      onCheckboxChange={() => {}}
+                      onEditGroup={() => {}}
+                      onDeleteGroup={() => {}}
+                      isDeleting={false}
+                      groupTotal={0}
+                      visibleColumns={visibleColumns}
+                      isLocked={true}
+                    />
+                    {expandedGroups.has(group) && (
+                      <>
+                        {items.map(({ costCode, amount }) => (
+                          <HistoricalOnlyRow
+                            key={`historical-${costCode.id}`}
+                            costCode={costCode}
+                            historicalAmount={amount}
+                            showVarianceAsPercentage={showVarianceAsPercentage}
+                            visibleColumns={visibleColumns}
+                          />
+                        ))}
+                        <BudgetGroupTotalRow
+                          group={group}
+                          groupTotal={0}
+                          historicalTotal={items.reduce((sum, item) => sum + item.amount, 0)}
+                          showVarianceAsPercentage={showVarianceAsPercentage}
+                          visibleColumns={visibleColumns}
+                        />
+                      </>
+                    )}
+                  </tbody>
+                ))}
 
               <tbody>
                 <BudgetProjectTotalRow
