@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
@@ -26,6 +27,7 @@ import { toDateLocal } from "@/utils/dateOnly";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { CheckAttachmentUpload, CheckAttachment } from "@/components/checks/CheckAttachmentUpload";
 import { CheckSearchDialog } from "@/components/checks/CheckSearchDialog";
+import { useLots } from "@/hooks/useLots";
 
 interface CheckRow {
   id: string;
@@ -36,6 +38,7 @@ interface CheckRow {
   quantity?: string;
   amount: string;
   memo: string;
+  lotId?: string;
 }
 
 interface WriteChecksContentProps {
@@ -88,6 +91,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const { accounts } = useAccounts();
   const { checks = [], isLoading: checksLoading, createCheck, updateCheck, deleteCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const {
     settings,
     getNextCheckNumber,
@@ -497,7 +502,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
           amount: amountOfRow(row),
-          memo: row.memo || undefined
+          memo: row.memo || undefined,
+          lot_id: row.lotId || undefined
         })),
       ...resolvedExpense
         .filter(row => row.accountId && amountOfRow(row) > 0)
@@ -506,7 +512,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           account_id: row.accountId,
           project_id: row.projectId || undefined,
           amount: amountOfRow(row),
-          memo: row.memo || undefined
+          memo: row.memo || undefined,
+          lot_id: row.lotId || undefined
         }))
     ];
 
@@ -940,10 +947,11 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 <div className="border rounded-lg overflow-visible">
                   <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                     <div className="col-span-3">Account</div>
-                    <div className="col-span-5">Description</div>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>Description</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
+                    {showAddressColumn && <div className="col-span-1">Address</div>}
                     <div className="col-span-1 text-center">Action</div>
                   </div>
 
@@ -961,7 +969,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                           className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
                         />
                       </div>
-                      <div className="col-span-5">
+                      <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>
                         <Input
                           value={row.memo}
                           onChange={(e) => updateExpenseRow(row.id, "memo", e.target.value)}
@@ -997,6 +1005,25 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                           ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
                         </div>
                       </div>
+                      {showAddressColumn && (
+                        <div className="col-span-1">
+                          <Select
+                            value={row.lotId || ""}
+                            onValueChange={(value) => updateExpenseRow(row.id, "lotId", value)}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lots.map((lot) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.lot_name || `Lot ${lot.lot_number}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="col-span-1 flex justify-center items-center gap-1">
                         <Button
                           onClick={() => removeExpenseRow(row.id)}
@@ -1027,10 +1054,11 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 <div className="border rounded-lg overflow-visible">
                   <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                     <div className="col-span-3">Cost Code</div>
-                    <div className="col-span-5">Description</div>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>Description</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
+                    {showAddressColumn && <div className="col-span-1">Address</div>}
                     <div className="col-span-1 text-center">Action</div>
                   </div>
 
@@ -1048,7 +1076,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                           className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
                         />
                       </div>
-                      <div className="col-span-5">
+                      <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>
                         <Input
                           value={row.memo}
                           onChange={(e) => updateJobCostRow(row.id, "memo", e.target.value)}
@@ -1084,6 +1112,25 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                           ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
                         </div>
                       </div>
+                      {showAddressColumn && (
+                        <div className="col-span-1">
+                          <Select
+                            value={row.lotId || ""}
+                            onValueChange={(value) => updateJobCostRow(row.id, "lotId", value)}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lots.map((lot) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.lot_name || `Lot ${lot.lot_number}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="col-span-1 flex justify-center items-center gap-1">
                         <Button
                           onClick={() => removeJobCostRow(row.id)}

@@ -9,6 +9,7 @@ export interface CheckLineData {
   project_id?: string;
   amount: number;
   memo?: string;
+  lot_id?: string;
 }
 
 export interface CheckData {
@@ -171,7 +172,8 @@ export const useChecks = () => {
           cost_code_id: line.cost_code_id,
           project_id: line.project_id,
           amount: line.amount,
-          memo: line.memo
+          memo: line.memo,
+          lot_id: line.lot_id
         }));
 
         const { error: linesError } = await supabase
