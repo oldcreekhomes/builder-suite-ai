@@ -385,7 +385,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         projectId: line.project_id || "",
         quantity: "1",
         amount: line.amount?.toString() || "",
-        memo: line.memo || ""
+        memo: line.memo || "",
+        lotId: line.lot_id || undefined
       };
       
       if (line.line_type === 'job_cost') {
@@ -545,7 +546,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
             amount: checkData.amount
-          }
+          },
+          checkLines
         });
         toast({ title: "Success", description: "Check updated successfully" });
       } else if (isViewingMode) {
@@ -640,7 +642,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           cost_code_id: row.accountId,
           project_id: row.projectId || undefined,
           amount: amountOfRow(row),
-          memo: row.memo || undefined
+          memo: row.memo || undefined,
+          lot_id: row.lotId || undefined
         })),
       ...resolvedExpense
         .filter(row => row.accountId && amountOfRow(row) > 0)
@@ -649,7 +652,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
           account_id: row.accountId,
           project_id: row.projectId || undefined,
           amount: amountOfRow(row),
-          memo: row.memo || undefined
+          memo: row.memo || undefined,
+          lot_id: row.lotId || undefined
         }))
     ];
 
@@ -681,7 +685,8 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
             amount: checkData.amount
-          }
+          },
+          checkLines
         });
         toast({
           title: "Success",

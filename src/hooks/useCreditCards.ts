@@ -262,6 +262,161 @@ export function useCreditCards() {
     },
   });
 
+  // Update credit card transaction
+  const updateCreditCard = useMutation({
+    mutationFn: async ({ 
+      creditCardId, 
+      data 
+    }: { 
+      creditCardId: string; 
+      data: CreditCardData;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const owner_id = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
+      if (!owner_id) throw new Error("Could not determine owner");
+
+      // Get WIP account for job cost lines
+      const { data: settings } = await supabase
+        .from('accounting_settings')
+        .select('wip_account_id')
+        .eq('owner_id', owner_id)
+        .single();
+
+      const wipAccountId = settings?.wip_account_id;
+
+      // Update the credit card header
+      const { error: updateError, data: updatedCC } = await supabase
+        .from('credit_cards')
+        .update({
+          transaction_date: data.transaction_date,
+          transaction_type: data.transaction_type,
+          credit_card_account_id: data.credit_card_account_id,
+          vendor: data.vendor,
+          project_id: data.project_id || null,
+          amount: data.amount,
+          memo: data.memo || null,
+        })
+        .eq('id', creditCardId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Delete existing credit card lines
+      await supabase
+        .from('credit_card_lines')
+        .delete()
+        .eq('credit_card_id', creditCardId);
+
+      // Insert new credit card lines
+      const newLines = data.lines.map((line, index) => ({
+        credit_card_id: creditCardId,
+        owner_id,
+        line_number: index + 1,
+        line_type: line.line_type,
+        account_id: line.account_id || null,
+        cost_code_id: line.cost_code_id || null,
+        project_id: line.project_id || null,
+        lot_id: line.lot_id || null,
+        amount: line.amount,
+        memo: line.memo || null,
+      }));
+
+      const { error: linesError } = await supabase
+        .from('credit_card_lines')
+        .insert(newLines);
+
+      if (linesError) throw linesError;
+
+      // Update journal entry and lines
+      const { data: journalEntry } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('source_type', 'credit_card')
+        .eq('source_id', creditCardId)
+        .single();
+
+      if (journalEntry) {
+        // Update journal entry date
+        await supabase
+          .from('journal_entries')
+          .update({ entry_date: data.transaction_date })
+          .eq('id', journalEntry.id);
+
+        // Delete existing journal entry lines and recreate
+        await supabase
+          .from('journal_entry_lines')
+          .delete()
+          .eq('journal_entry_id', journalEntry.id);
+
+        const journalLines = [];
+        let lineNumber = 1;
+        const isPurchase = data.transaction_type === 'purchase';
+
+        // Create credit card liability line
+        journalLines.push({
+          journal_entry_id: journalEntry.id,
+          owner_id,
+          line_number: lineNumber++,
+          account_id: data.credit_card_account_id,
+          project_id: data.project_id || null,
+          credit: isPurchase ? data.amount : 0,
+          debit: isPurchase ? 0 : data.amount,
+          memo: `${data.vendor} - ${isPurchase ? 'Purchase' : 'Refund'}`
+        });
+
+        // Create expense/WIP lines
+        data.lines.forEach((line) => {
+          if (line.amount > 0) {
+            let accountId = line.account_id;
+            if (line.line_type === 'job_cost' && wipAccountId) {
+              accountId = wipAccountId;
+            }
+            
+            journalLines.push({
+              journal_entry_id: journalEntry.id,
+              owner_id,
+              line_number: lineNumber++,
+              account_id: accountId,
+              cost_code_id: line.cost_code_id || null,
+              project_id: line.project_id || null,
+              lot_id: line.lot_id || null,
+              debit: isPurchase ? line.amount : 0,
+              credit: isPurchase ? 0 : line.amount,
+              memo: line.memo || null
+            });
+          }
+        });
+
+        const { error: journalLinesError } = await supabase
+          .from('journal_entry_lines')
+          .insert(journalLines);
+
+        if (journalLinesError) throw journalLinesError;
+      }
+
+      return updatedCC;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      toast({ title: "Success", description: "Credit card transaction updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update credit card transaction", variant: "destructive" });
+    },
+  });
+
   const correctCreditCard = useMutation({
     mutationFn: async ({ 
       creditCardId, 
@@ -405,6 +560,7 @@ export function useCreditCards() {
     creditCards,
     isLoading,
     createCreditCard,
+    updateCreditCard,
     deleteCreditCard,
     correctCreditCard,
   };
