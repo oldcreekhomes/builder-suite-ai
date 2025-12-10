@@ -13,6 +13,11 @@
     --schedule-cell-px: 0.5rem;       /* 8px */
     --schedule-font-size: 0.875rem;   /* 14px */
     
+    /* Table sizing - comfortable row heights */
+    --table-head-h: 3rem;             /* 48px - header height */
+    --table-cell-py: 0.75rem;         /* 12px - vertical padding */
+    --table-cell-px: 1rem;            /* 16px - horizontal padding */
+    
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
