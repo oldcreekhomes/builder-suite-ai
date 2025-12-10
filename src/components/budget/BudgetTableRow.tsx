@@ -27,6 +27,7 @@ interface BudgetTableRowProps {
   item: any; // Project budget item with cost_codes relation
   onUpdate: (id: string, quantity: number, unit_price: number) => void;
   onUpdateUnit: (costCodeId: string, unit_of_measure: string) => void;
+  onUpdateActual: (id: string, actualAmount: number) => void;
   onDelete: (itemId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
@@ -44,6 +45,7 @@ export function BudgetTableRow({
   item, 
   onUpdate, 
   onUpdateUnit,
+  onUpdateActual,
   onDelete,
   formatUnitOfMeasure,
   isSelected,
@@ -59,6 +61,8 @@ export function BudgetTableRow({
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
   const [tempUnit, setTempUnit] = useState('');
+  const [actualAmount, setActualAmount] = useState((item.actual_amount || 0).toString());
+  const [isEditingActual, setIsEditingActual] = useState(false);
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
@@ -279,6 +283,36 @@ export function BudgetTableRow({
         </TableCell>
         <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
           {formatCurrency(total)}
+        </TableCell>
+        <TableCell className="w-32 pl-3 pr-3 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+          {isEditingActual ? (
+            <Input
+              type="number"
+              value={actualAmount}
+              onChange={(e) => setActualAmount(e.target.value)}
+              onBlur={() => {
+                const numActual = parseFloat(actualAmount) || 0;
+                if (numActual !== (item.actual_amount || 0)) {
+                  onUpdateActual(item.id, numActual);
+                }
+                setIsEditingActual(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              className="h-7 w-full text-sm"
+              autoFocus
+            />
+          ) : (
+            <div 
+              className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded"
+              onClick={() => setIsEditingActual(true)}
+            >
+              {item.actual_amount ? formatCurrency(item.actual_amount) : '-'}
+            </div>
+          )}
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 pl-3 py-1 text-sm">
