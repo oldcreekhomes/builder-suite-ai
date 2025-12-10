@@ -47,7 +47,7 @@ export function useBudgetData(projectId: string, lotId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cost_codes')
-        .select('code, parent_group');
+        .select('code, parent_group, name');
       
       if (error) throw error;
       return data;
@@ -123,9 +123,18 @@ export function useBudgetData(projectId: string, lotId?: string | null) {
   // Get existing cost code IDs for the modal
   const existingCostCodeIds = budgetItems.map(item => item.cost_code_id);
 
+  // Create a map of parent code -> name for group headers
+  const parentCodeNames: Record<string, string> = {};
+  allCostCodes.forEach(cc => {
+    if (parentCodes.has(cc.code)) {
+      parentCodeNames[cc.code] = cc.name || '';
+    }
+  });
+
   return {
     budgetItems,
     groupedBudgetItems: topLevelGroupedBudgetItems,
-    existingCostCodeIds
+    existingCostCodeIds,
+    parentCodeNames
   };
 }
