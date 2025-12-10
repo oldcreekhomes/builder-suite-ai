@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDepositAttachments } from "@/hooks/useDepositAttachments";
 import { DepositAttachmentUpload, DepositAttachment } from "@/components/deposits/DepositAttachmentUpload";
 import { DepositSearchDialog } from "@/components/deposits/DepositSearchDialog";
+import { useLots } from "@/hooks/useLots";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface DepositRow {
   id: string;
@@ -37,6 +39,7 @@ interface DepositRow {
   quantity?: string;
   amount: string;
   memo: string;
+  lotId?: string;
 }
 
 interface MakeDepositsContentProps {
@@ -87,6 +90,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const { createDeposit, deleteDeposit } = useDeposits();
   const { settings } = useProjectCheckSettings(projectId);
   const { costCodes } = useCostCodeSearch();
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
 
   const { data: deposits = [], isLoading: depositsLoading } = useQuery({
     queryKey: ['deposits'],
@@ -229,7 +234,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         projectId: line.project_id || projectId || "",
         quantity: "1", // Deposits always use quantity of 1
         amount: String(line.amount || 0),
-        memo: line.memo || ""
+        memo: line.memo || "",
+        lotId: line.lot_id || ""
       };
       
       // Set account display text
@@ -544,6 +550,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         line_type: 'revenue' as const,
         account_id: row.accountId!,
         project_id: row.projectId || projectId || undefined,
+        lot_id: row.lotId || undefined,
         amount: amountOfRow(row),
         memo: row.memo || undefined
       }));
@@ -554,6 +561,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         line_type: 'customer_payment' as const,
         cost_code_id: row.accountId!,
         project_id: row.projectId || projectId || undefined,
+        lot_id: row.lotId || undefined,
         amount: amountOfRow(row),
         memo: row.memo || undefined
       }));
@@ -792,17 +800,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               
             <TabsContent value="other" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
-                <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                <div className={`grid ${showAddressColumn ? 'grid-cols-24' : 'grid-cols-12'} gap-2 p-3 bg-muted font-medium text-sm`}>
                   <div className="col-span-3">Account</div>
-                  <div className="col-span-5">Description</div>
-                  <div className="col-span-1">Quantity</div>
-                  <div className="col-span-1">Cost</div>
-                  <div className="col-span-1">Total</div>
-                  <div className="col-span-1 text-center">Action</div>
+                  <div className={showAddressColumn ? "col-span-7" : "col-span-5"}>Description</div>
+                  <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>Quantity</div>
+                  <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>Cost</div>
+                  <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>Total</div>
+                  {showAddressColumn && <div className="col-span-3">Address</div>}
+                  <div className={showAddressColumn ? "col-span-2 text-center" : "col-span-1 text-center"}>Action</div>
                 </div>
 
                 {otherRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                  <div key={row.id} className={`grid ${showAddressColumn ? 'grid-cols-24' : 'grid-cols-12'} gap-2 p-3 border-t`}>
                     <div className="col-span-3">
                       <AccountSearchInputInline
                         value={row.account}
@@ -820,7 +829,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-5">
+                    <div className={showAddressColumn ? "col-span-7" : "col-span-5"}>
                       <Input
                         value={row.memo}
                         onChange={(e) => updateOtherRow(row.id, "memo", e.target.value)}
@@ -828,7 +837,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>
                       <Input
                         type="number"
                         step="0.01"
@@ -838,7 +847,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
@@ -851,12 +860,31 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         />
                       </div>
                     </div>
-                    <div className="col-span-1">
+                    <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>
                       <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
                         ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
                       </div>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center gap-1">
+                    {showAddressColumn && (
+                      <div className="col-span-3">
+                        <Select
+                          value={row.lotId || ""}
+                          onValueChange={(value) => updateOtherRow(row.id, "lotId", value)}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lots.map((lot) => (
+                              <SelectItem key={lot.id} value={lot.id}>
+                                Lot {lot.lot_number}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className={`${showAddressColumn ? "col-span-2" : "col-span-1"} flex justify-center items-center gap-1`}>
                       <Button
                         onClick={() => removeOtherRow(row.id)}
                         size="sm"
@@ -883,17 +911,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             
             <TabsContent value="revenue" className="space-y-4">
               <div className="border rounded-lg overflow-visible">
-                <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                <div className={`grid ${showAddressColumn ? 'grid-cols-24' : 'grid-cols-12'} gap-2 p-3 bg-muted font-medium text-sm`}>
                   <div className="col-span-3">Cost Code</div>
-                  <div className="col-span-5">Description</div>
-                  <div className="col-span-1">Quantity</div>
-                  <div className="col-span-1">Cost</div>
-                  <div className="col-span-1">Total</div>
-                  <div className="col-span-1 text-center">Action</div>
+                  <div className={showAddressColumn ? "col-span-7" : "col-span-5"}>Description</div>
+                  <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>Quantity</div>
+                  <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>Cost</div>
+                  <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>Total</div>
+                  {showAddressColumn && <div className="col-span-3">Address</div>}
+                  <div className={showAddressColumn ? "col-span-2 text-center" : "col-span-1 text-center"}>Action</div>
                 </div>
 
                 {revenueRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                  <div key={row.id} className={`grid ${showAddressColumn ? 'grid-cols-24' : 'grid-cols-12'} gap-2 p-3 border-t`}>
                     <div className="col-span-3">
                       <CostCodeSearchInput
                         value={row.account}
@@ -911,7 +940,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-5">
+                    <div className={showAddressColumn ? "col-span-7" : "col-span-5"}>
                       <Input
                         value={row.memo}
                         onChange={(e) => updateRevenueRow(row.id, "memo", e.target.value)}
@@ -919,7 +948,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>
                       <Input
                         type="number"
                         step="0.01"
@@ -929,7 +958,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input
@@ -942,12 +971,31 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         />
                       </div>
                     </div>
-                    <div className="col-span-1">
+                    <div className={showAddressColumn ? "col-span-2" : "col-span-1"}>
                       <div className="h-10 flex items-center justify-end px-3 bg-muted rounded-md font-medium">
                         ${((parseFloat(row.quantity || "0") || 0) * (parseFloat(row.amount || "0") || 0)).toFixed(2)}
                       </div>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center gap-1">
+                    {showAddressColumn && (
+                      <div className="col-span-3">
+                        <Select
+                          value={row.lotId || ""}
+                          onValueChange={(value) => updateRevenueRow(row.id, "lotId", value)}
+                        >
+                          <SelectTrigger className="h-10">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lots.map((lot) => (
+                              <SelectItem key={lot.id} value={lot.id}>
+                                Lot {lot.lot_number}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className={`${showAddressColumn ? "col-span-2" : "col-span-1"} flex justify-center items-center gap-1`}>
                       <Button
                         onClick={() => removeRevenueRow(row.id)}
                         size="sm"

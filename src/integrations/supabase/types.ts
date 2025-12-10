@@ -1433,6 +1433,7 @@ export type Database = {
           is_reversal: boolean
           line_number: number
           line_type: string
+          lot_id: string | null
           memo: string | null
           owner_id: string
           project_id: string | null
@@ -1448,6 +1449,7 @@ export type Database = {
           is_reversal?: boolean
           line_number?: number
           line_type: string
+          lot_id?: string | null
           memo?: string | null
           owner_id: string
           project_id?: string | null
@@ -1463,6 +1465,7 @@ export type Database = {
           is_reversal?: boolean
           line_number?: number
           line_type?: string
+          lot_id?: string | null
           memo?: string | null
           owner_id?: string
           project_id?: string | null
@@ -1475,6 +1478,13 @@ export type Database = {
             columns: ["deposit_id"]
             isOneToOne: false
             referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
           {
