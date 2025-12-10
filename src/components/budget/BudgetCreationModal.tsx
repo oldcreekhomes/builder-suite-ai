@@ -32,7 +32,15 @@ export function BudgetCreationModal({
         throw new Error('No items to create');
       }
 
-      const itemsToCreate = Array.from(selectedCostCodes).map(costCodeId => ({
+      // Filter out cost codes that are already in the budget to prevent duplicates
+      const newCostCodeIds = Array.from(selectedCostCodes)
+        .filter(id => !existingCostCodeIds.includes(id));
+
+      if (newCostCodeIds.length === 0) {
+        throw new Error('All selected items are already in the budget');
+      }
+
+      const itemsToCreate = newCostCodeIds.map(costCodeId => ({
         project_id: projectId,
         cost_code_id: costCodeId,
         quantity: 0,
