@@ -52,16 +52,17 @@ export const useChecks = () => {
         .from('checks')
         .select(`
           *,
-          check_lines (
-            id,
-            line_number,
-            line_type,
-            account_id,
-            cost_code_id,
-            project_id,
-            amount,
-            memo
-          )
+      check_lines (
+        id,
+        line_number,
+        line_type,
+        account_id,
+        cost_code_id,
+        project_id,
+        lot_id,
+        amount,
+        memo
+      )
         `)
         .eq('owner_id', owner_id)
         .eq('is_reversal', false)
