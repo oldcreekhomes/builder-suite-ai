@@ -44,7 +44,7 @@ interface CreditCardsContentProps {
 }
 
 export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
-  const { creditCards, createCreditCard, deleteCreditCard } = useCreditCards();
+  const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards();
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts } = useAccounts();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
@@ -295,7 +295,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       return;
     }
 
-    const result = await createCreditCard.mutateAsync({
+    const creditCardData = {
       transaction_date: transactionDate.toISOString().split('T')[0],
       transaction_type: transactionType,
       credit_card_account_id: creditCardAccountId,
@@ -303,16 +303,31 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       project_id: selectedProjectId || undefined,
       amount: calculateTotal(),
       lines,
-    });
+    };
 
-    // Finalize any pending attachments
-    if (result?.id) {
-      await finalizePendingAttachments(result.id);
-      setCurrentCreditCardId(result.id);
-    }
+    if (currentCreditCardId) {
+      // Update existing credit card
+      await updateCreditCard.mutateAsync({
+        creditCardId: currentCreditCardId,
+        data: creditCardData,
+      });
+      
+      if (saveAndNew) {
+        createNewTransaction();
+      }
+    } else {
+      // Create new credit card
+      const result = await createCreditCard.mutateAsync(creditCardData);
 
-    if (saveAndNew) {
-      createNewTransaction();
+      // Finalize any pending attachments
+      if (result?.id) {
+        await finalizePendingAttachments(result.id);
+        setCurrentCreditCardId(result.id);
+      }
+
+      if (saveAndNew) {
+        createNewTransaction();
+      }
     }
   };
 
@@ -349,6 +364,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         quantity: line.quantity?.toString() || '1',
         memo: line.memo || '',
         projectId: line.project_id,
+        lotId: line.lot_id || undefined,
       };
 
       if (line.line_type === 'expense') {

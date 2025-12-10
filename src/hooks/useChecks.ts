@@ -317,13 +317,24 @@ export const useChecks = () => {
   const updateCheck = useMutation({
     mutationFn: async ({ 
       checkId, 
-      updates 
+      updates,
+      checkLines 
     }: { 
       checkId: string; 
-      updates: { check_date?: string; check_number?: string; pay_to?: string; memo?: string; amount?: number } 
+      updates: { check_date?: string; check_number?: string; pay_to?: string; memo?: string; amount?: number };
+      checkLines?: CheckLineData[];
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const owner_id = userData?.role === 'owner' ? user.id : userData?.home_builder_id;
+      if (!owner_id) throw new Error("Could not determine owner");
 
       // Filter out undefined values to only update provided fields
       const updateData: any = {};
@@ -343,9 +354,35 @@ export const useChecks = () => {
 
       if (checkError) throw checkError;
 
-      // If amount changed, update journal entry lines
-      if (updates.amount !== undefined) {
-        // Find the journal entry for this check
+      // If checkLines provided, update them
+      if (checkLines && checkLines.length > 0) {
+        // Delete existing check lines
+        await supabase
+          .from("check_lines")
+          .delete()
+          .eq("check_id", checkId);
+
+        // Insert new check lines
+        const newLines = checkLines.map((line, index) => ({
+          check_id: checkId,
+          owner_id,
+          line_number: index + 1,
+          line_type: line.line_type,
+          account_id: line.account_id || null,
+          cost_code_id: line.cost_code_id || null,
+          project_id: line.project_id || null,
+          lot_id: line.lot_id || null,
+          amount: line.amount,
+          memo: line.memo || null,
+        }));
+
+        const { error: linesError } = await supabase
+          .from("check_lines")
+          .insert(newLines);
+
+        if (linesError) throw linesError;
+
+        // Update journal entry lines with lot_id
         const { data: journalEntry } = await supabase
           .from("journal_entries")
           .select("id")
@@ -354,31 +391,64 @@ export const useChecks = () => {
           .single();
 
         if (journalEntry) {
-          // Get all lines for this journal entry
-          const { data: lines } = await supabase
+          // Delete existing journal entry lines and recreate
+          await supabase
             .from("journal_entry_lines")
-            .select("*")
-            .eq("journal_entry_id", journalEntry.id)
-            .order("line_number");
+            .delete()
+            .eq("journal_entry_id", journalEntry.id);
 
-          if (lines && lines.length > 0) {
-            const bankLine = lines.find(l => l.account_id === checkData.bank_account_id && l.credit > 0);
-            const debitLine = lines.find(l => l.debit > 0);
+          // Get WIP account for job cost lines
+          const { data: settings } = await supabase
+            .from('accounting_settings')
+            .select('wip_account_id')
+            .eq('owner_id', owner_id)
+            .single();
 
-            if (bankLine) {
-              await supabase
-                .from("journal_entry_lines")
-                .update({ credit: updates.amount })
-                .eq("id", bankLine.id);
+          const wipAccountId = settings?.wip_account_id;
+
+          const journalLines = [];
+          let lineNumber = 1;
+
+          // Create bank credit line
+          const totalAmount = checkLines.reduce((sum, line) => sum + line.amount, 0);
+          journalLines.push({
+            journal_entry_id: journalEntry.id,
+            owner_id,
+            line_number: lineNumber++,
+            account_id: checkData.bank_account_id,
+            credit: totalAmount,
+            debit: 0,
+            memo: `Check to ${updates.pay_to || 'vendor'}`
+          });
+
+          // Create debit lines
+          checkLines.forEach((line) => {
+            if (line.amount > 0) {
+              let debitAccountId = line.account_id;
+              if (line.line_type === 'job_cost' && wipAccountId) {
+                debitAccountId = wipAccountId;
+              }
+              
+              journalLines.push({
+                journal_entry_id: journalEntry.id,
+                owner_id,
+                line_number: lineNumber++,
+                account_id: debitAccountId,
+                cost_code_id: line.cost_code_id,
+                project_id: line.project_id,
+                lot_id: line.lot_id,
+                debit: line.amount,
+                credit: 0,
+                memo: line.memo
+              });
             }
+          });
 
-            if (debitLine) {
-              await supabase
-                .from("journal_entry_lines")
-                .update({ debit: updates.amount })
-                .eq("id", debitLine.id);
-            }
-          }
+          const { error: journalLinesError } = await supabase
+            .from("journal_entry_lines")
+            .insert(journalLines);
+
+          if (journalLinesError) throw journalLinesError;
         }
       }
 
