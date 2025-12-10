@@ -70,7 +70,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
-  const { budgetItems, groupedBudgetItems, existingCostCodeIds } = useBudgetData(projectId, selectedLotId);
+  const { budgetItems, groupedBudgetItems, existingCostCodeIds, parentCodeNames } = useBudgetData(projectId, selectedLotId);
   const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
   
   const historicalActualCosts = historicalData?.mapByCode || {};
@@ -471,6 +471,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                 <tbody key={group}>
                   <BudgetGroupHeader
                     group={group}
+                    groupName={parentCodeNames[group] || ''}
                     isExpanded={expandedGroups.has(group)}
                     onToggle={handleGroupToggle}
                     isSelected={isGroupSelected(items)}
