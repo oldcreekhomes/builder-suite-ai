@@ -20,7 +20,6 @@ export function FromCostCodesTab({
     groupedCostCodes,
     expandedGroups,
     costCodes,
-    parentsInBudget,
     handleCostCodeToggle,
     handleGroupToggle,
   } = useAddBudgetModal(projectId, existingCostCodeIds);
@@ -33,10 +32,7 @@ export function FromCostCodesTab({
     const isParent = toggledCode && Object.keys(groupedCostCodes).includes(toggledCode.code);
     
     if (checked) {
-      // Only add parent if not already in budget
-      if (!parentsInBudget.has(id)) {
-        newSelection.add(id);
-      }
+      newSelection.add(id);
       // If it's a parent, also select all its children
       if (isParent && toggledCode) {
         const children = groupedCostCodes[toggledCode.code] || [];
@@ -72,23 +68,21 @@ export function FromCostCodesTab({
                 onOpenChange={() => handleGroupToggle(parentCode)}
               >
                 <div className="flex items-center space-x-2 py-1">
-                  {!parentsInBudget.has(parent.id) ? (
-                    <Checkbox
-                      id={parent.id}
-                      checked={selectedCostCodes.has(parent.id)}
-                      onCheckedChange={(checked) => handleToggle(parent.id, !!checked)}
-                    />
-                  ) : (
-                    <span className="w-4" />
-                  )}
+                  <Checkbox
+                    id={parent.id}
+                    checked={selectedCostCodes.has(parent.id)}
+                    onCheckedChange={(checked) => handleToggle(parent.id, !!checked)}
+                  />
                   <CollapsibleTrigger className="flex items-center space-x-2 flex-1 text-left hover:bg-muted/50 rounded px-2 py-1">
                     <ChevronDown 
                       className={`h-4 w-4 transition-transform ${isExpanded ? '' : '-rotate-90'}`}
                     />
-                    <span className={`text-sm font-medium flex-1 ${parentsInBudget.has(parent.id) ? 'text-muted-foreground' : ''}`}>
+                    <label
+                      htmlFor={parent.id}
+                      className="text-sm font-medium cursor-pointer flex-1"
+                    >
                       {parent.code}: {parent.name}
-                      {parentsInBudget.has(parent.id) && <span className="ml-2 text-xs">(already in budget)</span>}
-                    </span>
+                    </label>
                   </CollapsibleTrigger>
                 </div>
                 
