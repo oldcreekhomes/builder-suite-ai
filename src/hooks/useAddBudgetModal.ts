@@ -75,20 +75,37 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
       .filter(cc => !existingCostCodeIds.includes(cc.id))
       .filter(cc => !cc.code.includes('.')); // Remove subcategories like 2100.1
     
-    // Separate parents (no parent_group) from children
-    const parents = availableCostCodes.filter(cc => !cc.parent_group);
-    const children = availableCostCodes.filter(cc => cc.parent_group);
+    // Get ALL parents from the full cost_codes list (not just available ones)
+    // This ensures children can be added even when parent is already in budget
+    const allParents = costCodes.filter(cc => !cc.parent_group && !cc.code.includes('.'));
     
-    // Group children by their parent code
+    // Get available children only
+    const availableChildren = availableCostCodes.filter(cc => cc.parent_group);
+    
+    // Group available children by their parent code (using ALL parents)
     const grouped: Record<string, CostCode[]> = {};
     
-    parents.forEach(parent => {
-      grouped[parent.code] = children
+    allParents.forEach(parent => {
+      const childrenForParent = availableChildren
         .filter(child => child.parent_group === parent.code)
         .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+      
+      // Include group if it has available children OR parent itself is available
+      if (childrenForParent.length > 0 || !existingCostCodeIds.includes(parent.id)) {
+        grouped[parent.code] = childrenForParent;
+      }
     });
     
     return grouped;
+  }, [costCodes, existingCostCodeIds]);
+
+  // Track which parent codes are already in the budget
+  const parentsInBudget = useMemo(() => {
+    return new Set(
+      costCodes
+        .filter(cc => !cc.parent_group && existingCostCodeIds.includes(cc.id))
+        .map(cc => cc.id)
+    );
   }, [costCodes, existingCostCodeIds]);
 
   const handleCostCodeToggle = useCallback((costCodeId: string, checked: boolean) => {
@@ -153,7 +170,8 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
     selectedCostCodes,
     groupedCostCodes,
     expandedGroups,
-    costCodes, // Export for indent calculation
+    costCodes,
+    parentsInBudget,
     createBudgetItems,
     handleCostCodeToggle,
     handleGroupToggle,
