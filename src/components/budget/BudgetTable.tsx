@@ -522,36 +522,56 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
 
                   {expandedGroups.has(group) && (
                     <>
-                      {items.map((item) => (
-                        <BudgetTableRow
-                          key={item.id}
-                          item={item}
-                          itemTotal={itemTotalsMap[item.id]}
-                          onUpdate={handleUpdateItem}
-                          onUpdateUnit={handleUpdateUnit}
-                          onUpdateActual={handleUpdateActual}
-                          onDelete={onDeleteItem}
-                          formatUnitOfMeasure={formatUnitOfMeasure}
-                          isSelected={selectedItems.has(item.id)}
-                          onCheckboxChange={handleItemCheckboxChange}
-                          isDeleting={deletingItems.has(item.id)}
-                          historicalActualCosts={historicalActualCosts}
-                          showVarianceAsPercentage={showVarianceAsPercentage}
-                          visibleColumns={visibleColumns}
-                          projectId={projectId}
-                          isLocked={isLocked}
-                        />
-                      ))}
-                      {/* Show historical-only cost codes that are missing from this group */}
-                      {missingHistoricalByGroup[group]?.map(({ costCode, amount }) => (
-                        <HistoricalOnlyRow
-                          key={`historical-${costCode.id}`}
-                          costCode={costCode}
-                          historicalAmount={amount}
-                          showVarianceAsPercentage={showVarianceAsPercentage}
-                          visibleColumns={visibleColumns}
-                        />
-                      ))}
+                      {/* Merge budget items with historical-only items and sort by cost code */}
+                      {(() => {
+                        const budgetRows = items.map(item => ({ 
+                          type: 'budget' as const, 
+                          item, 
+                          sortKey: item.cost_codes?.code || '' 
+                        }));
+                        
+                        const historicalRows = (missingHistoricalByGroup[group] || []).map(({ costCode, amount }) => ({ 
+                          type: 'historical' as const, 
+                          costCode, 
+                          amount, 
+                          sortKey: costCode.code 
+                        }));
+                        
+                        const allRows = [...budgetRows, ...historicalRows].sort((a, b) => 
+                          a.sortKey.localeCompare(b.sortKey, undefined, { numeric: true })
+                        );
+                        
+                        return allRows.map((row) => 
+                          row.type === 'budget' ? (
+                            <BudgetTableRow
+                              key={row.item.id}
+                              item={row.item}
+                              itemTotal={itemTotalsMap[row.item.id]}
+                              onUpdate={handleUpdateItem}
+                              onUpdateUnit={handleUpdateUnit}
+                              onUpdateActual={handleUpdateActual}
+                              onDelete={onDeleteItem}
+                              formatUnitOfMeasure={formatUnitOfMeasure}
+                              isSelected={selectedItems.has(row.item.id)}
+                              onCheckboxChange={handleItemCheckboxChange}
+                              isDeleting={deletingItems.has(row.item.id)}
+                              historicalActualCosts={historicalActualCosts}
+                              showVarianceAsPercentage={showVarianceAsPercentage}
+                              visibleColumns={visibleColumns}
+                              projectId={projectId}
+                              isLocked={isLocked}
+                            />
+                          ) : (
+                            <HistoricalOnlyRow
+                              key={`historical-${row.costCode.id}`}
+                              costCode={row.costCode}
+                              historicalAmount={row.amount}
+                              showVarianceAsPercentage={showVarianceAsPercentage}
+                              visibleColumns={visibleColumns}
+                            />
+                          )
+                        );
+                      })()}
                       <BudgetGroupTotalRow
                         group={group}
                         groupTotal={calculateGroupTotal(items, itemTotalsMap)}
