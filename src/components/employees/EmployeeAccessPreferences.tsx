@@ -22,6 +22,54 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
 
   return (
     <div className="space-y-6 py-4">
+      {/* Dashboards Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Dashboards</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Control which dashboard views this employee can access
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="pm-dashboard" className="text-sm font-normal cursor-pointer">
+                PM Dashboard
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Access to the Project Manager dashboard view
+              </p>
+            </div>
+            <Switch
+              id="pm-dashboard"
+              checked={preferences.can_access_pm_dashboard}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_pm_dashboard: checked })
+              }
+            />
+          </div>
+          
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="owner-dashboard" className="text-sm font-normal cursor-pointer">
+                Owner Dashboard
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Access to the Owner dashboard view with job overview and financials
+              </p>
+            </div>
+            <Switch
+              id="owner-dashboard"
+              checked={preferences.can_access_owner_dashboard}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_owner_dashboard: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Budgets Section */}
       <div className="space-y-4">
         <div>

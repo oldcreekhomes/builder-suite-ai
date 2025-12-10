@@ -7,21 +7,32 @@ import { ProjectsOverview } from "@/components/ProjectsOverview";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
-import { DashboardSelector } from "@/components/DashboardSelector";
-import { OwnerDashboardSummary } from "@/components/owner-dashboard/OwnerDashboardSummary";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { useProjects } from "@/hooks/useProjects";
+import { useDashboardPermissions } from "@/hooks/useDashboardPermissions";
 
 type DashboardView = "project-manager" | "owner";
 
 export default function Index() {
   const { data: projects = [] } = useProjects();
   const primaryProjectAddress = projects[0]?.address || "Alexandria, VA";
+  const { canAccessPMDashboard, canAccessOwnerDashboard, defaultDashboard, isLoading } = useDashboardPermissions();
 
   const [dashboardView, setDashboardView] = useState<DashboardView>(() => {
     const saved = localStorage.getItem('dashboard-view');
     return (saved as DashboardView) || 'project-manager';
   });
+
+  // Ensure user can access current view, redirect to allowed dashboard if not
+  useEffect(() => {
+    if (isLoading) return;
+    
+    if (dashboardView === "project-manager" && !canAccessPMDashboard) {
+      setDashboardView(canAccessOwnerDashboard ? "owner" : "project-manager");
+    } else if (dashboardView === "owner" && !canAccessOwnerDashboard) {
+      setDashboardView(canAccessPMDashboard ? "project-manager" : "owner");
+    }
+  }, [dashboardView, canAccessPMDashboard, canAccessOwnerDashboard, isLoading]);
 
   useEffect(() => {
     localStorage.setItem('dashboard-view', dashboardView);
@@ -34,7 +45,9 @@ export default function Index() {
         <SidebarInset className="flex-1">
           <CompanyDashboardHeader 
             dashboardView={dashboardView} 
-            onDashboardViewChange={setDashboardView} 
+            onDashboardViewChange={setDashboardView}
+            canAccessPMDashboard={canAccessPMDashboard}
+            canAccessOwnerDashboard={canAccessOwnerDashboard}
           />
           <div className="flex flex-1 flex-col gap-6 p-6">
             
