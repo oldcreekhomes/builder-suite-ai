@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 interface DashboardSelectorProps {
   value: "project-manager" | "owner";
   onChange: (value: "project-manager" | "owner") => void;
+  canAccessPMDashboard?: boolean;
+  canAccessOwnerDashboard?: boolean;
 }
 
 const labels: Record<"project-manager" | "owner", string> = {
@@ -18,7 +20,18 @@ const labels: Record<"project-manager" | "owner", string> = {
   "owner": "Owner",
 };
 
-export function DashboardSelector({ value, onChange }: DashboardSelectorProps) {
+export function DashboardSelector({ 
+  value, 
+  onChange, 
+  canAccessPMDashboard = true, 
+  canAccessOwnerDashboard = true 
+}: DashboardSelectorProps) {
+  // If user only has access to one dashboard, don't show selector
+  const availableCount = [canAccessPMDashboard, canAccessOwnerDashboard].filter(Boolean).length;
+  if (availableCount <= 1) {
+    return null;
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -28,14 +41,18 @@ export function DashboardSelector({ value, onChange }: DashboardSelectorProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="bg-background">
-        <DropdownMenuItem onClick={() => onChange("project-manager")} className="gap-2">
-          <Check className={cn("h-4 w-4", value === "project-manager" ? "opacity-100" : "opacity-0")} />
-          Project Manager
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onChange("owner")} className="gap-2">
-          <Check className={cn("h-4 w-4", value === "owner" ? "opacity-100" : "opacity-0")} />
-          Owner
-        </DropdownMenuItem>
+        {canAccessPMDashboard && (
+          <DropdownMenuItem onClick={() => onChange("project-manager")} className="gap-2">
+            <Check className={cn("h-4 w-4", value === "project-manager" ? "opacity-100" : "opacity-0")} />
+            Project Manager
+          </DropdownMenuItem>
+        )}
+        {canAccessOwnerDashboard && (
+          <DropdownMenuItem onClick={() => onChange("owner")} className="gap-2">
+            <Check className={cn("h-4 w-4", value === "owner" ? "opacity-100" : "opacity-0")} />
+            Owner
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

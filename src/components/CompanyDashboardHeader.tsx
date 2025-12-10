@@ -10,12 +10,16 @@ interface CompanyDashboardHeaderProps {
   title?: string;
   dashboardView?: "project-manager" | "owner";
   onDashboardViewChange?: (value: "project-manager" | "owner") => void;
+  canAccessPMDashboard?: boolean;
+  canAccessOwnerDashboard?: boolean;
 }
 
 export function CompanyDashboardHeader({ 
   title, 
   dashboardView, 
-  onDashboardViewChange 
+  onDashboardViewChange,
+  canAccessPMDashboard = true,
+  canAccessOwnerDashboard = true,
 }: CompanyDashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
@@ -41,7 +45,12 @@ export function CompanyDashboardHeader({
             <SidebarTrigger className="text-gray-600 hover:text-black" />
             <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
             {dashboardView && onDashboardViewChange && (
-              <DashboardSelector value={dashboardView} onChange={onDashboardViewChange} />
+              <DashboardSelector 
+                value={dashboardView} 
+                onChange={onDashboardViewChange}
+                canAccessPMDashboard={canAccessPMDashboard}
+                canAccessOwnerDashboard={canAccessOwnerDashboard}
+              />
             )}
           </div>
           
