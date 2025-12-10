@@ -53,7 +53,7 @@ export function HistoricalOnlyRow({
       <TableCell className="w-10 px-0 py-1">
         {/* No warnings column */}
       </TableCell>
-      <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left text-muted-foreground">
+      <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left text-red-600 font-medium">
         $0
       </TableCell>
       <TableCell className="w-32 pl-3 pr-3 py-1 text-sm text-muted-foreground">
