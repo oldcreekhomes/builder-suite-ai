@@ -1,6 +1,7 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { useAddBudgetModal } from '@/hooks/useAddBudgetModal';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface FromCostCodesTabProps {
   projectId: string;
@@ -25,11 +26,27 @@ export function FromCostCodesTab({
 
   const handleToggle = (id: string, checked: boolean) => {
     const newSelection = new Set(selectedCostCodes);
+    
+    // Find if this is a parent code
+    const toggledCode = costCodes.find(cc => cc.id === id);
+    const isParent = toggledCode && Object.keys(groupedCostCodes).includes(toggledCode.code);
+    
     if (checked) {
       newSelection.add(id);
+      // If it's a parent, also select all its children
+      if (isParent && toggledCode) {
+        const children = groupedCostCodes[toggledCode.code] || [];
+        children.forEach(child => newSelection.add(child.id));
+      }
     } else {
       newSelection.delete(id);
+      // If it's a parent, also deselect all its children
+      if (isParent && toggledCode) {
+        const children = groupedCostCodes[toggledCode.code] || [];
+        children.forEach(child => newSelection.delete(child.id));
+      }
     }
+    
     onSelectionChange(newSelection);
     handleCostCodeToggle(id, checked);
   };
@@ -51,12 +68,10 @@ export function FromCostCodesTab({
                 onOpenChange={() => handleGroupToggle(parentCode)}
               >
                 <div className="flex items-center space-x-2 py-1">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     id={parent.id}
                     checked={selectedCostCodes.has(parent.id)}
-                    onChange={(e) => handleToggle(parent.id, e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
+                    onCheckedChange={(checked) => handleToggle(parent.id, !!checked)}
                   />
                   <CollapsibleTrigger className="flex items-center space-x-2 flex-1 text-left hover:bg-muted/50 rounded px-2 py-1">
                     <ChevronDown 
@@ -78,12 +93,10 @@ export function FromCostCodesTab({
                         key={child.id} 
                         className="flex items-center space-x-3 py-1 pl-6"
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           id={child.id}
                           checked={selectedCostCodes.has(child.id)}
-                          onChange={(e) => handleToggle(child.id, e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300"
+                          onCheckedChange={(checked) => handleToggle(child.id, !!checked)}
                         />
                         <label
                           htmlFor={child.id}
