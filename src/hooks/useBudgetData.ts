@@ -58,9 +58,25 @@ export function useBudgetData(projectId: string, lotId?: string | null) {
     refetchOnReconnect: false,
   });
 
+  // Identify all parent codes (codes referenced by other codes as parent_group)
+  const parentCodes = new Set<string>();
+  allCostCodes.forEach(cc => {
+    if (cc.parent_group && cc.parent_group.trim() !== '') {
+      parentCodes.add(cc.parent_group);
+    }
+  });
+
   // Group budget items by parent group and sort by cost code
+  // Filter out parent codes - they should only be group headers, not items
   const groupedBudgetItems = budgetItems.reduce((acc, item) => {
     const costCode = item.cost_codes as CostCode;
+    const code = costCode?.code || '';
+    
+    // If this cost code IS a parent code (referenced by others), skip it
+    if (parentCodes.has(code)) {
+      return acc;
+    }
+    
     const group = costCode?.parent_group || 'Uncategorized';
     
     if (!acc[group]) {
