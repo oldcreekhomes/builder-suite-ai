@@ -8,6 +8,7 @@ export interface DepositLineData {
   account_id?: string;
   project_id?: string;
   cost_code_id?: string;
+  lot_id?: string;
   amount: number;
   memo?: string;
 }
@@ -94,6 +95,7 @@ export const useDeposits = () => {
         line_type: line.line_type,
         account_id: line.account_id || null,
         project_id: line.project_id || null,
+        lot_id: line.lot_id || null,
         amount: line.amount,
         memo: line.memo || null
       }));
@@ -163,6 +165,7 @@ export const useDeposits = () => {
           account_id: creditAccountId!,
           project_id: line.project_id || null,
           cost_code_id: costCodeId,
+          lot_id: line.lot_id || null,
           debit: 0,
           credit: line.amount,
           memo: line.memo || null

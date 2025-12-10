@@ -12,6 +12,7 @@ interface JournalLineData {
   memo?: string;
   project_id?: string;
   cost_code_id?: string;
+  lot_id?: string;
 }
 
 interface CreateManualJournalEntryData {
@@ -169,6 +170,7 @@ export const useJournalEntries = () => {
         memo: line.memo || null,
         project_id: data.project_id || line.project_id || null,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : null,
+        lot_id: line.lot_id || null,
       }));
 
       const { error: linesError } = await supabase
@@ -292,6 +294,7 @@ export const useJournalEntries = () => {
         memo: line.memo || null,
         project_id: data.project_id || line.project_id || null,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : null,
+        lot_id: line.lot_id || null,
       }));
 
       const { error: linesError } = await supabase

@@ -21,6 +21,8 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { JournalEntryAttachmentUpload, JournalEntryAttachment } from "@/components/journal/JournalEntryAttachmentUpload";
 import { JournalEntrySearchDialog } from "@/components/journal/JournalEntrySearchDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useLots } from "@/hooks/useLots";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface JournalLine {
   id: string;
@@ -32,6 +34,7 @@ interface JournalLine {
   debit: string;
   credit: string;
   memo: string;
+  lot_id?: string;
 }
 
 interface JournalEntryFormProps {
@@ -42,6 +45,8 @@ interface JournalEntryFormProps {
 export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: JournalEntryFormProps) => {
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
   const [activeTab, setActiveTab] = useState<'job_cost' | 'expense'>('job_cost');
@@ -289,6 +294,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         debit: line.debit?.toString() || "",
         credit: line.credit?.toString() || "",
         memo: line.memo || "",
+        lot_id: line.lot_id || "",
       };
       
       if (formattedLine.line_type === 'expense') {
@@ -405,6 +411,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         account_id: line.line_type === 'expense' ? line.account_id : undefined,
         project_id: projectId || undefined,
         cost_code_id: line.line_type === 'job_cost' ? line.cost_code_id : undefined,
+        lot_id: line.line_type === 'job_cost' ? line.lot_id : undefined,
         debit: parseFloat(parseFormattedNumber(line.debit)) || 0,
         credit: parseFloat(parseFormattedNumber(line.credit)) || 0,
         memo: line.memo || undefined,
@@ -629,7 +636,8 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
-                  <th className="text-center p-3 font-medium w-12">Action</th>
+                        {showAddressColumn && <th className="text-left p-3 font-medium" style={{ width: '150px' }}>Address</th>}
+                        <th className="text-center p-3 font-medium w-12">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -695,28 +703,47 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               onChange={(e) => updateJobCostLine(line.id, "memo", e.target.value)}
                             />
                           </td>
-                  <td className="py-3 pl-2 pr-3">
-                    <div className="flex justify-center items-center gap-1">
-                      <Button
-                        onClick={() => removeJobCostLine(line.id)}
-                        size="sm"
-                        variant="destructive"
-                        disabled={jobCostLines.length === 1}
-                        className="h-10 w-10 p-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={addJobCostLine}
-                        size="sm"
-                        variant="outline"
-                        className="h-10 w-10 p-0"
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </td>
+                          {showAddressColumn && (
+                            <td className="p-3">
+                              <Select
+                                value={line.lot_id || ""}
+                                onValueChange={(value) => updateJobCostLineFields(line.id, { lot_id: value })}
+                              >
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {lots.map((lot) => (
+                                    <SelectItem key={lot.id} value={lot.id}>
+                                      Lot {lot.lot_number}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          )}
+                          <td className="py-3 pl-2 pr-3">
+                            <div className="flex justify-center items-center gap-1">
+                              <Button
+                                onClick={() => removeJobCostLine(line.id)}
+                                size="sm"
+                                variant="destructive"
+                                disabled={jobCostLines.length === 1}
+                                className="h-10 w-10 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={addJobCostLine}
+                                size="sm"
+                                variant="outline"
+                                className="h-10 w-10 p-0"
+                              >
+                                +
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
