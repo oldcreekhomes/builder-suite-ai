@@ -251,6 +251,7 @@ export const useChecks = () => {
             account_id: debitAccountId,
             cost_code_id: line.cost_code_id,
             project_id: line.project_id,
+            lot_id: line.lot_id,
             debit: line.amount,
             credit: 0,
             memo: line.memo || `Check ${checkData.check_number || check.id} - ${line.line_type}`

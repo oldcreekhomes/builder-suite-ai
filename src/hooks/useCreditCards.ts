@@ -164,6 +164,7 @@ export function useCreditCards() {
             credit: 0,
             project_id: line.project_id,
             cost_code_id: line.cost_code_id,
+            lot_id: line.lot_id,
             memo: line.memo,
           });
         }
@@ -208,6 +209,7 @@ export function useCreditCards() {
             credit: line.amount,
             project_id: line.project_id,
             cost_code_id: line.cost_code_id,
+            lot_id: line.lot_id,
             memo: line.memo,
           });
         }
