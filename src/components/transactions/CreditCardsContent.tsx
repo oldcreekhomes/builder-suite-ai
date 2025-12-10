@@ -8,6 +8,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Search } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
@@ -23,6 +24,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
 import { CreditCardSearchDialog } from "@/components/creditcards/CreditCardSearchDialog";
+import { useLots } from "@/hooks/useLots";
 
 interface CreditCardRow {
   id: string;
@@ -34,6 +36,7 @@ interface CreditCardRow {
   amount: string;
   quantity?: string;
   memo?: string;
+  lotId?: string;
 }
 
 interface CreditCardsContentProps {
@@ -45,6 +48,8 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts } = useAccounts();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
 
   const [transactionType, setTransactionType] = useState<'purchase' | 'refund'>('purchase');
   const [transactionDate, setTransactionDate] = useState<Date>(new Date());
@@ -243,6 +248,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           project_id: projectId,
           amount,
           memo: row.memo,
+          lot_id: row.lotId,
         });
       }
     });
@@ -256,6 +262,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           project_id: projectId,
           amount,
           memo: row.memo,
+          lot_id: row.lotId,
         });
       }
     });
@@ -568,10 +575,11 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                   <div className="col-span-3">Account</div>
-                  <div className="col-span-5">Description</div>
+                  <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>Description</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
                   <div className="col-span-1">Total</div>
+                  {showAddressColumn && <div className="col-span-1">Address</div>}
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
@@ -601,7 +609,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           className="h-10"
                         />
                       </div>
-                      <div className="col-span-5">
+                      <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>
                         <Input
                           value={row.memo || ''}
                           onChange={(e) => updateExpenseRow(row.id, { memo: e.target.value })}
@@ -637,6 +645,25 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           ${total.toFixed(2)}
                         </div>
                       </div>
+                      {showAddressColumn && (
+                        <div className="col-span-1">
+                          <Select
+                            value={row.lotId || ""}
+                            onValueChange={(value) => updateExpenseRow(row.id, { lotId: value })}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lots.map((lot) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.lot_name || `Lot ${lot.lot_number}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="col-span-1 flex justify-center items-center gap-1">
                         <Button
                           onClick={() => removeExpenseRow(row.id)}
@@ -667,10 +694,11 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               <div className="border rounded-lg overflow-visible">
                 <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                   <div className="col-span-3">Cost Code</div>
-                  <div className="col-span-5">Description</div>
+                  <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>Description</div>
                   <div className="col-span-1">Quantity</div>
                   <div className="col-span-1">Cost</div>
                   <div className="col-span-1">Total</div>
+                  {showAddressColumn && <div className="col-span-1">Address</div>}
                   <div className="col-span-1 text-center">Action</div>
                 </div>
 
@@ -707,7 +735,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           </p>
                         )}
                       </div>
-                      <div className="col-span-5">
+                      <div className={showAddressColumn ? "col-span-4" : "col-span-5"}>
                         <Input
                           value={row.memo || ''}
                           onChange={(e) => updateJobCostRow(row.id, { memo: e.target.value })}
@@ -743,6 +771,25 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                           ${total.toFixed(2)}
                         </div>
                       </div>
+                      {showAddressColumn && (
+                        <div className="col-span-1">
+                          <Select
+                            value={row.lotId || ""}
+                            onValueChange={(value) => updateJobCostRow(row.id, { lotId: value })}
+                          >
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lots.map((lot) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.lot_name || `Lot ${lot.lot_number}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="col-span-1 flex justify-center items-center gap-1">
                         <Button
                           onClick={() => removeJobCostRow(row.id)}

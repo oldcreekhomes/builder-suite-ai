@@ -9,6 +9,7 @@ export interface CreditCardLineData {
   project_id?: string;
   amount: number;
   memo?: string;
+  lot_id?: string;
 }
 
 export interface CreditCardData {
@@ -115,6 +116,7 @@ export function useCreditCards() {
         project_id: line.project_id,
         amount: line.amount,
         memo: line.memo,
+        lot_id: line.lot_id,
       }));
 
       const { error: linesError } = await supabase
