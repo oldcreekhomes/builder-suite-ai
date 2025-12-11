@@ -314,8 +314,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   }, [selectedBankAccountId]);
 
   // Mark changes as unsaved when checked transactions change
+  // CRITICAL: Only mark as unsaved AFTER restoration is complete
+  // This prevents auto-save from running with empty state before database values load
   useEffect(() => {
-    if (initialCheckedTransactionsLoaded && selectedBankAccountId && statementDate) {
+    if (initialCheckedTransactionsLoaded && selectedBankAccountId && statementDate && isRestoredRef.current) {
       hasUnsavedChangesRef.current = true;
     }
   }, [checkedTransactions, initialCheckedTransactionsLoaded, selectedBankAccountId, statementDate]);
