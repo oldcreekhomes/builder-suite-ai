@@ -303,6 +303,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   
   // Ref to always hold the latest autoSave function (prevents stale closure issues)
   const autoSaveRef = useRef<(() => Promise<void>) | null>(null);
+  
+  // Ref to track if initial restoration from database is complete
+  // Auto-save is blocked until this is true to prevent overwriting saved data
+  const isRestoredRef = useRef(false);
+  
+  // Reset restoration flag when bank account changes (new reconciliation session)
+  useEffect(() => {
+    isRestoredRef.current = false;
+  }, [selectedBankAccountId]);
 
   // Mark changes as unsaved when checked transactions change
   useEffect(() => {
@@ -326,8 +335,16 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       beginningBalanceRef: currentBeginningBalance,
       statementDateRef: currentStatementDate,
       hasUnsavedChanges: hasUnsavedChangesRef.current,
+      isRestored: isRestoredRef.current,
       selectedBankAccountId,
     });
+    
+    // CRITICAL: Skip auto-save until restoration from database is complete
+    // This prevents empty initial state from overwriting saved data
+    if (!isRestoredRef.current) {
+      console.log('⏭️ Auto-save skipped - restoration not complete yet');
+      return;
+    }
     
     if (!selectedBankAccountId || !currentStatementDate || !user || !hasUnsavedChangesRef.current) {
       console.log('⏭️ Auto-save skipped - missing required data');
@@ -725,6 +742,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         });
       
       setHasLoadedFromDatabase(true);
+      isRestoredRef.current = true; // Mark restoration complete - auto-save now allowed
+      console.log('✅ Restoration complete from in-progress record, auto-save now enabled');
       return;
     }
 
@@ -743,6 +762,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
     
     setHasLoadedFromDatabase(true);
+    isRestoredRef.current = true; // Mark restoration complete - auto-save now allowed
+    console.log('✅ Restoration complete (no in-progress record), auto-save now enabled');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation]);
 
