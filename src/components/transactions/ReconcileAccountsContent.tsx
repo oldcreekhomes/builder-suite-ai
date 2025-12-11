@@ -316,7 +316,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     const currentEndingBalance = endingBalanceRef.current;
     const currentNotes = notesRef.current;
     const currentBeginningBalance = beginningBalanceRef.current;
-    const currentReconciliationIdValue = currentReconciliationIdRef.current;
+    let currentReconciliationIdValue = currentReconciliationIdRef.current;
     
     if (!selectedBankAccountId || !currentStatementDate || !user || !hasUnsavedChangesRef.current) {
       return;
@@ -336,6 +336,23 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         notes: currentNotes,
         checked_transaction_ids: Array.from(currentCheckedTransactions),
       };
+
+      // If no ID, check if there's an existing in-progress to update (prevents duplicates)
+      if (!currentReconciliationIdValue) {
+        const { data: existing } = await supabase
+          .from('bank_reconciliations')
+          .select('id')
+          .eq('bank_account_id', selectedBankAccountId)
+          .eq('status', 'in_progress')
+          .limit(1)
+          .maybeSingle();
+        
+        if (existing) {
+          currentReconciliationIdValue = existing.id;
+          setCurrentReconciliationId(existing.id);
+          currentReconciliationIdRef.current = existing.id;
+        }
+      }
 
       if (currentReconciliationIdValue) {
         await supabase
@@ -653,20 +670,40 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     // Restore in-progress reconciliation state - ONLY on initial load
     if (inProgressReconciliation) {
       setCurrentReconciliationId(inProgressReconciliation.id);
+      currentReconciliationIdRef.current = inProgressReconciliation.id; // Sync ref immediately
       setBeginningBalance(String(correctBeginningBalance));
+      beginningBalanceRef.current = String(correctBeginningBalance);
       
       // Parse without timezone shift - creates local midnight
       const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
       setStatementDate(new Date(year, month - 1, day));
+      statementDateRef.current = new Date(year, month - 1, day);
+      
       const restoredEndingBalance = String(inProgressReconciliation.statement_ending_balance || "");
       setEndingBalance(restoredEndingBalance);
       endingBalanceRef.current = restoredEndingBalance; // Sync ref immediately
-      setNotes(inProgressReconciliation.notes || "");
       
-      // Restore Phase 2 mode if ending balance was set
-      if (inProgressReconciliation.statement_ending_balance > 0) {
+      const restoredNotes = inProgressReconciliation.notes || "";
+      setNotes(restoredNotes);
+      notesRef.current = restoredNotes;
+      
+      // Restore Phase 2 mode if ending balance was set OR if user had checked transactions
+      const hasEndingBalance = inProgressReconciliation.statement_ending_balance > 0;
+      const hasCheckedTransactions = (inProgressReconciliation.checked_transaction_ids?.length || 0) > 0;
+      if (hasEndingBalance || hasCheckedTransactions) {
         setIsReconciliationMode(true);
       }
+      
+      // Clean up any duplicate in-progress records for this bank account
+      supabase
+        .from('bank_reconciliations')
+        .delete()
+        .eq('bank_account_id', selectedBankAccountId)
+        .eq('status', 'in_progress')
+        .neq('id', inProgressReconciliation.id)
+        .then(() => {
+          // Cleanup complete (fire and forget)
+        });
       
       setHasLoadedFromDatabase(true);
       return;
