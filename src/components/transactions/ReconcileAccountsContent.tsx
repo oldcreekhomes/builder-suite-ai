@@ -893,7 +893,12 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               type="number"
               step="0.01"
               value={selectedBankAccountId ? endingBalance : ""}
-              onChange={(e) => setEndingBalance(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setEndingBalance(value);
+                endingBalanceRef.current = value; // Sync ref immediately for auto-save
+                hasUnsavedChangesRef.current = true;
+              }}
               disabled={!selectedBankAccountId || isReconciliationMode}
               className={cn("mt-1", isReconciliationMode && "bg-muted cursor-not-allowed")}
             />
