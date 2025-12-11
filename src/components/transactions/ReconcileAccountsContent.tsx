@@ -258,10 +258,16 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
   }, [inProgressReconciliation, transactions, initialCheckedTransactionsLoaded]);
 
-  // Reset load flags when bank account changes
+  // Reset load flags when bank account changes to a DIFFERENT value
+  const prevBankAccountIdRef = useRef<string | null>(null);
   useEffect(() => {
-    setInitialCheckedTransactionsLoaded(false);
-    setHasLoadedFromDatabase(false);
+    // Only reset if actually changing to a different bank account (not on initial mount)
+    if (prevBankAccountIdRef.current !== null && 
+        prevBankAccountIdRef.current !== selectedBankAccountId) {
+      setInitialCheckedTransactionsLoaded(false);
+      setHasLoadedFromDatabase(false);
+    }
+    prevBankAccountIdRef.current = selectedBankAccountId;
   }, [selectedBankAccountId]);
 
   // Sync hideTransactionsAfterDate with statementDate
@@ -880,7 +886,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
             <Separator className="my-6" />
 
-            {transactionsLoading || !initialCheckedTransactionsLoaded ? (
+            {!initialCheckedTransactionsLoaded ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
                 <p className="text-muted-foreground">Restoring your reconciliation...</p>

@@ -380,6 +380,7 @@ export const useBankReconciliation = () => {
         };
       },
       enabled: !!bankAccountId,
+      staleTime: 30000, // 30 seconds - prevent excessive refetches that trigger spinner
     });
   };
 
