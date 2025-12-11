@@ -78,6 +78,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [lastCompletedDate, setLastCompletedDate] = useState<Date | null>(null);
   const [isReconciliationMode, setIsReconciliationMode] = useState(false);
   const [initialCheckedTransactionsLoaded, setInitialCheckedTransactionsLoaded] = useState(false);
+  const [hasLoadedFromDatabase, setHasLoadedFromDatabase] = useState(false);
   
   // Sorting state for Outstanding Checks & Bill Payments
   const [checksSortColumn, setChecksSortColumn] = useState<'date' | 'amount' | null>(null);
@@ -151,7 +152,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         .maybeSingle();
       return data;
     },
-    enabled: !!selectedBankAccountId
+    enabled: !!selectedBankAccountId,
+    refetchOnWindowFocus: false,  // Prevent refetch from overwriting user edits
+    staleTime: Infinity,          // Never auto-refetch
   });
 
   const bankAccounts = accounts?.filter(
@@ -250,9 +253,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     setInitialCheckedTransactionsLoaded(true);
   }, [inProgressReconciliation, transactions, initialCheckedTransactionsLoaded]);
 
-  // Reset initialCheckedTransactionsLoaded when bank account changes
+  // Reset load flags when bank account changes
   useEffect(() => {
     setInitialCheckedTransactionsLoaded(false);
+    setHasLoadedFromDatabase(false);
   }, [selectedBankAccountId]);
 
   // Sync hideTransactionsAfterDate with statementDate
@@ -605,6 +609,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   };
 
   // Auto-populate beginning balance and statement date from reconciliation history
+  // ONLY runs on initial load, not on refetches (prevents overwriting user edits)
   useEffect(() => {
     if (!selectedBankAccountId) {
       setBeginningBalance("0");
@@ -627,28 +632,30 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setLastCompletedDate(null);
     }
 
-    // Restore in-progress reconciliation state - ONLY on initial load, not on refetches
+    // Only restore from database on INITIAL load, never on refetches
+    if (hasLoadedFromDatabase) {
+      // Still update beginning balance (derived from completed history, not user input)
+      setBeginningBalance(String(correctBeginningBalance));
+      return;
+    }
+
+    // Restore in-progress reconciliation state - ONLY on initial load
     if (inProgressReconciliation) {
       setCurrentReconciliationId(inProgressReconciliation.id);
       setBeginningBalance(String(correctBeginningBalance));
       
-      // Only set these values if not already set by user (prevent overwriting during refetches)
-      if (!statementDate) {
-        // Parse without timezone shift - creates local midnight
-        const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
-        setStatementDate(new Date(year, month - 1, day));
-      }
-      if (!endingBalance) {
-        setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
-      }
-      if (!notes) {
-        setNotes(inProgressReconciliation.notes || "");
-      }
+      // Parse without timezone shift - creates local midnight
+      const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
+      setStatementDate(new Date(year, month - 1, day));
+      setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
+      setNotes(inProgressReconciliation.notes || "");
       
       // Restore Phase 2 mode if ending balance was set
       if (inProgressReconciliation.statement_ending_balance > 0) {
         setIsReconciliationMode(true);
       }
+      
+      setHasLoadedFromDatabase(true);
       return;
     }
 
@@ -656,19 +663,18 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     if (lastCompleted) {
       setCurrentReconciliationId(null);
       setBeginningBalance(String(correctBeginningBalance));
-      // Only set statement date if not already set by user
-      if (!statementDate) {
-        // Parse without timezone shift - creates local midnight
-        const [lcYear, lcMonth, lcDay] = lastCompleted.statement_date.split('-').map(Number);
-        const lastCompletedLocal = new Date(lcYear, lcMonth - 1, lcDay);
-        setStatementDate(endOfMonth(addMonths(lastCompletedLocal, 1)));
-      }
+      // Parse without timezone shift - creates local midnight
+      const [lcYear, lcMonth, lcDay] = lastCompleted.statement_date.split('-').map(Number);
+      const lastCompletedLocal = new Date(lcYear, lcMonth - 1, lcDay);
+      setStatementDate(endOfMonth(addMonths(lastCompletedLocal, 1)));
     } else {
       // No completed, no in-progress - start fresh at $0
       setCurrentReconciliationId(null);
       setBeginningBalance("0");
     }
-  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation]);
+    
+    setHasLoadedFromDatabase(true);
+  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, hasLoadedFromDatabase]);
 
 
   const formatCurrency = (amount: number) => {
