@@ -278,6 +278,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   }, [statementDate]);
 
   // Keep refs in sync with state (for auto-save to always have current values)
+  // NOTE: endingBalanceRef is synced immediately in onChange handler, not here
   useEffect(() => {
     checkedTransactionsRef.current = checkedTransactions;
   }, [checkedTransactions]);
@@ -286,9 +287,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     statementDateRef.current = statementDate;
   }, [statementDate]);
   
-  useEffect(() => {
-    endingBalanceRef.current = endingBalance;
-  }, [endingBalance]);
+  // REMOVED: endingBalanceRef sync - now done immediately in onChange handler
   
   useEffect(() => {
     notesRef.current = notes;
@@ -301,6 +300,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   useEffect(() => {
     currentReconciliationIdRef.current = currentReconciliationId;
   }, [currentReconciliationId]);
+  
+  // Ref to always hold the latest autoSave function (prevents stale closure issues)
+  const autoSaveRef = useRef<(() => Promise<void>) | null>(null);
 
   // Mark changes as unsaved when checked transactions change
   useEffect(() => {
@@ -318,7 +320,17 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     const currentBeginningBalance = beginningBalanceRef.current;
     let currentReconciliationIdValue = currentReconciliationIdRef.current;
     
+    // DEBUG: Log values being saved (temporary)
+    console.log('🔄 Auto-save triggered with values:', {
+      endingBalanceRef: currentEndingBalance,
+      beginningBalanceRef: currentBeginningBalance,
+      statementDateRef: currentStatementDate,
+      hasUnsavedChanges: hasUnsavedChangesRef.current,
+      selectedBankAccountId,
+    });
+    
     if (!selectedBankAccountId || !currentStatementDate || !user || !hasUnsavedChangesRef.current) {
+      console.log('⏭️ Auto-save skipped - missing required data');
       return;
     }
 
@@ -370,23 +382,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           currentReconciliationIdRef.current = result.id;
         }
       }
+      console.log('✅ Auto-save successful, statement_ending_balance saved as:', parseFloat(currentEndingBalance || "0"));
       hasUnsavedChangesRef.current = false;
     } catch (error) {
       console.error('Error auto-saving reconciliation:', error);
     }
   }, [selectedBankAccountId, user, projectId, calculatedEndingBalance, difference]);
 
+  // Keep autoSaveRef updated with the latest autoSave function
+  useEffect(() => {
+    autoSaveRef.current = autoSave;
+  }, [autoSave]);
+
   // Auto-save on unmount or when leaving the tab
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (hasUnsavedChangesRef.current) {
-        autoSave();
+      if (hasUnsavedChangesRef.current && autoSaveRef.current) {
+        autoSaveRef.current();
       }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && hasUnsavedChangesRef.current) {
-        autoSave();
+      if (document.visibilityState === 'hidden' && hasUnsavedChangesRef.current && autoSaveRef.current) {
+        autoSaveRef.current();
       }
     };
 
@@ -402,12 +420,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         clearTimeout(saveTimeoutRef.current);
       }
       
-      // Save on unmount
-      if (hasUnsavedChangesRef.current) {
-        autoSave();
+      // Save on unmount using the ref (always gets latest function)
+      if (hasUnsavedChangesRef.current && autoSaveRef.current) {
+        console.log('🚪 Component unmounting - calling autoSave via ref');
+        autoSaveRef.current();
       }
     };
-  }, [autoSave]);
+  }, []); // Empty deps - setup once, use ref for latest autoSave
 
   // Debounced auto-save when state changes
   useEffect(() => {
