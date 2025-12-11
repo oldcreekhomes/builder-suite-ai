@@ -703,6 +703,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       return;
     }
 
+    // Reset unsaved changes flag at START of restoration to prevent stale auto-saves
+    hasUnsavedChangesRef.current = false;
+    
     // Restore in-progress reconciliation state - ONLY on initial load
     if (inProgressReconciliation) {
       setCurrentReconciliationId(inProgressReconciliation.id);
@@ -715,7 +718,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setStatementDate(new Date(year, month - 1, day));
       statementDateRef.current = new Date(year, month - 1, day);
       
-      const restoredEndingBalance = String(inProgressReconciliation.statement_ending_balance || "");
+      const restoredEndingBalance = String(inProgressReconciliation.statement_ending_balance ?? "");
       setEndingBalance(restoredEndingBalance);
       endingBalanceRef.current = restoredEndingBalance; // Sync ref immediately
       
