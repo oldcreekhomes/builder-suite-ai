@@ -138,7 +138,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   );
 
   // Separate query for in-progress reconciliation (since history now only shows completed)
-  const { data: inProgressReconciliation } = useQuery({
+  const { data: inProgressReconciliation, isLoading: isLoadingInProgress } = useQuery({
     queryKey: ['in-progress-reconciliation', projectId, selectedBankAccountId],
     queryFn: async () => {
       if (!selectedBankAccountId) return null;
@@ -679,6 +679,12 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   // Auto-populate beginning balance and statement date from reconciliation history
   // ONLY runs on initial load, not on refetches (prevents overwriting user edits)
   useEffect(() => {
+    // CRITICAL: Wait for query to finish loading before deciding if there's data to restore
+    // This prevents the race condition where restoration runs with undefined data
+    if (isLoadingInProgress) {
+      return;
+    }
+    
     if (!selectedBankAccountId) {
       setBeginningBalance("0");
       setCurrentReconciliationId(null);
@@ -772,7 +778,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     isRestoredRef.current = true; // Mark restoration complete - auto-save now allowed
     console.log('✅ Restoration complete (no in-progress record), auto-save now enabled');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation]);
+  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, isLoadingInProgress]);
 
 
   const formatCurrency = (amount: number) => {
