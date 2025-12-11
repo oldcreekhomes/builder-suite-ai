@@ -232,25 +232,30 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
   // Initialize checked transactions from saved in-progress reconciliation OR already reconciled transactions
   useEffect(() => {
-    if (!transactions || initialCheckedTransactionsLoaded) return;
+    if (initialCheckedTransactionsLoaded) return;
     
-    // Start with already reconciled transactions
-    const reconciledIds = new Set<string>();
-    [...transactions.checks, ...transactions.deposits].forEach(t => {
-      if (t.reconciled) {
-        reconciledIds.add(t.id);
+    // If transactions query completed (even if empty), mark as loaded to stop spinner
+    if (transactions !== undefined) {
+      // Start with already reconciled transactions
+      const reconciledIds = new Set<string>();
+      if (transactions) {
+        [...transactions.checks, ...transactions.deposits].forEach(t => {
+          if (t.reconciled) {
+            reconciledIds.add(t.id);
+          }
+        });
       }
-    });
-    
-    // Add saved checked transaction IDs from in-progress reconciliation
-    if (inProgressReconciliation?.checked_transaction_ids?.length > 0) {
-      inProgressReconciliation.checked_transaction_ids.forEach((id: string) => {
-        reconciledIds.add(id);
-      });
+      
+      // Add saved checked transaction IDs from in-progress reconciliation
+      if (inProgressReconciliation?.checked_transaction_ids?.length > 0) {
+        inProgressReconciliation.checked_transaction_ids.forEach((id: string) => {
+          reconciledIds.add(id);
+        });
+      }
+      
+      setCheckedTransactions(reconciledIds);
+      setInitialCheckedTransactionsLoaded(true);
     }
-    
-    setCheckedTransactions(reconciledIds);
-    setInitialCheckedTransactionsLoaded(true);
   }, [inProgressReconciliation, transactions, initialCheckedTransactionsLoaded]);
 
   // Reset load flags when bank account changes
@@ -647,7 +652,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       // Parse without timezone shift - creates local midnight
       const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
       setStatementDate(new Date(year, month - 1, day));
-      setEndingBalance(String(inProgressReconciliation.statement_ending_balance || ""));
+      const restoredEndingBalance = String(inProgressReconciliation.statement_ending_balance || "");
+      setEndingBalance(restoredEndingBalance);
+      endingBalanceRef.current = restoredEndingBalance; // Sync ref immediately
       setNotes(inProgressReconciliation.notes || "");
       
       // Restore Phase 2 mode if ending balance was set
@@ -674,7 +681,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
     
     setHasLoadedFromDatabase(true);
-  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, hasLoadedFromDatabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation]);
 
 
   const formatCurrency = (amount: number) => {
