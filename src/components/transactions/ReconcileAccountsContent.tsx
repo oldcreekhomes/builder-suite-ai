@@ -313,14 +313,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     isRestoredRef.current = false;
   }, [selectedBankAccountId]);
 
-  // Mark changes as unsaved when checked transactions change
-  // CRITICAL: Only mark as unsaved AFTER restoration is complete
-  // This prevents auto-save from running with empty state before database values load
-  useEffect(() => {
-    if (initialCheckedTransactionsLoaded && selectedBankAccountId && statementDate && isRestoredRef.current) {
-      hasUnsavedChangesRef.current = true;
-    }
-  }, [checkedTransactions, initialCheckedTransactionsLoaded, selectedBankAccountId, statementDate]);
+  // REMOVED: The useEffect that auto-set hasUnsavedChangesRef on initialization
+  // This was causing race conditions where auto-save would fire with empty state
+  // Now hasUnsavedChangesRef is ONLY set by explicit user actions (onChange handlers)
 
   // Auto-save function - uses refs to always capture current state
   const autoSave = useCallback(async () => {
@@ -330,6 +325,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     const currentNotes = notesRef.current;
     const currentBeginningBalance = beginningBalanceRef.current;
     let currentReconciliationIdValue = currentReconciliationIdRef.current;
+    
+    // SAFETY CHECK: Skip auto-save if there's no meaningful data to save
+    // This prevents overwriting existing saved data with empty values
+    if (!currentEndingBalance && !currentReconciliationIdValue && Object.keys(currentCheckedTransactions).length === 0) {
+      console.log('⏭️ Auto-save skipped - no ending balance, no existing record, and no checked transactions');
+      return;
+    }
     
     // DEBUG: Log values being saved (temporary)
     console.log('🔄 Auto-save triggered with values:', {
