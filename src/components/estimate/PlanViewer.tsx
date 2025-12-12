@@ -7,11 +7,11 @@ import { ScaleCalibrationDialog } from "./ScaleCalibrationDialog";
 import { DOMOverlays } from "./DOMOverlays";
 import { useAnnotations } from "@/hooks/useAnnotations";
 import { useToast } from "@/hooks/use-toast";
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
 interface PlanViewerProps {
   sheetId: string | null;
