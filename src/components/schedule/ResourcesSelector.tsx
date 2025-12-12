@@ -3,7 +3,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check, ChevronsUpDown, Users, Building2 } from "lucide-react";
+import { Check, ChevronsUpDown, Users, Building2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjectResources, CompanyWithRepresentatives } from "@/hooks/useProjectResources";
 import { CompanyResourcesDialog } from "./CompanyResourcesDialog";
@@ -246,6 +246,15 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   const selectedCompanyData = selectedCompany 
     ? parsedResources.companies.find(c => c.companyId === selectedCompany.companyId)
     : null;
+
+  // Show loading state while companies are loading to prevent name-to-company flash
+  if (isLoading && value) {
+    return (
+      <span className={cn("text-[length:var(--schedule-font-size)] px-1 py-0.5 block text-muted-foreground", className)}>
+        <Loader2 className="h-3 w-3 animate-spin inline" />
+      </span>
+    );
+  }
 
   // If readOnly, always show as non-editable text
   if (readOnly) {
