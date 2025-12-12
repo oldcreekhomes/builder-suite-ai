@@ -28,6 +28,19 @@ interface ParsedResources {
   legacyNames?: string; // For backward compatibility with old comma-separated format
 }
 
+// Find company for a person name from legacy format
+function findCompanyForLegacyName(name: string, availableCompanies: CompanyWithRepresentatives[]): { company: CompanyWithRepresentatives; repId: string } | null {
+  const trimmedName = name.trim().toLowerCase();
+  for (const company of availableCompanies) {
+    for (const rep of company.representatives) {
+      if (rep.name.toLowerCase() === trimmedName) {
+        return { company, repId: rep.id };
+      }
+    }
+  }
+  return null;
+}
+
 function parseResourcesValue(value: string, availableCompanies: CompanyWithRepresentatives[]): ParsedResources {
   if (!value) {
     return { companies: [], internalUsers: [] };
@@ -40,7 +53,34 @@ function parseResourcesValue(value: string, availableCompanies: CompanyWithRepre
       return parsed as ParsedResources;
     }
   } catch {
-    // Not JSON - this is legacy comma-separated names format, preserve it for display
+    // Not JSON - this is legacy comma-separated names format
+    // Try to map names to companies
+    const names = value.split(',').map(n => n.trim()).filter(n => n);
+    const companyMap = new Map<string, { company: CompanyWithRepresentatives; repIds: string[] }>();
+    
+    for (const name of names) {
+      const match = findCompanyForLegacyName(name, availableCompanies);
+      if (match) {
+        const existing = companyMap.get(match.company.companyId);
+        if (existing) {
+          existing.repIds.push(match.repId);
+        } else {
+          companyMap.set(match.company.companyId, { company: match.company, repIds: [match.repId] });
+        }
+      }
+    }
+    
+    // If we found companies, return structured data
+    if (companyMap.size > 0) {
+      const companies = Array.from(companyMap.values()).map(({ company, repIds }) => ({
+        companyId: company.companyId,
+        companyName: company.companyName,
+        selectedRepIds: repIds
+      }));
+      return { companies, internalUsers: [] };
+    }
+    
+    // Fallback: show raw legacy names if no matches found
     return { companies: [], internalUsers: [], legacyNames: value };
   }
 
@@ -72,10 +112,9 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     const existingIndex = parsedResources.companies.findIndex(c => c.companyId === company.companyId);
     
     if (existingIndex >= 0) {
-      // Remove company
-      const newCompanies = parsedResources.companies.filter(c => c.companyId !== company.companyId);
-      const newParsed = { ...parsedResources, companies: newCompanies };
-      onValueChange(serializeResources(newParsed));
+      // Company exists - open the dialog to edit representatives
+      setSelectedCompany(company);
+      setDialogOpen(true);
     } else {
       // Add company with default selected reps (those with notifications enabled)
       const defaultRepIds = company.representatives
@@ -89,9 +128,14 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
       };
       const newParsed = {
         ...parsedResources,
-        companies: [...parsedResources.companies, newCompany]
+        companies: [...parsedResources.companies, newCompany],
+        legacyNames: undefined // Clear legacy names when adding new format
       };
       onValueChange(serializeResources(newParsed));
+      
+      // Open dialog immediately after adding
+      setSelectedCompany(company);
+      setDialogOpen(true);
     }
     setOpen(false);
     setIsEditing(false);
@@ -102,12 +146,13 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     
     if (existingIndex >= 0) {
       const newInternalUsers = parsedResources.internalUsers.filter(id => id !== userId);
-      const newParsed = { ...parsedResources, internalUsers: newInternalUsers };
+      const newParsed = { ...parsedResources, internalUsers: newInternalUsers, legacyNames: undefined };
       onValueChange(serializeResources(newParsed));
     } else {
       const newParsed = {
         ...parsedResources,
-        internalUsers: [...parsedResources.internalUsers, userId]
+        internalUsers: [...parsedResources.internalUsers, userId],
+        legacyNames: undefined
       };
       onValueChange(serializeResources(newParsed));
     }
@@ -149,18 +194,8 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   const getDisplayContent = () => {
     const items: React.ReactNode[] = [];
     
-    // Show legacy names if present (old comma-separated format)
-    if (parsedResources.legacyNames) {
-      items.push(
-        <span key="legacy" className="text-foreground">
-          {parsedResources.legacyNames}
-        </span>
-      );
-      return items;
-    }
-    
-    // Add company names
-    parsedResources.companies.forEach((company, index) => {
+    // Add company names (works for both new format and converted legacy)
+    parsedResources.companies.forEach((company) => {
       const fullCompany = companies.find(c => c.companyId === company.companyId);
       const repCount = company.selectedRepIds.length;
       const defaultCount = fullCompany?.representatives.filter(r => r.receiveScheduleNotifications).length || 0;
@@ -169,7 +204,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
       items.push(
         <span
           key={`company-${company.companyId}`}
-          className="cursor-pointer hover:underline"
+          className="cursor-pointer hover:underline text-foreground"
           onClick={(e) => fullCompany && handleCompanyClick(fullCompany, e)}
         >
           {company.companyName}
@@ -179,6 +214,15 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
         </span>
       );
     });
+    
+    // Fallback: Show raw legacy names only if we couldn't map to any companies
+    if (parsedResources.legacyNames && items.length === 0) {
+      items.push(
+        <span key="legacy" className="text-foreground">
+          {parsedResources.legacyNames}
+        </span>
+      );
+    }
 
     // Add internal user names
     parsedResources.internalUsers.forEach((userId) => {
