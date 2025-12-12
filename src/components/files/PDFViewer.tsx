@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Document, Page } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
