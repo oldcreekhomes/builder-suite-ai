@@ -25,6 +25,7 @@ interface ParsedResources {
     selectedRepIds: string[];
   }[];
   internalUsers: string[];
+  legacyNames?: string; // For backward compatibility with old comma-separated format
 }
 
 function parseResourcesValue(value: string, availableCompanies: CompanyWithRepresentatives[]): ParsedResources {
@@ -39,7 +40,8 @@ function parseResourcesValue(value: string, availableCompanies: CompanyWithRepre
       return parsed as ParsedResources;
     }
   } catch {
-    // Not JSON, handle as legacy format - just return empty since we're migrating
+    // Not JSON - this is legacy comma-separated names format, preserve it for display
+    return { companies: [], internalUsers: [], legacyNames: value };
   }
 
   return { companies: [], internalUsers: [] };
@@ -146,6 +148,16 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   // Get display text for the selected resources
   const getDisplayContent = () => {
     const items: React.ReactNode[] = [];
+    
+    // Show legacy names if present (old comma-separated format)
+    if (parsedResources.legacyNames) {
+      items.push(
+        <span key="legacy" className="text-foreground">
+          {parsedResources.legacyNames}
+        </span>
+      );
+      return items;
+    }
     
     // Add company names
     parsedResources.companies.forEach((company, index) => {
