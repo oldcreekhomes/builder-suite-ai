@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check, ChevronsUpDown, Users, Building2, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Users, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useProjectResources, CompanyWithRepresentatives } from "@/hooks/useProjectResources";
+import { CompanyWithRepresentatives, ProjectResource } from "@/hooks/useProjectResources";
 import { CompanyResourcesDialog } from "./CompanyResourcesDialog";
 
 interface ResourcesSelectorProps {
@@ -13,6 +13,8 @@ interface ResourcesSelectorProps {
   onValueChange: (value: string) => void;
   className?: string;
   readOnly?: boolean;
+  companies: CompanyWithRepresentatives[];
+  internalUsers: ProjectResource[];
 }
 
 // Parse the resources value which can be:
@@ -94,13 +96,11 @@ function serializeResources(parsed: ParsedResources): string {
   return JSON.stringify(parsed);
 }
 
-export function ResourcesSelector({ value, onValueChange, className, readOnly = false }: ResourcesSelectorProps) {
+export function ResourcesSelector({ value, onValueChange, className, readOnly = false, companies, internalUsers }: ResourcesSelectorProps) {
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyWithRepresentatives | null>(null);
-  
-  const { companies, internalUsers, isLoading } = useProjectResources();
 
   const parsedResources = useMemo(() => 
     parseResourcesValue(value, companies), 
@@ -247,14 +247,6 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     ? parsedResources.companies.find(c => c.companyId === selectedCompany.companyId)
     : null;
 
-  // Show loading state while companies are loading to prevent name-to-company flash
-  if (isLoading && value) {
-    return (
-      <span className={cn("text-[length:var(--schedule-font-size)] px-1 py-0.5 block text-muted-foreground", className)}>
-        <Loader2 className="h-3 w-3 animate-spin inline" />
-      </span>
-    );
-  }
 
   // If readOnly, always show as non-editable text
   if (readOnly) {
@@ -354,9 +346,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
           <Command>
             <CommandInput placeholder="Search companies..." />
             <CommandList>
-              <CommandEmpty>
-                {isLoading ? "Loading..." : "No companies found."}
-              </CommandEmpty>
+              <CommandEmpty>No companies found.</CommandEmpty>
               
               {/* Companies */}
               <CommandGroup heading="Companies">
