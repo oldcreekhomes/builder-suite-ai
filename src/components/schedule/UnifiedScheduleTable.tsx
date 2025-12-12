@@ -509,24 +509,25 @@ export function UnifiedScheduleTable({
         >
         {/* Left Panel Header */}
         <div 
-          className="sticky top-0 z-20 bg-white h-[var(--schedule-row-h)]"
+          className="sticky top-0 z-20 bg-white"
+          style={{ height: ROW_HEIGHT }}
         >
-          <div className="flex h-[var(--schedule-row-h)]">
-            <div className="w-10 shrink-0 flex items-center justify-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] h-[var(--schedule-row-h)]">
+          <div className="flex" style={{ height: ROW_HEIGHT }}>
+            <div className="w-10 shrink-0 flex items-center justify-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)]" style={{ height: ROW_HEIGHT }}>
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-16 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
-            <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Task Name</div>
-            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
-            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Duration</div>
-            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">End Date</div>
-            <div className="w-28 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Predecessors</div>
-            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Progress</div>
-            <div className="w-40 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Resources</div>
+            <div className="w-16 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>#</div>
+            <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Task Name</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap" style={{ height: ROW_HEIGHT }}>Start Date</div>
+            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Duration</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap" style={{ height: ROW_HEIGHT }}>End Date</div>
+            <div className="w-28 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Predecessors</div>
+            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Progress</div>
+            <div className="w-40 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Resources</div>
           </div>
         </div>
 
@@ -560,11 +561,12 @@ export function UnifiedScheduleTable({
                 onContextMenuChange={(isOpen) => setContextMenuTaskId(isOpen ? task.id : null)}
               >
                 <div 
-                  className={`flex border-b border-gray-100 h-[var(--schedule-row-h)] ${contextMenuTaskId === task.id ? 'bg-blue-100' : 'bg-white hover:bg-gray-50'} relative transition-colors duration-300 ${
+                  className={`flex border-b border-gray-100 ${contextMenuTaskId === task.id ? 'bg-blue-100' : 'bg-white hover:bg-gray-50'} relative transition-colors duration-300 ${
                     isDragging ? 'opacity-50 bg-blue-50' : ''
                   } ${isDraggedDescendant ? 'opacity-30' : ''} ${
                     isRecentlySaved ? 'bg-green-100 animate-pulse' : ''
                   }`}
+                  style={{ height: ROW_HEIGHT }}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task.id)}
                   onDragOver={(e) => handleDragOver(e, task.id)}
@@ -781,7 +783,8 @@ export function UnifiedScheduleTable({
         <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
           {/* Timeline Header */}
           <div 
-            className="sticky top-0 z-10 bg-white border-b border-gray-200 h-[var(--schedule-row-h)]"
+            className="sticky top-0 z-10 bg-white border-b border-gray-200"
+            style={{ height: ROW_HEIGHT }}
           >
             <div className="flex flex-col h-full">
               {/* Month Labels - positioned above weekends */}
