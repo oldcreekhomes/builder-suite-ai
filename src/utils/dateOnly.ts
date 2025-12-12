@@ -157,19 +157,28 @@ export const formatYMD = (dateStr: DateString): string => {
 
 /**
  * Format date string for display (MM/dd/yy)
+ * Handles both YYYY-MM-DD and ISO timestamps (YYYY-MM-DDTHH:mm:ss.sssZ)
  */
-export const formatDisplayDate = (dateStr: DateString): string => {
-  const { year, month, day } = parseDateString(dateStr);
+export const formatDisplayDate = (dateStr: DateString | string): string => {
+  if (!dateStr) return '';
+  // Extract just the date part if it's an ISO timestamp
+  const datePart = String(dateStr).split('T')[0];
+  if (!datePart || datePart.length < 10) return '';
+  const { year, month, day } = parseDateString(datePart as DateString);
   const shortYear = year.toString().slice(-2);
   return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${shortYear}`;
 };
 
 /**
  * Format date string for display with full year (MM/DD/YYYY)
+ * Handles both YYYY-MM-DD and ISO timestamps (YYYY-MM-DDTHH:mm:ss.sssZ)
  */
-export const formatDisplayDateFull = (dateStr: DateString): string => {
+export const formatDisplayDateFull = (dateStr: DateString | string): string => {
   if (!dateStr) return '';
-  const { year, month, day } = parseDateString(dateStr);
+  // Extract just the date part if it's an ISO timestamp
+  const datePart = String(dateStr).split('T')[0];
+  if (!datePart || datePart.length < 10) return '';
+  const { year, month, day } = parseDateString(datePart as DateString);
   return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
 };
 
