@@ -731,7 +731,7 @@ export function UnifiedScheduleTable({
                     {/* Start Date */}
                     <div className="w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
                       <InlineEditCell
-                        value={task.start_date ? formatDisplayDateFull(task.start_date as DateString) : ""}
+                        value={task.start_date ? formatDisplayDateFull(task.start_date) : ""}
                         type="date"
                         onSave={(value) => {
                           const dateStr = String(value);
@@ -763,7 +763,7 @@ export function UnifiedScheduleTable({
                     {/* End Date */}
                     <div className="w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
                       <InlineEditCell
-                        value={task.end_date ? formatDisplayDateFull(task.end_date as DateString) : ""}
+                        value={task.end_date ? formatDisplayDateFull(task.end_date) : ""}
                         type="date"
                         onSave={(value) => {
                           const dateStr = String(value);
