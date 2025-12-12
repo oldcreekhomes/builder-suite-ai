@@ -5,8 +5,8 @@
 import { pdfjs } from 'react-pdf';
 import { GlobalWorkerOptions } from 'pdfjs-dist';
 
-// Use CDN worker - works on ALL browsers, globally cached, no Vite build issues
-const workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+// Use unpkg CDN worker - recommended by react-pdf, directly mirrors npm packages
+const workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 // Configure for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
