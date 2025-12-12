@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { useScheduleRowHeight } from "@/hooks/useScheduleRowHeight";
+import { useProjectResources } from "@/hooks/useProjectResources";
 import { canIndent } from "@/utils/hierarchyUtils";
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,6 +75,7 @@ export function UnifiedScheduleTable({
 }: UnifiedScheduleTableProps) {
   const { toast } = useToast();
   const ROW_HEIGHT = useScheduleRowHeight();
+  const { companies: resourceCompanies, internalUsers: resourceInternalUsers } = useProjectResources();
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
@@ -750,6 +752,8 @@ export function UnifiedScheduleTable({
                       value={task.resources || ""}
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
                       readOnly={taskHasChildren}
+                      companies={resourceCompanies}
+                      internalUsers={resourceInternalUsers}
                     />
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
+import { useProjectResources } from "@/hooks/useProjectResources";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronRight, ChevronDown, StickyNote } from "lucide-react";
@@ -53,6 +54,7 @@ export function TaskRow({
 }: TaskRowProps) {
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
+  const { companies, internalUsers } = useProjectResources();
 
   const isTaskOverdue = (endDate: string | null | undefined): boolean => {
     if (!endDate) return false;
@@ -357,6 +359,8 @@ export function TaskRow({
               value={task.resources || ""}
               onValueChange={(value) => handleFieldUpdate("resources")(value)}
               readOnly={hasChildren}
+              companies={companies}
+              internalUsers={internalUsers}
             />
           </TableCell>
 
