@@ -10,8 +10,24 @@ export interface ProjectResource {
   type: 'user' | 'representative';
 }
 
+export interface Representative {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  receiveScheduleNotifications: boolean;
+}
+
+export interface CompanyWithRepresentatives {
+  companyId: string;
+  companyName: string;
+  representatives: Representative[];
+}
+
 export const useProjectResources = () => {
   const [resources, setResources] = useState<ProjectResource[]>([]);
+  const [companies, setCompanies] = useState<CompanyWithRepresentatives[]>([]);
+  const [internalUsers, setInternalUsers] = useState<ProjectResource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchResources = async () => {
@@ -21,6 +37,8 @@ export const useProjectResources = () => {
       if (!currentUser.user) return;
 
       let allResources: ProjectResource[] = [];
+      let allCompanies: CompanyWithRepresentatives[] = [];
+      let allInternalUsers: ProjectResource[] = [];
 
       // Get current user's profile to determine company
       const { data: currentUserProfile } = await supabase
@@ -49,8 +67,6 @@ export const useProjectResources = () => {
 
       if (!companyName) return;
 
-      console.log('Fetching resources for company:', companyName);
-
       // Fetch all users from the same company
       const { data: companyUsers } = await supabase
         .from('users')
@@ -69,6 +85,7 @@ export const useProjectResources = () => {
           type: 'user' as const
         }));
         allResources.push(...userResources);
+        allInternalUsers = userResources;
       }
 
       // Determine the home builder owner ID
@@ -78,47 +95,61 @@ export const useProjectResources = () => {
       } else if (currentUserProfile.home_builder_id) {
         homeBuilderOwnerId = currentUserProfile.home_builder_id;
       } else {
-        console.log('Unable to determine home builder owner ID');
         setResources(allResources);
+        setInternalUsers(allInternalUsers);
         return;
       }
 
-      console.log('Fetching representatives for home builder owner:', homeBuilderOwnerId);
-
-      // Fetch all companies owned by the home builder
+      // Fetch all companies owned by the home builder with their representatives
       const { data: ownedCompanies } = await supabase
         .from('companies')
-        .select('id')
-        .eq('home_builder_id', homeBuilderOwnerId);
+        .select('id, company_name')
+        .eq('home_builder_id', homeBuilderOwnerId)
+        .order('company_name');
 
       if (ownedCompanies && ownedCompanies.length > 0) {
-        console.log('Found owned companies:', ownedCompanies);
-        
         // Fetch all representatives from all owned companies
         const companyIds = ownedCompanies.map(c => c.id);
         const { data: representatives } = await supabase
           .from('company_representatives')
-          .select('id, first_name, last_name, email, phone_number')
+          .select('id, first_name, last_name, email, phone_number, company_id, receive_schedule_notifications')
           .in('company_id', companyIds);
 
-        if (representatives && representatives.length > 0) {
-          console.log('Found representatives:', representatives);
-          const repResources = representatives.map(rep => ({
-            resourceId: rep.id,
-            resourceName: `${rep.first_name} ${rep.last_name}`.trim(),
-            resourceGroup: 'External' as const,
-            email: rep.email,
-            phone: rep.phone_number,
-            type: 'representative' as const
-          }));
-          allResources.push(...repResources);
+        // Group representatives by company
+        for (const company of ownedCompanies) {
+          const companyReps = (representatives || [])
+            .filter(rep => rep.company_id === company.id)
+            .map(rep => ({
+              id: rep.id,
+              name: `${rep.first_name} ${rep.last_name || ''}`.trim(),
+              email: rep.email,
+              phone: rep.phone_number || undefined,
+              receiveScheduleNotifications: rep.receive_schedule_notifications || false
+            }));
+
+          allCompanies.push({
+            companyId: company.id,
+            companyName: company.company_name,
+            representatives: companyReps
+          });
+
+          // Also add to flat resources list for backward compatibility
+          companyReps.forEach(rep => {
+            allResources.push({
+              resourceId: rep.id,
+              resourceName: rep.name,
+              resourceGroup: 'External',
+              email: rep.email,
+              phone: rep.phone,
+              type: 'representative'
+            });
+          });
         }
-      } else {
-        console.log('No owned companies found for home builder owner:', homeBuilderOwnerId);
       }
 
-      console.log('Fetched resources:', allResources);
       setResources(allResources);
+      setCompanies(allCompanies);
+      setInternalUsers(allInternalUsers);
     } catch (error) {
       console.error('Error fetching project resources:', error);
     } finally {
@@ -132,6 +163,8 @@ export const useProjectResources = () => {
 
   return {
     resources,
+    companies,
+    internalUsers,
     isLoading,
     refetchResources: fetchResources
   };
