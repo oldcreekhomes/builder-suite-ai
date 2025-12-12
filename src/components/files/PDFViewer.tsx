@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, Page } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
-// Set up PDF.js worker using local import to avoid CDN blocking
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+// PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
 interface PDFViewerProps {
   fileUrl: string;

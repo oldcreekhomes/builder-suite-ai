@@ -1,16 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { Document as PdfDocument, Page as PdfPage, pdfjs as ReactPdfjs } from 'react-pdf';
+import { Document as PdfDocument, Page as PdfPage } from 'react-pdf';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload } from "lucide-react";
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { getDocument } from 'pdfjs-dist';
 
-// Use local worker to avoid CDN/CORS issues for both pdfjs-dist and react-pdf
-GlobalWorkerOptions.workerSrc = workerSrc;
-ReactPdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+// PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
 interface PendingUpload {
   id: string;
