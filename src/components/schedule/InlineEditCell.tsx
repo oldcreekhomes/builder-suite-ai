@@ -214,7 +214,7 @@ export function InlineEditCell({
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center">
       {isEditing ? (
         <input
           ref={inputRef}
