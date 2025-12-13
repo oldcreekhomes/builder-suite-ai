@@ -198,26 +198,50 @@ export const useTaskBulkMutations = (projectId: string) => {
 
       console.log('🔄 Performing bulk predecessor update for', updates.length, 'tasks', options?.skipValidation ? '(validation skipped)' : '');
 
-      // Get all tasks for validation (only if not skipping)
-      let allTasks: any[] = [];
+      // ALWAYS fetch tasks - needed for self-reference filter even when skipping validation
+      const { data: allTasksData, error: fetchError } = await supabase
+        .from('project_schedule_tasks')
+        .select('id, hierarchy_number')
+        .eq('project_id', projectId);
+
+      if (fetchError) throw fetchError;
+      const allTasks = allTasksData || [];
+
+      // ALWAYS filter out self-references - this is a safety net that runs even with skipValidation
+      const { parsePredecessorString } = await import('@/utils/predecessorValidation');
+      const sanitizedUpdates = updates.map(update => {
+        const task = allTasks.find(t => t.id === update.id);
+        const taskHierarchy = task?.hierarchy_number;
+        
+        if (!taskHierarchy || !update.predecessor) return update;
+        
+        const predecessorArray = Array.isArray(update.predecessor) 
+          ? update.predecessor 
+          : [update.predecessor];
+        
+        // Filter out any self-references
+        const filteredPredecessors = predecessorArray.filter(pred => {
+          const parsed = parsePredecessorString(pred);
+          return parsed?.taskId !== taskHierarchy;
+        });
+        
+        if (filteredPredecessors.length !== predecessorArray.length) {
+          console.warn(`🛡️ Filtered self-reference for task ${taskHierarchy}`);
+        }
+        
+        return { ...update, predecessor: filteredPredecessors.length > 0 ? filteredPredecessors : null };
+      });
+
+      // Full validation (only if not skipping)
       if (!options?.skipValidation) {
-        const { data, error: fetchError } = await supabase
-          .from('project_schedule_tasks')
-          .select('*')
-          .eq('project_id', projectId);
-
-        if (fetchError) throw fetchError;
-        if (!data) throw new Error('Failed to fetch tasks for validation');
-        allTasks = data;
-
-        // Validate all predecessor updates before applying any
+        const { validatePredecessors } = await import('@/utils/predecessorValidation');
         const invalidUpdates: string[] = [];
-        for (const update of updates) {
+        
+        for (const update of sanitizedUpdates) {
           const predecessorArray = Array.isArray(update.predecessor) 
             ? update.predecessor 
             : update.predecessor ? [update.predecessor] : [];
           
-          const { validatePredecessors } = await import('@/utils/predecessorValidation');
           const validation = validatePredecessors(update.id, predecessorArray, allTasks as ProjectTask[]);
           
           if (!validation.isValid) {
@@ -231,12 +255,12 @@ export const useTaskBulkMutations = (projectId: string) => {
         }
       }
       
-      // Use batch updates for better performance
+      // Use batch updates for better performance (use sanitizedUpdates which has self-refs filtered)
       const results = [];
       const batchSize = 10; // Process in batches to avoid overwhelming the database
       
-      for (let i = 0; i < updates.length; i += batchSize) {
-        const batch = updates.slice(i, i + batchSize);
+      for (let i = 0; i < sanitizedUpdates.length; i += batchSize) {
+        const batch = sanitizedUpdates.slice(i, i + batchSize);
         const batchPromises = batch.map(update => {
           // Always store predecessor as JSON array for consistency
           return supabase
