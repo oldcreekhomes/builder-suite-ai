@@ -1565,23 +1565,56 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
-  // Check for corrupted tasks (with __TEMP__ hierarchy numbers)
-  const hasCorruptedTasks = tasks.some(t => t.hierarchy_number?.startsWith('__TEMP_'));
+  // Check for corrupted tasks (with __TEMP__ hierarchy numbers or self-referencing predecessors)
+  const hasSelfReferencingPredecessors = tasks.some(t => {
+    if (!t.predecessor || !t.hierarchy_number) return false;
+    const preds = Array.isArray(t.predecessor) ? t.predecessor : [t.predecessor];
+    return preds.some(pred => {
+      const match = typeof pred === 'string' ? pred.match(/^([\d.]+)/) : null;
+      return match && match[1] === t.hierarchy_number;
+    });
+  });
+  const hasCorruptedTasks = tasks.some(t => t.hierarchy_number?.startsWith('__TEMP_')) || hasSelfReferencingPredecessors;
 
   // Repair schedule handler
   const handleRepairSchedule = async () => {
     if (!user) return;
     setIsRepairing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('repair-schedule-hierarchies', {
-        body: { projectId, deleteOrphans: true }
-      });
+      let hierarchyRepairs = 0;
+      let deleted = 0;
+      let predecessorFixes = 0;
+
+      // Step 1: Fix __TEMP__ hierarchy issues
+      const hasHierarchyCorruption = tasks.some(t => t.hierarchy_number?.startsWith('__TEMP_'));
+      if (hasHierarchyCorruption) {
+        const { data, error } = await supabase.functions.invoke('repair-schedule-hierarchies', {
+          body: { projectId, deleteOrphans: true }
+        });
+        
+        if (error) throw error;
+        hierarchyRepairs = data.repaired || 0;
+        deleted = data.deleted || 0;
+      }
       
-      if (error) throw error;
+      // Step 2: Fix self-referencing predecessors
+      if (hasSelfReferencingPredecessors) {
+        const { data, error } = await supabase.functions.invoke('fix-self-referencing-predecessors', {
+          body: { projectId }
+        });
+        
+        if (error) throw error;
+        predecessorFixes = data.fixed || 0;
+      }
+      
+      const messages = [];
+      if (hierarchyRepairs > 0) messages.push(`Repaired ${hierarchyRepairs} hierarchy issues`);
+      if (deleted > 0) messages.push(`Deleted ${deleted} orphans`);
+      if (predecessorFixes > 0) messages.push(`Fixed ${predecessorFixes} self-referencing predecessors`);
       
       toast({ 
         title: "Schedule Repaired", 
-        description: `Repaired ${data.repaired} tasks, deleted ${data.deleted} orphans` 
+        description: messages.length > 0 ? messages.join(', ') : 'No issues found'
       });
       
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
