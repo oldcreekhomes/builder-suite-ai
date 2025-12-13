@@ -497,7 +497,7 @@ export function UnifiedScheduleTable({
       >
         <div 
           ref={leftPanelRef}
-          className="bg-white border-r border-gray-300 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden"
+          className="bg-white border-r border-gray-300 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden flex flex-col"
           style={{ 
             width: '892px',
             height: '100%',
@@ -505,6 +505,8 @@ export function UnifiedScheduleTable({
           }}
           onWheel={handleLeftPanelWheel}
         >
+        {/* Flex container for content + invisible scrollbar spacer */}
+        <div className="flex flex-col flex-1">
         {/* Left Panel Header */}
         <div 
           className="sticky top-0 z-20 bg-white h-[var(--schedule-row-h)]"
@@ -768,6 +770,12 @@ export function UnifiedScheduleTable({
             );
           })}
         </div>
+        </div>
+        {/* Invisible horizontal scrollbar spacer to match right panel's scrollbar height */}
+        <div 
+          className="shrink-0 bg-white"
+          style={{ height: '17px' }}
+        />
         </div>
       </div>
 
