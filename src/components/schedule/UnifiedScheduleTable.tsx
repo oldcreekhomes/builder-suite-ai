@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { useScheduleRowHeight } from "@/hooks/useScheduleRowHeight";
-import { useProjectResources } from "@/hooks/useProjectResources";
 import { canIndent } from "@/utils/hierarchyUtils";
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -75,12 +74,11 @@ export function UnifiedScheduleTable({
 }: UnifiedScheduleTableProps) {
   const { toast } = useToast();
   const ROW_HEIGHT = useScheduleRowHeight();
-  const { companies: resourceCompanies, internalUsers: resourceInternalUsers } = useProjectResources();
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
-  // Custom divider state - pixel-based width control (max 1016px = full table width)
-  const [leftPanelWidth, setLeftPanelWidth] = useState(1016);
+  // Custom divider state - pixel-based width control (max 952px = full table width)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(952);
   
   // Notes dialog state
   const [notesDialogTaskId, setNotesDialogTaskId] = useState<string | null>(null);
@@ -96,7 +94,7 @@ export function UnifiedScheduleTable({
   };
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const dividerDragStartX = useRef<number>(0);
-  const dividerDragStartWidth = useRef<number>(1016);
+  const dividerDragStartWidth = useRef<number>(952);
 
   // Divider drag handlers
   const handleDividerMouseDown = (e: React.MouseEvent) => {
@@ -111,7 +109,7 @@ export function UnifiedScheduleTable({
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - dividerDragStartX.current;
-      const newWidth = Math.max(300, Math.min(1016, dividerDragStartWidth.current + delta));
+      const newWidth = Math.max(300, Math.min(952, dividerDragStartWidth.current + delta));
       setLeftPanelWidth(newWidth);
     };
 
@@ -136,12 +134,19 @@ export function UnifiedScheduleTable({
   // Context menu highlight state
   const [contextMenuTaskId, setContextMenuTaskId] = useState<string | null>(null);
 
-  // Unified scroll container ref - single vertical scroll for both panels
-  const unifiedScrollRef = useRef<HTMLDivElement>(null);
+  // Sync left panel vertical scroll when timeline scrolls (only timeline has scrollbar)
+  const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (leftPanelRef.current) {
+      leftPanelRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+  };
 
-  // Sync horizontal scroll only for timeline
-  const handleTimelineHorizontalScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    // Only handle horizontal scrolling - vertical is handled by unified container
+  // Handle wheel events on left panel - forward to timeline for synchronized scrolling
+  const handleLeftPanelWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (timelineScrollRef.current) {
+      timelineScrollRef.current.scrollTop += e.deltaY;
+    }
   };
 
   // Helper function to check if a task is overdue
@@ -484,63 +489,298 @@ export function UnifiedScheduleTable({
   // Row height now comes from useScheduleRowHeight hook based on density setting
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 220px)' }}>
-      {/* STICKY HEADER ROW - both panels' headers together */}
-      <div className="flex flex-shrink-0" style={{ height: ROW_HEIGHT }}>
+    <div className="flex" style={{ height: 'calc(100vh - 220px)' }}>
+      {/* LEFT PANEL - Task Data (pixel-controlled width, no gap possible) */}
+      <div 
+        style={{ width: leftPanelWidth, flexShrink: 0 }} 
+        className="overflow-hidden"
+      >
+        <div 
+          ref={leftPanelRef}
+          className="bg-white border-r border-gray-300 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden"
+          style={{ 
+            width: '984px', 
+            height: '100%',
+            scrollbarWidth: 'none'
+          }}
+          onWheel={handleLeftPanelWheel}
+        >
         {/* Left Panel Header */}
         <div 
-          style={{ width: leftPanelWidth, flexShrink: 0 }} 
-          className="overflow-hidden"
+          className="sticky top-0 z-20 bg-white h-[var(--schedule-row-h)]"
         >
-          <div 
-            className="bg-white border-r border-gray-300"
-            style={{ width: '1016px', height: ROW_HEIGHT }}
-          >
-            <div className="flex" style={{ height: ROW_HEIGHT }}>
-              <div className="w-10 shrink-0 flex items-center justify-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)]" style={{ height: ROW_HEIGHT }}>
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={handleSelectAll}
-                  {...(isIndeterminate && { "data-state": "indeterminate" })}
-                />
-              </div>
-              <div className="w-16 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>#</div>
-              <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Task Name</div>
-              <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap" style={{ height: ROW_HEIGHT }}>Start Date</div>
-              <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Duration</div>
-              <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap" style={{ height: ROW_HEIGHT }}>End Date</div>
-              <div className="w-28 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Predecessors</div>
-              <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Progress</div>
-              <div className="w-40 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium" style={{ height: ROW_HEIGHT }}>Resources</div>
+          <div className="flex h-[var(--schedule-row-h)]">
+            <div className="w-10 shrink-0 flex items-center justify-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] h-[var(--schedule-row-h)]">
+              <Checkbox
+                checked={isAllSelected}
+                onCheckedChange={handleSelectAll}
+                {...(isIndeterminate && { "data-state": "indeterminate" })}
+              />
             </div>
+            <div className="w-16 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
+            <div className="w-72 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Task Name</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
+            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Duration</div>
+            <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">End Date</div>
+            <div className="w-28 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Predecessors</div>
+            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Progress</div>
+            <div className="w-32 shrink-0 flex items-center border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Resources</div>
           </div>
         </div>
 
-        {/* CUSTOM DRAGGABLE DIVIDER - Header portion */}
-        <div 
-          className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
-            isDraggingDivider ? 'bg-blue-500' : 'bg-gray-300 hover:bg-blue-400'
-          }`}
-          onMouseDown={handleDividerMouseDown}
-        />
+        {/* Left Panel Body */}
+        <div>
+          {visibleTasks.map((task) => {
+            const indentLevel = getIndentLevel(task.hierarchy_number);
+            const taskHasChildren = hasChildren(task.id);
+            const isExpanded = expandedTasks.has(task.id);
+            const isSelected = selectedTasks.has(task.id);
+            const isOverdue = isTaskOverdue(task.end_date, task.progress);
+            const isRecentlySaved = recentlySavedTasks.has(task.id);
+            
+            // Drag state styling
+            const isDragging = draggedTaskId === task.id;
+            const isDraggedDescendant = draggedDescendants.has(task.id);
+            const isDropTarget = dropTargetId === task.id;
+            const canDrop = draggedTaskId && !isDragging && !isDraggedDescendant;
 
-        {/* Right Panel Header - horizontal scroll synced with body */}
-        <div 
-          ref={timelineScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden"
-          style={{ height: ROW_HEIGHT }}
-          onScroll={(e) => {
-            // Sync horizontal scroll to timeline body
-            const bodyEl = document.getElementById('timeline-body-scroll');
-            if (bodyEl) bodyEl.scrollLeft = e.currentTarget.scrollLeft;
-          }}
-        >
+            return (
+              <TaskContextMenu
+                key={task.id}
+                task={task}
+                onIndent={() => getCanIndent(task) && onIndent(task.id)}
+                onOutdent={() => getCanOutdent(task) && onOutdent(task.id)}
+                onAddAbove={() => onAddAbove(task.id)}
+                onAddBelow={() => onAddBelow(task.id)}
+                onOpenNotes={() => handleOpenNotes(task.id)}
+                canIndent={getCanIndent(task)}
+                canOutdent={getCanOutdent(task)}
+                onContextMenuChange={(isOpen) => setContextMenuTaskId(isOpen ? task.id : null)}
+              >
+                <div 
+                  className={`flex border-b border-gray-100 h-[var(--schedule-row-h)] ${contextMenuTaskId === task.id ? 'bg-blue-100' : 'bg-white hover:bg-gray-50'} relative transition-colors duration-300 ${
+                    isDragging ? 'opacity-50 bg-blue-50' : ''
+                  } ${isDraggedDescendant ? 'opacity-30' : ''} ${
+                    isRecentlySaved ? 'bg-green-100 animate-pulse' : ''
+                  }`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, task.id)}
+                  onDragOver={(e) => handleDragOver(e, task.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, task.id)}
+                  onDragEnd={handleDragEnd}
+                >
+                  {/* Drop indicator line */}
+                  {isDropTarget && dropPosition && (
+                    <div 
+                      className={`absolute left-0 right-0 h-0.5 bg-blue-500 z-30 pointer-events-none ${
+                        dropPosition === 'before' ? 'top-0' : 'bottom-0'
+                      }`}
+                    />
+                  )}
+
+                  {/* Checkbox */}
+                  <div className="w-10 shrink-0 flex items-center justify-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => handleTaskSelection(task.id, !!checked)}
+                    />
+                  </div>
+
+                  {/* Hierarchy Number with Drag Handle */}
+                  <div className="w-16 shrink-0 flex items-center border-r border-gray-200 px-1 gap-1">
+                    <GripVertical className="h-3 w-3 text-gray-400 cursor-grab hover:text-gray-600 flex-shrink-0" />
+                    <span className="text-[length:var(--schedule-font-size)]">{task.hierarchy_number || "—"}</span>
+                  </div>
+
+                  {/* Task Name */}
+                  <div className="w-72 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)] overflow-hidden">
+                    <div className="flex items-center w-full">
+                      {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
+                      {taskHasChildren && (
+                        <button
+                          onClick={() => onToggleExpand(task.id)}
+                          className="mr-1 hover:bg-muted rounded p-0.5 transition-colors"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
+                      {!taskHasChildren && <div className="w-4 mr-1" />}
+                      <InlineEditCell
+                        value={task.task_name || ""}
+                        type="text"
+                        onSave={(value) => handleTaskUpdate(task.id, { task_name: value.toString() })}
+                        className="text-[length:var(--schedule-font-size)] flex-1"
+                      />
+                      {task.notes?.trim() && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 ml-1 hover:bg-muted flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenNotes(task.id);
+                                }}
+                              >
+                                <StickyNote className="h-3 w-3 text-yellow-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>View notes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Start Date */}
+                  <div className="w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                    <InlineEditCell
+                      value={(() => {
+                        try {
+                          return task.start_date ? formatYMD(task.start_date.split('T')[0]) : "";
+                        } catch {
+                          return "";
+                        }
+                      })()}
+                      type="date"
+                      onSave={(value) => {
+                        if (value) {
+                          handleTaskUpdate(task.id, { start_date: value });
+                        }
+                      }}
+                      displayFormat={(val) => formatDisplayDateFull(val as string)}
+                      className="text-[length:var(--schedule-font-size)]"
+                      readOnly={taskHasChildren}
+                    />
+                  </div>
+
+                  {/* Duration */}
+                  <div className="w-20 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                    <InlineEditCell
+                      value={task.duration?.toString() || "1"}
+                      type="number"
+                      onSave={(value) => handleTaskUpdate(task.id, { duration: parseInt(value.toString()) || 1 })}
+                      className="text-[length:var(--schedule-font-size)]"
+                      readOnly={taskHasChildren}
+                    />
+                  </div>
+
+                  {/* End Date */}
+                  <div 
+                    className={`w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)] ${
+                      isOverdue ? 'bg-red-500' : ''
+                    }`}
+                  >
+                    <InlineEditCell
+                      value={(() => {
+                        try {
+                          return task.end_date ? formatYMD(task.end_date.split('T')[0]) : "";
+                        } catch {
+                          return "";
+                        }
+                      })()}
+                      type="date"
+                      onSave={(value) => {
+                        if (value) {
+                          const newEndDate = value.toString().split('T')[0];
+                          const taskStartDate = task.start_date?.split('T')[0];
+                          
+                          // Validate: end date must be >= start date
+                          if (taskStartDate && newEndDate < taskStartDate) {
+                            toast({
+                              title: "End date cannot be before start date",
+                              description: `Start date is ${formatDisplayDateFull(taskStartDate)}. End date must be on or after this date.`,
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          
+                          // Calculate new duration (business days between start and end, inclusive)
+                          let newDuration = 1;
+                          if (taskStartDate) {
+                            newDuration = getBusinessDaysBetween(taskStartDate as DateString, newEndDate as DateString);
+                          }
+                          
+                          // Update both end_date and duration
+                          handleTaskUpdate(task.id, { 
+                            end_date: newEndDate + 'T00:00:00',
+                            duration: newDuration
+                          });
+                        }
+                      }}
+                      displayFormat={(val) => formatDisplayDateFull(val as string)}
+                      className={`text-[length:var(--schedule-font-size)] ${isOverdue ? "text-white font-semibold" : ""}`}
+                      readOnly={taskHasChildren}
+                    />
+                  </div>
+
+                  {/* Predecessors */}
+                  <div className="w-28 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                    <PredecessorSelector
+                      value={getPredecessorArray(task)}
+                      onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
+                      allTasks={tasks}
+                      currentTaskId={task.id}
+                      currentTaskHierarchy={task.hierarchy_number}
+                      readOnly={taskHasChildren}
+                    />
+                  </div>
+
+                  {/* Progress */}
+                  <div className="w-20 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                    <ProgressSelector
+                      value={task.progress || 0}
+                      onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
+                      readOnly={taskHasChildren}
+                    />
+                  </div>
+
+                  {/* Resources */}
+                  <div className="w-32 shrink-0 flex items-center px-[var(--schedule-cell-px)]">
+                    <ResourcesSelector
+                      value={task.resources || ""}
+                      onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
+                      readOnly={taskHasChildren}
+                    />
+                  </div>
+                </div>
+              </TaskContextMenu>
+            );
+          })}
+        </div>
+        </div>
+      </div>
+
+      {/* CUSTOM DRAGGABLE DIVIDER - pixel-based control */}
+      <div 
+        className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
+          isDraggingDivider ? 'bg-blue-500' : 'bg-gray-300 hover:bg-blue-400'
+        }`}
+        onMouseDown={handleDividerMouseDown}
+      />
+
+      {/* RIGHT PANEL - Timeline (always flush against divider, no gap) */}
+      <div 
+        ref={timelineScrollRef}
+        className="flex-1 overflow-auto"
+        onScroll={handleTimelineScroll}
+      >
+        <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
+          {/* Timeline Header */}
           <div 
-            className="bg-white border-b border-gray-200"
-            style={{ width: timelineWidth, minWidth: timelineWidth, height: ROW_HEIGHT }}
+            className="sticky top-0 z-10 bg-white border-b border-gray-200 h-[var(--schedule-row-h)]"
           >
             <div className="flex flex-col h-full">
-              {/* Month Labels */}
+              {/* Month Labels - positioned above weekends */}
               <div className="relative h-4 border-b border-border bg-muted/30">
                 {monthLabels.map((label, index) => (
                   <div
@@ -589,392 +829,145 @@ export function UnifiedScheduleTable({
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* UNIFIED SCROLLABLE BODY - single vertical scroll for both panels */}
-      <div 
-        ref={unifiedScrollRef}
-        className="flex flex-1 overflow-y-auto"
-      >
-        {/* LEFT PANEL BODY */}
-        <div 
-          ref={leftPanelRef}
-          style={{ width: leftPanelWidth, flexShrink: 0 }} 
-          className="overflow-hidden"
-        >
-          <div 
-            className="bg-white border-r border-gray-300"
-            style={{ width: '1016px' }}
-          >
-            {visibleTasks.map((task) => {
-              const indentLevel = getIndentLevel(task.hierarchy_number);
-              const taskHasChildren = hasChildren(task.id);
-              const isExpanded = expandedTasks.has(task.id);
-              const isSelected = selectedTasks.has(task.id);
-              const isOverdue = isTaskOverdue(task.end_date, task.progress);
-              const isRecentlySaved = recentlySavedTasks.has(task.id);
-              
-              // Drag state styling
-              const isDragging = draggedTaskId === task.id;
-              const isDraggedDescendant = draggedDescendants.has(task.id);
-              const isDropTarget = dropTargetId === task.id;
-              const canDrop = draggedTaskId && !isDragging && !isDraggedDescendant;
-
-              return (
-                <TaskContextMenu
-                  key={task.id}
-                  task={task}
-                  onIndent={() => getCanIndent(task) && onIndent(task.id)}
-                  onOutdent={() => getCanOutdent(task) && onOutdent(task.id)}
-                  onAddAbove={() => onAddAbove(task.id)}
-                  onAddBelow={() => onAddBelow(task.id)}
-                  onOpenNotes={() => handleOpenNotes(task.id)}
-                  canIndent={getCanIndent(task)}
-                  canOutdent={getCanOutdent(task)}
-                  onContextMenuChange={(isOpen) => setContextMenuTaskId(isOpen ? task.id : null)}
-                >
-                  <div 
-                    className={`flex border-b border-gray-100 ${contextMenuTaskId === task.id ? 'bg-blue-100' : 'bg-white hover:bg-gray-50'} relative transition-colors duration-300 ${
-                      isDragging ? 'opacity-50 bg-blue-50' : ''
-                    } ${isDraggedDescendant ? 'opacity-30' : ''} ${
-                      isRecentlySaved ? 'bg-green-100 animate-pulse' : ''
-                    }`}
-                    style={{ height: ROW_HEIGHT }}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    onDragOver={(e) => handleDragOver(e, task.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, task.id)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    {/* Drop indicator line */}
-                    {isDropTarget && dropPosition && (
-                      <div 
-                        className={`absolute left-0 right-0 h-0.5 bg-blue-500 z-30 pointer-events-none ${
-                          dropPosition === 'before' ? 'top-0' : 'bottom-0'
-                        }`}
-                      />
-                    )}
-
-                    {/* Checkbox */}
-                    <div className="w-10 shrink-0 flex items-center justify-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => handleTaskSelection(task.id, !!checked)}
-                      />
-                    </div>
-
-                    {/* Hierarchy Number with Drag Handle */}
-                    <div className="w-16 shrink-0 flex items-center border-r border-gray-200 px-1 gap-1">
-                      <GripVertical className="h-3 w-3 text-gray-400 cursor-grab hover:text-gray-600 flex-shrink-0" />
-                      <span className="text-[length:var(--schedule-font-size)]">{task.hierarchy_number || "—"}</span>
-                    </div>
-
-                    {/* Task Name */}
-                    <div 
-                      className="w-72 shrink-0 flex items-center border-r border-gray-200 gap-1"
-                      style={{ paddingLeft: `${indentLevel * 20}px` }}
-                    >
-                      {taskHasChildren && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 p-0"
-                          onClick={() => onToggleExpand(task.id)}
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-3 w-3" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3" />
-                          )}
-                        </Button>
-                      )}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex-1 overflow-hidden">
-                              <InlineEditCell
-                                value={task.task_name || ""}
-                                type="text"
-                                onSave={(value) => handleTaskUpdate(task.id, { task_name: value })}
-                                className={`text-[length:var(--schedule-font-size)] font-medium ${isOverdue ? "text-red-600" : ""}`}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{task.task_name}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      {task.notes && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 p-0 flex-shrink-0"
-                                onClick={() => handleOpenNotes(task.id)}
-                              >
-                                <StickyNote className="h-3 w-3 text-yellow-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="max-w-xs">{task.notes.slice(0, 100)}{task.notes.length > 100 ? "..." : ""}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
-
-                    {/* Start Date */}
-                    <div className="w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
-                      <InlineEditCell
-                        value={task.start_date ? formatDisplayDateFull(task.start_date) : ""}
-                        type="date"
-                        onSave={(value) => {
-                          const dateStr = String(value);
-                          if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                            handleTaskUpdate(task.id, { start_date: dateStr });
-                          }
-                        }}
-                        className="text-[length:var(--schedule-font-size)]"
-                        readOnly={taskHasChildren}
-                      />
-                    </div>
-
-                    {/* Duration */}
-                    <div className="w-20 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
-                      <InlineEditCell
-                        value={task.duration?.toString() || ""}
-                        type="number"
-                        onSave={(value) => {
-                          const num = parseInt(String(value), 10);
-                          if (!isNaN(num) && num > 0) {
-                            handleTaskUpdate(task.id, { duration: num });
-                          }
-                        }}
-                        className="text-[length:var(--schedule-font-size)]"
-                        readOnly={taskHasChildren}
-                      />
-                    </div>
-
-                    {/* End Date */}
-                    <div className="w-24 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
-                      <InlineEditCell
-                        value={task.end_date ? formatDisplayDateFull(task.end_date) : ""}
-                        type="date"
-                        onSave={(value) => {
-                          const dateStr = String(value);
-                          if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/) && task.start_date) {
-                            const newDuration = getBusinessDaysBetween(task.start_date as DateString, dateStr as DateString);
-                            if (newDuration > 0) {
-                              handleTaskUpdate(task.id, { duration: newDuration, end_date: dateStr });
-                            }
-                          }
-                        }}
-                        className="text-[length:var(--schedule-font-size)]"
-                        readOnly={taskHasChildren}
-                      />
-                    </div>
-
-                    {/* Predecessors */}
-                    <div className="w-28 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
-                      <PredecessorSelector
-                        value={task.predecessor || ""}
-                        currentTaskId={task.id}
-                        allTasks={tasks}
-                        onValueChange={(value) => handleTaskUpdate(task.id, { predecessor: value })}
-                        readOnly={taskHasChildren}
-                      />
-                    </div>
-
-                    {/* Progress */}
-                    <div className="w-20 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
-                      <ProgressSelector
-                        value={task.progress || 0}
-                        onSave={(value) => handleTaskUpdate(task.id, { progress: value })}
-                        readOnly={taskHasChildren}
-                      />
-                    </div>
-
-                    {/* Resources */}
-                    <div className="w-40 shrink-0 flex items-center px-[var(--schedule-cell-px)]">
-                      <ResourcesSelector
-                        value={task.resources || ""}
-                        onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
-                        readOnly={taskHasChildren}
-                        companies={resourceCompanies}
-                        internalUsers={resourceInternalUsers}
-                      />
-                    </div>
-                  </div>
-                </TaskContextMenu>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* CUSTOM DRAGGABLE DIVIDER - Body portion */}
-        <div 
-          className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
-            isDraggingDivider ? 'bg-blue-500' : 'bg-gray-300 hover:bg-blue-400'
-          }`}
-          onMouseDown={handleDividerMouseDown}
-        />
-
-        {/* RIGHT PANEL BODY - Timeline (horizontal scroll only) */}
-        <div 
-          id="timeline-body-scroll"
-          className="flex-1 overflow-x-auto overflow-y-hidden"
-          onScroll={(e) => {
-            // Sync horizontal scroll to timeline header
-            if (timelineScrollRef.current) {
-              timelineScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
-            }
-          }}
-        >
-          <div style={{ width: timelineWidth, minWidth: timelineWidth }}>
-            {/* Timeline Body */}
-            <div className="relative" style={{ height: visibleTasks.length * ROW_HEIGHT }}>
-              {/* Grid Lines Background */}
-              <div className="absolute inset-0 pointer-events-none">
-                {showWeekly ? (
-                  months.flatMap((month, monthIndex) => {
-                    const weekWidth = month.width / 4;
-                    return [0, 1, 2, 3].map(weekNum => (
-                      <div
-                        key={`grid-${monthIndex}-week-${weekNum}`}
-                        className="absolute top-0 h-full border-r border-border/30 bg-transparent"
-                        style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
-                      />
-                    ));
-                  })
-                ) : (
-                  Array.from({ length: safeTotalDays }, (_, i) => {
-                    const dayDate = addDays(startDate, i);
-                    const isWeekend = !isBusinessDay(dayDate);
-                    
-                    return (
-                      <div
-                        key={`grid-${i}`}
-                        className={`absolute top-0 h-full border-r border-border/30 ${
-                          isWeekend ? "bg-blue-50" : "bg-white"
-                        }`}
-                        style={{ left: i * dayWidth, width: dayWidth }}
-                      />
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Row Separators */}
-              {visibleTasks.map((_, index) => (
-                <div
-                  key={`row-sep-${index}`}
-                  className="absolute w-full border-b border-gray-100"
-                  style={{ top: (index + 1) * ROW_HEIGHT - 1 }}
-                />
-              ))}
-
-              {/* Task Bars */}
-              {visibleTasks.map((task, index) => {
-                const position = getTaskPosition(task);
-                const barColorClass = getBarColorClass(task);
-                const progressWidth = (position.width * position.progress) / 100;
-
-                return (
-                  <div
-                    key={task.id}
-                    className="absolute"
-                    style={{ top: index * ROW_HEIGHT + (ROW_HEIGHT - 24) / 2 }}
-                  >
-                    {/* The bar itself */}
+          {/* Timeline Body */}
+          <div className="relative" style={{ height: visibleTasks.length * ROW_HEIGHT }}>
+            {/* Grid Lines Background */}
+            <div className="absolute inset-0 pointer-events-none">
+              {showWeekly ? (
+                months.flatMap((month, monthIndex) => {
+                  const weekWidth = month.width / 4;
+                  return [0, 1, 2, 3].map(weekNum => (
                     <div
-                      className="absolute h-6 rounded cursor-move border"
-                      style={{
-                        left: position.left,
-                        width: position.width,
-                        backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
-                        borderColor: `hsl(var(--timeline-${barColorClass}))`
-                      }}
-                    >
-                      {/* Progress fill */}
-                      <div
-                        className="h-full rounded-l opacity-80"
-                        style={{
-                          width: progressWidth,
-                          backgroundColor: `hsl(var(--timeline-progress))`
-                        }}
-                      />
-                    </div>
-                    
-                    {/* Task name - always displayed outside the bar to the right */}
+                      key={`grid-${monthIndex}-week-${weekNum}`}
+                      className="absolute top-0 h-full border-r border-border/30 bg-transparent"
+                      style={{ left: month.left + weekNum * weekWidth, width: weekWidth }}
+                    />
+                  ));
+                })
+              ) : (
+                Array.from({ length: safeTotalDays }, (_, i) => {
+                  const dayDate = addDays(startDate, i);
+                  const isWeekend = !isBusinessDay(dayDate);
+                  
+                  return (
                     <div
-                      className="absolute h-6 flex items-center pl-2 whitespace-nowrap"
-                      style={{
-                        left: position.left + position.width + 16,
-                      }}
-                    >
-                      <span className="text-[length:var(--schedule-font-size)] font-medium text-foreground">
-                        {task.task_name}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Dependency Lines */}
-              {connections.length > 0 && (
-                <svg
-                  className="absolute pointer-events-none"
-                  style={{ 
-                    left: 0, 
-                    top: 0,
-                    width: timelineWidth, 
-                    height: visibleTasks.length * ROW_HEIGHT 
-                  }}
-                >
-                  {connections.map((connection, connIndex) => {
-                    const { from, to } = connection;
-                    
-                    // 5-segment path matching BuildTools pattern:
-                    // 1. Exit RIGHT from predecessor bar end
-                    // 2. Small vertical DROP
-                    // 3. Go LEFT to vertical line position
-                    // 4. Go DOWN to target row
-                    // 5. Go RIGHT to arrow
-                    
-                    const exitX = from.x + 12;        // Exit 12px RIGHT of predecessor end
-                    const dropY = from.y + 16;        // Drop 16px down to clear below predecessor bar
-                    const verticalX = to.x - 15;      // Vertical line position (15px left of target)
-                    
-                    const pathData = `M ${from.x} ${from.y}
-                                     L ${exitX} ${from.y}
-                                     L ${exitX} ${dropY}
-                                     L ${verticalX} ${dropY}
-                                     L ${verticalX} ${to.y}
-                                     L ${to.x - 8} ${to.y}`;
-
-                    return (
-                      <g key={connIndex}>
-                        <path
-                          d={pathData}
-                          stroke="black"
-                          strokeWidth="1"
-                          fill="none"
-                        />
-                        <polygon
-                          points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
-                          fill="black"
-                        />
-                      </g>
-                    );
-                  })}
-                </svg>
+                      key={`grid-${i}`}
+                      className={`absolute top-0 h-full border-r border-border/30 ${
+                        isWeekend ? "bg-blue-50" : "bg-white"
+                      }`}
+                      style={{ left: i * dayWidth, width: dayWidth }}
+                    />
+                  );
+                })
               )}
             </div>
+
+            {/* Row Separators */}
+            {visibleTasks.map((_, index) => (
+              <div
+                key={`row-sep-${index}`}
+                className="absolute w-full border-b border-gray-100"
+                style={{ top: (index + 1) * ROW_HEIGHT - 1 }}
+              />
+            ))}
+
+            {/* Task Bars */}
+            {visibleTasks.map((task, index) => {
+              const position = getTaskPosition(task);
+              const barColorClass = getBarColorClass(task);
+              const progressWidth = (position.width * position.progress) / 100;
+
+              return (
+                <div
+                  key={task.id}
+                  className="absolute"
+                  style={{ top: index * ROW_HEIGHT + (ROW_HEIGHT - 24) / 2 }}
+                >
+                  {/* The bar itself */}
+                  <div
+                    className="absolute h-6 rounded cursor-move border"
+                    style={{
+                      left: position.left,
+                      width: position.width,
+                      backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
+                      borderColor: `hsl(var(--timeline-${barColorClass}))`
+                    }}
+                  >
+                    {/* Progress fill */}
+                    <div
+                      className="h-full rounded-l opacity-80"
+                      style={{
+                        width: progressWidth,
+                        backgroundColor: `hsl(var(--timeline-progress))`
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Task name - always displayed outside the bar to the right */}
+                  <div
+                    className="absolute h-6 flex items-center pl-2 whitespace-nowrap"
+                    style={{
+                      left: position.left + position.width + 16,
+                    }}
+                  >
+                    <span className="text-[length:var(--schedule-font-size)] font-medium text-foreground">
+                      {task.task_name}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Dependency Lines */}
+            {connections.length > 0 && (
+              <svg
+                className="absolute pointer-events-none"
+                style={{ 
+                  left: 0, 
+                  top: 0,
+                  width: timelineWidth, 
+                  height: visibleTasks.length * ROW_HEIGHT 
+                }}
+              >
+                {connections.map((connection, connIndex) => {
+                  const { from, to } = connection;
+                  
+                  // 5-segment path matching BuildTools pattern:
+                  // 1. Exit RIGHT from predecessor bar end
+                  // 2. Small vertical DROP
+                  // 3. Go LEFT to vertical line position
+                  // 4. Go DOWN to target row
+                  // 5. Go RIGHT to arrow
+                  
+                  const exitX = from.x + 12;        // Exit 12px RIGHT of predecessor end
+                  const dropY = from.y + 16;        // Drop 16px down to clear below predecessor bar
+                  const verticalX = to.x - 15;      // Vertical line position (15px left of target)
+                  
+                  const pathData = `M ${from.x} ${from.y}
+                                   L ${exitX} ${from.y}
+                                   L ${exitX} ${dropY}
+                                   L ${verticalX} ${dropY}
+                                   L ${verticalX} ${to.y}
+                                   L ${to.x - 8} ${to.y}`;
+
+                  return (
+                    <g key={connIndex}>
+                      <path
+                        d={pathData}
+                        stroke="black"
+                        strokeWidth="1"
+                        fill="none"
+                      />
+                      <polygon
+                        points={`${to.x - 8},${to.y - 4} ${to.x},${to.y} ${to.x - 8},${to.y + 4}`}
+                        fill="black"
+                      />
+                    </g>
+                  );
+                })}
+              </svg>
+            )}
           </div>
         </div>
       </div>

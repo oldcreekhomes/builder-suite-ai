@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus } from 'lucide-react';
 import { useTaskMutations } from '@/hooks/useTaskMutations';
 import { useProjectTasks } from '@/hooks/useProjectTasks';
-import { useProjectResources } from '@/hooks/useProjectResources';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResourcesSelector } from './ResourcesSelector';
 
@@ -39,7 +38,6 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
 
   const { createTask } = useTaskMutations(projectId);
   const { data: tasks = [] } = useProjectTasks(projectId);
-  const { companies, internalUsers } = useProjectResources();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,8 +166,6 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
             <ResourcesSelector
               value={formData.resources}
               onValueChange={(value) => handleChange('resources', value)}
-              companies={companies}
-              internalUsers={internalUsers}
             />
           </div>
 
