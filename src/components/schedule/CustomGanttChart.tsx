@@ -59,6 +59,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [collapseAllTasks, setCollapseAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<{ taskId: string; dependentTasks: any[] } | null>(null);
+  const [pendingBulkDelete, setPendingBulkDelete] = useState<{ taskIds: string[]; dependentTasks: any[] } | null>(null);
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   
   
@@ -1307,7 +1308,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
 
     if (dependentTasks.length > 0) {
       setIsDeletingBulk(false);
-      toast({ title: "Error", description: `Cannot delete tasks: ${dependentTasks.length} other task(s) depend on selected tasks`, variant: "destructive" });
+      // Show modal instead of blocking with toast
+      setPendingBulkDelete({ 
+        taskIds: selectedTaskIds, 
+        dependentTasks: dependentTasks 
+      });
       return;
     }
 
@@ -1534,6 +1539,132 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Handle confirmed bulk deletion (when user chooses to proceed despite dependencies)
+  const handleConfirmBulkDelete = async () => {
+    if (!pendingBulkDelete) return;
+
+    setIsDeletingBulk(true);
+    
+    try {
+      const selectedTaskIds = pendingBulkDelete.taskIds;
+      
+      // First, remove predecessor references from dependent tasks
+      console.log(`🔗 Removing dependencies from ${pendingBulkDelete.dependentTasks.length} dependent tasks`);
+      
+      const predecessorClearUpdates = pendingBulkDelete.dependentTasks.map(depTask => {
+        // Parse current predecessors and filter out the ones being deleted
+        const currentPreds = Array.isArray(depTask.predecessor) 
+          ? depTask.predecessor 
+          : (depTask.predecessor ? [depTask.predecessor] : []);
+        
+        // Get hierarchy numbers of tasks being deleted
+        const deletingHierarchies = selectedTaskIds
+          .map(id => tasks.find(t => t.id === id)?.hierarchy_number)
+          .filter(Boolean);
+        
+        // Filter out predecessors that reference deleted tasks
+        const newPreds = currentPreds.filter((pred: string) => {
+          const predBase = pred.replace(/\s*(SS|SF|FF|FS)?(\s*[+-]\d+d?)?$/i, '').trim();
+          return !deletingHierarchies.includes(predBase);
+        });
+        
+        return {
+          id: depTask.id,
+          predecessor: newPreds
+        };
+      });
+      
+      if (predecessorClearUpdates.length > 0) {
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorClearUpdates, 
+          options: { suppressInvalidate: true, skipValidation: true } 
+        });
+      }
+      
+      // Now proceed with deletion using the same logic as handleBulkDelete
+      const deleteResult = computeBulkDeleteUpdates(selectedTaskIds, tasks);
+      
+      console.log(`🚀 Starting bulk delete of ${deleteResult.tasksToDelete.length} tasks after removing dependencies`);
+      
+      // Set batch operation flag
+      (window as any).__batchOperationInProgress = true;
+      
+      // Phase 1: Bulk delete all tasks
+      if (deleteResult.tasksToDelete.length > 0) {
+        await bulkDeleteTasks.mutateAsync({ 
+          taskIds: deleteResult.tasksToDelete, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 2: Bulk update hierarchies if needed
+      if (deleteResult.hierarchyUpdates.length > 0) {
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: deleteResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      // Phase 3: Bulk update predecessors if needed
+      if (deleteResult.predecessorUpdates.length > 0) {
+        const predecessorUpdates = deleteResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorUpdates, 
+          options: { suppressInvalidate: true, skipValidation: true } 
+        });
+      }
+      
+      // Phase 4: Normalize hierarchy
+      const { computeNormalizationUpdates } = await import('@/utils/hierarchyNormalization');
+      
+      let postDeleteSnapshot = tasks
+        .filter(t => !deleteResult.tasksToDelete.includes(t.id))
+        .map(t => ({ ...t }));
+      
+      deleteResult.hierarchyUpdates.forEach(update => {
+        const task = postDeleteSnapshot.find(t => t.id === update.id);
+        if (task) {
+          task.hierarchy_number = update.hierarchy_number;
+        }
+      });
+      
+      const normalizationResult = computeNormalizationUpdates(postDeleteSnapshot);
+      
+      if (normalizationResult.hierarchyUpdates.length > 0) {
+        await bulkUpdateHierarchies.mutateAsync({ 
+          updates: normalizationResult.hierarchyUpdates, 
+          options: { suppressInvalidate: true } 
+        });
+      }
+      
+      if (normalizationResult.predecessorUpdates.length > 0) {
+        const predecessorNormUpdates = normalizationResult.predecessorUpdates.map(update => ({
+          id: update.taskId,
+          predecessor: update.newPredecessors
+        }));
+        await bulkUpdatePredecessors.mutateAsync({ 
+          updates: predecessorNormUpdates, 
+          options: { suppressInvalidate: true, skipValidation: true } 
+        });
+      }
+      
+      // Clear selection
+      setSelectedTasks(new Set());
+      setPendingBulkDelete(null);
+      toast({ title: "Success", description: `${selectedTaskIds.length} task(s) deleted successfully` });
+    } catch (error) {
+      console.error("Failed to delete tasks:", error);
+      toast({ title: "Error", description: `Failed to delete tasks: ${error instanceof Error ? error.message : 'Unknown error'}`, variant: "destructive" });
+    } finally {
+      setIsDeletingBulk(false);
+      (window as any).__batchOperationInProgress = false;
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+    }
+  };
+
   // Calculate minimum day width to fit entire timeline in viewport
   const calculateMinDayWidth = () => {
     const timelineRange = getTimelineRange();
@@ -1732,6 +1863,37 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete}>
               Delete Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete with Dependencies Confirmation Dialog */}
+      <AlertDialog open={!!pendingBulkDelete} onOpenChange={() => setPendingBulkDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {pendingBulkDelete?.taskIds.length} Task(s) with Dependencies</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>The following task(s) depend on the selected task(s):</p>
+                <ul className="mt-2 list-disc list-inside max-h-40 overflow-y-auto">
+                  {pendingBulkDelete?.dependentTasks.map((task, index) => (
+                    <li key={index} className="text-sm">
+                      {task.hierarchy_number}: {task.task_name}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3">Deleting will remove these dependencies. Do you want to continue?</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove Dependencies & Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
