@@ -1285,6 +1285,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         // Check if all direct children are also selected
         const allChildrenSelected = children.every(child => selectedTasks.has(child.id));
         if (!allChildrenSelected) {
+          setIsDeletingBulk(false);
           toast({ title: "Error", description: "Cannot delete parent task - select all child tasks first or delete child tasks individually", variant: "destructive" });
           return;
         }
@@ -1305,6 +1306,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
 
     if (dependentTasks.length > 0) {
+      setIsDeletingBulk(false);
       toast({ title: "Error", description: `Cannot delete tasks: ${dependentTasks.length} other task(s) depend on selected tasks`, variant: "destructive" });
       return;
     }
