@@ -201,8 +201,8 @@ export function TaskRow({
           </TableCell>
 
           {/* Task Name with Indentation */}
-          <TableCell className="pl-2 pr-2 w-48 h-8 overflow-hidden flex items-center">
-          <div className="flex items-center h-full">
+          <TableCell className="py-1 pl-2 pr-2 w-48 h-8 overflow-hidden align-middle">
+          <div className="flex items-center">
               {indentLevel > 0 && <div style={{ width: `${indentLevel * 16}px` }} />}
               
               <div className="w-4 flex-shrink-0 mr-1 flex items-center justify-center">
