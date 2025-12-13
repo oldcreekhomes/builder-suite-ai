@@ -205,7 +205,7 @@ export function TaskRow({
             <div className="flex items-center h-full">
               {indentLevel > 0 && <div className="flex-shrink-0 h-full" style={{ width: `${indentLevel * 20}px` }} />}
               
-              <div className="w-4 h-5 flex-shrink-0 mr-1 flex items-center justify-center">
+              <div className="w-4 flex-shrink-0 mr-1 flex items-center">
                 {hasChildren ? (
                   <button
                     onClick={() => onToggleExpand(task.id)}
