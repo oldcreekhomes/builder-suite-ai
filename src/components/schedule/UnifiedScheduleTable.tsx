@@ -77,8 +77,8 @@ export function UnifiedScheduleTable({
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
-  // Custom divider state - pixel-based width control (max 876px = full table width)
-  const [leftPanelWidth, setLeftPanelWidth] = useState(876);
+  // Custom divider state - pixel-based width control (max 852px = full table width)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(852);
   
   // Notes dialog state
   const [notesDialogTaskId, setNotesDialogTaskId] = useState<string | null>(null);
@@ -94,7 +94,7 @@ export function UnifiedScheduleTable({
   };
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const dividerDragStartX = useRef<number>(0);
-  const dividerDragStartWidth = useRef<number>(876);
+  const dividerDragStartWidth = useRef<number>(852);
 
   // Divider drag handlers
   const handleDividerMouseDown = (e: React.MouseEvent) => {
@@ -109,7 +109,7 @@ export function UnifiedScheduleTable({
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - dividerDragStartX.current;
-      const newWidth = Math.max(300, Math.min(876, dividerDragStartWidth.current + delta));
+      const newWidth = Math.max(300, Math.min(852, dividerDragStartWidth.current + delta));
       setLeftPanelWidth(newWidth);
     };
 
@@ -499,7 +499,7 @@ export function UnifiedScheduleTable({
           ref={leftPanelRef}
           className="bg-white border-r border-gray-300 overflow-x-hidden overflow-y-auto [&::-webkit-scrollbar]:hidden"
           style={{ 
-            width: '908px',
+            width: '884px',
             height: '100%',
             scrollbarWidth: 'none'
           }}
@@ -520,7 +520,7 @@ export function UnifiedScheduleTable({
             <div className="w-12 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
             <div className="w-56 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Task Name</div>
             <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
-            <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Duration</div>
+            <div className="w-14 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Days</div>
             <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">End Date</div>
             <div className="w-28 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Predecessors</div>
             <div className="w-20 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Progress</div>
@@ -675,7 +675,7 @@ export function UnifiedScheduleTable({
                   </div>
 
                   {/* Duration */}
-                  <div className="w-20 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
+                  <div className="w-14 shrink-0 flex items-center border-r border-gray-200 px-[var(--schedule-cell-px)]">
                     <InlineEditCell
                       value={task.duration?.toString() || "1"}
                       type="number"
