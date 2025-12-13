@@ -519,7 +519,7 @@ export function UnifiedScheduleTable({
                 {...(isIndeterminate && { "data-state": "indeterminate" })}
               />
             </div>
-            <div className="w-14 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
+            <div className="w-14 shrink-0 flex items-center justify-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">#</div>
             <div className="w-56 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Task Name</div>
             <div className="w-24 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium whitespace-nowrap h-[var(--schedule-row-h)]">Start Date</div>
             <div className="w-14 shrink-0 flex items-center border-r border-b border-gray-200 px-[var(--schedule-cell-px)] text-[length:var(--schedule-font-size)] font-medium h-[var(--schedule-row-h)]">Days</div>
@@ -833,15 +833,15 @@ export function UnifiedScheduleTable({
                     const isWeekend = !isBusinessDay(dayDate);
                     
                     return (
-                      <div
-                        key={i}
-                        className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-[length:var(--schedule-font-size)] ${
-                          isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
-                        }`}
-                        style={{ left: i * dayWidth, width: dayWidth }}
-                      >
-                        {getDayOfMonth(dayDate)}
-                      </div>
+                <div
+                  key={i}
+                  className={`absolute top-0 h-full flex items-center justify-center border-r border-border text-[length:var(--schedule-font-size)] text-center ${
+                    isWeekend ? "bg-blue-100 text-blue-700" : "bg-background"
+                  }`}
+                  style={{ left: i * dayWidth, width: dayWidth }}
+                >
+                  {getDayOfMonth(dayDate)}
+                </div>
                     );
                   })
                 )}
