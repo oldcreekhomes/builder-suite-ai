@@ -1,5 +1,8 @@
 project_id = "nlmnwlvmmkngrgatnzkj"
 
+[functions.fix-self-referencing-predecessors]
+verify_jwt = false
+
 [functions.bulk-update-hierarchies]
 verify_jwt = false
 
