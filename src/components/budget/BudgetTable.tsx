@@ -575,6 +575,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                       <BudgetGroupTotalRow
                         group={group}
                         groupTotal={calculateGroupTotal(items, itemTotalsMap)}
+                        actualTotal={items.reduce((sum, item) => sum + (item.actual_amount || 0), 0)}
                         historicalTotal={
                           items.reduce((sum, item) => {
                             const costCode = item.cost_codes?.code;
@@ -624,6 +625,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
                         <BudgetGroupTotalRow
                           group={group}
                           groupTotal={0}
+                          actualTotal={0}
                           historicalTotal={items.reduce((sum, item) => sum + item.amount, 0)}
                           showVarianceAsPercentage={showVarianceAsPercentage}
                           visibleColumns={visibleColumns}
