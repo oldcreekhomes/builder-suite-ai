@@ -72,8 +72,10 @@ export function useBudgetData(projectId: string, lotId?: string | null) {
     const costCode = item.cost_codes as CostCode;
     const code = costCode?.code || '';
     
-    // If this cost code IS a parent code (referenced by others), skip it
-    if (parentCodes.has(code)) {
+    // Only skip TOP-LEVEL parent codes (codes that are referenced by others AND have no parent_group themselves)
+    // Mid-level parents like 2050 (child of 2000, parent of 2050.1, 2050.2) should still be displayed as items
+    const isTopLevelParent = parentCodes.has(code) && (!costCode?.parent_group || costCode.parent_group.trim() === '');
+    if (isTopLevelParent) {
       return acc;
     }
     
