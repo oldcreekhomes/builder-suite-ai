@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,8 +25,15 @@ export function VendorSearchInput({
   const [showResults, setShowResults] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { companies, loading } = useCompanySearch();
+  const skipNextValueUpdate = useRef(false);
 
   useEffect(() => {
+    // Skip this effect if we just set the value from onCompanyCreated
+    if (skipNextValueUpdate.current) {
+      skipNextValueUpdate.current = false;
+      return;
+    }
+    
     if (value) {
       // First, try to find by ID (UUID)
       const companyById = companies.find(c => c.id === value);
@@ -143,6 +150,8 @@ export function VendorSearchInput({
         onOpenChange={setShowAddDialog}
         initialCompanyName={searchQuery}
         onCompanyCreated={(companyId, companyName) => {
+          // Skip the next useEffect to prevent UUID from overwriting company name
+          skipNextValueUpdate.current = true;
           // Auto-select the newly created vendor
           setSearchQuery(companyName);
           onChange(companyId);
