@@ -5,6 +5,7 @@ import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 interface BudgetGroupTotalRowProps {
   group: string;
   groupTotal: number;
+  actualTotal?: number;
   historicalTotal?: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
@@ -13,6 +14,7 @@ interface BudgetGroupTotalRowProps {
 export function BudgetGroupTotalRow({ 
   group, 
   groupTotal,
+  actualTotal,
   historicalTotal,
   showVarianceAsPercentage = false,
   visibleColumns
@@ -59,7 +61,9 @@ export function BudgetGroupTotalRow({
       <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
         {formatCurrency(groupTotal)}
       </TableCell>
-      <TableCell className="w-32 py-1"></TableCell>
+      <TableCell className="w-32 py-1 text-sm text-left pl-3">
+        {actualTotal !== undefined && actualTotal > 0 ? formatCurrency(actualTotal) : '-'}
+      </TableCell>
       {visibleColumns.historicalCosts && (
         <TableCell className="w-52 pl-3 py-1 text-sm">
           {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
