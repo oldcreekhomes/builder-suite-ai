@@ -45,6 +45,7 @@ export const useBudgetLockStatus = (projectId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-lock-status', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Budget Locked",
         description: "The budget has been locked successfully",
@@ -75,6 +76,7 @@ export const useBudgetLockStatus = (projectId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-lock-status', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Budget Unlocked",
         description: "The budget has been unlocked successfully",
