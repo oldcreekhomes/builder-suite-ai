@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface EditBillDialogProps {
   open: boolean;
@@ -90,6 +91,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [responseNote, setResponseNote] = useState('');
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [showReviewNotesDialog, setShowReviewNotesDialog] = useState(false);
   
   const { updateBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
@@ -711,26 +713,28 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 </div>
               )}
 
-              {/* Review Notes - right side */}
+              {/* Review Notes - icon only */}
               {billData?.notes && (
                 <div className="space-y-2">
                   <Label>Review Notes</Label>
-                  <div className="rounded-md border border-input bg-muted/50 p-3 text-sm max-h-24 overflow-y-auto">
-                    {billData.notes.split('\n').map((line, idx) => {
-                      const colonIndex = line.indexOf(':');
-                      if (colonIndex > 0 && colonIndex < 50) {
-                        const name = line.substring(0, colonIndex);
-                        const note = line.substring(colonIndex + 1);
-                        return (
-                          <div key={idx} className="mb-2 last:mb-0">
-                            <span className="font-semibold text-foreground">{name}:</span>
-                            <span>{note}</span>
-                          </div>
-                        );
-                      }
-                      return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
-                    }).filter(Boolean)}
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-muted"
+                          onClick={() => setShowReviewNotesDialog(true)}
+                          type="button"
+                        >
+                          <StickyNote className="h-5 w-5 text-yellow-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>View review notes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               )}
             </div>
@@ -1069,6 +1073,37 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           initialValue={internalNotes}
           onSave={setInternalNotes}
         />
+
+        {/* Review Notes Dialog */}
+        <Dialog open={showReviewNotesDialog} onOpenChange={setShowReviewNotesDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <StickyNote className="h-4 w-4 text-yellow-600" />
+                Review Notes
+              </DialogTitle>
+            </DialogHeader>
+            <div className="rounded-md border border-input bg-muted/50 p-3 text-sm max-h-64 overflow-y-auto">
+              {billData?.notes?.split('\n').map((line, idx) => {
+                const colonIndex = line.indexOf(':');
+                if (colonIndex > 0 && colonIndex < 50) {
+                  const name = line.substring(0, colonIndex);
+                  const note = line.substring(colonIndex + 1);
+                  return (
+                    <div key={idx} className="mb-2 last:mb-0">
+                      <span className="font-semibold text-foreground">{name}:</span>
+                      <span>{note}</span>
+                    </div>
+                  );
+                }
+                return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
+              }).filter(Boolean)}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setShowReviewNotesDialog(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
