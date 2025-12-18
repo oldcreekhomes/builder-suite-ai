@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 
 interface JobCostActualDialogProps {
@@ -26,11 +26,13 @@ interface JournalEntryLine {
   debit: number;
   credit: number;
   memo: string | null;
+  is_reversal: boolean;
   journal_entries: {
     entry_date: string;
     description: string | null;
     source_type: string | null;
     source_id: string | null;
+    reversed_at: string | null;
   };
   // Enriched from bill lookup
   vendor_name?: string;
@@ -80,7 +82,7 @@ export function JobCostActualDialog({
       if (costCodeError) throw costCodeError;
       if (!costCodeData) throw new Error("Cost code not found");
 
-      // Get journal entry lines with source info
+      // Get journal entry lines with source info - exclude reversals and reversed entries
       let query = supabase
         .from('journal_entry_lines')
         .select(`
@@ -88,16 +90,20 @@ export function JobCostActualDialog({
           debit,
           credit,
           memo,
+          is_reversal,
           journal_entries!inner(
             entry_date,
             description,
             source_type,
-            source_id
+            source_id,
+            reversed_at
           )
         `)
         .eq('account_id', settings.wip_account_id)
         .eq('project_id', projectId)
         .eq('cost_code_id', costCodeData.id)
+        .eq('is_reversal', false)
+        .is('journal_entries.reversed_at', null)
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
 
       // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
@@ -158,6 +164,12 @@ export function JobCostActualDialog({
     },
     enabled: isOpen && !!projectId && !!costCode && !!userId,
   });
+
+  // Calculate total from actual filtered lines instead of prop
+  const calculatedTotal = useMemo(() => {
+    if (!journalLines) return 0;
+    return journalLines.reduce((sum, line) => sum + (line.debit - line.credit), 0);
+  }, [journalLines]);
 
   const formatCurrency = (value: number) => {
     return `$${Math.round(value).toLocaleString()}`;
@@ -264,7 +276,7 @@ export function JobCostActualDialog({
                     {/* Total Row */}
                     <TableRow className="font-semibold bg-muted/30">
                       <TableCell colSpan={5}>Total Actual</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totalActual)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(calculatedTotal)}</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   </TableBody>
