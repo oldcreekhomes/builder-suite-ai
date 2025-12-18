@@ -899,10 +899,13 @@ export const useBills = () => {
 
           if (reversingJELinesError) throw reversingJELinesError;
 
-          // Link original JE to reversing JE
+          // Link original JE to reversing JE and mark as reversed
           await supabase
             .from('journal_entries')
-            .update({ reversed_by_id: reversingJE.id })
+            .update({ 
+              reversed_by_id: reversingJE.id,
+              reversed_at: new Date().toISOString()
+            })
             .eq('id', originalJE.id);
         }
       }
@@ -915,7 +918,7 @@ export const useBills = () => {
 
       if (linkError) throw linkError;
 
-      // Step 8: Create corrected bill using existing createBill logic
+      // Step 8: Create corrected bill using existing createBill logic, preserving original status
       const { data: correctedBill } = await supabase
         .from('bills')
         .insert({
@@ -923,7 +926,8 @@ export const useBills = () => {
           owner_id: originalBill.owner_id,
           created_by: user.id,
           total_amount: correctedBillLines.reduce((sum, line) => sum + line.amount, 0),
-          correction_reason: correctionReason
+          correction_reason: correctionReason,
+          status: originalBill.status // Preserve the original bill's status
         })
         .select()
         .single();
@@ -943,6 +947,95 @@ export const useBills = () => {
         .insert(correctedBillLinesData);
 
       if (correctedLinesError) throw correctedLinesError;
+
+      // Step 9: Create journal entries for corrected bill if original was posted/paid
+      if (originalBill.status === 'posted' || originalBill.status === 'paid') {
+        // Get accounting settings
+        const { data: settings } = await supabase
+          .from('accounting_settings')
+          .select('ap_account_id, wip_account_id')
+          .eq('owner_id', originalBill.owner_id)
+          .single();
+
+        if (settings?.ap_account_id) {
+          // Create journal entry for corrected bill
+          const { data: correctedJE, error: correctedJEError } = await supabase
+            .from('journal_entries')
+            .insert({
+              owner_id: originalBill.owner_id,
+              source_type: 'bill',
+              source_id: correctedBill.id,
+              entry_date: correctedBill.bill_date,
+              description: `Corrected Bill - Ref: ${correctedBill.reference_number || 'N/A'}`
+            })
+            .select()
+            .single();
+
+          if (correctedJEError) throw correctedJEError;
+
+          // Create journal entry lines for corrected bill
+          const correctedJELines: any[] = [];
+          let lineNumber = 1;
+
+          for (const line of correctedBillLinesData) {
+            const lineAmount = Math.abs(line.amount);
+            const isCredit = line.amount < 0;
+            
+            if (line.line_type === 'job_cost') {
+              if (settings.wip_account_id) {
+                correctedJELines.push({
+                  journal_entry_id: correctedJE.id,
+                  line_number: lineNumber++,
+                  account_id: settings.wip_account_id,
+                  debit: isCredit ? 0 : lineAmount,
+                  credit: isCredit ? lineAmount : 0,
+                  project_id: line.project_id || correctedBill.project_id,
+                  cost_code_id: line.cost_code_id,
+                  lot_id: line.lot_id,
+                  memo: line.memo,
+                  owner_id: originalBill.owner_id
+                });
+              }
+            } else {
+              if (line.account_id) {
+                correctedJELines.push({
+                  journal_entry_id: correctedJE.id,
+                  line_number: lineNumber++,
+                  account_id: line.account_id,
+                  debit: isCredit ? 0 : lineAmount,
+                  credit: isCredit ? lineAmount : 0,
+                  project_id: line.project_id || correctedBill.project_id,
+                  cost_code_id: line.cost_code_id,
+                  lot_id: line.lot_id,
+                  memo: line.memo,
+                  owner_id: originalBill.owner_id
+                });
+              }
+            }
+          }
+
+          // Credit AP for normal bills, Debit AP for credits
+          const totalAmount = Math.abs(correctedBill.total_amount);
+          const isBillCredit = correctedBill.total_amount < 0;
+          
+          correctedJELines.push({
+            journal_entry_id: correctedJE.id,
+            line_number: lineNumber,
+            account_id: settings.ap_account_id,
+            debit: isBillCredit ? totalAmount : 0,
+            credit: isBillCredit ? 0 : totalAmount,
+            memo: `AP - ${correctedBill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
+            owner_id: originalBill.owner_id,
+            project_id: correctedBill.project_id || null
+          });
+
+          const { error: correctedJELinesError } = await supabase
+            .from('journal_entry_lines')
+            .insert(correctedJELines);
+
+          if (correctedJELinesError) throw correctedJELinesError;
+        }
+      }
 
       return { originalBill, reversingBill, correctedBill };
     },

@@ -103,7 +103,7 @@ export function JobCostActualDialog({
         .eq('project_id', projectId)
         .eq('cost_code_id', costCodeData.id)
         .eq('is_reversal', false)
-        .is('journal_entries.reversed_at', null)
+        .is('journal_entries.reversed_by_id', null)
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
 
       // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
