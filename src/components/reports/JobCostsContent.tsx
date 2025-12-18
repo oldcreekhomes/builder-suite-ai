@@ -95,8 +95,9 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
         `)
         .eq('project_id', projectId);
       
+      // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
       if (selectedLotId) {
-        budgetQuery = budgetQuery.eq('lot_id', selectedLotId);
+        budgetQuery = budgetQuery.or(`lot_id.eq.${selectedLotId},lot_id.is.null`);
       }
       
       const { data: budgetData, error: budgetError } = await budgetQuery;
@@ -122,9 +123,9 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
         .not('cost_code_id', 'is', null)
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
       
-      // Filter by lot if selected
+      // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
       if (selectedLotId) {
-        wipQuery = wipQuery.eq('lot_id', selectedLotId);
+        wipQuery = wipQuery.or(`lot_id.eq.${selectedLotId},lot_id.is.null`);
       }
       
       const { data: wipLines, error: wipError } = await wipQuery;
