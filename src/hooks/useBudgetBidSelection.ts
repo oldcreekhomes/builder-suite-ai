@@ -35,6 +35,7 @@ export function useBudgetBidSelection(projectId: string, costCodeId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Bid selection updated",
         description: "Budget item linked to vendor bid successfully",

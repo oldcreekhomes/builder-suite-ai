@@ -252,6 +252,7 @@ export function BudgetDetailsModal({
         queryClient.invalidateQueries({ queryKey: ['all-budget-subcategories', projectId] });
         queryClient.invalidateQueries({ queryKey: ['budget-subcategories', budgetItem.id] });
         queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+        queryClient.invalidateQueries({ queryKey: ['job-costs'] });
 
         onClose();
       } catch (error: any) {

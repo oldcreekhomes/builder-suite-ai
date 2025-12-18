@@ -51,6 +51,7 @@ export function useBudgetSourceUpdate(projectId: string) {
     },
     onSuccess: (_, params) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       
       const sourceLabels: Record<BudgetSource, string> = {
         'estimate': 'Estimate',
