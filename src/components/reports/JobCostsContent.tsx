@@ -96,8 +96,8 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
         .eq('project_id', projectId);
       
       // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
-      if (selectedLotId) {
-        budgetQuery = budgetQuery.or(`lot_id.eq.${selectedLotId},lot_id.is.null`);
+        if (selectedLotId) {
+          budgetQuery = budgetQuery.eq('lot_id', selectedLotId);
       }
       
       const { data: budgetData, error: budgetError } = await budgetQuery;

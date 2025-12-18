@@ -34,6 +34,7 @@ export function useAutoAddMissingCostCodes(
     },
     onSuccess: (_, costCodesToAdd) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', currentProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       if (costCodesToAdd.length > 0) {
         toast({ title: "Success", description: `Added ${costCodesToAdd.length} missing cost code${costCodesToAdd.length > 1 ? 's' : ''} from historical project` });
       }

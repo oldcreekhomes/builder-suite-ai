@@ -58,6 +58,7 @@ export function BudgetCreationModal({
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Budget items created",
         description: `Successfully added ${count} items to the budget`,
