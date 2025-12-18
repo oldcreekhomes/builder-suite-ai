@@ -188,6 +188,68 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
         });
       }
 
+// Step 5.5: Calculate subcategory totals for items with has_subcategories
+const itemsWithSubcategories = budgetData?.filter(
+  item => (item.cost_codes as any)?.has_subcategories === true
+) || [];
+
+const subcategoryTotalsMap: Record<string, number> = {};
+
+if (itemsWithSubcategories.length > 0) {
+  // Get parent codes that have subcategories
+  const parentCodes = itemsWithSubcategories.map(item => (item.cost_codes as any)?.code).filter(Boolean);
+  
+  // Fetch child cost codes
+  const { data: childCostCodes } = await supabase
+    .from('cost_codes')
+    .select('id, code, parent_group, price, quantity')
+    .in('parent_group', parentCodes);
+  
+  // Fetch budget items for child cost codes
+  const childCostCodeIds = childCostCodes?.map(cc => cc.id) || [];
+  let childBudgetQuery = supabase
+    .from('project_budgets')
+    .select('id, cost_code_id, quantity, unit_price')
+    .eq('project_id', projectId)
+    .in('cost_code_id', childCostCodeIds);
+  
+  if (selectedLotId) {
+    childBudgetQuery = childBudgetQuery.or(`lot_id.eq.${selectedLotId},lot_id.is.null`);
+  }
+  
+  const { data: childBudgetItems } = await childBudgetQuery;
+  
+  // Create lookup maps
+  const budgetItemsByCostCode: Record<string, any> = {};
+  childBudgetItems?.forEach(item => {
+    budgetItemsByCostCode[item.cost_code_id] = item;
+  });
+  
+  const childCodesByParent: Record<string, any[]> = {};
+  childCostCodes?.forEach(child => {
+    if (!childCodesByParent[child.parent_group]) {
+      childCodesByParent[child.parent_group] = [];
+    }
+    childCodesByParent[child.parent_group].push(child);
+  });
+  
+  // Calculate totals for each parent budget item
+  for (const item of itemsWithSubcategories) {
+    const parentCode = (item.cost_codes as any)?.code;
+    const children = childCodesByParent[parentCode] || [];
+    let total = 0;
+    
+    for (const child of children) {
+      const budgetItem = budgetItemsByCostCode[child.id];
+      const quantity = budgetItem?.quantity ?? (child.quantity ? parseFloat(child.quantity) : 1);
+      const unitPrice = budgetItem?.unit_price ?? (child.price || 0);
+      total += (quantity || 0) * (unitPrice || 0);
+    }
+    
+    subcategoryTotalsMap[item.id] = total;
+  }
+}
+
 // Step 6: Calculate budgets aggregated to parent codes (match Budget UI)
 const sumChildrenByParent: Record<string, number> = {};
 const parentItemTotals: Record<string, number> = {};
@@ -200,7 +262,10 @@ budgetData?.forEach(item => {
   const name = (item.cost_codes as any).name as string;
   const parentCode = getParentCode(code);
   const isChild = code.includes('.');
-  const total = calculateBudgetItemTotal(item, 0, false);
+  
+  // Use subcategory total if available (for items with has_subcategories and budget_source='estimate')
+  const subcategoryTotal = subcategoryTotalsMap[item.id];
+  const total = calculateBudgetItemTotal(item, subcategoryTotal, false);
 
   if (isChild) {
     sumChildrenByParent[parentCode] = (sumChildrenByParent[parentCode] || 0) + total;
