@@ -673,61 +673,71 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </div>
           </div>
 
-          {/* Existing Attachments and Review Notes - all icons in one row */}
+          {/* Existing Attachments and Review Notes - 2 column grid */}
           {(attachments.length > 0 || billData?.notes) && (
-            <div className="space-y-2">
-              <Label>Existing Attachments</Label>
-              <div className="flex items-center gap-2 flex-wrap">
-                {attachments.map((attachment) => {
-                  const IconComponent = getFileIcon(attachment.file_name);
-                  const iconColorClass = getFileIconColor(attachment.file_name);
-                  return (
-                    <div key={attachment.id} className="relative group">
-                      <button
-                        onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
-                          id: attachment.id,
-                          size: attachment.file_size,
-                          mimeType: attachment.content_type
-                        })}
-                        className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                        title={attachment.file_name}
-                        type="button"
-                      >
-                        <IconComponent className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAttachment(attachment)}
-                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
-                        title="Remove attachment"
-                        type="button"
-                      >
-                        <span className="text-xs font-bold leading-none">×</span>
-                      </button>
-                    </div>
-                  );
-                })}
-                
-                {/* Review Notes icon - same size, inline with attachments */}
-                {billData?.notes && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setShowReviewNotesDialog(true)}
-                          className="text-yellow-600 transition-colors p-1 rounded hover:bg-muted/50"
-                          title="View review notes"
-                          type="button"
-                        >
-                          <StickyNote className="h-5 w-5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>View review notes</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Existing Attachments - left side */}
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Existing Attachments</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {attachments.map((attachment) => {
+                      const IconComponent = getFileIcon(attachment.file_name);
+                      const iconColorClass = getFileIconColor(attachment.file_name);
+                      return (
+                        <div key={attachment.id} className="relative group">
+                          <button
+                            onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
+                              id: attachment.id,
+                              size: attachment.file_size,
+                              mimeType: attachment.content_type
+                            })}
+                            className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                            title={attachment.file_name}
+                            type="button"
+                          >
+                            <IconComponent className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAttachment(attachment)}
+                            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                            title="Remove attachment"
+                            type="button"
+                          >
+                            <span className="text-xs font-bold leading-none">×</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Review Notes - right side */}
+              {billData?.notes && (
+                <div className="space-y-2">
+                  <Label>Review Notes</Label>
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setShowReviewNotesDialog(true)}
+                            className="text-yellow-600 transition-colors p-1 rounded hover:bg-muted/50"
+                            title="View review notes"
+                            type="button"
+                          >
+                            <StickyNote className="h-5 w-5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View review notes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
