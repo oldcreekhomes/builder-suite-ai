@@ -251,9 +251,8 @@ if (itemsWithSubcategories.length > 0) {
 }
 
 // Step 6: Calculate budgets aggregated to parent codes (match Budget UI)
-const sumChildrenByParent: Record<string, number> = {};
+// Note: Child cost codes (with dots like 4470.1) are excluded to match Budget page behavior
 const parentItemTotals: Record<string, number> = {};
-const parentsWithChildren = new Set<string>();
 const parentNamesByCode: Record<string, string> = {};
 
 budgetData?.forEach(item => {
@@ -263,43 +262,23 @@ budgetData?.forEach(item => {
   const parentCode = getParentCode(code);
   const isChild = code.includes('.');
   
+  // Skip child items - they are subcategory details not shown on Budget page
+  // The Budget page hides child groups (like 4470.1, 4470.2) and only shows parent items (like 4470)
+  if (isChild) {
+    return;
+  }
+  
   // Use subcategory total if available (for items with has_subcategories and budget_source='estimate')
   const subcategoryTotal = subcategoryTotalsMap[item.id];
   const total = calculateBudgetItemTotal(item, subcategoryTotal, false);
 
-  if (isChild) {
-    sumChildrenByParent[parentCode] = (sumChildrenByParent[parentCode] || 0) + total;
-    parentsWithChildren.add(parentCode);
-  } else {
-    parentItemTotals[parentCode] = (parentItemTotals[parentCode] || 0) + total;
-    parentNamesByCode[parentCode] = name;
-  }
+  // Only include parent-level items in budget totals
+  parentItemTotals[parentCode] = (parentItemTotals[parentCode] || 0) + total;
+  parentNamesByCode[parentCode] = name;
 });
 
-// If we only saw children, fetch parent names
-const missingParentCodes = Array.from(parentsWithChildren).filter(pc => !parentNamesByCode[pc]);
-if (missingParentCodes.length > 0) {
-  const { data: parentCodeNames } = await supabase
-    .from('cost_codes')
-    .select('code, name')
-    .in('code', missingParentCodes);
-  parentCodeNames?.forEach(cc => {
-    parentNamesByCode[cc.code] = cc.name;
-  });
-}
-
-// Build budgets by parent code; children override parent if present
-const budgetsByParentCode: Record<string, number> = {};
-const allParentCodesSet = new Set<string>([
-  ...Object.keys(parentItemTotals),
-  ...Object.keys(sumChildrenByParent),
-]);
-
-allParentCodesSet.forEach(pc => {
-  budgetsByParentCode[pc] = parentsWithChildren.has(pc)
-    ? (sumChildrenByParent[pc] || 0)
-    : (parentItemTotals[pc] || 0);
-});
+// Build budgets by parent code - only parent items (children are excluded to match Budget page)
+const budgetsByParentCode: Record<string, number> = { ...parentItemTotals };
 
 // Step 7: Aggregate actuals to parent codes
 const actualsByParentCode: Record<string, number> = {};
