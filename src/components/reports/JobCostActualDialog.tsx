@@ -214,8 +214,6 @@ export function JobCostActualDialog({
                       <TableHead>Vendor</TableHead>
                       <TableHead>Ref #</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="text-right w-[90px]">Debit</TableHead>
-                      <TableHead className="text-right w-[90px]">Credit</TableHead>
                       <TableHead className="text-right w-[100px]">Net Amount</TableHead>
                       <TableHead className="w-[60px]">Actions</TableHead>
                     </TableRow>
@@ -241,12 +239,6 @@ export function JobCostActualDialog({
                           <TableCell className="text-sm">
                             {line.memo || line.journal_entries.description || '-'}
                           </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {line.debit > 0 ? formatCurrency(line.debit) : '-'}
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            {line.credit > 0 ? formatCurrency(line.credit) : '-'}
-                          </TableCell>
                           <TableCell className={`text-right text-sm font-medium ${
                             netAmount >= 0 ? 'text-foreground' : 'text-red-600'
                           }`}>
@@ -271,7 +263,7 @@ export function JobCostActualDialog({
                     
                     {/* Total Row */}
                     <TableRow className="font-semibold bg-muted/30">
-                      <TableCell colSpan={7}>Total Actual</TableCell>
+                      <TableCell colSpan={5}>Total Actual</TableCell>
                       <TableCell className="text-right">{formatCurrency(totalActual)}</TableCell>
                       <TableCell></TableCell>
                     </TableRow>
