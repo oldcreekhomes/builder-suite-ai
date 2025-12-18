@@ -813,7 +813,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           value={row.memo}
                           onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
                           className="h-8"
-                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-2">
@@ -959,7 +958,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           value={row.memo}
                           onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
                           className="h-8"
-                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-1">
