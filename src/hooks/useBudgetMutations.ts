@@ -25,6 +25,7 @@ export function useBudgetMutations(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Success",
         description: "Budget item updated successfully",
@@ -47,6 +48,7 @@ export function useBudgetMutations(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Success",
         description: "Unit of measure updated successfully",
@@ -67,6 +69,7 @@ export function useBudgetMutations(projectId: string) {
     },
     onSuccess: (itemId) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       
       setDeletingItems(prev => {
         const newSet = new Set(prev);
@@ -109,6 +112,7 @@ export function useBudgetMutations(projectId: string) {
     },
     onSuccess: (group) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       
       setDeletingGroups(prev => {
         const newSet = new Set(prev);
@@ -169,6 +173,7 @@ export function useBudgetMutations(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Success",
         description: "Actual amount updated successfully",

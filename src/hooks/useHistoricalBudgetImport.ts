@@ -65,6 +65,7 @@ export function useHistoricalBudgetImport(projectId: string, historicalProjectId
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       toast({
         title: "Import successful",
         description: `Imported ${count} budget items from historical project`,

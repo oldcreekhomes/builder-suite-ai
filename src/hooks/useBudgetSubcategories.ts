@@ -126,6 +126,7 @@ export function useBudgetSubcategories(
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budget-subcategory-selections', budgetItemId] });
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
     },
   });
 
@@ -167,6 +168,7 @@ export function useBudgetSubcategories(
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budget-subcategories', projectId, costCodeId] });
       queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
     },
   });
 
