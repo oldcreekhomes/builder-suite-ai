@@ -12,12 +12,16 @@ import { JobCostGroupTotalRow } from "./JobCostGroupTotalRow";
 import { JobCostRow } from "./JobCostRow";
 import { JobCostProjectTotalRow } from "./JobCostProjectTotalRow";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Lock, LockOpen } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { calculateBudgetItemTotal } from "@/utils/budgetUtils";
 import { LotSelector } from "@/components/budget/LotSelector";
+import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const getTopLevelGroup = (costCode: string): string => {
   const num = parseFloat(costCode);
@@ -51,6 +55,28 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
   const [dialogType, setDialogType] = useState<'budget' | 'actual' | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
+  const [showLockDialog, setShowLockDialog] = useState(false);
+  const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
+
+  const { isLocked, canLockBudgets, lockBudget, unlockBudget, isLocking, isUnlocking } = useBudgetLockStatus(projectId || '');
+
+  const handleLockToggle = () => {
+    if (isLocked) {
+      setLockAction('unlock');
+    } else {
+      setLockAction('lock');
+    }
+    setShowLockDialog(true);
+  };
+
+  const handleConfirmLock = () => {
+    if (lockAction === 'lock') {
+      lockBudget(undefined);
+    } else {
+      unlockBudget(undefined);
+    }
+    setShowLockDialog(false);
+  };
   
   const { data: jobCostsData, isLoading, error } = useQuery({
     queryKey: ['job-costs', user?.id, projectId, selectedLotId, asOfDate.toISOString().split('T')[0]],
@@ -523,13 +549,68 @@ return parentRows;
       ) : (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Budget vs. Actual</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>Budget vs. Actual</CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={canLockBudgets ? handleLockToggle : undefined}
+                      disabled={!canLockBudgets || isLocking || isUnlocking}
+                      className={cn(
+                        "p-1 rounded transition-colors",
+                        canLockBudgets && !isLocking && !isUnlocking 
+                          ? "cursor-pointer hover:bg-accent" 
+                          : "cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      {isLocked ? (
+                        <Lock className="h-5 w-5 text-destructive" />
+                      ) : (
+                        <LockOpen className="h-5 w-5 text-green-600" />
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {!canLockBudgets ? (
+                      <p>No access. Contact admin.</p>
+                    ) : isLocked ? (
+                      <p>Budget is locked. Click to unlock.</p>
+                    ) : (
+                      <p>Budget is unlocked. Click to lock.</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <LotSelector
               projectId={projectId}
               selectedLotId={selectedLotId}
               onSelectLot={setSelectedLotId}
             />
           </CardHeader>
+
+          {/* Lock/Unlock Confirmation Dialog */}
+          <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {lockAction === 'lock' ? 'Lock Budget?' : 'Unlock Budget?'}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {lockAction === 'lock' 
+                    ? 'Locking the budget will prevent any modifications to budget amounts. This applies to both Budget and Job Costs pages.'
+                    : 'Unlocking the budget will allow modifications to budget amounts. This applies to both Budget and Job Costs pages.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmLock}>
+                  {lockAction === 'lock' ? 'Lock Budget' : 'Unlock Budget'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <CardContent>
             {/* Table */}
             <div className="border rounded-lg">
