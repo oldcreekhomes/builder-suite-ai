@@ -109,18 +109,20 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
 
       console.log(`🔍 Job Costs: Found ${budgetData?.length || 0} budget items`);
 
-      // Step 3: Get actual WIP costs
+      // Step 3: Get actual WIP costs - exclude reversals and reversed entries
       let wipQuery = supabase
         .from('journal_entry_lines')
         .select(`
           cost_code_id,
           debit,
           credit,
-          journal_entries!inner(entry_date)
+          journal_entries!inner(entry_date, reversed_at)
         `)
         .eq('account_id', wipAccountId)
         .eq('project_id', projectId)
         .not('cost_code_id', 'is', null)
+        .eq('is_reversal', false)
+        .is('journal_entries.reversed_at', null)
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
       
       // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
