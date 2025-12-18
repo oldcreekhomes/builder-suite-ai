@@ -85,9 +85,9 @@ export function JobCostActualDialog({
         .eq('cost_code_id', costCodeData.id)
         .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
 
-      // Filter by lot if provided
+      // Include both matching lot_id AND null lot_id (for historical data entered before lot allocation)
       if (lotId) {
-        query = query.eq('lot_id', lotId);
+        query = query.or(`lot_id.eq.${lotId},lot_id.is.null`);
       }
 
       const { data: lines, error: linesError } = await query.order('journal_entries(entry_date)', { ascending: false });
