@@ -241,9 +241,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   };
 
   const updateJobCostRow = (id: string, field: keyof ExpenseRow, value: string) => {
-    setJobCostRows(jobCostRows.map(row => 
-      row.id === id ? { ...row, [field]: value } : row
-    ));
+    setJobCostRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
   };
 
   const addExpenseRow = () => {
@@ -270,9 +270,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   };
 
   const updateExpenseRow = (id: string, field: keyof ExpenseRow, value: string) => {
-    setExpenseRows(expenseRows.map(row => 
-      row.id === id ? { ...row, [field]: value } : row
-    ));
+    setExpenseRows((prevRows) =>
+      prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
   };
 
 
