@@ -383,7 +383,13 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
-    // Validation passed, show confirmation dialog
+    // For approved/posted/paid bills, save directly without review confirmation
+    if (['approved', 'posted', 'paid'].includes(billData?.status)) {
+      await handleConfirmedSave();
+      return;
+    }
+
+    // For other statuses, show confirmation dialog
     setShowSaveConfirmation(true);
   };
 
@@ -665,62 +671,68 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </div>
           </div>
 
-          {/* Display existing attachments */}
-          {attachments.length > 0 && (
-            <div className="space-y-2">
-              <Label>Existing Attachments</Label>
-              <div className="flex items-center gap-2 flex-wrap">
-                {attachments.map((attachment) => {
-                  const IconComponent = getFileIcon(attachment.file_name);
-                  const iconColorClass = getFileIconColor(attachment.file_name);
-                  return (
-                    <div key={attachment.id} className="relative group">
-                      <button
-                        onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
-                          id: attachment.id,
-                          size: attachment.file_size,
-                          mimeType: attachment.content_type
-                        })}
-                        className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                        title={attachment.file_name}
-                        type="button"
-                      >
-                        <IconComponent className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAttachment(attachment)}
-                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
-                        title="Remove attachment"
-                        type="button"
-                      >
-                        <span className="text-xs font-bold leading-none">×</span>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* Display existing attachments and review notes side by side */}
+          {(attachments.length > 0 || billData?.notes) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Existing Attachments - left side */}
+              {attachments.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Existing Attachments</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {attachments.map((attachment) => {
+                      const IconComponent = getFileIcon(attachment.file_name);
+                      const iconColorClass = getFileIconColor(attachment.file_name);
+                      return (
+                        <div key={attachment.id} className="relative group">
+                          <button
+                            onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
+                              id: attachment.id,
+                              size: attachment.file_size,
+                              mimeType: attachment.content_type
+                            })}
+                            className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                            title={attachment.file_name}
+                            type="button"
+                          >
+                            <IconComponent className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAttachment(attachment)}
+                            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                            title="Remove attachment"
+                            type="button"
+                          >
+                            <span className="text-xs font-bold leading-none">×</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-          {billData?.notes && (
-            <div className="space-y-2">
-              <Label>Review Notes</Label>
-              <div className="rounded-md border border-input bg-muted/50 p-3 text-sm">
-                {billData.notes.split('\n').map((line, idx) => {
-                  const colonIndex = line.indexOf(':');
-                  if (colonIndex > 0 && colonIndex < 50) {
-                    const name = line.substring(0, colonIndex);
-                    const note = line.substring(colonIndex + 1);
-                    return (
-                      <div key={idx} className="mb-2 last:mb-0">
-                        <span className="font-semibold text-foreground">{name}:</span>
-                        <span>{note}</span>
-                      </div>
-                    );
-                  }
-                  return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
-                }).filter(Boolean)}
-              </div>
+              {/* Review Notes - right side */}
+              {billData?.notes && (
+                <div className="space-y-2">
+                  <Label>Review Notes</Label>
+                  <div className="rounded-md border border-input bg-muted/50 p-3 text-sm max-h-24 overflow-y-auto">
+                    {billData.notes.split('\n').map((line, idx) => {
+                      const colonIndex = line.indexOf(':');
+                      if (colonIndex > 0 && colonIndex < 50) {
+                        const name = line.substring(0, colonIndex);
+                        const note = line.substring(colonIndex + 1);
+                        return (
+                          <div key={idx} className="mb-2 last:mb-0">
+                            <span className="font-semibold text-foreground">{name}:</span>
+                            <span>{note}</span>
+                          </div>
+                        );
+                      }
+                      return line ? <div key={idx} className="mb-2 last:mb-0">{line}</div> : null;
+                    }).filter(Boolean)}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
