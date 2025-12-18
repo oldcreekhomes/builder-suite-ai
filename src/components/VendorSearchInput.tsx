@@ -12,6 +12,7 @@ interface VendorSearchInputProps {
   onCompanySelect?: (company: { company_name: string; address?: string }) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export function VendorSearchInput({ 
@@ -19,7 +20,8 @@ export function VendorSearchInput({
   onChange,
   onCompanySelect,
   placeholder = "Search vendors...",
-  className 
+  className,
+  disabled = false
 }: VendorSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -103,6 +105,7 @@ export function VendorSearchInput({
         onBlur={handleInputBlur}
         placeholder={placeholder}
         className={className}
+        disabled={disabled}
       />
       
       {showResults && (

@@ -122,6 +122,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
   const { lots } = useLots(billData?.project_id);
   const showAddressColumn = lots.length > 1;
+  
+  // Determine if bill is in read-only mode (approved, posted, or paid)
+  const isApprovedBill = ['approved', 'posted', 'paid'].includes(billData?.status || '');
 
   // Fetch companies for the notes dialog
   const { data: companies } = useQuery({
@@ -547,7 +550,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         <DialogHeader>
           <DialogTitle>Edit Bill</DialogTitle>
           <DialogDescription>
-            Make changes to this rejected bill. It will be sent back for review once saved.
+            {isApprovedBill 
+              ? "Only date, cost code allocation, files, and notes can be modified for approved bills."
+              : "Make changes to this rejected bill. It will be sent back for review once saved."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -555,12 +561,13 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vendor">Vendor</Label>
-              <VendorSearchInput
-                value={vendor}
-                onChange={setVendor}
-                placeholder="Search vendors..."
-                className="h-8"
-              />
+                <VendorSearchInput
+                  value={vendor}
+                  onChange={setVendor}
+                  placeholder="Search vendors..."
+                  className="h-8"
+                  disabled={isApprovedBill}
+                />
             </div>
 
             <div className="space-y-2">
@@ -590,15 +597,16 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               </Popover>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="refNo">Reference No.</Label>
-              <Input 
-                id="refNo" 
-                value={referenceNumber}
-                onChange={(e) => setReferenceNumber(e.target.value)}
-                placeholder="Enter reference number" 
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="refNo">Reference No.</Label>
+                <Input 
+                  id="refNo" 
+                  value={referenceNumber}
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Enter reference number"
+                  disabled={isApprovedBill}
+                />
+              </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -608,6 +616,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={isApprovedBill}
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !billDueDate && "text-muted-foreground"
@@ -631,7 +640,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
             <div className="md:col-span-4 space-y-2">
               <Label htmlFor="terms">Terms</Label>
-              <Select value={terms} onValueChange={setTerms}>
+              <Select value={terms} onValueChange={setTerms} disabled={isApprovedBill}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select terms" />
                 </SelectTrigger>
@@ -751,12 +760,14 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               </TabsList>
               
               <TabsContent value="job-cost" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Button onClick={addJobCostRow} size="sm" variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                  </Button>
-                </div>
+                {!isApprovedBill && (
+                  <div className="flex items-center justify-between">
+                    <Button onClick={addJobCostRow} size="sm" variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Row
+                    </Button>
+                  </div>
+                )}
 
                 <div className="border rounded-lg overflow-hidden w-full">
                   <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
@@ -789,6 +800,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           value={row.memo}
                           onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
                           className="h-8"
+                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-2">
@@ -799,6 +811,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           value={row.quantity}
                           onChange={(e) => updateJobCostRow(row.id, 'quantity', e.target.value)}
                           className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-2">
@@ -811,6 +824,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             value={row.amount}
                             onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
                             className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            disabled={isApprovedBill}
                           />
                         </div>
                       </div>
@@ -824,6 +838,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           <Select
                             value={row.lotId || ''}
                             onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
+                            disabled={isApprovedBill}
                           >
                             <SelectTrigger className="h-8 w-full">
                               <SelectValue placeholder="Select" />
@@ -839,15 +854,17 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         </div>
                       )}
                       <div className="col-span-1 flex items-center justify-end">
-                        <Button
-                          onClick={() => removeJobCostRow(row.id, row.dbId)}
-                          size="sm"
-                          variant="destructive"
-                          disabled={jobCostRows.length === 1}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!isApprovedBill && (
+                          <Button
+                            onClick={() => removeJobCostRow(row.id, row.dbId)}
+                            size="sm"
+                            variant="destructive"
+                            disabled={jobCostRows.length === 1}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -882,12 +899,14 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
               </TabsContent>
               
               <TabsContent value="expense" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Button onClick={addExpenseRow} size="sm" variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Row
-                  </Button>
-                </div>
+                {!isApprovedBill && (
+                  <div className="flex items-center justify-between">
+                    <Button onClick={addExpenseRow} size="sm" variant="outline">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Row
+                    </Button>
+                  </div>
+                )}
 
                 <div className="border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
@@ -909,6 +928,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           placeholder="Select account"
                           accountType="expense"
                           className="h-8"
+                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-2">
@@ -917,6 +937,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           onChange={(projectId) => updateExpenseRow(row.id, 'projectId', projectId)}
                           placeholder="Select project"
                           className="h-8"
+                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-4">
@@ -925,6 +946,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           value={row.memo}
                           onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
                           className="h-8"
+                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-1">
@@ -935,6 +957,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           value={row.quantity}
                           onChange={(e) => updateExpenseRow(row.id, 'quantity', e.target.value)}
                           className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          disabled={isApprovedBill}
                         />
                       </div>
                       <div className="col-span-1">
@@ -947,6 +970,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             value={row.amount}
                             onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
                             className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            disabled={isApprovedBill}
                           />
                         </div>
                       </div>
@@ -956,15 +980,17 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         </span>
                       </div>
                       <div className="col-span-1 flex justify-center items-center">
-                        <Button
-                          onClick={() => removeExpenseRow(row.id, row.dbId)}
-                          size="sm"
-                          variant="destructive"
-                          disabled={expenseRows.length === 1}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!isApprovedBill && (
+                          <Button
+                            onClick={() => removeExpenseRow(row.id, row.dbId)}
+                            size="sm"
+                            variant="destructive"
+                            disabled={expenseRows.length === 1}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}

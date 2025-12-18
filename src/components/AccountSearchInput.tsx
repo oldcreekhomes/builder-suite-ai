@@ -12,6 +12,7 @@ interface AccountSearchInputProps {
   className?: string;
   accountType?: 'expense' | 'asset' | 'liability' | 'equity' | 'revenue';
   bankAccountsOnly?: boolean;
+  disabled?: boolean;
 }
 
 export function AccountSearchInput({ 
@@ -21,7 +22,8 @@ export function AccountSearchInput({
   placeholder = "Search accounts...",
   className,
   accountType,
-  bankAccountsOnly = false
+  bankAccountsOnly = false,
+  disabled = false
 }: AccountSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
@@ -197,6 +199,7 @@ export function AccountSearchInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={className}
+        disabled={disabled}
       />
       
       {mounted && showResults && filteredAccounts.length > 0 && createPortal(

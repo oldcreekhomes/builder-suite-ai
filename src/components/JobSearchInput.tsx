@@ -8,13 +8,15 @@ interface JobSearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 export function JobSearchInput({ 
   value, 
   onChange, 
   placeholder = "Search jobs...",
-  className 
+  className,
+  disabled = false
 }: JobSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -67,6 +69,7 @@ export function JobSearchInput({
         onBlur={handleInputBlur}
         placeholder={placeholder}
         className={className}
+        disabled={disabled}
       />
       
       {showResults && (
