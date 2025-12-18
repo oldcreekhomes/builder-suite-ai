@@ -93,7 +93,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [showReviewNotesDialog, setShowReviewNotesDialog] = useState(false);
   
-  const { updateBill, correctBill } = useBills();
+  const { updateBill, updateApprovedBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
 
   // Load bill data
@@ -463,14 +463,27 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     };
 
     try {
-      // Auto-correct if posted/paid, otherwise update
-      if (billData.status === 'posted' || billData.status === 'paid') {
-        await correctBill.mutateAsync({ 
-          billId, 
-          correctedBillData: updateData, 
-          correctedBillLines: billLines
+      // For approved/posted/paid bills, use updateApprovedBill (no status change, no reversals)
+      if (['approved', 'posted', 'paid'].includes(billData?.status)) {
+        // Build list of bill line updates with their database IDs
+        const lineUpdates = jobCostRows
+          .filter(row => row.dbId)
+          .map(row => ({
+            dbId: row.dbId!,
+            cost_code_id: row.accountId || undefined,
+            lot_id: row.lotId || undefined
+          }));
+
+        await updateApprovedBill.mutateAsync({
+          billId,
+          billData: {
+            bill_date: billDate.toISOString().split('T')[0],
+            notes: finalNotes
+          },
+          billLines: lineUpdates
         });
       } else {
+        // For draft bills, use regular updateBill
         await updateBill.mutateAsync({ 
           billId, 
           billData: updateData, 

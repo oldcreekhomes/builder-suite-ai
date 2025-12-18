@@ -684,6 +684,122 @@ export const useBills = () => {
     }
   });
 
+  // Update approved/posted/paid bills WITHOUT changing status or creating reversals
+  // Only updates allowed fields: date, notes, cost codes on lines
+  const updateApprovedBill = useMutation({
+    mutationFn: async ({ 
+      billId, 
+      billData, 
+      billLines 
+    }: { 
+      billId: string; 
+      billData: { bill_date: string; notes?: string }; 
+      billLines: { dbId: string; cost_code_id?: string; lot_id?: string }[];
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Get the bill with its journal entries
+      const { data: bill, error: billError } = await supabase
+        .from('bills')
+        .select('id, owner_id, status')
+        .eq('id', billId)
+        .single();
+
+      if (billError) throw billError;
+      if (!bill) throw new Error("Bill not found");
+
+      // Update bill header (only date and notes, NOT status)
+      const { error: updateError } = await supabase
+        .from('bills')
+        .update({
+          bill_date: billData.bill_date,
+          notes: billData.notes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', billId);
+
+      if (updateError) throw updateError;
+
+      // Update bill lines (only cost_code_id and lot_id)
+      for (const line of billLines) {
+        if (!line.dbId) continue;
+        
+        const { error: lineError } = await supabase
+          .from('bill_lines')
+          .update({
+            cost_code_id: line.cost_code_id || null,
+            lot_id: line.lot_id || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', line.dbId);
+
+        if (lineError) throw lineError;
+      }
+
+      // Get journal entries for this bill and update their cost codes
+      const { data: journalEntries } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('source_type', 'bill')
+        .eq('source_id', billId)
+        .is('reversed_by_id', null);
+
+      if (journalEntries && journalEntries.length > 0) {
+        // For each bill line, find and update corresponding journal entry line
+        for (const line of billLines) {
+          if (!line.dbId) continue;
+          
+          // Get the original bill line to find its position
+          const { data: billLine } = await supabase
+            .from('bill_lines')
+            .select('line_number, project_id')
+            .eq('id', line.dbId)
+            .single();
+
+          if (billLine) {
+            // Update journal entry lines with matching line_number
+            for (const je of journalEntries) {
+              const { error: jelError } = await supabase
+                .from('journal_entry_lines')
+                .update({
+                  cost_code_id: line.cost_code_id || null,
+                  lot_id: line.lot_id || null,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('journal_entry_id', je.id)
+                .eq('line_number', billLine.line_number);
+
+              if (jelError) {
+                console.error('Error updating journal entry line:', jelError);
+              }
+            }
+          }
+        }
+      }
+
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill'] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+      toast({
+        title: "Success",
+        description: "Bill updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating approved bill:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update bill",
+        variant: "destructive",
+      });
+    }
+  });
+
   const updateBill = useMutation({
     mutationFn: async ({ 
       billId, 
@@ -1069,6 +1185,7 @@ export const useBills = () => {
     payMultipleBills,
     deleteBill,
     updateBill,
+    updateApprovedBill,
     correctBill
   };
 };
