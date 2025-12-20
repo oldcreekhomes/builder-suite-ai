@@ -33,6 +33,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     status: "",
     construction_manager: "no-manager",
     accounting_manager: "no-manager",
+    accounting_software: "quickbooks",
   });
 
   // Update form data when project changes
@@ -43,6 +44,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         status: project.status,
         construction_manager: project.construction_manager || "no-manager",
         accounting_manager: project.accounting_manager || "no-manager",
+        accounting_software: project.accounting_software || "quickbooks",
       });
     }
   }, [project]);
@@ -56,6 +58,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         status: data.status,
         construction_manager: data.construction_manager === "no-manager" ? null : data.construction_manager,
         accounting_manager: data.accounting_manager === "no-manager" ? null : data.accounting_manager,
+        accounting_software: data.accounting_software,
       };
       
       const { error } = await supabase
@@ -153,19 +156,38 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="In Design">In Design</SelectItem>
-                <SelectItem value="Permitting">Permitting</SelectItem>
-                <SelectItem value="Under Construction">Under Construction</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="In Design">In Design</SelectItem>
+                  <SelectItem value="Permitting">Permitting</SelectItem>
+                  <SelectItem value="Under Construction">Under Construction</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="accountingSoftware">Accounting Software</Label>
+              <Select 
+                value={formData.accounting_software} 
+                onValueChange={(value) => handleChange('accounting_software', value)}
+                disabled={updateProjectMutation.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quickbooks">QuickBooks</SelectItem>
+                  <SelectItem value="builder_suite">Builder Suite</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Lot Management Section */}
