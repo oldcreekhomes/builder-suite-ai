@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusPriority: Record<string, number> = {
@@ -30,18 +31,32 @@ export function AccountantJobsTable() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
   const [showQuickBooks, setShowQuickBooks] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
   
-  // Filter to active projects only (not completed, not template) AND by accounting software
+  // Filter to active projects only (not completed, not template) AND by accounting software AND by search query
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
-  const activeProjects = projects.filter(p => 
-    p.status !== "Completed" && 
-    p.status !== "Template" &&
-    (p as any).accounting_software === softwareFilter
-  );
+  const activeProjects = projects.filter(p => {
+    if (p.status === "Completed" || p.status === "Template") return false;
+    if ((p as any).accounting_software !== softwareFilter) return false;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const address = (p.address || "").toLowerCase();
+      const managerName = p.accounting_manager_user 
+        ? `${p.accounting_manager_user.first_name} ${p.accounting_manager_user.last_name}`.toLowerCase()
+        : "";
+      
+      if (!address.includes(query) && !managerName.includes(query)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
   const projectIds = activeProjects.map(p => p.id);
   
   // Sort projects - use display_order when reordering is enabled
@@ -166,7 +181,18 @@ export function AccountantJobsTable() {
   return (
     <div className="rounded-lg border bg-card">
       <div className="p-4 border-b flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Active Jobs</h3>
+        <div className="flex items-center gap-4">
+          <h3 className="text-lg font-semibold">Active Jobs</h3>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search jobs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
+        </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Builder Suite</span>
