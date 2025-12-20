@@ -5,6 +5,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
 import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
+import { useLatestBankReconciliationsByProject } from "@/hooks/useLatestBankReconciliationsByProject";
 import {
   Table,
   TableBody,
@@ -101,6 +102,7 @@ export function AccountantJobsTable() {
 
   const { data: billCounts = {} } = useBillCountsByProject(projectIds);
   const { data: closedPeriods = {} } = useLatestClosedPeriodsByProject(projectIds);
+  const { data: latestReconciliations = {} } = useLatestBankReconciliationsByProject(projectIds);
 
   // Drag handlers
   const handleDragStart = (e: React.DragEvent, projectId: string) => {
@@ -285,8 +287,8 @@ export function AccountantJobsTable() {
                     }
                   </TableCell>
                   <TableCell>
-                    {closedPeriods[project.id]?.closed_at 
-                      ? format(new Date(closedPeriods[project.id].closed_at), "MMM d, yyyy")
+                    {latestReconciliations[project.id]?.statement_date 
+                      ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
