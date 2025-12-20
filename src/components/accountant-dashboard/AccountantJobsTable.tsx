@@ -45,13 +45,19 @@ export function AccountantJobsTable() {
   const [sortColumn, setSortColumn] = useState<'address' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
+  const [showQuickBooks, setShowQuickBooks] = useState(true);
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
   
-  // Filter to active projects only (not completed, not template)
-  const activeProjects = projects.filter(p => p.status !== "Completed" && p.status !== "Template");
+  // Filter to active projects only (not completed, not template) AND by accounting software
+  const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
+  const activeProjects = projects.filter(p => 
+    p.status !== "Completed" && 
+    p.status !== "Template" &&
+    (p as any).accounting_software === softwareFilter
+  );
   const projectIds = activeProjects.map(p => p.id);
   
   // Sort projects - use display_order when reordering is enabled
@@ -183,12 +189,23 @@ export function AccountantJobsTable() {
     <div className="rounded-lg border bg-card">
       <div className="p-4 border-b flex items-center justify-between">
         <h3 className="text-lg font-semibold">Active Jobs</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Reorder</span>
-          <Switch 
-            checked={isReorderEnabled} 
-            onCheckedChange={setIsReorderEnabled}
-          />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Builder Suite</span>
+            <Switch 
+              checked={showQuickBooks} 
+              onCheckedChange={setShowQuickBooks}
+            />
+            <span className="text-sm text-muted-foreground">QuickBooks</span>
+          </div>
+          <div className="w-px h-6 bg-border" />
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Reorder</span>
+            <Switch 
+              checked={isReorderEnabled} 
+              onCheckedChange={setIsReorderEnabled}
+            />
+          </div>
         </div>
       </div>
       <Table>
