@@ -9,14 +9,12 @@ import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { useProjects } from "@/hooks/useProjects";
-import { useDashboardPermissions } from "@/hooks/useDashboardPermissions";
-
-type DashboardView = "project-manager" | "owner";
+import { useDashboardPermissions, type DashboardView } from "@/hooks/useDashboardPermissions";
 
 export default function Index() {
   const { data: projects = [] } = useProjects();
   const primaryProjectAddress = projects[0]?.address || "Alexandria, VA";
-  const { canAccessPMDashboard, canAccessOwnerDashboard, defaultDashboard, isLoading } = useDashboardPermissions();
+  const { canAccessPMDashboard, canAccessOwnerDashboard, canAccessAccountantDashboard, defaultDashboard, isLoading } = useDashboardPermissions();
 
   const [dashboardView, setDashboardView] = useState<DashboardView>(() => {
     const saved = localStorage.getItem('dashboard-view');
@@ -28,11 +26,13 @@ export default function Index() {
     if (isLoading) return;
     
     if (dashboardView === "project-manager" && !canAccessPMDashboard) {
-      setDashboardView(canAccessOwnerDashboard ? "owner" : "project-manager");
+      setDashboardView(canAccessOwnerDashboard ? "owner" : canAccessAccountantDashboard ? "accountant" : "project-manager");
     } else if (dashboardView === "owner" && !canAccessOwnerDashboard) {
-      setDashboardView(canAccessPMDashboard ? "project-manager" : "owner");
+      setDashboardView(canAccessPMDashboard ? "project-manager" : canAccessAccountantDashboard ? "accountant" : "project-manager");
+    } else if (dashboardView === "accountant" && !canAccessAccountantDashboard) {
+      setDashboardView(canAccessPMDashboard ? "project-manager" : canAccessOwnerDashboard ? "owner" : "project-manager");
     }
-  }, [dashboardView, canAccessPMDashboard, canAccessOwnerDashboard, isLoading]);
+  }, [dashboardView, canAccessPMDashboard, canAccessOwnerDashboard, canAccessAccountantDashboard, isLoading]);
 
   useEffect(() => {
     localStorage.setItem('dashboard-view', dashboardView);
@@ -48,6 +48,7 @@ export default function Index() {
             onDashboardViewChange={setDashboardView}
             canAccessPMDashboard={canAccessPMDashboard}
             canAccessOwnerDashboard={canAccessOwnerDashboard}
+            canAccessAccountantDashboard={canAccessAccountantDashboard}
           />
           <div className="flex flex-1 flex-col gap-6 p-6">
             
@@ -73,6 +74,7 @@ export default function Index() {
                 </div>
               </>
             ) : (
+              // Both Owner and Accountant dashboards show ActiveJobsTable for now
               <ActiveJobsTable />
             )}
           </div>
