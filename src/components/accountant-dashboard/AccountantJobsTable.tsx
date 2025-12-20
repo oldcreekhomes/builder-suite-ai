@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { useProjects } from "@/hooks/useProjects";
 import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
+import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
 import {
   Table,
   TableBody,
@@ -98,6 +100,7 @@ export function AccountantJobsTable() {
   };
 
   const { data: billCounts = {} } = useBillCountsByProject(projectIds);
+  const { data: closedPeriods = {} } = useLatestClosedPeriodsByProject(projectIds);
 
   // Drag handlers
   const handleDragStart = (e: React.DragEvent, projectId: string) => {
@@ -231,6 +234,8 @@ export function AccountantJobsTable() {
               </div>
             </TableHead>
             <TableHead>Accounting Manager</TableHead>
+            <TableHead>Last Closed Date</TableHead>
+            <TableHead>Last Closed Books</TableHead>
             <TableHead className="text-center">Review</TableHead>
             <TableHead className="text-center">Pay</TableHead>
           </TableRow>
@@ -238,7 +243,7 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 5 : 4} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? 7 : 6} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
@@ -276,6 +281,18 @@ export function AccountantJobsTable() {
                   <TableCell>
                     {project.accounting_manager_user 
                       ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`
+                      : <span className="text-muted-foreground">-</span>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {closedPeriods[project.id]?.closed_at 
+                      ? format(new Date(closedPeriods[project.id].closed_at), "MMM d, yyyy")
+                      : <span className="text-muted-foreground">-</span>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {closedPeriods[project.id]?.period_end_date 
+                      ? format(new Date(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
