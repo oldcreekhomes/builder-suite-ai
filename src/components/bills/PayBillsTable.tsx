@@ -111,10 +111,31 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   const updateNotesMutation = useMutation({
-    mutationFn: async ({ billId, notes }: { billId: string; notes: string }) => {
+    mutationFn: async ({ billId, newNote, existingNotes }: { billId: string; newNote: string; existingNotes: string }) => {
+      // Get user profile for attribution
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: userData } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', user?.id)
+        .single();
+      
+      const userName = userData 
+        ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() 
+        : 'Unknown User';
+      
+      // Format the new note with attribution and append to existing
+      let finalNotes = existingNotes;
+      if (newNote.trim()) {
+        const attributedNote = `${userName}: ${newNote.trim()}`;
+        finalNotes = existingNotes.trim() 
+          ? `${attributedNote}\n\n${existingNotes}` 
+          : attributedNote;
+      }
+      
       const { error } = await supabase
         .from('bills')
-        .update({ notes })
+        .update({ notes: finalNotes })
         .eq('id', billId);
       
       if (error) throw error;
@@ -135,8 +156,12 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     },
   });
 
-  const handleSaveNotes = (notes: string) => {
-    updateNotesMutation.mutate({ billId: notesDialog.billId, notes });
+  const handleSaveNotes = (newNote: string) => {
+    updateNotesMutation.mutate({ 
+      billId: notesDialog.billId, 
+      newNote, 
+      existingNotes: notesDialog.initialNotes 
+    });
   };
 
   const handleSort = (column: 'vendor' | 'bill_date' | 'due_date') => {
