@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useProjects } from "@/hooks/useProjects";
 import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
@@ -292,7 +292,7 @@ export function AccountantJobsTable() {
                   </TableCell>
                   <TableCell>
                     {closedPeriods[project.id]?.period_end_date 
-                      ? format(new Date(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
+                      ? format(parseISO(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
