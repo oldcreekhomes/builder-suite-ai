@@ -15,6 +15,10 @@ export interface Project {
   last_schedule_published_at?: string;
   created_at: string;
   updated_at: string;
+  accounting_manager_user?: {
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 export const useProjects = () => {
@@ -29,18 +33,49 @@ export const useProjects = () => {
       }
 
       console.log("useProjects: Fetching projects for user", user.id);
-      const { data, error } = await supabase
+      const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching projects:', error);
-        throw error;
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        throw projectsError;
       }
 
-      console.log("useProjects: Found projects:", data?.length || 0);
-      return data as Project[];
+      // Get unique accounting manager IDs
+      const managerIds = [...new Set(
+        projectsData
+          ?.map(p => p.accounting_manager)
+          .filter((id): id is string => !!id)
+      )];
+
+      // Fetch user names for accounting managers
+      let managersMap: Record<string, { first_name: string; last_name: string }> = {};
+      if (managerIds.length > 0) {
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .in('id', managerIds);
+
+        if (usersData) {
+          managersMap = usersData.reduce((acc, u) => {
+            acc[u.id] = { first_name: u.first_name || '', last_name: u.last_name || '' };
+            return acc;
+          }, {} as Record<string, { first_name: string; last_name: string }>);
+        }
+      }
+
+      // Combine projects with manager user data
+      const projects: Project[] = (projectsData || []).map(p => ({
+        ...p,
+        accounting_manager_user: p.accounting_manager 
+          ? managersMap[p.accounting_manager] || null 
+          : null,
+      }));
+
+      console.log("useProjects: Found projects:", projects.length);
+      return projects;
     },
     enabled: !!user,
   });
