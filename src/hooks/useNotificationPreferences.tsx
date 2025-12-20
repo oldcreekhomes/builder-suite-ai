@@ -19,6 +19,7 @@ export interface NotificationPreferences {
   can_edit_projects: boolean;
   can_access_pm_dashboard: boolean;
   can_access_owner_dashboard: boolean;
+  can_access_estimate: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -35,6 +36,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_edit_projects: false,
   can_access_pm_dashboard: true,
   can_access_owner_dashboard: false,
+  can_access_estimate: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {

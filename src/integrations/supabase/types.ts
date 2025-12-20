@@ -3098,6 +3098,7 @@ export type Database = {
           browser_notifications_enabled: boolean
           can_access_accounting: boolean
           can_access_employees: boolean
+          can_access_estimate: boolean
           can_access_manage_bills: boolean
           can_access_owner_dashboard: boolean
           can_access_pm_dashboard: boolean
@@ -3118,6 +3119,7 @@ export type Database = {
           browser_notifications_enabled?: boolean
           can_access_accounting?: boolean
           can_access_employees?: boolean
+          can_access_estimate?: boolean
           can_access_manage_bills?: boolean
           can_access_owner_dashboard?: boolean
           can_access_pm_dashboard?: boolean
@@ -3138,6 +3140,7 @@ export type Database = {
           browser_notifications_enabled?: boolean
           can_access_accounting?: boolean
           can_access_employees?: boolean
+          can_access_estimate?: boolean
           can_access_manage_bills?: boolean
           can_access_owner_dashboard?: boolean
           can_access_pm_dashboard?: boolean

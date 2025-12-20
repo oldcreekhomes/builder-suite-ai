@@ -70,6 +70,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
         </div>
       </div>
 
+      {/* Estimating Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Estimating</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage access to project estimates
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-estimate" className="text-sm font-normal cursor-pointer">
+                Access Estimate
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and access the project estimate page
+              </p>
+            </div>
+            <Switch
+              id="access-estimate"
+              checked={preferences.can_access_estimate}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_estimate: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Budgets Section */}
       <div className="space-y-4">
         <div>

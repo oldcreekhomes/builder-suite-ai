@@ -1,6 +1,7 @@
 import { useLocation, Link } from "react-router-dom";
 import { useState } from "react";
 import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
+import { useEstimatePermissions } from "@/hooks/useEstimatePermissions";
 
 import { 
   DollarSign, 
@@ -105,6 +106,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     canAccessReports,
     isLoading: permissionsLoading
   } = useAccountingPermissions();
+  const { canAccessEstimate, isLoading: estimatePermissionsLoading } = useEstimatePermissions();
   const { data: issueCounts } = useIssueCounts();
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
@@ -164,16 +166,24 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
 
   const dynamicNavigationItems = getNavigationItems();
 
+  // Filter out Estimate if user doesn't have access (and permissions are loaded)
+  const permissionFilteredItems = dynamicNavigationItems.filter(item => {
+    if (item.title === "Estimate" && !estimatePermissionsLoading && !canAccessEstimate) {
+      return false;
+    }
+    return true;
+  });
+
   // Filter navigation items based on current route
   const filteredItems = isCompanyDashboard 
-    ? dynamicNavigationItems // Show all navigation items on company dashboard in Menus tab
+    ? permissionFilteredItems // Show all navigation items on company dashboard in Menus tab
     : isMessagesPage
       ? [] // No navigation items on messages page
       : isIssuesPage || isGlobalPage
-        ? dynamicNavigationItems.filter(item => item.title === "Company Dashboard") // Show only Company Dashboard on issues page and global pages
+        ? permissionFilteredItems.filter(item => item.title === "Company Dashboard") // Show only Company Dashboard on issues page and global pages
         : projectId 
-          ? dynamicNavigationItems // Show all items for project pages
-          : dynamicNavigationItems.filter(item => item.title === "Company Dashboard"); // Show Company Dashboard when no project selected
+          ? permissionFilteredItems // Show all items for project pages
+          : permissionFilteredItems.filter(item => item.title === "Company Dashboard"); // Show Company Dashboard when no project selected
   
   // On messages page, don't show any navigation items - the page handles its own sidebar content
   if (isMessagesPage) {
