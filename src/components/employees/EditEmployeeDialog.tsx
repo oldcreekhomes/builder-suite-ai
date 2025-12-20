@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,36 @@ interface EditEmployeeDialogProps {
 export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmployeeDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isOwner } = useUserRole();
+  const [accessTabVisited, setAccessTabVisited] = useState(false);
+
+  // Handle tab changes to track if Access tab was visited
+  const handleTabChange = (value: string) => {
+    if (value === "access") {
+      setAccessTabVisited(true);
+    }
+  };
+
+  // Handle dialog close - redirect to dashboard if Access tab was viewed
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen && accessTabVisited) {
+      // Dialog is closing and access settings were viewed
+      toast({
+        title: "Refreshing",
+        description: "Access settings may have changed. Redirecting to apply changes.",
+      });
+      setAccessTabVisited(false);
+      onOpenChange(false);
+      navigate('/');
+    } else {
+      onOpenChange(isOpen);
+      if (!isOpen) {
+        setAccessTabVisited(false);
+      }
+    }
+  };
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -184,13 +213,13 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
   if (!employee) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Employee</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="profile" className="w-full">
+        <Tabs defaultValue="profile" className="w-full" onValueChange={handleTabChange}>
           <TabsList className={`grid w-full ${isOwner ? 'grid-cols-2' : 'grid-cols-1'}`}>
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
