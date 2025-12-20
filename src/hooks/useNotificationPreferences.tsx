@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -116,39 +116,6 @@ export const useNotificationPreferences = (userId?: string) => {
     enabled: !!targetUserId,
   });
 
-  // Create a unique channel ID for this hook instance to avoid subscription collisions
-  const channelIdRef = useRef(`preferences-${targetUserId}-${Math.random().toString(36).substring(7)}`);
-
-  // Subscribe to realtime changes for this user's preferences
-  useEffect(() => {
-    if (!targetUserId) return;
-
-    // Update the channel ID if targetUserId changes
-    channelIdRef.current = `preferences-${targetUserId}-${Math.random().toString(36).substring(7)}`;
-
-    const channel = supabase
-      .channel(channelIdRef.current)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_notification_preferences',
-          filter: `user_id=eq.${targetUserId}`,
-        },
-        (payload) => {
-          console.log('Preferences changed via realtime:', payload);
-          queryClient.invalidateQueries({ 
-            queryKey: ['notification-preferences', targetUserId] 
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [targetUserId, queryClient]);
 
   const updatePreferencesMutation = useMutation({
     mutationFn: async (newPreferences: Partial<NotificationPreferences>) => {
