@@ -101,7 +101,12 @@ export function AccountantJobsTable() {
   };
 
   const { data: billCounts = {} } = useBillCountsByProject(projectIds);
+  
+  // closedPeriods: Most recent closed accounting period's period_end_date (for "Last Closed Books" column)
   const { data: closedPeriods = {} } = useLatestClosedPeriodsByProject(projectIds);
+  
+  // latestReconciliations: Most recent completed bank reconciliation statement_date 
+  // from Sandy Spring Bank account (for "Last Reconciliation" column)
   const { data: latestReconciliations = {} } = useLatestBankReconciliationsByProject(projectIds);
 
   // Drag handlers
@@ -236,7 +241,7 @@ export function AccountantJobsTable() {
               </div>
             </TableHead>
             <TableHead>Accounting Manager</TableHead>
-            <TableHead>Last Closed Date</TableHead>
+            <TableHead>Last Reconciliation</TableHead>
             <TableHead>Last Closed Books</TableHead>
             <TableHead className="text-center">Review</TableHead>
             <TableHead className="text-center">Pay</TableHead>
