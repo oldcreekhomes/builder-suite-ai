@@ -8,6 +8,7 @@ import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
+import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
 import { useProjects } from "@/hooks/useProjects";
 import { useDashboardPermissions, type DashboardView } from "@/hooks/useDashboardPermissions";
 
@@ -73,9 +74,10 @@ export default function Index() {
                   <WeatherForecast address={primaryProjectAddress} />
                 </div>
               </>
-            ) : (
-              // Both Owner and Accountant dashboards show ActiveJobsTable for now
+            ) : dashboardView === "owner" ? (
               <ActiveJobsTable />
+            ) : (
+              <AccountantJobsTable />
             )}
           </div>
         </SidebarInset>
