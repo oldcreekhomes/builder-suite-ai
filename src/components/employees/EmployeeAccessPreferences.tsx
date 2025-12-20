@@ -67,6 +67,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+          
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="accountant-dashboard" className="text-sm font-normal cursor-pointer">
+                Accountant Dashboard
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Access to the Accountant dashboard view for financial oversight
+              </p>
+            </div>
+            <Switch
+              id="accountant-dashboard"
+              checked={preferences.can_access_accountant_dashboard}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_accountant_dashboard: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 
