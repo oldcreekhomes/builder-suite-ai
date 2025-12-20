@@ -1,14 +1,49 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Brain, Sparkles, Calculator, FileText, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useEstimatePermissions } from "@/hooks/useEstimatePermissions";
+import { toast } from "sonner";
 
 export default function EstimatingAI() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
+  const { canAccessEstimate, isLoading } = useEstimatePermissions();
+
+  // Redirect if user loses permission
+  useEffect(() => {
+    if (!isLoading && !canAccessEstimate) {
+      toast.info("You no longer have access to this page");
+      if (projectId) {
+        navigate(`/project/${projectId}`);
+      } else {
+        navigate('/');
+      }
+    }
+  }, [canAccessEstimate, isLoading, projectId, navigate]);
+
+  // Show loading while checking permissions
+  if (isLoading) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full bg-background">
+          <AppSidebar />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-pulse text-muted-foreground">Loading...</div>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  // If no access, return null (redirect will happen)
+  if (!canAccessEstimate) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
