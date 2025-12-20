@@ -1,10 +1,11 @@
 /**
  * Get thumbnail URL for a photo with specified width
- * Currently returns the original URL, but ready for Supabase image transformations
+ * Uses Supabase image transformations for on-the-fly thumbnail generation
  */
 export const getThumbnailUrl = (url: string, width: number = 512): string => {
-  // For now, return original URL
-  // Future: Add Supabase image transformation
-  // return url.replace('/object/public/', `/render/image/public/`).concat(`?width=${width}&quality=80`);
+  // Use Supabase's image transformation API for thumbnails
+  if (url.includes('/object/public/')) {
+    return url.replace('/object/public/', '/render/image/public/') + `?width=${width}&quality=80`;
+  }
   return url;
 };
