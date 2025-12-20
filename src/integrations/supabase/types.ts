@@ -2736,6 +2736,7 @@ export type Database = {
       projects: {
         Row: {
           accounting_manager: string | null
+          accounting_software: string | null
           address: string
           budget_lock_notes: string | null
           budget_locked: boolean | null
@@ -2753,6 +2754,7 @@ export type Database = {
         }
         Insert: {
           accounting_manager?: string | null
+          accounting_software?: string | null
           address: string
           budget_lock_notes?: string | null
           budget_locked?: boolean | null
@@ -2770,6 +2772,7 @@ export type Database = {
         }
         Update: {
           accounting_manager?: string | null
+          accounting_software?: string | null
           address?: string
           budget_lock_notes?: string | null
           budget_locked?: boolean | null
