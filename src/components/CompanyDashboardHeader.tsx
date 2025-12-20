@@ -5,13 +5,15 @@ import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { DashboardSelector } from "@/components/DashboardSelector";
+import type { DashboardView } from "@/hooks/useDashboardPermissions";
 
 interface CompanyDashboardHeaderProps {
   title?: string;
-  dashboardView?: "project-manager" | "owner";
-  onDashboardViewChange?: (value: "project-manager" | "owner") => void;
+  dashboardView?: DashboardView;
+  onDashboardViewChange?: (value: DashboardView) => void;
   canAccessPMDashboard?: boolean;
   canAccessOwnerDashboard?: boolean;
+  canAccessAccountantDashboard?: boolean;
 }
 
 export function CompanyDashboardHeader({ 
@@ -20,6 +22,7 @@ export function CompanyDashboardHeader({
   onDashboardViewChange,
   canAccessPMDashboard = true,
   canAccessOwnerDashboard = true,
+  canAccessAccountantDashboard = false,
 }: CompanyDashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
@@ -50,6 +53,7 @@ export function CompanyDashboardHeader({
                 onChange={onDashboardViewChange}
                 canAccessPMDashboard={canAccessPMDashboard}
                 canAccessOwnerDashboard={canAccessOwnerDashboard}
+                canAccessAccountantDashboard={canAccessAccountantDashboard}
               />
             )}
           </div>

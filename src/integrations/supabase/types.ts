@@ -3096,6 +3096,7 @@ export type Database = {
       user_notification_preferences: {
         Row: {
           browser_notifications_enabled: boolean
+          can_access_accountant_dashboard: boolean | null
           can_access_accounting: boolean
           can_access_employees: boolean
           can_access_estimate: boolean
@@ -3117,6 +3118,7 @@ export type Database = {
         }
         Insert: {
           browser_notifications_enabled?: boolean
+          can_access_accountant_dashboard?: boolean | null
           can_access_accounting?: boolean
           can_access_employees?: boolean
           can_access_estimate?: boolean
@@ -3138,6 +3140,7 @@ export type Database = {
         }
         Update: {
           browser_notifications_enabled?: boolean
+          can_access_accountant_dashboard?: boolean | null
           can_access_accounting?: boolean
           can_access_employees?: boolean
           can_access_estimate?: boolean
