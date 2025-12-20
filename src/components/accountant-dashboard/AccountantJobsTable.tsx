@@ -24,13 +24,6 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const statusColors: Record<string, string> = {
-  "In Design": "bg-yellow-500/20 text-yellow-700 border-yellow-500/30",
-  "Permitting": "bg-blue-500/20 text-blue-700 border-blue-500/30",
-  "Under Construction": "bg-orange-500/20 text-orange-700 border-orange-500/30",
-  "Completed": "bg-green-500/20 text-green-700 border-green-500/30",
-};
-
 const statusPriority: Record<string, number> = {
   "Under Construction": 1,
   "Permitting": 2,
@@ -42,7 +35,7 @@ export function AccountantJobsTable() {
   const { data: projects = [] } = useProjects();
   const { updateDisplayOrder } = useProjectDisplayOrder();
   const updateAccountingSoftware = useUpdateProjectAccountingSoftware();
-  const [sortColumn, setSortColumn] = useState<'address' | 'status'>('status');
+  const [sortColumn, setSortColumn] = useState<'address'>('address');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
   const [showQuickBooks, setShowQuickBooks] = useState(true);
@@ -73,20 +66,14 @@ export function AccountantJobsTable() {
       return priorityA - priorityB;
     }
     
-    if (sortColumn === 'status') {
-      const priorityA = statusPriority[a.status || "In Design"] || 4;
-      const priorityB = statusPriority[b.status || "In Design"] || 4;
-      return sortDirection === 'asc' ? priorityA - priorityB : priorityB - priorityA;
-    } else {
-      const addressA = (a.address || "").toLowerCase();
-      const addressB = (b.address || "").toLowerCase();
-      return sortDirection === 'asc' 
-        ? addressA.localeCompare(addressB) 
-        : addressB.localeCompare(addressA);
-    }
+    const addressA = (a.address || "").toLowerCase();
+    const addressB = (b.address || "").toLowerCase();
+    return sortDirection === 'asc' 
+      ? addressA.localeCompare(addressB) 
+      : addressB.localeCompare(addressA);
   });
 
-  const handleSort = (column: 'address' | 'status') => {
+  const handleSort = (column: 'address') => {
     if (!isReorderEnabled) return;
     if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -96,7 +83,7 @@ export function AccountantJobsTable() {
     }
   };
 
-  const getSortIcon = (column: 'address' | 'status') => {
+  const getSortIcon = (column: 'address') => {
     if (!isReorderEnabled) return null;
     if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
     return sortDirection === 'asc' 
@@ -227,18 +214,6 @@ export function AccountantJobsTable() {
               </div>
             </TableHead>
             <TableHead>Software</TableHead>
-            <TableHead 
-              className={cn(
-                "select-none",
-                isReorderEnabled && "cursor-pointer hover:bg-muted/50"
-              )}
-              onClick={() => handleSort('status')}
-            >
-              <div className="flex items-center">
-                Status
-                {getSortIcon('status')}
-              </div>
-            </TableHead>
             <TableHead className="text-center">Review</TableHead>
             <TableHead className="text-center">Pay</TableHead>
           </TableRow>
@@ -246,7 +221,7 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 6 : 5} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? 5 : 4} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
@@ -299,14 +274,6 @@ export function AccountantJobsTable() {
                         <SelectItem value="builder_suite">Builder Suite</SelectItem>
                       </SelectContent>
                     </Select>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline" 
-                      className={statusColors[project.status || "In Design"]}
-                    >
-                      {project.status || "In Design"}
-                    </Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.reviewCount ? (
