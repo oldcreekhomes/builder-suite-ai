@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useProjects } from "@/hooks/useProjects";
 import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
+import { useUpdateProjectAccountingSoftware } from "@/hooks/useUpdateProjectAccountingSoftware";
 import {
   Table,
   TableBody,
@@ -11,6 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
@@ -33,6 +41,7 @@ export function AccountantJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const { updateDisplayOrder } = useProjectDisplayOrder();
+  const updateAccountingSoftware = useUpdateProjectAccountingSoftware();
   const [sortColumn, setSortColumn] = useState<'address' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
@@ -200,6 +209,7 @@ export function AccountantJobsTable() {
                 {getSortIcon('address')}
               </div>
             </TableHead>
+            <TableHead>Software</TableHead>
             <TableHead 
               className={cn(
                 "select-none",
@@ -219,7 +229,7 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 5 : 4} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? 6 : 5} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
@@ -253,6 +263,25 @@ export function AccountantJobsTable() {
                   )}
                   <TableCell className="font-medium">
                     {project.address || "No address"}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Select
+                      value={(project as any).accounting_software || ""}
+                      onValueChange={(value) => 
+                        updateAccountingSoftware.mutate({ 
+                          projectId: project.id, 
+                          accountingSoftware: value 
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quickbooks">QuickBooks</SelectItem>
+                        <SelectItem value="builder_suite">Builder Suite</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Badge 
