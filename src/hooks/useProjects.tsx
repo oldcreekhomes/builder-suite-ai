@@ -9,6 +9,7 @@ export interface Project {
   status: string;
   construction_manager: string;
   accounting_manager?: string;
+  accounting_software?: string;
   total_lots?: number;
   display_order?: number;
   last_schedule_published_at?: string;
