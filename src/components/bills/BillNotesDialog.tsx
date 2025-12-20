@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,15 +28,23 @@ export function BillNotesDialog({
   initialValue,
   onSave,
 }: BillNotesDialogProps) {
-  const [notes, setNotes] = useState(initialValue);
+  const [newNote, setNewNote] = useState("");
+
+  // Reset new note when dialog opens
+  useEffect(() => {
+    if (open) {
+      setNewNote("");
+    }
+  }, [open]);
 
   const handleSave = () => {
-    onSave(notes);
+    onSave(newNote);
+    setNewNote("");
     onOpenChange(false);
   };
 
   const handleCancel = () => {
-    setNotes(initialValue);
+    setNewNote("");
     onOpenChange(false);
   };
 
@@ -54,19 +62,33 @@ export function BillNotesDialog({
         </DialogHeader>
         
         <div className="space-y-4">
-          <Textarea
-            placeholder="Add notes for this bill..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="min-h-[120px] resize-none"
-          />
+          {/* New note input */}
+          <div>
+            <label className="text-sm font-medium mb-2 block">Add a note</label>
+            <Textarea
+              placeholder="Type your note here..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              className="min-h-[80px] resize-none"
+            />
+          </div>
+
+          {/* Existing notes (read-only) */}
+          {initialValue && (
+            <div>
+              <label className="text-sm font-medium mb-2 block text-muted-foreground">Previous notes</label>
+              <div className="bg-muted/50 rounded-md p-3 text-sm whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                {initialValue}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={!newNote.trim()}>
             Save
           </Button>
         </DialogFooter>
