@@ -1,13 +1,10 @@
 import { useNotificationPreferences } from "./useNotificationPreferences";
-import { useUserRole } from "./useUserRole";
 
 export const useDashboardPermissions = () => {
-  const { preferences, isLoading: prefsLoading } = useNotificationPreferences();
-  const { isOwner, isLoading: roleLoading } = useUserRole();
+  const { preferences, isLoading } = useNotificationPreferences();
   
-  // Owner always has access to both dashboards
-  const canAccessPMDashboard = isOwner || preferences?.can_access_pm_dashboard;
-  const canAccessOwnerDashboard = isOwner || preferences?.can_access_owner_dashboard;
+  const canAccessPMDashboard = preferences?.can_access_pm_dashboard ?? false;
+  const canAccessOwnerDashboard = preferences?.can_access_owner_dashboard ?? false;
   
   // Determine default dashboard based on access
   const getDefaultDashboard = (): "project-manager" | "owner" => {
@@ -17,9 +14,9 @@ export const useDashboardPermissions = () => {
   };
   
   return {
-    canAccessPMDashboard: canAccessPMDashboard ?? true,
-    canAccessOwnerDashboard: canAccessOwnerDashboard ?? false,
+    canAccessPMDashboard,
+    canAccessOwnerDashboard,
     defaultDashboard: getDefaultDashboard(),
-    isLoading: prefsLoading || roleLoading,
+    isLoading,
   };
 };

@@ -63,8 +63,35 @@ export const useNotificationPreferences = (userId?: string) => {
 
       // If no preferences exist, create them with defaults
       if (!data) {
+        // Check if this user is an owner to set appropriate defaults
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', targetUserId)
+          .eq('role', 'owner')
+          .maybeSingle();
+        
+        const isOwner = !!roleData;
+        
+        // Owners get all permissions enabled by default
+        const ownerPermissions = isOwner ? {
+          can_access_accounting: true,
+          can_access_manage_bills: true,
+          can_access_transactions: true,
+          can_access_reports: true,
+          can_access_employees: true,
+          can_close_books: true,
+          can_lock_budgets: true,
+          can_undo_reconciliation: true,
+          can_edit_projects: true,
+          can_access_pm_dashboard: true,
+          can_access_owner_dashboard: true,
+          can_access_estimate: true,
+        } : {};
+
         const defaultData = {
           ...defaultPreferences,
+          ...ownerPermissions,
           user_id: targetUserId,
         };
 
