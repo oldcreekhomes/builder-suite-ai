@@ -41,12 +41,33 @@ export function AccountantJobsTable() {
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
   
-  // Filter to active projects only (not completed, not template) AND by accounting software AND by search query
+  // First, get all non-template projects to fetch bill counts for ALL of them
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
-  const activeProjects = projects.filter(p => {
-    if (p.status === "Completed" || p.status === "Template") return false;
+  const potentialProjects = projects.filter(p => {
+    if (p.status === "Template") return false;
     if ((p as any).accounting_software !== softwareFilter) return false;
+    return true;
+  });
+  const allPotentialProjectIds = potentialProjects.map(p => p.id);
+  
+  // Fetch bill counts for ALL potential projects (including completed) so we can filter properly
+  const { data: billCounts = {} } = useBillCountsByProject(allPotentialProjectIds);
+  
+  // Now filter: include active projects + completed projects WITH outstanding bills
+  const activeProjects = potentialProjects.filter(p => {
+    // If Completed, only include if there are outstanding bills
+    if (p.status === "Completed") {
+      const bills = billCounts[p.id];
+      const hasOutstandingBills = bills && (
+        bills.currentCount > 0 || 
+        bills.lateCount > 0 || 
+        bills.rejectedCount > 0 || 
+        bills.payCount > 0
+      );
+      if (!hasOutstandingBills) return false;
+    }
     
+    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       const address = (p.address || "").toLowerCase();
@@ -100,8 +121,6 @@ export function AccountantJobsTable() {
       ? <ArrowUp className="h-4 w-4 ml-1" /> 
       : <ArrowDown className="h-4 w-4 ml-1" />;
   };
-
-  const { data: billCounts = {} } = useBillCountsByProject(projectIds);
   
   // closedPeriods: Most recent closed accounting period's period_end_date (for "Last Closed Books" column)
   const { data: closedPeriods = {} } = useLatestClosedPeriodsByProject(projectIds);
