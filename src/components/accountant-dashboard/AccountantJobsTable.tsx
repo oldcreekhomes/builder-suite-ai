@@ -246,7 +246,7 @@ export function AccountantJobsTable() {
         <TableHeader>
           <TableRow>
             {isReorderEnabled && (
-              <TableHead className="w-10" rowSpan={2}></TableHead>
+              <TableHead className="w-10"></TableHead>
             )}
             <TableHead 
               className={cn(
@@ -254,23 +254,19 @@ export function AccountantJobsTable() {
                 isReorderEnabled && "cursor-pointer hover:bg-muted/50"
               )}
               onClick={() => handleSort('address')}
-              rowSpan={2}
             >
               <div className="flex items-center">
                 Address
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            <TableHead rowSpan={2}>Accounting Manager</TableHead>
-            <TableHead rowSpan={2}>Last Reconciliation</TableHead>
-            <TableHead rowSpan={2}>Closed Books</TableHead>
-            <TableHead className="text-center border-b-0" colSpan={2}>Pending Invoices</TableHead>
-            <TableHead className="text-center" rowSpan={2}>Rejected</TableHead>
-            <TableHead className="text-center" rowSpan={2}>Pay</TableHead>
-          </TableRow>
-          <TableRow>
-            <TableHead className="text-center text-xs font-normal text-green-600">Current</TableHead>
-            <TableHead className="text-center text-xs font-normal text-destructive">Late</TableHead>
+            <TableHead>Accounting Manager</TableHead>
+            <TableHead>Last Reconciliation</TableHead>
+            <TableHead>Closed Books</TableHead>
+            <TableHead className="text-center text-green-600">Current</TableHead>
+            <TableHead className="text-center text-destructive">Late</TableHead>
+            <TableHead className="text-center">Rejected</TableHead>
+            <TableHead className="text-center">Pay</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
