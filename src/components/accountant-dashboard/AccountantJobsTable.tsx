@@ -10,6 +10,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -342,6 +343,32 @@ export function AccountantJobsTable() {
             })
           )}
         </TableBody>
+        <TableFooter>
+          <TableRow className="bg-muted/50 font-semibold">
+            {isReorderEnabled && <TableCell />}
+            <TableCell colSpan={4} className="text-right">Totals</TableCell>
+            <TableCell className="text-center">
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.currentCount || 0), 0)}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-center">
+              <Badge variant="destructive">
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.lateCount || 0), 0)}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-center">
+              <Badge variant="destructive">
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.rejectedCount || 0), 0)}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-center">
+              <Badge variant="secondary">
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.payCount || 0), 0)}
+              </Badge>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
       </Table>
     </div>
   );
