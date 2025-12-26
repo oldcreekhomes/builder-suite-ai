@@ -296,8 +296,8 @@ export function ActiveJobsTable() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {bills?.reviewCount ? (
-                        <Badge variant="secondary">{bills.reviewCount}</Badge>
+                      {(bills?.currentCount || 0) + (bills?.lateCount || 0) > 0 ? (
+                        <Badge variant="secondary">{(bills?.currentCount || 0) + (bills?.lateCount || 0)}</Badge>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}

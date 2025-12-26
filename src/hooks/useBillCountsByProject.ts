@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectBillCounts {
-  reviewCount: number;
-  payCount: number;
+  currentCount: number;   // draft bills NOT past due
+  lateCount: number;      // draft bills past due
+  rejectedCount: number;  // void bills
+  payCount: number;       // posted bills
 }
 
 export function useBillCountsByProject(projectIds: string[]) {
@@ -14,19 +16,33 @@ export function useBillCountsByProject(projectIds: string[]) {
 
       const { data: bills, error } = await supabase
         .from('bills')
-        .select('id, project_id, status')
+        .select('id, project_id, status, due_date')
         .in('project_id', projectIds)
-        .in('status', ['draft', 'posted']);
+        .in('status', ['draft', 'posted', 'void']);
 
       if (error) throw error;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
       const countsByProject: Record<string, ProjectBillCounts> = {};
 
       projectIds.forEach(projectId => {
         const projectBills = bills?.filter(b => b.project_id === projectId) || [];
+        const draftBills = projectBills.filter(b => b.status === 'draft');
         
         countsByProject[projectId] = {
-          reviewCount: projectBills.filter(b => b.status === 'draft').length,
+          currentCount: draftBills.filter(b => {
+            if (!b.due_date) return true; // No due date = current
+            const dueDate = new Date(b.due_date);
+            return dueDate >= today;
+          }).length,
+          lateCount: draftBills.filter(b => {
+            if (!b.due_date) return false;
+            const dueDate = new Date(b.due_date);
+            return dueDate < today;
+          }).length,
+          rejectedCount: projectBills.filter(b => b.status === 'void').length,
           payCount: projectBills.filter(b => b.status === 'posted').length,
         };
       });
