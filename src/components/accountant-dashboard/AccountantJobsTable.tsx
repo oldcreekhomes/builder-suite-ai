@@ -226,7 +226,7 @@ export function AccountantJobsTable() {
         <TableHeader>
           <TableRow>
             {isReorderEnabled && (
-              <TableHead className="w-10"></TableHead>
+              <TableHead className="w-10" rowSpan={2}></TableHead>
             )}
             <TableHead 
               className={cn(
@@ -234,23 +234,29 @@ export function AccountantJobsTable() {
                 isReorderEnabled && "cursor-pointer hover:bg-muted/50"
               )}
               onClick={() => handleSort('address')}
+              rowSpan={2}
             >
               <div className="flex items-center">
                 Address
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            <TableHead>Accounting Manager</TableHead>
-            <TableHead>Last Reconciliation</TableHead>
-            <TableHead>Closed Books</TableHead>
-            <TableHead className="text-center">Review</TableHead>
-            <TableHead className="text-center">Pay</TableHead>
+            <TableHead rowSpan={2}>Accounting Manager</TableHead>
+            <TableHead rowSpan={2}>Last Reconciliation</TableHead>
+            <TableHead rowSpan={2}>Closed Books</TableHead>
+            <TableHead className="text-center border-b-0" colSpan={2}>Pending Invoices</TableHead>
+            <TableHead className="text-center" rowSpan={2}>Rejected</TableHead>
+            <TableHead className="text-center" rowSpan={2}>Pay</TableHead>
+          </TableRow>
+          <TableRow>
+            <TableHead className="text-center text-xs font-normal text-green-600">Current</TableHead>
+            <TableHead className="text-center text-xs font-normal text-destructive">Late</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 7 : 6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? 9 : 8} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
@@ -304,8 +310,22 @@ export function AccountantJobsTable() {
                     }
                   </TableCell>
                   <TableCell className="text-center">
-                    {bills?.reviewCount ? (
-                      <Badge variant="secondary">{bills.reviewCount}</Badge>
+                    {bills?.currentCount ? (
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{bills.currentCount}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {bills?.lateCount ? (
+                      <Badge variant="destructive">{bills.lateCount}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {bills?.rejectedCount ? (
+                      <Badge variant="destructive">{bills.rejectedCount}</Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
