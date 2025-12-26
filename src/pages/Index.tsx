@@ -9,6 +9,7 @@ import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
+import { AccountantProjectAlerts } from "@/components/accountant-dashboard/AccountantProjectAlerts";
 import { useProjects } from "@/hooks/useProjects";
 import { useDashboardPermissions, type DashboardView } from "@/hooks/useDashboardPermissions";
 
@@ -77,7 +78,14 @@ export default function Index() {
             ) : dashboardView === "owner" ? (
               <ActiveJobsTable />
             ) : (
-              <AccountantJobsTable />
+              <>
+                <div className="grid gap-6 md:grid-cols-4">
+                  <div className="md:col-span-1">
+                    <AccountantProjectAlerts />
+                  </div>
+                </div>
+                <AccountantJobsTable />
+              </>
             )}
           </div>
         </SidebarInset>
