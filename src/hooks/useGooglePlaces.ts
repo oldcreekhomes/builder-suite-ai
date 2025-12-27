@@ -25,7 +25,7 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         setApiKey(data.apiKey);
       } catch (error) {
         console.error('Failed to get Google Maps API key:', error);
-        setApiKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || null);
+        setApiKey(import.meta.env.VITE_GOOGLE_MAPS_DISTANCE_MATRIX_KEY || null);
       }
     };
 

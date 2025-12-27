@@ -32,9 +32,9 @@ serve(async (req) => {
     }
 
     // Get Google Maps API key
-    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY')
+    const apiKey = Deno.env.get('GOOGLE_MAPS_DISTANCE_MATRIX_KEY')
     if (!apiKey) {
-      throw new Error('Google Maps API key not configured')
+      throw new Error('Google Maps Distance Matrix API key not configured')
     }
 
     const results: Record<string, DistanceResult> = {}
