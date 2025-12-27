@@ -243,9 +243,9 @@ export function AccountantJobsTable() {
         </div>
       </div>
       <Table>
-        <TableHeader>
+        <TableHeader className="[&_tr]:border-b-0">
           {/* First row - main headers spanning 2 rows + Bills category label */}
-          <TableRow className="border-b-0 hover:bg-transparent">
+          <TableRow className="hover:bg-transparent">
             {isReorderEnabled && (
               <TableHead rowSpan={2} className="w-10 align-bottom"></TableHead>
             )}
@@ -275,7 +275,7 @@ export function AccountantJobsTable() {
           </TableRow>
           
           {/* Second row - only bill sub-columns */}
-          <TableRow className="border-b-0 hover:bg-transparent">
+          <TableRow className="border-b hover:bg-transparent">
             <TableHead className="text-center pt-0">Current</TableHead>
             <TableHead className="text-center pt-0">Late</TableHead>
             <TableHead className="text-center pt-0">Rejected</TableHead>
