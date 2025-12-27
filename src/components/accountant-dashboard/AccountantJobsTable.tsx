@@ -263,8 +263,8 @@ export function AccountantJobsTable() {
             <TableHead>Accounting Manager</TableHead>
             <TableHead>Last Reconciliation</TableHead>
             <TableHead>Closed Books</TableHead>
-            <TableHead className="text-center text-green-600">Current</TableHead>
-            <TableHead className="text-center text-destructive">Late</TableHead>
+            <TableHead className="text-center">Current</TableHead>
+            <TableHead className="text-center">Late</TableHead>
             <TableHead className="text-center">Rejected</TableHead>
             <TableHead className="text-center">Pay</TableHead>
           </TableRow>
