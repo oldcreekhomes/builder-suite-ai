@@ -53,21 +53,8 @@ export function AccountantJobsTable() {
   // Fetch bill counts for ALL potential projects (including completed) so we can filter properly
   const { data: billCounts = {} } = useBillCountsByProject(allPotentialProjectIds);
   
-  // Now filter: include active projects + completed projects WITH outstanding bills
+  // Apply search filter to projects
   const activeProjects = potentialProjects.filter(p => {
-    // If Completed, only include if there are outstanding bills
-    if (p.status === "Completed") {
-      const bills = billCounts[p.id];
-      const hasOutstandingBills = bills && (
-        bills.currentCount > 0 || 
-        bills.lateCount > 0 || 
-        bills.rejectedCount > 0 || 
-        bills.payCount > 0
-      );
-      if (!hasOutstandingBills) return false;
-    }
-    
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       const address = (p.address || "").toLowerCase();
