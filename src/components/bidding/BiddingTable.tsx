@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { X, XCircle, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { X, XCircle, Settings, Search } from 'lucide-react';
 import { AddBiddingModal } from './AddBiddingModal';
 import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
 import { BiddingTableHeader } from './BiddingTableHeader';
@@ -30,6 +31,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   
   
   const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
@@ -61,6 +63,41 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const { deletingGroups, deletingItems, uploadingFiles, handleDeleteItem, handleDeleteGroup, handleUpdateStatus, handleUpdateDueDate, handleUpdateReminderDate, handleUpdateSpecifications, handleFileUpload, handleDeleteIndividualFile, cancelUpload, removeUpload } = useBiddingMutations(projectId);
   const { toggleBidStatus, updatePrice, uploadProposal, deleteIndividualProposal, deleteAllProposals, deleteCompany } = useBiddingCompanyMutations(projectId);
   const { applyGlobalSettings, isApplying, progress } = useGlobalBiddingSettings(projectId);
+
+  // Filter bidding items based on search query
+  const filteredBiddingItems = useMemo(() => {
+    if (!searchQuery.trim()) return biddingItems;
+    
+    const query = searchQuery.toLowerCase();
+    return biddingItems.filter(item => 
+      item.cost_codes?.code?.toLowerCase().includes(query) ||
+      item.cost_codes?.name?.toLowerCase().includes(query) ||
+      item.status?.toLowerCase().includes(query) ||
+      item.project_bids?.some((bid: any) => 
+        bid.companies?.company_name?.toLowerCase().includes(query)
+      )
+    );
+  }, [biddingItems, searchQuery]);
+
+  // Group filtered bidding items
+  const filteredGroupedBiddingItems = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    filteredBiddingItems.forEach(item => {
+      const group = item.cost_codes?.parent_group || item.cost_codes?.category || 'Uncategorized';
+      if (!grouped[group]) {
+        grouped[group] = [];
+      }
+      grouped[group].push(item);
+    });
+    // Sort groups numerically
+    return Object.fromEntries(
+      Object.entries(grouped).sort(([a], [b]) => {
+        const numA = parseInt(a) || 0;
+        const numB = parseInt(b) || 0;
+        return numA - numB;
+      })
+    );
+  }, [filteredBiddingItems]);
 
   // Company selection handlers for modal use
   const handleCompanyCheckboxChange = (companyId: string, checked: boolean) => {
@@ -179,19 +216,40 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
         </div>
       )}
 
-      {status === 'draft' && (
-        <div className="flex items-center justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowGlobalSettingsModal(true)}
-            disabled={biddingItems.length === 0}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Global Settings
-          </Button>
-          <Button onClick={() => setShowAddBiddingModal(true)}>
-            {getLoadButtonText()}
-          </Button>
+      {status === 'draft' ? (
+        <div className="flex items-center justify-between">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search bid..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowGlobalSettingsModal(true)}
+              disabled={biddingItems.length === 0}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Global Settings
+            </Button>
+            <Button onClick={() => setShowAddBiddingModal(true)}>
+              {getLoadButtonText()}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search bid..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
       )}
 
@@ -260,15 +318,15 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
         <Table>
           <BiddingTableHeader />
           <TableBody>
-            {biddingItems.length === 0 ? (
+            {filteredBiddingItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                  {getEmptyStateMessage()}
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? 'No bid packages found matching your search.' : getEmptyStateMessage()}
                 </TableCell>
               </TableRow>
             ) : (
               <>
-                {Object.entries(groupedBiddingItems).map(([group, items]) => [
+                {Object.entries(filteredGroupedBiddingItems).map(([group, items]) => [
                   <BiddingGroupHeader
                     key={`header-${group}`}
                     group={group}
