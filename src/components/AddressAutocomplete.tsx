@@ -50,7 +50,7 @@ export function AddressAutocomplete({
       } catch (error) {
         console.error('Failed to get Google Maps API key:', error);
         // Fallback to environment variable if function doesn't exist
-        setApiKey(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || null);
+        setApiKey(import.meta.env.VITE_GOOGLE_MAPS_DISTANCE_MATRIX_KEY || null);
       }
     };
 
