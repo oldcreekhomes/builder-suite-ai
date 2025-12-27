@@ -244,6 +244,21 @@ export function AccountantJobsTable() {
       </div>
       <Table>
         <TableHeader>
+          {/* Category label row - thin with small text */}
+          <TableRow className="border-b-0 hover:bg-transparent">
+            {isReorderEnabled && (
+              <TableHead className="pb-0 h-auto"></TableHead>
+            )}
+            <TableHead className="pb-0 h-auto" colSpan={4}></TableHead>
+            <TableHead 
+              className="pb-1 h-auto text-center text-[10px] text-muted-foreground font-normal border-b border-muted-foreground/20" 
+              colSpan={4}
+            >
+              Bills
+            </TableHead>
+          </TableRow>
+          
+          {/* Main column headers row */}
           <TableRow>
             {isReorderEnabled && (
               <TableHead className="w-10"></TableHead>
