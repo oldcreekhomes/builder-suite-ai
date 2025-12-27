@@ -244,17 +244,18 @@ export function AccountantJobsTable() {
       </div>
       <Table>
         <TableHeader>
-          {/* Category label row - thin with small text */}
+          {/* Category label row - thin with inline Bills label and flanking lines */}
           <TableRow className="border-b-0 hover:bg-transparent">
             {isReorderEnabled && (
               <TableHead className="pb-0 h-auto"></TableHead>
             )}
             <TableHead className="pb-0 h-auto" colSpan={4}></TableHead>
-            <TableHead 
-              className="pb-1 h-auto text-center text-[10px] text-muted-foreground font-normal border-b border-muted-foreground/20" 
-              colSpan={4}
-            >
-              Bills
+            <TableHead className="pb-0 h-auto" colSpan={4}>
+              <div className="flex items-center justify-center gap-1">
+                <div className="flex-1 h-px bg-muted-foreground/30"></div>
+                <span className="text-[10px] text-muted-foreground font-normal px-1">Bills</span>
+                <div className="flex-1 h-px bg-muted-foreground/30"></div>
+              </div>
             </TableHead>
           </TableRow>
           
