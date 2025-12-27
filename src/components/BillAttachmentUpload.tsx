@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -239,7 +239,7 @@ export function BillAttachmentUpload({
               <button
                 onClick={() => handleDownloadAttachment(attachment)}
                 className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                title={attachment.file_name}
+                title={getCleanFileName(attachment.file_name)}
                 type="button"
                 disabled={!attachment.id || !billId}
               >

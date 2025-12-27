@@ -12,7 +12,7 @@ import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
 import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
-import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillLineData } from "@/hooks/useBills";
@@ -715,7 +715,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                               mimeType: attachment.content_type
                             })}
                             className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                            title={attachment.file_name}
+                            title={getCleanFileName(attachment.file_name)}
                             type="button"
                           >
                             <IconComponent className="h-5 w-5" />

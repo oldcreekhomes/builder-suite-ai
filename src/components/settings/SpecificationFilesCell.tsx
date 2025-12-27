@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -57,7 +57,7 @@ export function SpecificationFilesCell({
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{fileName}</p>
+                    <p>{getCleanFileName(fileName)}</p>
                   </TooltipContent>
                 </Tooltip>
                 {!isReadOnly && (

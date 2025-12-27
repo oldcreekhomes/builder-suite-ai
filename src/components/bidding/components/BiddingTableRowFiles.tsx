@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
-import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 // Helper to get storage path for specification files
@@ -69,7 +69,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
                   <button
                     onClick={() => handleFilePreview(fileName)}
                     className={`${iconColorClass} transition-colors p-1`}
-                    title={fileName}
+                    title={getCleanFileName(fileName)}
                     type="button"
                   >
                     <IconComponent className="h-4 w-4" />
@@ -111,7 +111,7 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
         onOpenChange={(open) => !open && setFileToDelete(null)}
         onConfirm={confirmDelete}
         title="Delete File"
-        description={`Are you sure you want to delete "${fileToDelete?.split('/').pop() || fileToDelete}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${fileToDelete ? getCleanFileName(fileToDelete) : ''}"? This action cannot be undone.`}
       />
     </TableCell>
   );

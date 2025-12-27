@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
-import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -170,7 +170,7 @@ export function SolutionFilesCell({
                   <button
                     onClick={() => handleDownloadFile(file.path, file.name)}
                     className={`${iconColorClass} transition-colors p-1`}
-                    title={file.name}
+                    title={getCleanFileName(file.name)}
                     type="button"
                   >
                     <IconComponent className="h-4 w-4" />

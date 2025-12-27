@@ -19,7 +19,7 @@ import { normalizeToYMD, toDateLocal } from "@/utils/dateOnly";
 import { usePendingBills } from "@/hooks/usePendingBills";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 // Normalize terms from any format to standardized dropdown values
@@ -695,7 +695,7 @@ export function EditExtractedBillDialog({
                       openBillAttachment(filePath, displayName);
                     }}
                     className={`${getFileIconColor(fileName)} transition-colors p-1`}
-                    title={fileName}
+                    title={getCleanFileName(fileName)}
                     type="button"
                   >
                     {(() => {

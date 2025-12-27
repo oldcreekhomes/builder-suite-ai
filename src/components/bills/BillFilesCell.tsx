@@ -1,5 +1,5 @@
 import React from 'react';
-import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '../files/UniversalFilePreviewProvider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -51,7 +51,7 @@ export function BillFilesCell({ attachments }: BillFilesCellProps) {
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{attachment.file_name}</p>
+                <p>{getCleanFileName(attachment.file_name)}</p>
               </TooltipContent>
             </Tooltip>
           );
