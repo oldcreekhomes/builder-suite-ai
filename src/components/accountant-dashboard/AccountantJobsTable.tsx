@@ -44,7 +44,7 @@ export function AccountantJobsTable() {
   // First, get all non-template projects to fetch bill counts for ALL of them
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
   const potentialProjects = projects.filter(p => {
-    if (p.status === "Template") return false;
+    if (p.status === "Template" || p.status === "Permanently Closed") return false;
     if ((p as any).accounting_software !== softwareFilter) return false;
     return true;
   });

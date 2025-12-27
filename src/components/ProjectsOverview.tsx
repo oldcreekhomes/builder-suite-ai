@@ -22,6 +22,7 @@ const getStatusColor = (status: string) => {
     case "Permitting": return "bg-blue-100 text-blue-800";
     case "Under Construction": return "bg-orange-100 text-orange-800";
     case "Completed": return "bg-green-100 text-green-800";
+    case "Permanently Closed": return "bg-gray-100 text-gray-600";
     default: return "bg-gray-100 text-gray-800";
   }
 };
@@ -32,6 +33,7 @@ const getProgressValue = (status: string) => {
     case "Permitting": return 25;
     case "Under Construction": return 65;
     case "Completed": return 100;
+    case "Permanently Closed": return 100;
     default: return 0;
   }
 };
@@ -87,8 +89,9 @@ export function ProjectsOverview() {
     deleteProjectMutation.mutate(projectId);
   };
 
-  const filterProjectsByStatus = (status: string) => {
-    return projects.filter(project => project.status === status);
+const filterProjectsByStatus = (status: string) => {
+    // Filter out "Permanently Closed" projects - they don't appear in PM dashboard
+    return projects.filter(project => project.status === status && project.status !== "Permanently Closed");
   };
 
   const getProjectCount = (status: string) => {

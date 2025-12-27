@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { MapPin, ChevronsUpDown, Search } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Popover,
   PopoverContent,
@@ -22,6 +23,7 @@ const statusGroups = [
   { status: "Permitting", color: "bg-blue-100 text-blue-800" },
   { status: "Under Construction", color: "bg-orange-100 text-orange-800" },
   { status: "Completed", color: "bg-green-100 text-green-800" },
+  { status: "Permanently Closed", color: "bg-gray-100 text-gray-600" },
 ];
 
 export function ProjectSelector() {
@@ -29,6 +31,7 @@ export function ProjectSelector() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { data: projects = [], isLoading } = useProjects();
+  const { isOwner } = useUserRole();
 
   // Find current project if on a project page
   const currentProject = projects.find((p) => p.id === projectId);
@@ -72,6 +75,8 @@ export function ProjectSelector() {
             <CommandList className="max-h-[400px]">
               <CommandEmpty>No projects found.</CommandEmpty>
               {projectsByStatus.map((group) => {
+                // Hide "Permanently Closed" for non-owners
+                if (group.status === "Permanently Closed" && !isOwner) return null;
                 if (group.projects.length === 0) return null;
                 return (
                   <CommandGroup

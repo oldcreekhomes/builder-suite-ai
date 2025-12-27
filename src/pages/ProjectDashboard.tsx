@@ -142,6 +142,8 @@ export default function ProjectDashboard() {
                   currentProject.status === 'Under Construction' ? 'bg-orange-100 text-orange-800' :
                   currentProject.status === 'Completed' ? 'bg-green-100 text-green-800' :
                   currentProject.status === 'In Design' ? 'bg-blue-100 text-blue-800' :
+                  currentProject.status === 'Permitting' ? 'bg-blue-100 text-blue-800' :
+                  currentProject.status === 'Permanently Closed' ? 'bg-gray-100 text-gray-600' :
                   'bg-gray-100 text-gray-800'
                 }`}>
                   {currentProject.status}
