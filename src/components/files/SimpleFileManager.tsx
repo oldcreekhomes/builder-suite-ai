@@ -792,6 +792,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
               type="button" 
               variant="outline" 
               size="sm"
+              className="h-10"
               onClick={() => fileInputRef.current?.click()}
             >
               <FileText className="h-4 w-4 mr-2" />
@@ -801,6 +802,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
               type="button" 
               variant="outline" 
               size="sm"
+              className="h-10"
               onClick={() => folderInputRef.current?.click()}
             >
               <FolderOpen className="h-4 w-4 mr-2" />
@@ -810,6 +812,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
               type="button" 
               variant="outline" 
               size="sm"
+              className="h-10"
               onClick={() => zipInputRef.current?.click()}
               disabled={processingZip}
             >
@@ -820,6 +823,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
               type="button" 
               variant="outline" 
               size="sm"
+              className="h-10"
               onClick={() => setShowNewFolderModal(true)}
             >
               <FolderPlus className="h-4 w-4 mr-2" />
