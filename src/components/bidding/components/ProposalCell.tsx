@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, X } from 'lucide-react';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
-import { getFileIcon, getFileIconColor } from '../utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface ProposalCellProps {
@@ -47,7 +47,7 @@ export function ProposalCell({
               <button
                 onClick={() => handleFilePreview(fileName)}
                 className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
-                title={`View ${fileName.split('.').pop()?.toUpperCase()} file - ${fileName}`}
+                title={getCleanFileName(fileName)}
               >
                 <IconComponent className="h-4 w-4" />
               </button>
@@ -96,7 +96,7 @@ export function ProposalCell({
         open={!!fileToDelete}
         onOpenChange={(open) => !open && setFileToDelete(null)}
         title="Delete Proposal File"
-        description={`Are you sure you want to delete "${fileToDelete?.split('/').pop() || fileToDelete}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${fileToDelete ? getCleanFileName(fileToDelete) : ''}"? This action cannot be undone.`}
         onConfirm={() => fileToDelete && confirmDelete(fileToDelete)}
       />
     </div>

@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
-import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 
 interface ViewCommittedCostsModalProps {
   isOpen: boolean;
@@ -108,7 +108,7 @@ export function ViewCommittedCostsModal({
                                     <div
                                       key={`${fileName}-${index}`}
                                       className={`inline-block ${iconColorClass} p-1`}
-                                      title={fileName}
+                                      title={getCleanFileName(fileName)}
                                     >
                                       <IconComponent className="h-4 w-4" />
                                     </div>

@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ChatMessage } from "@/hooks/useSimpleChat";
 import { FileText, File, FileSpreadsheet, FileImage, FileVideo, FileAudio, FileCode } from "lucide-react";
+import { getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
 
 interface SimpleMessagesListProps {
   messages: ChatMessage[];
@@ -113,7 +114,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
       return (
         <div key={index} className="mt-2">
           <div
-            title={fileName}
+            title={getCleanFileName(fileName)}
             className="inline-flex items-center p-2 rounded-lg cursor-pointer hover:opacity-80"
             onClick={() => window.open(url, '_blank')}
           >

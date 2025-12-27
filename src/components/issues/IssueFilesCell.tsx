@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
-import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface IssueFile {
@@ -71,7 +71,7 @@ export function IssueFilesCell({
                   <button
                     onClick={() => handleFilePreview(file)}
                     className={`${iconColorClass} transition-colors p-1`}
-                    title={file.file_name}
+                    title={getCleanFileName(file.file_name)}
                     type="button"
                   >
                     <IconComponent className="h-4 w-4" />
@@ -110,7 +110,7 @@ export function IssueFilesCell({
         onOpenChange={(open) => !open && setFileToDelete(null)}
         onConfirm={confirmDelete}
         title="Delete File"
-        description={`Are you sure you want to delete "${fileToDelete?.file_name}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${fileToDelete ? getCleanFileName(fileToDelete.file_name) : ''}"? This action cannot be undone.`}
       />
     </TableCell>
   );

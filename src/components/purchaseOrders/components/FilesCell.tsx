@@ -1,5 +1,5 @@
 import React from 'react';
-import { getFileIcon, getFileIconColor } from '../../bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../../bidding/utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 
 interface FilesCellProps {
@@ -76,7 +76,7 @@ export function FilesCell({ files, projectId }: FilesCellProps) {
             key={`${fileName}-${index}`}
             onClick={() => handleFilePreview(file)}
             className={`inline-block ${iconColorClass} transition-colors p-1`}
-            title={fileName}
+            title={getCleanFileName(fileName)}
           >
             <IconComponent className="h-4 w-4" />
           </button>
