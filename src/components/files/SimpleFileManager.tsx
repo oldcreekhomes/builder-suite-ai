@@ -775,12 +775,17 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     <UniversalFilePreviewProvider onFileDeleted={() => refetch()}>
       <div className="flex flex-col h-full">
       {/* Breadcrumb Navigation with Upload Buttons */}
-      <div className="flex flex-col gap-2 p-4 border-b">
+      <div className="flex flex-col p-4 border-b">
         <div className="flex items-center justify-between gap-4">
-          <SimpleBreadcrumb 
-            currentPath={currentPath} 
-            onPathClick={handleBreadcrumbClick} 
-          />
+          <div className="flex items-center gap-3">
+            <SimpleBreadcrumb 
+              currentPath={currentPath} 
+              onPathClick={handleBreadcrumbClick} 
+            />
+            <span className="text-xs text-muted-foreground">
+              Maximum file size: 50MB
+            </span>
+          </div>
           
           <div className="flex items-center space-x-2">
             <Button 
@@ -822,9 +827,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Maximum file size: 50MB
-        </p>
       </div>
 
       {/* Upload Progress */}
@@ -870,9 +872,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Maximum file size: 50MB
-            </p>
           </div>
         </div>
       )}
