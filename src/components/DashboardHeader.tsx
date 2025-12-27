@@ -50,7 +50,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   if (projectId) {
     return (
       <>
-        <header className="bg-white border-b border-border px-6 py-2 mt-5">
+      <header className="bg-white border-b border-border px-6 py-2 mt-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-gray-600 hover:text-black" />
@@ -100,7 +100,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   // Default dashboard header with project context support
   return (
     <>
-      <header className="bg-white border-b border-border px-6 py-2 mt-5">
+      <header className="bg-white border-b border-border px-6 py-2 mt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <SidebarTrigger className="text-gray-600 hover:text-black" />
