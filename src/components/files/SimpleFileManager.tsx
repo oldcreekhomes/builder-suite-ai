@@ -775,7 +775,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
     <UniversalFilePreviewProvider onFileDeleted={() => refetch()}>
       <div className="flex flex-col h-full">
       {/* Breadcrumb Navigation with Upload Buttons */}
-      <div className="flex flex-col px-4 py-2 border-b">
+      <div className="flex flex-col px-4 py-3 border-b">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <SimpleBreadcrumb 
