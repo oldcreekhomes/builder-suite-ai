@@ -33,6 +33,7 @@ const statusColors: Record<string, string> = {
   "Permitting": "bg-blue-500/20 text-blue-700 border-blue-500/30",
   "Under Construction": "bg-orange-500/20 text-orange-700 border-orange-500/30",
   "Completed": "bg-green-500/20 text-green-700 border-green-500/30",
+  "Permanently Closed": "bg-gray-500/20 text-gray-700 border-gray-500/30",
 };
 
 const statusPriority: Record<string, number> = {
@@ -53,8 +54,8 @@ export function ActiveJobsTable() {
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
   
-  // Filter to active projects only (not completed, not template)
-  const activeProjects = projects.filter(p => p.status !== "Completed" && p.status !== "Template");
+  // Filter to active projects only (not completed, not template, not permanently closed)
+  const activeProjects = projects.filter(p => p.status !== "Completed" && p.status !== "Template" && p.status !== "Permanently Closed");
   const projectIds = activeProjects.map(p => p.id);
   
   // Sort projects - use display_order when reordering is enabled

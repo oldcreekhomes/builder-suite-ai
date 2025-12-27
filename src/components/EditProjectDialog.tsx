@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { Project } from "@/hooks/useProjects";
 import { LotManagementSection } from "@/components/LotManagementSection";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface EditProjectDialogProps {
   project: Project | null;
@@ -27,6 +28,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { users, isLoading: usersLoading } = useCompanyUsers();
+  const { isOwner } = useUserRole();
   
   const [formData, setFormData] = useState({
     address: "",
@@ -168,6 +170,9 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                   <SelectItem value="Permitting">Permitting</SelectItem>
                   <SelectItem value="Under Construction">Under Construction</SelectItem>
                   <SelectItem value="Completed">Completed</SelectItem>
+                  {isOwner && (
+                    <SelectItem value="Permanently Closed">Permanently Closed</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
