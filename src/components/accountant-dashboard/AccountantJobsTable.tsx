@@ -244,29 +244,15 @@ export function AccountantJobsTable() {
       </div>
       <Table>
         <TableHeader>
-          {/* Category label row - thin with inline Bills label and flanking lines */}
+          {/* First row - main headers spanning 2 rows + Bills category label */}
           <TableRow className="border-b-0 hover:bg-transparent">
             {isReorderEnabled && (
-              <TableHead className="pb-0 h-auto"></TableHead>
-            )}
-            <TableHead className="pb-0 h-auto" colSpan={4}></TableHead>
-            <TableHead className="pb-0 h-auto" colSpan={4}>
-              <div className="flex items-center justify-center gap-1">
-                <div className="flex-1 h-px bg-muted-foreground/30"></div>
-                <span className="text-[10px] text-muted-foreground font-normal px-1">Bills</span>
-                <div className="flex-1 h-px bg-muted-foreground/30"></div>
-              </div>
-            </TableHead>
-          </TableRow>
-          
-          {/* Main column headers row */}
-          <TableRow>
-            {isReorderEnabled && (
-              <TableHead className="w-10"></TableHead>
+              <TableHead rowSpan={2} className="w-10 align-bottom"></TableHead>
             )}
             <TableHead 
+              rowSpan={2}
               className={cn(
-                "select-none",
+                "select-none align-bottom",
                 isReorderEnabled && "cursor-pointer hover:bg-muted/50"
               )}
               onClick={() => handleSort('address')}
@@ -276,13 +262,24 @@ export function AccountantJobsTable() {
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            <TableHead>Accounting Manager</TableHead>
-            <TableHead>Last Reconciliation</TableHead>
-            <TableHead>Closed Books</TableHead>
-            <TableHead className="text-center">Current</TableHead>
-            <TableHead className="text-center">Late</TableHead>
-            <TableHead className="text-center">Rejected</TableHead>
-            <TableHead className="text-center">Pay</TableHead>
+            <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
+            <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
+            <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
+            <TableHead colSpan={4} className="text-center pb-0">
+              <div className="flex items-center justify-center gap-1">
+                <div className="flex-1 h-px bg-muted-foreground/30"></div>
+                <span className="text-[10px] text-muted-foreground font-normal px-1">Bills</span>
+                <div className="flex-1 h-px bg-muted-foreground/30"></div>
+              </div>
+            </TableHead>
+          </TableRow>
+          
+          {/* Second row - only bill sub-columns */}
+          <TableRow>
+            <TableHead className="text-center pt-0">Current</TableHead>
+            <TableHead className="text-center pt-0">Late</TableHead>
+            <TableHead className="text-center pt-0">Rejected</TableHead>
+            <TableHead className="text-center pt-0">Pay</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
