@@ -265,7 +265,7 @@ export function AccountantJobsTable() {
             <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
-            <TableHead colSpan={4} className="text-center pb-0 border-b-0">
+            <TableHead colSpan={4} className="text-center py-1 h-auto border-b-0">
               <div className="flex items-center justify-center gap-1">
                 <div className="flex-1 h-px bg-muted-foreground/30"></div>
                 <span className="text-[10px] text-muted-foreground font-normal px-1">Bills</span>
@@ -276,10 +276,10 @@ export function AccountantJobsTable() {
           
           {/* Second row - only bill sub-columns */}
           <TableRow className="border-b hover:bg-transparent">
-            <TableHead className="text-center pt-0">Current</TableHead>
-            <TableHead className="text-center pt-0">Late</TableHead>
-            <TableHead className="text-center pt-0">Rejected</TableHead>
-            <TableHead className="text-center pt-0">Pay</TableHead>
+            <TableHead className="text-center py-1 h-auto">Current</TableHead>
+            <TableHead className="text-center py-1 h-auto">Late</TableHead>
+            <TableHead className="text-center py-1 h-auto">Rejected</TableHead>
+            <TableHead className="text-center py-1 h-auto">Pay</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
