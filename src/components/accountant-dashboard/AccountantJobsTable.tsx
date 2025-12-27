@@ -6,6 +6,7 @@ import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
 import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
 import { useLatestBankReconciliationsByProject } from "@/hooks/useLatestBankReconciliationsByProject";
+import { useUpdateProjectQBReconciliationDate } from "@/hooks/useUpdateProjectQBReconciliationDate";
 import {
   Table,
   TableBody,
@@ -18,7 +19,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusPriority: Record<string, number> = {
@@ -40,6 +48,7 @@ export function AccountantJobsTable() {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
+  const updateQBReconciliationDate = useUpdateProjectQBReconciliationDate();
   
   // First, get all non-template projects to fetch bill counts for ALL of them
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
@@ -313,11 +322,48 @@ export function AccountantJobsTable() {
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
-                  <TableCell>
-                    {latestReconciliations[project.id]?.statement_date 
-                      ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
-                      : <span className="text-muted-foreground">-</span>
-                    }
+                  <TableCell onClick={(e) => showQuickBooks && e.stopPropagation()}>
+                    {showQuickBooks ? (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-auto py-1 px-2 font-normal justify-start hover:bg-muted",
+                              !(project as any).qb_last_reconciliation_date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {(project as any).qb_last_reconciliation_date
+                              ? format(parseISO((project as any).qb_last_reconciliation_date), "MMM d, yyyy")
+                              : "Select date"
+                            }
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_last_reconciliation_date 
+                              ? parseISO((project as any).qb_last_reconciliation_date) 
+                              : undefined
+                            }
+                            onSelect={(date) => {
+                              updateQBReconciliationDate.mutate({
+                                projectId: project.id,
+                                date: date ? format(date, "yyyy-MM-dd") : null,
+                              });
+                            }}
+                            className="pointer-events-auto"
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      latestReconciliations[project.id]?.statement_date 
+                        ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
+                        : <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {closedPeriods[project.id]?.period_end_date 
