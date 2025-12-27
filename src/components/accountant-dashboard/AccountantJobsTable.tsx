@@ -275,7 +275,7 @@ export function AccountantJobsTable() {
           </TableRow>
           
           {/* Second row - only bill sub-columns */}
-          <TableRow>
+          <TableRow className="border-b-0 hover:bg-transparent">
             <TableHead className="text-center pt-0">Current</TableHead>
             <TableHead className="text-center pt-0">Late</TableHead>
             <TableHead className="text-center pt-0">Rejected</TableHead>
