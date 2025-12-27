@@ -2748,6 +2748,7 @@ export type Database = {
           id: string
           last_schedule_published_at: string | null
           owner_id: string
+          qb_last_reconciliation_date: string | null
           status: string
           total_lots: number | null
           updated_at: string
@@ -2766,6 +2767,7 @@ export type Database = {
           id?: string
           last_schedule_published_at?: string | null
           owner_id: string
+          qb_last_reconciliation_date?: string | null
           status: string
           total_lots?: number | null
           updated_at?: string
@@ -2784,6 +2786,7 @@ export type Database = {
           id?: string
           last_schedule_published_at?: string | null
           owner_id?: string
+          qb_last_reconciliation_date?: string | null
           status?: string
           total_lots?: number | null
           updated_at?: string
