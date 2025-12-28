@@ -15,6 +15,74 @@ interface RepresentativeSelectorProps {
   companyId: string | null;
 }
 
+interface RepresentativeContentProps {
+  companyId: string | null;
+}
+
+// Standalone content component for use in tabs
+export function RepresentativeContent({ companyId }: RepresentativeContentProps) {
+  // Fetch representatives for this specific company
+  const { data: representatives = [] } = useQuery({
+    queryKey: ['company-representatives', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('company_representatives')
+        .select('id, first_name, last_name, company_id, title, email, phone_number')
+        .eq('company_id', companyId)
+        .order('first_name');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  if (representatives.length > 0) {
+    return (
+      <div className="border rounded-md overflow-hidden">
+        {/* Header row */}
+        <div className="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <span>Name</span>
+          <span>Title</span>
+          <span>Email</span>
+          <span>Phone</span>
+        </div>
+        {/* Data rows with max height and scroll */}
+        <div className="max-h-64 overflow-y-auto">
+          {representatives.map(representative => (
+            <div 
+              key={representative.id} 
+              className="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
+            >
+              <span className="truncate font-medium">
+                {representative.first_name} {representative.last_name}
+              </span>
+              <span className="truncate text-muted-foreground">
+                {toTitleCase(representative.title)}
+              </span>
+              <span className="truncate text-muted-foreground">
+                {representative.email || '—'}
+              </span>
+              <span className="truncate text-muted-foreground">
+                {representative.phone_number || '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 text-muted-foreground text-center text-sm border rounded-md bg-muted/30">
+      <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+      No representatives found for this company
+    </div>
+  );
+}
+
+// Original collapsible component for backwards compatibility
 export function RepresentativeSelector({ companyId }: RepresentativeSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
