@@ -413,8 +413,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
             <Tabs defaultValue="company-info" className="w-full">
               <TabsList className="w-full">
                 <TabsTrigger value="company-info">Company Information</TabsTrigger>
-                <TabsTrigger value="representatives">Company Representatives</TabsTrigger>
-                <TabsTrigger value="insurance">Insurance & Compliance</TabsTrigger>
+                <TabsTrigger value="representatives">Representatives</TabsTrigger>
+                <TabsTrigger value="insurance">Insurance</TabsTrigger>
               </TabsList>
               
               <TabsContent value="company-info" className="space-y-6 mt-6">
