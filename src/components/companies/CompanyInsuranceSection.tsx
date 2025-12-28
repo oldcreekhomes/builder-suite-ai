@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle, Upload } from "lucide-react";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { InsuranceCertificateUpload, ExtractedInsuranceData } from "./InsuranceCertificateUpload";
 import { InsuranceCertificateReviewDialog } from "./InsuranceCertificateReviewDialog";
@@ -300,57 +301,57 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
       {/* Display existing insurance records */}
       {hasInsuranceRecords && !showUpload && (
         <div className="space-y-4">
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left px-4 py-2 font-medium">Coverage Type</th>
-                  <th className="text-left px-4 py-2 font-medium">Policy #</th>
-                  <th className="text-left px-4 py-2 font-medium">Carrier</th>
-                  <th className="text-left px-4 py-2 font-medium">Expiration</th>
-                  <th className="text-left px-4 py-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {INSURANCE_TYPES.map(({ key, label }) => {
-                  const record = insurances?.find(i => i.insurance_type === key);
-                  const status = getInsuranceStatus(record?.expiration_date || null);
-                  
-                  return (
-                    <tr key={key} className="hover:bg-muted/30">
-                      <td className="px-4 py-3">{label}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {record?.policy_number || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {record?.carrier_name || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {record?.expiration_date 
-                          ? new Date(record.expiration_date).toLocaleDateString()
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(status)}
-                          <span className={
-                            status === "current" ? "text-green-600" :
-                            status === "expiring" ? "text-yellow-600" :
-                            status === "expired" ? "text-red-600" :
-                            "text-muted-foreground"
-                          }>
-                            {status === "current" ? "Current" :
-                             status === "expiring" ? "Expiring Soon" :
-                             status === "expired" ? "Expired" :
-                             "Not Set"}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="border rounded-md overflow-hidden">
+            {/* Header row */}
+            <div className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.5fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+              <span>Coverage Type</span>
+              <span>Policy #</span>
+              <span>Carrier</span>
+              <span>Expiration</span>
+              <span>Status</span>
+            </div>
+            {/* Data rows */}
+            <div>
+              {INSURANCE_TYPES.map(({ key, label }) => {
+                const record = insurances?.find(i => i.insurance_type === key);
+                const status = getInsuranceStatus(record?.expiration_date || null);
+                
+                return (
+                  <div 
+                    key={key} 
+                    className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.5fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
+                  >
+                    <span className="truncate font-medium flex items-center gap-2 text-xs">
+                      {getStatusBadge(status)}
+                      {label}
+                    </span>
+                    <span className="truncate text-muted-foreground text-xs">
+                      {record?.policy_number || "—"}
+                    </span>
+                    <span className="truncate text-muted-foreground text-xs">
+                      {record?.carrier_name || "—"}
+                    </span>
+                    <span className="truncate text-xs">
+                      {record?.expiration_date 
+                        ? format(new Date(record.expiration_date), 'MM/dd/yy')
+                        : "—"}
+                    </span>
+                    <span className={cn(
+                      "truncate text-xs",
+                      status === "current" ? "text-green-600" :
+                      status === "expiring" ? "text-yellow-600" :
+                      status === "expired" ? "text-red-600" :
+                      "text-muted-foreground"
+                    )}>
+                      {status === "current" ? "Current" :
+                       status === "expiring" ? "Expiring" :
+                       status === "expired" ? "Expired" :
+                       "Not Set"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
           
           <Button
