@@ -146,8 +146,8 @@ export function InsuranceCertificateUpload({
       <div className="border-2 border-dashed border-muted rounded-lg p-6 flex flex-col items-center justify-center gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <div className="text-center">
-          <p className="font-medium">
-            {isUploading ? 'Uploading certificate...' : 'Extracting insurance data...'}
+        <p className="font-medium">
+            Using AI to extract insurance data...
           </p>
           {uploadedFile && (
             <p className="text-sm text-muted-foreground mt-1">{uploadedFile.name}</p>
