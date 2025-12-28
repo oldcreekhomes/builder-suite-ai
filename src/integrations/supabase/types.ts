@@ -2214,6 +2214,62 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_insurance_uploads: {
+        Row: {
+          company_id: string
+          content_type: string | null
+          created_at: string
+          error_message: string | null
+          extracted_data: Json | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          owner_id: string
+          status: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          company_id: string
+          content_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_data?: Json | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          owner_id: string
+          status?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          company_id?: string
+          content_type?: string | null
+          created_at?: string
+          error_message?: string | null
+          extracted_data?: Json | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          owner_id?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_insurance_uploads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_bid_packages: {
         Row: {
           cost_code_id: string

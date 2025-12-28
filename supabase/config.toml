@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.split-journal-lines-by-lot]
 verify_jwt = false
+
+[functions.extract-insurance-certificate]
+verify_jwt = true
