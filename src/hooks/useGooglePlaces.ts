@@ -157,13 +157,24 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
 
   // Initialize autocomplete when conditions are met
   useEffect(() => {
-    // Use a small delay to ensure the ref is connected after render
-    const timer = setTimeout(() => {
-      initializeAutocomplete();
-    }, 100);
+    let attempts = 0;
+    const maxAttempts = 5;
+    let timer: NodeJS.Timeout;
+    
+    const tryInitialize = () => {
+      if (companyNameRef.current && isGoogleLoaded && open) {
+        initializeAutocomplete();
+      } else if (attempts < maxAttempts && open && isGoogleLoaded) {
+        attempts++;
+        timer = setTimeout(tryInitialize, 150);
+      }
+    };
+    
+    // Initial delay to ensure the component is mounted (especially in tabs)
+    timer = setTimeout(tryInitialize, 200);
 
     return () => clearTimeout(timer);
-  }, [initializeAutocomplete]);
+  }, [initializeAutocomplete, open, isGoogleLoaded]);
 
   // Reset when dialog closes
   useEffect(() => {

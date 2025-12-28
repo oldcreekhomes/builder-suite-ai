@@ -338,8 +338,9 @@ export function AddCompanyDialog({
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input 
-                                placeholder="Search for company..." 
+                                placeholder={isGoogleLoaded ? "Search for company..." : "Enter company name"}
                                 className="pl-9"
+                                autoComplete="off"
                                 {...field}
                                 ref={(e) => {
                                   field.ref(e);
