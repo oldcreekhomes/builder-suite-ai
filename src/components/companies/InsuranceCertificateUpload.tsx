@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 interface InsuranceCertificateUploadProps {
   companyId?: string | null;
   homeBuilder: string;
-  onExtractionComplete: (data: ExtractedInsuranceData, pendingUploadId: string) => void;
+  onExtractionComplete: (data: ExtractedInsuranceData, pendingUploadIdOrFilePath: string) => void;
 }
 
 export interface ExtractedCoverage {
@@ -67,7 +67,8 @@ export function InsuranceCertificateUpload({
       // Generate file path - use 'temp' folder if no companyId
       const fileExt = file.name.split('.').pop();
       const folderPath = companyId || 'temp';
-      const fileName = `${folderPath}/${Date.now()}.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${folderPath}/${timestamp}.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -79,52 +80,76 @@ export function InsuranceCertificateUpload({
 
       if (uploadError) throw uploadError;
 
-      // Create pending upload record - company_id can be null for new companies
-      const { data: pendingUpload, error: insertError } = await supabase
-        .from('pending_insurance_uploads')
-        .insert({
-          company_id: companyId || null,
-          file_name: file.name,
-          file_path: fileName,
-          file_size: file.size,
-          content_type: file.type,
-          status: 'pending',
-          owner_id: homeBuilder || user.id,
-          uploaded_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
       setIsUploading(false);
       setIsExtracting(true);
 
-      // Call the extraction edge function
-      const { data: extractionResult, error: extractionError } = await supabase.functions
-        .invoke('extract-insurance-certificate', {
-          body: { pendingUploadId: pendingUpload.id },
+      // Different flow for new company (no companyId) vs existing company
+      if (companyId) {
+        // Existing company: create pending upload record and use original flow
+        const { data: pendingUpload, error: insertError } = await supabase
+          .from('pending_insurance_uploads')
+          .insert({
+            company_id: companyId,
+            file_name: file.name,
+            file_path: fileName,
+            file_size: file.size,
+            content_type: file.type,
+            status: 'pending',
+            owner_id: homeBuilder || user.id,
+            uploaded_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        // Call the extraction edge function with pendingUploadId
+        const { data: extractionResult, error: extractionError } = await supabase.functions
+          .invoke('extract-insurance-certificate', {
+            body: { pendingUploadId: pendingUpload.id },
+          });
+
+        if (extractionError) throw extractionError;
+
+        if (!extractionResult?.success) {
+          throw new Error(extractionResult?.error || 'Extraction failed');
+        }
+
+        toast({
+          title: "Certificate processed",
+          description: "Insurance data has been extracted. Please review and confirm.",
         });
 
-      if (extractionError) throw extractionError;
+        onExtractionComplete(extractionResult.data, pendingUpload.id);
+      } else {
+        // New company: use direct extraction without creating pending record
+        const { data: extractionResult, error: extractionError } = await supabase.functions
+          .invoke('extract-insurance-certificate-direct', {
+            body: { filePath: fileName },
+          });
 
-      if (!extractionResult?.success) {
-        throw new Error(extractionResult?.error || 'Extraction failed');
+        if (extractionError) throw extractionError;
+
+        if (!extractionResult?.success) {
+          throw new Error(extractionResult?.error || 'Extraction failed');
+        }
+
+        toast({
+          title: "Certificate processed",
+          description: "Insurance data extracted. It will be saved when the company is created.",
+        });
+
+        // Pass the file path instead of pending upload ID for new companies
+        onExtractionComplete(extractionResult.data, fileName);
       }
-
-      toast({
-        title: "Certificate processed",
-        description: "Insurance data has been extracted. Please review and confirm.",
-      });
-
-      onExtractionComplete(extractionResult.data, pendingUpload.id);
 
     } catch (err: any) {
       console.error('Upload/extraction error:', err);
-      setError(err.message || 'Failed to process certificate');
+      const friendlyError = getFriendlyErrorMessage(err.message);
+      setError(friendlyError);
       toast({
         title: "Error",
-        description: err.message || 'Failed to process certificate',
+        description: friendlyError,
         variant: "destructive",
       });
     } finally {
@@ -132,6 +157,20 @@ export function InsuranceCertificateUpload({
       setIsExtracting(false);
     }
   }, [companyId, homeBuilder, onExtractionComplete, toast]);
+
+// Helper to convert database errors to user-friendly messages
+function getFriendlyErrorMessage(message: string): string {
+  if (message?.includes('violates row-level security') || message?.includes('NOT NULL')) {
+    return 'Failed to process certificate. Please try again.';
+  }
+  if (message?.includes('Rate limit')) {
+    return 'Too many requests. Please wait a moment and try again.';
+  }
+  if (message?.includes('Payment required')) {
+    return 'Service temporarily unavailable. Please try again later.';
+  }
+  return message || 'Failed to process certificate';
+}
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

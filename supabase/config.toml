@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.extract-insurance-certificate]
 verify_jwt = true
+
+[functions.extract-insurance-certificate-direct]
+verify_jwt = true

@@ -36,6 +36,7 @@ import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection
 import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
 import { Search, Users } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 
 // Helper function to parse address components from Google Places
 const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
@@ -112,7 +113,7 @@ export function AddCompanyDialog({
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [costCodeError, setCostCodeError] = useState<string>("");
   const [extractedInsuranceData, setExtractedInsuranceData] = useState<ExtractedInsuranceData | null>(null);
-  const [pendingInsuranceUploadId, setPendingInsuranceUploadId] = useState<string | null>(null);
+  const [pendingInsuranceFilePath, setPendingInsuranceFilePath] = useState<string | null>(null);
 
   // Get current user's home builder ID for insurance upload
   const { data: currentUser } = useQuery({
@@ -210,10 +211,10 @@ export function AddCompanyDialog({
       setCostCodeError("");
     }
   }, []);
-  // Handler for extracted insurance data
-  const handleExtractedDataChange = useCallback((data: ExtractedInsuranceData | null, uploadId: string | null) => {
+  // Handler for extracted insurance data (receives file path for new companies)
+  const handleExtractedDataChange = useCallback((data: ExtractedInsuranceData | null, filePathOrId: string | null) => {
     setExtractedInsuranceData(data);
-    setPendingInsuranceUploadId(uploadId);
+    setPendingInsuranceFilePath(filePathOrId);
   }, []);
 
   const createCompanyMutation = useMutation({
@@ -297,14 +298,22 @@ export function AddCompanyDialog({
           
           if (insuranceError) throw insuranceError;
         }
+      }
 
-        // Update pending upload with the company_id
-        if (pendingInsuranceUploadId) {
-          await supabase
-            .from('pending_insurance_uploads')
-            .update({ company_id: company.id, status: 'completed' })
-            .eq('id', pendingInsuranceUploadId);
-        }
+      // Create pending upload record with the new company_id (for audit trail)
+      if (pendingInsuranceFilePath && extractedInsuranceData) {
+        const { data: { user: currentAuthUser } } = await supabase.auth.getUser();
+        await supabase.from('pending_insurance_uploads').insert([{
+          company_id: company.id,
+          file_name: pendingInsuranceFilePath.split('/').pop() || 'certificate.pdf',
+          file_path: pendingInsuranceFilePath,
+          file_size: 0,
+          content_type: 'application/pdf',
+          status: 'completed',
+          owner_id: homeBuilderIdToUse,
+          uploaded_by: currentAuthUser?.id || user.id,
+          extracted_data: JSON.parse(JSON.stringify(extractedInsuranceData)) as Json,
+        }]);
       }
 
       return company;
@@ -325,7 +334,7 @@ export function AddCompanyDialog({
       form.reset();
       setSelectedCostCodes([]);
       setExtractedInsuranceData(null);
-      setPendingInsuranceUploadId(null);
+      setPendingInsuranceFilePath(null);
       onOpenChange(false);
       
       // Only refresh if not in callback mode (to preserve bill data)
@@ -365,7 +374,7 @@ export function AddCompanyDialog({
       setSelectedCostCodes([]);
       setCostCodeError("");
       setExtractedInsuranceData(null);
-      setPendingInsuranceUploadId(null);
+      setPendingInsuranceFilePath(null);
     }
     onOpenChange(newOpen);
   }, [onOpenChange, form]);
