@@ -478,7 +478,7 @@ export function AddCompanyDialog({
                 </TabsContent>
               </Tabs>
 
-              <div className="flex justify-end space-x-4 pt-4 border-t">
+              <div className="flex justify-end space-x-4 pt-4">
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>
