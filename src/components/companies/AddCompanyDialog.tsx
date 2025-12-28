@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,8 +32,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
+import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection";
+import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search, Users, Shield } from "lucide-react";
+import { Search, Users } from "lucide-react";
 
 // Helper function to parse address components from Google Places
 const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
@@ -109,6 +111,28 @@ export function AddCompanyDialog({
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [costCodeError, setCostCodeError] = useState<string>("");
+  const [extractedInsuranceData, setExtractedInsuranceData] = useState<ExtractedInsuranceData | null>(null);
+  const [pendingInsuranceUploadId, setPendingInsuranceUploadId] = useState<string | null>(null);
+
+  // Get current user's home builder ID for insurance upload
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('home_builder_id')
+        .eq('id', user.id)
+        .single();
+      
+      return {
+        id: user.id,
+        homeBuilder: userDetails?.home_builder_id || user.id
+      };
+    },
+  });
   
 
   const form = useForm<CompanyFormData>({
@@ -186,6 +210,11 @@ export function AddCompanyDialog({
       setCostCodeError("");
     }
   }, []);
+  // Handler for extracted insurance data
+  const handleExtractedDataChange = useCallback((data: ExtractedInsuranceData | null, uploadId: string | null) => {
+    setExtractedInsuranceData(data);
+    setPendingInsuranceUploadId(uploadId);
+  }, []);
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -250,6 +279,34 @@ export function AddCompanyDialog({
         if (costCodeError) throw costCodeError;
       }
 
+      // Save extracted insurance data if available
+      if (extractedInsuranceData && extractedInsuranceData.coverages.length > 0) {
+        for (const coverage of extractedInsuranceData.coverages) {
+          if (!coverage.expiration_date) continue;
+          
+          const { error: insuranceError } = await supabase
+            .from('company_insurances')
+            .insert({
+              company_id: company.id,
+              insurance_type: coverage.type,
+              expiration_date: coverage.expiration_date,
+              policy_number: coverage.policy_number || null,
+              carrier_name: coverage.insurer_name || null,
+              home_builder_id: homeBuilderIdToUse,
+            });
+          
+          if (insuranceError) throw insuranceError;
+        }
+
+        // Update pending upload with the company_id
+        if (pendingInsuranceUploadId) {
+          await supabase
+            .from('pending_insurance_uploads')
+            .update({ company_id: company.id, status: 'completed' })
+            .eq('id', pendingInsuranceUploadId);
+        }
+      }
+
       return company;
     },
     onSuccess: (company) => {
@@ -267,6 +324,8 @@ export function AddCompanyDialog({
       // Reset form and state
       form.reset();
       setSelectedCostCodes([]);
+      setExtractedInsuranceData(null);
+      setPendingInsuranceUploadId(null);
       onOpenChange(false);
       
       // Only refresh if not in callback mode (to preserve bill data)
@@ -305,6 +364,8 @@ export function AddCompanyDialog({
       form.reset();
       setSelectedCostCodes([]);
       setCostCodeError("");
+      setExtractedInsuranceData(null);
+      setPendingInsuranceUploadId(null);
     }
     onOpenChange(newOpen);
   }, [onOpenChange, form]);
@@ -464,17 +525,11 @@ export function AddCompanyDialog({
                 </TabsContent>
                 
                 <TabsContent value="insurance" className="mt-6">
-                  <div className="border rounded-lg p-6 bg-muted/30">
-                    <div className="flex flex-col items-center justify-center text-center space-y-3">
-                      <Shield className="h-10 w-10 text-muted-foreground" />
-                      <div>
-                        <h3 className="font-medium text-foreground">Insurance & Compliance</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Insurance information can be configured after the company is created.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <InsuranceContent
+                    companyId={null}
+                    homeBuilder={currentUser?.homeBuilder || ''}
+                    onExtractedDataChange={handleExtractedDataChange}
+                  />
                 </TabsContent>
               </Tabs>
 

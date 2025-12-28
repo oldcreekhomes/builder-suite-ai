@@ -6,7 +6,7 @@ import { Upload, FileText, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface InsuranceCertificateUploadProps {
-  companyId: string;
+  companyId?: string | null;
   homeBuilder: string;
   onExtractionComplete: (data: ExtractedInsuranceData, pendingUploadId: string) => void;
 }
@@ -64,9 +64,10 @@ export function InsuranceCertificateUpload({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Generate file path
+      // Generate file path - use 'temp' folder if no companyId
       const fileExt = file.name.split('.').pop();
-      const fileName = `${companyId}/${Date.now()}.${fileExt}`;
+      const folderPath = companyId || 'temp';
+      const fileName = `${folderPath}/${Date.now()}.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
@@ -78,11 +79,11 @@ export function InsuranceCertificateUpload({
 
       if (uploadError) throw uploadError;
 
-      // Create pending upload record
+      // Create pending upload record - company_id can be null for new companies
       const { data: pendingUpload, error: insertError } = await supabase
         .from('pending_insurance_uploads')
         .insert({
-          company_id: companyId,
+          company_id: companyId || null,
           file_name: file.name,
           file_path: fileName,
           file_size: file.size,

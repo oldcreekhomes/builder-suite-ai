@@ -30,6 +30,7 @@ interface CompanyInsuranceSectionProps {
 interface InsuranceContentProps {
   companyId: string | null;
   homeBuilder: string;
+  onExtractedDataChange?: (data: ExtractedInsuranceData | null, pendingUploadId: string | null) => void;
 }
 
 const INSURANCE_TYPES = [
@@ -73,7 +74,7 @@ function getStatusBadge(status: "current" | "expiring" | "expired" | "not_set") 
 }
 
 // Standalone content component for use in tabs
-export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentProps) {
+export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange }: InsuranceContentProps) {
   const [formData, setFormData] = useState<Record<InsuranceType, InsuranceFormData>>({
     commercial_general_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
     automobile_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
@@ -243,21 +244,47 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
   };
 
   const handleConfirmExtraction = (data: ExtractedInsuranceData) => {
-    bulkSaveMutation.mutate(data.coverages);
+    // If we have a companyId, save to database
+    if (companyId) {
+      bulkSaveMutation.mutate(data.coverages);
+    } else {
+      // For new companies, pass the data to parent and close dialog
+      if (onExtractedDataChange) {
+        onExtractedDataChange(data, pendingUploadId);
+      }
+      setReviewDialogOpen(false);
+      setExtractedData(data); // Keep the data to show what was extracted
+    }
   };
 
+  // Show upload UI for both new companies and existing companies
   if (!companyId) {
     return (
-      <div className="border rounded-lg p-6 bg-muted/30">
-        <div className="flex flex-col items-center justify-center text-center space-y-3">
-          <Shield className="h-10 w-10 text-muted-foreground" />
-          <div>
-            <h3 className="font-medium text-foreground">Insurance & Compliance</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Insurance information will be available after the company is created.
-            </p>
-          </div>
+      <div className="flex flex-col items-center justify-center py-8">
+        <div className="w-full max-w-md">
+          <InsuranceCertificateUpload
+            companyId={null}
+            homeBuilder={homeBuilder}
+            onExtractionComplete={handleExtractionComplete}
+          />
+          {extractedData && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 font-medium">
+                ✓ Insurance certificate processed - {extractedData.coverages.length} coverage(s) extracted
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                Data will be saved when company is created
+              </p>
+            </div>
+          )}
         </div>
+
+        <InsuranceCertificateReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          extractedData={extractedData}
+          onConfirm={handleConfirmExtraction}
+        />
       </div>
     );
   }
