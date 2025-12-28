@@ -293,15 +293,99 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
     return <div className="text-sm text-muted-foreground p-4">Loading insurance data...</div>;
   }
 
+  const hasInsuranceRecords = insurances && insurances.length > 0;
+
   return (
-    <div className="flex flex-col items-center justify-center py-8">
-      <div className="w-full max-w-md">
-        <InsuranceCertificateUpload
-          companyId={companyId}
-          homeBuilder={homeBuilder}
-          onExtractionComplete={handleExtractionComplete}
-        />
-      </div>
+    <div className="space-y-4">
+      {/* Display existing insurance records */}
+      {hasInsuranceRecords && !showUpload && (
+        <div className="space-y-4">
+          <div className="border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left px-4 py-2 font-medium">Coverage Type</th>
+                  <th className="text-left px-4 py-2 font-medium">Policy #</th>
+                  <th className="text-left px-4 py-2 font-medium">Carrier</th>
+                  <th className="text-left px-4 py-2 font-medium">Expiration</th>
+                  <th className="text-left px-4 py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {INSURANCE_TYPES.map(({ key, label }) => {
+                  const record = insurances?.find(i => i.insurance_type === key);
+                  const status = getInsuranceStatus(record?.expiration_date || null);
+                  
+                  return (
+                    <tr key={key} className="hover:bg-muted/30">
+                      <td className="px-4 py-3">{label}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {record?.policy_number || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {record?.carrier_name || "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {record?.expiration_date 
+                          ? new Date(record.expiration_date).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(status)}
+                          <span className={
+                            status === "current" ? "text-green-600" :
+                            status === "expiring" ? "text-yellow-600" :
+                            status === "expired" ? "text-red-600" :
+                            "text-muted-foreground"
+                          }>
+                            {status === "current" ? "Current" :
+                             status === "expiring" ? "Expiring Soon" :
+                             status === "expired" ? "Expired" :
+                             "Not Set"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={() => setShowUpload(true)}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload New Certificate
+          </Button>
+        </div>
+      )}
+
+      {/* Show upload UI when no records exist or user clicked upload button */}
+      {(!hasInsuranceRecords || showUpload) && (
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="w-full max-w-md">
+            {showUpload && hasInsuranceRecords && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUpload(false)}
+                className="mb-4"
+              >
+                ← Back to Insurance Records
+              </Button>
+            )}
+            <InsuranceCertificateUpload
+              companyId={companyId}
+              homeBuilder={homeBuilder}
+              onExtractionComplete={handleExtractionComplete}
+            />
+          </div>
+        </div>
+      )}
 
       <InsuranceCertificateReviewDialog
         open={reviewDialogOpen}
