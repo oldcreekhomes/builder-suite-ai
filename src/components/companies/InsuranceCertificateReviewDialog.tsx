@@ -3,8 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, FileText, Building2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CheckCircle2, AlertTriangle, FileText, Building2, CalendarIcon } from "lucide-react";
 import { ExtractedInsuranceData, ExtractedCoverage } from "./InsuranceCertificateUpload";
+import { format, parse } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface InsuranceCertificateReviewDialogProps {
   open: boolean;
@@ -90,10 +94,10 @@ export function InsuranceCertificateReviewDialog({
           {coverageCount > 0 ? (
             <div className="border rounded-md overflow-hidden">
               {/* Header row */}
-              <div className="grid grid-cols-[1.3fr_1fr_1fr_0.8fr_0.8fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+              <div className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.6fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
                 <span>Coverage Type</span>
-                <span>Policy Number</span>
-                <span>Carrier Name</span>
+                <span>Policy #</span>
+                <span>Carrier</span>
                 <span>Effective</span>
                 <span>Expiration</span>
               </div>
@@ -102,9 +106,9 @@ export function InsuranceCertificateReviewDialog({
                 {editedData.coverages.map((coverage, index) => (
                   <div 
                     key={index} 
-                    className="grid grid-cols-[1.3fr_1fr_1fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
+                    className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.6fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
                   >
-                    <span className="truncate font-medium flex items-center gap-2">
+                    <span className="font-medium flex items-center gap-2 text-xs">
                       <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
                       {COVERAGE_LABELS[coverage.type] || coverage.type}
                     </span>
@@ -120,18 +124,56 @@ export function InsuranceCertificateReviewDialog({
                       placeholder="Carrier"
                       className="h-7 text-xs"
                     />
-                    <Input
-                      type="date"
-                      value={coverage.effective_date || ''}
-                      onChange={(e) => handleCoverageChange(index, 'effective_date', e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                    <Input
-                      type="date"
-                      value={coverage.expiration_date || ''}
-                      onChange={(e) => handleCoverageChange(index, 'expiration_date', e.target.value)}
-                      className="h-7 text-xs"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "h-7 text-xs justify-start text-left font-normal px-2",
+                            !coverage.effective_date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          {coverage.effective_date 
+                            ? format(parse(coverage.effective_date, 'yyyy-MM-dd', new Date()), 'MM/dd/yy')
+                            : "Select"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={coverage.effective_date ? parse(coverage.effective_date, 'yyyy-MM-dd', new Date()) : undefined}
+                          onSelect={(date) => handleCoverageChange(index, 'effective_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "h-7 text-xs justify-start text-left font-normal px-2",
+                            !coverage.expiration_date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          {coverage.expiration_date 
+                            ? format(parse(coverage.expiration_date, 'yyyy-MM-dd', new Date()), 'MM/dd/yy')
+                            : "Select"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={coverage.expiration_date ? parse(coverage.expiration_date, 'yyyy-MM-dd', new Date()) : undefined}
+                          onSelect={(date) => handleCoverageChange(index, 'expiration_date', date ? format(date, 'yyyy-MM-dd') : null)}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 ))}
               </div>
