@@ -88,7 +88,7 @@ export function InsuranceCertificateUpload({
           file_size: file.size,
           content_type: file.type,
           status: 'pending',
-          owner_id: homeBuilder,
+          owner_id: homeBuilder || user.id,
           uploaded_by: user.id,
         })
         .select()
@@ -175,7 +175,7 @@ export function InsuranceCertificateUpload({
               {isDragActive ? 'Drop the certificate here' : 'Upload Certificate of Insurance'}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Drop an ACORD 25 certificate PDF or click to browse
+              PDF format only
             </p>
           </div>
           <Button variant="outline" size="sm" type="button">
