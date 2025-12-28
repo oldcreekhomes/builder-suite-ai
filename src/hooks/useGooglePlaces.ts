@@ -110,7 +110,7 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         companyNameRef.current,
         {
           types: ['establishment'],
-          fields: ['name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'user_ratings_total', 'business_status', 'types']
+          fields: ['name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'user_ratings_total', 'business_status', 'types', 'address_components']
         }
       );
 
