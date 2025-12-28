@@ -53,18 +53,18 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
           {representatives.map(representative => (
             <div 
               key={representative.id} 
-              className="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
+              className="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/30"
             >
-              <span className="truncate font-medium">
+              <span className="truncate font-medium text-xs">
                 {representative.first_name} {representative.last_name}
               </span>
-              <span className="truncate text-muted-foreground">
+              <span className="truncate text-muted-foreground text-xs">
                 {toTitleCase(representative.title)}
               </span>
-              <span className="truncate text-muted-foreground">
+              <span className="truncate text-muted-foreground text-xs">
                 {representative.email || '—'}
               </span>
-              <span className="truncate text-muted-foreground">
+              <span className="truncate text-muted-foreground text-xs">
                 {representative.phone_number || '—'}
               </span>
             </div>
@@ -136,18 +136,18 @@ export function RepresentativeSelector({ companyId }: RepresentativeSelectorProp
                 {representatives.map(representative => (
                   <div 
                     key={representative.id} 
-                    className="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2 px-3 py-1.5 text-xs border-b last:border-b-0 hover:bg-muted/30"
+                    className="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/30"
                   >
-                    <span className="truncate font-medium">
+                    <span className="truncate font-medium text-xs">
                       {representative.first_name} {representative.last_name}
                     </span>
-                    <span className="truncate text-muted-foreground">
+                    <span className="truncate text-muted-foreground text-xs">
                       {toTitleCase(representative.title)}
                     </span>
-                    <span className="truncate text-muted-foreground">
+                    <span className="truncate text-muted-foreground text-xs">
                       {representative.email || '—'}
                     </span>
-                    <span className="truncate text-muted-foreground">
+                    <span className="truncate text-muted-foreground text-xs">
                       {representative.phone_number || '—'}
                     </span>
                   </div>
