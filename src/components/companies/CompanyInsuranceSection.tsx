@@ -268,35 +268,13 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
 
   return (
     <div className="flex flex-col items-center justify-center py-8">
-      {!showUpload ? (
-        <Button 
-          type="button"
-          variant="outline" 
-          onClick={() => setShowUpload(true)}
-          className="gap-2"
-        >
-          <Upload className="h-4 w-4" />
-          Upload Certificate
-        </Button>
-      ) : (
-        <div className="w-full max-w-md space-y-4">
-          <InsuranceCertificateUpload
-            companyId={companyId}
-            homeBuilder={homeBuilder}
-            onExtractionComplete={handleExtractionComplete}
-          />
-          <div className="text-center">
-            <Button 
-              type="button"
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowUpload(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+      <div className="w-full max-w-md">
+        <InsuranceCertificateUpload
+          companyId={companyId}
+          homeBuilder={homeBuilder}
+          onExtractionComplete={handleExtractionComplete}
+        />
+      </div>
 
       <InsuranceCertificateReviewDialog
         open={reviewDialogOpen}
