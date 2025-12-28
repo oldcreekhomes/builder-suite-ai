@@ -267,97 +267,37 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
   }
 
   return (
-    <div className="space-y-4">
-      {/* Upload Section */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">Upload or manually enter insurance information</h3>
+    <div className="flex flex-col items-center justify-center py-8">
+      {!showUpload ? (
         <Button 
           type="button"
           variant="outline" 
-          size="sm" 
-          onClick={() => setShowUpload(!showUpload)}
+          onClick={() => setShowUpload(true)}
+          className="gap-2"
         >
-          <Upload className="h-4 w-4 mr-2" />
-          {showUpload ? "Hide Upload" : "Upload Certificate"}
+          <Upload className="h-4 w-4" />
+          Upload Certificate
         </Button>
-      </div>
-
-      {showUpload && (
-        <InsuranceCertificateUpload
-          companyId={companyId}
-          homeBuilder={homeBuilder}
-          onExtractionComplete={handleExtractionComplete}
-        />
+      ) : (
+        <div className="w-full max-w-md space-y-4">
+          <InsuranceCertificateUpload
+            companyId={companyId}
+            homeBuilder={homeBuilder}
+            onExtractionComplete={handleExtractionComplete}
+          />
+          <div className="text-center">
+            <Button 
+              type="button"
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowUpload(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Insurance Forms */}
-      {INSURANCE_TYPES.map(({ key, label }) => {
-        const existingRecord = insurances?.find(i => i.insurance_type === key);
-        const status = getInsuranceStatus(existingRecord?.expiration_date || formData[key].expiration_date || null);
-        
-        return (
-          <div key={key} className="border rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{label}</span>
-                {getStatusBadge(status)}
-              </div>
-              {formData[key].expiration_date && (
-                <Button 
-                  type="button"
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleSave(key)}
-                  disabled={upsertMutation.isPending}
-                >
-                  {upsertMutation.isPending ? "Saving..." : "Save"}
-                </Button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Expiration Date</Label>
-                <Input
-                  type="date"
-                  value={formData[key].expiration_date}
-                  onChange={(e) => handleFieldChange(key, "expiration_date", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Policy Number</Label>
-                <Input
-                  placeholder="Enter policy #"
-                  value={formData[key].policy_number}
-                  onChange={(e) => handleFieldChange(key, "policy_number", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Carrier Name</Label>
-                <Input
-                  placeholder="Enter carrier"
-                  value={formData[key].carrier_name}
-                  onChange={(e) => handleFieldChange(key, "carrier_name", e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            
-            {status === "expired" && (
-              <p className="text-xs text-red-500">This insurance has expired!</p>
-            )}
-            {status === "expiring" && existingRecord && (
-              <p className="text-xs text-yellow-600">
-                Expires in {differenceInDays(parseISO(existingRecord.expiration_date), new Date())} days
-              </p>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Review Dialog */}
       <InsuranceCertificateReviewDialog
         open={reviewDialogOpen}
         onOpenChange={setReviewDialogOpen}
