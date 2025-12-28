@@ -69,6 +69,70 @@ interface EditCompanyDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Helper to parse legacy address string (e.g., "10212 Richmond Hwy, Lorton, VA 22079, USA")
+function parseLegacyAddress(address: string): {
+  address_line_1: string;
+  city: string;
+  state: string;
+  zip_code: string;
+} {
+  if (!address) {
+    return { address_line_1: '', city: '', state: '', zip_code: '' };
+  }
+
+  // Remove country suffix (USA, United States, etc.)
+  const cleanedAddress = address
+    .replace(/,?\s*(USA|United States|US)$/i, '')
+    .trim();
+
+  const parts = cleanedAddress.split(',').map(p => p.trim());
+
+  if (parts.length >= 3) {
+    // Format: "Street Address, City, State ZIP"
+    const address_line_1 = parts[0];
+    const city = parts[1];
+    // Last part contains "State ZIP" like "VA 22079"
+    const stateZipPart = parts[parts.length - 1];
+    const stateZipMatch = stateZipPart.match(/^([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/i);
+    
+    if (stateZipMatch) {
+      return {
+        address_line_1,
+        city,
+        state: stateZipMatch[1].toUpperCase(),
+        zip_code: stateZipMatch[2],
+      };
+    }
+    
+    // Fallback: try to parse state and zip separately
+    return {
+      address_line_1,
+      city,
+      state: stateZipPart.replace(/\d+/g, '').trim(),
+      zip_code: stateZipPart.replace(/[^\d-]/g, '').trim(),
+    };
+  } else if (parts.length === 2) {
+    // Format: "Street Address, City State ZIP"
+    const address_line_1 = parts[0];
+    const cityStateZip = parts[1];
+    const match = cityStateZip.match(/^(.+?)\s+([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/i);
+    
+    if (match) {
+      return {
+        address_line_1,
+        city: match[1].trim(),
+        state: match[2].toUpperCase(),
+        zip_code: match[3],
+      };
+    }
+    
+    return { address_line_1, city: cityStateZip, state: '', zip_code: '' };
+  }
+
+  // Single part - just use as address line 1
+  return { address_line_1: cleanedAddress, city: '', state: '', zip_code: '' };
+}
+
 // Helper to parse address components from Google Places
 function parseAddressComponents(components: google.maps.GeocoderAddressComponent[]) {
   let streetNumber = '';
@@ -177,14 +241,30 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     if (company && open && !initializationDone.current) {
       console.log('Initializing form for company:', company.id);
       
-      form.reset({
-        company_name: company.company_name,
-        company_type: company.company_type as any,
+      // Check if structured address fields are empty but legacy address exists
+      const hasStructuredAddress = company.address_line_1 || company.city || company.state || company.zip_code;
+      let addressFields = {
         address_line_1: company.address_line_1 || "",
         address_line_2: company.address_line_2 || "",
         city: company.city || "",
         state: company.state || "",
         zip_code: company.zip_code || "",
+      };
+
+      // Parse legacy address as fallback
+      if (!hasStructuredAddress && company.address) {
+        console.log('Parsing legacy address:', company.address);
+        const parsed = parseLegacyAddress(company.address);
+        addressFields = {
+          ...addressFields,
+          ...parsed,
+        };
+      }
+      
+      form.reset({
+        company_name: company.company_name,
+        company_type: company.company_type as any,
+        ...addressFields,
         phone_number: company.phone_number || "",
         website: company.website || "",
       });
