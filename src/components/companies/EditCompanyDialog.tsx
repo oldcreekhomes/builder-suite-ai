@@ -411,7 +411,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
             <Tabs defaultValue="company-info" className="w-full">
-              <TabsList className="w-full">
+              <TabsList className="w-full grid grid-cols-3">
                 <TabsTrigger value="company-info">Company Information</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
                 <TabsTrigger value="insurance">Insurance</TabsTrigger>
