@@ -550,7 +550,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end space-x-4 pt-4">
+            <div className="flex justify-end space-x-4 pt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
