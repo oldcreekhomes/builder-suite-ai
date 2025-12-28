@@ -216,46 +216,109 @@ export function BulkAddressFinder() {
     return 'low';
   };
 
-  // Search using AutocompleteService for better predictions
-  const searchWithAutocomplete = async (companyName: string): Promise<google.maps.places.AutocompletePrediction[]> => {
+  // Search using the new Place.searchByText API - much better for business name searches
+  const searchWithTextSearch = async (companyName: string): Promise<google.maps.places.Place[]> => {
+    try {
+      // Check if new Places API is available
+      if (!window.google?.maps?.importLibrary) {
+        console.log('Google Maps importLibrary not available, falling back to legacy');
+        return [];
+      }
+
+      const { Place } = await window.google.maps.importLibrary('places') as google.maps.PlacesLibrary;
+      
+      if (!Place?.searchByText) {
+        console.log('Place.searchByText not available');
+        return [];
+      }
+
+      // Try multiple query variations for best results
+      const queries = [
+        `"${companyName}" Virginia`,
+        `${companyName} VA`,
+        `${companyName} Maryland DC`,
+        companyName
+      ];
+
+      const allPlaces: google.maps.places.Place[] = [];
+      const seenIds = new Set<string>();
+
+      for (const query of queries) {
+        try {
+          const request = {
+            textQuery: query,
+            fields: ['displayName', 'formattedAddress', 'nationalPhoneNumber', 'websiteURI', 'id'],
+            locationBias: {
+              center: { lat: 38.9, lng: -77.4 }, // Northern Virginia/DC area
+              radius: 150000 // 150km radius covers VA/DC/MD
+            },
+            maxResultCount: 5,
+            region: 'us',
+          };
+          
+          const { places } = await Place.searchByText(request);
+          
+          if (places && places.length > 0) {
+            for (const place of places) {
+              const placeId = place.id;
+              if (placeId && !seenIds.has(placeId)) {
+                seenIds.add(placeId);
+                allPlaces.push(place);
+              }
+            }
+          }
+        } catch (queryError) {
+          console.log(`Query "${query}" failed:`, queryError);
+        }
+        
+        // If we have good results, stop searching
+        if (allPlaces.length >= 5) break;
+      }
+
+      return allPlaces.slice(0, 8);
+    } catch (error) {
+      console.error('searchByText error:', error);
+      return [];
+    }
+  };
+
+  // Fallback to legacy PlacesService if new API unavailable
+  const searchWithLegacyTextSearch = async (companyName: string): Promise<google.maps.places.PlaceResult[]> => {
     return new Promise((resolve) => {
-      if (!window.google?.maps?.places?.AutocompleteService) {
+      if (!window.google?.maps?.places?.PlacesService) {
         resolve([]);
         return;
       }
 
-      const service = new window.google.maps.places.AutocompleteService();
-      
-      // Search with multiple query variations for better results
+      const service = new window.google.maps.places.PlacesService(document.createElement('div'));
       const queries = [
         `${companyName} Virginia`,
         `${companyName} VA`,
-        `${companyName} Maryland`,
-        `${companyName} DC`,
         companyName
       ];
 
-      const allPredictions: google.maps.places.AutocompletePrediction[] = [];
+      const allResults: google.maps.places.PlaceResult[] = [];
+      const seenIds = new Set<string>();
       let completed = 0;
 
       queries.forEach((query) => {
-        service.getPlacePredictions(
+        service.textSearch(
           {
-            input: query,
-            types: ['establishment'],
-            componentRestrictions: { country: 'us' },
+            query,
+            region: 'us',
           },
-          (predictions, status) => {
+          (results, status) => {
             completed++;
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-              predictions.forEach(p => {
-                if (!allPredictions.find(existing => existing.place_id === p.place_id)) {
-                  allPredictions.push(p);
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+              results.slice(0, 5).forEach(place => {
+                if (place.place_id && !seenIds.has(place.place_id)) {
+                  seenIds.add(place.place_id);
+                  allResults.push(place);
                 }
               });
             }
             if (completed === queries.length) {
-              resolve(allPredictions.slice(0, 8)); // Return top 8 unique predictions
+              resolve(allResults.slice(0, 8));
             }
           }
         );
@@ -263,7 +326,7 @@ export function BulkAddressFinder() {
     });
   };
 
-  // Get place details by place_id
+  // Get additional place details for legacy results
   const getPlaceDetails = async (placeId: string): Promise<google.maps.places.PlaceResult | null> => {
     return new Promise((resolve) => {
       if (!window.google?.maps?.places?.PlacesService) {
@@ -291,17 +354,56 @@ export function BulkAddressFinder() {
 
   // Main search function with multi-candidate scoring
   const searchGooglePlaces = async (company: Company): Promise<Candidate[]> => {
-    const predictions = await searchWithAutocomplete(company.company_name);
+    // Try new searchByText API first (much better results)
+    let places = await searchWithTextSearch(company.company_name);
     
-    if (predictions.length === 0) {
+    // Convert new API Place objects to candidates
+    if (places.length > 0) {
+      const candidates: Candidate[] = [];
+
+      for (const place of places) {
+        const name = place.displayName || '';
+        const address = place.formattedAddress || '';
+        const phone = place.nationalPhoneNumber || '';
+        const website = place.websiteURI || '';
+
+        const { score, reasons } = scoreCandidate(
+          { name, address, phone, website },
+          company.company_name,
+          company.website,
+          company.phone_number
+        );
+
+        candidates.push({
+          name,
+          address: address || undefined,
+          phoneNumber: phone || undefined,
+          website: website ? cleanWebsiteUrl(website) : undefined,
+          score,
+          confidence: getConfidence(score),
+          matchReasons: reasons,
+        });
+      }
+
+      candidates.sort((a, b) => b.score - a.score);
+      return candidates;
+    }
+
+    // Fallback to legacy textSearch API
+    console.log(`Falling back to legacy search for: ${company.company_name}`);
+    const legacyResults = await searchWithLegacyTextSearch(company.company_name);
+    
+    if (legacyResults.length === 0) {
       return [];
     }
 
-    // Get details for top predictions (limit to 5 to avoid too many API calls)
-    const detailsPromises = predictions.slice(0, 5).map(p => getPlaceDetails(p.place_id));
+    // Get detailed info for legacy results
+    const detailsPromises = legacyResults
+      .filter(r => r.place_id)
+      .slice(0, 5)
+      .map(r => getPlaceDetails(r.place_id!));
     const placesDetails = await Promise.all(detailsPromises);
 
-    // Score and rank candidates
     const candidates: Candidate[] = [];
 
     for (const place of placesDetails) {
@@ -330,9 +432,7 @@ export function BulkAddressFinder() {
       });
     }
 
-    // Sort by score descending
     candidates.sort((a, b) => b.score - a.score);
-
     return candidates;
   };
 
