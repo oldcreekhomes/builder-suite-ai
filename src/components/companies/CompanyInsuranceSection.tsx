@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import { format, differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface InsuranceRecord {
@@ -21,6 +21,11 @@ interface InsuranceRecord {
 }
 
 interface CompanyInsuranceSectionProps {
+  companyId: string | null;
+  homeBuilder: string;
+}
+
+interface InsuranceContentProps {
   companyId: string | null;
   homeBuilder: string;
 }
@@ -65,6 +70,199 @@ function getStatusBadge(status: "current" | "expiring" | "expired" | "not_set") 
   }
 }
 
+// Standalone content component for use in tabs
+export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentProps) {
+  const [formData, setFormData] = useState<Record<InsuranceType, InsuranceFormData>>({
+    commercial_general_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
+    automobile_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
+    umbrella_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
+    workers_compensation: { expiration_date: "", policy_number: "", carrier_name: "" },
+  });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch existing insurance records
+  const { data: insurances, isLoading } = useQuery({
+    queryKey: ["company-insurances", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from("company_insurances")
+        .select("*")
+        .eq("company_id", companyId);
+      
+      if (error) throw error;
+      return data as InsuranceRecord[];
+    },
+    enabled: !!companyId,
+  });
+
+  // Initialize form data when insurances load
+  useEffect(() => {
+    if (insurances) {
+      const newFormData = { ...formData };
+      insurances.forEach((ins) => {
+        const type = ins.insurance_type as InsuranceType;
+        if (newFormData[type]) {
+          newFormData[type] = {
+            expiration_date: ins.expiration_date || "",
+            policy_number: ins.policy_number || "",
+            carrier_name: ins.carrier_name || "",
+          };
+        }
+      });
+      setFormData(newFormData);
+    }
+  }, [insurances]);
+
+  // Upsert mutation
+  const upsertMutation = useMutation({
+    mutationFn: async (data: { type: InsuranceType; values: InsuranceFormData }) => {
+      if (!companyId || !data.values.expiration_date) return;
+
+      const existingRecord = insurances?.find(i => i.insurance_type === data.type);
+      
+      if (existingRecord) {
+        const { error } = await supabase
+          .from("company_insurances")
+          .update({
+            expiration_date: data.values.expiration_date,
+            policy_number: data.values.policy_number || null,
+            carrier_name: data.values.carrier_name || null,
+          })
+          .eq("id", existingRecord.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("company_insurances")
+          .insert({
+            company_id: companyId,
+            insurance_type: data.type,
+            expiration_date: data.values.expiration_date,
+            policy_number: data.values.policy_number || null,
+            carrier_name: data.values.carrier_name || null,
+            home_builder_id: homeBuilder,
+          });
+        
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-insurances", companyId] });
+      toast({ title: "Insurance updated", description: "Insurance information has been saved." });
+    },
+    onError: (error) => {
+      console.error("Error saving insurance:", error);
+      toast({ title: "Error", description: "Failed to save insurance information.", variant: "destructive" });
+    },
+  });
+
+  const handleFieldChange = (type: InsuranceType, field: keyof InsuranceFormData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [type]: { ...prev[type], [field]: value },
+    }));
+  };
+
+  const handleSave = (type: InsuranceType) => {
+    const values = formData[type];
+    if (values.expiration_date) {
+      upsertMutation.mutate({ type, values });
+    }
+  };
+
+  if (!companyId) {
+    return (
+      <div className="border rounded-lg p-6 bg-muted/30">
+        <div className="flex flex-col items-center justify-center text-center space-y-3">
+          <Shield className="h-10 w-10 text-muted-foreground" />
+          <div>
+            <h3 className="font-medium text-foreground">Insurance & Compliance</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Insurance information will be available after the company is created.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground p-4">Loading insurance data...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {INSURANCE_TYPES.map(({ key, label }) => {
+        const existingRecord = insurances?.find(i => i.insurance_type === key);
+        const status = getInsuranceStatus(existingRecord?.expiration_date || formData[key].expiration_date || null);
+        
+        return (
+          <div key={key} className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm">{label}</span>
+                {getStatusBadge(status)}
+              </div>
+              {formData[key].expiration_date && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => handleSave(key)}
+                  disabled={upsertMutation.isPending}
+                >
+                  {upsertMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Expiration Date</Label>
+                <Input
+                  type="date"
+                  value={formData[key].expiration_date}
+                  onChange={(e) => handleFieldChange(key, "expiration_date", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Policy Number</Label>
+                <Input
+                  placeholder="Enter policy #"
+                  value={formData[key].policy_number}
+                  onChange={(e) => handleFieldChange(key, "policy_number", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Carrier Name</Label>
+                <Input
+                  placeholder="Enter carrier"
+                  value={formData[key].carrier_name}
+                  onChange={(e) => handleFieldChange(key, "carrier_name", e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            
+            {status === "expired" && (
+              <p className="text-xs text-red-500">This insurance has expired!</p>
+            )}
+            {status === "expiring" && existingRecord && (
+              <p className="text-xs text-yellow-600">
+                Expires in {differenceInDays(parseISO(existingRecord.expiration_date), new Date())} days
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Original collapsible component for backwards compatibility
 export function CompanyInsuranceSection({ companyId, homeBuilder }: CompanyInsuranceSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState<Record<InsuranceType, InsuranceFormData>>({

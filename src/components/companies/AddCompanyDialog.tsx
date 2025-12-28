@@ -27,12 +27,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search } from "lucide-react";
+import { Search, Users, Shield } from "lucide-react";
 
 // Helper function to parse address components from Google Places
 const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
@@ -318,127 +319,165 @@ export function AddCompanyDialog({
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="company_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Name</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="Search for company..." 
-                            className="pl-9"
-                            {...field}
-                            ref={(e) => {
-                              field.ref(e);
-                              (companyNameRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
-                            }}
-                          />
-                        </div>
-                      </FormControl>
-                      
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <Tabs defaultValue="company-info" className="w-full">
+                <TabsList className="w-full">
+                  <TabsTrigger value="company-info">Company Information</TabsTrigger>
+                  <TabsTrigger value="representatives">Company Representatives</TabsTrigger>
+                  <TabsTrigger value="insurance">Insurance & Compliance</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="company-info" className="space-y-6 mt-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="company_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company Name</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                placeholder="Search for company..." 
+                                className="pl-9"
+                                {...field}
+                                ref={(e) => {
+                                  field.ref(e);
+                                  (companyNameRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
+                                }}
+                              />
+                            </div>
+                          </FormControl>
+                          
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="company_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select company type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Consultant">Consultant</SelectItem>
-                          <SelectItem value="Lender">Lender</SelectItem>
-                          <SelectItem value="Municipality">Municipality</SelectItem>
-                          <SelectItem value="Subcontractor">Subcontractor</SelectItem>
-                          <SelectItem value="Vendor">Vendor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                    <FormField
+                      control={form.control}
+                      name="company_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select company type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Consultant">Consultant</SelectItem>
+                              <SelectItem value="Lender">Lender</SelectItem>
+                              <SelectItem value="Municipality">Municipality</SelectItem>
+                              <SelectItem value="Subcontractor">Subcontractor</SelectItem>
+                              <SelectItem value="Vendor">Vendor</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="address_line_1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <StructuredAddressInput
-                          value={{
-                            address_line_1: field.value || "",
-                            address_line_2: form.watch("address_line_2") || "",
-                            city: form.watch("city") || "",
-                            state: form.watch("state") || "",
-                            zip_code: form.watch("zip_code") || "",
-                          }}
-                          onChange={(addressData) => {
-                            form.setValue("address_line_1", addressData.address_line_1);
-                            form.setValue("address_line_2", addressData.address_line_2);
-                            form.setValue("city", addressData.city);
-                            form.setValue("state", addressData.state);
-                            form.setValue("zip_code", addressData.zip_code);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="address_line_1"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <StructuredAddressInput
+                              value={{
+                                address_line_1: field.value || "",
+                                address_line_2: form.watch("address_line_2") || "",
+                                city: form.watch("city") || "",
+                                state: form.watch("state") || "",
+                                zip_code: form.watch("zip_code") || "",
+                              }}
+                              onChange={(addressData) => {
+                                form.setValue("address_line_1", addressData.address_line_1);
+                                form.setValue("address_line_2", addressData.address_line_2);
+                                form.setValue("city", addressData.city);
+                                form.setValue("state", addressData.state);
+                                form.setValue("zip_code", addressData.zip_code);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="phone_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="phone_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter phone number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter website URL" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                    <FormField
+                      control={form.control}
+                      name="website"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Website</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter website URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              <CostCodeSelector
-                companyId={null}
-                selectedCostCodes={selectedCostCodes}
-                onCostCodesChange={handleCostCodesChange}
-                error={costCodeError}
-              />
+                  <CostCodeSelector
+                    companyId={null}
+                    selectedCostCodes={selectedCostCodes}
+                    onCostCodesChange={handleCostCodesChange}
+                    error={costCodeError}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="representatives" className="mt-6">
+                  <div className="border rounded-lg p-6 bg-muted/30">
+                    <div className="flex flex-col items-center justify-center text-center space-y-3">
+                      <Users className="h-10 w-10 text-muted-foreground" />
+                      <div>
+                        <h3 className="font-medium text-foreground">Company Representatives</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Representatives can be added after the company is created.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="insurance" className="mt-6">
+                  <div className="border rounded-lg p-6 bg-muted/30">
+                    <div className="flex flex-col items-center justify-center text-center space-y-3">
+                      <Shield className="h-10 w-10 text-muted-foreground" />
+                      <div>
+                        <h3 className="font-medium text-foreground">Insurance & Compliance</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Insurance information can be configured after the company is created.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
 
-              <div className="flex justify-end space-x-4 pt-4">
+              <div className="flex justify-end space-x-4 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>
