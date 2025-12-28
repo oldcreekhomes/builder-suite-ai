@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +32,8 @@ import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeSelector } from "./RepresentativeSelector";
+import { useGooglePlaces } from "@/hooks/useGooglePlaces";
+import { Search } from "lucide-react";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -67,15 +69,92 @@ interface EditCompanyDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Helper to parse address components from Google Places
+function parseAddressComponents(components: google.maps.GeocoderAddressComponent[]) {
+  let streetNumber = '';
+  let route = '';
+  let city = '';
+  let state = '';
+  let zipCode = '';
+
+  for (const component of components) {
+    const types = component.types;
+    if (types.includes('street_number')) {
+      streetNumber = component.long_name;
+    } else if (types.includes('route')) {
+      route = component.long_name;
+    } else if (types.includes('locality')) {
+      city = component.long_name;
+    } else if (types.includes('administrative_area_level_1')) {
+      state = component.short_name;
+    } else if (types.includes('postal_code')) {
+      zipCode = component.long_name;
+    }
+  }
+
+  return {
+    address_line_1: [streetNumber, route].filter(Boolean).join(' '),
+    city,
+    state,
+    zip_code: zipCode,
+  };
+}
+
 export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const initializationDone = useRef(false);
-  
 
   // Stable company ID for preventing unnecessary re-renders
   const stableCompanyId = useMemo(() => company?.id, [company?.id]);
+
+  const form = useForm<CompanyFormData>({
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      company_name: "",
+      company_type: "Subcontractor",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      zip_code: "",
+      phone_number: "",
+      website: "",
+    },
+  });
+
+  // Handle Google Places selection
+  const handlePlaceSelected = useCallback((place: google.maps.places.PlaceResult) => {
+    console.log('Place selected:', place);
+    
+    // Set company name
+    if (place.name) {
+      form.setValue('company_name', place.name);
+    }
+
+    // Parse and set address components
+    if (place.address_components) {
+      const parsed = parseAddressComponents(place.address_components);
+      form.setValue('address_line_1', parsed.address_line_1);
+      form.setValue('city', parsed.city);
+      form.setValue('state', parsed.state);
+      form.setValue('zip_code', parsed.zip_code);
+    }
+
+    // Set phone number
+    if (place.formatted_phone_number) {
+      form.setValue('phone_number', place.formatted_phone_number);
+    }
+
+    // Set website
+    if (place.website) {
+      form.setValue('website', place.website);
+    }
+  }, [form]);
+
+  // Use Google Places hook for company name autocomplete
+  const { companyNameRef, isGoogleLoaded, isLoadingGoogleData } = useGooglePlaces(open, handlePlaceSelected);
 
   // Fetch company's current cost codes
   const { data: companyCostCodes = [] } = useQuery({
@@ -91,21 +170,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       return data.map(item => item.cost_code_id);
     },
     enabled: !!stableCompanyId && open,
-  });
-
-  const form = useForm<CompanyFormData>({
-    resolver: zodResolver(companySchema),
-    defaultValues: {
-      company_name: "",
-      company_type: "Subcontractor",
-      address_line_1: "",
-      address_line_2: "",
-      city: "",
-      state: "",
-      zip_code: "",
-      phone_number: "",
-      website: "",
-    },
   });
 
   // Initialize form data when dialog opens with a company
@@ -271,8 +335,25 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                   <FormItem>
                     <FormLabel>Company Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter company name" {...field} />
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          placeholder={isGoogleLoaded ? "Search company name..." : "Enter company name"}
+                          className="pl-9"
+                          {...field}
+                          ref={(e) => {
+                            field.ref(e);
+                            (companyNameRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
+                          }}
+                          disabled={isLoadingGoogleData}
+                        />
+                      </div>
                     </FormControl>
+                    {isGoogleLoaded && (
+                      <p className="text-xs text-muted-foreground">
+                        Search powered by Google Places
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
