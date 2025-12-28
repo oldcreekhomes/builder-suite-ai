@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle, Upload } from "lucide-react";
+import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle, Upload, FileDown } from "lucide-react";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +101,24 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
       
       if (error) throw error;
       return data as InsuranceRecord[];
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch latest certificate upload for download
+  const { data: certificateUpload } = useQuery({
+    queryKey: ["certificate-upload", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      const { data } = await supabase
+        .from("pending_insurance_uploads")
+        .select("file_path, file_name")
+        .eq("company_id", companyId)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      return data;
     },
     enabled: !!companyId,
   });
@@ -254,6 +272,7 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
         onExtractedDataChange(data, pendingUploadId);
       }
       setReviewDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["certificate-upload", companyId] });
       setExtractedData(data); // Keep the data to show what was extracted
     }
   };
@@ -354,14 +373,33 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
             </div>
           </div>
           
-          <Button
-            variant="outline"
-            onClick={() => setShowUpload(true)}
-            className="w-full"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload New Certificate
-          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpload(true)}
+              className="w-full"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload New Certificate
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!certificateUpload?.file_path) return;
+                const { data } = await supabase.storage
+                  .from('insurance-certificates')
+                  .createSignedUrl(certificateUpload.file_path, 3600);
+                if (data?.signedUrl) {
+                  window.open(data.signedUrl, '_blank');
+                }
+              }}
+              disabled={!certificateUpload?.file_path}
+              className="w-full"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              View Certificate
+            </Button>
+          </div>
         </div>
       )}
 
