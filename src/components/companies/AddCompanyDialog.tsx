@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,41 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
+import { useGooglePlaces } from "@/hooks/useGooglePlaces";
+import { Search } from "lucide-react";
+
+// Helper function to parse address components from Google Places
+const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
+  const result = {
+    address_line_1: '',
+    city: '',
+    state: '',
+    zip_code: '',
+  };
+
+  if (!addressComponents) return result;
+
+  let streetNumber = '';
+  let route = '';
+
+  addressComponents.forEach((component) => {
+    const types = component.types;
+    if (types.includes('street_number')) {
+      streetNumber = component.long_name;
+    } else if (types.includes('route')) {
+      route = component.long_name;
+    } else if (types.includes('locality')) {
+      result.city = component.long_name;
+    } else if (types.includes('administrative_area_level_1')) {
+      result.state = component.short_name;
+    } else if (types.includes('postal_code')) {
+      result.zip_code = component.long_name;
+    }
+  });
+
+  result.address_line_1 = [streetNumber, route].filter(Boolean).join(' ');
+  return result;
+};
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -73,6 +108,7 @@ export function AddCompanyDialog({
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [costCodeError, setCostCodeError] = useState<string>("");
+  const companyNameInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -88,6 +124,48 @@ export function AddCompanyDialog({
       website: initialData?.website || "",
     },
   });
+
+  // Handle place selection from Google Places
+  const handlePlaceSelected = useCallback((place: google.maps.places.PlaceResult) => {
+    if (place.name) {
+      form.setValue("company_name", place.name);
+    }
+    
+    // Parse address components
+    const addressData = parseAddressComponents(place.address_components);
+    if (addressData.address_line_1) {
+      form.setValue("address_line_1", addressData.address_line_1);
+    }
+    if (addressData.city) {
+      form.setValue("city", addressData.city);
+    }
+    if (addressData.state) {
+      form.setValue("state", addressData.state);
+    }
+    if (addressData.zip_code) {
+      form.setValue("zip_code", addressData.zip_code);
+    }
+    
+    // Set phone number
+    if (place.formatted_phone_number) {
+      form.setValue("phone_number", place.formatted_phone_number);
+    }
+    
+    // Set website
+    if (place.website) {
+      form.setValue("website", place.website);
+    }
+  }, [form]);
+
+  // Initialize Google Places autocomplete on the company name field
+  const { companyNameRef, isGoogleLoaded } = useGooglePlaces(open, handlePlaceSelected);
+
+  // Connect the input ref to the Google Places ref
+  useEffect(() => {
+    if (companyNameInputRef.current && companyNameRef) {
+      (companyNameRef as React.MutableRefObject<HTMLInputElement | null>).current = companyNameInputRef.current;
+    }
+  }, [companyNameRef, open]);
 
   // Update form values when initialCompanyName or initialData changes
   useEffect(() => {
@@ -254,8 +332,22 @@ export function AddCompanyDialog({
                     <FormItem>
                       <FormLabel>Company Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter company name" {...field} />
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            placeholder="Search for company..." 
+                            className="pl-9"
+                            {...field}
+                            ref={(e) => {
+                              field.ref(e);
+                              if (companyNameInputRef) {
+                                (companyNameInputRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
+                              }
+                            }}
+                          />
+                        </div>
                       </FormControl>
+                      <p className="text-xs text-muted-foreground">Search powered by Google Places</p>
                       <FormMessage />
                     </FormItem>
                   )}
