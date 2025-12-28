@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, AlertTriangle, FileText, Building2 } from "lucide-react";
 import { ExtractedInsuranceData, ExtractedCoverage } from "./InsuranceCertificateUpload";
@@ -65,7 +63,7 @@ export function InsuranceCertificateReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -73,100 +71,80 @@ export function InsuranceCertificateReviewDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
-          <div className="space-y-6">
-            {/* Certificate Info */}
-            {editedData.insured && (
-              <div className="border rounded-lg p-4 bg-muted/30">
-                <div className="flex items-center gap-2 mb-3">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">Insured Company</span>
-                </div>
-                <p className="text-sm">{editedData.insured.name || 'Not detected'}</p>
+        <div className="space-y-4">
+          {/* Certificate Info - Compact */}
+          {editedData.insured && (
+            <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-md border">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{editedData.insured.name || 'Not detected'}</span>
                 {editedData.insured.address && (
-                  <p className="text-xs text-muted-foreground mt-1">{editedData.insured.address}</p>
+                  <span className="text-xs text-muted-foreground">• {editedData.insured.address}</span>
                 )}
               </div>
-            )}
-
-            {/* Coverages */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium">Insurance Coverages</h3>
-                <Badge variant="secondary">{coverageCount} found</Badge>
-              </div>
-
-              {editedData.coverages.map((coverage, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span className="font-medium text-sm">
-                        {COVERAGE_LABELS[coverage.type] || coverage.type}
-                      </span>
-                    </div>
-                    {coverage.insurer_name && (
-                      <span className="text-xs text-muted-foreground">
-                        Insurer: {coverage.insurer_name}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Policy Number</Label>
-                      <Input
-                        value={coverage.policy_number || ''}
-                        onChange={(e) => handleCoverageChange(index, 'policy_number', e.target.value)}
-                        placeholder="Enter policy number"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Carrier Name</Label>
-                      <Input
-                        value={coverage.insurer_name || ''}
-                        onChange={(e) => handleCoverageChange(index, 'insurer_name', e.target.value)}
-                        placeholder="Enter carrier name"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Effective Date</Label>
-                      <Input
-                        type="date"
-                        value={coverage.effective_date || ''}
-                        onChange={(e) => handleCoverageChange(index, 'effective_date', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Expiration Date</Label>
-                      <Input
-                        type="date"
-                        value={coverage.expiration_date || ''}
-                        onChange={(e) => handleCoverageChange(index, 'expiration_date', e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {coverageCount === 0 && (
-                <div className="border border-dashed rounded-lg p-6 text-center">
-                  <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    No coverages were detected in the certificate.
-                  </p>
-                </div>
-              )}
+              <Badge variant="secondary" className="ml-auto">{coverageCount} coverages</Badge>
             </div>
-          </div>
-        </ScrollArea>
+          )}
+
+          {/* Coverages Table */}
+          {coverageCount > 0 ? (
+            <div className="border rounded-md overflow-hidden">
+              {/* Header row */}
+              <div className="grid grid-cols-[1.3fr_1fr_1fr_0.8fr_0.8fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+                <span>Coverage Type</span>
+                <span>Policy Number</span>
+                <span>Carrier Name</span>
+                <span>Effective</span>
+                <span>Expiration</span>
+              </div>
+              {/* Data rows */}
+              <div>
+                {editedData.coverages.map((coverage, index) => (
+                  <div 
+                    key={index} 
+                    className="grid grid-cols-[1.3fr_1fr_1fr_0.8fr_0.8fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
+                  >
+                    <span className="truncate font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                      {COVERAGE_LABELS[coverage.type] || coverage.type}
+                    </span>
+                    <Input
+                      value={coverage.policy_number || ''}
+                      onChange={(e) => handleCoverageChange(index, 'policy_number', e.target.value)}
+                      placeholder="Policy #"
+                      className="h-7 text-xs"
+                    />
+                    <Input
+                      value={coverage.insurer_name || ''}
+                      onChange={(e) => handleCoverageChange(index, 'insurer_name', e.target.value)}
+                      placeholder="Carrier"
+                      className="h-7 text-xs"
+                    />
+                    <Input
+                      type="date"
+                      value={coverage.effective_date || ''}
+                      onChange={(e) => handleCoverageChange(index, 'effective_date', e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                    <Input
+                      type="date"
+                      value={coverage.expiration_date || ''}
+                      onChange={(e) => handleCoverageChange(index, 'expiration_date', e.target.value)}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="border border-dashed rounded-lg p-6 text-center">
+              <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No coverages were detected in the certificate.
+              </p>
+            </div>
+          )}
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
