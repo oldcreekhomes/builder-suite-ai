@@ -82,6 +82,26 @@ export function BulkAddressFinder() {
     }
   };
 
+  // Clean website URLs to remove tracking parameters and ad subdomains
+  const cleanWebsiteUrl = (url: string): string => {
+    if (!url) return url;
+    try {
+      const parsed = new URL(url);
+      let hostname = parsed.hostname;
+      
+      // Remove common ad/tracking subdomains
+      hostname = hostname.replace(/^(local|go|click|landing|ads|lp|track|promo|offer|deal|get)\./i, '');
+      
+      // Remove www. for cleaner display but keep the base domain
+      const cleanHostname = hostname.replace(/^www\./i, '');
+      
+      return `https://www.${cleanHostname}`;
+    } catch {
+      // If URL parsing fails, try basic cleanup
+      return url.split('?')[0].split('#')[0];
+    }
+  };
+
   const searchGooglePlaces = async (companyName: string): Promise<any> => {
     return new Promise((resolve) => {
       if (!window.google || !window.google.maps || !window.google.maps.places) {
@@ -93,9 +113,12 @@ export function BulkAddressFinder() {
         document.createElement('div')
       );
 
+      // Add location context for better results (Virginia/DC/MD area)
       const request = {
-        query: companyName,
+        query: `${companyName} Virginia`,
         fields: ['name', 'formatted_address', 'place_id'],
+        location: new window.google.maps.LatLng(38.9, -77.0), // DC/Northern Virginia
+        radius: 150000, // 150km radius
       };
 
       service.textSearch(request, (results, status) => {
@@ -108,6 +131,10 @@ export function BulkAddressFinder() {
               fields: ['name', 'formatted_address', 'formatted_phone_number', 'website']
             }, (place, detailStatus) => {
               if (detailStatus === window.google.maps.places.PlacesServiceStatus.OK && place) {
+                // Clean the website URL before returning
+                if (place.website) {
+                  place.website = cleanWebsiteUrl(place.website);
+                }
                 resolve(place);
               } else {
                 resolve(results[0]);
