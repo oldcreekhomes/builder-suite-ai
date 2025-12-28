@@ -170,14 +170,9 @@ export function InsuranceCertificateUpload({
           <div className="p-3 rounded-full bg-primary/10">
             <Upload className="h-6 w-6 text-primary" />
           </div>
-          <div>
-            <p className="font-medium">
-              {isDragActive ? 'Drop the certificate here' : 'Upload Certificate of Insurance'}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              PDF format only
-            </p>
-          </div>
+          <p className="font-medium">
+            {isDragActive ? 'Drop the certificate here' : 'Upload Certificate of Insurance'}
+          </p>
           <Button variant="outline" size="sm" type="button">
             <FileText className="h-4 w-4 mr-2" />
             Select PDF
