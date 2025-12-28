@@ -272,6 +272,7 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">Upload or manually enter insurance information</h3>
         <Button 
+          type="button"
           variant="outline" 
           size="sm" 
           onClick={() => setShowUpload(!showUpload)}
@@ -303,6 +304,7 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
               </div>
               {formData[key].expiration_date && (
                 <Button 
+                  type="button"
                   size="sm" 
                   variant="outline"
                   onClick={() => handleSave(key)}
