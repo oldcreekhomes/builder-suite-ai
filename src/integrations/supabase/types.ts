@@ -915,6 +915,56 @@ export type Database = {
           },
         ]
       }
+      company_insurances: {
+        Row: {
+          carrier_name: string | null
+          certificate_file_path: string | null
+          company_id: string
+          coverage_amount: number | null
+          created_at: string
+          expiration_date: string
+          home_builder_id: string
+          id: string
+          insurance_type: string
+          policy_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          carrier_name?: string | null
+          certificate_file_path?: string | null
+          company_id: string
+          coverage_amount?: number | null
+          created_at?: string
+          expiration_date: string
+          home_builder_id: string
+          id?: string
+          insurance_type: string
+          policy_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carrier_name?: string | null
+          certificate_file_path?: string | null
+          company_id?: string
+          coverage_amount?: number | null
+          created_at?: string
+          expiration_date?: string
+          home_builder_id?: string
+          id?: string
+          insurance_type?: string
+          policy_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_insurances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_issues: {
         Row: {
           category: string

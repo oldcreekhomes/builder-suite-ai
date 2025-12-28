@@ -29,7 +29,14 @@ interface Company {
   company_name: string;
   company_type: string;
   address?: string;
+  address_line_1?: string;
+  address_line_2?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  phone_number?: string;
   website?: string;
+  home_builder_id: string;
   created_at: string;
   representatives_count?: number;
   cost_codes_count?: number;

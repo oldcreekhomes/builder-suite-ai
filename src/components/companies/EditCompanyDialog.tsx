@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeSelector } from "./RepresentativeSelector";
+import { CompanyInsuranceSection } from "./CompanyInsuranceSection";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
 import { Search } from "lucide-react";
 
@@ -61,6 +62,7 @@ interface Company {
   zip_code?: string;
   phone_number?: string;
   website?: string;
+  home_builder_id: string;
 }
 
 interface EditCompanyDialogProps {
@@ -528,6 +530,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
             <RepresentativeSelector
               companyId={stableCompanyId || null}
+            />
+
+            <CompanyInsuranceSection
+              companyId={stableCompanyId || null}
+              homeBuilder={company?.home_builder_id || ""}
             />
 
             <div className="flex justify-end space-x-4">
