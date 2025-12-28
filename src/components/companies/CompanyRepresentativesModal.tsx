@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Phone } from "lucide-react";
+import { toTitleCase } from "@/lib/utils";
 
 interface Representative {
   id: string;
@@ -79,7 +80,7 @@ export function CompanyRepresentativesModal({
                     {rep.first_name} {rep.last_name || ''}
                   </div>
                   <div className="text-xs text-gray-600">
-                    {rep.title}
+                    {toTitleCase(rep.title)}
                   </div>
                   {rep.email && (
                     <div className="flex items-center space-x-1">

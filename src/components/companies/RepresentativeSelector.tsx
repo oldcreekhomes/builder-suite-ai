@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
 import { ChevronDown, ChevronRight, Users } from "lucide-react";
+import { toTitleCase } from "@/lib/utils";
 import {
   Collapsible,
   CollapsibleContent,
@@ -73,7 +74,7 @@ export function RepresentativeSelector({ companyId }: RepresentativeSelectorProp
                       {representative.first_name} {representative.last_name}
                     </span>
                     <span className="truncate text-muted-foreground">
-                      {representative.title || '—'}
+                      {toTitleCase(representative.title)}
                     </span>
                     <span className="truncate text-muted-foreground">
                       {representative.email || '—'}
