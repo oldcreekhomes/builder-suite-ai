@@ -5,9 +5,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle, Upload } from "lucide-react";
 import { differenceInDays, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { InsuranceCertificateUpload, ExtractedInsuranceData } from "./InsuranceCertificateUpload";
+import { InsuranceCertificateReviewDialog } from "./InsuranceCertificateReviewDialog";
 
 interface InsuranceRecord {
   id?: string;
@@ -78,6 +80,10 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
     umbrella_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
     workers_compensation: { expiration_date: "", policy_number: "", carrier_name: "" },
   });
+  const [showUpload, setShowUpload] = useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [extractedData, setExtractedData] = useState<ExtractedInsuranceData | null>(null);
+  const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -158,6 +164,64 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
     },
   });
 
+  // Bulk save mutation for extracted data
+  const bulkSaveMutation = useMutation({
+    mutationFn: async (coverages: ExtractedInsuranceData['coverages']) => {
+      if (!companyId) return;
+
+      for (const coverage of coverages) {
+        if (!coverage.expiration_date) continue;
+
+        const existingRecord = insurances?.find(i => i.insurance_type === coverage.type);
+        
+        if (existingRecord) {
+          const { error } = await supabase
+            .from("company_insurances")
+            .update({
+              expiration_date: coverage.expiration_date,
+              policy_number: coverage.policy_number || null,
+              carrier_name: coverage.insurer_name || null,
+            })
+            .eq("id", existingRecord.id);
+          
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("company_insurances")
+            .insert({
+              company_id: companyId,
+              insurance_type: coverage.type,
+              expiration_date: coverage.expiration_date,
+              policy_number: coverage.policy_number || null,
+              carrier_name: coverage.insurer_name || null,
+              home_builder_id: homeBuilder,
+            });
+          
+          if (error) throw error;
+        }
+      }
+
+      // Update pending upload status to completed
+      if (pendingUploadId) {
+        await supabase
+          .from("pending_insurance_uploads")
+          .update({ status: 'completed' })
+          .eq("id", pendingUploadId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-insurances", companyId] });
+      toast({ title: "Insurance saved", description: "All insurance records have been updated." });
+      setShowUpload(false);
+      setExtractedData(null);
+      setPendingUploadId(null);
+    },
+    onError: (error) => {
+      console.error("Error saving insurance:", error);
+      toast({ title: "Error", description: "Failed to save insurance information.", variant: "destructive" });
+    },
+  });
+
   const handleFieldChange = (type: InsuranceType, field: keyof InsuranceFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -170,6 +234,16 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
     if (values.expiration_date) {
       upsertMutation.mutate({ type, values });
     }
+  };
+
+  const handleExtractionComplete = (data: ExtractedInsuranceData, uploadId: string) => {
+    setExtractedData(data);
+    setPendingUploadId(uploadId);
+    setReviewDialogOpen(true);
+  };
+
+  const handleConfirmExtraction = (data: ExtractedInsuranceData) => {
+    bulkSaveMutation.mutate(data.coverages);
   };
 
   if (!companyId) {
@@ -194,6 +268,28 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
 
   return (
     <div className="space-y-4">
+      {/* Upload Section */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground">Upload or manually enter insurance information</h3>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowUpload(!showUpload)}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {showUpload ? "Hide Upload" : "Upload Certificate"}
+        </Button>
+      </div>
+
+      {showUpload && (
+        <InsuranceCertificateUpload
+          companyId={companyId}
+          homeBuilder={homeBuilder}
+          onExtractionComplete={handleExtractionComplete}
+        />
+      )}
+
+      {/* Insurance Forms */}
       {INSURANCE_TYPES.map(({ key, label }) => {
         const existingRecord = insurances?.find(i => i.insurance_type === key);
         const status = getInsuranceStatus(existingRecord?.expiration_date || formData[key].expiration_date || null);
@@ -258,6 +354,14 @@ export function InsuranceContent({ companyId, homeBuilder }: InsuranceContentPro
           </div>
         );
       })}
+
+      {/* Review Dialog */}
+      <InsuranceCertificateReviewDialog
+        open={reviewDialogOpen}
+        onOpenChange={setReviewDialogOpen}
+        extractedData={extractedData}
+        onConfirm={handleConfirmExtraction}
+      />
     </div>
   );
 }
