@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -108,7 +108,7 @@ export function AddCompanyDialog({
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [costCodeError, setCostCodeError] = useState<string>("");
-  const companyNameInputRef = useRef<HTMLInputElement>(null);
+  
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
@@ -160,12 +160,6 @@ export function AddCompanyDialog({
   // Initialize Google Places autocomplete on the company name field
   const { companyNameRef, isGoogleLoaded } = useGooglePlaces(open, handlePlaceSelected);
 
-  // Connect the input ref to the Google Places ref
-  useEffect(() => {
-    if (companyNameInputRef.current && companyNameRef) {
-      (companyNameRef as React.MutableRefObject<HTMLInputElement | null>).current = companyNameInputRef.current;
-    }
-  }, [companyNameRef, open]);
 
   // Update form values when initialCompanyName or initialData changes
   useEffect(() => {
@@ -340,9 +334,7 @@ export function AddCompanyDialog({
                             {...field}
                             ref={(e) => {
                               field.ref(e);
-                              if (companyNameInputRef) {
-                                (companyNameInputRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
-                              }
+                              (companyNameRef as React.MutableRefObject<HTMLInputElement | null>).current = e;
                             }}
                           />
                         </div>
