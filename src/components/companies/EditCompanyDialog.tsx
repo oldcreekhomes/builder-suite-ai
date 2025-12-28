@@ -349,11 +349,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                         />
                       </div>
                     </FormControl>
-                    {isGoogleLoaded && (
-                      <p className="text-xs text-muted-foreground">
-                        Search powered by Google Places
-                      </p>
-                    )}
                     <FormMessage />
                   </FormItem>
                 )}
