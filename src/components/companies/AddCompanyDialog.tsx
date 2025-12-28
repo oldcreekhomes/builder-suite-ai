@@ -339,7 +339,7 @@ export function AddCompanyDialog({
                           />
                         </div>
                       </FormControl>
-                      <p className="text-xs text-muted-foreground">Search powered by Google Places</p>
+                      
                       <FormMessage />
                     </FormItem>
                   )}
