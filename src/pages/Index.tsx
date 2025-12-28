@@ -3,7 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
-import { ProjectsOverview } from "@/components/ProjectsOverview";
+import { InsuranceAlertsCard } from "@/components/InsuranceAlertsCard";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
@@ -56,11 +56,9 @@ export default function Index() {
             
             {dashboardView === "project-manager" ? (
               <>
-                <div className="grid gap-6 md:grid-cols-4">
-                  <div className="md:col-span-2">
-                    <div className="rounded-xl bg-muted/50 h-full">
-                      <ProjectsOverview />
-                    </div>
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div className="h-full">
+                    <InsuranceAlertsCard />
                   </div>
                   <div className="h-full">
                     <ProjectWarnings />
