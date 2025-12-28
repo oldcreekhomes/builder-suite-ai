@@ -15,7 +15,6 @@ import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceC
 import { MarketplaceRepresentativesTable } from "@/components/marketplace/MarketplaceRepresentativesTable";
 import { AddMarketplaceCompanyDialog } from "@/components/marketplace/AddMarketplaceCompanyDialog";
 import { AddMarketplaceRepresentativeDialog } from "@/components/marketplace/AddMarketplaceRepresentativeDialog";
-import { BulkAddressFinder } from "@/components/companies/BulkAddressFinder";
 
 
 export default function Companies() {
@@ -41,12 +40,11 @@ export default function Companies() {
             </div>
 
             <Tabs defaultValue="companies" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="companies">Companies</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
                 <TabsTrigger value="marketplace-companies">Marketplace</TabsTrigger>
                 <TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
-                <TabsTrigger value="bulk-data-finder">Data Finder</TabsTrigger>
               </TabsList>
               
               <TabsContent value="companies" className="space-y-4">
@@ -114,9 +112,6 @@ export default function Companies() {
                 <MarketplaceRepresentativesTable />
               </TabsContent>
 
-              <TabsContent value="bulk-data-finder" className="space-y-4">
-                <BulkAddressFinder />
-              </TabsContent>
             </Tabs>
           </div>
 
