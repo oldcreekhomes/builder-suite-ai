@@ -381,13 +381,11 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
       <DialogContent className={phase === 'review' || phase === 'extracting' ? "max-w-4xl" : ""}>
         <DialogHeader>
           <DialogTitle>Upload Drawing Sheet</DialogTitle>
-          <DialogDescription>
-            {phase === 'upload' && "Upload a PDF or image of your construction drawing"}
-            {phase === 'uploading' && null}
-            {phase === 'analyzing' && null}
-            {phase === 'review' && "Review and edit AI-detected sheet information"}
-            {phase === 'extracting' && null}
-          </DialogDescription>
+          {phase === 'review' && (
+            <DialogDescription>
+              Review and edit AI-detected sheet information
+            </DialogDescription>
+          )}
         </DialogHeader>
         
         <div className="space-y-4 py-4">
