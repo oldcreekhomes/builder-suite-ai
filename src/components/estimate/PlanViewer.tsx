@@ -1100,7 +1100,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   return (
     <div className="flex flex-col h-full bg-muted/10">
-      <div className="flex items-center gap-4 px-4 min-h-16 border-b">
+      <div className="flex items-center gap-4 px-4 min-h-16">
         <DrawingToolbar 
           activeTool={activeTool}
           onToolClick={handleToolClick}
