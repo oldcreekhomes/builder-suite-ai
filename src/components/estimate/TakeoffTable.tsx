@@ -176,7 +176,22 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     queryFn: async () => {
       if (!sheetId) return [];
       
-      // Fetch existing takeoff items only - no template rows
+      // Get current user's owner_id for RLS
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) return [];
+      
+      // Get owner_id (home_builder_id for employees, or user's own id)
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('home_builder_id, role')
+        .eq('id', userId)
+        .single();
+      
+      const ownerId = userProfile?.role === 'owner' ? userId : userProfile?.home_builder_id;
+      if (!ownerId) return [];
+      
+      // Fetch existing takeoff items
       const { data: existingItems, error: itemsError } = await supabase
         .from('takeoff_items')
         .select('*, cost_code_id, color')
@@ -185,6 +200,52 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         .order('id', { ascending: true });
 
       if (itemsError) throw itemsError;
+
+      // Fetch estimate-enabled cost codes (leaf items only - no parent categories)
+      const { data: estimateCostCodes, error: costCodesError } = await supabase
+        .from('cost_codes')
+        .select('id, code, name, unit_of_measure, price, category')
+        .eq('owner_id', ownerId)
+        .eq('estimate', true)
+        .eq('has_subcategories', false)
+        .order('code', { ascending: true });
+
+      if (costCodesError) throw costCodesError;
+
+      // Find cost codes that don't have takeoff items yet
+      const existingCostCodeIds = new Set(existingItems?.map(item => item.cost_code_id) || []);
+      const missingCostCodes = estimateCostCodes?.filter(cc => !existingCostCodeIds.has(cc.id)) || [];
+
+      // Auto-create takeoff items for missing cost codes
+      if (missingCostCodes.length > 0) {
+        const colors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+        const existingCount = existingItems?.length || 0;
+        
+        const newItems = missingCostCodes.map((costCode, index) => ({
+          takeoff_sheet_id: sheetId,
+          cost_code_id: costCode.id,
+          category: costCode.name,
+          item_type: 'auto',
+          quantity: 0,
+          unit_of_measure: costCode.unit_of_measure || 'EA',
+          unit_price: costCode.price || 0,
+          total_cost: 0,
+          color: colors[(existingCount + index) % colors.length],
+          owner_id: ownerId,
+        }));
+
+        const { data: insertedItems, error: insertError } = await supabase
+          .from('takeoff_items')
+          .insert(newItems)
+          .select('*, cost_code_id, color');
+
+        if (insertError) {
+          console.error('Error auto-creating takeoff items:', insertError);
+        } else if (insertedItems) {
+          // Combine existing and newly inserted items
+          return [...(existingItems || []), ...insertedItems];
+        }
+      }
 
       return existingItems || [];
     },
