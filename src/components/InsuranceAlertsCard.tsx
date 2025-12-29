@@ -44,7 +44,7 @@ export const InsuranceAlertsCard = () => {
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[280px] pr-3">
+          <ScrollArea className="h-full flex-1 pr-3">
             <div className="space-y-1">
               {alerts.map((alert, index) => (
                 <div

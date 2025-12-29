@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FolderOpen, Building2 } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,7 +74,7 @@ export function MyProjectsCard() {
             No projects assigned
           </div>
         ) : (
-          <ScrollArea className="h-[280px]">
+          <ScrollArea className="h-full flex-1">
             <div className="space-y-1 pr-4">
               {projects.map((project) => (
                 <div
@@ -82,7 +82,6 @@ export function MyProjectsCard() {
                   onClick={() => navigate(`/project/${project.id}`)}
                   className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 cursor-pointer transition-colors"
                 >
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                   <p className="text-sm font-medium truncate flex-1 min-w-0">{project.address}</p>
                   <Badge variant={getStatusVariant(project.status)} className="text-xs flex-shrink-0">
                     {project.status || 'Unknown'}
