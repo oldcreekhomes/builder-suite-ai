@@ -741,9 +741,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     // COUNT TOOL - click to place markers
     if (tool === 'count') {
       fabricCanvas.on('mouse:down', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!p || !sheetId) return;
-        console.info(`Count tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!rawPointer || !sheetId) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        console.info(`Count tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         
         const circle = new Circle({
           left: p.x,
@@ -778,9 +781,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let origX = 0, origY = 0;
 
       fabricCanvas.on('mouse:down', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!p || !sheetId) return;
-        console.info(`Rectangle tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!rawPointer || !sheetId) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        console.info(`Rectangle tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         origX = p.x;
         origY = p.y;
@@ -799,8 +805,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
 
       fabricCanvas.on('mouse:move', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!isDrawing || !rect || !p) return;
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!isDrawing || !rect || !rawPointer) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         const width = Math.abs(p.x - origX);
         const height = Math.abs(p.y - origY);
         rect.set({
@@ -842,9 +851,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let isDrawing = false;
 
       fabricCanvas.on('mouse:down', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!p || !sheetId) return;
-        console.info(`Line tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!rawPointer || !sheetId) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        console.info(`Line tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         
         line = new Line([p.x, p.y, p.x, p.y], {
@@ -856,8 +868,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
 
       fabricCanvas.on('mouse:move', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!isDrawing || !line || !p) return;
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!isDrawing || !line || !rawPointer) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         line.set({ x2: p.x, y2: p.y });
         fabricCanvas.renderAll();
       });
@@ -901,9 +916,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let previewLine: Line | null = null;
 
       fabricCanvas.on('mouse:down', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!p || !sheetId) return;
-        console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}), points: ${points.length}`);
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!rawPointer || !sheetId) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}], points: ${points.length}`);
         
         // Check for double-click timing to finish
         const now = Date.now();
@@ -945,8 +963,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
 
       fabricCanvas.on('mouse:move', (e) => {
-        const p = (e as any).absolutePointer || (e as any).pointer;
-        if (!p || points.length === 0) return;
+        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+        if (!rawPointer || points.length === 0) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         
         // Show preview line from last point to cursor
         if (previewLine) {
@@ -1063,7 +1084,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom <= 1 || activeTool !== 'select') return;
+    // Don't pan if we're in drawing mode or if click was on the Fabric canvas
+    if (activeTool !== 'select') return;
+    if ((e.target as HTMLElement).tagName.toLowerCase() === 'canvas') return;
+    if (zoom <= 1) return;
+    
     setIsPanning(true);
     setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
