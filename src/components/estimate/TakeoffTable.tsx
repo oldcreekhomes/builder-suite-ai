@@ -295,7 +295,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
 
   return (
     <div className="flex flex-col h-full border-l">
-      <div className="px-4 min-h-16 border-b flex items-center">
+      <div className="px-4 py-3 min-h-16 border-b flex items-center">
         <div className="flex items-center justify-between w-full">
           <h3 className="font-medium">Takeoff Items</h3>
           <div className="flex gap-2 items-center">
@@ -307,6 +307,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
             <Button 
               size="sm" 
               variant="outline" 
+              className="h-10"
               onClick={handleAIExtract}
               disabled={isExtracting}
             >
@@ -322,7 +323,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                 </>
               )}
             </Button>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" className="h-10">
               <Plus className="h-4 w-4 mr-1" />
               Add Item
             </Button>
