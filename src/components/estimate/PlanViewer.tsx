@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon, Text, Group } from "fabric";
@@ -44,7 +44,12 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnnotations, onToggleVisibility, onShowAllAnnotations }: PlanViewerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Use callback ref for canvas to handle async DOM availability
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const canvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    setCanvasEl(node);
+  }, []);
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -62,6 +67,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [docLoaded, setDocLoaded] = useState(false);
   const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
+  
+  // Refs to read current values without causing effect re-registration
+  const zoomRef = useRef(zoom);
+  const activeToolRef = useRef(activeTool);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
   
   // Debug state for on-screen click debugger (initialize with defaults so panel is always visible)
   const [debugInfo, setDebugInfo] = useState<{
@@ -83,13 +94,20 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const queryClient = useQueryClient();
   const { annotations, saveAnnotation, deleteAnnotation, isSaving } = useAnnotations(sheetId);
 
-  // Reset canvas ready state when sheet changes
+  // Reset canvas ready state and viewport when sheet changes
   useEffect(() => {
     setCanvasReady(false);
     setImgNaturalSize(null);
     setDocSize(null);
     setDocLoaded(false);
     setDisplayedSize(null);
+    // Reset zoom/pan/scroll on sheet change to prevent off-screen overlays
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+      containerRef.current.scrollLeft = 0;
+    }
   }, [sheetId]);
 
   const { data: sheet } = useQuery({
@@ -123,27 +141,40 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     enabled: !!sheet?.file_path,
   });
 
-  // Initialize Fabric.js canvas once on mount
+  // Initialize Fabric.js canvas when canvas element becomes available
+  // Uses callback ref pattern to handle async DOM availability after PDF/image loads
   useEffect(() => {
-    if (!canvasRef.current || fabricCanvas) return;
+    // Don't init if no canvas element or already have Fabric instance
+    if (!canvasEl) {
+      console.info('[Fabric Init] Canvas element not available yet');
+      return;
+    }
+    
+    if (fabricCanvas) {
+      console.info('[Fabric Init] Already initialized, skipping');
+      return;
+    }
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 800,
-      height: 600,
+    console.info('[Fabric Init] Initializing Fabric.js canvas');
+    const canvas = new FabricCanvas(canvasEl, {
+      width: displayedSize?.width || 800,
+      height: displayedSize?.height || 600,
       backgroundColor: 'transparent',
     });
 
     // Diagnostics: confirm presence of lower/upper layers after init
     const hasLower = !!((canvas as any).lowerCanvasEl || (canvas as any).lower?.el);
     const hasUpper = !!((canvas as any).upperCanvasEl || (canvas as any).upper?.el);
-    console.info('Fabric initialized', { hasLower, hasUpper });
+    console.info('[Fabric Init] Complete', { hasLower, hasUpper });
 
     setFabricCanvas(canvas);
 
     return () => {
+      console.info('[Fabric Init] Disposing canvas');
       canvas.dispose();
+      setFabricCanvas(null);
     };
-  }, []);
+  }, [canvasEl, sheetId]);
 
   // Style upper/lower canvas for proper z-index and event handling
   // RESILIENT: Re-apply whenever Fabric or displayedSize changes (Fabric may recreate DOM nodes)
@@ -210,8 +241,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   // Global Fabric event listeners for diagnostics and click-to-select
   // These are PERSISTENT and must not be removed by tool switching
+  // IMPORTANT: Only depend on fabricCanvas to avoid re-registration; read zoom/activeTool from refs
   useEffect(() => {
     if (!fabricCanvas) return;
+    
+    console.info('[Fabric Listeners] Attaching persistent diagnostic handlers');
     
     // Diagnostic logger with on-screen debug info
     const diagnosticMouseDown = (e: any) => {
@@ -222,8 +256,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       console.info('[Diag] mouse:down', {
         pointer: p ? `(${p.x?.toFixed?.(1)}, ${p.y?.toFixed?.(1)})` : 'none',
         target: target ? `${target.type} [${target.annotationId || 'no-id'}]` : 'none',
-        zoom,
-        activeTool,
+        zoom: zoomRef.current,
+        activeTool: activeToolRef.current,
       });
       
       // Update on-screen debug info
@@ -263,18 +297,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     fabricCanvas.on('selection:cleared', diagnosticSelectionCleared);
     
     return () => {
+      console.info('[Fabric Listeners] Removing persistent diagnostic handlers');
       fabricCanvas.off('mouse:down', diagnosticMouseDown);
       fabricCanvas.off('selection:created', diagnosticSelectionCreated);
       fabricCanvas.off('selection:cleared', diagnosticSelectionCleared);
     };
-  }, [fabricCanvas, zoom, activeTool]);
+  }, [fabricCanvas]);
   
   // DOM-level click diagnostic to confirm events reach the container
-  // Using containerRef (always rendered) instead of stageRef (conditionally rendered)
+  // Re-attach when sheetId/fileUrl changes to handle async DOM availability
   useEffect(() => {
     const container = containerRef.current;
     if (!container) {
-      console.warn('[DOM Listener] containerRef.current is null, skipping listener attachment');
+      console.warn('[DOM Listener] containerRef.current is null, will retry when dependencies change');
       return;
     }
     
@@ -322,7 +357,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       console.info('[DOM Listener] Removing mousedown listener from containerRef');
       container.removeEventListener('mousedown', handleDOMClick, true);
     };
-  }, []);
+  }, [sheetId, fileUrl]);
 
   // Sync canvas dimensions when document loads
   useEffect(() => {
