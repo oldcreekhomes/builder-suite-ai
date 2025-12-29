@@ -11,7 +11,7 @@ export const InsuranceAlertsCard = () => {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-base font-medium">
+        <CardTitle className="flex items-center justify-between text-lg font-semibold">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
             Insurance Alerts
@@ -44,43 +44,30 @@ export const InsuranceAlertsCard = () => {
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-[200px] pr-3">
-            <div className="space-y-3">
+          <ScrollArea className="h-[280px] pr-3">
+            <div className="space-y-1">
               {alerts.map((alert, index) => (
                 <div
                   key={`${alert.companyId}-${alert.insuranceType || index}`}
-                  className="flex items-start gap-2 p-2 rounded-md bg-muted/50"
+                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50"
                 >
                   {alert.severity === "error" ? (
-                    <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                    <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
                   ) : (
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {alert.companyName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {alert.status === "missing" && "No insurance on file"}
-                      {alert.status === "expired" && (
-                        <>
-                          {alert.insuranceType && `${alert.insuranceType}: `}
-                          Expired {alert.expirationDate && format(new Date(alert.expirationDate), "MMM d, yyyy")}
-                        </>
-                      )}
-                      {alert.status === "expiring" && (
-                        <>
-                          {alert.insuranceType && `${alert.insuranceType}: `}
-                          Expires {alert.expirationDate && format(new Date(alert.expirationDate), "MMM d, yyyy")}
-                          {alert.daysRemaining !== undefined && (
-                            <span className="text-amber-600 dark:text-amber-400">
-                              {" "}({alert.daysRemaining} days)
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+                    {alert.companyName}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate max-w-[140px] flex-shrink-0">
+                    {alert.status === "missing" && "No insurance"}
+                    {alert.status === "expired" && (
+                      <>Expired {alert.expirationDate && format(new Date(alert.expirationDate), "M/d/yy")}</>
+                    )}
+                    {alert.status === "expiring" && (
+                      <>Exp {alert.expirationDate && format(new Date(alert.expirationDate), "M/d/yy")} ({alert.daysRemaining}d)</>
+                    )}
+                  </p>
                 </div>
               ))}
             </div>
