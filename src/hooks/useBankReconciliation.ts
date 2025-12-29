@@ -15,6 +15,8 @@ interface ReconciliationTransaction {
   reconciliation_id?: string;
   // For journal entries, we need the line id to mark as reconciled
   journal_entry_line_id?: string;
+  // True if transaction has reconciled=true but references a non-existent reconciliation
+  isOrphaned?: boolean;
 }
 
 interface BankReconciliation {
@@ -52,13 +54,20 @@ export const useBankReconciliation = () => {
           return { checks: [], deposits: [] };
         }
 
-        // Fetch ALL unreconciled checks for this bank account (no project filter yet)
+        // Fetch all valid reconciliation IDs for this bank account to detect orphans
+        const { data: validReconciliations } = await supabase
+          .from('bank_reconciliations')
+          .select('id')
+          .eq('bank_account_id', bankAccountId);
+        
+        const validReconciliationIds = new Set((validReconciliations || []).map(r => r.id));
+
+        // Fetch ALL checks for this bank account (including orphaned ones)
         const { data: allChecks, error: checksError } = await supabase
           .from('checks')
           .select('*')
           .eq('bank_account_id', bankAccountId)
           .eq('status', 'posted')
-          .eq('reconciled', false)
           .eq('is_reversal', false)
           .is('reversed_at', null)
           .order('check_date', { ascending: true });
@@ -98,15 +107,22 @@ export const useBankReconciliation = () => {
           checksToUse = allChecks.filter(c => !c.project_id);
         }
 
+        // Filter checks: include unreconciled OR orphaned (reconciled but referencing invalid reconciliation_id)
+        checksToUse = checksToUse.filter(c => {
+          if (!c.reconciled) return true; // Normal unreconciled
+          // Orphaned: reconciled but reconciliation_id doesn't exist
+          if (c.reconciliation_id && !validReconciliationIds.has(c.reconciliation_id)) return true;
+          return false; // Skip properly reconciled checks
+        });
+        
         console.log('[Reconciliation] Final checks to use:', { count: checksToUse.length });
 
-        // Fetch deposits
+        // Fetch deposits (all, then filter for unreconciled + orphaned)
         let depositsQuery = supabase
           .from('deposits')
           .select('*')
           .eq('bank_account_id', bankAccountId)
           .eq('status', 'posted')
-          .eq('reconciled', false)
           .eq('is_reversal', false)
           .is('reversed_at', null)
           .order('deposit_date', { ascending: true });
@@ -117,7 +133,15 @@ export const useBankReconciliation = () => {
           depositsQuery = depositsQuery.is('project_id', null);
         }
 
-        const { data: deposits, error: depositsError } = await depositsQuery;
+        const { data: allDepositsRaw, error: depositsError } = await depositsQuery;
+        
+        // Filter deposits: unreconciled OR orphaned
+        const deposits = (allDepositsRaw || []).filter(d => {
+          if (!d.reconciled) return true;
+          if (d.reconciliation_id && !validReconciliationIds.has(d.reconciliation_id)) return true;
+          return false;
+        });
+        
         console.log('[Reconciliation] Deposits:', { count: deposits?.length, error: depositsError });
         if (depositsError) throw depositsError;
 
@@ -166,12 +190,11 @@ export const useBankReconciliation = () => {
             // Get bill IDs from journal entries
             const billIds = [...new Set(journalEntries.map(je => je.source_id))];
 
-            // Step 3: Fetch bills with project filter
+            // Step 3: Fetch bills with project filter (including orphaned ones)
             let billsQuery = supabase
               .from('bills')
               .select('id, reference_number, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
-              .in('id', billIds)
-              .eq('reconciled', false);
+              .in('id', billIds);
 
             if (projectId) {
               billsQuery = billsQuery.eq('project_id', projectId);
@@ -179,11 +202,18 @@ export const useBankReconciliation = () => {
               billsQuery = billsQuery.is('project_id', null);
             }
 
-            const { data: bills, error: billsError } = await billsQuery;
+            const { data: allBillsRaw, error: billsError } = await billsQuery;
 
             if (billsError) {
               console.error('[Reconciliation] Bills query failed:', billsError);
             }
+
+            // Filter bills: unreconciled OR orphaned
+            const bills = (allBillsRaw || []).filter(b => {
+              if (!b.reconciled) return true;
+              if (b.reconciliation_id && !validReconciliationIds.has(b.reconciliation_id)) return true;
+              return false;
+            });
 
             if (bills && bills.length > 0) {
               // Step 4: Fetch vendor names
@@ -208,6 +238,8 @@ export const useBankReconciliation = () => {
                 .filter(bill => billToJe.has(bill.id))
                 .map(bill => {
                   const jeId = billToJe.get(bill.id);
+                  const isOrphaned = bill.reconciled && bill.reconciliation_id && 
+                    !validReconciliationIds.has(bill.reconciliation_id);
                   return {
                     id: bill.id,
                     date: jeToDate.get(jeId) || '',
@@ -218,6 +250,7 @@ export const useBankReconciliation = () => {
                     reconciled: bill.reconciled,
                     reconciliation_date: bill.reconciliation_date || undefined,
                     reconciliation_id: bill.reconciliation_id || undefined,
+                    isOrphaned,
                   };
                 });
 
@@ -255,17 +288,23 @@ export const useBankReconciliation = () => {
         if (manualJournalEntries && manualJournalEntries.length > 0) {
           const mjeIds = manualJournalEntries.map(je => je.id);
 
-          // Get journal entry lines that affect this bank account (both debits and credits)
-          const { data: manualLines, error: mlError } = await supabase
+          // Get journal entry lines that affect this bank account (both debits and credits, including orphaned)
+          const { data: allManualLinesRaw, error: mlError } = await supabase
             .from('journal_entry_lines')
             .select('id, journal_entry_id, debit, credit, project_id, reconciled, reconciliation_id, reconciliation_date')
             .in('journal_entry_id', mjeIds)
-            .eq('account_id', bankAccountId)
-            .eq('reconciled', false);
+            .eq('account_id', bankAccountId);
 
           if (mlError) {
             console.error('[Reconciliation] Manual journal lines query failed:', mlError);
           }
+
+          // Filter: unreconciled OR orphaned
+          const manualLines = (allManualLinesRaw || []).filter(l => {
+            if (!l.reconciled) return true;
+            if (l.reconciliation_id && !validReconciliationIds.has(l.reconciliation_id)) return true;
+            return false;
+          });
 
           if (manualLines && manualLines.length > 0) {
             // Create a map of journal entry id to entry data
@@ -285,6 +324,8 @@ export const useBankReconciliation = () => {
 
               const debit = Number(line.debit) || 0;
               const credit = Number(line.credit) || 0;
+              const isOrphaned = line.reconciled && line.reconciliation_id && 
+                !validReconciliationIds.has(line.reconciliation_id);
 
               if (credit > 0) {
                 // Credits to bank account = money going OUT (like checks)
@@ -299,6 +340,7 @@ export const useBankReconciliation = () => {
                   reconciled: line.reconciled || false,
                   reconciliation_date: line.reconciliation_date || undefined,
                   reconciliation_id: line.reconciliation_id || undefined,
+                  isOrphaned,
                 });
               } else if (debit > 0) {
                 // Debits to bank account = money coming IN (like deposits)
@@ -313,6 +355,7 @@ export const useBankReconciliation = () => {
                   reconciled: line.reconciled || false,
                   reconciliation_date: line.reconciliation_date || undefined,
                   reconciliation_id: line.reconciliation_id || undefined,
+                  isOrphaned,
                 });
               }
             });
@@ -324,29 +367,39 @@ export const useBankReconciliation = () => {
           }
         }
 
-        // Transform checks into transactions
-        const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => ({
-          id: check.id,
-          date: check.check_date,
-          type: 'check' as const,
-          payee: check.pay_to,
-          reference_number: check.check_number || undefined,
-          amount: Number(check.amount),
-          reconciled: check.reconciled,
-          reconciliation_date: check.reconciliation_date || undefined,
-          reconciliation_id: check.reconciliation_id || undefined,
-        }));
+        // Transform checks into transactions (mark orphaned ones)
+        const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => {
+          const isOrphaned = check.reconciled && check.reconciliation_id && 
+            !validReconciliationIds.has(check.reconciliation_id);
+          return {
+            id: check.id,
+            date: check.check_date,
+            type: 'check' as const,
+            payee: check.pay_to,
+            reference_number: check.check_number || undefined,
+            amount: Number(check.amount),
+            reconciled: check.reconciled,
+            reconciliation_date: check.reconciliation_date || undefined,
+            reconciliation_id: check.reconciliation_id || undefined,
+            isOrphaned,
+          };
+        });
 
-        const depositTransactions: ReconciliationTransaction[] = (deposits || []).map(deposit => ({
-          id: deposit.id,
-          date: deposit.deposit_date,
-          type: 'deposit' as const,
-          source: deposit.memo || 'Deposit',
-          amount: Number(deposit.amount),
-          reconciled: deposit.reconciled,
-          reconciliation_date: deposit.reconciliation_date || undefined,
-          reconciliation_id: deposit.reconciliation_id || undefined,
-        }));
+        const depositTransactions: ReconciliationTransaction[] = (deposits || []).map(deposit => {
+          const isOrphaned = deposit.reconciled && deposit.reconciliation_id && 
+            !validReconciliationIds.has(deposit.reconciliation_id);
+          return {
+            id: deposit.id,
+            date: deposit.deposit_date,
+            type: 'deposit' as const,
+            source: deposit.memo || 'Deposit',
+            amount: Number(deposit.amount),
+            reconciled: deposit.reconciled,
+            reconciliation_date: deposit.reconciliation_date || undefined,
+            reconciliation_id: deposit.reconciliation_id || undefined,
+            isOrphaned,
+          };
+        });
 
         // Combine checks, bill payments, and journal entry credits (all are money out)
         const allChecksAndPayments = [

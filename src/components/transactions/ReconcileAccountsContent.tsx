@@ -201,9 +201,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     (acc) => acc.type === 'asset' && acc.is_active
   ) || [];
 
-  // Count orphaned transactions (reconciled but will appear locked in UI)
-  const orphanedChecksCount = transactions?.checks.filter(c => c.reconciled).length || 0;
-  const orphanedDepositsCount = transactions?.deposits.filter(d => d.reconciled).length || 0;
+  // Count orphaned transactions (marked by hook as having invalid reconciliation_id)
+  const orphanedChecksCount = transactions?.checks.filter(c => c.isOrphaned).length || 0;
+  const orphanedDepositsCount = transactions?.deposits.filter(d => d.isOrphaned).length || 0;
   const hasOrphanedTransactions = orphanedChecksCount > 0 || orphanedDepositsCount > 0;
 
   const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
