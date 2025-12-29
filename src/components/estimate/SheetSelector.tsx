@@ -39,11 +39,35 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
       const { data, error } = await supabase
         .from('takeoff_sheets')
         .select('*')
-        .eq('takeoff_project_id', takeoffId)
-        .order('page_number', { ascending: true });
+        .eq('takeoff_project_id', takeoffId);
 
       if (error) throw error;
-      return data;
+      
+      // Sort alphanumerically by name (e.g., A1, A2, A3, E1, S1, SP)
+      return data?.sort((a, b) => {
+        const nameA = a.name || '';
+        const nameB = b.name || '';
+        
+        // Extract letter prefix and number
+        const matchA = nameA.match(/^([A-Za-z]+)(\d*)(.*)$/);
+        const matchB = nameB.match(/^([A-Za-z]+)(\d*)(.*)$/);
+        
+        if (!matchA && !matchB) return nameA.localeCompare(nameB);
+        if (!matchA) return 1;
+        if (!matchB) return -1;
+        
+        // Compare letter prefix first
+        const letterCompare = matchA[1].localeCompare(matchB[1]);
+        if (letterCompare !== 0) return letterCompare;
+        
+        // Then compare numbers numerically
+        const numA = matchA[2] ? parseInt(matchA[2], 10) : 0;
+        const numB = matchB[2] ? parseInt(matchB[2], 10) : 0;
+        if (numA !== numB) return numA - numB;
+        
+        // Finally compare any suffix
+        return (matchA[3] || '').localeCompare(matchB[3] || '');
+      });
     },
     enabled: !!takeoffId && !!user,
   });
@@ -97,7 +121,7 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
         <div className="p-2 space-y-1">
           {!sheets || sheets.length === 0 ? (
             <div className="text-center py-8 px-4">
-              <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <FileText className="h-8 w-8 text-red-500 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">
                 No sheets uploaded yet
               </p>
