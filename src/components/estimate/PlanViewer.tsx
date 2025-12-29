@@ -212,6 +212,20 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     console.debug(`Canvas dimensions set: ${displayedSize.width}x${displayedSize.height}`);
   }, [fabricCanvas, displayedSize]);
 
+  // Sync Fabric.js viewport transform with CSS zoom for correct selection hit detection
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    
+    // The CSS transform applies scale(zoom) to the container
+    // Fabric.js needs the inverse transform [1/zoom, 0, 0, 1/zoom, 0, 0] to correctly
+    // map mouse coordinates from screen space to canvas space
+    const inverseZoom = 1 / zoom;
+    fabricCanvas.setViewportTransform([inverseZoom, 0, 0, inverseZoom, 0, 0]);
+    fabricCanvas.renderAll();
+    
+    console.debug(`Fabric viewport synced with CSS zoom: ${zoom} (inverse: ${inverseZoom})`);
+  }, [fabricCanvas, zoom]);
+
   // Handle scale selection from dropdown
   const handleScaleSelect = async (scale: string) => {
     if (scale === "Auto-Detect Scale" || scale === "Custom...") {
@@ -754,8 +768,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         console.info(`Count tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         
         const circle = new Circle({
@@ -794,8 +808,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         console.info(`Rectangle tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         origX = p.x;
@@ -818,8 +832,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!isDrawing || !rect || !rawPointer) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         const width = Math.abs(p.x - origX);
         const height = Math.abs(p.y - origY);
         rect.set({
@@ -864,8 +878,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         console.info(`Line tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         
@@ -881,8 +895,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!isDrawing || !line || !rawPointer) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         line.set({ x2: p.x, y2: p.y });
         fabricCanvas.renderAll();
       });
@@ -929,8 +943,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}], points: ${points.length}`);
         
         // Check for double-click timing to finish
@@ -976,8 +990,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || points.length === 0) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Viewport transform now handles zoom adjustment, use raw coordinates
+        const p = { x: rawPointer.x, y: rawPointer.y };
         
         // Show preview line from last point to cursor
         if (previewLine) {
