@@ -545,13 +545,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               </TabsContent>
               
               <TabsContent value="insurance" className="mt-6">
-                {company?.insurance_required === false ? (
+                {company?.company_type !== 'Subcontractor' ? (
                   <Alert className="border-muted">
                     <ShieldOff className="h-4 w-4" />
                     <AlertTitle>Insurance Not Required</AlertTitle>
                     <AlertDescription className="text-muted-foreground">
-                      Insurance tracking is disabled for this company. To enable insurance requirements, 
-                      toggle the "Insurance" switch in the Companies table.
+                      Insurance tracking is not required for vendors, consultants, and municipalities.
                     </AlertDescription>
                   </Alert>
                 ) : (
