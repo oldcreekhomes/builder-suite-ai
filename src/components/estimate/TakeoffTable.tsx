@@ -295,8 +295,8 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
 
   return (
     <div className="flex flex-col h-full border-l">
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-2">
+      <div className="px-4 h-[52px] border-b flex items-center">
+        <div className="flex items-center justify-between w-full">
           <h3 className="font-medium">Takeoff Items</h3>
           <div className="flex gap-2 items-center">
             <BulkActionBar
