@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, FileText, Trash2 } from "lucide-react";
+import { Plus, FileText, Trash2, Pencil } from "lucide-react";
 import { UploadSheetDialog } from "./UploadSheetDialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SheetSelectorProps {
   takeoffId: string;
@@ -26,12 +42,32 @@ interface SheetSelectorProps {
   onItemsExtracted?: (sheetIds: string[], itemIds: string[]) => void;
 }
 
+const COMMON_SCALES = [
+  "1/16\" = 1'-0\"",
+  "3/32\" = 1'-0\"",
+  "1/8\" = 1'-0\"",
+  "3/16\" = 1'-0\"",
+  "1/4\" = 1'-0\"",
+  "3/8\" = 1'-0\"",
+  "1/2\" = 1'-0\"",
+  "3/4\" = 1'-0\"",
+  "1\" = 1'-0\"",
+  "1-1/2\" = 1'-0\"",
+  "3\" = 1'-0\"",
+  "AS NOTED",
+  "NTS",
+];
+
 export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onItemsExtracted }: SheetSelectorProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sheetToDelete, setSheetToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [sheetToEdit, setSheetToEdit] = useState<{ id: string; name: string; drawing_scale: string | null } | null>(null);
+  const [editFormData, setEditFormData] = useState({ sheet_number: '', sheet_title: '', scale: '' });
+  const [isSaving, setIsSaving] = useState(false);
 
   const { data: sheets, refetch } = useQuery({
     queryKey: ['takeoff-sheets', takeoffId],
@@ -76,6 +112,53 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
     e.stopPropagation();
     setSheetToDelete(id);
     setDeleteDialogOpen(true);
+  };
+
+  const handleEdit = (sheet: { id: string; name: string; drawing_scale: string | null }, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Parse the name to extract sheet number and title (format: "A1-Ground Floor Plan" or "A1 Ground Floor Plan")
+    const name = sheet.name || '';
+    const match = name.match(/^([A-Za-z0-9]+)[\s-]+(.*)$/);
+    const sheetNumber = match ? match[1] : name;
+    const sheetTitle = match ? match[2] : '';
+    
+    setSheetToEdit(sheet);
+    setEditFormData({
+      sheet_number: sheetNumber,
+      sheet_title: sheetTitle,
+      scale: sheet.drawing_scale || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!sheetToEdit) return;
+    setIsSaving(true);
+
+    try {
+      const newName = editFormData.sheet_title 
+        ? `${editFormData.sheet_number}-${editFormData.sheet_title}`
+        : editFormData.sheet_number;
+
+      const { error } = await supabase
+        .from('takeoff_sheets')
+        .update({
+          name: newName,
+          drawing_scale: editFormData.scale || null,
+        })
+        .eq('id', sheetToEdit.id);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: "Sheet updated" });
+      refetch();
+      setEditDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating sheet:', error);
+      toast({ title: "Error", description: "Failed to update sheet", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -137,7 +220,7 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
                 className={cn(
                   "group flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors",
                   selectedSheetId === sheet.id 
-                    ? "bg-primary text-primary-foreground" 
+                    ? "bg-accent border-l-2 border-primary" 
                     : "hover:bg-accent"
                 )}
                 onClick={() => onSelectSheet(sheet.id)}
@@ -145,19 +228,29 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{sheet.name}</p>
                   {sheet.drawing_scale && (
-                    <p className="text-xs opacity-80 truncate">
+                    <p className="text-xs text-muted-foreground truncate">
                       Scale: {sheet.drawing_scale}
                     </p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => handleDelete(sheet.id, e)}
-                >
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => handleEdit(sheet, e)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => handleDelete(sheet.id, e)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </div>
             ))
           )}
@@ -197,6 +290,60 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Sheet</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="sheet_number">Sheet #</Label>
+              <Input
+                id="sheet_number"
+                value={editFormData.sheet_number}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, sheet_number: e.target.value }))}
+                placeholder="e.g., A1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sheet_title">Title</Label>
+              <Input
+                id="sheet_title"
+                value={editFormData.sheet_title}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, sheet_title: e.target.value }))}
+                placeholder="e.g., Ground Floor Plan"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="scale">Scale</Label>
+              <Select
+                value={editFormData.scale}
+                onValueChange={(value) => setEditFormData(prev => ({ ...prev, scale: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select scale" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COMMON_SCALES.map((scale) => (
+                    <SelectItem key={scale} value={scale}>
+                      {scale}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
