@@ -19,6 +19,7 @@ const statusGroups = [
   { status: "Under Construction", color: "bg-orange-100 text-orange-800" },
   { status: "Completed", color: "bg-green-100 text-green-800" },
   { status: "Permanently Closed", color: "bg-gray-100 text-gray-600" },
+  { status: "Template", color: "bg-purple-100 text-purple-800" },
 ];
 
 export function MyProjectsCard() {
