@@ -20,6 +20,7 @@ import { CostCodesTab } from "@/components/settings/CostCodesTab";
 import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
 import { BudgetWarningsTab } from "@/components/settings/BudgetWarningsTab";
+import { DashboardSettingsTab } from "@/components/settings/DashboardSettingsTab";
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
 import { useCostCodeHandlers } from "@/hooks/useCostCodeHandlers";
@@ -152,11 +153,12 @@ const Settings = () => {
               </div>
 
         <Tabs defaultValue="cost-codes" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="cost-codes">Cost Codes</TabsTrigger>
               <TabsTrigger value="specifications">Specifications</TabsTrigger>
               <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
               <TabsTrigger value="budget">Budget</TabsTrigger>
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             </TabsList>
                 
                 <TabsContent value="cost-codes" className="mt-6">
@@ -205,6 +207,10 @@ const Settings = () => {
 
             <TabsContent value="budget" className="mt-6">
               <BudgetWarningsTab />
+            </TabsContent>
+
+            <TabsContent value="dashboard" className="mt-6">
+              <DashboardSettingsTab />
             </TabsContent>
           </Tabs>
         </div>

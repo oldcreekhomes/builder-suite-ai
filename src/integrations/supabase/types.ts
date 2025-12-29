@@ -1426,6 +1426,39 @@ export type Database = {
           },
         ]
       }
+      dashboard_card_settings: {
+        Row: {
+          card_type: string
+          company_name: string
+          created_at: string | null
+          dashboard_type: string
+          enabled: boolean | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          card_type: string
+          company_name: string
+          created_at?: string | null
+          dashboard_type: string
+          enabled?: boolean | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          card_type?: string
+          company_name?: string
+          created_at?: string | null
+          dashboard_type?: string
+          enabled?: boolean | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       deposit_attachments: {
         Row: {
           content_type: string | null
