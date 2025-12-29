@@ -229,7 +229,6 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           quantity: 0,
           unit_of_measure: costCode.unit_of_measure || 'EA',
           unit_price: costCode.price || 0,
-          total_cost: 0,
           color: colors[(existingCount + index) % colors.length],
           owner_id: ownerId,
         }));

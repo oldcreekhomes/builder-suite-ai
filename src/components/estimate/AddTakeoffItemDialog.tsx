@@ -125,7 +125,6 @@ export function AddTakeoffItemDialog({
           quantity: 0,
           unit_of_measure: costCode.unit_of_measure,
           unit_price: costCode.price || 0,
-          total_cost: 0,
           color: '#3b82f6', // Default blue color
         })
         .select()
