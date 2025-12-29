@@ -14,7 +14,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -123,6 +123,46 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [selectedReconciliationToUndo, setSelectedReconciliationToUndo] = useState<any>(null);
   const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
   const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
+  const [isFixingOrphanedTransactions, setIsFixingOrphanedTransactions] = useState(false);
+
+  const handleFixOrphanedTransactions = async () => {
+    if (!selectedBankAccountId) return;
+    
+    setIsFixingOrphanedTransactions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fix-orphaned-reconciliations', {
+        body: { 
+          bankAccountId: selectedBankAccountId,
+          projectId: projectId || null
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.ok) {
+        const totalFixed = data.totalFixed || 0;
+        toast({
+          title: "Transactions Unlocked",
+          description: totalFixed > 0 
+            ? `Fixed ${totalFixed} orphaned transaction(s). They are now editable.`
+            : "No orphaned transactions found.",
+        });
+        // Refetch transactions to update the UI
+        window.location.reload();
+      } else {
+        throw new Error(data?.error || 'Unknown error');
+      }
+    } catch (error: any) {
+      console.error('Error fixing orphaned transactions:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fix orphaned transactions.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFixingOrphanedTransactions(false);
+    }
+  };
 
   const { 
     data: reconciliationHistory,
@@ -160,6 +200,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const bankAccounts = accounts?.filter(
     (acc) => acc.type === 'asset' && acc.is_active
   ) || [];
+
+  // Count orphaned transactions (reconciled but will appear locked in UI)
+  const orphanedChecksCount = transactions?.checks.filter(c => c.reconciled).length || 0;
+  const orphanedDepositsCount = transactions?.deposits.filter(d => d.reconciled).length || 0;
+  const hasOrphanedTransactions = orphanedChecksCount > 0 || orphanedDepositsCount > 0;
 
   const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
   const clearedDeposits = transactions?.deposits.filter(d => checkedTransactions.has(d.id)) || [];
@@ -973,6 +1018,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             >
               Edit
             </Button>
+            {hasOrphanedTransactions && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={handleFixOrphanedTransactions}
+                      disabled={isFixingOrphanedTransactions}
+                    >
+                      {isFixingOrphanedTransactions ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wrench className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Fix {orphanedChecksCount + orphanedDepositsCount} locked transaction(s)
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
 
