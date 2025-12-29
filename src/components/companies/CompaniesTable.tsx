@@ -157,7 +157,7 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
                 if (companyTypeFilter === 'subcontractor') {
                   if (company.company_type !== 'Subcontractor') return false;
                 } else if (companyTypeFilter === 'vendor') {
-                  if (!['Vendor', 'Consultant', 'Municipality'].includes(company.company_type)) return false;
+                  if (!['Vendor', 'Consultant', 'Municipality', 'Utility'].includes(company.company_type)) return false;
                 }
                 
                 if (!searchQuery.trim()) return true;
@@ -279,7 +279,7 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
               if (companyTypeFilter === 'subcontractor') {
                 if (company.company_type !== 'Subcontractor') return false;
               } else if (companyTypeFilter === 'vendor') {
-                if (!['Vendor', 'Consultant', 'Municipality'].includes(company.company_type)) return false;
+                if (!['Vendor', 'Consultant', 'Municipality', 'Utility'].includes(company.company_type)) return false;
               }
               
               if (!searchQuery.trim()) return true;

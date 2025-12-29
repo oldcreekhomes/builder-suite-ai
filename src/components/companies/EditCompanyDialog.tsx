@@ -40,7 +40,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_type: z.enum(["Consultant", "Lender", "Municipality", "Subcontractor", "Vendor"]),
+  company_type: z.enum(["Consultant", "Lender", "Municipality", "Subcontractor", "Utility", "Vendor"]),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -464,6 +464,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                             <SelectItem value="Lender">Lender</SelectItem>
                             <SelectItem value="Municipality">Municipality</SelectItem>
                             <SelectItem value="Subcontractor">Subcontractor</SelectItem>
+                            <SelectItem value="Utility">Utility</SelectItem>
                             <SelectItem value="Vendor">Vendor</SelectItem>
                           </SelectContent>
                         </Select>
