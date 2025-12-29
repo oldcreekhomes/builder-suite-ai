@@ -244,9 +244,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   }, [fabricCanvas, zoom, activeTool]);
   
   // DOM-level click diagnostic to confirm events reach the container
+  // Using containerRef (always rendered) instead of stageRef (conditionally rendered)
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
+    const container = containerRef.current;
+    if (!container) {
+      console.warn('[DOM Listener] containerRef.current is null, skipping listener attachment');
+      return;
+    }
+    
+    console.info('[DOM Listener] Attaching mousedown listener to containerRef');
     
     const handleDOMClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -268,10 +274,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       });
     };
     
-    stage.addEventListener('mousedown', handleDOMClick, true); // capture phase
+    container.addEventListener('mousedown', handleDOMClick, true); // capture phase
     
     return () => {
-      stage.removeEventListener('mousedown', handleDOMClick, true);
+      console.info('[DOM Listener] Removing mousedown listener from containerRef');
+      container.removeEventListener('mousedown', handleDOMClick, true);
     };
   }, []);
 
