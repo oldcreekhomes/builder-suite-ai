@@ -164,6 +164,8 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             status: 'pending',
           });
 
+          // Update UI immediately so pages appear as they're uploaded
+          setDetections([...sheetsToProcess]);
           setUploadProgress({ current: pageNum, total: pdf.numPages });
         }
       } else {
@@ -189,11 +191,10 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           status: 'pending',
         });
 
+        // Update UI immediately so page appears right away
+        setDetections([...sheetsToProcess]);
         setUploadProgress({ current: 1, total: 1 });
       }
-
-      setDetections(sheetsToProcess);
-      setPhase('analyzing');
 
       // Analyze each sheet for title block info using file path (no sheetId yet)
       for (let i = 0; i < sheetsToProcess.length; i++) {
