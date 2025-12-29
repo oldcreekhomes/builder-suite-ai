@@ -54,7 +54,7 @@ export function DrawingToolbar({
   ];
 
   return (
-    <div className="flex items-center gap-2 p-4 border-b bg-background">
+    <div className="flex items-center gap-2 bg-background">
       <div className="flex items-center gap-1">
         {tools.map((tool) => (
           <Button
