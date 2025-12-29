@@ -106,7 +106,7 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
 
   return (
     <div className="flex flex-col h-full border-r bg-muted/10">
-      <div className="px-4 border-b flex items-center justify-between h-16 mt-1">
+      <div className="px-4 py-3 border-b flex items-center justify-between">
         <h3 className="font-medium">Drawing Sheets</h3>
         <Button 
           size="sm" 
