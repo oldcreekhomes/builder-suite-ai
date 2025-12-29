@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Canvas as FabricCanvas, Circle, Line, Rect, Polygon, Text, Group } from "fabric";
 import { DrawingToolbar } from "./DrawingToolbar";
@@ -63,6 +63,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { annotations, saveAnnotation, deleteAnnotation, isSaving } = useAnnotations(sheetId);
 
   // Reset canvas ready state when sheet changes
@@ -667,6 +668,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         .update({ quantity: (item.quantity || 0) + 1 })
         .eq('id', itemId);
       
+      // Invalidate takeoff-items query so TakeoffTable refetches
+      queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
+      
       toast({
         title: "Quantity updated",
         description: "+1 added to item",
@@ -686,6 +690,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         .from('takeoff_items')
         .update({ quantity: (item.quantity || 0) + amount })
         .eq('id', itemId);
+      
+      // Invalidate takeoff-items query so TakeoffTable refetches
+      queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
       
       toast({
         title: "Quantity updated",
@@ -707,6 +714,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         .from('takeoff_items')
         .update({ quantity: newQty })
         .eq('id', itemId);
+      
+      // Invalidate takeoff-items query so TakeoffTable refetches
+      queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
       
       toast({
         title: "Quantity updated",
