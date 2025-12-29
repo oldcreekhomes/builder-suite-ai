@@ -98,11 +98,12 @@ export const useInsuranceAlerts = () => {
           return;
         }
 
-        // 5. Get companies with their names
+        // 5. Get companies with their names (only those that require insurance)
         const { data: companies } = await supabase
           .from("companies")
-          .select("id, company_name")
-          .in("id", allCompanyIds);
+          .select("id, company_name, insurance_required")
+          .in("id", allCompanyIds)
+          .neq("insurance_required", false);
 
         // 6. Get insurance records for these companies
         const { data: insurances } = await supabase
