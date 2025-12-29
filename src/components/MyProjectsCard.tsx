@@ -13,6 +13,14 @@ interface Project {
   status: string;
 }
 
+const statusGroups = [
+  { status: "In Design", color: "bg-yellow-100 text-yellow-800" },
+  { status: "Permitting", color: "bg-blue-100 text-blue-800" },
+  { status: "Under Construction", color: "bg-orange-100 text-orange-800" },
+  { status: "Completed", color: "bg-green-100 text-green-800" },
+  { status: "Permanently Closed", color: "bg-gray-100 text-gray-600" },
+];
+
 export function MyProjectsCard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -38,18 +46,13 @@ export function MyProjectsCard() {
     enabled: !!user?.id,
   });
 
-  const getStatusVariant = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'default';
-      case 'completed':
-        return 'secondary';
-      case 'on hold':
-        return 'outline';
-      default:
-        return 'secondary';
-    }
-  };
+  // Group projects by status
+  const projectsByStatus = statusGroups
+    .map((group) => ({
+      ...group,
+      projects: projects.filter((p) => p.status === group.status),
+    }))
+    .filter((group) => group.projects.length > 0);
 
   return (
     <Card className="h-full">
@@ -75,17 +78,23 @@ export function MyProjectsCard() {
           </div>
         ) : (
           <ScrollArea className="h-full flex-1">
-            <div className="space-y-1 pr-4">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  onClick={() => navigate(`/project/${project.id}`)}
-                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <p className="text-sm font-medium truncate flex-1 min-w-0">{project.address}</p>
-                  <Badge variant={getStatusVariant(project.status)} className="text-xs flex-shrink-0">
-                    {project.status || 'Unknown'}
-                  </Badge>
+            <div className="space-y-3 pr-4">
+              {projectsByStatus.map((group) => (
+                <div key={group.status}>
+                  <div className={`text-xs font-medium px-2 py-1 rounded mb-1 ${group.color}`}>
+                    {group.status} ({group.projects.length})
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.projects.map((project) => (
+                      <div
+                        key={project.id}
+                        onClick={() => navigate(`/project/${project.id}`)}
+                        className="flex items-center py-1 px-2 rounded hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <p className="text-sm truncate">{project.address}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
