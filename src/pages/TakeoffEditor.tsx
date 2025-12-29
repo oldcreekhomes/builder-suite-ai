@@ -172,7 +172,8 @@ export default function TakeoffEditor() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 flex flex-col">
+          <div className="h-[52px]" /> {/* Spacer to align with sidebar tabs */}
           <DashboardHeader 
             title={takeoff.name || "Estimate & Takeoff"}
             projectId={projectId}
