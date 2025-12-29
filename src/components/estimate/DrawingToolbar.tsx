@@ -61,6 +61,7 @@ export function DrawingToolbar({
             key={tool.id}
             variant={activeTool === tool.id ? 'default' : 'ghost'}
             size="sm"
+            className="h-10"
             onClick={() => onToolClick(tool.id)}
             title={tool.tooltip}
           >
@@ -75,7 +76,7 @@ export function DrawingToolbar({
         value={selectedScale || "not-set"}
         onValueChange={onScaleChange}
       >
-        <SelectTrigger className="w-[180px] h-9">
+        <SelectTrigger className="w-[180px] h-10">
           <Ruler className="mr-2 h-4 w-4 shrink-0" />
           <SelectValue>
             {selectedScale || "Set Scale"}
@@ -96,6 +97,7 @@ export function DrawingToolbar({
         <Button
           variant="ghost"
           size="sm"
+          className="h-10"
           onClick={onZoomOut}
           disabled={zoom <= 0.25}
           title="Zoom Out"
@@ -105,6 +107,7 @@ export function DrawingToolbar({
         <Button
           variant="ghost"
           size="sm"
+          className="h-10"
           onClick={onZoomReset}
           title="Reset Zoom"
         >
@@ -113,6 +116,7 @@ export function DrawingToolbar({
         <Button
           variant="ghost"
           size="sm"
+          className="h-10"
           onClick={onZoomIn}
           disabled={zoom >= 3}
           title="Zoom In"
