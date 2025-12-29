@@ -1145,7 +1145,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
       <div 
         ref={containerRef}
-        className="flex-1 overflow-auto p-4"
+        className="flex-1 overflow-auto"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
