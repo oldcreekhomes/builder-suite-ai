@@ -146,78 +146,75 @@ const Settings = () => {
           <AppSidebar />
           <main className="flex-1 flex flex-col">
             <DashboardHeader />
-            <div className="flex-1 p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-black">Settings</h1>
-              </div>
-
-        <Tabs defaultValue="cost-codes" orientation="vertical" className="flex gap-6">
-            <TabsList className="flex flex-col h-auto w-48 shrink-0 bg-transparent p-0 border-r border-border">
-              <TabsTrigger value="cost-codes" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Cost Codes</TabsTrigger>
-              <TabsTrigger value="specifications" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Specifications</TabsTrigger>
-              <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Chart of Accounts</TabsTrigger>
-              <TabsTrigger value="budget" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Budget</TabsTrigger>
-              <TabsTrigger value="dashboard" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Dashboard</TabsTrigger>
-            </TabsList>
-            
-            <div className="flex-1 min-w-0">
-                <TabsContent value="cost-codes" className="mt-0">
-                  <CostCodesTab
-                    costCodes={costCodes}
-                    loading={loading}
-                    selectedCostCodes={selectedCostCodes}
-                    collapsedGroups={collapsedGroups}
-                    priceHistoryCounts={priceHistoryCounts}
-                    onCostCodeSelect={handleCostCodeSelect}
-                    onSelectAllCostCodes={handleSelectAllCostCodes}
-                    onToggleGroupCollapse={toggleGroupCollapse}
-                    onAddCostCode={handleAddCostCode}
-                    onUpdateCostCode={handleUpdateCostCode}
-                    onEditCostCode={handleEditClick}
-                    onDeleteCostCode={handleDeleteClick}
-                    onImportCostCodes={handleImportCostCodes}
-                    onBulkDeleteCostCodes={handleBulkDeleteCostCodes}
-                    onPriceSync={refetch}
-                    isEditing={editingCostCode !== null}
-                  />
-                </TabsContent>
+            <div className="flex-1 flex">
+              <Tabs defaultValue="cost-codes" orientation="vertical" className="flex w-full">
+                <div className="w-52 shrink-0 border-r border-border bg-background p-4">
+                  <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
+                  <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
+                    <TabsTrigger value="cost-codes" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Cost Codes</TabsTrigger>
+                    <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
+                    <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Chart of Accounts</TabsTrigger>
+                    <TabsTrigger value="budget" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Budget</TabsTrigger>
+                    <TabsTrigger value="dashboard" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Dashboard</TabsTrigger>
+                  </TabsList>
+                </div>
                 
-                <TabsContent value="specifications" className="mt-0">
-                  <SpecificationsTab
-                    specifications={specifications}
-                    loading={specificationsLoading}
-                    selectedSpecifications={selectedSpecifications}
-                    collapsedGroups={collapsedSpecGroups}
-                    allCostCodes={costCodes}
-                    onSpecificationSelect={handleSpecificationSelect}
-                    onSelectAllSpecifications={handleSelectAllSpecifications}
-                    onToggleGroupCollapse={toggleSpecificationGroupCollapse}
-                    onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
-                    onEditDescription={handleEditSpecificationDescription}
-                    onUpdateSpecification={handleUpdateSpecification}
-                    onDeleteSpecification={handleDeleteSpecificationClick}
-                    onFileUpload={handleSpecificationFileUpload}
-                    onDeleteIndividualFile={handleDeleteIndividualSpecificationFile}
-                  />
-                </TabsContent>
+                <div className="flex-1 min-w-0 p-6">
+                  <TabsContent value="cost-codes" className="mt-0">
+                    <CostCodesTab
+                      costCodes={costCodes}
+                      loading={loading}
+                      selectedCostCodes={selectedCostCodes}
+                      collapsedGroups={collapsedGroups}
+                      priceHistoryCounts={priceHistoryCounts}
+                      onCostCodeSelect={handleCostCodeSelect}
+                      onSelectAllCostCodes={handleSelectAllCostCodes}
+                      onToggleGroupCollapse={toggleGroupCollapse}
+                      onAddCostCode={handleAddCostCode}
+                      onUpdateCostCode={handleUpdateCostCode}
+                      onEditCostCode={handleEditClick}
+                      onDeleteCostCode={handleDeleteClick}
+                      onImportCostCodes={handleImportCostCodes}
+                      onBulkDeleteCostCodes={handleBulkDeleteCostCodes}
+                      onPriceSync={refetch}
+                      isEditing={editingCostCode !== null}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="specifications" className="mt-0">
+                    <SpecificationsTab
+                      specifications={specifications}
+                      loading={specificationsLoading}
+                      selectedSpecifications={selectedSpecifications}
+                      collapsedGroups={collapsedSpecGroups}
+                      allCostCodes={costCodes}
+                      onSpecificationSelect={handleSpecificationSelect}
+                      onSelectAllSpecifications={handleSelectAllSpecifications}
+                      onToggleGroupCollapse={toggleSpecificationGroupCollapse}
+                      onBulkDeleteSpecifications={() => setBulkDeleteSpecsDialogOpen(true)}
+                      onEditDescription={handleEditSpecificationDescription}
+                      onUpdateSpecification={handleUpdateSpecification}
+                      onDeleteSpecification={handleDeleteSpecificationClick}
+                      onFileUpload={handleSpecificationFileUpload}
+                      onDeleteIndividualFile={handleDeleteIndividualSpecificationFile}
+                    />
+                  </TabsContent>
 
-            <TabsContent value="chart-of-accounts" className="mt-0">
-              <ChartOfAccountsTab />
-            </TabsContent>
+                  <TabsContent value="chart-of-accounts" className="mt-0">
+                    <ChartOfAccountsTab />
+                  </TabsContent>
 
-            <TabsContent value="budget" className="mt-0">
-              <BudgetWarningsTab />
-            </TabsContent>
+                  <TabsContent value="budget" className="mt-0">
+                    <BudgetWarningsTab />
+                  </TabsContent>
 
-            <TabsContent value="dashboard" className="mt-0">
-              <DashboardSettingsTab />
-            </TabsContent>
+                  <TabsContent value="dashboard" className="mt-0">
+                    <DashboardSettingsTab />
+                  </TabsContent>
+                </div>
+              </Tabs>
             </div>
-          </Tabs>
-        </div>
-          </div>
-        </main>
+          </main>
 
         <EditCostCodeDialog
           costCode={editingCostCode}
