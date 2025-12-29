@@ -146,11 +146,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   }, []);
 
   // Style upper/lower canvas for proper z-index and event handling
-  // Use a delay to ensure Fabric has fully created its internal structure
+  // RESILIENT: Re-apply whenever Fabric or displayedSize changes (Fabric may recreate DOM nodes)
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    const timerId = setTimeout(() => {
+    const applyFabricLayerStyles = () => {
       const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
       const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
       const wrapper =
@@ -160,37 +160,53 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
       if (!wrapper || !upper || !lower) {
         console.warn('Fabric canvas elements not found:', { wrapper: !!wrapper, upper: !!upper, lower: !!lower });
-        return;
+        return false;
       }
 
       // Style the wrapper (contains both canvases) - this is the critical element
       wrapper.style.position = 'absolute';
       wrapper.style.top = '0';
       wrapper.style.left = '0';
-      wrapper.style.zIndex = '100';
+      wrapper.style.zIndex = '1000';
       wrapper.style.pointerEvents = 'auto';
 
       // Lower canvas: rendering only, no events
       lower.style.position = 'absolute';
       lower.style.top = '0';
       lower.style.left = '0';
+      lower.style.zIndex = '900';
       lower.style.pointerEvents = 'none';
 
-      // Upper canvas: event handling layer
+      // Upper canvas: event handling layer - TOPMOST
       upper.style.position = 'absolute';
       upper.style.top = '0';
       upper.style.left = '0';
+      upper.style.zIndex = '1001';
       upper.style.pointerEvents = 'auto';
 
-      console.info('Fabric canvas layers styled:', {
-        wrapper: 'zIndex 100, pointerEvents auto',
-        upper: 'pointerEvents auto (events)',
-        lower: 'pointerEvents none (rendering)'
+      console.info('✅ Fabric layers styled:', {
+        wrapperZ: wrapper.style.zIndex,
+        upperZ: upper.style.zIndex,
+        upperPointer: upper.style.pointerEvents,
+        upperClass: upper.className
       });
-    }, 100);
+      return true;
+    };
 
-    return () => clearTimeout(timerId);
-  }, [fabricCanvas]);
+    // Apply immediately
+    applyFabricLayerStyles();
+
+    // Re-apply after short delays to catch late DOM updates
+    const t1 = setTimeout(applyFabricLayerStyles, 50);
+    const t2 = setTimeout(applyFabricLayerStyles, 150);
+    const t3 = setTimeout(applyFabricLayerStyles, 300);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [fabricCanvas, displayedSize, canvasReady, sheetId]);
 
   // Global Fabric event listeners for diagnostics and click-to-select
   // These are PERSISTENT and must not be removed by tool switching
@@ -267,10 +283,26 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     const handleDOMClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const tagName = target.tagName?.toLowerCase() || 'unknown';
-      const className = typeof target.className === 'string' ? target.className.split(' ')[0] : '';
-      const domTarget = `${tagName}${className ? '.' + className : ''}`;
+      const fullClassName = typeof target.className === 'string' ? target.className : '';
       
-      console.info('[DOM] mousedown on:', domTarget, { x: e.clientX, y: e.clientY });
+      // Identify what kind of canvas we're clicking
+      const isFabricUpper = fullClassName.includes('upper-canvas');
+      const isFabricLower = fullClassName.includes('lower-canvas');
+      const canvasType = isFabricUpper ? 'FABRIC-UPPER' : isFabricLower ? 'FABRIC-LOWER' : 'OTHER';
+      
+      const domTarget = `${tagName}.${fullClassName || 'no-class'} [${canvasType}]`;
+      
+      // Log first 3 elements in composedPath for debugging
+      const path = e.composedPath().slice(0, 3).map((el: EventTarget) => {
+        const elem = el as HTMLElement;
+        return elem.tagName ? `${elem.tagName.toLowerCase()}.${elem.className?.split?.(' ')?.[0] || ''}` : 'unknown';
+      });
+      
+      console.info('[DOM] mousedown on:', domTarget, { 
+        x: e.clientX, 
+        y: e.clientY,
+        path: path.join(' > ')
+      });
       
       // Increment click counter
       setDomClickCount(prev => prev + 1);
@@ -859,6 +891,17 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     setActiveTool(tool);
     console.info(`Tool activated: ${tool}`);
     if (!fabricCanvas) return;
+
+    // Sanity check: log current Fabric layer styles to confirm they're correct
+    const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
+    const wrapper = (fabricCanvas as any).wrapperEl || upper?.parentElement;
+    console.info('🔍 Tool sanity check:', {
+      tool,
+      upperZ: upper?.style?.zIndex,
+      upperPointer: upper?.style?.pointerEvents,
+      wrapperZ: wrapper?.style?.zIndex,
+      wrapperPointer: wrapper?.style?.pointerEvents
+    });
 
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = tool === 'select';
