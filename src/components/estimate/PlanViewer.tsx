@@ -916,6 +916,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           geometry: circle.toJSON(),
           color: selectedTakeoffItem.color,
         } as any);
+        
+        // Remove the temp shape - it will be recreated from DB with proper tracking
+        fabricCanvas.remove(circle);
 
         // Increment quantity
         incrementQuantity(selectedTakeoffItem.id);
@@ -985,6 +988,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             geometry: rect.toJSON(),
             color: selectedTakeoffItem.color,
           } as any);
+          
+          // Remove the temp shape - it will be recreated from DB with proper tracking
+          fabricCanvas.remove(rect);
           
           // Increment quantity by 1
           incrementQuantity(selectedTakeoffItem.id);
@@ -1056,6 +1062,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             color: selectedTakeoffItem.color,
           } as any);
           
+          // Remove the temp shape - it will be recreated from DB with proper tracking
+          fabricCanvas.remove(line);
+          
           // Increment quantity by 1 (user can adjust manually if needed)
           incrementQuantity(selectedTakeoffItem.id);
         } else {
@@ -1109,6 +1118,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             geometry: { points },
             color: selectedTakeoffItem.color,
           } as any);
+          
+          // Remove the temp shape - it will be recreated from DB with proper tracking
+          fabricCanvas.remove(polygon);
           
           // Increment quantity by 1
           incrementQuantity(selectedTakeoffItem.id);
