@@ -35,7 +35,8 @@ import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeContent } from "./RepresentativeSelector";
 import { InsuranceContent } from "./CompanyInsuranceSection";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search } from "lucide-react";
+import { Search, ShieldOff, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -64,6 +65,7 @@ interface Company {
   phone_number?: string;
   website?: string;
   home_builder_id: string;
+  insurance_required?: boolean;
 }
 
 interface EditCompanyDialogProps {
@@ -543,10 +545,21 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               </TabsContent>
               
               <TabsContent value="insurance" className="mt-6">
-                <InsuranceContent
-                  companyId={stableCompanyId || null}
-                  homeBuilder={company?.home_builder_id || ""}
-                />
+                {company?.insurance_required === false ? (
+                  <Alert className="border-muted">
+                    <ShieldOff className="h-4 w-4" />
+                    <AlertTitle>Insurance Not Required</AlertTitle>
+                    <AlertDescription className="text-muted-foreground">
+                      Insurance tracking is disabled for this company. To enable insurance requirements, 
+                      toggle the "Insurance" switch in the Companies table.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <InsuranceContent
+                    companyId={stableCompanyId || null}
+                    homeBuilder={company?.home_builder_id || ""}
+                  />
+                )}
               </TabsContent>
             </Tabs>
 

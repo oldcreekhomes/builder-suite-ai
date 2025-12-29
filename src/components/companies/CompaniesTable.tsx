@@ -9,7 +9,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Users, Hash } from "lucide-react";
+import { Edit, Trash2, Users, Hash, Shield, ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
@@ -17,6 +17,7 @@ import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { CompanyRepresentativesModal } from "./CompanyRepresentativesModal";
 import { CompanyCostCodesModal } from "./CompanyCostCodesModal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 
 type CostCode = {
   id: string;
@@ -41,6 +42,7 @@ interface Company {
   representatives_count?: number;
   cost_codes_count?: number;
   cost_codes?: CostCode[];
+  insurance_required?: boolean;
 }
 
 interface CompaniesTableProps {
@@ -128,6 +130,32 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     },
   });
 
+  // Toggle insurance required mutation
+  const toggleInsuranceMutation = useMutation({
+    mutationFn: async ({ companyId, insuranceRequired }: { companyId: string; insuranceRequired: boolean }) => {
+      const { error } = await supabase
+        .from('companies')
+        .update({ insurance_required: insuranceRequired })
+        .eq('id', companyId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, { insuranceRequired }) => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast({
+        title: "Success",
+        description: insuranceRequired ? "Insurance tracking enabled" : "Insurance tracking disabled",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update insurance requirement",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return <div className="p-4 text-xs">Loading companies...</div>;
   }
@@ -144,6 +172,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Insurance</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -230,6 +259,33 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     </Tooltip>
                   </TableCell>
                   <TableCell className="px-2 py-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1.5">
+                          {company.insurance_required !== false ? (
+                            <Shield className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <ShieldOff className="h-3 w-3 text-gray-400" />
+                          )}
+                          <Switch
+                            checked={company.insurance_required !== false}
+                            onCheckedChange={(checked) => 
+                              toggleInsuranceMutation.mutate({ 
+                                companyId: company.id, 
+                                insuranceRequired: checked 
+                              })
+                            }
+                            disabled={toggleInsuranceMutation.isPending}
+                            className="scale-75"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{company.insurance_required !== false ? "Insurance required" : "Insurance not required"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell className="px-2 py-1">
                     <div className="flex items-center space-x-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -278,7 +334,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               );
             }).length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={8} className="text-center py-4 text-xs text-gray-500">
                   No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
@@ -286,7 +342,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={8} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>

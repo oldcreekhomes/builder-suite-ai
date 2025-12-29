@@ -829,6 +829,7 @@ export type Database = {
           created_at: string
           home_builder_id: string
           id: string
+          insurance_required: boolean
           phone_number: string | null
           state: string | null
           terms: string | null
@@ -846,6 +847,7 @@ export type Database = {
           created_at?: string
           home_builder_id: string
           id?: string
+          insurance_required?: boolean
           phone_number?: string | null
           state?: string | null
           terms?: string | null
@@ -863,6 +865,7 @@ export type Database = {
           created_at?: string
           home_builder_id?: string
           id?: string
+          insurance_required?: boolean
           phone_number?: string | null
           state?: string | null
           terms?: string | null
