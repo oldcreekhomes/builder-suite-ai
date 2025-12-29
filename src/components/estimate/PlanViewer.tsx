@@ -165,18 +165,46 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     }
   }, [fabricCanvas]);
 
-  // Global Fabric event logger for diagnostics
+  // Global Fabric event logger for diagnostics - uses named handlers for persistence
   useEffect(() => {
     if (!fabricCanvas) return;
-    const logMouseDown = (e: any) => {
+    
+    // Use a unique namespace for diagnostic listeners to avoid conflicts with tool handlers
+    const diagnosticMouseDown = (e: any) => {
       const p = e?.absolutePointer || e?.pointer;
-      console.info('Fabric global mouse:down', p ? `(${p.x?.toFixed?.(1)}, ${p.y?.toFixed?.(1)})` : '(no pointer)');
+      const target = e?.target;
+      console.info('[Diag] mouse:down', {
+        pointer: p ? `(${p.x?.toFixed?.(1)}, ${p.y?.toFixed?.(1)})` : 'none',
+        target: target ? `${target.type} [${target.annotationId || 'no-id'}]` : 'none',
+        zoom,
+        activeTool,
+      });
     };
-    fabricCanvas.on('mouse:down', logMouseDown);
+    
+    const diagnosticSelectionCreated = (e: any) => {
+      const selected = e?.selected || [];
+      console.info('[Diag] selection:created', selected.map((o: any) => o.annotationId || o.type));
+    };
+    
+    const diagnosticSelectionCleared = () => {
+      console.info('[Diag] selection:cleared');
+    };
+    
+    // Store references for cleanup
+    (fabricCanvas as any).__diagMouseDown = diagnosticMouseDown;
+    (fabricCanvas as any).__diagSelCreated = diagnosticSelectionCreated;
+    (fabricCanvas as any).__diagSelCleared = diagnosticSelectionCleared;
+    
+    fabricCanvas.on('mouse:down', diagnosticMouseDown);
+    fabricCanvas.on('selection:created', diagnosticSelectionCreated);
+    fabricCanvas.on('selection:cleared', diagnosticSelectionCleared);
+    
     return () => {
-      fabricCanvas.off('mouse:down', logMouseDown);
+      fabricCanvas.off('mouse:down', diagnosticMouseDown);
+      fabricCanvas.off('selection:created', diagnosticSelectionCreated);
+      fabricCanvas.off('selection:cleared', diagnosticSelectionCleared);
     };
-  }, [fabricCanvas]);
+  }, [fabricCanvas, zoom, activeTool]);
 
   // Sync canvas dimensions when document loads
   useEffect(() => {
@@ -212,18 +240,20 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     console.debug(`Canvas dimensions set: ${displayedSize.width}x${displayedSize.height}`);
   }, [fabricCanvas, displayedSize]);
 
-  // Sync Fabric.js viewport transform with CSS zoom for correct selection hit detection
+  // Configure Fabric.js for better hit-testing - keep viewport as identity (CSS handles zoom)
   useEffect(() => {
     if (!fabricCanvas) return;
     
-    // The CSS transform applies scale(zoom) to the container
-    // Fabric.js needs the inverse transform [1/zoom, 0, 0, 1/zoom, 0, 0] to correctly
-    // map mouse coordinates from screen space to canvas space
-    const inverseZoom = 1 / zoom;
-    fabricCanvas.setViewportTransform([inverseZoom, 0, 0, inverseZoom, 0, 0]);
+    // Keep viewport as identity - CSS transform handles zoom, no double compensation
+    fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    
+    // Make hit-testing more tolerant
+    fabricCanvas.targetFindTolerance = 10;
+    fabricCanvas.perPixelTargetFind = true;
+    
     fabricCanvas.renderAll();
     
-    console.debug(`Fabric viewport synced with CSS zoom: ${zoom} (inverse: ${inverseZoom})`);
+    console.debug(`Fabric configured: identity viewport, tolerant hit-testing, zoom=${zoom}`);
   }, [fabricCanvas, zoom]);
 
   // Handle scale selection from dropdown
@@ -768,8 +798,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform (viewport is identity, CSS handles zoom)
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         console.info(`Count tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         
         const circle = new Circle({
@@ -808,8 +838,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         console.info(`Rectangle tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         origX = p.x;
@@ -832,8 +862,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!isDrawing || !rect || !rawPointer) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         const width = Math.abs(p.x - origX);
         const height = Math.abs(p.y - origY);
         rect.set({
@@ -878,8 +908,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         console.info(`Line tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         
@@ -895,8 +925,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!isDrawing || !line || !rawPointer) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         line.set({ x2: p.x, y2: p.y });
         fabricCanvas.renderAll();
       });
@@ -943,8 +973,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || !sheetId) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}], points: ${points.length}`);
         
         // Check for double-click timing to finish
@@ -990,8 +1020,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         const rawPointer = (e as any).absolutePointer || (e as any).pointer;
         if (!rawPointer || points.length === 0) return;
         
-        // Viewport transform now handles zoom adjustment, use raw coordinates
-        const p = { x: rawPointer.x, y: rawPointer.y };
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         
         // Show preview line from last point to cursor
         if (previewLine) {
