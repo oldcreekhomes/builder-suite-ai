@@ -99,6 +99,7 @@ interface AddCompanyDialogProps {
     website?: string;
   };
   onCompanyCreated?: (companyId: string, companyName: string) => void;
+  defaultType?: 'Subcontractor' | 'Vendor';
 }
 
 export function AddCompanyDialog({ 
@@ -106,7 +107,8 @@ export function AddCompanyDialog({
   onOpenChange, 
   initialCompanyName,
   initialData,
-  onCompanyCreated 
+  onCompanyCreated,
+  defaultType = 'Subcontractor'
 }: AddCompanyDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -140,7 +142,7 @@ export function AddCompanyDialog({
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: initialCompanyName || "",
-      company_type: "Subcontractor",
+      company_type: defaultType,
       address_line_1: initialData?.address_line_1 || "",
       address_line_2: initialData?.address_line_2 || "",
       city: initialData?.city || "",
@@ -383,7 +385,7 @@ export function AddCompanyDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Add New Company</DialogTitle>
+          <DialogTitle>Add New {defaultType}</DialogTitle>
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
