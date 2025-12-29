@@ -74,21 +74,19 @@ export function MyProjectsCard() {
             No projects assigned
           </div>
         ) : (
-          <ScrollArea className="h-[200px]">
-            <div className="space-y-2 pr-4">
+          <ScrollArea className="h-[280px]">
+            <div className="space-y-1 pr-4">
               {projects.map((project) => (
                 <div
                   key={project.id}
                   onClick={() => navigate(`/project/${project.id}`)}
-                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 cursor-pointer transition-colors"
                 >
-                  <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{project.address}</p>
-                    <Badge variant={getStatusVariant(project.status)} className="text-xs mt-1">
-                      {project.status || 'Unknown'}
-                    </Badge>
-                  </div>
+                  <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <p className="text-sm font-medium truncate flex-1 min-w-0">{project.address}</p>
+                  <Badge variant={getStatusVariant(project.status)} className="text-xs flex-shrink-0">
+                    {project.status || 'Unknown'}
+                  </Badge>
                 </div>
               ))}
             </div>
