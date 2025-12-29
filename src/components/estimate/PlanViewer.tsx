@@ -146,40 +146,50 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   }, []);
 
   // Style upper/lower canvas for proper z-index and event handling
+  // Use a delay to ensure Fabric has fully created its internal structure
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
-    const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
-    const wrapper =
-      (fabricCanvas as any).wrapperEl ||
-      (upper?.parentElement as HTMLElement | null) ||
-      (lower?.parentElement as HTMLElement | null);
+    const timerId = setTimeout(() => {
+      const lower = (fabricCanvas as any).lowerCanvasEl || (fabricCanvas as any).lower?.el;
+      const upper = (fabricCanvas as any).upperCanvasEl || (fabricCanvas as any).upper?.el;
+      const wrapper =
+        (fabricCanvas as any).wrapperEl ||
+        (upper?.parentElement as HTMLElement | null) ||
+        (lower?.parentElement as HTMLElement | null);
 
-    if (lower && upper) {
-      // Position both canvases absolutely
+      if (!wrapper || !upper || !lower) {
+        console.warn('Fabric canvas elements not found:', { wrapper: !!wrapper, upper: !!upper, lower: !!lower });
+        return;
+      }
+
+      // Style the wrapper (contains both canvases) - this is the critical element
+      wrapper.style.position = 'absolute';
+      wrapper.style.top = '0';
+      wrapper.style.left = '0';
+      wrapper.style.zIndex = '100';
+      wrapper.style.pointerEvents = 'auto';
+
+      // Lower canvas: rendering only, no events
       lower.style.position = 'absolute';
       lower.style.top = '0';
       lower.style.left = '0';
-      lower.style.zIndex = '900';
       lower.style.pointerEvents = 'none';
 
+      // Upper canvas: event handling layer
       upper.style.position = 'absolute';
       upper.style.top = '0';
       upper.style.left = '0';
-      upper.style.zIndex = '1000';
       upper.style.pointerEvents = 'auto';
 
-      if (wrapper) {
-        wrapper.style.position = 'absolute';
-        wrapper.style.top = '0';
-        wrapper.style.left = '0';
-        wrapper.style.zIndex = '1000';
-        wrapper.style.pointerEvents = 'auto';
-      }
+      console.info('Fabric canvas layers styled:', {
+        wrapper: 'zIndex 100, pointerEvents auto',
+        upper: 'pointerEvents auto (events)',
+        lower: 'pointerEvents none (rendering)'
+      });
+    }, 100);
 
-      console.info('Fabric canvas layers styled: wrapper/upper z-index 1000 (events), lower z-index 900 (rendering)');
-    }
+    return () => clearTimeout(timerId);
   }, [fabricCanvas]);
 
   // Global Fabric event listeners for diagnostics and click-to-select
@@ -1499,12 +1509,11 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             )}
             
             {/* Layer 100: Fabric.js canvas (TOPMOST, receives all pointer events) */}
+            {/* NOTE: Do NOT add inline styles here - Fabric wraps this canvas and we style the wrapper in useEffect */}
             <canvas 
               ref={canvasRef}
               width={displayedSize?.width || 800}
               height={displayedSize?.height || 600}
-              className="absolute inset-0"
-              style={{ zIndex: 100, pointerEvents: 'auto' }}
             />
             
             {/* Empty state banner (info only, no pointer events) */}
