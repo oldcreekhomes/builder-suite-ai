@@ -165,11 +165,12 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     }
   }, [fabricCanvas]);
 
-  // Global Fabric event logger for diagnostics - uses named handlers for persistence
+  // Global Fabric event listeners for diagnostics and click-to-select
+  // These are PERSISTENT and must not be removed by tool switching
   useEffect(() => {
     if (!fabricCanvas) return;
     
-    // Use a unique namespace for diagnostic listeners to avoid conflicts with tool handlers
+    // Diagnostic logger
     const diagnosticMouseDown = (e: any) => {
       const p = e?.absolutePointer || e?.pointer;
       const target = e?.target;
@@ -179,6 +180,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         zoom,
         activeTool,
       });
+      
+      // CLICK-TO-SELECT: If user clicks on an object, auto-select it regardless of tool
+      if (target && target.selectable !== false && target.evented !== false) {
+        // Switch to select mode and activate the object
+        setActiveTool('select');
+        fabricCanvas.setActiveObject(target);
+        fabricCanvas.requestRenderAll();
+        console.info('[Diag] Auto-selected object:', target.annotationId || target.type);
+      }
     };
     
     const diagnosticSelectionCreated = (e: any) => {
@@ -190,10 +200,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       console.info('[Diag] selection:cleared');
     };
     
-    // Store references for cleanup
-    (fabricCanvas as any).__diagMouseDown = diagnosticMouseDown;
-    (fabricCanvas as any).__diagSelCreated = diagnosticSelectionCreated;
-    (fabricCanvas as any).__diagSelCleared = diagnosticSelectionCleared;
+    // Store references so they can be identified during cleanup
+    (fabricCanvas as any).__persistentMouseDown = diagnosticMouseDown;
+    (fabricCanvas as any).__persistentSelCreated = diagnosticSelectionCreated;
+    (fabricCanvas as any).__persistentSelCleared = diagnosticSelectionCleared;
     
     fabricCanvas.on('mouse:down', diagnosticMouseDown);
     fabricCanvas.on('selection:created', diagnosticSelectionCreated);
@@ -205,6 +215,24 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       fabricCanvas.off('selection:cleared', diagnosticSelectionCleared);
     };
   }, [fabricCanvas, zoom, activeTool]);
+  
+  // DOM-level click diagnostic to confirm events reach the container
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const handleDOMClick = (e: MouseEvent) => {
+      const path = e.composedPath().slice(0, 5);
+      const pathStr = path.map((el: any) => `${el.tagName || 'window'}${el.className ? '.' + el.className.split(' ')[0] : ''}`).join(' > ');
+      console.info('[DOM] click path:', pathStr);
+    };
+    
+    container.addEventListener('click', handleDOMClick, true); // capture phase
+    
+    return () => {
+      container.removeEventListener('click', handleDOMClick, true);
+    };
+  }, []);
 
   // Sync canvas dimensions when document loads
   useEffect(() => {
@@ -777,10 +805,27 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     fabricCanvas.isDrawingMode = false;
     fabricCanvas.selection = tool === 'select';
     
-    // Clear all event listeners
-    fabricCanvas.off('mouse:down');
-    fabricCanvas.off('mouse:move');
-    fabricCanvas.off('mouse:up');
+    // Clear only TOOL-SPECIFIC event listeners, NOT the persistent diagnostic/selection handlers
+    // Get references to persistent handlers to preserve them
+    const persistentMouseDown = (fabricCanvas as any).__persistentMouseDown;
+    const persistentSelCreated = (fabricCanvas as any).__persistentSelCreated;
+    const persistentSelCleared = (fabricCanvas as any).__persistentSelCleared;
+    
+    // Remove tool handlers (stored on previous tool activation)
+    if ((fabricCanvas as any).__toolMouseDown) {
+      fabricCanvas.off('mouse:down', (fabricCanvas as any).__toolMouseDown);
+    }
+    if ((fabricCanvas as any).__toolMouseMove) {
+      fabricCanvas.off('mouse:move', (fabricCanvas as any).__toolMouseMove);
+    }
+    if ((fabricCanvas as any).__toolMouseUp) {
+      fabricCanvas.off('mouse:up', (fabricCanvas as any).__toolMouseUp);
+    }
+    
+    // Clear stored tool handlers
+    (fabricCanvas as any).__toolMouseDown = null;
+    (fabricCanvas as any).__toolMouseMove = null;
+    (fabricCanvas as any).__toolMouseUp = null;
 
     if (!selectedTakeoffItem && tool !== 'select') {
       toast({
@@ -794,8 +839,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
     // COUNT TOOL - click to place markers
     if (tool === 'count') {
-      fabricCanvas.on('mouse:down', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+      const countMouseDown = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
         if (!rawPointer || !sheetId) return;
         
         // Adjust for CSS zoom transform (viewport is identity, CSS handles zoom)
@@ -825,7 +870,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
         // Increment quantity
         incrementQuantity(selectedTakeoffItem.id);
-      });
+      };
+      
+      (fabricCanvas as any).__toolMouseDown = countMouseDown;
+      fabricCanvas.on('mouse:down', countMouseDown);
     }
 
     // RECTANGLE TOOL - click and drag
@@ -834,8 +882,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let isDrawing = false;
       let origX = 0, origY = 0;
 
-      fabricCanvas.on('mouse:down', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+      const rectMouseDown = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
         if (!rawPointer || !sheetId) return;
         
         // Adjust for CSS zoom transform
@@ -856,10 +904,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           strokeDashArray: [5, 5],
         });
         fabricCanvas.add(rect);
-      });
+      };
 
-      fabricCanvas.on('mouse:move', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+      const rectMouseMove = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
         if (!isDrawing || !rect || !rawPointer) return;
         
         // Adjust for CSS zoom transform
@@ -873,9 +921,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           top: Math.min(p.y, origY),
         });
         fabricCanvas.renderAll();
-      });
+      };
 
-      fabricCanvas.on('mouse:up', (e) => {
+      const rectMouseUp = (e: any) => {
         if (!isDrawing || !rect || !sheetId) return;
         isDrawing = false;
         
@@ -896,7 +944,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         }
         
         rect = null;
-      });
+      };
+      
+      (fabricCanvas as any).__toolMouseDown = rectMouseDown;
+      (fabricCanvas as any).__toolMouseMove = rectMouseMove;
+      (fabricCanvas as any).__toolMouseUp = rectMouseUp;
+      fabricCanvas.on('mouse:down', rectMouseDown);
+      fabricCanvas.on('mouse:move', rectMouseMove);
+      fabricCanvas.on('mouse:up', rectMouseUp);
     }
 
     // LINE TOOL - click and drag
@@ -904,8 +959,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let line: Line | null = null;
       let isDrawing = false;
 
-      fabricCanvas.on('mouse:down', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+      const lineMouseDown = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
         if (!rawPointer || !sheetId) return;
         
         // Adjust for CSS zoom transform
@@ -919,19 +974,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           strokeDashArray: [5, 5],
         });
         fabricCanvas.add(line);
-      });
+      };
 
-      fabricCanvas.on('mouse:move', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
+      const lineMouseMove = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
         if (!isDrawing || !line || !rawPointer) return;
         
         // Adjust for CSS zoom transform
         const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
         line.set({ x2: p.x, y2: p.y });
         fabricCanvas.renderAll();
-      });
+      };
 
-      fabricCanvas.on('mouse:up', (e) => {
+      const lineMouseUp = (e: any) => {
         if (!isDrawing || !line || !sheetId) return;
         isDrawing = false;
         
@@ -959,7 +1014,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         }
         
         line = null;
-      });
+      };
+      
+      (fabricCanvas as any).__toolMouseDown = lineMouseDown;
+      (fabricCanvas as any).__toolMouseMove = lineMouseMove;
+      (fabricCanvas as any).__toolMouseUp = lineMouseUp;
+      fabricCanvas.on('mouse:down', lineMouseDown);
+      fabricCanvas.on('mouse:move', lineMouseMove);
+      fabricCanvas.on('mouse:up', lineMouseUp);
     }
 
     // POLYGON TOOL - multi-click
@@ -968,77 +1030,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       const tempCircles: Circle[] = [];
       const tempLines: Line[] = [];
       let previewLine: Line | null = null;
-
-      fabricCanvas.on('mouse:down', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
-        if (!rawPointer || !sheetId) return;
-        
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
-        console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}], points: ${points.length}`);
-        
-        // Check for double-click timing to finish
-        const now = Date.now();
-        const lastClickTime = (fabricCanvas as any)._lastPolygonClick || 0;
-        if (now - lastClickTime < 300 && points.length >= 3) {
-          // Finish polygon
-          finishPolygon();
-          return;
-        }
-        (fabricCanvas as any)._lastPolygonClick = now;
-        
-        points.push({ x: p.x, y: p.y });
-        
-        // Draw point marker
-        const circle = new Circle({
-          left: p.x - 4,
-          top: p.y - 4,
-          radius: 4,
-          fill: selectedTakeoffItem.color,
-          selectable: false,
-        });
-        fabricCanvas.add(circle);
-        tempCircles.push(circle);
-        
-        // Draw line to previous point
-        if (points.length > 1) {
-          const prevPoint = points[points.length - 2];
-          const line = new Line([prevPoint.x, prevPoint.y, p.x, p.y], {
-            stroke: selectedTakeoffItem.color,
-            strokeWidth: 2,
-            strokeDashArray: [5, 5],
-            selectable: false,
-          });
-          fabricCanvas.add(line);
-          tempLines.push(line);
-        }
-        
-        fabricCanvas.renderAll();
-      });
-
-      fabricCanvas.on('mouse:move', (e) => {
-        const rawPointer = (e as any).absolutePointer || (e as any).pointer;
-        if (!rawPointer || points.length === 0) return;
-        
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
-        
-        // Show preview line from last point to cursor
-        if (previewLine) {
-          fabricCanvas.remove(previewLine);
-        }
-        
-        const lastPoint = points[points.length - 1];
-        previewLine = new Line([lastPoint.x, lastPoint.y, p.x, p.y], {
-          stroke: selectedTakeoffItem.color,
-          strokeWidth: 1,
-          strokeDashArray: [3, 3],
-          opacity: 0.5,
-          selectable: false,
-        });
-        fabricCanvas.add(previewLine);
-        fabricCanvas.renderAll();
-      });
 
       const finishPolygon = () => {
         if (points.length < 3) return;
@@ -1082,6 +1073,84 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         setActiveTool('select');
         handleToolClick('select');
       };
+
+      const polygonMouseDown = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
+        if (!rawPointer || !sheetId) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}], points: ${points.length}`);
+        
+        // Check for double-click timing to finish
+        const now = Date.now();
+        const lastClickTime = (fabricCanvas as any)._lastPolygonClick || 0;
+        if (now - lastClickTime < 300 && points.length >= 3) {
+          // Finish polygon
+          finishPolygon();
+          return;
+        }
+        (fabricCanvas as any)._lastPolygonClick = now;
+        
+        points.push({ x: p.x, y: p.y });
+        
+        // Draw point marker
+        const circle = new Circle({
+          left: p.x - 4,
+          top: p.y - 4,
+          radius: 4,
+          fill: selectedTakeoffItem.color,
+          selectable: false,
+        });
+        fabricCanvas.add(circle);
+        tempCircles.push(circle);
+        
+        // Draw line to previous point
+        if (points.length > 1) {
+          const prevPoint = points[points.length - 2];
+          const line = new Line([prevPoint.x, prevPoint.y, p.x, p.y], {
+            stroke: selectedTakeoffItem.color,
+            strokeWidth: 2,
+            strokeDashArray: [5, 5],
+            selectable: false,
+          });
+          fabricCanvas.add(line);
+          tempLines.push(line);
+        }
+        
+        fabricCanvas.renderAll();
+      };
+
+      const polygonMouseMove = (e: any) => {
+        const rawPointer = e?.absolutePointer || e?.pointer;
+        if (!rawPointer || points.length === 0) return;
+        
+        // Adjust for CSS zoom transform
+        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        
+        // Show preview line from last point to cursor
+        if (previewLine) {
+          fabricCanvas.remove(previewLine);
+        }
+        
+        const lastPoint = points[points.length - 1];
+        previewLine = new Line([lastPoint.x, lastPoint.y, p.x, p.y], {
+          stroke: selectedTakeoffItem.color,
+          strokeWidth: 1,
+          strokeDashArray: [3, 3],
+          opacity: 0.5,
+          selectable: false,
+        });
+        fabricCanvas.add(previewLine);
+        fabricCanvas.renderAll();
+      };
+      
+      (fabricCanvas as any).__toolMouseDown = polygonMouseDown;
+      (fabricCanvas as any).__toolMouseMove = polygonMouseMove;
+      // Store finishPolygon for key handler
+      (fabricCanvas as any).__finishPolygon = finishPolygon;
+      fabricCanvas.on('mouse:down', polygonMouseDown);
+      fabricCanvas.on('mouse:move', polygonMouseMove);
 
       // Listen for Escape key to cancel polygon
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -1249,6 +1318,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
                 key={`${sheet?.page_number || 1}-${pageWidth}`}
                 pageNumber={sheet?.page_number || 1}
                 width={pageWidth}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
                 onLoadSuccess={(page) => {
                   setPageWidth(page.width);
                   
