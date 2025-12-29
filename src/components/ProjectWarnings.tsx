@@ -27,7 +27,7 @@ export function ProjectWarnings() {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            <h3 className="text-lg font-semibold text-black">Project Alerts</h3>
+            <h3 className="text-lg font-semibold text-black">Accounting Alerts</h3>
           </div>
         </div>
         <CardContent className="p-6">
@@ -43,7 +43,7 @@ export function ProjectWarnings() {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            <h3 className="text-lg font-semibold text-black">Project Alerts</h3>
+            <h3 className="text-lg font-semibold text-black">Accounting Alerts</h3>
           </div>
         </div>
         <CardContent className="p-6">
@@ -70,7 +70,7 @@ export function ProjectWarnings() {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            <h3 className="text-lg font-semibold text-black">Project Alerts</h3>
+            <h3 className="text-lg font-semibold text-black">Accounting Alerts</h3>
           </div>
         </div>
         <CardContent className="p-0">
