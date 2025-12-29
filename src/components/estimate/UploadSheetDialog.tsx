@@ -386,7 +386,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             {phase === 'uploading' && null}
             {phase === 'analyzing' && null}
             {phase === 'review' && "Review and edit AI-detected sheet information"}
-            {phase === 'extracting' && "Extracting takeoff items..."}
+            {phase === 'extracting' && null}
           </DialogDescription>
         </DialogHeader>
         
@@ -538,7 +538,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
           {phase === 'extracting' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Extracting takeoff items...</span>
+                <span className="font-medium">AI is extracting takeoff items...</span>
                 <span className="text-muted-foreground">
                   {detections.filter(d => d.status === 'complete').length} / {detections.length}
                 </span>
