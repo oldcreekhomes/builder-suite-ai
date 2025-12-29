@@ -46,6 +46,7 @@ function hexToRgba(hex: string, alpha: number): string {
 export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnnotations, onToggleVisibility, onShowAllAnnotations }: PlanViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeTool, setActiveTool] = useState<DrawingTool>('select');
   const [showScaleDialog, setShowScaleDialog] = useState(false);
@@ -61,6 +62,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [docLoaded, setDocLoaded] = useState(false);
   const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
+  
+  // Debug state for on-screen click debugger
+  const [debugInfo, setDebugInfo] = useState<{
+    domTarget: string;
+    fabricFired: boolean;
+    fabricTarget: string;
+    pointer: string;
+  } | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -170,16 +179,26 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   useEffect(() => {
     if (!fabricCanvas) return;
     
-    // Diagnostic logger
+    // Diagnostic logger with on-screen debug info
     const diagnosticMouseDown = (e: any) => {
-      const p = e?.absolutePointer || e?.pointer;
+      // Use getPointer for correct coordinates
+      const p = fabricCanvas.getPointer(e.e, true);
       const target = e?.target;
+      
       console.info('[Diag] mouse:down', {
         pointer: p ? `(${p.x?.toFixed?.(1)}, ${p.y?.toFixed?.(1)})` : 'none',
         target: target ? `${target.type} [${target.annotationId || 'no-id'}]` : 'none',
         zoom,
         activeTool,
       });
+      
+      // Update on-screen debug info
+      setDebugInfo(prev => ({
+        ...prev!,
+        fabricFired: true,
+        fabricTarget: target ? `${target.type}` : 'none',
+        pointer: p ? `(${p.x?.toFixed?.(0)}, ${p.y?.toFixed?.(0)})` : 'none',
+      }));
       
       // CLICK-TO-SELECT: If user clicks on an object, auto-select it regardless of tool
       if (target && target.selectable !== false && target.evented !== false) {
@@ -218,19 +237,30 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   
   // DOM-level click diagnostic to confirm events reach the container
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const stage = stageRef.current;
+    if (!stage) return;
     
     const handleDOMClick = (e: MouseEvent) => {
-      const path = e.composedPath().slice(0, 5);
-      const pathStr = path.map((el: any) => `${el.tagName || 'window'}${el.className ? '.' + el.className.split(' ')[0] : ''}`).join(' > ');
-      console.info('[DOM] click path:', pathStr);
+      const target = e.target as HTMLElement;
+      const tagName = target.tagName?.toLowerCase() || 'unknown';
+      const className = target.className?.split?.(' ')?.[0] || '';
+      const domTarget = `${tagName}${className ? '.' + className : ''}`;
+      
+      console.info('[DOM] click on:', domTarget);
+      
+      // Update on-screen debug info
+      setDebugInfo({
+        domTarget,
+        fabricFired: false,
+        fabricTarget: 'pending...',
+        pointer: 'pending...',
+      });
     };
     
-    container.addEventListener('click', handleDOMClick, true); // capture phase
+    stage.addEventListener('mousedown', handleDOMClick, true); // capture phase
     
     return () => {
-      container.removeEventListener('click', handleDOMClick, true);
+      stage.removeEventListener('mousedown', handleDOMClick, true);
     };
   }, []);
 
@@ -840,11 +870,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     // COUNT TOOL - click to place markers
     if (tool === 'count') {
       const countMouseDown = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!rawPointer || !sheetId) return;
+        if (!sheetId) return;
         
-        // Adjust for CSS zoom transform (viewport is identity, CSS handles zoom)
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates in canvas space
+        const p = fabricCanvas.getPointer(e.e, true);
         console.info(`Count tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         
         const circle = new Circle({
@@ -855,6 +884,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           stroke: selectedTakeoffItem.color,
           strokeWidth: 2,
           opacity: 0.6,
+          selectable: true,
+          evented: true,
         });
         
         fabricCanvas.add(circle);
@@ -883,11 +914,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let origX = 0, origY = 0;
 
       const rectMouseDown = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!rawPointer || !sheetId) return;
+        if (!sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates in canvas space
+        const p = fabricCanvas.getPointer(e.e, true);
         console.info(`Rectangle tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         origX = p.x;
@@ -902,16 +932,17 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           stroke: selectedTakeoffItem.color,
           strokeWidth: 2,
           strokeDashArray: [5, 5],
+          selectable: true,
+          evented: true,
         });
         fabricCanvas.add(rect);
       };
 
       const rectMouseMove = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!isDrawing || !rect || !rawPointer) return;
+        if (!isDrawing || !rect) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates
+        const p = fabricCanvas.getPointer(e.e, true);
         const width = Math.abs(p.x - origX);
         const height = Math.abs(p.y - origY);
         rect.set({
@@ -960,11 +991,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       let isDrawing = false;
 
       const lineMouseDown = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!rawPointer || !sheetId) return;
+        if (!sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates
+        const p = fabricCanvas.getPointer(e.e, true);
         console.info(`Line tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}]`);
         isDrawing = true;
         
@@ -972,16 +1002,17 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           stroke: selectedTakeoffItem.color,
           strokeWidth: 3,
           strokeDashArray: [5, 5],
+          selectable: true,
+          evented: true,
         });
         fabricCanvas.add(line);
       };
 
       const lineMouseMove = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!isDrawing || !line || !rawPointer) return;
+        if (!isDrawing || !line) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates
+        const p = fabricCanvas.getPointer(e.e, true);
         line.set({ x2: p.x, y2: p.y });
         fabricCanvas.renderAll();
       };
@@ -1045,6 +1076,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           stroke: selectedTakeoffItem.color,
           strokeWidth: 2,
           strokeDashArray: [5, 5],
+          selectable: true,
+          evented: true,
         });
         fabricCanvas.add(polygon);
         fabricCanvas.renderAll();
@@ -1075,11 +1108,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       };
 
       const polygonMouseDown = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!rawPointer || !sheetId) return;
+        if (!sheetId) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates
+        const p = fabricCanvas.getPointer(e.e, true);
         console.info(`Polygon tool mouse:down at (${p.x.toFixed(1)}, ${p.y.toFixed(1)}) [zoom: ${zoom}], points: ${points.length}`);
         
         // Check for double-click timing to finish
@@ -1101,6 +1133,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           radius: 4,
           fill: selectedTakeoffItem.color,
           selectable: false,
+          evented: false,
         });
         fabricCanvas.add(circle);
         tempCircles.push(circle);
@@ -1113,6 +1146,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             strokeWidth: 2,
             strokeDashArray: [5, 5],
             selectable: false,
+            evented: false,
           });
           fabricCanvas.add(line);
           tempLines.push(line);
@@ -1122,11 +1156,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
       };
 
       const polygonMouseMove = (e: any) => {
-        const rawPointer = e?.absolutePointer || e?.pointer;
-        if (!rawPointer || points.length === 0) return;
+        if (points.length === 0) return;
         
-        // Adjust for CSS zoom transform
-        const p = { x: rawPointer.x / zoom, y: rawPointer.y / zoom };
+        // Use getPointer for correct coordinates
+        const p = fabricCanvas.getPointer(e.e, true);
         
         // Show preview line from last point to cursor
         if (previewLine) {
@@ -1140,6 +1173,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           strokeDashArray: [3, 3],
           opacity: 0.5,
           selectable: false,
+          evented: false,
         });
         fabricCanvas.add(previewLine);
         fabricCanvas.renderAll();
@@ -1291,6 +1325,18 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         </div>
       )}
 
+      {/* On-screen click debugger */}
+      {debugInfo && (
+        <div className="absolute top-20 right-4 bg-background/95 border rounded-lg p-3 shadow-lg z-50 text-xs font-mono max-w-xs">
+          <h4 className="font-semibold mb-2 text-foreground">Click Debug</h4>
+          <div className="space-y-1 text-muted-foreground">
+            <p><span className="text-foreground">DOM:</span> {debugInfo.domTarget}</p>
+            <p><span className="text-foreground">Fabric:</span> {debugInfo.fabricFired ? '✅' : '❌'} {debugInfo.fabricTarget}</p>
+            <p><span className="text-foreground">Pointer:</span> {debugInfo.pointer}</p>
+          </div>
+        </div>
+      )}
+
       <div 
         ref={containerRef}
         className="flex-1 overflow-auto"
@@ -1308,114 +1354,139 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             transition: isPanning ? 'none' : 'transform 0.1s ease-out',
           }}
         >
-          {isPDF ? (
-            <Document
-              key={fileUrl || 'doc'}
-              file={fileUrl}
-              onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+          {/* STAGE CONTAINER: Strict z-index layering for pointer events */}
+          <div 
+            ref={stageRef}
+            className="relative"
+            style={{ 
+              width: displayedSize?.width || 800,
+              height: displayedSize?.height || 600,
+            }}
+          >
+            {/* Layer 0: PDF/Image (base, no pointer events) */}
+            <div 
+              className="absolute inset-0"
+              style={{ zIndex: 0, pointerEvents: 'none' }}
             >
-              <Page 
-                key={`${sheet?.page_number || 1}-${pageWidth}`}
-                pageNumber={sheet?.page_number || 1}
-                width={pageWidth}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-                onLoadSuccess={(page) => {
-                  setPageWidth(page.width);
-                  
-                  // Get original PDF page dimensions (at scale 1)
-                  const viewport = page.originalWidth && page.originalHeight
-                    ? { width: page.originalWidth, height: page.originalHeight }
-                    : page.view 
-                      ? { width: page.view[2] - page.view[0], height: page.view[3] - page.view[1] }
-                      : null;
-                  
-                  if (viewport) {
-                    setDocSize(viewport);
-                    setImgNaturalSize(viewport);
+              {isPDF ? (
+                <Document
+                  key={fileUrl || 'doc'}
+                  file={fileUrl}
+                  onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                >
+                  <Page 
+                    key={`${sheet?.page_number || 1}-${pageWidth}`}
+                    pageNumber={sheet?.page_number || 1}
+                    width={pageWidth}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                    onLoadSuccess={(page) => {
+                      setPageWidth(page.width);
+                      
+                      // Get original PDF page dimensions (at scale 1)
+                      const viewport = page.originalWidth && page.originalHeight
+                        ? { width: page.originalWidth, height: page.originalHeight }
+                        : page.view 
+                          ? { width: page.view[2] - page.view[0], height: page.view[3] - page.view[1] }
+                          : null;
+                      
+                      if (viewport) {
+                        setDocSize(viewport);
+                        setImgNaturalSize(viewport);
+                        setDocLoaded(true);
+                        
+                        const scaleX = page.width / viewport.width;
+                        const scaleY = page.height / viewport.height;
+                        console.debug(`PDF: displayed=${page.width}x${page.height}, original=${viewport.width}x${viewport.height}, scale=${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
+                      }
+                      
+                      setDisplayedSize({
+                        width: page.width,
+                        height: page.height,
+                      });
+                    }}
+                  />
+                </Document>
+              ) : (
+                <img 
+                  src={fileUrl} 
+                  alt="Drawing sheet" 
+                  className="max-w-full"
+                  style={{ pointerEvents: 'none' }}
+                  onLoad={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    
+                    setDocSize({
+                      width: img.naturalWidth,
+                      height: img.naturalHeight,
+                    });
+                    setImgNaturalSize({
+                      width: img.naturalWidth,
+                      height: img.naturalHeight,
+                    });
                     setDocLoaded(true);
                     
-                    const scaleX = page.width / viewport.width;
-                    const scaleY = page.height / viewport.height;
-                    console.debug(`PDF: displayed=${page.width}x${page.height}, original=${viewport.width}x${viewport.height}, scale=${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
-                  }
-                  
-                  setDisplayedSize({
-                    width: page.width,
-                    height: page.height,
-                  });
-                }}
-              />
-            </Document>
-          ) : (
-            <img 
-              src={fileUrl} 
-              alt="Drawing sheet" 
-              className="max-w-full"
-              style={{ pointerEvents: 'none' }}
-              onLoad={(e) => {
-                const img = e.target as HTMLImageElement;
-                
-                setDocSize({
-                  width: img.naturalWidth,
-                  height: img.naturalHeight,
-                });
-                setImgNaturalSize({
-                  width: img.naturalWidth,
-                  height: img.naturalHeight,
-                });
-                setDocLoaded(true);
-                
-                setDisplayedSize({
-                  width: img.width,
-                  height: img.height,
-                });
-                
-                const sx = img.width / img.naturalWidth;
-                const sy = img.height / img.naturalHeight;
-                console.debug(`IMAGE: displayed=${img.width}x${img.height}, natural=${img.naturalWidth}x${img.naturalHeight}, scale=${sx.toFixed(2)}x${sy.toFixed(2)}`);
-              }}
-            />
-          )}
-          
-          {/* Fabric.js canvas for drawing */}
-          <canvas 
-            ref={canvasRef}
-            width={displayedSize?.width || 800}
-            height={displayedSize?.height || 600}
-            className="absolute top-0 left-0 pointer-events-auto"
-            style={{ zIndex: 900 }}
-          />
-          
-          {/* Empty state banner */}
-          {annotations && annotations.length === 0 && (
-            <div className="absolute top-2 left-2 px-2 py-1 rounded bg-muted text-foreground text-xs shadow" style={{ zIndex: 600, pointerEvents: 'none' }}>
-              No overlays found for this sheet
+                    setDisplayedSize({
+                      width: img.width,
+                      height: img.height,
+                    });
+                    
+                    const sx = img.width / img.naturalWidth;
+                    const sy = img.height / img.naturalHeight;
+                    console.debug(`IMAGE: displayed=${img.width}x${img.height}, natural=${img.naturalWidth}x${img.naturalHeight}, scale=${sx.toFixed(2)}x${sy.toFixed(2)}`);
+                  }}
+                />
+              )}
             </div>
-          )}
 
-          {(
-            (canvasReady && imgNaturalSize) || 
-            (sheet?.ai_processing_width && sheet?.ai_processing_height && displayedSize)
-          ) && (
-            <DOMOverlays
-              annotations={annotations || []}
-              visibleAnnotations={visibleAnnotations}
-              sheet={sheet}
-              canvasSize={
-                displayedSize || 
-                (fabricCanvas 
-                  ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
-                  : { width: 800, height: 600 })
-              }
-              imgNaturalSize={imgNaturalSize || docSize}
-              aiProcessingSize={
-                sheet?.ai_processing_width && sheet?.ai_processing_height
-                  ? { width: sheet.ai_processing_width, height: sheet.ai_processing_height }
-                  : null
-              }
+            {/* Layer 10: DOMOverlays SVG (no pointer events) */}
+            {(
+              (canvasReady && imgNaturalSize) || 
+              (sheet?.ai_processing_width && sheet?.ai_processing_height && displayedSize)
+            ) && (
+              <div 
+                className="absolute inset-0"
+                style={{ zIndex: 10, pointerEvents: 'none' }}
+              >
+                <DOMOverlays
+                  annotations={annotations || []}
+                  visibleAnnotations={visibleAnnotations}
+                  sheet={sheet}
+                  canvasSize={
+                    displayedSize || 
+                    (fabricCanvas 
+                      ? { width: fabricCanvas.getWidth(), height: fabricCanvas.getHeight() }
+                      : { width: 800, height: 600 })
+                  }
+                  imgNaturalSize={imgNaturalSize || docSize}
+                  aiProcessingSize={
+                    sheet?.ai_processing_width && sheet?.ai_processing_height
+                      ? { width: sheet.ai_processing_width, height: sheet.ai_processing_height }
+                      : null
+                  }
+                />
+              </div>
+            )}
+            
+            {/* Layer 100: Fabric.js canvas (TOPMOST, receives all pointer events) */}
+            <canvas 
+              ref={canvasRef}
+              width={displayedSize?.width || 800}
+              height={displayedSize?.height || 600}
+              className="absolute inset-0"
+              style={{ zIndex: 100, pointerEvents: 'auto' }}
             />
-          )}
+            
+            {/* Empty state banner (info only, no pointer events) */}
+            {annotations && annotations.length === 0 && (
+              <div 
+                className="absolute top-2 left-2 px-2 py-1 rounded bg-muted text-foreground text-xs shadow" 
+                style={{ zIndex: 200, pointerEvents: 'none' }}
+              >
+                No overlays found for this sheet
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
