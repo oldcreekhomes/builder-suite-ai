@@ -63,13 +63,21 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
   
-  // Debug state for on-screen click debugger
+  // Debug state for on-screen click debugger (initialize with defaults so panel is always visible)
   const [debugInfo, setDebugInfo] = useState<{
     domTarget: string;
     fabricFired: boolean;
     fabricTarget: string;
     pointer: string;
-  } | null>(null);
+  }>({
+    domTarget: 'Waiting for click...',
+    fabricFired: false,
+    fabricTarget: 'n/a',
+    pointer: 'n/a',
+  });
+  
+  // DOM click counter to prove events are reaching the container
+  const [domClickCount, setDomClickCount] = useState(0);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -243,17 +251,20 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     const handleDOMClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const tagName = target.tagName?.toLowerCase() || 'unknown';
-      const className = target.className?.split?.(' ')?.[0] || '';
+      const className = typeof target.className === 'string' ? target.className.split(' ')[0] : '';
       const domTarget = `${tagName}${className ? '.' + className : ''}`;
       
-      console.info('[DOM] click on:', domTarget);
+      console.info('[DOM] mousedown on:', domTarget, { x: e.clientX, y: e.clientY });
+      
+      // Increment click counter
+      setDomClickCount(prev => prev + 1);
       
       // Update on-screen debug info
       setDebugInfo({
         domTarget,
         fabricFired: false,
         fabricTarget: 'pending...',
-        pointer: 'pending...',
+        pointer: `client(${e.clientX}, ${e.clientY})`,
       });
     };
     
@@ -1487,6 +1498,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               </div>
             )}
           </div>
+        </div>
+      </div>
+      
+      {/* DEBUG PANEL: Always visible, fixed position to avoid clipping */}
+      <div 
+        className="fixed top-20 left-4 p-3 rounded-lg bg-black/90 text-white text-xs font-mono shadow-lg border border-white/20"
+        style={{ zIndex: 9999, pointerEvents: 'none' }}
+      >
+        <div className="font-bold text-yellow-400 mb-2">Click Debug (DOM clicks: {domClickCount})</div>
+        <div className="space-y-1">
+          <div><span className="text-gray-400">DOM target:</span> {debugInfo.domTarget}</div>
+          <div>
+            <span className="text-gray-400">Fabric fired:</span>{' '}
+            <span className={debugInfo.fabricFired ? 'text-green-400' : 'text-red-400'}>
+              {debugInfo.fabricFired ? 'YES' : 'NO'}
+            </span>
+          </div>
+          <div><span className="text-gray-400">Fabric target:</span> {debugInfo.fabricTarget}</div>
+          <div><span className="text-gray-400">Pointer:</span> {debugInfo.pointer}</div>
         </div>
       </div>
 
