@@ -152,16 +152,17 @@ const Settings = () => {
                 <h1 className="text-2xl font-bold text-black">Settings</h1>
               </div>
 
-        <Tabs defaultValue="cost-codes" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="cost-codes">Cost Codes</TabsTrigger>
-              <TabsTrigger value="specifications">Specifications</TabsTrigger>
-              <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
-              <TabsTrigger value="budget">Budget</TabsTrigger>
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+        <Tabs defaultValue="cost-codes" orientation="vertical" className="flex gap-6">
+            <TabsList className="flex flex-col h-auto w-48 shrink-0 bg-transparent p-0 border-r border-border">
+              <TabsTrigger value="cost-codes" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Cost Codes</TabsTrigger>
+              <TabsTrigger value="specifications" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Specifications</TabsTrigger>
+              <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Chart of Accounts</TabsTrigger>
+              <TabsTrigger value="budget" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Budget</TabsTrigger>
+              <TabsTrigger value="dashboard" className="justify-start w-full px-4 py-3 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none">Dashboard</TabsTrigger>
             </TabsList>
-                
-                <TabsContent value="cost-codes" className="mt-6">
+            
+            <div className="flex-1 min-w-0">
+                <TabsContent value="cost-codes" className="mt-0">
                   <CostCodesTab
                     costCodes={costCodes}
                     loading={loading}
@@ -182,7 +183,7 @@ const Settings = () => {
                   />
                 </TabsContent>
                 
-                <TabsContent value="specifications" className="mt-6">
+                <TabsContent value="specifications" className="mt-0">
                   <SpecificationsTab
                     specifications={specifications}
                     loading={specificationsLoading}
@@ -201,17 +202,18 @@ const Settings = () => {
                   />
                 </TabsContent>
 
-            <TabsContent value="chart-of-accounts" className="mt-6">
+            <TabsContent value="chart-of-accounts" className="mt-0">
               <ChartOfAccountsTab />
             </TabsContent>
 
-            <TabsContent value="budget" className="mt-6">
+            <TabsContent value="budget" className="mt-0">
               <BudgetWarningsTab />
             </TabsContent>
 
-            <TabsContent value="dashboard" className="mt-6">
+            <TabsContent value="dashboard" className="mt-0">
               <DashboardSettingsTab />
             </TabsContent>
+            </div>
           </Tabs>
         </div>
           </div>
