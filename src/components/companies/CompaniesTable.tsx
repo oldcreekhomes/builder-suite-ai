@@ -47,9 +47,10 @@ interface Company {
 
 interface CompaniesTableProps {
   searchQuery?: string;
+  companyTypeFilter?: 'subcontractor' | 'vendor';
 }
 
-export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
+export function CompaniesTable({ searchQuery = "", companyTypeFilter }: CompaniesTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -169,7 +170,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-fit whitespace-nowrap">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-80">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Insurance</TableHead>
@@ -179,6 +179,13 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           <TableBody>
             {companies
               .filter(company => {
+                // Filter by company type first
+                if (companyTypeFilter === 'subcontractor') {
+                  if (company.company_type !== 'Subcontractor') return false;
+                } else if (companyTypeFilter === 'vendor') {
+                  if (!['Vendor', 'Consultant', 'Municipality'].includes(company.company_type)) return false;
+                }
+                
                 if (!searchQuery.trim()) return true;
                 
                 const query = searchQuery.toLowerCase();
@@ -224,9 +231,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     ) : (
                       <span className="text-gray-400 text-xs">-</span>
                     )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    <span className="text-xs">{company.company_type}</span>
                   </TableCell>
                   <TableCell className="px-2 py-1">
                     {company.website ? (
@@ -324,6 +328,13 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               ))}
 
             {companies.filter(company => {
+              // Filter by company type first
+              if (companyTypeFilter === 'subcontractor') {
+                if (company.company_type !== 'Subcontractor') return false;
+              } else if (companyTypeFilter === 'vendor') {
+                if (!['Vendor', 'Consultant', 'Municipality'].includes(company.company_type)) return false;
+              }
+              
               if (!searchQuery.trim()) return true;
               
               const query = searchQuery.toLowerCase();
@@ -334,7 +345,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               );
             }).length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
@@ -342,7 +353,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>
