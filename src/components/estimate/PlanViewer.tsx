@@ -44,11 +44,8 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnnotations, onToggleVisibility, onShowAllAnnotations }: PlanViewerProps) {
-  // Use callback ref for canvas to handle async DOM availability
-  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
-  const canvasRef = useCallback((node: HTMLCanvasElement | null) => {
-    setCanvasEl(node);
-  }, []);
+  // Use mutable ref for canvas to avoid re-render conflicts with Fabric DOM manipulation
+  const canvasElRef = useRef<HTMLCanvasElement | null>(null);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -141,40 +138,53 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     enabled: !!sheet?.file_path,
   });
 
-  // Initialize Fabric.js canvas when canvas element becomes available
-  // Uses callback ref pattern to handle async DOM availability after PDF/image loads
+  // Initialize Fabric.js canvas when sheet changes
+  // Uses timeout to ensure DOM is ready after React renders the canvas element
   useEffect(() => {
-    // Don't init if no canvas element or already have Fabric instance
-    if (!canvasEl) {
-      console.info('[Fabric Init] Canvas element not available yet');
-      return;
-    }
-    
+    // Clean up any existing Fabric instance first
     if (fabricCanvas) {
-      console.info('[Fabric Init] Already initialized, skipping');
-      return;
+      console.info('[Fabric Init] Disposing previous instance before re-init');
+      fabricCanvas.dispose();
+      setFabricCanvas(null);
     }
 
-    console.info('[Fabric Init] Initializing Fabric.js canvas');
-    const canvas = new FabricCanvas(canvasEl, {
-      width: displayedSize?.width || 800,
-      height: displayedSize?.height || 600,
-      backgroundColor: 'transparent',
-    });
+    // Wait for DOM to be ready (canvas element created after key-based remount)
+    const timerId = setTimeout(() => {
+      const canvasElement = canvasElRef.current;
+      if (!canvasElement) {
+        console.info('[Fabric Init] Canvas element not available');
+        return;
+      }
+      
+      console.info('[Fabric Init] Initializing Fabric.js canvas');
+      const canvas = new FabricCanvas(canvasElement, {
+        width: displayedSize?.width || 800,
+        height: displayedSize?.height || 600,
+        backgroundColor: 'transparent',
+      });
 
-    // Diagnostics: confirm presence of lower/upper layers after init
-    const hasLower = !!((canvas as any).lowerCanvasEl || (canvas as any).lower?.el);
-    const hasUpper = !!((canvas as any).upperCanvasEl || (canvas as any).upper?.el);
-    console.info('[Fabric Init] Complete', { hasLower, hasUpper });
+      // Diagnostics: confirm presence of lower/upper layers after init
+      const hasLower = !!((canvas as any).lowerCanvasEl || (canvas as any).lower?.el);
+      const hasUpper = !!((canvas as any).upperCanvasEl || (canvas as any).upper?.el);
+      console.info('[Fabric Init] Complete', { hasLower, hasUpper });
 
-    setFabricCanvas(canvas);
+      setFabricCanvas(canvas);
+    }, 50); // Small delay to ensure DOM is ready
 
     return () => {
-      console.info('[Fabric Init] Disposing canvas');
-      canvas.dispose();
-      setFabricCanvas(null);
+      clearTimeout(timerId);
     };
-  }, [canvasEl, sheetId]);
+  }, [sheetId]);
+
+  // Cleanup Fabric on unmount
+  useEffect(() => {
+    return () => {
+      if (fabricCanvas) {
+        console.info('[Fabric Init] Disposing on unmount');
+        fabricCanvas.dispose();
+      }
+    };
+  }, [fabricCanvas]);
 
   // Style upper/lower canvas for proper z-index and event handling
   // RESILIENT: Re-apply whenever Fabric or displayedSize changes (Fabric may recreate DOM nodes)
@@ -1473,8 +1483,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           }}
         >
           {/* STAGE CONTAINER: Strict z-index layering for pointer events */}
+          {/* key={sheetId} forces complete DOM remount on sheet change to prevent Fabric/React conflicts */}
           <div 
             ref={stageRef}
+            key={sheetId || 'no-sheet'}
             className="relative"
             style={{ 
               width: displayedSize?.width || 800,
@@ -1589,7 +1601,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
             {/* Layer 100: Fabric.js canvas (TOPMOST, receives all pointer events) */}
             {/* NOTE: Do NOT add inline styles here - Fabric wraps this canvas and we style the wrapper in useEffect */}
             <canvas 
-              ref={canvasRef}
+              ref={canvasElRef}
               width={displayedSize?.width || 800}
               height={displayedSize?.height || 600}
             />
