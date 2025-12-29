@@ -77,7 +77,7 @@ interface SheetDetection {
   error?: string;
 }
 
-type Phase = 'upload' | 'uploading' | 'analyzing' | 'review' | 'extracting';
+type Phase = 'upload' | 'analyzing' | 'review' | 'extracting';
 
 export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: UploadSheetDialogProps) {
   const { user } = useAuth();
@@ -94,7 +94,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
   const handleUploadAndAnalyze = async () => {
     if (!file || !user) return;
 
-    setPhase('uploading');
+    setPhase('analyzing');
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const isPDF = fileExt === 'pdf';
     const baseSheetName = file.name.replace(/\.[^/.]+$/, '');
@@ -411,18 +411,6 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
             </>
           )}
 
-          {/* Phase: Uploading */}
-          {phase === 'uploading' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Uploading pages...</span>
-                <span className="text-muted-foreground">
-                  {uploadProgress.current} / {uploadProgress.total}
-                </span>
-              </div>
-              <Progress value={(uploadProgress.current / uploadProgress.total) * 100} className="h-2" />
-            </div>
-          )}
 
           {/* Phase: Analyzing */}
           {phase === 'analyzing' && (
