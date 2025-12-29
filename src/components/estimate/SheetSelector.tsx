@@ -152,7 +152,7 @@ export function SheetSelector({ takeoffId, selectedSheetId, onSelectSheet, onIte
                   className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => handleDelete(sheet.id, e)}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </div>
             ))
