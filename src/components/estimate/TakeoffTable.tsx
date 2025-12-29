@@ -9,6 +9,7 @@ import { Plus, Sparkles, Loader2, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { AIExtractReviewDialog } from "./AIExtractReviewDialog";
+import { AddTakeoffItemDialog } from "./AddTakeoffItemDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BulkActionBar } from "@/components/settings/BulkActionBar";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
@@ -39,6 +40,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
   const [extractedData, setExtractedData] = useState<any>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
   
   const queryClient = useQueryClient();
   const { selectedItems, handleItemCheckboxChange, clearSelection, selectAll } = useTakeoffItemSelection();
@@ -75,8 +77,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
   };
 
   const handleConfirmDelete = () => {
-    // Filter out template items (only delete actual DB items)
-    const itemsToDelete = Array.from(selectedItems).filter(id => !id.startsWith('template-'));
+    const itemsToDelete = Array.from(selectedItems);
     
     if (itemsToDelete.length > 0) {
       handleDeleteItems(itemsToDelete);
@@ -90,11 +91,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     if (!items) return;
     
     if (checked) {
-      // Select all non-template items
-      const itemIds = items
-        .filter((item: any) => !item.isTemplate)
-        .map((item: any) => item.id);
-      
+      const itemIds = items.map((item: any) => item.id);
       selectAll(itemIds);
     } else {
       clearSelection();
@@ -179,17 +176,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     queryFn: async () => {
       if (!sheetId) return [];
       
-      // Get current user to fetch their estimate cost codes
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      // Determine correct owner_id (handle employees)
-      const { data: userInfo } = await supabase.rpc('get_current_user_home_builder_info');
-      const ownerId = userInfo?.[0]?.is_employee ? userInfo[0].home_builder_id : user.id;
-
-      if (!ownerId) return [];
-
-      // Fetch existing takeoff items
+      // Fetch existing takeoff items only - no template rows
       const { data: existingItems, error: itemsError } = await supabase
         .from('takeoff_items')
         .select('*, cost_code_id, color')
@@ -199,91 +186,40 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
 
       if (itemsError) throw itemsError;
 
-      // Fetch estimate-enabled leaf codes (treat NULL as leaf)
-      const { data: estimateLeafCodes, error: leafErr } = await supabase
-        .from('cost_codes')
-        .select('*')
-        .eq('owner_id', ownerId)
-        .eq('estimate', true)
-        .or('has_subcategories.is.null,has_subcategories.eq.false')
-        .order('code', { ascending: true });
-
-      if (leafErr) throw leafErr;
-
-      // Fetch parent categories with estimate=true and has_subcategories=true
-      const { data: estimateParents, error: parentsErr } = await supabase
-        .from('cost_codes')
-        .select('*')
-        .eq('owner_id', ownerId)
-        .eq('estimate', true)
-        .eq('has_subcategories', true);
-
-      if (parentsErr) throw parentsErr;
-
-      // Build a parent map (code -> name) for display
-      const parentMap = new Map<string, string>();
-      (estimateParents || []).forEach(parent => {
-        parentMap.set(parent.code, parent.name);
-      });
-
-      // Fetch children of estimate-enabled parents (regardless of children's estimate flag)
-      let parentChildren: any[] = [];
-      if (estimateParents && estimateParents.length > 0) {
-        const parentCodes = estimateParents.map(p => p.code);
-        const { data: subCodes, error: subErr } = await supabase
-          .from('cost_codes')
-          .select('*')
-          .eq('owner_id', ownerId)
-          .in('parent_group', parentCodes)
-          .order('code', { ascending: true });
-
-        if (subErr) throw subErr;
-        parentChildren = subCodes || [];
-      }
-
-      // Combine and deduplicate all relevant cost codes
-      const allCostCodesMap = new Map();
-      [...(estimateLeafCodes || []), ...parentChildren].forEach(code => {
-        allCostCodesMap.set(code.id, code);
-      });
-      const allRelevantCostCodes = Array.from(allCostCodesMap.values());
-
-      // Create a Set of cost_code_ids that already have takeoff items
-      const existingCostCodeIds = new Set(
-        existingItems?.map(item => item.cost_code_id).filter(Boolean) || []
-      );
-
-      // Create template rows for estimate cost codes that don't have items yet
-      const templateRows = allRelevantCostCodes
-        .filter(code => !existingCostCodeIds.has(code.id))
-        .map(code => {
-          return {
-            id: `template-${code.id}`,
-            takeoff_sheet_id: sheetId,
-            cost_code_id: code.id,
-            category: code.name,
-            quantity: 0,
-            unit_of_measure: code.unit_of_measure,
-            unit_price: code.price || 0,
-            total_cost: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            isTemplate: true, // Flag to identify template rows
-          };
-        });
-
-      // Combine existing items with template rows
-      return [...(existingItems || []), ...templateRows];
+      return existingItems || [];
     },
     enabled: !!sheetId,
   });
 
   // Calculate select all checkbox state
-  const selectableItems = items?.filter((item: any) => !item.isTemplate) || [];
-  const allSelectableSelected = selectableItems.length > 0 && 
-    selectableItems.every((item: any) => selectedItems.has(item.id));
-  const someSelectableSelected = selectableItems.some((item: any) => selectedItems.has(item.id)) && 
-    !allSelectableSelected;
+  const allSelected = items && items.length > 0 && items.every((item: any) => selectedItems.has(item.id));
+  const someSelected = items && items.some((item: any) => selectedItems.has(item.id)) && !allSelected;
+
+  // Handle new item added - auto-select it for drawing
+  const handleItemAdded = (itemId: string) => {
+    // Refetch items and then select the new one
+    refetch().then(() => {
+      // Find the newly added item to get its details
+      const findAndSelect = () => {
+        const newItem = items?.find((item: any) => item.id === itemId);
+        if (newItem) {
+          onSelectReviewItem({
+            id: newItem.id,
+            color: newItem.color || '#3b82f6',
+            category: newItem.category
+          });
+        }
+      };
+      
+      // Small delay to ensure refetch completed
+      setTimeout(findAndSelect, 100);
+    });
+    
+    // Also notify parent for visibility
+    if (onItemsAdded) {
+      onItemsAdded([itemId]);
+    }
+  };
 
   if (!sheetId) {
     return (
@@ -323,7 +259,12 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                 </>
               )}
             </Button>
-            <Button size="sm" variant="outline" className="h-10">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-10"
+              onClick={() => setShowAddItemDialog(true)}
+            >
               <Plus className="h-4 w-4 mr-1" />
               Add Item
             </Button>
@@ -337,11 +278,11 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={allSelectableSelected}
+                  checked={allSelected}
                   onCheckedChange={handleSelectAll}
                   aria-label="Select all items"
-                  className={someSelectableSelected ? "data-[state=checked]:bg-primary/50" : ""}
-                  {...(someSelectableSelected ? { "data-state": "indeterminate" } : {})}
+                  className={someSelected ? "data-[state=checked]:bg-primary/50" : ""}
+                  {...(someSelected ? { "data-state": "indeterminate" } : {})}
                 />
               </TableHead>
               <TableHead className="w-16"></TableHead>
@@ -362,34 +303,29 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
               </TableRow>
             ) : (
               items.map((item: any) => {
-                const isTemplate = item.isTemplate;
-                const isSelectable = !isTemplate;
                 const isSelected = selectedReviewItem?.id === item.id;
                 
                 return (
                   <TableRow 
                     key={item.id} 
                     className={cn(
-                      item.isTemplate ? 'opacity-70' : '',
                       isSelected && 'bg-primary/10 ring-2 ring-primary'
                     )}
-                    onClick={() => !isTemplate && onSelectReviewItem({
+                    onClick={() => onSelectReviewItem({
                       id: item.id,
                       color: item.color || '#3b82f6',
                       category: item.category
                     })}
-                    style={{ cursor: !isTemplate ? 'pointer' : 'default' }}
+                    style={{ cursor: 'pointer' }}
                   >
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {isSelectable && (
-                        <Checkbox
-                          checked={selectedItems.has(item.id)}
-                          onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
-                        />
-                      )}
+                      <Checkbox
+                        checked={selectedItems.has(item.id)}
+                        onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
+                      />
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {isSelected && !isTemplate && (
+                      {isSelected && (
                         <div className="flex items-center justify-center">
                           <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
                             DRAW
@@ -398,64 +334,52 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                       )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {!isTemplate && (
-                        <div className="flex items-center gap-2">
-                          <label 
-                            htmlFor={`color-${item.id}`}
-                            className="cursor-pointer"
-                          >
-                            <div 
-                              className="w-6 h-6 rounded border-2 border-border"
-                              style={{ backgroundColor: item.color || '#3b82f6' }}
-                            />
-                          </label>
-                          <Input
-                            type="color"
-                            value={item.color || '#3b82f6'}
-                            onChange={(e) => handleColorChange(item.id, e.target.value)}
-                            className="w-0 h-0 opacity-0 absolute"
-                            id={`color-${item.id}`}
+                      <div className="flex items-center gap-2">
+                        <label 
+                          htmlFor={`color-${item.id}`}
+                          className="cursor-pointer"
+                        >
+                          <div 
+                            className="w-6 h-6 rounded border-2 border-border"
+                            style={{ backgroundColor: item.color || '#3b82f6' }}
                           />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              console.log('🔍 Eye icon clicked:', { 
-                                itemId: item.id, 
-                                category: item.category,
-                                isVisible: visibleAnnotations.has(item.id),
-                                visibleSet: Array.from(visibleAnnotations)
-                              });
-                              onToggleVisibility(item.id);
-                            }}
-                            className="cursor-pointer hover:opacity-80"
-                            aria-label={`Toggle visibility for ${item.category}`}
-                          >
-                            {visibleAnnotations.has(item.id) ? (
-                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                            ) : (
-                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                            )}
-                          </button>
-                        </div>
-                      )}
+                        </label>
+                        <Input
+                          type="color"
+                          value={item.color || '#3b82f6'}
+                          onChange={(e) => handleColorChange(item.id, e.target.value)}
+                          className="w-0 h-0 opacity-0 absolute"
+                          id={`color-${item.id}`}
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleVisibility(item.id);
+                          }}
+                          className="cursor-pointer hover:opacity-80"
+                          aria-label={`Toggle visibility for ${item.category}`}
+                        >
+                          {visibleAnnotations.has(item.id) ? (
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          )}
+                        </button>
+                      </div>
                     </TableCell>
                     <TableCell className="font-medium">{item.category}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {isTemplate ? (
-                        <span className="text-muted-foreground">{item.quantity}</span>
-                      ) : (
-                        <InlineEditCell
-                          value={item.quantity}
-                          type="number"
-                          onSave={(newValue) => {
-                            const qty = Number(newValue);
-                            if (qty >= 0 && !isNaN(qty)) {
-                              handleUpdateQuantity(item.id, qty);
-                            }
-                          }}
-                          className="text-left"
-                        />
-                      )}
+                      <InlineEditCell
+                        value={item.quantity}
+                        type="number"
+                        onSave={(newValue) => {
+                          const qty = Number(newValue);
+                          if (qty >= 0 && !isNaN(qty)) {
+                            handleUpdateQuantity(item.id, qty);
+                          }
+                        }}
+                        className="text-left"
+                      />
                     </TableCell>
                     <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
                     <TableCell>
@@ -500,6 +424,14 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           }}
         />
       )}
+
+      <AddTakeoffItemDialog
+        open={showAddItemDialog}
+        onOpenChange={setShowAddItemDialog}
+        sheetId={sheetId}
+        takeoffId={takeoffId}
+        onItemAdded={handleItemAdded}
+      />
 
       <DeleteConfirmationDialog
         open={showDeleteDialog}
