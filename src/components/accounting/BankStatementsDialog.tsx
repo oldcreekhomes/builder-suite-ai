@@ -293,7 +293,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   };
 
   return (
-    <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+    <DialogContent className="max-w-4xl max-h-[80vh] !overflow-hidden flex flex-col">
       <DialogHeader>
         <DialogTitle>Bank Statements</DialogTitle>
         <DialogDescription>
