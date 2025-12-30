@@ -10,13 +10,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
+import { 
+  parseDrawingScale, 
+  calculateRectangleArea, 
+  calculatePolygonArea, 
+  calculateLineLength,
+  isAreaMeasurement,
+  isLinearMeasurement 
+} from "@/utils/scaleUtils";
 
 // PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
 interface PlanViewerProps {
   sheetId: string | null;
   takeoffId: string;
-  selectedTakeoffItem: { id: string; color: string; category: string } | null;
+  selectedTakeoffItem: { id: string; color: string; category: string; unit_of_measure?: string } | null;
   visibleAnnotations: Set<string>;
   onToggleVisibility: (itemId: string) => void;
   onShowAllAnnotations: () => void;
@@ -706,7 +714,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     fabricCanvas.renderAll();
   }, [visibleAnnotations, fabricCanvas, annotations]);
 
-  // Keyboard handler for deleting manual annotations
+  // Keyboard handler for deleting annotations
   useEffect(() => {
     if (!fabricCanvas) return;
     
@@ -728,7 +736,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               
               // Decrement quantity for the associated takeoff item
               if (annotation.takeoff_item_id) {
-                decrementQuantity(annotation.takeoff_item_id);
+                // Calculate the measurement to decrement based on annotation geometry
+                const measurementToDecrement = calculateAnnotationMeasurement(annotation);
+                if (measurementToDecrement !== null && measurementToDecrement > 0) {
+                  decrementQuantityBy(annotation.takeoff_item_id, measurementToDecrement);
+                } else {
+                  decrementQuantity(annotation.takeoff_item_id);
+                }
               }
             }
           }
@@ -738,7 +752,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fabricCanvas, activeTool, annotations, deleteAnnotation]);
+  }, [fabricCanvas, activeTool, annotations, deleteAnnotation, sheet?.drawing_scale]);
 
   // Quantity update functions
   const incrementQuantity = async (itemId: string) => {
@@ -809,6 +823,48 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         description: "-1 from item",
       });
     }
+  };
+
+  const decrementQuantityBy = async (itemId: string, amount: number) => {
+    const { data: item } = await supabase
+      .from('takeoff_items')
+      .select('quantity')
+      .eq('id', itemId)
+      .single();
+    
+    if (item) {
+      const newQty = Math.max(0, (item.quantity || 0) - amount);
+      await supabase
+        .from('takeoff_items')
+        .update({ quantity: newQty })
+        .eq('id', itemId);
+      
+      // Invalidate takeoff-items query so TakeoffTable refetches
+      queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
+      
+      toast({
+        title: "Quantity updated",
+        description: `-${amount.toFixed(2)} from item`,
+      });
+    }
+  };
+
+  // Calculate the measurement value for an annotation based on its geometry and the sheet scale
+  const calculateAnnotationMeasurement = (annotation: any): number | null => {
+    if (!annotation?.geometry || !sheet?.drawing_scale) return null;
+    
+    const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+    const geometry = annotation.geometry;
+    
+    if (annotation.annotation_type === 'rectangle') {
+      return calculateRectangleArea(geometry, pixelsPerFoot);
+    } else if (annotation.annotation_type === 'polygon' && geometry.points) {
+      return calculatePolygonArea(geometry.points, pixelsPerFoot);
+    } else if (annotation.annotation_type === 'line') {
+      return calculateLineLength(geometry, pixelsPerFoot);
+    }
+    
+    return null;
   };
 
   const handleToolClick = (tool: DrawingTool) => {
@@ -1005,8 +1061,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           // Remove the temp shape - it will be recreated from DB with proper tracking
           fabricCanvas.remove(rect);
           
-          // Increment quantity by 1
-          incrementQuantity(selectedTakeoffItem.id);
+          // Calculate quantity based on unit of measure
+          if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
+            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+            const areaInSF = calculateRectangleArea(rectGeometry, pixelsPerFoot);
+            incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
+          } else {
+            incrementQuantity(selectedTakeoffItem.id);
+          }
         } else {
           fabricCanvas.remove(rect);
         }
@@ -1092,8 +1154,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           // Remove the temp shape - it will be recreated from DB with proper tracking
           fabricCanvas.remove(line);
           
-          // Increment quantity by 1 (user can adjust manually if needed)
-          incrementQuantity(selectedTakeoffItem.id);
+          // Calculate quantity based on unit of measure
+          if (isLinearMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
+            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+            const lengthInLF = calculateLineLength(lineGeometry, pixelsPerFoot);
+            incrementQuantityBy(selectedTakeoffItem.id, lengthInLF);
+          } else {
+            incrementQuantity(selectedTakeoffItem.id);
+          }
         } else {
           fabricCanvas.remove(line);
         }
@@ -1172,8 +1240,14 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           // Remove the temp shape - it will be recreated from DB with proper tracking
           fabricCanvas.remove(polygon);
           
-          // Increment quantity by 1
-          incrementQuantity(selectedTakeoffItem.id);
+          // Calculate quantity based on unit of measure
+          if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
+            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+            const areaInSF = calculatePolygonArea(documentPoints, pixelsPerFoot);
+            incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
+          } else {
+            incrementQuantity(selectedTakeoffItem.id);
+          }
         }
         
         // Reset

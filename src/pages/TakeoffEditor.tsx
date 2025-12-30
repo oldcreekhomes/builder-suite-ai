@@ -15,7 +15,7 @@ export default function TakeoffEditor() {
   const { projectId } = useParams();
   const { user } = useAuth();
   const [selectedSheetId, setSelectedSheetId] = useState<string | null>(null);
-  const [selectedReviewItem, setSelectedReviewItem] = useState<{ id: string; color: string; category: string } | null>(null);
+  const [selectedReviewItem, setSelectedReviewItem] = useState<{ id: string; color: string; category: string; unit_of_measure?: string } | null>(null);
   const [visibleAnnotations, setVisibleAnnotations] = useState<Set<string>>(new Set());
 
   // Fetch or create takeoff project for this project
