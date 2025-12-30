@@ -28,7 +28,8 @@ import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
 interface Company {
   id: string;
   company_name: string;
-  company_type: string;
+  company_category?: string;
+  company_type?: string | null;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;

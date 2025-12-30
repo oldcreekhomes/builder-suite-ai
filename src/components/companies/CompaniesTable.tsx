@@ -28,7 +28,8 @@ type CostCode = {
 interface Company {
   id: string;
   company_name: string;
-  company_type: string;
+  company_category: string;
+  company_type?: string | null;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -153,11 +154,11 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
           <TableBody>
             {companies
               .filter(company => {
-                // Filter by company type first
+                // Filter by company category
                 if (companyTypeFilter === 'subcontractor') {
-                  if (company.company_type !== 'Subcontractor') return false;
+                  if (company.company_category !== 'Subcontractor') return false;
                 } else if (companyTypeFilter === 'vendor') {
-                  if (!['Vendor', 'Consultant', 'Municipality', 'Utility'].includes(company.company_type)) return false;
+                  if (company.company_category !== 'Vendor') return false;
                 }
                 
                 if (!searchQuery.trim()) return true;
@@ -275,11 +276,11 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
               ))}
 
             {companies.filter(company => {
-              // Filter by company type first
+              // Filter by company category
               if (companyTypeFilter === 'subcontractor') {
-                if (company.company_type !== 'Subcontractor') return false;
+                if (company.company_category !== 'Subcontractor') return false;
               } else if (companyTypeFilter === 'vendor') {
-                if (!['Vendor', 'Consultant', 'Municipality', 'Utility'].includes(company.company_type)) return false;
+                if (company.company_category !== 'Vendor') return false;
               }
               
               if (!searchQuery.trim()) return true;

@@ -73,7 +73,8 @@ const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressCo
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_type: z.enum(["Consultant", "Lender", "Municipality", "Subcontractor", "Utility", "Vendor"]),
+  company_category: z.enum(["Subcontractor", "Vendor"]),
+  company_type: z.enum(["Vendor", "Consultant", "Lender", "Municipality", "Utility"]).optional().nullable(),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -142,7 +143,8 @@ export function AddCompanyDialog({
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: initialCompanyName || "",
-      company_type: defaultType,
+      company_category: defaultType,
+      company_type: defaultType === 'Vendor' ? 'Vendor' : undefined,
       address_line_1: initialData?.address_line_1 || "",
       address_line_2: initialData?.address_line_2 || "",
       city: initialData?.city || "",
@@ -238,7 +240,8 @@ export function AddCompanyDialog({
 
       const insertData = {
         company_name: data.company_name,
-        company_type: data.company_type,
+        company_category: data.company_category,
+        company_type: data.company_category === 'Vendor' ? (data.company_type || 'Vendor') : null,
         address_line_1: data.address_line_1 || null,
         address_line_2: data.address_line_2 || null,
         city: data.city || null,
@@ -429,22 +432,29 @@ export function AddCompanyDialog({
 
                     <FormField
                       control={form.control}
-                      name="company_type"
+                      name="company_category"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Company Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormLabel>Category</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              // Reset company_type when category changes
+                              if (value === 'Subcontractor') {
+                                form.setValue('company_type', undefined);
+                              } else {
+                                form.setValue('company_type', 'Vendor');
+                              }
+                            }} 
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select company type" />
+                                <SelectValue placeholder="Select category" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Consultant">Consultant</SelectItem>
-                              <SelectItem value="Lender">Lender</SelectItem>
-                              <SelectItem value="Municipality">Municipality</SelectItem>
                               <SelectItem value="Subcontractor">Subcontractor</SelectItem>
-                              <SelectItem value="Utility">Utility</SelectItem>
                               <SelectItem value="Vendor">Vendor</SelectItem>
                             </SelectContent>
                           </Select>
@@ -452,6 +462,33 @@ export function AddCompanyDialog({
                         </FormItem>
                       )}
                     />
+
+                    {form.watch('company_category') === 'Vendor' && (
+                      <FormField
+                        control={form.control}
+                        name="company_type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vendor Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || 'Vendor'}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select vendor type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Vendor">Vendor</SelectItem>
+                                <SelectItem value="Consultant">Consultant</SelectItem>
+                                <SelectItem value="Lender">Lender</SelectItem>
+                                <SelectItem value="Municipality">Municipality</SelectItem>
+                                <SelectItem value="Utility">Utility</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-4">

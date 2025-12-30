@@ -353,7 +353,7 @@ export default function MakeDeposits() {
       project_id: projectId || undefined,
       amount: depositAmount,
       memo: depositSourceName,
-      deposit_source_id: depositSourceId || undefined,
+      company_id: depositSourceId || undefined,  // Changed from deposit_source_id
       check_number: checkNumber || undefined,
       company_name: companyName,
       company_address: companyAddress,
