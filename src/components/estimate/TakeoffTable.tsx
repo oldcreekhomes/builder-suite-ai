@@ -439,7 +439,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12">
+              <TableHead className="w-8 px-2">
                 <Checkbox
                   checked={allSelected}
                   onCheckedChange={handleSelectAll}
@@ -448,8 +448,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                   {...(someSelected ? { "data-state": "indeterminate" } : {})}
                 />
               </TableHead>
-              <TableHead className="w-16"></TableHead>
-              <TableHead className="w-20">Color</TableHead>
+              <TableHead className="w-14 px-2">Color</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Qty</TableHead>
               <TableHead>Unit</TableHead>
@@ -460,7 +459,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           <TableBody>
             {!items || items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No items measured yet
                 </TableCell>
               </TableRow>
@@ -485,29 +484,20 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                       })}
                       style={{ cursor: 'pointer' }}
                     >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedItems.has(item.id)}
                           onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
                         />
                       </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {isSelected && (
-                          <div className="flex items-center justify-center">
-                            <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
-                              DRAW
-                            </div>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5">
                           <label 
                             htmlFor={`color-${item.id}`}
                             className="cursor-pointer"
                           >
                             <div 
-                              className="w-6 h-6 rounded border-2 border-border"
+                              className="w-5 h-5 rounded border-2 border-border"
                               style={{ backgroundColor: item.color || '#3b82f6' }}
                             />
                           </label>
@@ -575,16 +565,15 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                         className="bg-muted/50 hover:bg-muted/70 cursor-pointer"
                         onClick={() => toggleGroup(parentCode)}
                       >
-                        <TableCell className="w-12">
+                        <TableCell className="px-2">
                           {isExpanded ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )}
                         </TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell className="font-semibold" colSpan={1}>
+                        <TableCell className="px-2"></TableCell>
+                        <TableCell className="font-semibold">
                           {getParentName(parentCode)}
                         </TableCell>
                         <TableCell className="font-semibold">{groupTotal}</TableCell>
@@ -603,7 +592,6 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                           <TableRow 
                             key={item.id} 
                             className={cn(
-                              "pl-8",
                               isSelected && 'bg-primary/10 ring-2 ring-primary'
                             )}
                             onClick={() => onSelectReviewItem({
@@ -613,30 +601,20 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                             })}
                             style={{ cursor: 'pointer' }}
                           >
-                            <TableCell onClick={(e) => e.stopPropagation()}>
+                            <TableCell className="px-2 pl-4" onClick={(e) => e.stopPropagation()}>
                               <Checkbox
                                 checked={selectedItems.has(item.id)}
                                 onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
-                                className="ml-4"
                               />
                             </TableCell>
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                              {isSelected && (
-                                <div className="flex items-center justify-center">
-                                  <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
-                                    DRAW
-                                  </div>
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center gap-2">
+                            <TableCell className="px-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1.5">
                                 <label 
                                   htmlFor={`color-${item.id}`}
                                   className="cursor-pointer"
                                 >
                                   <div 
-                                    className="w-6 h-6 rounded border-2 border-border"
+                                    className="w-5 h-5 rounded border-2 border-border"
                                     style={{ backgroundColor: item.color || '#3b82f6' }}
                                   />
                                 </label>
