@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MousePointer2, Circle, Minus, Square, Pentagon, Ruler, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { MousePointer2, Circle, Minus, Square, Pentagon, Ruler, ZoomIn, ZoomOut, Maximize2, RefreshCcw } from "lucide-react";
 
 type DrawingTool = 'select' | 'count' | 'line' | 'rectangle' | 'polygon';
 
@@ -31,6 +31,8 @@ interface DrawingToolbarProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
+  onRecalculate?: () => void;
+  isRecalculating?: boolean;
 }
 
 
@@ -44,6 +46,8 @@ export function DrawingToolbar({
   onZoomIn,
   onZoomOut,
   onZoomReset,
+  onRecalculate,
+  isRecalculating,
 }: DrawingToolbarProps) {
   const tools = [
     { id: 'select' as const, icon: MousePointer2, label: 'Select', tooltip: 'Select and move annotations (or press Delete to remove)' },
@@ -127,6 +131,23 @@ export function DrawingToolbar({
           {Math.round(zoom * 100)}%
         </div>
       </div>
+
+      {onRecalculate && (
+        <>
+          <Separator orientation="vertical" className="h-8" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10"
+            onClick={onRecalculate}
+            disabled={isRecalculating}
+            title="Recalculate quantities from annotations"
+          >
+            <RefreshCcw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+            <span className="ml-2 text-xs">Recalculate</span>
+          </Button>
+        </>
+      )}
     </div>
   );
 }

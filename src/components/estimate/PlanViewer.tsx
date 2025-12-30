@@ -18,6 +18,16 @@ import {
   isAreaMeasurement,
   isLinearMeasurement 
 } from "@/utils/scaleUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
@@ -72,6 +82,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const [docLoaded, setDocLoaded] = useState(false);
   const [displayedSize, setDisplayedSize] = useState<{ width: number; height: number } | null>(null);
   const annotationObjectsRef = useRef<Map<string, any>>(new Map());
+  const [showRecalculateDialog, setShowRecalculateDialog] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   
   // Refs to read current values without causing effect re-registration
   const zoomRef = useRef(zoom);
@@ -871,6 +883,125 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     return null;
   };
 
+  // Recalculate all quantities from annotations (fixes stale/poisoned quantities)
+  const recalculateSheetQuantities = async () => {
+    if (!sheetId || !sheet?.drawing_scale) {
+      toast({
+        title: "Cannot recalculate",
+        description: "Sheet or scale not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRecalculating(true);
+    try {
+      // Fetch all takeoff items for this sheet
+      const { data: items, error: itemsError } = await supabase
+        .from('takeoff_items')
+        .select('id, unit_of_measure')
+        .eq('takeoff_sheet_id', sheetId);
+
+      if (itemsError) throw itemsError;
+      if (!items || items.length === 0) {
+        toast({
+          title: "No items to recalculate",
+          description: "This sheet has no takeoff items",
+        });
+        setIsRecalculating(false);
+        return;
+      }
+
+      // Fetch all annotations for this sheet
+      const { data: allAnnotations, error: annotationsError } = await supabase
+        .from('takeoff_annotations')
+        .select('*')
+        .eq('takeoff_sheet_id', sheetId);
+
+      if (annotationsError) throw annotationsError;
+
+      // Group annotations by takeoff_item_id
+      const annotationsByItem = new Map<string, any[]>();
+      (allAnnotations || []).forEach(ann => {
+        if (!ann.takeoff_item_id) return;
+        if (!annotationsByItem.has(ann.takeoff_item_id)) {
+          annotationsByItem.set(ann.takeoff_item_id, []);
+        }
+        annotationsByItem.get(ann.takeoff_item_id)!.push(ann);
+      });
+
+      // Calculate pixelsPerFoot once (same logic as calculateAnnotationMeasurement)
+      const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+
+      let updatedCount = 0;
+
+      // For each item, compute quantity from its annotations
+      for (const item of items) {
+        const itemAnnotations = annotationsByItem.get(item.id) || [];
+        let computedQuantity = 0;
+
+        if (isAreaMeasurement(item.unit_of_measure)) {
+          // Sum areas from polygons and rectangles
+          for (const ann of itemAnnotations) {
+            if (ann.annotation_type === 'polygon' && ann.geometry?.points) {
+              const area = calculatePolygonArea(ann.geometry.points, pixelsPerFoot);
+              if (area !== null) computedQuantity += area;
+            } else if (ann.annotation_type === 'rectangle' && ann.geometry) {
+              const area = calculateRectangleArea(ann.geometry, pixelsPerFoot);
+              if (area !== null) computedQuantity += area;
+            }
+          }
+        } else if (isLinearMeasurement(item.unit_of_measure)) {
+          // Sum lengths from lines
+          for (const ann of itemAnnotations) {
+            if (ann.annotation_type === 'line' && ann.geometry) {
+              const length = calculateLineLength(ann.geometry, pixelsPerFoot);
+              if (length !== null) computedQuantity += length;
+            }
+          }
+        } else {
+          // Count-based: just count markers/annotations
+          computedQuantity = itemAnnotations.length;
+        }
+
+        // Round to 2 decimal places for area/linear
+        const finalQuantity = isAreaMeasurement(item.unit_of_measure) || isLinearMeasurement(item.unit_of_measure)
+          ? Math.round(computedQuantity * 100) / 100
+          : computedQuantity;
+
+        // Update the item quantity
+        const { error: updateError } = await supabase
+          .from('takeoff_items')
+          .update({ quantity: finalQuantity })
+          .eq('id', item.id);
+
+        if (updateError) {
+          console.error('Error updating item', item.id, updateError);
+        } else {
+          updatedCount++;
+        }
+      }
+
+      // Invalidate queries to refresh the table
+      queryClient.invalidateQueries({ queryKey: ['takeoff-items', sheetId] });
+
+      toast({
+        title: "Quantities recalculated",
+        description: `Updated ${updatedCount} item(s) from annotations`,
+      });
+    } catch (error) {
+      console.error('Recalculation error:', error);
+      toast({
+        title: "Recalculation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRecalculating(false);
+      setShowRecalculateDialog(false);
+    }
+  };
+
   const handleToolClick = (tool: DrawingTool) => {
     setActiveTool(tool);
     console.info(`Tool activated: ${tool}`);
@@ -1454,6 +1585,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onZoomReset={handleZoomReset}
+          onRecalculate={() => setShowRecalculateDialog(true)}
+          isRecalculating={isRecalculating}
         />
       </div>
 
@@ -1648,6 +1781,24 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         sheetId={sheetId}
         fabricCanvas={fabricCanvas}
       />
+
+      <AlertDialog open={showRecalculateDialog} onOpenChange={setShowRecalculateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recalculate quantities from annotations?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will overwrite all quantities for this sheet based on the current annotations.
+              Items with no annotations will be set to 0. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={recalculateSheetQuantities} disabled={isRecalculating}>
+              {isRecalculating ? 'Recalculating...' : 'Recalculate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
