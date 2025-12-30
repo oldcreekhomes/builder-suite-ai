@@ -73,8 +73,9 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
         .is('journal_entries.reversed_by_id', null);
       
       if (projectId) {
-        // For project-specific reports, include both project lines AND company-wide lines (null project_id)
-        journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
+        // For project-specific reports, only include lines explicitly assigned to this project
+        // This ensures balanced entries (both debit and credit sides must have the same project_id)
+        journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
       } else {
         // For company-wide reports, only show lines with no project
         journalLinesQuery = journalLinesQuery.is('project_id', null);
