@@ -5,7 +5,7 @@ import { getFileIcon, getFileIconColor } from '@/components/bidding/utils/fileIc
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 export interface JournalEntryAttachment {
   id?: string;
   file_name: string;
@@ -29,6 +29,12 @@ export function JournalEntryAttachmentUpload({
   disabled = false 
 }: JournalEntryAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const { openJournalEntryAttachment } = useUniversalFilePreviewContext();
+
+  const handleFilePreview = (attachment: JournalEntryAttachment) => {
+    if (!attachment.file_path || attachment.file_path.startsWith('temp_')) return;
+    openJournalEntryAttachment(attachment.file_path, attachment.file_name);
+  };
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
@@ -238,10 +244,10 @@ export function JournalEntryAttachmentUpload({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => handleDownloadAttachment(attachment)}
+                    onClick={() => handleFilePreview(attachment)}
                     className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
                     type="button"
-                    disabled={!attachment.id || !journalEntryId}
+                    disabled={!attachment.file_path || attachment.file_path.startsWith('temp_')}
                   >
                     <IconComponent className="h-5 w-5" />
                   </button>
