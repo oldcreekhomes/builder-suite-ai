@@ -21,7 +21,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
-import { DepositSourceSearchInput } from "@/components/DepositSourceSearchInput";
+import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { useDepositAttachments } from "@/hooks/useDepositAttachments";
@@ -753,14 +753,15 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
             <div className="col-span-5">
               <Label htmlFor="receivedFrom">Received From</Label>
-              <DepositSourceSearchInput
-                value={depositSourceName}
-                onChange={setDepositSourceName}
-                onSourceSelect={(sourceId, sourceName) => {
-                  setDepositSourceId(sourceId);
-                  setDepositSourceName(sourceName);
+              <VendorSearchInput
+                value={depositSourceId}
+                onChange={(companyId) => {
+                  setDepositSourceId(companyId);
                 }}
-                placeholder="Search or add customer"
+                onCompanySelect={(company) => {
+                  setDepositSourceName(company.company_name);
+                }}
+                placeholder="Search subcontractors or vendors"
               />
             </div>
 
