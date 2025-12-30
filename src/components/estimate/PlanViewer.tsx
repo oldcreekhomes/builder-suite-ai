@@ -853,23 +853,19 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const calculateAnnotationMeasurement = (annotation: any): number | null => {
     if (!annotation?.geometry || !sheet?.drawing_scale) return null;
     
-    // Calculate pixelsPerFoot in document coordinate space
-    // Base pixelsPerFoot is at 72 DPI, but geometry is stored in document coordinates
-    const refW = sheet?.ai_processing_width || imgNaturalSize?.width || displayedSize?.width || 1;
-    const canvasW = displayedSize?.width || 1;
-    const displayScaleRatio = refW / canvasW;
-    
-    const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-    const pixelsPerFootInDocSpace = basePixelsPerFoot * displayScaleRatio;
+    // For PDFs, geometry is stored in PDF points (72 points per inch)
+    // parseDrawingScale with 72 DPI gives us pixels-per-foot in PDF point space
+    // No additional scaling needed since geometry is already in PDF coordinates
+    const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
     
     const geometry = annotation.geometry;
     
     if (annotation.annotation_type === 'rectangle') {
-      return calculateRectangleArea(geometry, pixelsPerFootInDocSpace);
+      return calculateRectangleArea(geometry, pixelsPerFoot);
     } else if (annotation.annotation_type === 'polygon' && geometry.points) {
-      return calculatePolygonArea(geometry.points, pixelsPerFootInDocSpace);
+      return calculatePolygonArea(geometry.points, pixelsPerFoot);
     } else if (annotation.annotation_type === 'line') {
-      return calculateLineLength(geometry, pixelsPerFootInDocSpace);
+      return calculateLineLength(geometry, pixelsPerFoot);
     }
     
     return null;
@@ -1071,10 +1067,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           
           // Calculate quantity based on unit of measure
           if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            // Use pixelsPerFoot in document coordinate space (scaled by displayScaleRatio)
-            const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-            const pixelsPerFootInDocSpace = basePixelsPerFoot * scaleX;
-            const areaInSF = calculateRectangleArea(rectGeometry, pixelsPerFootInDocSpace);
+            // Geometry is stored in PDF points (72 DPI) - use parseDrawingScale directly
+            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+            const areaInSF = calculateRectangleArea(rectGeometry, pixelsPerFoot);
             incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
           } else {
             incrementQuantity(selectedTakeoffItem.id);
@@ -1166,10 +1161,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           
           // Calculate quantity based on unit of measure
           if (isLinearMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            // Use pixelsPerFoot in document coordinate space (scaled by displayScaleRatio)
-            const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-            const pixelsPerFootInDocSpace = basePixelsPerFoot * scaleX;
-            const lengthInLF = calculateLineLength(lineGeometry, pixelsPerFootInDocSpace);
+            // Geometry is stored in PDF points (72 DPI) - use parseDrawingScale directly
+            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+            const lengthInLF = calculateLineLength(lineGeometry, pixelsPerFoot);
             incrementQuantityBy(selectedTakeoffItem.id, lengthInLF);
           } else {
             incrementQuantity(selectedTakeoffItem.id);
@@ -1254,10 +1248,9 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           
           // Calculate quantity based on unit of measure
           if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            // Use pixelsPerFoot in document coordinate space (scaled by displayScaleRatio)
-            const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-            const pixelsPerFootInDocSpace = basePixelsPerFoot * scaleX;
-            const areaInSF = calculatePolygonArea(documentPoints, pixelsPerFootInDocSpace);
+            // Geometry is stored in PDF points (72 DPI) - use parseDrawingScale directly
+            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+            const areaInSF = calculatePolygonArea(documentPoints, pixelsPerFoot);
             incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
           } else {
             incrementQuantity(selectedTakeoffItem.id);
