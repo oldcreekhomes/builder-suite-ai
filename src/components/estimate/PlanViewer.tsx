@@ -721,20 +721,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           });
           
           if (annotationId) {
-            // Check if it's a manual annotation before deleting
             const annotation = annotations?.find(a => a.id === annotationId);
-            if (annotation && annotation.label?.includes('Manual')) {
+            if (annotation) {
               deleteAnnotation(annotationId);
               fabricCanvas.remove(activeObject);
               
-              // Decrement quantity
-              decrementQuantity(annotation.takeoff_item_id);
-            } else {
-              toast({
-                title: "Cannot delete AI annotation",
-                description: "Only manually added annotations can be deleted. Use Re-extract to refresh AI annotations.",
-                variant: "destructive",
-              });
+              // Decrement quantity for the associated takeoff item
+              if (annotation.takeoff_item_id) {
+                decrementQuantity(annotation.takeoff_item_id);
+              }
             }
           }
         }
