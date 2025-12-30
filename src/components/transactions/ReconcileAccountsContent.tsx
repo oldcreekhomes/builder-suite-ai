@@ -684,7 +684,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         if (deposit.reconciled !== shouldBeReconciled) {
           promises.push(
             markTransactionReconciled.mutateAsync({
-              type: 'deposit',
+              type: deposit.type,
               id: deposit.id,
               reconciled: shouldBeReconciled,
               reconciliationId: shouldBeReconciled ? reconciliationId! : undefined,
