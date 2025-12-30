@@ -71,21 +71,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
   
-  // Debug state for on-screen click debugger (initialize with defaults so panel is always visible)
-  const [debugInfo, setDebugInfo] = useState<{
-    domTarget: string;
-    fabricFired: boolean;
-    fabricTarget: string;
-    pointer: string;
-  }>({
-    domTarget: 'Waiting for click...',
-    fabricFired: false,
-    fabricTarget: 'n/a',
-    pointer: 'n/a',
-  });
-  
-  // DOM click counter to prove events are reaching the container
-  const [domClickCount, setDomClickCount] = useState(0);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -280,13 +265,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         activeTool: activeToolRef.current,
       });
       
-      // Update on-screen debug info
-      setDebugInfo(prev => ({
-        ...prev!,
-        fabricFired: true,
-        fabricTarget: target ? `${target.type}` : 'none',
-        pointer: p ? `(${p.x?.toFixed?.(0)}, ${p.y?.toFixed?.(0)})` : 'none',
-      }));
       
       // CLICK-TO-SELECT: If user clicks on an object, auto-select it regardless of tool
       if (target && target.selectable !== false && target.evented !== false) {
@@ -359,16 +337,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         path: path.join(' > ')
       });
       
-      // Increment click counter
-      setDomClickCount(prev => prev + 1);
-      
-      // Update on-screen debug info
-      setDebugInfo({
-        domTarget,
-        fabricFired: false,
-        fabricTarget: 'pending...',
-        pointer: `client(${e.clientX}, ${e.clientY})`,
-      });
     };
     
     container.addEventListener('mousedown', handleDOMClick, true); // capture phase
@@ -1536,17 +1504,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         </div>
       )}
 
-      {/* On-screen click debugger */}
-      {debugInfo && (
-        <div className="absolute top-20 right-4 bg-background/95 border rounded-lg p-3 shadow-lg z-50 text-xs font-mono max-w-xs">
-          <h4 className="font-semibold mb-2 text-foreground">Click Debug</h4>
-          <div className="space-y-1 text-muted-foreground">
-            <p><span className="text-foreground">DOM:</span> {debugInfo.domTarget}</p>
-            <p><span className="text-foreground">Fabric:</span> {debugInfo.fabricFired ? '✅' : '❌'} {debugInfo.fabricTarget}</p>
-            <p><span className="text-foreground">Pointer:</span> {debugInfo.pointer}</p>
-          </div>
-        </div>
-      )}
 
       <div 
         ref={containerRef}
@@ -1702,24 +1659,6 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         </div>
       </div>
       
-      {/* DEBUG PANEL: Always visible, fixed position to avoid clipping */}
-      <div 
-        className="fixed top-20 left-4 p-3 rounded-lg bg-black/90 text-white text-xs font-mono shadow-lg border border-white/20"
-        style={{ zIndex: 9999, pointerEvents: 'none' }}
-      >
-        <div className="font-bold text-yellow-400 mb-2">Click Debug (DOM clicks: {domClickCount})</div>
-        <div className="space-y-1">
-          <div><span className="text-gray-400">DOM target:</span> {debugInfo.domTarget}</div>
-          <div>
-            <span className="text-gray-400">Fabric fired:</span>{' '}
-            <span className={debugInfo.fabricFired ? 'text-green-400' : 'text-red-400'}>
-              {debugInfo.fabricFired ? 'YES' : 'NO'}
-            </span>
-          </div>
-          <div><span className="text-gray-400">Fabric target:</span> {debugInfo.fabricTarget}</div>
-          <div><span className="text-gray-400">Pointer:</span> {debugInfo.pointer}</div>
-        </div>
-      </div>
 
       <ScaleCalibrationDialog
         open={showScaleDialog}
