@@ -73,8 +73,7 @@ const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressCo
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_category: z.enum(["Subcontractor", "Vendor"]),
-  company_type: z.enum(["Vendor", "Consultant", "Lender", "Municipality", "Utility"]).optional().nullable(),
+  company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -100,7 +99,6 @@ interface AddCompanyDialogProps {
     website?: string;
   };
   onCompanyCreated?: (companyId: string, companyName: string) => void;
-  defaultType?: 'Subcontractor' | 'Vendor';
 }
 
 export function AddCompanyDialog({ 
@@ -109,7 +107,6 @@ export function AddCompanyDialog({
   initialCompanyName,
   initialData,
   onCompanyCreated,
-  defaultType = 'Subcontractor'
 }: AddCompanyDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -143,8 +140,7 @@ export function AddCompanyDialog({
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: initialCompanyName || "",
-      company_category: defaultType,
-      company_type: defaultType === 'Vendor' ? 'Vendor' : undefined,
+      company_type: "Subcontractor",
       address_line_1: initialData?.address_line_1 || "",
       address_line_2: initialData?.address_line_2 || "",
       city: initialData?.city || "",
@@ -240,8 +236,7 @@ export function AddCompanyDialog({
 
       const insertData = {
         company_name: data.company_name,
-        company_category: data.company_category,
-        company_type: data.company_category === 'Vendor' ? (data.company_type || 'Vendor') : null,
+        company_type: data.company_type,
         address_line_1: data.address_line_1 || null,
         address_line_2: data.address_line_2 || null,
         city: data.city || null,
@@ -388,7 +383,7 @@ export function AddCompanyDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Add New {defaultType}</DialogTitle>
+          <DialogTitle>Add New Company</DialogTitle>
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
@@ -432,63 +427,29 @@ export function AddCompanyDialog({
 
                     <FormField
                       control={form.control}
-                      name="company_category"
+                      name="company_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // Reset company_type when category changes
-                              if (value === 'Subcontractor') {
-                                form.setValue('company_type', undefined);
-                              } else {
-                                form.setValue('company_type', 'Vendor');
-                              }
-                            }} 
-                            defaultValue={field.value}
-                          >
+                          <FormLabel>Company Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
+                                <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="Subcontractor">Subcontractor</SelectItem>
                               <SelectItem value="Vendor">Vendor</SelectItem>
+                              <SelectItem value="Consultant">Consultant</SelectItem>
+                              <SelectItem value="Lender">Lender</SelectItem>
+                              <SelectItem value="Municipality">Municipality</SelectItem>
+                              <SelectItem value="Utility">Utility</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
-                    {form.watch('company_category') === 'Vendor' && (
-                      <FormField
-                        control={form.control}
-                        name="company_type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Vendor Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || 'Vendor'}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select vendor type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Vendor">Vendor</SelectItem>
-                                <SelectItem value="Consultant">Consultant</SelectItem>
-                                <SelectItem value="Lender">Lender</SelectItem>
-                                <SelectItem value="Municipality">Municipality</SelectItem>
-                                <SelectItem value="Utility">Utility</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
                   </div>
 
                   <div className="space-y-4">
@@ -529,7 +490,7 @@ export function AddCompanyDialog({
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter phone number" {...field} />
+                            <Input placeholder="(555) 123-4567" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -543,7 +504,7 @@ export function AddCompanyDialog({
                         <FormItem>
                           <FormLabel>Website</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter website URL" {...field} />
+                            <Input placeholder="www.example.com" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -551,42 +512,52 @@ export function AddCompanyDialog({
                     />
                   </div>
 
-                  <CostCodeSelector
-                    companyId={null}
-                    selectedCostCodes={selectedCostCodes}
-                    onCostCodesChange={handleCostCodesChange}
-                    error={costCodeError}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="representatives" className="mt-6">
-                  <div className="border rounded-lg p-6 bg-muted/30">
-                    <div className="flex flex-col items-center justify-center text-center space-y-3">
-                      <Users className="h-10 w-10 text-muted-foreground" />
-                      <div>
-                        <h3 className="font-medium text-foreground">Company Representatives</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Representatives can be added after the company is created.
-                        </p>
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <FormLabel className={costCodeError ? "text-destructive" : ""}>
+                      Associated Cost Codes
+                    </FormLabel>
+                    <CostCodeSelector 
+                      selectedCostCodes={selectedCostCodes}
+                      onCostCodesChange={handleCostCodesChange}
+                    />
+                    {costCodeError && (
+                      <p className="text-sm font-medium text-destructive">{costCodeError}</p>
+                    )}
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="insurance" className="mt-6">
-                  <InsuranceContent
+                <TabsContent value="representatives" className="space-y-6 mt-6">
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Add Representatives After Creating Company</h3>
+                    <p className="text-muted-foreground max-w-md">
+                      You can add company representatives after the company has been created. 
+                      Click on the representatives icon in the companies table to manage them.
+                    </p>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="insurance" className="space-y-6 mt-6">
+                  <InsuranceContent 
                     companyId={null}
-                    homeBuilder={currentUser?.homeBuilder || ''}
+                    insuranceRequired={true}
                     onExtractedDataChange={handleExtractedDataChange}
                   />
                 </TabsContent>
               </Tabs>
 
-              <div className="flex justify-end space-x-4 pt-2">
-                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              <div className="flex justify-end space-x-4 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleOpenChange(false)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createCompanyMutation.isPending}>
+                <Button 
+                  type="submit"
+                  disabled={createCompanyMutation.isPending}
+                >
                   {createCompanyMutation.isPending ? "Creating..." : "Create Company"}
                 </Button>
               </div>

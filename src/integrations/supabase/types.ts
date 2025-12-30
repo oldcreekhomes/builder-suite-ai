@@ -824,9 +824,8 @@ export type Database = {
           address_line_1: string | null
           address_line_2: string | null
           city: string | null
-          company_category: string
           company_name: string
-          company_type: string | null
+          company_type: string
           created_at: string
           home_builder_id: string
           id: string
@@ -843,9 +842,8 @@ export type Database = {
           address_line_1?: string | null
           address_line_2?: string | null
           city?: string | null
-          company_category: string
           company_name: string
-          company_type?: string | null
+          company_type: string
           created_at?: string
           home_builder_id: string
           id?: string
@@ -862,9 +860,8 @@ export type Database = {
           address_line_1?: string | null
           address_line_2?: string | null
           city?: string | null
-          company_category?: string
           company_name?: string
-          company_type?: string | null
+          company_type?: string
           created_at?: string
           home_builder_id?: string
           id?: string

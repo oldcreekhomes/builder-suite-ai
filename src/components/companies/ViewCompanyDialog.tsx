@@ -28,8 +28,7 @@ import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
 interface Company {
   id: string;
   company_name: string;
-  company_category?: string;
-  company_type?: string | null;
+  company_type: string;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -144,6 +143,8 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
         return 'bg-orange-100 text-orange-800';
       case 'Lender':
         return 'bg-yellow-100 text-yellow-800';
+      case 'Utility':
+        return 'bg-teal-100 text-teal-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
