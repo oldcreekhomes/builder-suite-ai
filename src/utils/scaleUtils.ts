@@ -2,6 +2,82 @@
  * Scale utilities for converting between drawing coordinates and real-world measurements
  */
 
+export interface ScaleResult {
+  pixelsPerFoot: number | null;
+  needsCalibration: boolean;
+  reason?: string;
+}
+
+/**
+ * Determines the correct pixelsPerFoot for a sheet based on its type and calibration status.
+ * 
+ * Priority:
+ * 1. If scale_ratio is set (from calibration), use it directly
+ * 2. If it's a PDF and drawing_scale exists, compute from drawing_scale with 72 DPI
+ * 3. If it's an image (PNG/JPG) without scale_ratio, return null (needs calibration)
+ * 
+ * @param sheet - The takeoff sheet object
+ * @returns ScaleResult with pixelsPerFoot or null with reason
+ */
+export function getPixelsPerFootForSheet(sheet: {
+  file_name?: string | null;
+  drawing_scale?: string | null;
+  scale_ratio?: number | null;
+  ai_processing_width?: number | null;
+  ai_processing_height?: number | null;
+}): ScaleResult {
+  // 1. If scale_ratio is set (calibrated), use it directly
+  if (sheet.scale_ratio && sheet.scale_ratio > 0) {
+    console.debug('[Scale] Using calibrated scale_ratio:', sheet.scale_ratio);
+    return { 
+      pixelsPerFoot: sheet.scale_ratio, 
+      needsCalibration: false 
+    };
+  }
+
+  // Check if we have a drawing scale at all
+  if (!sheet.drawing_scale) {
+    return { 
+      pixelsPerFoot: null, 
+      needsCalibration: true,
+      reason: 'No drawing scale specified. Please set the scale or calibrate.'
+    };
+  }
+
+  // Determine if this is a PDF or an image
+  const fileName = sheet.file_name?.toLowerCase() || '';
+  const isPDF = fileName.endsWith('.pdf');
+  const isImage = fileName.endsWith('.png') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg');
+
+  // 2. For PDFs, we can use 72 DPI assumption (PDF points)
+  if (isPDF) {
+    const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+    console.debug('[Scale] PDF mode - using 72 DPI. pixelsPerFoot:', pixelsPerFoot);
+    return { 
+      pixelsPerFoot, 
+      needsCalibration: false 
+    };
+  }
+
+  // 3. For images without calibration, we cannot reliably compute measurements
+  if (isImage) {
+    console.debug('[Scale] Image mode - needs calibration. drawing_scale exists but DPI unknown.');
+    return { 
+      pixelsPerFoot: null, 
+      needsCalibration: true,
+      reason: `This sheet is a raster image. The scale "${sheet.drawing_scale}" requires calibration to measure accurately.`
+    };
+  }
+
+  // Fallback: treat unknown file types as PDF-like (legacy behavior)
+  const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+  console.debug('[Scale] Unknown file type, using 72 DPI fallback. pixelsPerFoot:', pixelsPerFoot);
+  return { 
+    pixelsPerFoot, 
+    needsCalibration: false 
+  };
+}
+
 /**
  * Parses a drawing scale string and returns pixels per foot.
  * 

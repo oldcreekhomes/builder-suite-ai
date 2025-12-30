@@ -11,7 +11,7 @@ import { Document, Page } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { 
-  parseDrawingScale, 
+  getPixelsPerFootForSheet,
   calculateRectangleArea, 
   calculatePolygonArea, 
   calculateLineLength,
@@ -863,13 +863,16 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   // Calculate the measurement value for an annotation based on its geometry and the sheet scale
   const calculateAnnotationMeasurement = (annotation: any): number | null => {
-    if (!annotation?.geometry || !sheet?.drawing_scale) return null;
+    if (!annotation?.geometry || !sheet) return null;
     
-    // For PDFs, geometry is stored in PDF points (72 points per inch)
-    // parseDrawingScale with 72 DPI gives us pixels-per-foot in PDF point space
-    // No additional scaling needed since geometry is already in PDF coordinates
-    const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+    // Use the unified scale helper
+    const scaleResult = getPixelsPerFootForSheet(sheet);
+    if (!scaleResult.pixelsPerFoot) {
+      console.warn('[Measurement] Cannot calculate - needs calibration:', scaleResult.reason);
+      return null;
+    }
     
+    const pixelsPerFoot = scaleResult.pixelsPerFoot;
     const geometry = annotation.geometry;
     
     if (annotation.annotation_type === 'rectangle') {
@@ -885,10 +888,21 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
 
   // Recalculate all quantities from annotations (fixes stale/poisoned quantities)
   const recalculateSheetQuantities = async () => {
-    if (!sheetId || !sheet?.drawing_scale) {
+    if (!sheetId || !sheet) {
       toast({
         title: "Cannot recalculate",
-        description: "Sheet or scale not available",
+        description: "Sheet not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if we can compute measurements
+    const scaleResult = getPixelsPerFootForSheet(sheet);
+    if (!scaleResult.pixelsPerFoot) {
+      toast({
+        title: "Cannot recalculate",
+        description: scaleResult.reason || "Scale calibration required for this sheet",
         variant: "destructive",
       });
       return;
@@ -930,8 +944,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         annotationsByItem.get(ann.takeoff_item_id)!.push(ann);
       });
 
-      // Calculate pixelsPerFoot once (same logic as calculateAnnotationMeasurement)
-      const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
+      // Use the unified pixelsPerFoot
+      const pixelsPerFoot = scaleResult.pixelsPerFoot;
 
       let updatedCount = 0;
 
@@ -1197,11 +1211,18 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           fabricCanvas.remove(rect);
           
           // Calculate quantity based on unit of measure
-          if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            // Geometry is stored in PDF points (72 DPI) - use parseDrawingScale directly
-            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
-            const areaInSF = calculateRectangleArea(rectGeometry, pixelsPerFoot);
-            incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
+          if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet) {
+            const scaleResult = getPixelsPerFootForSheet(sheet);
+            if (scaleResult.pixelsPerFoot) {
+              const areaInSF = calculateRectangleArea(rectGeometry, scaleResult.pixelsPerFoot);
+              incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
+            } else {
+              toast({
+                title: "Calibration required",
+                description: scaleResult.reason || "Cannot calculate area without calibration",
+                variant: "destructive",
+              });
+            }
           } else {
             incrementQuantity(selectedTakeoffItem.id);
           }
@@ -1291,11 +1312,18 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           fabricCanvas.remove(line);
           
           // Calculate quantity based on unit of measure
-          if (isLinearMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            // Geometry is stored in PDF points (72 DPI) - use parseDrawingScale directly
-            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
-            const lengthInLF = calculateLineLength(lineGeometry, pixelsPerFoot);
-            incrementQuantityBy(selectedTakeoffItem.id, lengthInLF);
+          if (isLinearMeasurement(selectedTakeoffItem.unit_of_measure) && sheet) {
+            const scaleResult = getPixelsPerFootForSheet(sheet);
+            if (scaleResult.pixelsPerFoot) {
+              const lengthInLF = calculateLineLength(lineGeometry, scaleResult.pixelsPerFoot);
+              incrementQuantityBy(selectedTakeoffItem.id, lengthInLF);
+            } else {
+              toast({
+                title: "Calibration required",
+                description: scaleResult.reason || "Cannot calculate length without calibration",
+                variant: "destructive",
+              });
+            }
           } else {
             incrementQuantity(selectedTakeoffItem.id);
           }
@@ -1378,11 +1406,18 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           fabricCanvas.remove(polygon);
           
           // Calculate quantity based on unit of measure
-          if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            // Geometry is stored in PDF points (72 DPI) - use parseDrawingScale directly
-            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale, 72);
-            const areaInSF = calculatePolygonArea(documentPoints, pixelsPerFoot);
-            incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
+          if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet) {
+            const scaleResult = getPixelsPerFootForSheet(sheet);
+            if (scaleResult.pixelsPerFoot) {
+              const areaInSF = calculatePolygonArea(documentPoints, scaleResult.pixelsPerFoot);
+              incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
+            } else {
+              toast({
+                title: "Calibration required",
+                description: scaleResult.reason || "Cannot calculate area without calibration",
+                variant: "destructive",
+              });
+            }
           } else {
             incrementQuantity(selectedTakeoffItem.id);
           }
@@ -1590,6 +1625,21 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         />
       </div>
 
+      {/* Calibration Warning Banner for Image Sheets */}
+      {sheet && !sheet.file_name?.toLowerCase().endsWith('.pdf') && !sheet.scale_ratio && sheet.drawing_scale && (
+        <div className="bg-amber-100 dark:bg-amber-900/30 border-b border-amber-300 dark:border-amber-700 px-4 py-2 flex items-center justify-between">
+          <span className="text-sm text-amber-800 dark:text-amber-200">
+            ⚠️ This is an image sheet. Scale "{sheet.drawing_scale}" requires calibration for accurate measurements.
+          </span>
+          <button 
+            onClick={() => setShowScaleDialog(true)}
+            className="text-sm font-medium text-amber-700 dark:text-amber-300 hover:underline"
+          >
+            Calibrate Now
+          </button>
+        </div>
+      )}
+
       {/* Drawing Instructions Panel */}
       {activeTool !== 'select' && selectedTakeoffItem && (
         <div className="absolute top-20 left-4 bg-background border rounded-lg p-3 shadow-lg z-50 max-w-xs">
@@ -1780,6 +1830,8 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         onOpenChange={setShowScaleDialog}
         sheetId={sheetId}
         fabricCanvas={fabricCanvas}
+        displayedSize={displayedSize}
+        docSize={{ width: sheet?.ai_processing_width || imgNaturalSize?.width || 0, height: sheet?.ai_processing_height || imgNaturalSize?.height || 0 }}
       />
 
       <AlertDialog open={showRecalculateDialog} onOpenChange={setShowRecalculateDialog}>
