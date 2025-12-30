@@ -381,7 +381,7 @@ serve(async (req) => {
             strokeWidth: 3
           },
           color: item.color,
-          label: `${item.category} (${Math.round(detection.confidence * 100)}%)`,
+          label: item.category,
           visible: true
         });
       }

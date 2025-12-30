@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatUnitOfMeasure } from "@/utils/budgetUtils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Sparkles, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Sparkles, Loader2, Eye, EyeOff, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { AIExtractReviewDialog } from "./AIExtractReviewDialog";
@@ -41,10 +41,24 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   
   const queryClient = useQueryClient();
   const { selectedItems, handleItemCheckboxChange, clearSelection, selectAll } = useTakeoffItemSelection();
   const { handleDeleteItems, isDeleting, handleUpdateQuantity } = useTakeoffItemMutations(sheetId || '');
+
+  // Toggle group expand/collapse
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  };
 
   // Color update mutation
   const updateColorMutation = useMutation({
@@ -191,10 +205,10 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
       const ownerId = userProfile?.role === 'owner' ? userId : userProfile?.home_builder_id;
       if (!ownerId) return [];
       
-      // Fetch existing takeoff items
+      // Fetch existing takeoff items with cost code info for grouping
       const { data: existingItems, error: itemsError } = await supabase
         .from('takeoff_items')
-        .select('*, cost_code_id, color')
+        .select('*, cost_code_id, color, cost_codes(code, name, parent_group)')
         .eq('takeoff_sheet_id', sheetId)
         .order('created_at', { ascending: true })
         .order('id', { ascending: true });
@@ -204,7 +218,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
       // Fetch estimate-enabled cost codes (leaf items only - no parent categories)
       const { data: estimateCostCodes, error: costCodesError } = await supabase
         .from('cost_codes')
-        .select('id, code, name, unit_of_measure, price, category')
+        .select('id, code, name, unit_of_measure, price, category, parent_group')
         .eq('owner_id', ownerId)
         .eq('estimate', true)
         .eq('has_subcategories', false)
@@ -236,7 +250,7 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         const { data: insertedItems, error: insertError } = await supabase
           .from('takeoff_items')
           .insert(newItems)
-          .select('*, cost_code_id, color');
+          .select('*, cost_code_id, color, cost_codes(code, name, parent_group)');
 
         if (insertError) {
           console.error('Error auto-creating takeoff items:', insertError);
@@ -250,6 +264,75 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     },
     enabled: !!sheetId,
   });
+
+  // Fetch parent cost codes for group names
+  const { data: parentCostCodes } = useQuery({
+    queryKey: ['parent-cost-codes'],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) return [];
+      
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('home_builder_id, role')
+        .eq('id', userId)
+        .single();
+      
+      const ownerId = userProfile?.role === 'owner' ? userId : userProfile?.home_builder_id;
+      if (!ownerId) return [];
+      
+      const { data } = await supabase
+        .from('cost_codes')
+        .select('code, name')
+        .eq('owner_id', ownerId)
+        .eq('has_subcategories', true)
+        .order('code');
+      
+      return data || [];
+    },
+  });
+
+  // Group items by parent_group
+  const groupedItems = useMemo(() => {
+    if (!items || items.length === 0) return {};
+    
+    const groups: Record<string, any[]> = {};
+    
+    items.forEach((item: any) => {
+      const parentGroup = item.cost_codes?.parent_group || 'Ungrouped';
+      if (!groups[parentGroup]) {
+        groups[parentGroup] = [];
+      }
+      groups[parentGroup].push(item);
+    });
+    
+    // Sort groups by parent code
+    const sortedGroups: Record<string, any[]> = {};
+    Object.keys(groups)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .forEach(key => {
+        sortedGroups[key] = groups[key];
+      });
+    
+    return sortedGroups;
+  }, [items]);
+
+  // Get parent name for a group code
+  const getParentName = (parentCode: string) => {
+    if (parentCode === 'Ungrouped') return 'Other Items';
+    const parent = parentCostCodes?.find((cc: any) => cc.code === parentCode);
+    return parent ? `${parentCode} - ${parent.name}` : parentCode;
+  };
+
+  // Calculate group totals
+  const getGroupTotal = (groupItems: any[]) => {
+    return groupItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  };
+
+  const getGroupDollarTotal = (groupItems: any[]) => {
+    return groupItems.reduce((sum, item) => sum + (item.total_cost || 0), 0);
+  };
 
   // Calculate select all checkbox state
   const allSelected = items && items.length > 0 && items.every((item: any) => selectedItems.has(item.id));
@@ -362,93 +445,134 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((item: any) => {
-                const isSelected = selectedReviewItem?.id === item.id;
+              Object.entries(groupedItems).map(([parentCode, groupItems]) => {
+                const isExpanded = expandedGroups.has(parentCode);
+                const groupTotal = getGroupTotal(groupItems);
+                const groupDollarTotal = getGroupDollarTotal(groupItems);
+                const firstItem = groupItems[0];
+                const groupUnit = firstItem?.unit_of_measure || 'EA';
                 
                 return (
-                  <TableRow 
-                    key={item.id} 
-                    className={cn(
-                      isSelected && 'bg-primary/10 ring-2 ring-primary'
-                    )}
-                    onClick={() => onSelectReviewItem({
-                      id: item.id,
-                      color: item.color || '#3b82f6',
-                      category: item.category
-                    })}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedItems.has(item.id)}
-                        onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
-                      />
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      {isSelected && (
-                        <div className="flex items-center justify-center">
-                          <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
-                            DRAW
-                          </div>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-2">
-                        <label 
-                          htmlFor={`color-${item.id}`}
-                          className="cursor-pointer"
-                        >
-                          <div 
-                            className="w-6 h-6 rounded border-2 border-border"
-                            style={{ backgroundColor: item.color || '#3b82f6' }}
-                          />
-                        </label>
-                        <Input
-                          type="color"
-                          value={item.color || '#3b82f6'}
-                          onChange={(e) => handleColorChange(item.id, e.target.value)}
-                          className="w-0 h-0 opacity-0 absolute"
-                          id={`color-${item.id}`}
-                        />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleVisibility(item.id);
-                          }}
-                          className="cursor-pointer hover:opacity-80"
-                          aria-label={`Toggle visibility for ${item.category}`}
-                        >
-                          {visibleAnnotations.has(item.id) ? (
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          ) : (
-                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  <> 
+                    {/* Group Header Row */}
+                    <TableRow 
+                      key={`group-${parentCode}`}
+                      className="bg-muted/50 hover:bg-muted/70 cursor-pointer"
+                      onClick={() => toggleGroup(parentCode)}
+                    >
+                      <TableCell className="w-12">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="font-semibold" colSpan={1}>
+                        {getParentName(parentCode)}
+                      </TableCell>
+                      <TableCell className="font-semibold">{groupTotal}</TableCell>
+                      <TableCell className="font-semibold">{formatUnitOfMeasure(groupUnit)}</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="font-semibold">
+                        {groupDollarTotal > 0 ? `$${groupDollarTotal.toFixed(2)}` : '-'}
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Child Rows */}
+                    {isExpanded && groupItems.map((item: any) => {
+                      const isSelected = selectedReviewItem?.id === item.id;
+                      
+                      return (
+                        <TableRow 
+                          key={item.id} 
+                          className={cn(
+                            "pl-8",
+                            isSelected && 'bg-primary/10 ring-2 ring-primary'
                           )}
-                        </button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{item.category}</TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <InlineEditCell
-                        value={item.quantity}
-                        type="number"
-                        onSave={(newValue) => {
-                          const qty = Number(newValue);
-                          if (qty >= 0 && !isNaN(qty)) {
-                            handleUpdateQuantity(item.id, qty);
-                          }
-                        }}
-                        className="text-left"
-                      />
-                    </TableCell>
-                    <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
-                    <TableCell>
-                      {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell>
-                      {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
-                    </TableCell>
-                  </TableRow>
+                          onClick={() => onSelectReviewItem({
+                            id: item.id,
+                            color: item.color || '#3b82f6',
+                            category: item.category
+                          })}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedItems.has(item.id)}
+                              onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
+                              className="ml-4"
+                            />
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            {isSelected && (
+                              <div className="flex items-center justify-center">
+                                <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                                  DRAW
+                                </div>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <label 
+                                htmlFor={`color-${item.id}`}
+                                className="cursor-pointer"
+                              >
+                                <div 
+                                  className="w-6 h-6 rounded border-2 border-border"
+                                  style={{ backgroundColor: item.color || '#3b82f6' }}
+                                />
+                              </label>
+                              <Input
+                                type="color"
+                                value={item.color || '#3b82f6'}
+                                onChange={(e) => handleColorChange(item.id, e.target.value)}
+                                className="w-0 h-0 opacity-0 absolute"
+                                id={`color-${item.id}`}
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleVisibility(item.id);
+                                }}
+                                className="cursor-pointer hover:opacity-80"
+                                aria-label={`Toggle visibility for ${item.category}`}
+                              >
+                                {visibleAnnotations.has(item.id) ? (
+                                  <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                )}
+                              </button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium pl-4">{item.category}</TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <InlineEditCell
+                              value={item.quantity}
+                              type="number"
+                              onSave={(newValue) => {
+                                const qty = Number(newValue);
+                                if (qty >= 0 && !isNaN(qty)) {
+                                  handleUpdateQuantity(item.id, qty);
+                                }
+                              }}
+                              className="text-left"
+                            />
+                          </TableCell>
+                          <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
+                          <TableCell>
+                            {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </>
                 );
               })
             )}
