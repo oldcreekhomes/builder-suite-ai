@@ -62,11 +62,12 @@ export const useBankReconciliation = () => {
           return { checks: [], deposits: [] };
         }
 
-        // Fetch all valid reconciliation IDs for this bank account to detect orphans
+        // Fetch all valid reconciliation IDs globally to detect orphans
+        // We need ALL reconciliation IDs, not just for this bank account, because
+        // transactions (especially bills) may have been reconciled in a different bank account
         const { data: validReconciliations } = await supabase
           .from('bank_reconciliations')
-          .select('id')
-          .eq('bank_account_id', bankAccountId);
+          .select('id');
         
         const validReconciliationIds = new Set((validReconciliations || []).map(r => r.id));
 
