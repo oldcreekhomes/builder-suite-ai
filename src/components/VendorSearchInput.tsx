@@ -26,7 +26,8 @@ export function VendorSearchInput({
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const { companies, loading } = useCompanySearch();
+  // Explicitly search for Subcontractors and Vendors only
+  const { companies, loading } = useCompanySearch(['Subcontractor', 'Vendor']);
   const skipNextValueUpdate = useRef(false);
 
   useEffect(() => {
