@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
+import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 export interface DepositAttachment {
   id?: string;
   file_name: string;
@@ -27,7 +28,12 @@ export function DepositAttachmentUpload({
   disabled = false 
 }: DepositAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const { openDepositAttachment } = useUniversalFilePreviewContext();
 
+  const handleFilePreview = (attachment: DepositAttachment) => {
+    if (!attachment.file_path || attachment.file_path.startsWith('temp_')) return;
+    openDepositAttachment(attachment.file_path, attachment.file_name);
+  };
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     
@@ -231,17 +237,24 @@ export function DepositAttachmentUpload({
       {attachments.map((attachment, index) => {
         const IconComponent = getFileIcon(attachment.file_name);
         const iconColorClass = getFileIconColor(attachment.file_name);
+        const isTemp = attachment.file_path.startsWith('temp_');
         return (
           <div key={index} className="relative group">
-            <button
-              onClick={() => handleDownloadAttachment(attachment)}
-              className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-              title={getCleanFileName(attachment.file_name)}
-              type="button"
-              disabled={!attachment.id || !depositId}
-            >
-              <IconComponent className="h-5 w-5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => handleFilePreview(attachment)}
+                  className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                  type="button"
+                  disabled={isTemp}
+                >
+                  <IconComponent className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getCleanFileName(attachment.file_name)}</p>
+              </TooltipContent>
+            </Tooltip>
             <button
               onClick={() => handleRemoveAttachment(index)}
               className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center transition-colors"
