@@ -853,15 +853,23 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
   const calculateAnnotationMeasurement = (annotation: any): number | null => {
     if (!annotation?.geometry || !sheet?.drawing_scale) return null;
     
-    const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+    // Calculate pixelsPerFoot in document coordinate space
+    // Base pixelsPerFoot is at 72 DPI, but geometry is stored in document coordinates
+    const refW = sheet?.ai_processing_width || imgNaturalSize?.width || displayedSize?.width || 1;
+    const canvasW = displayedSize?.width || 1;
+    const displayScaleRatio = refW / canvasW;
+    
+    const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+    const pixelsPerFootInDocSpace = basePixelsPerFoot * displayScaleRatio;
+    
     const geometry = annotation.geometry;
     
     if (annotation.annotation_type === 'rectangle') {
-      return calculateRectangleArea(geometry, pixelsPerFoot);
+      return calculateRectangleArea(geometry, pixelsPerFootInDocSpace);
     } else if (annotation.annotation_type === 'polygon' && geometry.points) {
-      return calculatePolygonArea(geometry.points, pixelsPerFoot);
+      return calculatePolygonArea(geometry.points, pixelsPerFootInDocSpace);
     } else if (annotation.annotation_type === 'line') {
-      return calculateLineLength(geometry, pixelsPerFoot);
+      return calculateLineLength(geometry, pixelsPerFootInDocSpace);
     }
     
     return null;
@@ -1063,8 +1071,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           
           // Calculate quantity based on unit of measure
           if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-            const areaInSF = calculateRectangleArea(rectGeometry, pixelsPerFoot);
+            // Use pixelsPerFoot in document coordinate space (scaled by displayScaleRatio)
+            const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+            const pixelsPerFootInDocSpace = basePixelsPerFoot * scaleX;
+            const areaInSF = calculateRectangleArea(rectGeometry, pixelsPerFootInDocSpace);
             incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
           } else {
             incrementQuantity(selectedTakeoffItem.id);
@@ -1156,8 +1166,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           
           // Calculate quantity based on unit of measure
           if (isLinearMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-            const lengthInLF = calculateLineLength(lineGeometry, pixelsPerFoot);
+            // Use pixelsPerFoot in document coordinate space (scaled by displayScaleRatio)
+            const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+            const pixelsPerFootInDocSpace = basePixelsPerFoot * scaleX;
+            const lengthInLF = calculateLineLength(lineGeometry, pixelsPerFootInDocSpace);
             incrementQuantityBy(selectedTakeoffItem.id, lengthInLF);
           } else {
             incrementQuantity(selectedTakeoffItem.id);
@@ -1242,8 +1254,10 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
           
           // Calculate quantity based on unit of measure
           if (isAreaMeasurement(selectedTakeoffItem.unit_of_measure) && sheet?.drawing_scale) {
-            const pixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
-            const areaInSF = calculatePolygonArea(documentPoints, pixelsPerFoot);
+            // Use pixelsPerFoot in document coordinate space (scaled by displayScaleRatio)
+            const basePixelsPerFoot = parseDrawingScale(sheet.drawing_scale);
+            const pixelsPerFootInDocSpace = basePixelsPerFoot * scaleX;
+            const areaInSF = calculatePolygonArea(documentPoints, pixelsPerFootInDocSpace);
             incrementQuantityBy(selectedTakeoffItem.id, areaInSF);
           } else {
             incrementQuantity(selectedTakeoffItem.id);
