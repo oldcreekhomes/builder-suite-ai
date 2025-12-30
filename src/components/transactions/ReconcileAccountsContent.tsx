@@ -380,11 +380,12 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   }, [selectedBankAccountId]);
 
   // Sync hideTransactionsAfterDate with statementDate
+  // Only sync hideTransactionsAfterDate to statementDate on initial load, not on every change
   useEffect(() => {
-    if (statementDate) {
+    if (statementDate && !hideTransactionsAfterDate) {
       setHideTransactionsAfterDate(statementDate);
     }
-  }, [statementDate]);
+  }, [statementDate, hideTransactionsAfterDate]);
 
   // Keep refs in sync with state (for auto-save to always have current values)
   // NOTE: endingBalanceRef is synced immediately in onChange handler, not here
@@ -982,7 +983,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  disabled={!selectedBankAccountId || isReconciliationMode}
+                  disabled={!selectedBankAccountId}
                   className={cn(
                     "w-full justify-start text-left font-normal mt-1",
                     !statementDate && "text-muted-foreground"
