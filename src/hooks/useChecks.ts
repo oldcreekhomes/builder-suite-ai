@@ -410,17 +410,25 @@ export const useChecks = () => {
           const journalLines = [];
           let lineNumber = 1;
 
-          // Create bank credit line
-          const totalAmount = checkLines.reduce((sum, line) => sum + line.amount, 0);
-          journalLines.push({
-            journal_entry_id: journalEntry.id,
-            owner_id,
-            line_number: lineNumber++,
-            account_id: checkData.bank_account_id,
-            credit: totalAmount,
-            debit: 0,
-            memo: `Check to ${updates.pay_to || 'vendor'}`
+          // Create bank credit line - group by project to maintain balanced entries
+          const projectGroups = new Map<string | undefined, number>();
+          checkLines.forEach(line => {
+            const projKey = line.project_id || undefined;
+            projectGroups.set(projKey, (projectGroups.get(projKey) || 0) + line.amount);
           });
+
+          for (const [projId, projAmount] of projectGroups) {
+            journalLines.push({
+              journal_entry_id: journalEntry.id,
+              owner_id,
+              line_number: lineNumber++,
+              account_id: checkData.bank_account_id,
+              project_id: projId,  // Set project_id on bank line to maintain balance
+              credit: projAmount,
+              debit: 0,
+              memo: `Check to ${updates.pay_to || 'vendor'}`
+            });
+          }
 
           // Create debit lines
           checkLines.forEach((line) => {
