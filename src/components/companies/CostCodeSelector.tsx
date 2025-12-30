@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { X, Search } from "lucide-react";
 
 interface CostCodeSelectorProps {
-  companyId: string | null;
+  companyId?: string | null;
   selectedCostCodes: string[];
   onCostCodesChange: (costCodes: string[]) => void;
   error?: string;
@@ -22,13 +22,14 @@ export const CostCodeSelector = React.memo(function CostCodeSelector({
 }: CostCodeSelectorProps) {
   const [costCodeSearch, setCostCodeSearch] = useState("");
 
-  // Fetch cost codes for selection
+  // Fetch only parent cost codes (not subcategories)
   const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes'],
+    queryKey: ['cost-codes-parent'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cost_codes')
         .select('id, code, name')
+        .is('parent_group', null)
         .order('code');
       
       if (error) throw error;
@@ -56,8 +57,6 @@ export const CostCodeSelector = React.memo(function CostCodeSelector({
 
   return (
     <div className="space-y-4">
-      <FormLabel>Associated Cost Codes</FormLabel>
-      
       {/* Selected cost codes */}
       {selectedCostCodes.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-md">
