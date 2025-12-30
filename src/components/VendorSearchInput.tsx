@@ -29,8 +29,8 @@ export function VendorSearchInput({
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  // Explicitly search for Subcontractors and Vendors only
-  const { companies, loading } = useCompanySearch(['Subcontractor', 'Vendor']);
+  // Filter by Vendor category (includes all vendor subtypes: Vendor, Consultant, Lender, Municipality, Utility)
+  const { companies, loading } = useCompanySearch(['Vendor']);
   const skipNextValueUpdate = useRef(false);
 
   useEffect(() => {

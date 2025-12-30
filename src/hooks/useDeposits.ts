@@ -20,7 +20,7 @@ export interface DepositData {
   project_id?: string;
   amount: number;
   memo?: string;
-  deposit_source_id?: string;
+  company_id?: string;  // Changed from deposit_source_id
   check_number?: string;
   company_name?: string;
   company_address?: string;
@@ -71,7 +71,7 @@ export const useDeposits = () => {
           project_id: depositData.project_id || null,
           amount: depositData.amount,
           memo: depositData.memo || null,
-          deposit_source_id: depositData.deposit_source_id || null,
+          company_id: depositData.company_id || null,  // Changed from deposit_source_id
           check_number: depositData.check_number || null,
           company_name: depositData.company_name,
           company_address: depositData.company_address,
@@ -374,7 +374,7 @@ export const useDeposits = () => {
           project_id: originalDeposit.project_id,
           amount: originalDeposit.amount,
           memo: `REVERSAL: ${originalDeposit.memo || ''}`,
-          deposit_source_id: originalDeposit.deposit_source_id,
+          company_id: originalDeposit.company_id,  // Changed from deposit_source_id
           check_number: originalDeposit.check_number,
           status: 'posted',
           is_reversal: true,

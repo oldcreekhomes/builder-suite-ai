@@ -208,9 +208,13 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
 
           const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
+          const companyType = row.CompanyType || 'Subcontractor';
+          const companyCategory = companyType === 'Subcontractor' ? 'Subcontractor' : 'Vendor';
+          
           const companyData = {
             company_name: row.CompanyName,
-            company_type: row.CompanyType || 'Subcontractor',
+            company_category: companyCategory,
+            company_type: companyCategory === 'Vendor' ? companyType : null,
             address: row.Address || null,
             phone_number: row.PhoneNumber || null,
             website: row.Website || null,

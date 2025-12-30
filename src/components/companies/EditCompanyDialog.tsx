@@ -40,7 +40,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_type: z.enum(["Consultant", "Lender", "Municipality", "Subcontractor", "Utility", "Vendor"]),
+  company_category: z.enum(["Subcontractor", "Vendor"]),
+  company_type: z.enum(["Vendor", "Consultant", "Lender", "Municipality", "Utility"]).optional().nullable(),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -55,7 +56,8 @@ type CompanyFormData = z.infer<typeof companySchema>;
 interface Company {
   id: string;
   company_name: string;
-  company_type: string;
+  company_category?: string;
+  company_type?: string | null;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -182,7 +184,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: "",
-      company_type: "Subcontractor",
+      company_category: "Subcontractor",
+      company_type: undefined,
       address_line_1: "",
       address_line_2: "",
       city: "",
@@ -268,6 +271,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       
       form.reset({
         company_name: company.company_name,
+        company_category: (company.company_category || 'Subcontractor') as "Subcontractor" | "Vendor",
         company_type: company.company_type as any,
         ...addressFields,
         phone_number: company.phone_number || "",

@@ -824,8 +824,9 @@ export type Database = {
           address_line_1: string | null
           address_line_2: string | null
           city: string | null
+          company_category: string
           company_name: string
-          company_type: string
+          company_type: string | null
           created_at: string
           home_builder_id: string
           id: string
@@ -842,8 +843,9 @@ export type Database = {
           address_line_1?: string | null
           address_line_2?: string | null
           city?: string | null
+          company_category: string
           company_name: string
-          company_type: string
+          company_type?: string | null
           created_at?: string
           home_builder_id: string
           id?: string
@@ -860,8 +862,9 @@ export type Database = {
           address_line_1?: string | null
           address_line_2?: string | null
           city?: string | null
+          company_category?: string
           company_name?: string
-          company_type?: string
+          company_type?: string | null
           created_at?: string
           home_builder_id?: string
           id?: string
@@ -1582,51 +1585,6 @@ export type Database = {
           },
         ]
       }
-      deposit_sources: {
-        Row: {
-          address: string | null
-          city: string | null
-          created_at: string
-          customer_name: string
-          email: string | null
-          id: string
-          notes: string | null
-          owner_id: string
-          phone_number: string | null
-          state: string | null
-          updated_at: string
-          zip_code: string | null
-        }
-        Insert: {
-          address?: string | null
-          city?: string | null
-          created_at?: string
-          customer_name: string
-          email?: string | null
-          id?: string
-          notes?: string | null
-          owner_id: string
-          phone_number?: string | null
-          state?: string | null
-          updated_at?: string
-          zip_code?: string | null
-        }
-        Update: {
-          address?: string | null
-          city?: string | null
-          created_at?: string
-          customer_name?: string
-          email?: string | null
-          id?: string
-          notes?: string | null
-          owner_id?: string
-          phone_number?: string | null
-          state?: string | null
-          updated_at?: string
-          zip_code?: string | null
-        }
-        Relationships: []
-      }
       deposits: {
         Row: {
           account_number: string | null
@@ -1636,12 +1594,12 @@ export type Database = {
           check_number: string | null
           company_address: string | null
           company_city_state: string | null
+          company_id: string | null
           company_name: string | null
           correction_reason: string | null
           created_at: string
           created_by: string
           deposit_date: string
-          deposit_source_id: string | null
           id: string
           is_reversal: boolean
           memo: string | null
@@ -1665,12 +1623,12 @@ export type Database = {
           check_number?: string | null
           company_address?: string | null
           company_city_state?: string | null
+          company_id?: string | null
           company_name?: string | null
           correction_reason?: string | null
           created_at?: string
           created_by: string
           deposit_date?: string
-          deposit_source_id?: string | null
           id?: string
           is_reversal?: boolean
           memo?: string | null
@@ -1694,12 +1652,12 @@ export type Database = {
           check_number?: string | null
           company_address?: string | null
           company_city_state?: string | null
+          company_id?: string | null
           company_name?: string | null
           correction_reason?: string | null
           created_at?: string
           created_by?: string
           deposit_date?: string
-          deposit_source_id?: string | null
           id?: string
           is_reversal?: boolean
           memo?: string | null
@@ -1717,10 +1675,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "deposits_deposit_source_id_fkey"
-            columns: ["deposit_source_id"]
+            foreignKeyName: "deposits_company_id_fkey"
+            columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "deposit_sources"
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {

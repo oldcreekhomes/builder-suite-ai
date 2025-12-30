@@ -155,17 +155,17 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       setBankAccount(`${bankAcct.code} - ${bankAcct.name}`);
     }
 
-    // Fetch deposit source name if exists
-    if (deposit.deposit_source_id) {
-      const { data: depositSource } = await supabase
-        .from('deposit_sources')
-        .select('customer_name')
-        .eq('id', deposit.deposit_source_id)
+    // Fetch company name if exists (using company_id now)
+    if (deposit.company_id) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('company_name')
+        .eq('id', deposit.company_id)
         .single();
       
-      if (depositSource) {
-        setDepositSourceName(depositSource.customer_name);
-        setDepositSourceId(deposit.deposit_source_id);
+      if (company) {
+        setDepositSourceName(company.company_name);
+        setDepositSourceId(deposit.company_id);
       }
     } else {
       setDepositSourceName(deposit.memo || "");
@@ -576,7 +576,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       project_id: projectId || undefined,
       amount: depositAmount,
       memo: depositSourceName,
-      deposit_source_id: depositSourceId || undefined,
+      company_id: depositSourceId || undefined,  // Changed from deposit_source_id
       check_number: checkNumber || undefined,
       company_name: companyName,
       company_address: companyAddress,
