@@ -22,14 +22,14 @@ export const CostCodeSelector = React.memo(function CostCodeSelector({
 }: CostCodeSelectorProps) {
   const [costCodeSearch, setCostCodeSearch] = useState("");
 
-  // Fetch only parent cost codes (not subcategories)
+  // Fetch whole-number cost codes only (exclude decimal subcategories like 4310.1)
   const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes-parent'],
+    queryKey: ['cost-codes-whole-numbers'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cost_codes')
         .select('id, code, name')
-        .is('parent_group', null)
+        .not('code', 'like', '%.%')
         .order('code');
       
       if (error) throw error;
