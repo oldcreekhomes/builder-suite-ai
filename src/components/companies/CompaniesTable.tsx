@@ -17,6 +17,7 @@ import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { CompanyRepresentativesModal } from "./CompanyRepresentativesModal";
 import { CompanyCostCodesModal } from "./CompanyCostCodesModal";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 
 type CostCode = {
@@ -28,8 +29,7 @@ type CostCode = {
 interface Company {
   id: string;
   company_name: string;
-  company_category: string;
-  company_type?: string | null;
+  company_type: string;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -48,10 +48,9 @@ interface Company {
 
 interface CompaniesTableProps {
   searchQuery?: string;
-  companyTypeFilter?: 'subcontractor' | 'vendor';
 }
 
-export function CompaniesTable({ searchQuery = "", companyTypeFilter }: CompaniesTableProps) {
+export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -132,10 +131,39 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
     },
   });
 
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'Subcontractor':
+        return 'bg-blue-100 text-blue-800';
+      case 'Vendor':
+        return 'bg-green-100 text-green-800';
+      case 'Lender':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Consultant':
+        return 'bg-orange-100 text-orange-800';
+      case 'Municipality':
+        return 'bg-purple-100 text-purple-800';
+      case 'Utility':
+        return 'bg-teal-100 text-teal-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   if (isLoading) {
     return <div className="p-4 text-xs">Loading companies...</div>;
   }
+
+  const filteredCompanies = companies.filter(company => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      (company.company_name && company.company_name.toLowerCase().includes(query)) ||
+      (company.company_type && company.company_type.toLowerCase().includes(query)) ||
+      (company.address && company.address.toLowerCase().includes(query))
+    );
+  }).sort((a, b) => a.company_name.localeCompare(b.company_name));
 
   return (
     <>      
@@ -144,6 +172,7 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-fit whitespace-nowrap">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-80">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
@@ -152,148 +181,118 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies
-              .filter(company => {
-                // Filter by company category
-                if (companyTypeFilter === 'subcontractor') {
-                  if (company.company_category !== 'Subcontractor') return false;
-                } else if (companyTypeFilter === 'vendor') {
-                  if (company.company_category !== 'Vendor') return false;
-                }
-                
-                if (!searchQuery.trim()) return true;
-                
-                const query = searchQuery.toLowerCase();
-                return (
-                  (company.company_name && company.company_name.toLowerCase().includes(query)) ||
-                  (company.company_type && company.company_type.toLowerCase().includes(query)) ||
-                  (company.address && company.address.toLowerCase().includes(query))
-                );
-              })
-              .sort((a, b) => a.company_name.localeCompare(b.company_name))
-              .map((company) => (
-                <TableRow key={company.id} className="h-10">
-                  <TableCell className="px-2 py-1 whitespace-nowrap">
-                    <div className="text-xs font-medium">
-                      {company.company_name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.address ? (
-                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                        {company.address.replace(/, United States$/, '')}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.cost_codes && company.cost_codes.length > 0 ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setShowingCostCodes(company)}
-                            className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
-                          >
-                            <Hash className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs">{company.cost_codes.length}</span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View cost codes</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <span className="text-gray-400 text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.website ? (
-                      <a 
-                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-gray-600"
-                      >
-                        Website
-                      </a>
-                    ) : (
-                      <span className="text-gray-400 text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
+            {filteredCompanies.map((company) => (
+              <TableRow key={company.id} className="h-10">
+                <TableCell className="px-2 py-1 whitespace-nowrap">
+                  <div className="text-xs font-medium">
+                    {company.company_name}
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  <Badge className={`text-xs ${getTypeColor(company.company_type)}`}>
+                    {company.company_type}
+                  </Badge>
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.address ? (
+                    <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                      {company.address.replace(/, United States$/, '')}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.cost_codes && company.cost_codes.length > 0 ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          onClick={() => setShowingReps(company)}
+                          onClick={() => setShowingCostCodes(company)}
                           className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
                         >
-                          <Users className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs">{company.representatives_count || 0}</span>
+                          <Hash className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs">{company.cost_codes.length}</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>View representatives</p>
+                        <p>View cost codes</p>
                       </TooltipContent>
                     </Tooltip>
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    <div className="flex items-center space-x-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setEditingCompany(company)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit company</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteCompanyMutation.mutate(company.id)}
-                            disabled={deleteCompanyMutation.isPending}
-                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete company</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.website ? (
+                    <a 
+                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-gray-600"
+                    >
+                      Website
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowingReps(company)}
+                        className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                      >
+                        <Users className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs">{company.representatives_count || 0}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>View representatives</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  <div className="flex items-center space-x-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingCompany(company)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit company</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteCompanyMutation.mutate(company.id)}
+                          disabled={deleteCompanyMutation.isPending}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete company</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
 
-            {companies.filter(company => {
-              // Filter by company category
-              if (companyTypeFilter === 'subcontractor') {
-                if (company.company_category !== 'Subcontractor') return false;
-              } else if (companyTypeFilter === 'vendor') {
-                if (company.company_category !== 'Vendor') return false;
-              }
-              
-              if (!searchQuery.trim()) return true;
-              
-              const query = searchQuery.toLowerCase();
-              return (
-                (company.company_name && company.company_name.toLowerCase().includes(query)) ||
-                (company.company_type && company.company_type.toLowerCase().includes(query)) ||
-                (company.address && company.address.toLowerCase().includes(query))
-              );
-            }).length === 0 && searchQuery && (
+            {filteredCompanies.length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
@@ -301,7 +300,7 @@ export function CompaniesTable({ searchQuery = "", companyTypeFilter }: Companie
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>

@@ -4,17 +4,16 @@ import { supabase } from "@/integrations/supabase/client";
 interface Company {
   id: string;
   company_name: string;
-  company_category: string;
-  company_type?: string | null;
+  company_type: string;
   address?: string;
 }
 
 /**
  * Hook to search companies from the database.
- * @param companyCategories - Optional array of company categories to filter by (e.g., ['Subcontractor', 'Vendor']).
- *                            If not provided, all companies are returned.
+ * @param companyTypes - Optional array of company types to filter by (e.g., ['Subcontractor', 'Vendor']).
+ *                       If not provided, all companies are returned.
  */
-export function useCompanySearch(companyCategories?: string[]) {
+export function useCompanySearch(companyTypes?: string[]) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,13 +22,13 @@ export function useCompanySearch(companyCategories?: string[]) {
       try {
         let query = supabase
           .from('companies')
-          .select('id, company_name, company_category, company_type, address')
+          .select('id, company_name, company_type, address')
           .order('company_name');
 
-        // Explicitly filter by company categories if provided
-        if (companyCategories && companyCategories.length > 0) {
-          query = query.in('company_category', companyCategories);
-          console.log('useCompanySearch: Filtering by company categories:', companyCategories);
+        // Filter by company types if provided
+        if (companyTypes && companyTypes.length > 0) {
+          query = query.in('company_type', companyTypes);
+          console.log('useCompanySearch: Filtering by company types:', companyTypes);
         }
 
         const { data, error } = await query;
@@ -38,7 +37,7 @@ export function useCompanySearch(companyCategories?: string[]) {
         setCompanies(data || []);
         
         console.log(`useCompanySearch: Fetched ${data?.length || 0} companies`, {
-          categoriesFilter: companyCategories || 'all',
+          typesFilter: companyTypes || 'all',
         });
       } catch (error) {
         console.error('Error fetching companies:', error);
@@ -48,7 +47,7 @@ export function useCompanySearch(companyCategories?: string[]) {
     };
 
     fetchCompanies();
-  }, [companyCategories?.join(',')]); // Re-fetch if companyCategories change
+  }, [companyTypes?.join(',')]); // Re-fetch if companyTypes change
 
   const searchCompanies = (query: string) => {
     if (!query.trim()) return companies;

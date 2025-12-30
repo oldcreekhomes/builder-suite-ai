@@ -18,13 +18,11 @@ import { AddMarketplaceRepresentativeDialog } from "@/components/marketplace/Add
 
 
 export default function Companies() {
-  const [addSubcontractorOpen, setAddSubcontractorOpen] = useState(false);
-  const [addVendorOpen, setAddVendorOpen] = useState(false);
+  const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
   const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
   const [addMarketplaceRepresentativeOpen, setAddMarketplaceRepresentativeOpen] = useState(false);
-  const [subcontractorSearchQuery, setSubcontractorSearchQuery] = useState("");
-  const [vendorSearchQuery, setVendorSearchQuery] = useState("");
+  const [companySearchQuery, setCompanySearchQuery] = useState("");
   const [representativeSearchQuery, setRepresentativeSearchQuery] = useState("");
 
   return (
@@ -41,51 +39,31 @@ export default function Companies() {
               </div>
             </div>
 
-            <Tabs defaultValue="subcontractors" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="subcontractors">Subcontractors</TabsTrigger>
-                <TabsTrigger value="vendors">Vendors</TabsTrigger>
+            <Tabs defaultValue="companies" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="companies">Companies</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
                 <TabsTrigger value="marketplace-companies">Marketplace</TabsTrigger>
                 <TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="subcontractors" className="space-y-4">
+              <TabsContent value="companies" className="space-y-4">
                 <div className="flex justify-between items-center gap-4">
                   <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Search subcontractors..."
-                      value={subcontractorSearchQuery}
-                      onChange={(e) => setSubcontractorSearchQuery(e.target.value)}
+                      placeholder="Search companies..."
+                      value={companySearchQuery}
+                      onChange={(e) => setCompanySearchQuery(e.target.value)}
                       className="pl-9"
                     />
                   </div>
-                  <Button onClick={() => setAddSubcontractorOpen(true)}>
+                  <Button onClick={() => setAddCompanyOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Subcontractor
+                    Add Company
                   </Button>
                 </div>
-                <CompaniesTable searchQuery={subcontractorSearchQuery} companyTypeFilter="subcontractor" />
-              </TabsContent>
-              
-              <TabsContent value="vendors" className="space-y-4">
-                <div className="flex justify-between items-center gap-4">
-                  <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search vendors..."
-                      value={vendorSearchQuery}
-                      onChange={(e) => setVendorSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  <Button onClick={() => setAddVendorOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Vendor
-                  </Button>
-                </div>
-                <CompaniesTable searchQuery={vendorSearchQuery} companyTypeFilter="vendor" />
+                <CompaniesTable searchQuery={companySearchQuery} />
               </TabsContent>
               
               <TabsContent value="representatives" className="space-y-4">
@@ -138,15 +116,8 @@ export default function Companies() {
           </div>
 
           <AddCompanyDialog 
-            open={addSubcontractorOpen} 
-            onOpenChange={setAddSubcontractorOpen}
-            defaultType="Subcontractor"
-          />
-          
-          <AddCompanyDialog 
-            open={addVendorOpen} 
-            onOpenChange={setAddVendorOpen}
-            defaultType="Vendor"
+            open={addCompanyOpen} 
+            onOpenChange={setAddCompanyOpen}
           />
           
           <AddRepresentativeModal 

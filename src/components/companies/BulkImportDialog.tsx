@@ -79,6 +79,14 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
         PhoneNumber: "(555) 987-6543",
         Website: "www.xyzelectrical.com",
         AssociatedCostCodes: "1600 - Electrical"
+      },
+      {
+        CompanyName: "First National Lending",
+        CompanyType: "Lender", 
+        Address: "789 Finance Blvd, City, State 12345",
+        PhoneNumber: "(555) 555-1234",
+        Website: "www.firstnationallending.com",
+        AssociatedCostCodes: ""
       }
     ];
 
@@ -209,12 +217,10 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
           const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
           const companyType = row.CompanyType || 'Subcontractor';
-          const companyCategory = companyType === 'Subcontractor' ? 'Subcontractor' : 'Vendor';
           
           const companyData = {
             company_name: row.CompanyName,
-            company_category: companyCategory,
-            company_type: companyCategory === 'Vendor' ? companyType : null,
+            company_type: companyType,
             address: row.Address || null,
             phone_number: row.PhoneNumber || null,
             website: row.Website || null,
@@ -427,7 +433,7 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               Download Excel Template
             </Button>
             <p className="text-sm text-muted-foreground">
-              Download the template with your actual cost codes included. For Associated Cost Codes, use either "CODE - Name" format (e.g., "4470 - Siding;1600 - Electrical") or plain codes (e.g., "4470;1600"). Separate multiple codes with semicolons.
+              Download the template with your actual cost codes included. CompanyType can be: Subcontractor, Vendor, Consultant, Lender, Municipality, or Utility. For Associated Cost Codes, use either "CODE - Name" format (e.g., "4470 - Siding;1600 - Electrical") or plain codes (e.g., "4470;1600"). Separate multiple codes with semicolons.
             </p>
           </div>
 
@@ -494,10 +500,15 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     <div className="font-medium mb-2">Errors ({importResult.errors.length}):</div>
-                    <div className="max-h-32 overflow-y-auto text-xs">
-                      {importResult.errors.map((error, index) => (
-                        <div key={index} className="mb-1">{error}</div>
+                    <div className="max-h-32 overflow-y-auto text-sm">
+                      {importResult.errors.slice(0, 10).map((error, i) => (
+                        <div key={i}>{error}</div>
                       ))}
+                      {importResult.errors.length > 10 && (
+                        <div className="mt-2 italic">
+                          ... and {importResult.errors.length - 10} more errors
+                        </div>
+                      )}
                     </div>
                   </AlertDescription>
                 </Alert>
@@ -506,16 +517,25 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
+              Cancel
             </Button>
             <Button 
               onClick={processImport} 
               disabled={!selectedFile || isImporting}
             >
-              <Upload className="h-4 w-4 mr-2" />
-              {isImporting ? 'Importing...' : 'Import Data'}
+              {isImporting ? (
+                <>
+                  <Upload className="h-4 w-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import
+                </>
+              )}
             </Button>
           </div>
         </div>

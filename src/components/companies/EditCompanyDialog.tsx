@@ -40,8 +40,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
-  company_category: z.enum(["Subcontractor", "Vendor"]),
-  company_type: z.enum(["Vendor", "Consultant", "Lender", "Municipality", "Utility"]).optional().nullable(),
+  company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -56,8 +55,7 @@ type CompanyFormData = z.infer<typeof companySchema>;
 interface Company {
   id: string;
   company_name: string;
-  company_category?: string;
-  company_type?: string | null;
+  company_type: string;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -184,8 +182,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     resolver: zodResolver(companySchema),
     defaultValues: {
       company_name: "",
-      company_category: "Subcontractor",
-      company_type: undefined,
+      company_type: "Subcontractor",
       address_line_1: "",
       address_line_2: "",
       city: "",
@@ -271,8 +268,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       
       form.reset({
         company_name: company.company_name,
-        company_category: (company.company_category || 'Subcontractor') as "Subcontractor" | "Vendor",
-        company_type: company.company_type as any,
+        company_type: (company.company_type || 'Subcontractor') as any,
         ...addressFields,
         phone_number: company.phone_number || "",
         website: company.website || "",
@@ -355,7 +351,15 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       if (!company) return;
 
       const updateData = {
-        ...data,
+        company_name: data.company_name,
+        company_type: data.company_type,
+        address_line_1: data.address_line_1,
+        address_line_2: data.address_line_2,
+        city: data.city,
+        state: data.state,
+        zip_code: data.zip_code,
+        phone_number: data.phone_number,
+        website: data.website,
         // Build legacy address field for compatibility
         address: [
           data.address_line_1,
@@ -464,12 +468,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="Subcontractor">Subcontractor</SelectItem>
+                            <SelectItem value="Vendor">Vendor</SelectItem>
                             <SelectItem value="Consultant">Consultant</SelectItem>
                             <SelectItem value="Lender">Lender</SelectItem>
                             <SelectItem value="Municipality">Municipality</SelectItem>
-                            <SelectItem value="Subcontractor">Subcontractor</SelectItem>
                             <SelectItem value="Utility">Utility</SelectItem>
-                            <SelectItem value="Vendor">Vendor</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -516,7 +520,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter phone number" {...field} />
+                          <Input placeholder="(555) 123-4567" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -530,7 +534,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                       <FormItem>
                         <FormLabel>Website</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter website URL" {...field} />
+                          <Input placeholder="www.example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -538,40 +542,48 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                   />
                 </div>
 
-                <CostCodeSelector
-                  companyId={stableCompanyId || null}
-                  selectedCostCodes={selectedCostCodes}
-                  onCostCodesChange={handleCostCodesChange}
-                />
+                <div className="space-y-2">
+                  <FormLabel>Associated Cost Codes</FormLabel>
+                  <CostCodeSelector 
+                    selectedCostCodes={selectedCostCodes}
+                    onCostCodesChange={handleCostCodesChange}
+                  />
+                </div>
               </TabsContent>
               
-              <TabsContent value="representatives" className="mt-6">
-                <RepresentativeContent companyId={stableCompanyId || null} />
+              <TabsContent value="representatives" className="space-y-6 mt-6">
+                <RepresentativeContent companyId={company.id} />
               </TabsContent>
               
-              <TabsContent value="insurance" className="mt-6">
-                {company?.company_type !== 'Subcontractor' ? (
-                  <Alert className="border-muted">
+              <TabsContent value="insurance" className="space-y-6 mt-6">
+                {company.insurance_required === false && (
+                  <Alert>
                     <ShieldOff className="h-4 w-4" />
                     <AlertTitle>Insurance Not Required</AlertTitle>
-                    <AlertDescription className="text-muted-foreground">
-                      Insurance tracking is not required for vendors, consultants, and municipalities.
+                    <AlertDescription>
+                      This company has been marked as not requiring insurance documentation.
                     </AlertDescription>
                   </Alert>
-                ) : (
-                  <InsuranceContent
-                    companyId={stableCompanyId || null}
-                    homeBuilder={company?.home_builder_id || ""}
-                  />
                 )}
+                <InsuranceContent 
+                  companyId={company.id}
+                  insuranceRequired={company.insurance_required !== false}
+                />
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end space-x-4 pt-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <div className="flex justify-end space-x-4 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateCompanyMutation.isPending}>
+              <Button 
+                type="submit"
+                disabled={updateCompanyMutation.isPending}
+              >
                 {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
               </Button>
             </div>
