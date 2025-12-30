@@ -293,7 +293,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   };
 
   return (
-    <DialogContent className="max-w-4xl max-h-[80vh] !overflow-hidden flex flex-col">
+    <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col overflow-hidden">
       <DialogHeader>
         <DialogTitle>Bank Statements</DialogTitle>
         <DialogDescription>
@@ -318,7 +318,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto border rounded-md">
+      <div className="flex-1 min-h-0 overflow-y-auto border rounded-md">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Loading...</div>
         ) : statements && statements.length > 0 ? (
