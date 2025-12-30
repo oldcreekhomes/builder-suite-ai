@@ -293,18 +293,31 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
     },
   });
 
-  // Group items by parent_group
-  const groupedItems = useMemo(() => {
-    if (!items || items.length === 0) return {};
+  // Group items by parent_group - only group if parent has subcategories
+  const { grouped, standalone } = useMemo(() => {
+    if (!items || items.length === 0) return { grouped: {}, standalone: [] };
+    
+    // Build set of parent codes that have subcategories
+    const parentCodesWithChildren = new Set(
+      parentCostCodes?.map((cc: any) => cc.code) || []
+    );
     
     const groups: Record<string, any[]> = {};
+    const standaloneItems: any[] = [];
     
     items.forEach((item: any) => {
-      const parentGroup = item.cost_codes?.parent_group || 'Ungrouped';
-      if (!groups[parentGroup]) {
-        groups[parentGroup] = [];
+      const parentGroup = item.cost_codes?.parent_group;
+      
+      // Only group if the parent has subcategories (e.g., Windows, Siding, Garage Door)
+      if (parentGroup && parentCodesWithChildren.has(parentGroup)) {
+        if (!groups[parentGroup]) {
+          groups[parentGroup] = [];
+        }
+        groups[parentGroup].push(item);
+      } else {
+        // Standalone item (e.g., Gutters & Downspouts)
+        standaloneItems.push(item);
       }
-      groups[parentGroup].push(item);
     });
     
     // Sort groups by parent code
@@ -315,8 +328,15 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
         sortedGroups[key] = groups[key];
       });
     
-    return sortedGroups;
-  }, [items]);
+    // Sort standalone items by cost code
+    standaloneItems.sort((a, b) => {
+      const codeA = a.cost_codes?.code || '';
+      const codeB = b.cost_codes?.code || '';
+      return codeA.localeCompare(codeB, undefined, { numeric: true });
+    });
+    
+    return { grouped: sortedGroups, standalone: standaloneItems };
+  }, [items, parentCostCodes]);
 
   // Get parent name for a group code
   const getParentName = (parentCode: string) => {
@@ -445,136 +465,232 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                 </TableCell>
               </TableRow>
             ) : (
-              Object.entries(groupedItems).map(([parentCode, groupItems]) => {
-                const isExpanded = expandedGroups.has(parentCode);
-                const groupTotal = getGroupTotal(groupItems);
-                const groupDollarTotal = getGroupDollarTotal(groupItems);
-                const firstItem = groupItems[0];
-                const groupUnit = firstItem?.unit_of_measure || 'EA';
-                
-                return (
-                  <> 
-                    {/* Group Header Row */}
+              <>
+                {/* Standalone items (no subcategory parent) */}
+                {standalone.map((item: any) => {
+                  const isSelected = selectedReviewItem?.id === item.id;
+                  const costCode = item.cost_codes?.code;
+                  const displayCategory = costCode ? `${costCode} - ${item.category}` : item.category;
+                  
+                  return (
                     <TableRow 
-                      key={`group-${parentCode}`}
-                      className="bg-muted/50 hover:bg-muted/70 cursor-pointer"
-                      onClick={() => toggleGroup(parentCode)}
+                      key={item.id} 
+                      className={cn(
+                        isSelected && 'bg-primary/10 ring-2 ring-primary'
+                      )}
+                      onClick={() => onSelectReviewItem({
+                        id: item.id,
+                        color: item.color || '#3b82f6',
+                        category: item.category
+                      })}
+                      style={{ cursor: 'pointer' }}
                     >
-                      <TableCell className="w-12">
-                        {isExpanded ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
+                        />
+                      </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {isSelected && (
+                          <div className="flex items-center justify-center">
+                            <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                              DRAW
+                            </div>
+                          </div>
                         )}
                       </TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="font-semibold" colSpan={1}>
-                        {getParentName(parentCode)}
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                          <label 
+                            htmlFor={`color-${item.id}`}
+                            className="cursor-pointer"
+                          >
+                            <div 
+                              className="w-6 h-6 rounded border-2 border-border"
+                              style={{ backgroundColor: item.color || '#3b82f6' }}
+                            />
+                          </label>
+                          <Input
+                            type="color"
+                            value={item.color || '#3b82f6'}
+                            onChange={(e) => handleColorChange(item.id, e.target.value)}
+                            className="w-0 h-0 opacity-0 absolute"
+                            id={`color-${item.id}`}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleVisibility(item.id);
+                            }}
+                            className="cursor-pointer hover:opacity-80"
+                            aria-label={`Toggle visibility for ${item.category}`}
+                          >
+                            {visibleAnnotations.has(item.id) ? (
+                              <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            ) : (
+                              <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            )}
+                          </button>
+                        </div>
                       </TableCell>
-                      <TableCell className="font-semibold">{groupTotal}</TableCell>
-                      <TableCell className="font-semibold">{formatUnitOfMeasure(groupUnit)}</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="font-semibold">
-                        {groupDollarTotal > 0 ? `$${groupDollarTotal.toFixed(2)}` : '-'}
+                      <TableCell className="font-medium">{displayCategory}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <InlineEditCell
+                          value={item.quantity}
+                          type="number"
+                          onSave={(newValue) => {
+                            const qty = Number(newValue);
+                            if (qty >= 0 && !isNaN(qty)) {
+                              handleUpdateQuantity(item.id, qty);
+                            }
+                          }}
+                          className="text-left"
+                        />
+                      </TableCell>
+                      <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
+                      <TableCell>
+                        {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
                       </TableCell>
                     </TableRow>
-                    
-                    {/* Child Rows */}
-                    {isExpanded && groupItems.map((item: any) => {
-                      const isSelected = selectedReviewItem?.id === item.id;
-                      
-                      return (
-                        <TableRow 
-                          key={item.id} 
-                          className={cn(
-                            "pl-8",
-                            isSelected && 'bg-primary/10 ring-2 ring-primary'
+                  );
+                })}
+                
+                {/* Grouped items (with subcategory parent) */}
+                {Object.entries(grouped).map(([parentCode, groupItems]) => {
+                  const isExpanded = expandedGroups.has(parentCode);
+                  const groupTotal = getGroupTotal(groupItems);
+                  const groupDollarTotal = getGroupDollarTotal(groupItems);
+                  const firstItem = groupItems[0];
+                  const groupUnit = firstItem?.unit_of_measure || 'EA';
+                  
+                  return (
+                    <> 
+                      {/* Group Header Row */}
+                      <TableRow 
+                        key={`group-${parentCode}`}
+                        className="bg-muted/50 hover:bg-muted/70 cursor-pointer"
+                        onClick={() => toggleGroup(parentCode)}
+                      >
+                        <TableCell className="w-12">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
                           )}
-                          onClick={() => onSelectReviewItem({
-                            id: item.id,
-                            color: item.color || '#3b82f6',
-                            category: item.category
-                          })}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={selectedItems.has(item.id)}
-                              onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
-                              className="ml-4"
-                            />
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            {isSelected && (
-                              <div className="flex items-center justify-center">
-                                <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
-                                  DRAW
-                                </div>
-                              </div>
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-semibold" colSpan={1}>
+                          {getParentName(parentCode)}
+                        </TableCell>
+                        <TableCell className="font-semibold">{groupTotal}</TableCell>
+                        <TableCell className="font-semibold">{formatUnitOfMeasure(groupUnit)}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-semibold">
+                          {groupDollarTotal > 0 ? `$${groupDollarTotal.toFixed(2)}` : '-'}
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Child Rows */}
+                      {isExpanded && groupItems.map((item: any) => {
+                        const isSelected = selectedReviewItem?.id === item.id;
+                        
+                        return (
+                          <TableRow 
+                            key={item.id} 
+                            className={cn(
+                              "pl-8",
+                              isSelected && 'bg-primary/10 ring-2 ring-primary'
                             )}
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center gap-2">
-                              <label 
-                                htmlFor={`color-${item.id}`}
-                                className="cursor-pointer"
-                              >
-                                <div 
-                                  className="w-6 h-6 rounded border-2 border-border"
-                                  style={{ backgroundColor: item.color || '#3b82f6' }}
-                                />
-                              </label>
-                              <Input
-                                type="color"
-                                value={item.color || '#3b82f6'}
-                                onChange={(e) => handleColorChange(item.id, e.target.value)}
-                                className="w-0 h-0 opacity-0 absolute"
-                                id={`color-${item.id}`}
+                            onClick={() => onSelectReviewItem({
+                              id: item.id,
+                              color: item.color || '#3b82f6',
+                              category: item.category
+                            })}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedItems.has(item.id)}
+                                onCheckedChange={(checked) => handleItemCheckboxChange(item.id, !!checked)}
+                                className="ml-4"
                               />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleVisibility(item.id);
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              {isSelected && (
+                                <div className="flex items-center justify-center">
+                                  <div className="bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium">
+                                    DRAW
+                                  </div>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-2">
+                                <label 
+                                  htmlFor={`color-${item.id}`}
+                                  className="cursor-pointer"
+                                >
+                                  <div 
+                                    className="w-6 h-6 rounded border-2 border-border"
+                                    style={{ backgroundColor: item.color || '#3b82f6' }}
+                                  />
+                                </label>
+                                <Input
+                                  type="color"
+                                  value={item.color || '#3b82f6'}
+                                  onChange={(e) => handleColorChange(item.id, e.target.value)}
+                                  className="w-0 h-0 opacity-0 absolute"
+                                  id={`color-${item.id}`}
+                                />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleVisibility(item.id);
+                                  }}
+                                  className="cursor-pointer hover:opacity-80"
+                                  aria-label={`Toggle visibility for ${item.category}`}
+                                >
+                                  {visibleAnnotations.has(item.id) ? (
+                                    <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                  ) : (
+                                    <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                  )}
+                                </button>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium pl-4">{item.category}</TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <InlineEditCell
+                                value={item.quantity}
+                                type="number"
+                                onSave={(newValue) => {
+                                  const qty = Number(newValue);
+                                  if (qty >= 0 && !isNaN(qty)) {
+                                    handleUpdateQuantity(item.id, qty);
+                                  }
                                 }}
-                                className="cursor-pointer hover:opacity-80"
-                                aria-label={`Toggle visibility for ${item.category}`}
-                              >
-                                {visibleAnnotations.has(item.id) ? (
-                                  <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                                ) : (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                                )}
-                              </button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium pl-4">{item.category}</TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <InlineEditCell
-                              value={item.quantity}
-                              type="number"
-                              onSave={(newValue) => {
-                                const qty = Number(newValue);
-                                if (qty >= 0 && !isNaN(qty)) {
-                                  handleUpdateQuantity(item.id, qty);
-                                }
-                              }}
-                              className="text-left"
-                            />
-                          </TableCell>
-                          <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
-                          <TableCell>
-                            {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </>
-                );
-              })
+                                className="text-left"
+                              />
+                            </TableCell>
+                            <TableCell>{formatUnitOfMeasure(item.unit_of_measure)}</TableCell>
+                            <TableCell>
+                              {item.unit_price ? `$${Number(item.unit_price).toFixed(2)}` : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {item.total_cost ? `$${Number(item.total_cost).toFixed(2)}` : '-'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </>
+                  );
+                })}
+              </>
             )}
           </TableBody>
         </Table>
