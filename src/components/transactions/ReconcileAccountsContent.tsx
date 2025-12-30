@@ -827,9 +827,21 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       beginningBalanceRef.current = String(correctBeginningBalance);
       
       // Parse without timezone shift - creates local midnight
-      const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
-      setStatementDate(new Date(year, month - 1, day));
-      statementDateRef.current = new Date(year, month - 1, day);
+      if (inProgressReconciliation.statement_date) {
+        const [year, month, day] = inProgressReconciliation.statement_date.split('-').map(Number);
+        const restoredDate = new Date(year, month - 1, day);
+        setStatementDate(restoredDate);
+        statementDateRef.current = restoredDate;
+        setHideTransactionsAfterDate(restoredDate); // Also set hide date
+      } else if (lastCompleted) {
+        // Calculate default from last completed if no saved statement date
+        const [lcYear, lcMonth, lcDay] = lastCompleted.statement_date.split('-').map(Number);
+        const lastCompletedLocal = new Date(lcYear, lcMonth - 1, lcDay);
+        const defaultDate = endOfMonth(addMonths(lastCompletedLocal, 1));
+        setStatementDate(defaultDate);
+        statementDateRef.current = defaultDate;
+        setHideTransactionsAfterDate(defaultDate);
+      }
       
       const restoredEndingBalance = String(inProgressReconciliation.statement_ending_balance ?? "");
       setEndingBalance(restoredEndingBalance);
@@ -870,7 +882,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       // Parse without timezone shift - creates local midnight
       const [lcYear, lcMonth, lcDay] = lastCompleted.statement_date.split('-').map(Number);
       const lastCompletedLocal = new Date(lcYear, lcMonth - 1, lcDay);
-      setStatementDate(endOfMonth(addMonths(lastCompletedLocal, 1)));
+      const defaultDate = endOfMonth(addMonths(lastCompletedLocal, 1));
+      setStatementDate(defaultDate);
+      setHideTransactionsAfterDate(defaultDate); // Also set hide date
     } else {
       // No completed, no in-progress - start fresh at $0
       setCurrentReconciliationId(null);
