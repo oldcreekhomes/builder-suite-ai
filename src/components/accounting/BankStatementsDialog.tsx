@@ -322,7 +322,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Loading...</div>
         ) : statements && statements.length > 0 ? (
-          <Table>
+          <Table containerClassName="relative w-full overflow-visible max-h-none">
             <TableHeader>
               <TableRow>
                 <TableHead>File Name</TableHead>
