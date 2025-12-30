@@ -537,10 +537,10 @@ export function AddCompanyDialog({
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="insurance" className="space-y-6 mt-6">
+              <TabsContent value="insurance" className="space-y-6 mt-6">
                   <InsuranceContent 
                     companyId={null}
-                    insuranceRequired={true}
+                    homeBuilder=""
                     onExtractedDataChange={handleExtractedDataChange}
                   />
                 </TabsContent>

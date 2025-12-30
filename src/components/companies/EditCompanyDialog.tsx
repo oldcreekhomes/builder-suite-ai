@@ -567,7 +567,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 )}
                 <InsuranceContent 
                   companyId={company.id}
-                  insuranceRequired={company.insurance_required !== false}
+                  homeBuilder=""
                 />
               </TabsContent>
             </Tabs>
