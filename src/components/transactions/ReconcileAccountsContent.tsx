@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench, RotateCcw, Info } from "lucide-react";
 import { TransactionDetailDialog } from "./TransactionDetailDialog";
+import { MultiItemPopover } from "./MultiItemPopover";
 import {
   Dialog,
   DialogContent,
@@ -1171,14 +1172,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-12">
+                          <th className="p-2 text-left w-10">
                             <Checkbox
                               checked={allChecksSelected}
                               onCheckedChange={handleSelectAllChecks}
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">
+                          <th className="p-2 text-left w-24">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1199,7 +1200,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           <th className="p-2 text-left">Payee</th>
-                          <th className="p-2 text-right">
+                          <th className="p-2 text-left w-28">Account</th>
+                          <th className="p-2 text-left w-24">Address</th>
+                          <th className="p-2 text-right w-24">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1244,7 +1247,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   onCheckedChange={() => handleToggleTransaction(check.id)}
                                 />
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 text-xs">
                                 <InlineEditCell
                                   value={check.date}
                                   type="date"
@@ -1252,8 +1255,20 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                                 />
                               </td>
-                              <td className="p-2">{check.payee}</td>
-                              <td className="p-2 text-right">
+                              <td className="p-2 text-xs truncate max-w-[120px]" title={check.payee}>{check.payee}</td>
+                              <td className="p-2 text-xs">
+                                <MultiItemPopover 
+                                  items={check.accounts || []} 
+                                  label="Accounts"
+                                />
+                              </td>
+                              <td className="p-2 text-xs">
+                                <MultiItemPopover 
+                                  items={check.addresses || []} 
+                                  label="Addresses"
+                                />
+                              </td>
+                              <td className="p-2 text-xs text-right">
                                 <InlineEditCell
                                   value={check.amount.toString()}
                                   type="number"
@@ -1286,14 +1301,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-12">
+                          <th className="p-2 text-left w-10">
                             <Checkbox
                               checked={allDepositsSelected}
                               onCheckedChange={handleSelectAllDeposits}
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">
+                          <th className="p-2 text-left w-24">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1314,7 +1329,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           <th className="p-2 text-left">Source</th>
-                          <th className="p-2 text-right">
+                          <th className="p-2 text-left w-28">Account</th>
+                          <th className="p-2 text-left w-24">Address</th>
+                          <th className="p-2 text-right w-24">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1359,7 +1376,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                 />
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 text-xs">
                                 <InlineEditCell
                                   value={deposit.date}
                                   type="date"
@@ -1367,8 +1384,20 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                                 />
                               </td>
-                              <td className="p-2">{deposit.source}</td>
-                              <td className="p-2 text-right">
+                              <td className="p-2 text-xs truncate max-w-[120px]" title={deposit.source}>{deposit.source}</td>
+                              <td className="p-2 text-xs">
+                                <MultiItemPopover 
+                                  items={deposit.accounts || []} 
+                                  label="Accounts"
+                                />
+                              </td>
+                              <td className="p-2 text-xs">
+                                <MultiItemPopover 
+                                  items={deposit.addresses || []} 
+                                  label="Addresses"
+                                />
+                              </td>
+                              <td className="p-2 text-xs text-right">
                                 <InlineEditCell
                                   value={deposit.amount.toString()}
                                   type="number"
