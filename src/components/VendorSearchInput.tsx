@@ -13,6 +13,8 @@ interface VendorSearchInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  /** When provided, use this as the display text instead of looking up by value */
+  displayValue?: string;
 }
 
 export function VendorSearchInput({ 
@@ -21,7 +23,8 @@ export function VendorSearchInput({
   onCompanySelect,
   placeholder = "Search vendors...",
   className,
-  disabled = false
+  disabled = false,
+  displayValue
 }: VendorSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -34,6 +37,12 @@ export function VendorSearchInput({
     // Skip this effect if we just set the value from onCompanyCreated
     if (skipNextValueUpdate.current) {
       skipNextValueUpdate.current = false;
+      return;
+    }
+    
+    // If displayValue is provided, use it directly
+    if (displayValue !== undefined) {
+      setSearchQuery(displayValue);
       return;
     }
     
@@ -58,7 +67,7 @@ export function VendorSearchInput({
     } else {
       setSearchQuery("");
     }
-  }, [value, companies]);
+  }, [value, companies, displayValue]);
 
   const filteredCompanies = companies.filter(company =>
     company.company_name.toLowerCase().includes(searchQuery.toLowerCase())

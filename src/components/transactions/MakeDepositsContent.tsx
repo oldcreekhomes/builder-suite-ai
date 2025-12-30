@@ -755,6 +755,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               <Label htmlFor="receivedFrom">Received From</Label>
               <VendorSearchInput
                 value={depositSourceId}
+                displayValue={depositSourceName}
                 onChange={(companyId) => {
                   setDepositSourceId(companyId);
                 }}
