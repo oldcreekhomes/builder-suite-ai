@@ -452,8 +452,23 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             const fileName = `${timestamp}_${sanitizedName}`;
             const filePath = `journal-entry-attachments/${newEntry.id}/${fileName}`;
 
-            await supabase.storage.from('project-files').upload(filePath, tempAtt.file);
-            await supabase.from('journal_entry_attachments').insert({
+            // Upload file and check for errors before creating DB record
+            const { error: uploadError } = await supabase.storage
+              .from('project-files')
+              .upload(filePath, tempAtt.file);
+
+            if (uploadError) {
+              console.error('Journal entry attachment upload failed:', {
+                filePath,
+                fileName: tempAtt.file.name,
+                error: uploadError
+              });
+              // Don't create orphan DB record - skip this attachment
+              continue;
+            }
+
+            // Only insert DB record after confirmed successful upload
+            const { error: dbError } = await supabase.from('journal_entry_attachments').insert({
               journal_entry_id: newEntry.id,
               file_name: tempAtt.file.name,
               file_path: filePath,
@@ -461,6 +476,15 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               content_type: tempAtt.content_type,
               uploaded_by: (await supabase.auth.getUser()).data.user?.id
             });
+
+            if (dbError) {
+              console.error('Journal entry attachment DB insert failed:', {
+                filePath,
+                error: dbError
+              });
+              // Clean up uploaded file since DB insert failed
+              await supabase.storage.from('project-files').remove([filePath]);
+            }
           }
         }
       }
