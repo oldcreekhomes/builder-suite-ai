@@ -28,8 +28,8 @@ import {
 interface TakeoffTableProps {
   sheetId: string | null;
   takeoffId: string;
-  selectedReviewItem: { id: string; color: string; category: string } | null;
-  onSelectReviewItem: (item: { id: string; color: string; category: string } | null) => void;
+  selectedReviewItem: { id: string; color: string; category: string; unit_of_measure?: string } | null;
+  onSelectReviewItem: (item: { id: string; color: string; category: string; unit_of_measure?: string } | null) => void;
   visibleAnnotations: Set<string>;
   onToggleVisibility: (itemId: string) => void;
   onItemsAdded?: (itemIds: string[]) => void;
@@ -369,7 +369,8 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
           onSelectReviewItem({
             id: newItem.id,
             color: newItem.color || '#3b82f6',
-            category: newItem.category
+            category: newItem.category,
+            unit_of_measure: newItem.unit_of_measure
           });
         }
       };
@@ -480,7 +481,8 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                       onClick={() => onSelectReviewItem({
                         id: item.id,
                         color: item.color || '#3b82f6',
-                        category: item.category
+                        category: item.category,
+                        unit_of_measure: item.unit_of_measure
                       })}
                       style={{ cursor: 'pointer' }}
                     >
@@ -597,7 +599,8 @@ export function TakeoffTable({ sheetId, takeoffId, selectedReviewItem, onSelectR
                             onClick={() => onSelectReviewItem({
                               id: item.id,
                               color: item.color || '#3b82f6',
-                              category: item.category
+                              category: item.category,
+                              unit_of_measure: item.unit_of_measure
                             })}
                             style={{ cursor: 'pointer' }}
                           >
