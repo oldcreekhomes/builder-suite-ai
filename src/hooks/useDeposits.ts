@@ -473,5 +473,194 @@ export const useDeposits = () => {
     },
   });
 
-  return { createDeposit, deleteDeposit, updateDeposit, correctDeposit };
+  // Full update mutation - updates deposit header, replaces lines, rebuilds journal entry
+  const updateDepositFull = useMutation({
+    mutationFn: async ({ 
+      depositId, 
+      depositData, 
+      depositLines 
+    }: { 
+      depositId: string;
+      depositData: DepositData; 
+      depositLines: DepositLineData[];
+    }) => {
+      console.log('Updating deposit:', depositId, depositData);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Get owner_id from the existing deposit
+      const { data: existingDeposit, error: fetchError } = await supabase
+        .from('deposits')
+        .select('owner_id')
+        .eq('id', depositId)
+        .single();
+
+      if (fetchError || !existingDeposit) throw new Error("Deposit not found");
+      const owner_id = existingDeposit.owner_id;
+
+      // Step 1: Update deposit header
+      const { error: depositError } = await supabase
+        .from('deposits')
+        .update({
+          deposit_date: depositData.deposit_date,
+          bank_account_id: depositData.bank_account_id,
+          project_id: depositData.project_id || null,
+          amount: depositData.amount,
+          memo: depositData.memo || null,
+          company_id: depositData.company_id || null,
+          check_number: depositData.check_number || null,
+          company_name: depositData.company_name,
+          company_address: depositData.company_address,
+          company_city_state: depositData.company_city_state,
+          bank_name: depositData.bank_name,
+          routing_number: depositData.routing_number,
+          account_number: depositData.account_number,
+        })
+        .eq('id', depositId);
+
+      if (depositError) throw depositError;
+
+      // Step 2: Delete existing deposit lines (non-reversal only)
+      const { error: deleteLinesError } = await supabase
+        .from('deposit_lines')
+        .delete()
+        .eq('deposit_id', depositId)
+        .eq('is_reversal', false);
+
+      if (deleteLinesError) throw deleteLinesError;
+
+      // Step 3: Insert new deposit lines
+      const depositLinesData = depositLines.map((line, index) => ({
+        deposit_id: depositId,
+        owner_id,
+        line_number: index + 1,
+        line_type: line.line_type,
+        account_id: line.account_id || null,
+        project_id: line.project_id || null,
+        lot_id: line.lot_id || null,
+        amount: line.amount,
+        memo: line.memo || null
+      }));
+
+      const { error: linesError } = await supabase
+        .from('deposit_lines')
+        .insert(depositLinesData);
+
+      if (linesError) throw linesError;
+
+      // Step 4: Find the journal entry for this deposit
+      const { data: journalEntry, error: jeError } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('source_type', 'deposit')
+        .eq('source_id', depositId)
+        .eq('is_reversal', false)
+        .single();
+
+      if (jeError || !journalEntry) {
+        console.warn('No journal entry found for deposit, skipping journal update');
+        return { id: depositId };
+      }
+
+      // Step 5: Update journal entry header
+      const { error: jeUpdateError } = await supabase
+        .from('journal_entries')
+        .update({
+          entry_date: depositData.deposit_date,
+          description: `Deposit to ${depositData.bank_name || 'Bank'}`,
+        })
+        .eq('id', journalEntry.id);
+
+      if (jeUpdateError) throw jeUpdateError;
+
+      // Step 6: Delete existing journal entry lines (non-reversal only)
+      const { error: deleteJELinesError } = await supabase
+        .from('journal_entry_lines')
+        .delete()
+        .eq('journal_entry_id', journalEntry.id)
+        .eq('is_reversal', false);
+
+      if (deleteJELinesError) throw deleteJELinesError;
+
+      // Step 7: Find Equity account (2905) for customer payments
+      const { data: equityAccount } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('owner_id', owner_id)
+        .eq('code', '2905')
+        .single();
+
+      // Step 8: Insert new journal entry lines
+      // First line: DEBIT bank account
+      const bankLine = {
+        journal_entry_id: journalEntry.id,
+        owner_id,
+        line_number: 1,
+        account_id: depositData.bank_account_id,
+        project_id: depositData.project_id || null,
+        debit: depositData.amount,
+        credit: 0,
+        memo: depositLines[0]?.memo || 'Deposit'
+      };
+
+      // Remaining lines: CREDIT source accounts
+      const sourceLinesData = depositLines.map((line, index) => {
+        let creditAccountId = line.account_id;
+        let costCodeId = null;
+
+        if (line.line_type === 'customer_payment') {
+          if (!equityAccount) {
+            throw new Error('Equity account (2905) not found.');
+          }
+          creditAccountId = equityAccount.id;
+          costCodeId = line.cost_code_id || null;
+        }
+
+        return {
+          journal_entry_id: journalEntry.id,
+          owner_id,
+          line_number: index + 2,
+          account_id: creditAccountId!,
+          project_id: line.project_id || null,
+          cost_code_id: costCodeId,
+          lot_id: line.lot_id || null,
+          debit: 0,
+          credit: line.amount,
+          memo: line.memo || null
+        };
+      });
+
+      const allJournalLines = [bankLine, ...sourceLinesData];
+
+      const { error: journalLinesError } = await supabase
+        .from('journal_entry_lines')
+        .insert(allJournalLines);
+
+      if (journalLinesError) throw journalLinesError;
+
+      return { id: depositId };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      toast({
+        title: "Success",
+        description: "Deposit updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating deposit:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update deposit",
+        variant: "destructive",
+      });
+    },
+  });
+
+  return { createDeposit, deleteDeposit, updateDeposit, correctDeposit, updateDepositFull };
 };

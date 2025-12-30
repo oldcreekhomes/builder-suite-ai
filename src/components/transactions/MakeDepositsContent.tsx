@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,7 +87,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const { createDeposit, deleteDeposit } = useDeposits();
+  const { createDeposit, deleteDeposit, updateDepositFull } = useDeposits();
+  
+  // Submit lock to prevent duplicate saves
+  const [isSaving, setIsSaving] = useState(false);
   const { settings } = useProjectCheckSettings(projectId);
   const { costCodes } = useCostCodeSearch();
   const { lots } = useLots(projectId);
@@ -505,90 +508,116 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     });
   };
 
-  const handleSave = async (saveAndNew: boolean = false) => {
-    if (!depositSourceName) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter who the deposit is from",
-        variant: "destructive",
-      });
+  const handleSave = useCallback(async (saveAndNew: boolean = false) => {
+    // Prevent duplicate saves
+    if (isSaving) {
+      console.log('Save already in progress, ignoring');
       return;
     }
-
-    let resolvedBankAccountId = bankAccountId;
-    if (!resolvedBankAccountId && bankAccount) {
-      resolvedBankAccountId = findAccountIdFromText(bankAccount) || "";
-    }
-
-    if (!resolvedBankAccountId) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a bank account from the dropdown",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const resolvedRevenueRows = resolveRowsForSave(revenueRows, 'revenue');
-    const resolvedOtherRows = resolveRowsForSave(otherRows, 'other');
-
-    const allRows = [...resolvedRevenueRows, ...resolvedOtherRows];
-    const validRows = allRows.filter(row => row.accountId && amountOfRow(row) > 0);
-
-    if (validRows.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please select at least one account from the dropdown and enter an amount greater than zero",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const chartLines: DepositLineData[] = resolvedOtherRows
-      .filter(row => row.accountId && amountOfRow(row) > 0)
-      .map(row => ({
-        line_type: 'revenue' as const,
-        account_id: row.accountId!,
-        project_id: row.projectId || projectId || undefined,
-        lot_id: row.lotId || undefined,
-        amount: amountOfRow(row),
-        memo: row.memo || undefined
-      }));
-
-    const jobCostLines: DepositLineData[] = resolvedRevenueRows
-      .filter(row => row.accountId && amountOfRow(row) > 0)
-      .map(row => ({
-        line_type: 'customer_payment' as const,
-        cost_code_id: row.accountId!,
-        project_id: row.projectId || projectId || undefined,
-        lot_id: row.lotId || undefined,
-        amount: amountOfRow(row),
-        memo: row.memo || undefined
-      }));
     
-    const depositLines: DepositLineData[] = [...chartLines, ...jobCostLines];
-
-    const depositAmount = parseFloat(calculateTotal());
-
-    const depositData: DepositData = {
-      deposit_date: depositDate.toISOString().split('T')[0],
-      bank_account_id: resolvedBankAccountId,
-      project_id: projectId || undefined,
-      amount: depositAmount,
-      memo: depositSourceName,
-      company_id: depositSourceId || undefined,  // Changed from deposit_source_id
-      check_number: checkNumber || undefined,
-      company_name: companyName,
-      company_address: companyAddress,
-      company_city_state: companyCityState,
-      bank_name: bankName,
-      routing_number: routingNumber,
-      account_number: accountNumber
-    };
-
+    setIsSaving(true);
+    
     try {
-      const result = await createDeposit.mutateAsync({ depositData, depositLines });
-      const newDepositId = result.id;
+      if (!depositSourceName) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter who the deposit is from",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let resolvedBankAccountId = bankAccountId;
+      if (!resolvedBankAccountId && bankAccount) {
+        resolvedBankAccountId = findAccountIdFromText(bankAccount) || "";
+      }
+
+      if (!resolvedBankAccountId) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a bank account from the dropdown",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const resolvedRevenueRows = resolveRowsForSave(revenueRows, 'revenue');
+      const resolvedOtherRows = resolveRowsForSave(otherRows, 'other');
+
+      const allRows = [...resolvedRevenueRows, ...resolvedOtherRows];
+      const validRows = allRows.filter(row => row.accountId && amountOfRow(row) > 0);
+
+      if (validRows.length === 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please select at least one account from the dropdown and enter an amount greater than zero",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const chartLines: DepositLineData[] = resolvedOtherRows
+        .filter(row => row.accountId && amountOfRow(row) > 0)
+        .map(row => ({
+          line_type: 'revenue' as const,
+          account_id: row.accountId!,
+          project_id: row.projectId || projectId || undefined,
+          lot_id: row.lotId || undefined,
+          amount: amountOfRow(row),
+          memo: row.memo || undefined
+        }));
+
+      const jobCostLines: DepositLineData[] = resolvedRevenueRows
+        .filter(row => row.accountId && amountOfRow(row) > 0)
+        .map(row => ({
+          line_type: 'customer_payment' as const,
+          cost_code_id: row.accountId!,
+          project_id: row.projectId || projectId || undefined,
+          lot_id: row.lotId || undefined,
+          amount: amountOfRow(row),
+          memo: row.memo || undefined
+        }));
+      
+      const depositLines: DepositLineData[] = [...chartLines, ...jobCostLines];
+
+      const depositAmount = parseFloat(calculateTotal());
+
+      const depositData: DepositData = {
+        deposit_date: depositDate.toISOString().split('T')[0],
+        bank_account_id: resolvedBankAccountId,
+        project_id: projectId || undefined,
+        amount: depositAmount,
+        memo: depositSourceName,
+        company_id: depositSourceId || undefined,
+        check_number: checkNumber || undefined,
+        company_name: companyName,
+        company_address: companyAddress,
+        company_city_state: companyCityState,
+        bank_name: bankName,
+        routing_number: routingNumber,
+        account_number: accountNumber
+      };
+
+      let resultDepositId: string;
+
+      // If we're editing an existing deposit, UPDATE it; otherwise CREATE new
+      if (currentDepositId && isViewingMode) {
+        console.log('Updating existing deposit:', currentDepositId);
+        await updateDepositFull.mutateAsync({ 
+          depositId: currentDepositId, 
+          depositData, 
+          depositLines 
+        });
+        resultDepositId = currentDepositId;
+      } else {
+        console.log('Creating new deposit');
+        const result = await createDeposit.mutateAsync({ depositData, depositLines });
+        resultDepositId = result.id;
+        
+        // After successful create, set the deposit as current so subsequent saves update it
+        setCurrentDepositId(resultDepositId);
+        setIsViewingMode(true);
+      }
       
       // Upload any temporary attachments
       for (const attachment of attachments.filter(a => a.file && !a.id)) {
@@ -599,16 +628,16 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             .replace(/[^\w.-]/g, '_')
             .replace(/_+/g, '_');
           const fileName = `${timestamp}_${sanitizedName}`;
-          const filePath = `deposit-attachments/${newDepositId}/${fileName}`;
+          const filePath = `deposit-attachments/${resultDepositId}/${fileName}`;
 
           await supabase.storage
             .from('project-files')
             .upload(filePath, attachment.file);
 
-          const { error: insertError } = await supabase
+          await supabase
             .from('deposit_attachments')
             .insert([{
-              deposit_id: newDepositId,
+              deposit_id: resultDepositId,
               file_name: attachment.file.name,
               file_path: filePath,
               file_size: attachment.file.size,
@@ -624,9 +653,11 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
       }
     } catch (error) {
-      console.error('Error creating deposit:', error);
+      console.error('Error saving deposit:', error);
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [isSaving, depositSourceName, bankAccountId, bankAccount, revenueRows, otherRows, projectId, depositDate, depositSourceId, checkNumber, companyName, companyAddress, companyCityState, bankName, routingNumber, accountNumber, currentDepositId, isViewingMode, attachments, createDeposit, updateDepositFull, navigate, createNewDeposit]);
 
   return (
     <TooltipProvider>
@@ -1037,17 +1068,17 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   size="sm"
                   className="h-10"
                   onClick={() => handleSave(true)}
-                  disabled={createDeposit.isPending}
+                  disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
                 >
-                  {createDeposit.isPending ? "Saving..." : "Save & New"}
+                  {isSaving ? "Saving..." : "Save & New"}
                 </Button>
                 <Button
                   size="sm"
                   className="h-10"
                   onClick={() => handleSave(false)}
-                  disabled={createDeposit.isPending}
+                  disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
                 >
-                  {createDeposit.isPending ? "Saving..." : "Save & Close"}
+                  {isSaving ? "Saving..." : "Save & Close"}
                 </Button>
               </div>
             </div>
