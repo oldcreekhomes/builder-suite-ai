@@ -138,9 +138,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     enabled: !!sheet?.file_path,
   });
 
-  // Initialize Fabric.js canvas when sheet changes
-  // Uses timeout to ensure DOM is ready after React renders the canvas element
+  // Initialize Fabric.js canvas when sheet changes AND displayedSize is available
+  // This ensures Fabric initializes with correct dimensions after the PDF/image loads
   useEffect(() => {
+    // Don't initialize until we have displayedSize (from PDF/image load)
+    if (!sheetId || !displayedSize) {
+      console.info('[Fabric Init] Waiting for sheetId and displayedSize', { sheetId, displayedSize });
+      return;
+    }
+
     // Clean up any existing Fabric instance first
     if (fabricCanvas) {
       console.info('[Fabric Init] Disposing previous instance before re-init');
@@ -156,25 +162,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         return;
       }
       
-      console.info('[Fabric Init] Initializing Fabric.js canvas');
+      console.info('[Fabric Init] Initializing Fabric.js canvas with displayedSize:', displayedSize);
       const canvas = new FabricCanvas(canvasElement, {
-        width: displayedSize?.width || 800,
-        height: displayedSize?.height || 600,
+        width: displayedSize.width,
+        height: displayedSize.height,
         backgroundColor: 'transparent',
       });
 
       // Diagnostics: confirm presence of lower/upper layers after init
       const hasLower = !!((canvas as any).lowerCanvasEl || (canvas as any).lower?.el);
       const hasUpper = !!((canvas as any).upperCanvasEl || (canvas as any).upper?.el);
-      console.info('[Fabric Init] Complete', { hasLower, hasUpper });
+      console.info('[Fabric Init] Complete', { hasLower, hasUpper, width: displayedSize.width, height: displayedSize.height });
 
       setFabricCanvas(canvas);
-    }, 50); // Small delay to ensure DOM is ready
+    }, 100); // Small delay to ensure DOM is ready
 
     return () => {
       clearTimeout(timerId);
     };
-  }, [sheetId]);
+  }, [sheetId, displayedSize?.width, displayedSize?.height]);
 
   // Cleanup Fabric on unmount
   useEffect(() => {
@@ -241,11 +247,15 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
     const t1 = setTimeout(applyFabricLayerStyles, 50);
     const t2 = setTimeout(applyFabricLayerStyles, 150);
     const t3 = setTimeout(applyFabricLayerStyles, 300);
+    const t4 = setTimeout(applyFabricLayerStyles, 500);
+    const t5 = setTimeout(applyFabricLayerStyles, 1000);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
     };
   }, [fabricCanvas, displayedSize, canvasReady, sheetId]);
 
@@ -1006,12 +1016,24 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         
         fabricCanvas.add(circle);
         
-        // Save to database with Manual label
+        // Transform screen coordinates to document coordinates for storage
+        const refW = sheet?.ai_processing_width || imgNaturalSize?.width || displayedSize?.width || 1;
+        const refH = sheet?.ai_processing_height || imgNaturalSize?.height || displayedSize?.height || 1;
+        const canvasW = displayedSize?.width || 1;
+        const canvasH = displayedSize?.height || 1;
+        const scaleX = refW / canvasW;
+        const scaleY = refH / canvasH;
+        
+        const circleGeometry = circle.toJSON();
+        circleGeometry.left = p.x * scaleX;
+        circleGeometry.top = p.y * scaleY;
+        
+        // Save to database with document coordinates
         saveAnnotation({
           takeoff_item_id: selectedTakeoffItem.id,
           takeoff_sheet_id: sheetId,
           annotation_type: 'circle',
-          geometry: circle.toJSON(),
+          geometry: circleGeometry,
           color: selectedTakeoffItem.color,
         } as any);
         
@@ -1079,11 +1101,35 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         
         // Only save if rectangle has meaningful size
         if ((rect.width || 0) > 5 && (rect.height || 0) > 5) {
+          // Transform screen coordinates to document coordinates for storage
+          // Get reference dimensions (AI processing or natural image size)
+          const refW = sheet?.ai_processing_width || imgNaturalSize?.width || displayedSize?.width || 1;
+          const refH = sheet?.ai_processing_height || imgNaturalSize?.height || displayedSize?.height || 1;
+          const canvasW = displayedSize?.width || 1;
+          const canvasH = displayedSize?.height || 1;
+          
+          // Compute inverse scale: screen -> document
+          const scaleX = refW / canvasW;
+          const scaleY = refH / canvasH;
+          
+          // Create geometry in document coordinates
+          const rectGeometry = rect.toJSON();
+          rectGeometry.left = (rect.left || 0) * scaleX;
+          rectGeometry.top = (rect.top || 0) * scaleY;
+          rectGeometry.width = (rect.width || 0) * scaleX;
+          rectGeometry.height = (rect.height || 0) * scaleY;
+          
+          console.info('Saving rectangle in document coords:', { 
+            screen: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+            document: { left: rectGeometry.left, top: rectGeometry.top, width: rectGeometry.width, height: rectGeometry.height },
+            scale: { x: scaleX, y: scaleY }
+          });
+          
           saveAnnotation({
             takeoff_item_id: selectedTakeoffItem.id,
             takeoff_sheet_id: sheetId,
             annotation_type: 'rectangle',
-            geometry: rect.toJSON(),
+            geometry: rectGeometry,
             color: selectedTakeoffItem.color,
           } as any);
           
@@ -1152,11 +1198,25 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         
         // Only save if line has meaningful length
         if (pixelLength > 10) {
+          // Transform screen coordinates to document coordinates for storage
+          const refW = sheet?.ai_processing_width || imgNaturalSize?.width || displayedSize?.width || 1;
+          const refH = sheet?.ai_processing_height || imgNaturalSize?.height || displayedSize?.height || 1;
+          const canvasW = displayedSize?.width || 1;
+          const canvasH = displayedSize?.height || 1;
+          const scaleX = refW / canvasW;
+          const scaleY = refH / canvasH;
+          
+          const lineGeometry = line.toJSON();
+          lineGeometry.x1 = x1 * scaleX;
+          lineGeometry.y1 = y1 * scaleY;
+          lineGeometry.x2 = x2 * scaleX;
+          lineGeometry.y2 = y2 * scaleY;
+          
           saveAnnotation({
             takeoff_item_id: selectedTakeoffItem.id,
             takeoff_sheet_id: sheetId,
             annotation_type: 'line',
-            geometry: line.toJSON(),
+            geometry: lineGeometry,
             color: selectedTakeoffItem.color,
           } as any);
           
@@ -1195,7 +1255,30 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         tempLines.forEach(l => fabricCanvas.remove(l));
         if (previewLine) fabricCanvas.remove(previewLine);
         
-        // Create final polygon
+        // Transform screen coordinates to document coordinates for storage
+        // Get reference dimensions (AI processing or natural image size)
+        const refW = sheet?.ai_processing_width || imgNaturalSize?.width || displayedSize?.width || 1;
+        const refH = sheet?.ai_processing_height || imgNaturalSize?.height || displayedSize?.height || 1;
+        const canvasW = displayedSize?.width || 1;
+        const canvasH = displayedSize?.height || 1;
+        
+        // Compute inverse scale: screen -> document
+        const scaleX = refW / canvasW;
+        const scaleY = refH / canvasH;
+        
+        // Transform points to document coordinates
+        const documentPoints = points.map(p => ({
+          x: p.x * scaleX,
+          y: p.y * scaleY,
+        }));
+        
+        console.info('Saving polygon in document coords:', { 
+          screenPoints: points.slice(0, 2),
+          documentPoints: documentPoints.slice(0, 2),
+          scale: { x: scaleX, y: scaleY }
+        });
+        
+        // Create final polygon (using screen coords for display)
         const polygon = new Polygon(points, {
           fill: hexToRgba(selectedTakeoffItem.color, 0.2),
           stroke: selectedTakeoffItem.color,
@@ -1207,13 +1290,13 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
         fabricCanvas.add(polygon);
         fabricCanvas.renderAll();
         
-        // Save to database
+        // Save to database with DOCUMENT coordinates
         if (sheetId) {
           saveAnnotation({
             takeoff_item_id: selectedTakeoffItem.id,
             takeoff_sheet_id: sheetId,
             annotation_type: 'polygon',
-            geometry: { points },
+            geometry: { points: documentPoints },
             color: selectedTakeoffItem.color,
           } as any);
           
