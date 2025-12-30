@@ -580,38 +580,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               evented: true,
             });
             
-            // Add label if present
-            if (annotation.label && isVisible) {
-              const labelText = new Text(annotation.label, {
-                left: circleScaled.left + 4,
-                top: circleScaled.top + 4,
-                fontSize: 12,
-                fill: chooseBlackOrWhite(annotation.color),
-                fontFamily: 'Inter, sans-serif',
-                selectable: false,
-                evented: false,
-              });
-              
-              const labelBg = new Rect({
-                left: circleScaled.left + 2,
-                top: circleScaled.top + 2,
-                width: labelText.width! + 8,
-                height: labelText.height! + 4,
-                fill: annotation.color,
-                opacity: 0.85,
-                rx: 3,
-                ry: 3,
-                selectable: false,
-                evented: false,
-              });
-              
-              fabricObject = new Group([circle, labelBg, labelText], {
-                selectable: true,
-                evented: true,
-              });
-            } else {
-              fabricObject = circle;
-            }
+            fabricObject = circle;
             break;
             
           case 'rectangle':
@@ -642,38 +611,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               evented: true,
             });
             
-            // Add label if present
-            if (annotation.label && isVisible) {
-              const labelText = new Text(annotation.label, {
-                left: scaled.left + 4,
-                top: scaled.top + 4,
-                fontSize: 12,
-                fill: chooseBlackOrWhite(annotation.color),
-                fontFamily: 'Inter, sans-serif',
-                selectable: false,
-                evented: false,
-              });
-              
-              const labelBg = new Rect({
-                left: scaled.left + 2,
-                top: scaled.top + 2,
-                width: labelText.width! + 8,
-                height: labelText.height! + 4,
-                fill: annotation.color,
-                opacity: 0.85,
-                rx: 3,
-                ry: 3,
-                selectable: false,
-                evented: false,
-              });
-              
-              fabricObject = new Group([rect, labelBg, labelText], {
-                selectable: true,
-                evented: true,
-              });
-            } else {
-              fabricObject = rect;
-            }
+            fabricObject = rect;
             break;
             
           case 'line':
@@ -731,39 +669,7 @@ export function PlanViewer({ sheetId, takeoffId, selectedTakeoffItem, visibleAnn
               evented: true,
             });
             
-            // Add label if present - use first point for positioning
-            if (annotation.label && isVisible && polygonPointsScaled.length > 0) {
-              const firstPoint = polygonPointsScaled[0];
-              const labelText = new Text(annotation.label, {
-                left: firstPoint.x + 4,
-                top: firstPoint.y + 4,
-                fontSize: 12,
-                fill: chooseBlackOrWhite(annotation.color),
-                fontFamily: 'Inter, sans-serif',
-                selectable: false,
-                evented: false,
-              });
-              
-              const labelBg = new Rect({
-                left: firstPoint.x + 2,
-                top: firstPoint.y + 2,
-                width: labelText.width! + 8,
-                height: labelText.height! + 4,
-                fill: annotation.color,
-                opacity: 0.85,
-                rx: 3,
-                ry: 3,
-                selectable: false,
-                evented: false,
-              });
-              
-              fabricObject = new Group([polygon, labelBg, labelText], {
-                selectable: true,
-                evented: true,
-              });
-            } else {
-              fabricObject = polygon;
-            }
+            fabricObject = polygon;
             break;
         }
 
