@@ -14,9 +14,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench, RotateCcw, Info } from "lucide-react";
-import { TransactionDetailDialog } from "./TransactionDetailDialog";
-import { MultiItemPopover } from "./MultiItemPopover";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -128,10 +126,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [isFixingOrphanedTransactions, setIsFixingOrphanedTransactions] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [isResettingReconciliation, setIsResettingReconciliation] = useState(false);
-  
-  // Transaction detail dialog state
-  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [transactionDetailOpen, setTransactionDetailOpen] = useState(false);
 
   const handleFixOrphanedTransactions = async () => {
     if (!selectedBankAccountId) return;
@@ -380,12 +374,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   }, [selectedBankAccountId]);
 
   // Sync hideTransactionsAfterDate with statementDate
-  // Only sync hideTransactionsAfterDate to statementDate on initial load, not on every change
   useEffect(() => {
-    if (statementDate && !hideTransactionsAfterDate) {
+    if (statementDate) {
       setHideTransactionsAfterDate(statementDate);
     }
-  }, [statementDate, hideTransactionsAfterDate]);
+  }, [statementDate]);
 
   // Keep refs in sync with state (for auto-save to always have current values)
   // NOTE: endingBalanceRef is synced immediately in onChange handler, not here
@@ -983,7 +976,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  disabled={!selectedBankAccountId}
+                  disabled={!selectedBankAccountId || isReconciliationMode}
                   className={cn(
                     "w-full justify-start text-left font-normal mt-1",
                     !statementDate && "text-muted-foreground"
@@ -1173,14 +1166,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-10">
+                          <th className="p-2 text-left w-12">
                             <Checkbox
                               checked={allChecksSelected}
                               onCheckedChange={handleSelectAllChecks}
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left w-24">
+                          <th className="p-2 text-left">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1200,10 +1193,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
+                          <th className="p-2 text-left">Type</th>
+                          <th className="p-2 text-left">Ref #</th>
                           <th className="p-2 text-left">Payee</th>
-                          <th className="p-2 text-left w-28">Account</th>
-                          <th className="p-2 text-left w-24">Address</th>
-                          <th className="p-2 text-right w-24">
+                          <th className="p-2 text-right">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1223,7 +1216,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Amount
                             </button>
                           </th>
-                          <th className="p-2 w-8"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1241,53 +1233,39 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             return checksSortDirection === 'asc' ? comparison : -comparison;
                           })
                           .map((check) => (
-                            <tr key={check.id} className="border-t hover:bg-muted/50">
+                            <tr key={check.id} className="border-t">
                               <td className="p-2">
                                 <Checkbox
                                   checked={checkedTransactions.has(check.id)}
                                   onCheckedChange={() => handleToggleTransaction(check.id)}
                                 />
                               </td>
-                              <td className="p-2 text-xs">
+                  <td className="p-2">
+                    <InlineEditCell
+                      value={check.date}
+                      type="date"
+                      onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
+                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                    />
+                  </td>
+                              <td className="p-2">
+                                {check.type === 'bill_payment' ? 'Bill Payment' : check.type === 'journal_entry' ? 'JE' : 'Check'}
+                              </td>
+                              <td className="p-2">
                                 <InlineEditCell
-                                  value={check.date}
-                                  type="date"
-                                  onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
-                                  displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                                  value={check.reference_number || ''}
+                                  type="text"
+                                  onSave={(value) => handleUpdateTransaction(check.id, check.type, 'reference_number', value)}
                                 />
                               </td>
-                              <td className="p-2 text-xs truncate max-w-[120px]" title={check.payee}>{check.payee}</td>
-                              <td className="p-2 text-xs">
-                                <MultiItemPopover 
-                                  items={check.accounts || []} 
-                                  label="Accounts"
-                                />
-                              </td>
-                              <td className="p-2 text-xs">
-                                <MultiItemPopover 
-                                  items={check.addresses || []} 
-                                  label="Addresses"
-                                />
-                              </td>
-                              <td className="p-2 text-xs text-right">
+                              <td className="p-2">{check.payee}</td>
+                              <td className="p-2 text-right">
                                 <InlineEditCell
                                   value={check.amount.toString()}
                                   type="number"
                                   onSave={(value) => handleUpdateTransaction(check.id, check.type, 'amount', value)}
                                   displayFormat={(val) => formatCurrency(parseFloat(val))}
                                 />
-                              </td>
-                              <td className="p-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedTransaction(check);
-                                    setTransactionDetailOpen(true);
-                                  }}
-                                  className="text-muted-foreground hover:text-primary"
-                                  title="View details"
-                                >
-                                  <Info className="h-4 w-4" />
-                                </button>
                               </td>
                             </tr>
                           ))}
@@ -1302,14 +1280,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-10">
+                          <th className="p-2 text-left w-12">
                             <Checkbox
                               checked={allDepositsSelected}
                               onCheckedChange={handleSelectAllDeposits}
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left w-24">
+                          <th className="p-2 text-left">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1330,9 +1308,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           <th className="p-2 text-left">Source</th>
-                          <th className="p-2 text-left w-28">Account</th>
-                          <th className="p-2 text-left w-24">Address</th>
-                          <th className="p-2 text-right w-24">
+                          <th className="p-2 text-right">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1352,7 +1328,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Amount
                             </button>
                           </th>
-                          <th className="p-2 w-8"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1370,53 +1345,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             return depositsSortDirection === 'asc' ? comparison : -comparison;
                           })
                           .map((deposit) => (
-                            <tr key={deposit.id} className="border-t hover:bg-muted/50">
+                            <tr key={deposit.id} className="border-t">
                               <td className="p-2">
                                 <Checkbox
                                   checked={checkedTransactions.has(deposit.id)}
                                   onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                 />
                               </td>
-                              <td className="p-2 text-xs">
-                                <InlineEditCell
-                                  value={deposit.date}
-                                  type="date"
-                                  onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
-                                  displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
-                                />
-                              </td>
-                              <td className="p-2 text-xs truncate max-w-[120px]" title={deposit.source}>{deposit.source}</td>
-                              <td className="p-2 text-xs">
-                                <MultiItemPopover 
-                                  items={deposit.accounts || []} 
-                                  label="Accounts"
-                                />
-                              </td>
-                              <td className="p-2 text-xs">
-                                <MultiItemPopover 
-                                  items={deposit.addresses || []} 
-                                  label="Addresses"
-                                />
-                              </td>
-                              <td className="p-2 text-xs text-right">
+                  <td className="p-2">
+                    <InlineEditCell
+                      value={deposit.date}
+                      type="date"
+                      onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
+                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                    />
+                  </td>
+                              <td className="p-2">{deposit.source}</td>
+                              <td className="p-2 text-right">
                                 <InlineEditCell
                                   value={deposit.amount.toString()}
                                   type="number"
                                   onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'amount', value)}
                                   displayFormat={(val) => formatCurrency(parseFloat(val))}
                                 />
-                              </td>
-                              <td className="p-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedTransaction({ ...deposit, type: 'deposit' });
-                                    setTransactionDetailOpen(true);
-                                  }}
-                                  className="text-muted-foreground hover:text-primary"
-                                  title="View details"
-                                >
-                                  <Info className="h-4 w-4" />
-                                </button>
                               </td>
                             </tr>
                           ))}
@@ -1714,12 +1665,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </div>
         </DialogContent>
       </Dialog>
-
-      <TransactionDetailDialog
-        open={transactionDetailOpen}
-        onOpenChange={setTransactionDetailOpen}
-        transaction={selectedTransaction}
-      />
     </div>
   );
 }

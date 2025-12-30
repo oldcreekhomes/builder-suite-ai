@@ -2,11 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface LineItemSummary {
-  accounts: string[];
-  addresses: string[];
-}
-
 interface ReconciliationTransaction {
   id: string;
   date: string;
@@ -22,9 +17,6 @@ interface ReconciliationTransaction {
   journal_entry_line_id?: string;
   // True if transaction has reconciled=true but references a non-existent reconciliation
   isOrphaned?: boolean;
-  // Line item summary for display
-  accounts?: string[];
-  addresses?: string[];
 }
 
 interface BankReconciliation {
@@ -62,12 +54,11 @@ export const useBankReconciliation = () => {
           return { checks: [], deposits: [] };
         }
 
-        // Fetch all valid reconciliation IDs globally to detect orphans
-        // We need ALL reconciliation IDs, not just for this bank account, because
-        // transactions (especially bills) may have been reconciled in a different bank account
+        // Fetch all valid reconciliation IDs for this bank account to detect orphans
         const { data: validReconciliations } = await supabase
           .from('bank_reconciliations')
-          .select('id');
+          .select('id')
+          .eq('bank_account_id', bankAccountId);
         
         const validReconciliationIds = new Set((validReconciliations || []).map(r => r.id));
 
@@ -376,118 +367,10 @@ export const useBankReconciliation = () => {
           }
         }
 
-        // ========== FETCH LINE ITEMS WITH ACCOUNT/LOT/PROJECT DETAILS ==========
-        // Fetch check lines with joined data
-        const checkIds = checksToUse.map(c => c.id);
-        const checkLineItemsMap = new Map<string, LineItemSummary>();
-        
-        if (checkIds.length > 0) {
-          const { data: checkLinesData } = await supabase
-            .from('check_lines')
-            .select(`
-              check_id,
-              account_id,
-              lot_id,
-              project_id,
-              accounts:account_id(code, name),
-              project_lots:lot_id(lot_number),
-              projects:project_id(address)
-            `)
-            .in('check_id', checkIds);
-
-          // Group by check_id
-          (checkLinesData || []).forEach((line: any) => {
-            const existing = checkLineItemsMap.get(line.check_id) || { accounts: [], addresses: [] };
-            if (line.accounts) {
-              existing.accounts.push(`${line.accounts.code} - ${line.accounts.name}`);
-            }
-            if (line.project_lots?.lot_number) {
-              existing.addresses.push(`Lot ${line.project_lots.lot_number}`);
-            } else if (line.projects?.address) {
-              existing.addresses.push(line.projects.address);
-            }
-            checkLineItemsMap.set(line.check_id, existing);
-          });
-        }
-
-        // Fetch deposit lines with joined data
-        const depositIds = (deposits || []).map(d => d.id);
-        const depositLineItemsMap = new Map<string, LineItemSummary>();
-        
-        if (depositIds.length > 0) {
-          const { data: depositLinesData } = await supabase
-            .from('deposit_lines')
-            .select(`
-              deposit_id,
-              account_id,
-              lot_id,
-              project_id,
-              accounts:account_id(code, name),
-              project_lots:lot_id(lot_number),
-              projects:project_id(address)
-            `)
-            .in('deposit_id', depositIds);
-
-          // Group by deposit_id
-          (depositLinesData || []).forEach((line: any) => {
-            const existing = depositLineItemsMap.get(line.deposit_id) || { accounts: [], addresses: [] };
-            if (line.accounts) {
-              existing.accounts.push(`${line.accounts.code} - ${line.accounts.name}`);
-            }
-            if (line.project_lots?.lot_number) {
-              existing.addresses.push(`Lot ${line.project_lots.lot_number}`);
-            } else if (line.projects?.address) {
-              existing.addresses.push(line.projects.address);
-            }
-            depositLineItemsMap.set(line.deposit_id, existing);
-          });
-        }
-
-        // Fetch bill lines with joined data (for bill payments)
-        const billIds = billPaymentTransactions.map(bp => bp.id);
-        const billLineItemsMap = new Map<string, LineItemSummary>();
-        
-        if (billIds.length > 0) {
-          const { data: billLinesData } = await supabase
-            .from('bill_lines')
-            .select(`
-              bill_id,
-              account_id,
-              lot_id,
-              project_id,
-              accounts:account_id(code, name),
-              project_lots:lot_id(lot_number),
-              projects:project_id(address)
-            `)
-            .in('bill_id', billIds);
-
-          // Group by bill_id
-          (billLinesData || []).forEach((line: any) => {
-            const existing = billLineItemsMap.get(line.bill_id) || { accounts: [], addresses: [] };
-            if (line.accounts) {
-              existing.accounts.push(`${line.accounts.code} - ${line.accounts.name}`);
-            }
-            if (line.project_lots?.lot_number) {
-              existing.addresses.push(`Lot ${line.project_lots.lot_number}`);
-            } else if (line.projects?.address) {
-              existing.addresses.push(line.projects.address);
-            }
-            billLineItemsMap.set(line.bill_id, existing);
-          });
-        }
-
-        // Add line item data to bill payment transactions
-        billPaymentTransactions = billPaymentTransactions.map(bp => ({
-          ...bp,
-          accounts: billLineItemsMap.get(bp.id)?.accounts || [],
-          addresses: billLineItemsMap.get(bp.id)?.addresses || [],
-        }));
-
         // Transform checks into transactions (mark orphaned ones)
         const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => {
           const isOrphaned = check.reconciled && check.reconciliation_id && 
             !validReconciliationIds.has(check.reconciliation_id);
-          const lineItems = checkLineItemsMap.get(check.id);
           return {
             id: check.id,
             date: check.check_date,
@@ -499,15 +382,12 @@ export const useBankReconciliation = () => {
             reconciliation_date: check.reconciliation_date || undefined,
             reconciliation_id: check.reconciliation_id || undefined,
             isOrphaned,
-            accounts: lineItems?.accounts || [],
-            addresses: lineItems?.addresses || [],
           };
         });
 
         const depositTransactions: ReconciliationTransaction[] = (deposits || []).map(deposit => {
           const isOrphaned = deposit.reconciled && deposit.reconciliation_id && 
             !validReconciliationIds.has(deposit.reconciliation_id);
-          const lineItems = depositLineItemsMap.get(deposit.id);
           return {
             id: deposit.id,
             date: deposit.deposit_date,
@@ -518,8 +398,6 @@ export const useBankReconciliation = () => {
             reconciliation_date: deposit.reconciliation_date || undefined,
             reconciliation_id: deposit.reconciliation_id || undefined,
             isOrphaned,
-            accounts: lineItems?.accounts || [],
-            addresses: lineItems?.addresses || [],
           };
         });
 
