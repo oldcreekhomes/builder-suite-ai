@@ -219,20 +219,20 @@ export function AccountDetailDialog({
             id, 
             memo,
             bank_account_id,
-            deposit_source_id,
+            company_id,
             reconciled,
             reconciliation_id,
             reconciliation_date,
-            deposit_sources(customer_name),
-            deposit_lines(memo, line_number)
+            deposit_lines(memo, line_number),
+            companies(company_name)
           `)
           .eq('is_reversal', false)
           .is('reversed_at', null)
           .in('id', depositIds);
         
         depositsData?.forEach((deposit: any) => {
-          // Received From is the deposit memo, with customer_name as fallback
-          const receivedFrom = deposit.memo || deposit.deposit_sources?.customer_name || 'Cash';
+          // Received From is the deposit memo, with company_name as fallback
+          const receivedFrom = deposit.memo || deposit.companies?.company_name || 'Cash';
           
           // First line memo is from the first deposit line
           const sortedLines = (deposit.deposit_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
@@ -242,7 +242,7 @@ export function AccountDetailDialog({
             ...deposit,
             receivedFrom,
             firstLineMemo,
-            customer_name: deposit.deposit_sources?.customer_name || null
+            customer_name: deposit.companies?.company_name || null
           });
         });
       }
