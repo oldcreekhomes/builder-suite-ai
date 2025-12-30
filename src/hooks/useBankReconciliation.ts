@@ -62,6 +62,27 @@ export const useBankReconciliation = () => {
         
         const validReconciliationIds = new Set((validReconciliations || []).map(r => r.id));
 
+        // Fetch the last completed reconciliation to get the cutoff date
+        // Transactions dated on or before this date should not appear (unless orphaned)
+        let lastCompletedQuery = supabase
+          .from('bank_reconciliations')
+          .select('statement_date')
+          .eq('bank_account_id', bankAccountId)
+          .eq('status', 'completed')
+          .order('statement_date', { ascending: false })
+          .limit(1);
+        
+        if (projectId) {
+          lastCompletedQuery = lastCompletedQuery.eq('project_id', projectId);
+        } else {
+          lastCompletedQuery = lastCompletedQuery.is('project_id', null);
+        }
+        
+        const { data: lastCompletedRec } = await lastCompletedQuery.maybeSingle();
+        const cutoffDate = lastCompletedRec?.statement_date || null;
+        
+        console.log('[Reconciliation] Cutoff date from last completed reconciliation:', cutoffDate);
+
         // Fetch ALL checks for this bank account (including orphaned ones)
         const { data: allChecks, error: checksError } = await supabase
           .from('checks')
@@ -108,11 +129,15 @@ export const useBankReconciliation = () => {
         }
 
         // Filter checks: include unreconciled OR orphaned (reconciled but referencing invalid reconciliation_id)
+        // Also exclude old unreconciled transactions dated on or before last completed reconciliation
         checksToUse = checksToUse.filter(c => {
-          if (!c.reconciled) return true; // Normal unreconciled
-          // Orphaned: reconciled but reconciliation_id doesn't exist
-          if (c.reconciliation_id && !validReconciliationIds.has(c.reconciliation_id)) return true;
-          return false; // Skip properly reconciled checks
+          // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
+          if (c.reconciled && c.reconciliation_id && !validReconciliationIds.has(c.reconciliation_id)) return true;
+          // Skip properly reconciled checks
+          if (c.reconciled) return false;
+          // Unreconciled: exclude if dated on or before cutoff
+          if (cutoffDate && c.check_date <= cutoffDate) return false;
+          return true; // Normal unreconciled after cutoff
         });
         
         console.log('[Reconciliation] Final checks to use:', { count: checksToUse.length });
@@ -136,10 +161,15 @@ export const useBankReconciliation = () => {
         const { data: allDepositsRaw, error: depositsError } = await depositsQuery;
         
         // Filter deposits: unreconciled OR orphaned
+        // Also exclude old unreconciled transactions dated on or before last completed reconciliation
         const deposits = (allDepositsRaw || []).filter(d => {
-          if (!d.reconciled) return true;
-          if (d.reconciliation_id && !validReconciliationIds.has(d.reconciliation_id)) return true;
-          return false;
+          // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
+          if (d.reconciled && d.reconciliation_id && !validReconciliationIds.has(d.reconciliation_id)) return true;
+          // Skip properly reconciled deposits
+          if (d.reconciled) return false;
+          // Unreconciled: exclude if dated on or before cutoff
+          if (cutoffDate && d.deposit_date <= cutoffDate) return false;
+          return true; // Normal unreconciled after cutoff
         });
         
         console.log('[Reconciliation] Deposits:', { count: deposits?.length, error: depositsError });
@@ -209,10 +239,15 @@ export const useBankReconciliation = () => {
             }
 
             // Filter bills: unreconciled OR orphaned
+            // Also exclude old unreconciled bill payments dated on or before last completed reconciliation
+            // We need to check the JE entry_date for cutoff since that's the payment date
             const bills = (allBillsRaw || []).filter(b => {
-              if (!b.reconciled) return true;
-              if (b.reconciliation_id && !validReconciliationIds.has(b.reconciliation_id)) return true;
-              return false;
+              // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
+              if (b.reconciled && b.reconciliation_id && !validReconciliationIds.has(b.reconciliation_id)) return true;
+              // Skip properly reconciled bills
+              if (b.reconciled) return false;
+              // For unreconciled bills, we'll apply cutoff later when we have the JE date
+              return true;
             });
 
             if (bills && bills.length > 0) {
@@ -238,11 +273,12 @@ export const useBankReconciliation = () => {
                 .filter(bill => billToJe.has(bill.id))
                 .map(bill => {
                   const jeId = billToJe.get(bill.id);
+                  const entryDate = jeToDate.get(jeId) || '';
                   const isOrphaned = bill.reconciled && bill.reconciliation_id && 
                     !validReconciliationIds.has(bill.reconciliation_id);
                   return {
                     id: bill.id,
-                    date: jeToDate.get(jeId) || '',
+                    date: entryDate,
                     type: 'bill_payment' as const,
                     payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
                     reference_number: bill.reference_number || undefined,
@@ -252,6 +288,13 @@ export const useBankReconciliation = () => {
                     reconciliation_id: bill.reconciliation_id || undefined,
                     isOrphaned,
                   };
+                })
+                // Apply cutoff filter for unreconciled bill payments
+                .filter(bp => {
+                  if (bp.isOrphaned) return true; // Always show orphaned
+                  if (bp.reconciled) return false; // Hide reconciled (shouldn't happen but safety)
+                  if (cutoffDate && bp.date <= cutoffDate) return false; // Hide old unreconciled
+                  return true;
                 });
 
               console.log('[Reconciliation] Bill payments processed:', { 
@@ -300,10 +343,13 @@ export const useBankReconciliation = () => {
           }
 
           // Filter: unreconciled OR orphaned
+          // Cutoff will be applied later when we have the JE date
           const manualLines = (allManualLinesRaw || []).filter(l => {
-            if (!l.reconciled) return true;
-            if (l.reconciliation_id && !validReconciliationIds.has(l.reconciliation_id)) return true;
-            return false;
+            // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
+            if (l.reconciled && l.reconciliation_id && !validReconciliationIds.has(l.reconciliation_id)) return true;
+            // Skip properly reconciled
+            if (l.reconciled) return false;
+            return true; // Unreconciled - cutoff applied later
           });
 
           if (manualLines && manualLines.length > 0) {
@@ -327,7 +373,10 @@ export const useBankReconciliation = () => {
               const isOrphaned = line.reconciled && line.reconciliation_id && 
                 !validReconciliationIds.has(line.reconciliation_id);
 
-              if (credit > 0) {
+              // Apply cutoff filter for unreconciled manual JE lines
+              const shouldInclude = isOrphaned || !cutoffDate || je.entry_date > cutoffDate;
+              
+              if (credit > 0 && shouldInclude) {
                 // Credits to bank account = money going OUT (like checks)
                 manualJournalCredits.push({
                   id: line.id, // Use line id as the transaction id
@@ -342,7 +391,7 @@ export const useBankReconciliation = () => {
                   reconciliation_id: line.reconciliation_id || undefined,
                   isOrphaned,
                 });
-              } else if (debit > 0) {
+              } else if (debit > 0 && shouldInclude) {
                 // Debits to bank account = money coming IN (like deposits)
                 manualJournalDebits.push({
                   id: line.id, // Use line id as the transaction id
