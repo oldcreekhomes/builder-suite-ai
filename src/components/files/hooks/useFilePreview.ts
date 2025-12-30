@@ -50,6 +50,16 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
               .from(file.bucket)
               .download(file.path);
 
+            // Check for "Object not found" specifically
+            if (downloadError) {
+              const errorMessage = downloadError.message || '';
+              if (errorMessage.includes('Object not found') || errorMessage.includes('not found')) {
+                setError("File missing from storage. The file may have been deleted or failed to upload.");
+                setIsLoading(false);
+                return;
+              }
+            }
+
             if (!downloadError && blobData) {
               // Ensure the blob has the correct content type for PDF viewers
               const pdfBlob = blobData.type === 'application/pdf'
