@@ -196,30 +196,38 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       setImportProgress(10);
       const companyNameToIdMap = new Map<string, string>();
 
+      // Get user details once before the loop
+      const { data: userDetailsForCompanies } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const homeBuilderIdToUse = userDetailsForCompanies?.home_builder_id || user.id;
+
       for (let i = 0; i < companiesData.length; i++) {
         const row = companiesData[i] as any;
+        const companyName = row.CompanyName?.trim();
+        
+        if (!companyName) {
+          result.errors.push(`Row ${i + 2}: Company name is required`);
+          result.companiesSkipped++;
+          continue;
+        }
         
         try {
-          // Check if company already exists
+          // Check if company already exists (case-insensitive within same home_builder)
           const { data: existingCompany } = await supabase
             .from('companies')
-            .select('id')
-            .eq('company_name', row.CompanyName)
+            .select('id, company_name')
+            .eq('home_builder_id', homeBuilderIdToUse)
+            .ilike('company_name', companyName)
             .maybeSingle();
-
-          // Get user details to determine home_builder_id
-          const { data: userDetails } = await supabase
-            .from('users')
-            .select('role, home_builder_id')
-            .eq('id', user.id)
-            .single();
-
-          const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
           const companyType = row.CompanyType || 'Subcontractor';
           
           const companyData = {
-            company_name: row.CompanyName,
+            company_name: companyName,
             company_type: companyType,
             address: row.Address || null,
             phone_number: row.PhoneNumber || null,
@@ -235,11 +243,11 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               .eq('id', existingCompany.id);
 
             if (error) {
-              result.errors.push(`Failed to update company ${row.CompanyName}: ${error.message}`);
+              result.errors.push(`Failed to update company ${companyName}: ${error.message}`);
               result.companiesSkipped++;
             } else {
               result.companiesUpdated++;
-              companyNameToIdMap.set(row.CompanyName, existingCompany.id);
+              companyNameToIdMap.set(companyName, existingCompany.id);
             }
           } else {
             // Create new company
@@ -250,11 +258,11 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
               .single();
 
             if (error) {
-              result.errors.push(`Failed to create company ${row.CompanyName}: ${error.message}`);
+              result.errors.push(`Failed to create company ${companyName}: ${error.message}`);
               result.companiesSkipped++;
             } else {
               result.companiesCreated++;
-              companyNameToIdMap.set(row.CompanyName, newCompany.id);
+              companyNameToIdMap.set(companyName, newCompany.id);
             }
           }
 
@@ -313,14 +321,8 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
       // Process representatives
       setImportProgress(70);
       
-      // Get user details for representatives (same logic as companies)
-      const { data: userDetails } = await supabase
-        .from('users')
-        .select('role, home_builder_id')
-        .eq('id', user.id)
-        .single();
-
-      const homeBuilderIdForReps = userDetails?.home_builder_id || user.id;
+      // Reuse homeBuilderIdToUse from earlier
+      const homeBuilderIdForReps = homeBuilderIdToUse;
       
       for (let i = 0; i < representativesData.length; i++) {
         const row = representativesData[i] as any;

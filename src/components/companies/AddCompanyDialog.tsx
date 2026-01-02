@@ -234,8 +234,20 @@ export function AddCompanyDialog({
       // Use home_builder_id if user is internal (has home_builder_id), otherwise use user.id (for owner)
       const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
 
+      // Check for duplicate company name (case-insensitive)
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id, company_name')
+        .eq('home_builder_id', homeBuilderIdToUse)
+        .ilike('company_name', data.company_name.trim())
+        .maybeSingle();
+
+      if (existingCompany) {
+        throw new Error(`A company named "${existingCompany.company_name}" already exists`);
+      }
+
       const insertData = {
-        company_name: data.company_name,
+        company_name: data.company_name.trim(),
         company_type: data.company_type,
         address_line_1: data.address_line_1 || null,
         address_line_2: data.address_line_2 || null,
@@ -342,11 +354,11 @@ export function AddCompanyDialog({
         window.location.reload();
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error creating company:', error);
       toast({
         title: "Error",
-        description: "Failed to create company",
+        description: error.message || "Failed to create company",
         variant: "destructive",
       });
     },
