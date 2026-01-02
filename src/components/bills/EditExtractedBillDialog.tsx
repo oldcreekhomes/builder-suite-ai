@@ -597,7 +597,7 @@ export function EditExtractedBillDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8">
+      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit Extracted Bill</DialogTitle>
         </DialogHeader>
