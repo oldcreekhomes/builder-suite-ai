@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Wrench, Trash2 } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Wrench, Trash2, RefreshCw } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import {
   AlertDialog,
@@ -33,6 +33,8 @@ interface ScheduleToolbarProps {
   hasCorruptedTasks?: boolean;
   onBulkDelete?: () => void;
   isDeleting?: boolean;
+  onRecalculateSchedule?: () => void;
+  isRecalculating?: boolean;
 }
 
 export function ScheduleToolbar({ 
@@ -53,7 +55,9 @@ export function ScheduleToolbar({
   isRepairing,
   hasCorruptedTasks,
   onBulkDelete,
-  isDeleting
+  isDeleting,
+  onRecalculateSchedule,
+  isRecalculating
 }: ScheduleToolbarProps) {
 
   return (
@@ -124,6 +128,18 @@ export function ScheduleToolbar({
         <Send className="h-4 w-4" />
         <span>Publish</span>
       </Button>
+
+      {onRecalculateSchedule && (
+        <Button
+          onClick={onRecalculateSchedule}
+          size="sm"
+          variant="outline"
+          disabled={isRecalculating}
+        >
+          <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+          <span>{isRecalculating ? 'Recalculating...' : 'Recalculate Dates'}</span>
+        </Button>
+      )}
 
       {hasCorruptedTasks && onRepairSchedule && (
         <Button
