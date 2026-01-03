@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectTask, addPendingUpdate } from "./useProjectTasks";
-import { getDependentTasks, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
+import { recalculateAllTaskDates } from "@/utils/scheduleRecalculation";
 import { useCallback } from "react";
 
 interface CreateTaskParams {
@@ -300,56 +300,16 @@ export const useTaskMutations = (projectId: string) => {
       queryClient.setQueryData(['project-tasks', projectId, user?.id], updatedCache);
       console.log('📦 Cache immediately updated with new task data');
       
-      // Check if we need to cascade updates to dependent tasks
+      // Check if we need to recalculate dependent tasks
       const dateFieldsChanged = variables.start_date || variables.end_date || variables.duration !== undefined;
       const predecessorChanged = variables.predecessor !== undefined;
-      const shouldCascade = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
+      const shouldRecalculate = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
       
-      // Run cascade with already-updated cache
-      if (shouldCascade && updatedCache.length > 0) {
-        // Working tasks already has the updated task from cache
-        const workingTasks: ProjectTask[] = updatedCache;
-        
-        // When predecessor changed, recalculate THIS task's dates first
-        if (predecessorChanged) {
-          const taskWithNewPredecessor = workingTasks.find(t => t.id === data.id);
-          if (taskWithNewPredecessor) {
-            const dateUpdate = calculateTaskDatesFromPredecessors(taskWithNewPredecessor, workingTasks);
-            
-            if (dateUpdate) {
-              const currentStartDate = data.start_date.split('T')[0];
-              const currentEndDate = data.end_date.split('T')[0];
-              
-              if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
-                console.log(`📅 Recalculating task dates from new predecessor:`, dateUpdate);
-                
-                // Update the task's own dates
-                await updateTask.mutateAsync({
-                  id: data.id,
-                  start_date: dateUpdate.startDate,
-                  end_date: dateUpdate.endDate,
-                  duration: dateUpdate.duration,
-                  suppressInvalidate: true,
-                  skipCascade: false // Allow this update to cascade to dependents
-                });
-                
-                // Update working tasks array with new dates
-                const taskIndex = workingTasks.findIndex(t => t.id === data.id);
-                if (taskIndex !== -1) {
-                  workingTasks[taskIndex] = {
-                    ...workingTasks[taskIndex],
-                    start_date: dateUpdate.startDate + 'T00:00:00',
-                    end_date: dateUpdate.endDate + 'T00:00:00',
-                    duration: dateUpdate.duration
-                  };
-                }
-              }
-            }
-          }
-        }
-        
-        // Run cascade with cached data
-        await cascadeDependentUpdates(data.id, workingTasks);
+      // Run full schedule recalculation (replaces complex cascade logic)
+      if (shouldRecalculate && updatedCache.length > 0 && user?.id) {
+        console.log('🔄 Running full schedule recalculation after task update');
+        const result = await recalculateAllTaskDates(projectId, updatedCache, user.id);
+        console.log(`✅ Recalculation complete: ${result.updatedCount} tasks updated`);
       }
       
       // Direct parent recalculation on any field change (dates, duration, or progress)
@@ -405,82 +365,6 @@ export const useTaskMutations = (projectId: string) => {
       toast({ title: "Error", description: 'Task deleted successfully', variant: "destructive" });
     },
   });
-
-  // Centralized cascade function with parallel processing for speed
-  const cascadeDependentUpdates = async (changedTaskId: string, allTasks: ProjectTask[]) => {
-    
-    const queue: string[] = [changedTaskId];
-    const processed = new Set<string>();
-    const maxDepth = 25;
-    let depth = 0;
-    
-    console.log(`🔄 Starting cascade for task ${changedTaskId}`);
-    
-    while (queue.length > 0 && depth < maxDepth) {
-      const currentTaskId = queue.shift()!;
-      
-      if (processed.has(currentTaskId)) continue;
-      processed.add(currentTaskId);
-      
-      const dependentTasks = getDependentTasks(currentTaskId, allTasks);
-      console.log(`📋 Cascade depth ${depth}: Found ${dependentTasks.length} dependents for task ${currentTaskId}`);
-      
-      // Process dependent tasks in parallel batches for speed
-      const updatePromises = dependentTasks.map(async (depTask) => {
-        const dateUpdate = calculateTaskDatesFromPredecessors(depTask, allTasks);
-        if (dateUpdate) {
-          const currentStartDate = depTask.start_date.split('T')[0];
-          const currentEndDate = depTask.end_date.split('T')[0];
-          
-          if (currentStartDate !== dateUpdate.startDate || currentEndDate !== dateUpdate.endDate) {
-            console.log(`🔄 Cascade update: ${depTask.hierarchy_number}: ${depTask.task_name}`, 
-              `${currentStartDate} → ${dateUpdate.startDate}, ${currentEndDate} → ${dateUpdate.endDate}`);
-            
-            try {
-              await updateTask.mutateAsync({
-                id: depTask.id,
-                start_date: dateUpdate.startDate,
-                end_date: dateUpdate.endDate,
-                duration: dateUpdate.duration,
-                suppressInvalidate: true,
-                skipCascade: true
-              });
-              
-              // Update the task in our working array for further calculations
-              const taskIndex = allTasks.findIndex(t => t.id === depTask.id);
-              if (taskIndex !== -1) {
-                allTasks[taskIndex] = {
-                  ...allTasks[taskIndex],
-                  start_date: dateUpdate.startDate + 'T00:00:00',
-                  end_date: dateUpdate.endDate + 'T00:00:00',
-                  duration: dateUpdate.duration
-                };
-              }
-              
-              // Return task ID for next level processing
-              return depTask.id;
-            } catch (error) {
-              console.error(`❌ Failed to cascade update task ${depTask.id}:`, error);
-              return null;
-            }
-          }
-        }
-        return null;
-      });
-      
-      // Wait for all updates in this level to complete, then add successful ones to queue
-      const results = await Promise.all(updatePromises);
-      results.filter(Boolean).forEach(taskId => queue.push(taskId!));
-      
-      depth++;
-    }
-    
-    if (depth >= maxDepth) {
-      console.warn(`⚠️ Cascade stopped at max depth ${maxDepth}`);
-    }
-    
-    console.log(`✅ Cascade complete after ${depth} levels`);
-  };
 
   return {
     createTask,
