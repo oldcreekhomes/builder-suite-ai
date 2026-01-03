@@ -1,5 +1,14 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { getBusinessDaysBetween, calculateBusinessEndDate, addBusinessDays, isBusinessDay, ensureBusinessDay, getNextBusinessDay, formatYMD, startOfLocalDay } from "./businessDays";
+import { 
+  getBusinessDaysBetween, 
+  calculateBusinessEndDate, 
+  addBusinessDays, 
+  isBusinessDay, 
+  ensureBusinessDay, 
+  getNextBusinessDay, 
+  normalizeToYMD,
+  DateString
+} from "./dateOnly";
 import { safeParsePredecessors, parsePredecessorString } from "./predecessorValidation";
 
 export interface TaskCalculations {
@@ -40,13 +49,6 @@ export const getAllDescendantTasks = (parentTask: ProjectTask, allTasks: Project
   });
 };
 
-// Helper function to parse ISO date strings as local calendar dates (ignoring timezone)
-function toLocalDate(isoDateString: string): Date {
-  const dateOnly = isoDateString.split('T')[0]; // Get YYYY-MM-DD part
-  const [year, month, day] = dateOnly.split('-').map(Number);
-  return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
-}
-
 export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: ProjectTask[]): TaskCalculations | null => {
   const childTasks = getAllDescendantTasks(parentTask, allTasks);
   
@@ -54,21 +56,21 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
     return null;
   }
   
-  // Calculate start date (earliest start date among children) using local date parsing
-  const startDates = childTasks.map(task => toLocalDate(task.start_date));
-  const earliestStartDate = new Date(Math.min(...startDates.map(date => date.getTime())));
+  // Convert all dates to YYYY-MM-DD strings and find min/max
+  const startDates = childTasks.map(task => normalizeToYMD(task.start_date));
+  const endDates = childTasks.map(task => normalizeToYMD(task.end_date));
   
-  // Calculate end date (latest end date among children) using local date parsing
-  const endDates = childTasks.map(task => toLocalDate(task.end_date));
-  const latestEndDate = new Date(Math.max(...endDates.map(date => date.getTime())));
+  // String comparison works for YYYY-MM-DD format
+  const earliestStartDate = startDates.reduce((min, date) => date < min ? date : min);
+  const latestEndDate = endDates.reduce((max, date) => date > max ? date : max);
   
   // Calculate duration as sum of all child durations (not date span)
   const duration = childTasks.reduce((sum, task) => sum + task.duration, 0);
   
   console.log('🔢 Parent calculation debug:', {
-    childTasks: childTasks.map(t => ({ name: t.task_name, start: t.start_date.split('T')[0], end: t.end_date.split('T')[0], duration: t.duration })),
-    earliestStartDate: formatYMD(earliestStartDate),
-    latestEndDate: formatYMD(latestEndDate),
+    childTasks: childTasks.map(t => ({ name: t.task_name, start: normalizeToYMD(t.start_date), end: normalizeToYMD(t.end_date), duration: t.duration })),
+    earliestStartDate,
+    latestEndDate,
     calculatedDuration: duration
   });
   
@@ -81,8 +83,8 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
   const progressPercentage = totalDuration > 0 ? Math.round((completedDuration / totalDuration) * 100) : 0;
   
   return {
-    startDate: formatYMD(earliestStartDate), // Format as YYYY-MM-DD
-    endDate: formatYMD(latestEndDate),
+    startDate: earliestStartDate,
+    endDate: latestEndDate,
     duration,
     progress: progressPercentage
   };
@@ -90,8 +92,8 @@ export const calculateParentTaskValues = (parentTask: ProjectTask, allTasks: Pro
 
 export const shouldUpdateParentTask = (task: ProjectTask, calculations: TaskCalculations): boolean => {
   return (
-    task.start_date.split('T')[0] !== calculations.startDate ||
-    task.end_date.split('T')[0] !== calculations.endDate ||
+    normalizeToYMD(task.start_date) !== calculations.startDate ||
+    normalizeToYMD(task.end_date) !== calculations.endDate ||
     task.duration !== calculations.duration ||
     (task.progress || 0) !== calculations.progress
   );
@@ -104,7 +106,7 @@ export interface TaskDateUpdate {
 }
 
 // Calculate task dates based on predecessors
-// Supports both FS (Finish-to-Start) and SF (Start-to-Finish) relationships
+// Supports FS, SF, SS, and FF relationships
 export const calculateTaskDatesFromPredecessors = (
   task: ProjectTask, 
   allTasks: ProjectTask[]
@@ -116,10 +118,10 @@ export const calculateTaskDatesFromPredecessors = (
   
   if (predecessors.length === 0) return null;
   
-  let latestFSEndDate = new Date(0); // For FS predecessors - track latest end date
-  let earliestSFEndDate: Date | null = null; // For SF predecessors - track earliest constrained end date
-  let latestSSStartDate = new Date(0); // For SS predecessors - track latest start date
-  let latestFFEndDate = new Date(0); // For FF predecessors - track latest end date
+  let latestFSEndDate: DateString | null = null;
+  let earliestSFEndDate: DateString | null = null;
+  let latestSSStartDate: DateString | null = null;
+  let latestFFEndDate: DateString | null = null;
   let hasFSPredecessor = false;
   let hasSFPredecessor = false;
   let hasSSPredecessor = false;
@@ -141,17 +143,11 @@ export const calculateTaskDatesFromPredecessors = (
     
     if (linkType === 'SF') {
       // SF (Start-to-Finish): Task's END is relative to predecessor's START
-      // Task end = predecessor start - 1 + lag
       hasSFPredecessor = true;
       
-      const predStartDateStr = predTask.start_date.split('T')[0];
-      const [year, month, day] = predStartDateStr.split('-').map(Number);
-      const predStartDate = new Date(year, month - 1, day);
+      const predStartDate = normalizeToYMD(predTask.start_date);
       
       // End date = predecessor start - 1 business day + lag
-      // With lag=0: end is 1 business day before predecessor starts
-      // With lag=-1: end is 2 business days before predecessor starts
-      // With lag=+1: end is same day as predecessor starts
       const taskEndDate = addBusinessDays(predStartDate, -1 + lagDays);
       
       if (!earliestSFEndDate || taskEndDate < earliestSFEndDate) {
@@ -159,46 +155,38 @@ export const calculateTaskDatesFromPredecessors = (
       }
     } else if (linkType === 'SS') {
       // SS (Start-to-Start): Task's START = predecessor's START (+ lag)
-      // Task starts on EXACT same day as predecessor starts
       hasSSPredecessor = true;
       
-      const predStartDateStr = predTask.start_date.split('T')[0];
-      const [year, month, day] = predStartDateStr.split('-').map(Number);
-      const predStartDate = new Date(year, month - 1, day);
+      const predStartDate = normalizeToYMD(predTask.start_date);
       
       // Start date = predecessor start + lag (EXACT same day if lag=0)
       const taskStartDate = addBusinessDays(predStartDate, lagDays);
       
-      if (taskStartDate > latestSSStartDate) {
+      if (!latestSSStartDate || taskStartDate > latestSSStartDate) {
         latestSSStartDate = taskStartDate;
       }
     } else if (linkType === 'FF') {
       // FF (Finish-to-Finish): Task's END = predecessor's END (+ lag)
-      // Task ends on EXACT same day as predecessor ends
       hasFFPredecessor = true;
       
-      const predEndDateStr = predTask.end_date.split('T')[0];
-      const [year, month, day] = predEndDateStr.split('-').map(Number);
-      const predEndDate = new Date(year, month - 1, day);
+      const predEndDate = normalizeToYMD(predTask.end_date);
       
       // End date = predecessor end + lag (EXACT same day if lag=0)
       const taskEndDate = addBusinessDays(predEndDate, lagDays);
       
-      if (taskEndDate > latestFFEndDate) {
+      if (!latestFFEndDate || taskEndDate > latestFFEndDate) {
         latestFFEndDate = taskEndDate;
       }
     } else {
       // FS (Finish-to-Start): Task's START is after predecessor's END
       hasFSPredecessor = true;
       
-      const predEndDateStr = predTask.end_date.split('T')[0];
-      const [year, month, day] = predEndDateStr.split('-').map(Number);
-      const predEndDate = new Date(year, month - 1, day);
+      const predEndDate = normalizeToYMD(predTask.end_date);
       
       // Apply lag using business days
       const adjustedPredEndDate = addBusinessDays(predEndDate, lagDays);
       
-      if (adjustedPredEndDate > latestFSEndDate) {
+      if (!latestFSEndDate || adjustedPredEndDate > latestFSEndDate) {
         latestFSEndDate = adjustedPredEndDate;
       }
     }
@@ -206,74 +194,69 @@ export const calculateTaskDatesFromPredecessors = (
   
   // Handle SF predecessors (backward calculation from end date)
   if (hasSFPredecessor && earliestSFEndDate) {
-    // Calculate start date by going backward from end date by duration
-    // Duration of N means N business days, so start = end - (duration - 1) business days
     const newEndDate = earliestSFEndDate;
     const newStartDate = addBusinessDays(newEndDate, -(task.duration - 1));
     
     console.log('📅 SF calculation:', {
       taskName: task.task_name,
       duration: task.duration,
-      newEndDate: formatYMD(newEndDate),
-      newStartDate: formatYMD(newStartDate)
+      newEndDate,
+      newStartDate
     });
     
     return {
-      startDate: formatYMD(newStartDate),
-      endDate: formatYMD(newEndDate),
+      startDate: newStartDate,
+      endDate: newEndDate,
       duration: task.duration
     };
   }
   
   // Handle SS predecessors (task starts on EXACT same day as predecessor starts)
-  if (hasSSPredecessor && latestSSStartDate.getTime() !== 0) {
-    const newStartDate = latestSSStartDate; // EXACT same day
+  if (hasSSPredecessor && latestSSStartDate) {
+    const newStartDate = latestSSStartDate;
     const newEndDate = calculateBusinessEndDate(newStartDate, task.duration);
     
     console.log('📅 SS calculation:', {
       taskName: task.task_name,
       duration: task.duration,
-      newStartDate: formatYMD(newStartDate),
-      newEndDate: formatYMD(newEndDate)
+      newStartDate,
+      newEndDate
     });
     
     return {
-      startDate: formatYMD(newStartDate),
-      endDate: formatYMD(newEndDate),
+      startDate: newStartDate,
+      endDate: newEndDate,
       duration: task.duration
     };
   }
   
   // Handle FF predecessors (task ends on EXACT same day as predecessor ends)
-  if (hasFFPredecessor && latestFFEndDate.getTime() !== 0) {
-    const newEndDate = latestFFEndDate; // EXACT same day
+  if (hasFFPredecessor && latestFFEndDate) {
+    const newEndDate = latestFFEndDate;
     const newStartDate = addBusinessDays(newEndDate, -(task.duration - 1));
     
     console.log('📅 FF calculation:', {
       taskName: task.task_name,
       duration: task.duration,
-      newEndDate: formatYMD(newEndDate),
-      newStartDate: formatYMD(newStartDate)
+      newEndDate,
+      newStartDate
     });
     
     return {
-      startDate: formatYMD(newStartDate),
-      endDate: formatYMD(newEndDate),
+      startDate: newStartDate,
+      endDate: newEndDate,
       duration: task.duration
     };
   }
   
-  // Handle FS predecessors (forward calculation from start date) - existing logic
-  if (hasFSPredecessor && latestFSEndDate.getTime() !== 0) {
-    // New start date is the next business day after the latest predecessor end date
+  // Handle FS predecessors (forward calculation from start date)
+  if (hasFSPredecessor && latestFSEndDate) {
     const newStartDate = getNextBusinessDay(latestFSEndDate);
-    
-    // Calculate new end date based on task duration using business days
     const newEndDate = calculateBusinessEndDate(newStartDate, task.duration);
     
     return {
-      startDate: formatYMD(newStartDate),
-      endDate: formatYMD(newEndDate),
+      startDate: newStartDate,
+      endDate: newEndDate,
       duration: task.duration
     };
   }

@@ -71,16 +71,17 @@ export const getPreviousBusinessDay = (dateStr: DateString): DateString => {
 };
 
 /**
- * Add business days to a date string
+ * Add business days to a date string (supports negative values for backward calculation)
  */
 export const addBusinessDays = (startDateStr: DateString, businessDays: number): DateString => {
-  if (businessDays <= 0) return startDateStr;
+  if (businessDays === 0) return startDateStr;
   
   let current = startDateStr;
-  let remainingDays = businessDays;
+  let remainingDays = Math.abs(businessDays);
+  const direction = businessDays > 0 ? 1 : -1;
   
   while (remainingDays > 0) {
-    current = addDays(current, 1);
+    current = addDays(current, direction);
     if (isBusinessDay(current)) {
       remainingDays--;
     }
