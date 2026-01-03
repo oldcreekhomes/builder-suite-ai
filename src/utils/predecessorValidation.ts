@@ -53,20 +53,17 @@ export interface ValidationResult {
   warnings: string[];
 }
 
-// Regex to parse predecessor format: "taskId", "taskIdSF", "taskIdSS", "taskIdFF", "taskId+Nd", "taskIdSF-Nd"
-// Group 1: taskId, Group 2: optional link type (SS, SF, FF), Group 3: optional lag (+Nd or -Nd)
-const PREDECESSOR_REGEX = /^(.+?)(SS|SF|FF)?([+-]\d+d?)?$/i;
+// Regex to parse predecessor format: "taskId", "taskIdFS", "taskIdSF", "taskIdSS", "taskIdFF", "taskId+Nd", "taskIdSF-Nd"
+// Group 1: taskId, Group 2: optional link type (FS, SS, SF, FF), Group 3: optional lag (+Nd or -Nd)
+const PREDECESSOR_REGEX = /^(.+?)(FS|SS|SF|FF)?([+-]\d+d?)?$/i;
 
 export function parsePredecessorString(pred: string): { taskId: string; linkType: LinkType; lagDays: number } | null {
   const match = pred.trim().match(PREDECESSOR_REGEX);
   if (!match) return null;
   
   const taskId = match[1].trim();
-  const linkTypePart = match[2]?.toUpperCase();
-  let linkType: LinkType = 'FS'; // Default
-  if (linkTypePart === 'SS') linkType = 'SS';
-  else if (linkTypePart === 'SF') linkType = 'SF';
-  else if (linkTypePart === 'FF') linkType = 'FF';
+  const linkTypePart = match[2]?.toUpperCase() as LinkType | undefined;
+  const linkType: LinkType = linkTypePart || 'FS'; // Default to FS
   const lagPart = match[3] || '';
   
   // Extract lag days (e.g., "+3d" -> 3, "-2d" -> -2, "+5" -> 5)
@@ -263,9 +260,9 @@ function findDuplicates(array: string[]): string[] {
 export function formatPredecessorForDisplay(pred: ParsedPredecessor): string {
   let result = pred.displayName;
   
-  // Add link type if SF
-  if (pred.linkType === 'SF') {
-    result += ' SF';
+  // Add link type if not the default FS
+  if (pred.linkType !== 'FS') {
+    result += ` ${pred.linkType}`;
   }
   
   // Add lag days
@@ -281,9 +278,9 @@ export function formatPredecessorForDisplay(pred: ParsedPredecessor): string {
 export function formatPredecessorForStorage(taskId: string, lagDays: number, linkType: LinkType = 'FS'): string {
   let result = taskId;
   
-  // Add link type if SF
-  if (linkType === 'SF') {
-    result += 'SF';
+  // Add link type if not the default FS
+  if (linkType !== 'FS') {
+    result += linkType;
   }
   
   // Add lag days
