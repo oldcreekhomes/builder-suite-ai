@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
-import { useOptimizedTaskCalculations } from "@/hooks/useOptimizedTaskCalculations";
+
 import { useOptimizedRealtime } from "@/hooks/useOptimizedRealtime";
 import { useRecalculateSchedule } from "@/hooks/useRecalculateSchedule";
 import { useQueryClient } from "@tanstack/react-query";
@@ -69,8 +69,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
 
-  // Use optimized hooks for performance
-  const { triggerParentRecalculation, clearCalculationCache } = useOptimizedTaskCalculations(projectId);
+  // Use optimized realtime hook for performance
   useOptimizedRealtime(projectId);
 
 
