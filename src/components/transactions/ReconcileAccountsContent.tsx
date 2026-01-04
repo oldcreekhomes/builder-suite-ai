@@ -64,15 +64,14 @@ function getAllocationDisplay(allocations: AllocationBreakdown[] | undefined, la
   
   const first = allocations[0];
   const displayText = `${first.code}: ${first.name}`;
-  const truncatedDisplay = displayText.length > 28 ? displayText.substring(0, 26) + '...' : displayText;
   
   if (allocations.length === 1 && first.lots.length <= 1) {
-    return { display: truncatedDisplay, hasMultiple: false, breakdown: allocations };
+    return { display: displayText, hasMultiple: false, breakdown: allocations };
   }
   
   const additionalCount = allocations.length - 1 + (first.lots.length > 1 ? 1 : 0);
   return { 
-    display: additionalCount > 0 ? `${truncatedDisplay} +${additionalCount}` : truncatedDisplay, 
+    display: additionalCount > 0 ? `${displayText} +${additionalCount}` : displayText, 
     hasMultiple: true, 
     breakdown: allocations 
   };
@@ -1123,7 +1122,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left whitespace-nowrap overflow-hidden">
+                          <th className="px-1 py-2 text-left whitespace-nowrap overflow-hidden">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1143,8 +1142,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left">Payee</th>
-                          <th className="p-2 text-left">Account</th>
+                          <th className="px-1 py-2 text-left">Payee</th>
+                          <th className="px-1 py-2 text-left">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right">
                             <button 
                               onClick={() => {
@@ -1189,7 +1188,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   onCheckedChange={() => handleToggleTransaction(check.id)}
                                 />
                               </td>
-                              <td className="p-2 whitespace-nowrap overflow-hidden">
+                              <td className="px-1 py-2 whitespace-nowrap overflow-hidden">
                                 <InlineEditCell
                                   value={check.date}
                                   type="date"
@@ -1197,7 +1196,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                                 />
                               </td>
-                              <td className="p-2 overflow-hidden">
+                              <td className="px-1 py-2 overflow-hidden">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1209,7 +1208,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   </Tooltip>
                                 </TooltipProvider>
                               </td>
-                              <td className="p-2 align-middle overflow-hidden">
+                              <td className="px-1 py-2 align-middle overflow-hidden">
                                 <AllocationCell 
                                   allocations={check.accountAllocations?.length ? check.accountAllocations : check.allocations} 
                                   labelType={check.accountAllocations?.length ? "account" : "code"} 
@@ -1251,7 +1250,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left whitespace-nowrap overflow-hidden">
+                          <th className="px-1 py-2 text-left whitespace-nowrap overflow-hidden">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1271,8 +1270,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left">Source</th>
-                          <th className="p-2 text-left">Account</th>
+                          <th className="px-1 py-2 text-left">Source</th>
+                          <th className="px-1 py-2 text-left">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right">
                             <button 
                               onClick={() => {
@@ -1317,7 +1316,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                 />
                               </td>
-                              <td className="p-2 whitespace-nowrap overflow-hidden">
+                              <td className="px-1 py-2 whitespace-nowrap overflow-hidden">
                                 <InlineEditCell
                                   value={deposit.date}
                                   type="date"
@@ -1325,7 +1324,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                                 />
                               </td>
-                              <td className="p-2 overflow-hidden">
+                              <td className="px-1 py-2 overflow-hidden">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1337,7 +1336,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   </Tooltip>
                                 </TooltipProvider>
                               </td>
-                              <td className="p-2 align-middle overflow-hidden">
+                              <td className="px-1 py-2 align-middle overflow-hidden">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
                               <td className="pl-2 pr-2 py-2 text-left whitespace-nowrap">
