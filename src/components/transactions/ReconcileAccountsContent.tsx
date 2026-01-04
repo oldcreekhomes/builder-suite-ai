@@ -1215,13 +1215,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   labelType={check.accountAllocations?.length ? "account" : "code"} 
                                 />
                               </td>
-                              <td className="pl-2 pr-2 py-2 text-right whitespace-nowrap">
+                              <td className="pl-2 pr-2 py-2 text-left whitespace-nowrap">
                                 <InlineEditCell
                                   value={check.amount.toString()}
                                   type="number"
                                   onSave={(value) => handleUpdateTransaction(check.id, check.type, 'amount', value)}
                                   displayFormat={(val) => formatCurrency(parseFloat(val))}
-                                  className="px-0 w-full text-right"
+                                  className="px-0 w-full text-left"
                                 />
                               </td>
                             </tr>
@@ -1340,13 +1340,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               <td className="p-2 align-middle overflow-hidden">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
-                              <td className="pl-2 pr-2 py-2 text-right whitespace-nowrap">
+                              <td className="pl-2 pr-2 py-2 text-left whitespace-nowrap">
                                 <InlineEditCell
                                   value={deposit.amount.toString()}
                                   type="number"
                                   onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'amount', value)}
                                   displayFormat={(val) => formatCurrency(parseFloat(val))}
-                                  className="px-0 w-full text-right"
+                                  className="px-0 w-full text-left"
                                 />
                               </td>
                             </tr>
