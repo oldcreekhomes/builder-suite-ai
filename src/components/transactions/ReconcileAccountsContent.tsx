@@ -64,7 +64,7 @@ function getAllocationDisplay(allocations: AllocationBreakdown[] | undefined, la
   
   const first = allocations[0];
   const displayText = `${first.code}: ${first.name}`;
-  const truncatedDisplay = displayText.length > 18 ? displayText.substring(0, 16) + '...' : displayText;
+  const truncatedDisplay = displayText.length > 28 ? displayText.substring(0, 26) + '...' : displayText;
   
   if (allocations.length === 1 && first.lots.length <= 1) {
     return { display: truncatedDisplay, hasMultiple: false, breakdown: allocations };
@@ -86,13 +86,13 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (!hasMultiple) {
-    return <span className="text-sm truncate max-w-[180px] inline-block align-middle">{display}</span>;
+    return <span className="text-sm truncate max-w-[220px] inline-block align-middle">{display}</span>;
   }
   
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-sm truncate max-w-[180px] inline-block align-middle cursor-help underline decoration-dotted">
+        <span className="text-sm truncate max-w-[220px] inline-block align-middle cursor-help underline decoration-dotted">
           {display}
         </span>
       </TooltipTrigger>
@@ -1136,9 +1136,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[150px]">Payee</th>
-                          <th className="p-2 text-left w-[180px]">Account</th>
-                          <th className="pl-2 pr-2 py-2 text-right w-24">
+                          <th className="p-2 text-left w-[220px]">Payee</th>
+                          <th className="p-2 text-left w-[240px]">Account</th>
+                          <th className="pl-2 pr-2 py-2 text-right w-28">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1194,7 +1194,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="block truncate max-w-[130px]">{check.payee}</span>
+                                      <span className="block truncate max-w-[200px]">{check.payee}</span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs">
                                       <p>{check.payee}</p>
@@ -1256,9 +1256,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[150px]">Source</th>
-                          <th className="p-2 text-left w-[180px]">Account</th>
-                          <th className="pl-2 pr-2 py-2 text-right w-24">
+                          <th className="p-2 text-left w-[220px]">Source</th>
+                          <th className="p-2 text-left w-[240px]">Account</th>
+                          <th className="pl-2 pr-2 py-2 text-right w-28">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1314,7 +1314,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="block truncate max-w-[130px]">{deposit.source}</span>
+                                      <span className="block truncate max-w-[200px]">{deposit.source}</span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs">
                                       <p>{deposit.source}</p>
