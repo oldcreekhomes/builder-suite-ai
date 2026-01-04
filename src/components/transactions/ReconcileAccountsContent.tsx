@@ -1136,7 +1136,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[200px]">Payee</th>
+                          <th className="p-2 text-left w-[150px]">Payee</th>
                           <th className="p-2 text-left w-[180px]">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right w-24">
                             <button 
@@ -1190,7 +1190,18 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                     />
                   </td>
-                              <td className="p-2 whitespace-nowrap">{check.payee}</td>
+                              <td className="p-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block truncate max-w-[130px]">{check.payee}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs">
+                                      <p>{check.payee}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </td>
                               <td className="p-2 align-middle">
                                 <AllocationCell 
                                   allocations={check.accountAllocations?.length ? check.accountAllocations : check.allocations} 
@@ -1245,7 +1256,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[200px]">Source</th>
+                          <th className="p-2 text-left w-[150px]">Source</th>
                           <th className="p-2 text-left w-[180px]">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right w-24">
                             <button 
@@ -1299,7 +1310,18 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                     />
                   </td>
-                              <td className="p-2 whitespace-nowrap">{deposit.source}</td>
+                              <td className="p-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block truncate max-w-[130px]">{deposit.source}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-xs">
+                                      <p>{deposit.source}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </td>
                               <td className="p-2 align-middle">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
