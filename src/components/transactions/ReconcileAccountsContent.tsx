@@ -1137,7 +1137,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           
-                          <th className="p-2 text-left">Ref #</th>
+                          
                           <th className="p-2 text-left">Payee</th>
                           <th className="p-2 text-left">Cost Code</th>
                           <th className="p-2 text-right">
@@ -1192,13 +1192,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                     />
                   </td>
-                              <td className="p-2">
-                                <InlineEditCell
-                                  value={check.reference_number || ''}
-                                  type="text"
-                                  onSave={(value) => handleUpdateTransaction(check.id, check.type, 'reference_number', value)}
-                                />
-                              </td>
                               <td className="p-2">{check.payee}</td>
                               <td className="p-2">
                                 <AllocationCell allocations={check.allocations} labelType="code" />
