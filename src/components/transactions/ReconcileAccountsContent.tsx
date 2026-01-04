@@ -14,7 +14,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench, RotateCcw } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -124,8 +124,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
   const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
   const [isFixingOrphanedTransactions, setIsFixingOrphanedTransactions] = useState(false);
-  const [resetDialogOpen, setResetDialogOpen] = useState(false);
-  const [isResettingReconciliation, setIsResettingReconciliation] = useState(false);
 
   const handleFixOrphanedTransactions = async () => {
     if (!selectedBankAccountId) return;
@@ -163,62 +161,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       });
     } finally {
       setIsFixingOrphanedTransactions(false);
-    }
-  };
-
-  const handleResetReconciliation = async () => {
-    if (!currentReconciliationId) {
-      toast({
-        title: "No reconciliation to reset",
-        description: "There is no in-progress reconciliation to reset.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsResettingReconciliation(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('reset-reconciliation', {
-        body: { 
-          reconciliationId: currentReconciliationId
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.ok) {
-        const totalUnreconciled = data.totalUnreconciled || 0;
-        toast({
-          title: "Reconciliation Reset",
-          description: totalUnreconciled > 0 
-            ? `Reset ${totalUnreconciled} transaction(s). You can now start fresh.`
-            : "Reconciliation reset. You can now start fresh.",
-        });
-        
-        // Reset local state
-        setCheckedTransactions(new Set());
-        setCurrentReconciliationId(null);
-        setEndingBalance("");
-        setNotes("");
-        setIsReconciliationMode(false);
-        setInitialCheckedTransactionsLoaded(false);
-        setHasLoadedFromDatabase(false);
-        
-        // Force page reload to get fresh data
-        window.location.reload();
-      } else {
-        throw new Error(data?.error || 'Unknown error');
-      }
-    } catch (error: any) {
-      console.error('Error resetting reconciliation:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reset reconciliation.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResettingReconciliation(false);
-      setResetDialogOpen(false);
     }
   };
 
@@ -1113,29 +1055,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 </Tooltip>
               </TooltipProvider>
             )}
-            {currentReconciliationId && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setResetDialogOpen(true)}
-                      disabled={isResettingReconciliation}
-                    >
-                      {isResettingReconciliation ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Reset this reconciliation
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </div>
         </div>
 
@@ -1608,41 +1527,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               }}
             >
               Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reset Reconciliation Confirmation Dialog */}
-      <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset This Reconciliation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will uncheck all transactions from this reconciliation and delete the in-progress reconciliation record. 
-              All transactions will become available again for a fresh start.
-              {statementDate && (
-                <div className="mt-2 text-sm">
-                  <strong>Statement Date:</strong> {format(statementDate, "MM/dd/yyyy")}
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isResettingReconciliation}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleResetReconciliation}
-              disabled={isResettingReconciliation}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isResettingReconciliation ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                "Reset Reconciliation"
-              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
