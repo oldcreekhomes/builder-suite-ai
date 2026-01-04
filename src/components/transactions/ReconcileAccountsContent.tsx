@@ -1137,7 +1137,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           <th className="p-2 text-left w-[200px]">Payee</th>
-                          <th className="p-2 text-left w-[180px]">Cost Code</th>
+                          <th className="p-2 text-left w-[180px]">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right w-24">
                             <button 
                               onClick={() => {
@@ -1192,7 +1192,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   </td>
                               <td className="p-2 whitespace-nowrap">{check.payee}</td>
                               <td className="p-2 align-middle">
-                                <AllocationCell allocations={check.allocations} labelType="code" />
+                                <AllocationCell 
+                                  allocations={check.accountAllocations?.length ? check.accountAllocations : check.allocations} 
+                                  labelType={check.accountAllocations?.length ? "account" : "code"} 
+                                />
                               </td>
                               <td className="pl-2 pr-2 py-2 text-right">
                                 <InlineEditCell

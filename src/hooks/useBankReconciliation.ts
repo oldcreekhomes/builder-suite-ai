@@ -351,6 +351,7 @@ export const useBankReconciliation = () => {
 
         let manualJournalCredits: ReconciliationTransaction[] = [];
         let manualJournalDebits: ReconciliationTransaction[] = [];
+        let journalAccountAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
 
         if (manualJournalEntries && manualJournalEntries.length > 0) {
           const mjeIds = manualJournalEntries.map(je => je.id);
@@ -439,7 +440,54 @@ export const useBankReconciliation = () => {
           }
         }
 
-        // ========== FETCH COST CODE ALLOCATIONS FOR CHECKS ==========
+        // ========== FETCH ACCOUNT ALLOCATIONS FOR JOURNAL ENTRIES ==========
+        // For journal entries, fetch the account info for each line
+        const allJELineIds = [...manualJournalCredits, ...manualJournalDebits].map(je => je.id);
+        if (allJELineIds.length > 0) {
+          const { data: jeLinesWithAccounts } = await supabase
+            .from('journal_entry_lines')
+            .select(`
+              id,
+              account_id,
+              debit,
+              credit,
+              lot_id,
+              accounts:account_id (code, name),
+              project_lots:lot_id (lot_number)
+            `)
+            .in('id', allJELineIds);
+
+          if (jeLinesWithAccounts) {
+            jeLinesWithAccounts.forEach(line => {
+              if (!line.account_id || !line.accounts) return;
+              const account = line.accounts as unknown as { code: string; name: string };
+              const lot = line.project_lots as unknown as { lot_number: string } | null;
+              const amount = Number(line.debit) || Number(line.credit) || 0;
+              
+              const allocation: AllocationBreakdown = {
+                code: account.code,
+                name: account.name,
+                lots: [{
+                  name: lot?.lot_number || 'No Lot',
+                  amount: amount
+                }],
+                total: amount
+              };
+              journalAccountAllocationsMap.set(line.id, [allocation]);
+            });
+          }
+
+          // Add account allocations to journal entry transactions
+          manualJournalCredits = manualJournalCredits.map(je => ({
+            ...je,
+            accountAllocations: journalAccountAllocationsMap.get(je.id) || []
+          }));
+          manualJournalDebits = manualJournalDebits.map(je => ({
+            ...je,
+            accountAllocations: journalAccountAllocationsMap.get(je.id) || []
+          }));
+        }
+
         let checkAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         if (checksToUse.length > 0) {
           const checkIdsForAllocations = checksToUse.map(c => c.id);
@@ -492,6 +540,63 @@ export const useBankReconciliation = () => {
                 total: cc.lots.reduce((sum, l) => sum + l.amount, 0)
               }));
               checkAllocationsMap.set(checkId, allocations);
+            });
+          }
+        }
+
+        // ========== FETCH ACCOUNT ALLOCATIONS FOR CHECKS ==========
+        let checkAccountAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
+        if (checksToUse.length > 0) {
+          const checkIdsForAccountAllocations = checksToUse.map(c => c.id);
+          const { data: checkLinesWithAccounts } = await supabase
+            .from('check_lines')
+            .select(`
+              check_id,
+              amount,
+              account_id,
+              lot_id,
+              accounts:account_id (code, name),
+              project_lots:lot_id (lot_number)
+            `)
+            .in('check_id', checkIdsForAccountAllocations);
+
+          if (checkLinesWithAccounts) {
+            // Group by check_id, then by account
+            const checkLinesByCheckForAccounts = new Map<string, typeof checkLinesWithAccounts>();
+            checkLinesWithAccounts.forEach(line => {
+              const existing = checkLinesByCheckForAccounts.get(line.check_id) || [];
+              existing.push(line);
+              checkLinesByCheckForAccounts.set(line.check_id, existing);
+            });
+
+            checkLinesByCheckForAccounts.forEach((lines, checkId) => {
+              // Group by account
+              const byAccount = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+              lines.forEach(line => {
+                if (!line.account_id || !line.accounts) return;
+                const account = line.accounts as unknown as { code: string; name: string };
+                const key = line.account_id;
+                if (!byAccount.has(key)) {
+                  byAccount.set(key, { 
+                    code: account.code, 
+                    name: account.name, 
+                    lots: [] 
+                  });
+                }
+                const lot = line.project_lots as unknown as { lot_number: string } | null;
+                byAccount.get(key)!.lots.push({
+                  name: lot?.lot_number || 'No Lot',
+                  amount: Number(line.amount)
+                });
+              });
+
+              const allocations: AllocationBreakdown[] = Array.from(byAccount.values()).map(acc => ({
+                code: acc.code,
+                name: acc.name,
+                lots: acc.lots,
+                total: acc.lots.reduce((sum, l) => sum + l.amount, 0)
+              }));
+              checkAccountAllocationsMap.set(checkId, allocations);
             });
           }
         }
@@ -632,6 +737,7 @@ export const useBankReconciliation = () => {
             reconciliation_date: effectivelyReconciled ? check.reconciliation_date || undefined : undefined,
             reconciliation_id: effectivelyReconciled ? check.reconciliation_id || undefined : undefined,
             allocations: checkAllocationsMap.get(check.id) || [],
+            accountAllocations: checkAccountAllocationsMap.get(check.id) || [],
           };
         });
 
