@@ -15,8 +15,6 @@ interface ReconciliationTransaction {
   reconciliation_id?: string;
   // For journal entries, we need the line id to mark as reconciled
   journal_entry_line_id?: string;
-  // True if transaction has reconciled=true but references a non-existent reconciliation
-  isOrphaned?: boolean;
 }
 
 interface BankReconciliation {
@@ -137,13 +135,15 @@ export const useBankReconciliation = () => {
           checksToUse = allChecks.filter(c => !c.project_id);
         }
 
-        // Filter checks: include unreconciled OR orphaned (reconciled but referencing invalid reconciliation_id)
-        // Also exclude old unreconciled transactions dated on or before last completed reconciliation
+        // Filter checks: show unreconciled transactions after cutoff
+        // Transactions with reconciliation_id from another project will be auto-fixed to become unreconciled
         checksToUse = checksToUse.filter(c => {
-          // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
-          if (c.reconciled && c.reconciliation_id && !validReconciliationIds.has(c.reconciliation_id)) return true;
-          // Skip properly reconciled checks
-          if (c.reconciled) return false;
+          // Skip reconciled checks (they're already done for this project)
+          if (c.reconciled && c.reconciliation_id && validReconciliationIds.has(c.reconciliation_id)) return false;
+          // If reconciled but pointing to invalid/other-project reconciliation, treat as unreconciled
+          // (The edge function auto-fix will clean these up)
+          const effectivelyReconciled = c.reconciled && c.reconciliation_id && validReconciliationIds.has(c.reconciliation_id);
+          if (effectivelyReconciled) return false;
           // Unreconciled: exclude if dated on or before cutoff
           if (cutoffDate && c.check_date <= cutoffDate) return false;
           return true; // Normal unreconciled after cutoff
@@ -169,13 +169,15 @@ export const useBankReconciliation = () => {
 
         const { data: allDepositsRaw, error: depositsError } = await depositsQuery;
         
-        // Filter deposits: unreconciled OR orphaned
-        // Also exclude old unreconciled transactions dated on or before last completed reconciliation
+        // Filter deposits: show unreconciled transactions after cutoff
         const deposits = (allDepositsRaw || []).filter(d => {
-          // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
-          if (d.reconciled && d.reconciliation_id && !validReconciliationIds.has(d.reconciliation_id)) return true;
           // Skip properly reconciled deposits
-          if (d.reconciled) return false;
+          const effectivelyReconciled = d.reconciled && d.reconciliation_id && validReconciliationIds.has(d.reconciliation_id);
+          if (effectivelyReconciled) return false;
+          // If reconciled but pointing to invalid/other-project reconciliation, treat as unreconciled
+          if (d.reconciled && d.reconciliation_id && !validReconciliationIds.has(d.reconciliation_id)) {
+            // This deposit will appear for reconciliation (auto-fix will clean it up)
+          }
           // Unreconciled: exclude if dated on or before cutoff
           if (cutoffDate && d.deposit_date <= cutoffDate) return false;
           return true; // Normal unreconciled after cutoff
@@ -247,15 +249,13 @@ export const useBankReconciliation = () => {
               console.error('[Reconciliation] Bills query failed:', billsError);
             }
 
-            // Filter bills: unreconciled OR orphaned
-            // Also exclude old unreconciled bill payments dated on or before last completed reconciliation
+            // Filter bills: show unreconciled (or orphaned treated as unreconciled)
             // We need to check the JE entry_date for cutoff since that's the payment date
             const bills = (allBillsRaw || []).filter(b => {
-              // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
-              if (b.reconciled && b.reconciliation_id && !validReconciliationIds.has(b.reconciliation_id)) return true;
-              // Skip properly reconciled bills
-              if (b.reconciled) return false;
-              // For unreconciled bills, we'll apply cutoff later when we have the JE date
+              // Properly reconciled for THIS project - skip
+              const effectivelyReconciled = b.reconciled && b.reconciliation_id && validReconciliationIds.has(b.reconciliation_id);
+              if (effectivelyReconciled) return false;
+              // For unreconciled (or orphaned), we'll apply cutoff later when we have the JE date
               return true;
             });
 
@@ -283,8 +283,9 @@ export const useBankReconciliation = () => {
                 .map(bill => {
                   const jeId = billToJe.get(bill.id);
                   const entryDate = jeToDate.get(jeId) || '';
-                  const isOrphaned = bill.reconciled && bill.reconciliation_id && 
-                    !validReconciliationIds.has(bill.reconciliation_id);
+                  // Treat orphaned as effectively unreconciled for this project
+                  const effectivelyReconciled = bill.reconciled && bill.reconciliation_id && 
+                    validReconciliationIds.has(bill.reconciliation_id);
                   return {
                     id: bill.id,
                     date: entryDate,
@@ -292,16 +293,14 @@ export const useBankReconciliation = () => {
                     payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
                     reference_number: bill.reference_number || undefined,
                     amount: jeToCredit.get(jeId) || 0,
-                    reconciled: bill.reconciled,
-                    reconciliation_date: bill.reconciliation_date || undefined,
-                    reconciliation_id: bill.reconciliation_id || undefined,
-                    isOrphaned,
+                    reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
+                    reconciliation_date: effectivelyReconciled ? bill.reconciliation_date || undefined : undefined,
+                    reconciliation_id: effectivelyReconciled ? bill.reconciliation_id || undefined : undefined,
                   };
                 })
                 // Apply cutoff filter for unreconciled bill payments
                 .filter(bp => {
-                  if (bp.isOrphaned) return true; // Always show orphaned
-                  if (bp.reconciled) return false; // Hide reconciled (shouldn't happen but safety)
+                  if (bp.reconciled) return false; // Hide properly reconciled
                   if (cutoffDate && bp.date <= cutoffDate) return false; // Hide old unreconciled
                   return true;
                 });
@@ -351,14 +350,13 @@ export const useBankReconciliation = () => {
             console.error('[Reconciliation] Manual journal lines query failed:', mlError);
           }
 
-          // Filter: unreconciled OR orphaned
+          // Filter: show unreconciled (or orphaned treated as unreconciled)
           // Cutoff will be applied later when we have the JE date
           const manualLines = (allManualLinesRaw || []).filter(l => {
-            // Orphaned: reconciled but reconciliation_id doesn't exist - always show these
-            if (l.reconciled && l.reconciliation_id && !validReconciliationIds.has(l.reconciliation_id)) return true;
-            // Skip properly reconciled
-            if (l.reconciled) return false;
-            return true; // Unreconciled - cutoff applied later
+            // Properly reconciled for THIS project - skip
+            const effectivelyReconciled = l.reconciled && l.reconciliation_id && validReconciliationIds.has(l.reconciliation_id);
+            if (effectivelyReconciled) return false;
+            return true; // Unreconciled (or orphaned) - cutoff applied later
           });
 
           if (manualLines && manualLines.length > 0) {
@@ -379,11 +377,13 @@ export const useBankReconciliation = () => {
 
               const debit = Number(line.debit) || 0;
               const credit = Number(line.credit) || 0;
-              const isOrphaned = line.reconciled && line.reconciliation_id && 
-                !validReconciliationIds.has(line.reconciliation_id);
+              
+              // Treat orphaned as effectively unreconciled for this project
+              const effectivelyReconciled = line.reconciled && line.reconciliation_id && 
+                validReconciliationIds.has(line.reconciliation_id);
 
               // Apply cutoff filter for unreconciled manual JE lines
-              const shouldInclude = isOrphaned || !cutoffDate || je.entry_date > cutoffDate;
+              const shouldInclude = !effectivelyReconciled && (!cutoffDate || je.entry_date > cutoffDate);
               
               if (credit > 0 && shouldInclude) {
                 // Credits to bank account = money going OUT (like checks)
@@ -395,10 +395,9 @@ export const useBankReconciliation = () => {
                   payee: je.description || 'Journal Entry',
                   reference_number: 'JE',
                   amount: credit,
-                  reconciled: line.reconciled || false,
-                  reconciliation_date: line.reconciliation_date || undefined,
-                  reconciliation_id: line.reconciliation_id || undefined,
-                  isOrphaned,
+                  reconciled: false, // Treat as unreconciled for this project
+                  reconciliation_date: undefined,
+                  reconciliation_id: undefined,
                 });
               } else if (debit > 0 && shouldInclude) {
                 // Debits to bank account = money coming IN (like deposits)
@@ -410,10 +409,9 @@ export const useBankReconciliation = () => {
                   source: je.description || 'Journal Entry',
                   reference_number: 'JE',
                   amount: debit,
-                  reconciled: line.reconciled || false,
-                  reconciliation_date: line.reconciliation_date || undefined,
-                  reconciliation_id: line.reconciliation_id || undefined,
-                  isOrphaned,
+                  reconciled: false, // Treat as unreconciled for this project
+                  reconciliation_date: undefined,
+                  reconciliation_id: undefined,
                 });
               }
             });
@@ -425,10 +423,11 @@ export const useBankReconciliation = () => {
           }
         }
 
-        // Transform checks into transactions (mark orphaned ones)
+        // Transform checks into transactions
+        // Treat orphaned (reconciled to another project) as effectively unreconciled
         const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => {
-          const isOrphaned = check.reconciled && check.reconciliation_id && 
-            !validReconciliationIds.has(check.reconciliation_id);
+          const effectivelyReconciled = check.reconciled && check.reconciliation_id && 
+            validReconciliationIds.has(check.reconciliation_id);
           return {
             id: check.id,
             date: check.check_date,
@@ -436,26 +435,24 @@ export const useBankReconciliation = () => {
             payee: check.pay_to,
             reference_number: check.check_number || undefined,
             amount: Number(check.amount),
-            reconciled: check.reconciled,
-            reconciliation_date: check.reconciliation_date || undefined,
-            reconciliation_id: check.reconciliation_id || undefined,
-            isOrphaned,
+            reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
+            reconciliation_date: effectivelyReconciled ? check.reconciliation_date || undefined : undefined,
+            reconciliation_id: effectivelyReconciled ? check.reconciliation_id || undefined : undefined,
           };
         });
 
         const depositTransactions: ReconciliationTransaction[] = (deposits || []).map(deposit => {
-          const isOrphaned = deposit.reconciled && deposit.reconciliation_id && 
-            !validReconciliationIds.has(deposit.reconciliation_id);
+          const effectivelyReconciled = deposit.reconciled && deposit.reconciliation_id && 
+            validReconciliationIds.has(deposit.reconciliation_id);
           return {
             id: deposit.id,
             date: deposit.deposit_date,
             type: 'deposit' as const,
             source: deposit.memo || 'Deposit',
             amount: Number(deposit.amount),
-            reconciled: deposit.reconciled,
-            reconciliation_date: deposit.reconciliation_date || undefined,
-            reconciliation_id: deposit.reconciliation_id || undefined,
-            isOrphaned,
+            reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
+            reconciliation_date: effectivelyReconciled ? deposit.reconciliation_date || undefined : undefined,
+            reconciliation_id: effectivelyReconciled ? deposit.reconciliation_id || undefined : undefined,
           };
         });
 

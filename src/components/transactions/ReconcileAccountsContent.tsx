@@ -14,7 +14,7 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Wrench } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -123,46 +123,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [selectedReconciliationToUndo, setSelectedReconciliationToUndo] = useState<any>(null);
   const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
   const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
-  const [isFixingOrphanedTransactions, setIsFixingOrphanedTransactions] = useState(false);
-
-  const handleFixOrphanedTransactions = async () => {
-    if (!selectedBankAccountId) return;
-    
-    setIsFixingOrphanedTransactions(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fix-orphaned-reconciliations', {
-        body: { 
-          bankAccountId: selectedBankAccountId,
-          projectId: projectId || null
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.ok) {
-        const totalFixed = data.totalFixed || 0;
-        toast({
-          title: "Transactions Unlocked",
-          description: totalFixed > 0 
-            ? `Fixed ${totalFixed} orphaned transaction(s). They are now editable.`
-            : "No orphaned transactions found.",
-        });
-        // Refetch transactions to update the UI
-        window.location.reload();
-      } else {
-        throw new Error(data?.error || 'Unknown error');
-      }
-    } catch (error: any) {
-      console.error('Error fixing orphaned transactions:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to fix orphaned transactions.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsFixingOrphanedTransactions(false);
-    }
-  };
 
   const {
     data: reconciliationHistory,
@@ -178,15 +138,25 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   );
 
   // Separate query for in-progress reconciliation (since history now only shows completed)
+  // CRITICAL: Must scope by project_id to maintain project independence
   const { data: inProgressReconciliation, isLoading: isLoadingInProgress } = useQuery({
     queryKey: ['in-progress-reconciliation', projectId, selectedBankAccountId],
     queryFn: async () => {
       if (!selectedBankAccountId) return null;
-      const { data } = await supabase
+      let query = supabase
         .from('bank_reconciliations')
         .select('*')
         .eq('bank_account_id', selectedBankAccountId)
-        .eq('status', 'in_progress')
+        .eq('status', 'in_progress');
+      
+      // Scope by project_id for project independence
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      } else {
+        query = query.is('project_id', null);
+      }
+      
+      const { data } = await query
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -201,10 +171,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     (acc) => acc.type === 'asset' && acc.is_active
   ) || [];
 
-  // Count orphaned transactions (marked by hook as having invalid reconciliation_id)
-  const orphanedChecksCount = transactions?.checks.filter(c => c.isOrphaned).length || 0;
-  const orphanedDepositsCount = transactions?.deposits.filter(d => d.isOrphaned).length || 0;
-  const hasOrphanedTransactions = orphanedChecksCount > 0 || orphanedDepositsCount > 0;
 
   const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
   const clearedDeposits = transactions?.deposits.filter(d => checkedTransactions.has(d.id)) || [];
@@ -416,14 +382,22 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       };
 
       // If no ID, check if there's an existing in-progress to update (prevents duplicates)
+      // If no ID, check if there's an existing in-progress to update (prevents duplicates)
+      // CRITICAL: Must scope by project_id to maintain project independence
       if (!currentReconciliationIdValue) {
-        const { data: existing } = await supabase
+        let existingQuery = supabase
           .from('bank_reconciliations')
           .select('id')
           .eq('bank_account_id', selectedBankAccountId)
-          .eq('status', 'in_progress')
-          .limit(1)
-          .maybeSingle();
+          .eq('status', 'in_progress');
+        
+        if (projectId) {
+          existingQuery = existingQuery.eq('project_id', projectId);
+        } else {
+          existingQuery = existingQuery.is('project_id', null);
+        }
+        
+        const { data: existing } = await existingQuery.limit(1).maybeSingle();
         
         if (existing) {
           currentReconciliationIdValue = existing.id;
@@ -1032,29 +1006,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             >
               Edit
             </Button>
-            {hasOrphanedTransactions && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={handleFixOrphanedTransactions}
-                      disabled={isFixingOrphanedTransactions}
-                    >
-                      {isFixingOrphanedTransactions ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Wrench className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Fix {orphanedChecksCount + orphanedDepositsCount} locked transaction(s)
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </div>
         </div>
 
