@@ -86,13 +86,13 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (!hasMultiple) {
-    return <span className="text-sm truncate max-w-[120px] inline-block">{display}</span>;
+    return <span className="text-sm truncate max-w-[200px] inline-block">{display}</span>;
   }
   
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-sm truncate max-w-[120px] inline-block cursor-help underline decoration-dotted">
+        <span className="text-sm truncate max-w-[200px] inline-block cursor-help underline decoration-dotted">
           {display}
         </span>
       </TooltipTrigger>
@@ -1116,7 +1116,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">
+                          <th className="p-2 text-left w-24">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1136,11 +1136,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          
-                          
-                          <th className="p-2 text-left">Payee</th>
+                          <th className="p-2 text-left w-[160px]">Payee</th>
                           <th className="p-2 text-left">Cost Code</th>
-                          <th className="p-2 text-right">
+                          <th className="p-2 text-right w-28">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1150,7 +1148,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   setChecksSortDirection('asc');
                                 }
                               }} 
-                              className="flex items-center gap-1 ml-auto hover:text-primary"
+                              className="flex items-center gap-1 justify-end hover:text-primary"
                             >
                               {checksSortColumn === 'amount' ? (
                                 checksSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
@@ -1224,7 +1222,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">
+                          <th className="p-2 text-left w-24">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1244,9 +1242,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left">Source</th>
+                          <th className="p-2 text-left w-[160px]">Source</th>
                           <th className="p-2 text-left">Account</th>
-                          <th className="p-2 text-right">
+                          <th className="p-2 text-right w-28">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1256,7 +1254,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   setDepositsSortDirection('asc');
                                 }
                               }} 
-                              className="flex items-center gap-1 ml-auto hover:text-primary"
+                              className="flex items-center gap-1 justify-end hover:text-primary"
                             >
                               {depositsSortColumn === 'amount' ? (
                                 depositsSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
