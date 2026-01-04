@@ -54,11 +54,20 @@ export const useBankReconciliation = () => {
           return { checks: [], deposits: [] };
         }
 
-        // Fetch all valid reconciliation IDs for this bank account to detect orphans
-        const { data: validReconciliations } = await supabase
+        // Fetch all valid reconciliation IDs for this bank account AND project to detect orphans
+        // CRITICAL: Must scope by project_id to maintain project independence
+        let validReconciliationsQuery = supabase
           .from('bank_reconciliations')
           .select('id')
           .eq('bank_account_id', bankAccountId);
+        
+        if (projectId) {
+          validReconciliationsQuery = validReconciliationsQuery.eq('project_id', projectId);
+        } else {
+          validReconciliationsQuery = validReconciliationsQuery.is('project_id', null);
+        }
+        
+        const { data: validReconciliations } = await validReconciliationsQuery;
         
         const validReconciliationIds = new Set((validReconciliations || []).map(r => r.id));
 
