@@ -86,13 +86,13 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (!hasMultiple) {
-    return <span className="text-xs truncate max-w-[100px] inline-block">{display}</span>;
+    return <span className="text-sm truncate max-w-[120px] inline-block">{display}</span>;
   }
   
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-xs truncate max-w-[100px] inline-block cursor-help underline decoration-dotted">
+        <span className="text-sm truncate max-w-[120px] inline-block cursor-help underline decoration-dotted">
           {display}
         </span>
       </TooltipTrigger>
@@ -1136,10 +1136,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left">Type</th>
+                          
                           <th className="p-2 text-left">Ref #</th>
                           <th className="p-2 text-left">Payee</th>
-                          <th className="p-2 text-left text-xs">Cost Code</th>
+                          <th className="p-2 text-left">Cost Code</th>
                           <th className="p-2 text-right">
                             <button 
                               onClick={() => {
@@ -1192,9 +1192,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                     />
                   </td>
-                              <td className="p-2">
-                                {check.type === 'bill_payment' ? 'Bill Payment' : check.type === 'journal_entry' ? 'JE' : 'Check'}
-                              </td>
                               <td className="p-2">
                                 <InlineEditCell
                                   value={check.reference_number || ''}
@@ -1255,7 +1252,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           <th className="p-2 text-left">Source</th>
-                          <th className="p-2 text-left text-xs">Account</th>
+                          <th className="p-2 text-left">Account</th>
                           <th className="p-2 text-right">
                             <button 
                               onClick={() => {
