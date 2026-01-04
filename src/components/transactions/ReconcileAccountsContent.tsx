@@ -86,13 +86,13 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (!hasMultiple) {
-    return <span className="text-sm truncate max-w-[200px] inline-block">{display}</span>;
+    return <span className="text-sm truncate max-w-[140px] inline-block">{display}</span>;
   }
   
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-sm truncate max-w-[200px] inline-block cursor-help underline decoration-dotted">
+        <span className="text-sm truncate max-w-[140px] inline-block cursor-help underline decoration-dotted">
           {display}
         </span>
       </TooltipTrigger>
@@ -1109,14 +1109,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-12">
+                          <th className="p-2 text-left w-8">
                             <Checkbox
                               checked={allChecksSelected}
                               onCheckedChange={handleSelectAllChecks}
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left w-24">
+                          <th className="p-2 text-left w-20">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1136,9 +1136,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[160px]">Payee</th>
-                          <th className="p-2 text-left">Cost Code</th>
-                          <th className="p-2 text-right w-28">
+                          <th className="p-2 text-left w-[220px]">Payee</th>
+                          <th className="p-2 text-left w-[140px]">Cost Code</th>
+                          <th className="p-2 text-right w-24">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1190,7 +1190,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                     />
                   </td>
-                              <td className="p-2">{check.payee}</td>
+                              <td className="p-2 whitespace-nowrap">{check.payee}</td>
                               <td className="p-2">
                                 <AllocationCell allocations={check.allocations} labelType="code" />
                               </td>
@@ -1215,14 +1215,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full">
                       <thead className="bg-muted">
                         <tr>
-                          <th className="p-2 text-left w-12">
+                          <th className="p-2 text-left w-8">
                             <Checkbox
                               checked={allDepositsSelected}
                               onCheckedChange={handleSelectAllDeposits}
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left w-24">
+                          <th className="p-2 text-left w-20">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1242,9 +1242,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[160px]">Source</th>
-                          <th className="p-2 text-left">Account</th>
-                          <th className="p-2 text-right w-28">
+                          <th className="p-2 text-left w-[220px]">Source</th>
+                          <th className="p-2 text-left w-[140px]">Account</th>
+                          <th className="p-2 text-right w-24">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1296,7 +1296,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                     />
                   </td>
-                              <td className="p-2">{deposit.source}</td>
+                              <td className="p-2 whitespace-nowrap">{deposit.source}</td>
                               <td className="p-2">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
