@@ -169,6 +169,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const hasUnsavedChangesRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Lock to prevent auto-save from running during completeReconciliation
+  const isCompletingRef = useRef(false);
+  
   // Refs to always capture current state for auto-save (prevents stale closure issues)
   const checkedTransactionsRef = useRef<Set<string>>(new Set());
   const statementDateRef = useRef<Date | undefined>();
@@ -409,9 +412,15 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     const currentBeginningBalance = beginningBalanceRef.current;
     let currentReconciliationIdValue = currentReconciliationIdRef.current;
     
+    // SAFETY CHECK: Block auto-save during completion to prevent race conditions
+    if (isCompletingRef.current) {
+      console.log('⏭️ Auto-save skipped - completion in progress');
+      return;
+    }
+    
     // SAFETY CHECK: Skip auto-save if there's no meaningful data to save
     // This prevents overwriting existing saved data with empty values
-    if (!currentEndingBalance && !currentReconciliationIdValue && Object.keys(currentCheckedTransactions).length === 0) {
+    if (!currentEndingBalance && !currentReconciliationIdValue && currentCheckedTransactions.size === 0) {
       console.log('⏭️ Auto-save skipped - no ending balance, no existing record, and no checked transactions');
       return;
     }
@@ -680,12 +689,24 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       return;
     }
 
+    // Lock to prevent auto-save race condition
+    isCompletingRef.current = true;
+    
+    // Clear any pending auto-save to prevent it from running after completion
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    hasUnsavedChangesRef.current = false;
+
     try {
+      const targetDateStr = format(statementDate, 'yyyy-MM-dd');
+      
       const reconciliationData = {
         owner_id: user!.id,
         project_id: projectId || null,
         bank_account_id: selectedBankAccountId,
-        statement_date: format(statementDate, 'yyyy-MM-dd'),
+        statement_date: targetDateStr,
         statement_beginning_balance: parseFloat(beginningBalance || "0"),
         statement_ending_balance: parseFloat(endingBalance || "0"),
         reconciled_balance: calculatedEndingBalance,
@@ -697,6 +718,24 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       };
 
       let reconciliationId = currentReconciliationId;
+      
+      // VALIDATION: If we have an existing reconciliation ID, verify its statement_date matches
+      // If mismatched, create a new record instead of updating the wrong one
+      if (reconciliationId) {
+        const { data: existingRec } = await supabase
+          .from('bank_reconciliations')
+          .select('statement_date')
+          .eq('id', reconciliationId)
+          .single();
+        
+        if (existingRec && existingRec.statement_date !== targetDateStr) {
+          console.warn(`⚠️ Statement date mismatch: existing=${existingRec.statement_date}, target=${targetDateStr}. Creating new record.`);
+          reconciliationId = null;
+          setCurrentReconciliationId(null);
+          currentReconciliationIdRef.current = null;
+        }
+      }
+      
       if (reconciliationId) {
         await updateReconciliation.mutateAsync({
           id: reconciliationId,
@@ -707,7 +746,6 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         reconciliationId = result.id;
       }
 
-      const dateStr = format(statementDate, 'yyyy-MM-dd');
       const promises = [];
 
       for (const check of transactions?.checks || []) {
@@ -719,7 +757,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               id: check.id,
               reconciled: shouldBeReconciled,
               reconciliationId: shouldBeReconciled ? reconciliationId! : undefined,
-              reconciliationDate: shouldBeReconciled ? dateStr : undefined,
+              reconciliationDate: shouldBeReconciled ? targetDateStr : undefined,
             })
           );
         }
@@ -734,7 +772,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               id: deposit.id,
               reconciled: shouldBeReconciled,
               reconciliationId: shouldBeReconciled ? reconciliationId! : undefined,
-              reconciliationDate: shouldBeReconciled ? dateStr : undefined,
+              reconciliationDate: shouldBeReconciled ? targetDateStr : undefined,
             })
           );
         }
@@ -755,7 +793,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       setCheckedTransactions(new Set());
       setIsReconciliationMode(false);
       setInitialCheckedTransactionsLoaded(false);
+      setHasLoadedFromDatabase(false); // Force re-load from database
       hasUnsavedChangesRef.current = false;
+      isRestoredRef.current = false; // Reset restoration flag
       // The useEffect will automatically populate the new beginning balance and statement date
     } catch (error) {
       console.error('Error completing reconciliation:', error);
@@ -764,6 +804,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         description: "Failed to complete reconciliation. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      // Always release the completion lock
+      isCompletingRef.current = false;
     }
   };
 
@@ -846,16 +889,25 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         setIsReconciliationMode(true);
       }
       
-      // Clean up any duplicate in-progress records for this bank account
-      supabase
+      // Clean up any duplicate in-progress records for this bank account AND project
+      // CRITICAL: Must include project_id filter to prevent affecting other projects
+      const cleanupQuery = supabase
         .from('bank_reconciliations')
         .delete()
         .eq('bank_account_id', selectedBankAccountId)
         .eq('status', 'in_progress')
-        .neq('id', inProgressReconciliation.id)
-        .then(() => {
-          // Cleanup complete (fire and forget)
-        });
+        .neq('id', inProgressReconciliation.id);
+      
+      // Scope cleanup by project_id
+      if (projectId) {
+        cleanupQuery.eq('project_id', projectId);
+      } else {
+        cleanupQuery.is('project_id', null);
+      }
+      
+      cleanupQuery.then(() => {
+        // Cleanup complete (fire and forget)
+      });
       
       setHasLoadedFromDatabase(true);
       isRestoredRef.current = true; // Mark restoration complete - auto-save now allowed
