@@ -1109,10 +1109,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full table-fixed">
                       <colgroup>
                         <col className="w-10" />
-                        <col className="w-[100px]" />
+                        <col className="w-[110px]" />
                         <col />
-                        <col className="w-[200px]" />
-                        <col className="w-[140px]" />
+                        <col className="w-[170px]" />
+                        <col className="w-[120px]" />
                       </colgroup>
                       <thead className="bg-muted">
                         <tr>
@@ -1123,7 +1123,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">
+                          <th className="p-2 text-left whitespace-nowrap overflow-hidden">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1145,7 +1145,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           </th>
                           <th className="p-2 text-left">Payee</th>
                           <th className="p-2 text-left">Account</th>
-                          <th className="pl-2 pr-4 py-2 text-right">
+                          <th className="pl-2 pr-2 py-2 text-right">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1189,7 +1189,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   onCheckedChange={() => handleToggleTransaction(check.id)}
                                 />
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap overflow-hidden">
                                 <InlineEditCell
                                   value={check.date}
                                   type="date"
@@ -1215,12 +1215,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   labelType={check.accountAllocations?.length ? "account" : "code"} 
                                 />
                               </td>
-                              <td className="pl-2 pr-4 py-2 text-right whitespace-nowrap">
+                              <td className="pl-2 pr-2 py-2 text-right whitespace-nowrap">
                                 <InlineEditCell
                                   value={check.amount.toString()}
                                   type="number"
                                   onSave={(value) => handleUpdateTransaction(check.id, check.type, 'amount', value)}
                                   displayFormat={(val) => formatCurrency(parseFloat(val))}
+                                  className="px-0 w-full text-right"
                                 />
                               </td>
                             </tr>
@@ -1236,10 +1237,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     <table className="w-full table-fixed">
                       <colgroup>
                         <col className="w-10" />
-                        <col className="w-[100px]" />
+                        <col className="w-[110px]" />
                         <col />
-                        <col className="w-[200px]" />
-                        <col className="w-[140px]" />
+                        <col className="w-[170px]" />
+                        <col className="w-[120px]" />
                       </colgroup>
                       <thead className="bg-muted">
                         <tr>
@@ -1250,7 +1251,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left">
+                          <th className="p-2 text-left whitespace-nowrap overflow-hidden">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1272,7 +1273,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           </th>
                           <th className="p-2 text-left">Source</th>
                           <th className="p-2 text-left">Account</th>
-                          <th className="pl-2 pr-4 py-2 text-right">
+                          <th className="pl-2 pr-2 py-2 text-right">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1316,7 +1317,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                 />
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap overflow-hidden">
                                 <InlineEditCell
                                   value={deposit.date}
                                   type="date"
@@ -1339,12 +1340,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               <td className="p-2 align-middle overflow-hidden">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
-                              <td className="pl-2 pr-4 py-2 text-right whitespace-nowrap">
+                              <td className="pl-2 pr-2 py-2 text-right whitespace-nowrap">
                                 <InlineEditCell
                                   value={deposit.amount.toString()}
                                   type="number"
                                   onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'amount', value)}
                                   displayFormat={(val) => formatCurrency(parseFloat(val))}
+                                  className="px-0 w-full text-right"
                                 />
                               </td>
                             </tr>
