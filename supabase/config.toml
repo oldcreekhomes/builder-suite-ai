@@ -1,5 +1,8 @@
 project_id = "nlmnwlvmmkngrgatnzkj"
 
+[functions.discard-reconciliation]
+verify_jwt = false
+
 [functions.fix-orphaned-reconciliations]
 verify_jwt = true
 
