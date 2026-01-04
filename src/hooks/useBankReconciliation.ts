@@ -2,6 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+export interface AllocationLot {
+  name: string;
+  amount: number;
+}
+
+export interface AllocationBreakdown {
+  code: string;
+  name: string;
+  lots: AllocationLot[];
+  total: number;
+}
+
 interface ReconciliationTransaction {
   id: string;
   date: string;
@@ -15,6 +27,10 @@ interface ReconciliationTransaction {
   reconciliation_id?: string;
   // For journal entries, we need the line id to mark as reconciled
   journal_entry_line_id?: string;
+  // Cost code allocations for checks/bill payments
+  allocations?: AllocationBreakdown[];
+  // Account allocations for deposits
+  accountAllocations?: AllocationBreakdown[];
 }
 
 interface BankReconciliation {
@@ -423,6 +439,183 @@ export const useBankReconciliation = () => {
           }
         }
 
+        // ========== FETCH COST CODE ALLOCATIONS FOR CHECKS ==========
+        let checkAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
+        if (checksToUse.length > 0) {
+          const checkIdsForAllocations = checksToUse.map(c => c.id);
+          const { data: checkLinesWithCostCodes } = await supabase
+            .from('check_lines')
+            .select(`
+              check_id,
+              amount,
+              cost_code_id,
+              lot_id,
+              cost_codes:cost_code_id (code, name),
+              project_lots:lot_id (lot_number)
+            `)
+            .in('check_id', checkIdsForAllocations);
+
+          if (checkLinesWithCostCodes) {
+            // Group by check_id, then by cost_code
+            const checkLinesByCheck = new Map<string, typeof checkLinesWithCostCodes>();
+            checkLinesWithCostCodes.forEach(line => {
+              const existing = checkLinesByCheck.get(line.check_id) || [];
+              existing.push(line);
+              checkLinesByCheck.set(line.check_id, existing);
+            });
+
+            checkLinesByCheck.forEach((lines, checkId) => {
+              // Group by cost code
+              const byCostCode = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+              lines.forEach(line => {
+                if (!line.cost_code_id || !line.cost_codes) return;
+                const costCode = line.cost_codes as unknown as { code: string; name: string };
+                const key = line.cost_code_id;
+                if (!byCostCode.has(key)) {
+                  byCostCode.set(key, { 
+                    code: costCode.code, 
+                    name: costCode.name, 
+                    lots: [] 
+                  });
+                }
+                const lot = line.project_lots as unknown as { lot_number: string } | null;
+                byCostCode.get(key)!.lots.push({
+                  name: lot?.lot_number || 'No Lot',
+                  amount: Number(line.amount)
+                });
+              });
+
+              const allocations: AllocationBreakdown[] = Array.from(byCostCode.values()).map(cc => ({
+                code: cc.code,
+                name: cc.name,
+                lots: cc.lots,
+                total: cc.lots.reduce((sum, l) => sum + l.amount, 0)
+              }));
+              checkAllocationsMap.set(checkId, allocations);
+            });
+          }
+        }
+
+        // ========== FETCH ACCOUNT ALLOCATIONS FOR DEPOSITS ==========
+        let depositAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
+        const depositIds = (deposits || []).map(d => d.id);
+        if (depositIds.length > 0) {
+          const { data: depositLinesWithAccounts } = await supabase
+            .from('deposit_lines')
+            .select(`
+              deposit_id,
+              amount,
+              account_id,
+              lot_id,
+              accounts:account_id (code, name),
+              project_lots:lot_id (lot_number)
+            `)
+            .in('deposit_id', depositIds);
+
+          if (depositLinesWithAccounts) {
+            // Group by deposit_id, then by account
+            const depositLinesByDeposit = new Map<string, typeof depositLinesWithAccounts>();
+            depositLinesWithAccounts.forEach(line => {
+              const existing = depositLinesByDeposit.get(line.deposit_id) || [];
+              existing.push(line);
+              depositLinesByDeposit.set(line.deposit_id, existing);
+            });
+
+            depositLinesByDeposit.forEach((lines, depositId) => {
+              // Group by account
+              const byAccount = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+              lines.forEach(line => {
+                if (!line.account_id || !line.accounts) return;
+                const account = line.accounts as unknown as { code: string; name: string };
+                const key = line.account_id;
+                if (!byAccount.has(key)) {
+                  byAccount.set(key, { 
+                    code: account.code, 
+                    name: account.name, 
+                    lots: [] 
+                  });
+                }
+                const lot = line.project_lots as unknown as { lot_number: string } | null;
+                byAccount.get(key)!.lots.push({
+                  name: lot?.lot_number || 'No Lot',
+                  amount: Number(line.amount)
+                });
+              });
+
+              const allocations: AllocationBreakdown[] = Array.from(byAccount.values()).map(acc => ({
+                code: acc.code,
+                name: acc.name,
+                lots: acc.lots,
+                total: acc.lots.reduce((sum, l) => sum + l.amount, 0)
+              }));
+              depositAllocationsMap.set(depositId, allocations);
+            });
+          }
+        }
+
+        // ========== FETCH COST CODE ALLOCATIONS FOR BILL PAYMENTS ==========
+        let billAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
+        const billPaymentIds = billPaymentTransactions.map(bp => bp.id);
+        if (billPaymentIds.length > 0) {
+          const { data: billLinesWithCostCodes } = await supabase
+            .from('bill_lines')
+            .select(`
+              bill_id,
+              amount,
+              cost_code_id,
+              lot_id,
+              cost_codes:cost_code_id (code, name),
+              project_lots:lot_id (lot_number)
+            `)
+            .in('bill_id', billPaymentIds);
+
+          if (billLinesWithCostCodes) {
+            // Group by bill_id, then by cost_code
+            const billLinesByBill = new Map<string, typeof billLinesWithCostCodes>();
+            billLinesWithCostCodes.forEach(line => {
+              const existing = billLinesByBill.get(line.bill_id) || [];
+              existing.push(line);
+              billLinesByBill.set(line.bill_id, existing);
+            });
+
+            billLinesByBill.forEach((lines, billId) => {
+              // Group by cost code
+              const byCostCode = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+              lines.forEach(line => {
+                if (!line.cost_code_id || !line.cost_codes) return;
+                const costCode = line.cost_codes as unknown as { code: string; name: string };
+                const key = line.cost_code_id;
+                if (!byCostCode.has(key)) {
+                  byCostCode.set(key, { 
+                    code: costCode.code, 
+                    name: costCode.name, 
+                    lots: [] 
+                  });
+                }
+                const lot = line.project_lots as unknown as { lot_number: string } | null;
+                byCostCode.get(key)!.lots.push({
+                  name: lot?.lot_number || 'No Lot',
+                  amount: Number(line.amount)
+                });
+              });
+
+              const allocations: AllocationBreakdown[] = Array.from(byCostCode.values()).map(cc => ({
+                code: cc.code,
+                name: cc.name,
+                lots: cc.lots,
+                total: cc.lots.reduce((sum, l) => sum + l.amount, 0)
+              }));
+              billAllocationsMap.set(billId, allocations);
+            });
+          }
+        }
+
+        // Add allocations to bill payment transactions
+        billPaymentTransactions = billPaymentTransactions.map(bp => ({
+          ...bp,
+          allocations: billAllocationsMap.get(bp.id) || []
+        }));
+
         // Transform checks into transactions
         // Treat orphaned (reconciled to another project) as effectively unreconciled
         const checkTransactions: ReconciliationTransaction[] = checksToUse.map(check => {
@@ -438,6 +631,7 @@ export const useBankReconciliation = () => {
             reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
             reconciliation_date: effectivelyReconciled ? check.reconciliation_date || undefined : undefined,
             reconciliation_id: effectivelyReconciled ? check.reconciliation_id || undefined : undefined,
+            allocations: checkAllocationsMap.get(check.id) || [],
           };
         });
 
@@ -453,6 +647,7 @@ export const useBankReconciliation = () => {
             reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
             reconciliation_date: effectivelyReconciled ? deposit.reconciliation_date || undefined : undefined,
             reconciliation_id: effectivelyReconciled ? deposit.reconciliation_id || undefined : undefined,
+            accountAllocations: depositAllocationsMap.get(deposit.id) || [],
           };
         });
 

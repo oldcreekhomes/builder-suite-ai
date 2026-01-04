@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
-import { useBankReconciliation } from "@/hooks/useBankReconciliation";
+import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
 import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -51,6 +51,79 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+
+// Helper to get allocation display text and determine if tooltip is needed
+function getAllocationDisplay(allocations: AllocationBreakdown[] | undefined, labelType: 'code' | 'account' = 'code'): {
+  display: string;
+  hasMultiple: boolean;
+  breakdown: AllocationBreakdown[];
+} {
+  if (!allocations || allocations.length === 0) {
+    return { display: '-', hasMultiple: false, breakdown: [] };
+  }
+  
+  const first = allocations[0];
+  const displayText = `${first.code}: ${first.name}`;
+  const truncatedDisplay = displayText.length > 18 ? displayText.substring(0, 16) + '...' : displayText;
+  
+  if (allocations.length === 1 && first.lots.length <= 1) {
+    return { display: truncatedDisplay, hasMultiple: false, breakdown: allocations };
+  }
+  
+  const additionalCount = allocations.length - 1 + (first.lots.length > 1 ? 1 : 0);
+  return { 
+    display: additionalCount > 0 ? `${truncatedDisplay} +${additionalCount}` : truncatedDisplay, 
+    hasMultiple: true, 
+    breakdown: allocations 
+  };
+}
+
+// Component to render allocation cell with optional tooltip
+function AllocationCell({ allocations, labelType = 'code' }: { allocations: AllocationBreakdown[] | undefined; labelType?: 'code' | 'account' }) {
+  const { display, hasMultiple, breakdown } = getAllocationDisplay(allocations, labelType);
+  
+  const formatCurrencyTooltip = (amount: number) => 
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  
+  if (!hasMultiple) {
+    return <span className="text-xs truncate max-w-[100px] inline-block">{display}</span>;
+  }
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="text-xs truncate max-w-[100px] inline-block cursor-help underline decoration-dotted">
+          {display}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <div className="space-y-2 text-xs">
+          {breakdown.map((alloc, idx) => (
+            <div key={idx}>
+              <div className="font-semibold">{alloc.code}: {alloc.name}</div>
+              {alloc.lots.length > 0 && (
+                <div className="pl-2 space-y-0.5">
+                  {alloc.lots.map((lot, lotIdx) => (
+                    <div key={lotIdx} className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">{lot.name}:</span>
+                      <span>{formatCurrencyTooltip(lot.amount)}</span>
+                    </div>
+                  ))}
+                  {alloc.lots.length > 1 && (
+                    <div className="flex justify-between gap-4 font-medium border-t pt-0.5 mt-0.5">
+                      <span>Total:</span>
+                      <span>{formatCurrencyTooltip(alloc.total)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface ReconcileAccountsContentProps {
   projectId?: string;
@@ -1066,6 +1139,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           <th className="p-2 text-left">Type</th>
                           <th className="p-2 text-left">Ref #</th>
                           <th className="p-2 text-left">Payee</th>
+                          <th className="p-2 text-left text-xs">Cost Code</th>
                           <th className="p-2 text-right">
                             <button 
                               onClick={() => {
@@ -1129,6 +1203,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 />
                               </td>
                               <td className="p-2">{check.payee}</td>
+                              <td className="p-2">
+                                <AllocationCell allocations={check.allocations} labelType="code" />
+                              </td>
                               <td className="p-2 text-right">
                                 <InlineEditCell
                                   value={check.amount.toString()}
@@ -1178,6 +1255,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             </button>
                           </th>
                           <th className="p-2 text-left">Source</th>
+                          <th className="p-2 text-left text-xs">Account</th>
                           <th className="p-2 text-right">
                             <button 
                               onClick={() => {
@@ -1231,6 +1309,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     />
                   </td>
                               <td className="p-2">{deposit.source}</td>
+                              <td className="p-2">
+                                <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
+                              </td>
                               <td className="p-2 text-right">
                                 <InlineEditCell
                                   value={deposit.amount.toString()}
