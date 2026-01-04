@@ -86,13 +86,13 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (!hasMultiple) {
-    return <span className="text-sm truncate max-w-[180px] inline-block">{display}</span>;
+    return <span className="text-sm truncate max-w-[180px] inline-block align-middle">{display}</span>;
   }
   
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-sm truncate max-w-[180px] inline-block cursor-help underline decoration-dotted">
+        <span className="text-sm truncate max-w-[180px] inline-block align-middle cursor-help underline decoration-dotted">
           {display}
         </span>
       </TooltipTrigger>
@@ -1191,7 +1191,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     />
                   </td>
                               <td className="p-2 whitespace-nowrap">{check.payee}</td>
-                              <td className="p-2">
+                              <td className="p-2 align-middle">
                                 <AllocationCell allocations={check.allocations} labelType="code" />
                               </td>
                               <td className="pl-2 pr-2 py-2 text-right">
@@ -1297,7 +1297,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                     />
                   </td>
                               <td className="p-2 whitespace-nowrap">{deposit.source}</td>
-                              <td className="p-2">
+                              <td className="p-2 align-middle">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
                               <td className="pl-2 pr-2 py-2 text-right">
