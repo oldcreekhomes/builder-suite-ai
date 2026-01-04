@@ -190,6 +190,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     updateDepositTransaction,
     updateBillPaymentTransaction,
     undoReconciliation,
+    discardReconciliation,
   } = useBankReconciliation();
   
   const { canUndoReconciliation } = useUndoReconciliationPermissions();
@@ -198,6 +199,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [selectedReconciliationToUndo, setSelectedReconciliationToUndo] = useState<any>(null);
   const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
   const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [reconciliationToDiscard, setReconciliationToDiscard] = useState<any>(null);
 
   const {
     data: reconciliationHistory,
@@ -979,6 +982,44 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
   };
 
+  // Handle discarding an in-progress reconciliation
+  const handleDiscardReconciliation = (rec: any) => {
+    setReconciliationToDiscard(rec);
+    setDiscardDialogOpen(true);
+  };
+
+  const confirmDiscardReconciliation = async () => {
+    if (!reconciliationToDiscard) return;
+    try {
+      await discardReconciliation.mutateAsync(reconciliationToDiscard.id);
+      
+      // Reset local UI state
+      setCheckedTransactions(new Set());
+      checkedTransactionsRef.current = new Set();
+      setEndingBalance("");
+      endingBalanceRef.current = "";
+      setNotes("");
+      notesRef.current = "";
+      setCurrentReconciliationId(null);
+      currentReconciliationIdRef.current = null;
+      setIsReconciliationMode(false);
+      setInitialCheckedTransactionsLoaded(false);
+      setHasLoadedFromDatabase(false);
+      isRestoredRef.current = false;
+      hasUnsavedChangesRef.current = false;
+      
+      setDiscardDialogOpen(false);
+      setReconciliationToDiscard(null);
+    } catch (error) {
+      console.error('Error discarding reconciliation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to discard reconciliation.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-6">
@@ -1468,14 +1509,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       </Card>
 
       {/* Reconciliation History Section */}
-      {selectedBankAccountId && reconciliationHistory && reconciliationHistory.length > 0 && (
+      {selectedBankAccountId && ((reconciliationHistory && reconciliationHistory.length > 0) || inProgressReconciliation) && (
         <Card className="p-6">
           <Collapsible open={isHistoryExpanded} onOpenChange={setIsHistoryExpanded}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold">Reconciliation History</h3>
                 <p className="text-sm text-muted-foreground">
-                  {reconciliationHistory.length} reconciliation{reconciliationHistory.length !== 1 ? 's' : ''}
+                  {(reconciliationHistory?.length || 0) + (inProgressReconciliation ? 1 : 0)} reconciliation{((reconciliationHistory?.length || 0) + (inProgressReconciliation ? 1 : 0)) !== 1 ? 's' : ''}
                 </p>
               </div>
               <CollapsibleTrigger asChild>
@@ -1496,6 +1537,52 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             </div>
 
             <CollapsibleContent>
+              {/* In-Progress Reconciliation Banner */}
+              {inProgressReconciliation && (
+                <div className="mb-4 p-4 border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 rounded-lg">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <LockOpen className="h-5 w-5 text-amber-600" />
+                        <span className="font-semibold text-amber-800 dark:text-amber-200">In Progress</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Statement Date: {format(new Date(inProgressReconciliation.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                        <span className="mx-2">•</span>
+                        Ending Balance: {formatCurrency(inProgressReconciliation.statement_ending_balance || 0)}
+                        <span className="mx-2">•</span>
+                        Last Updated: {format(new Date(inProgressReconciliation.updated_at), "MM/dd/yyyy h:mm a")}
+                      </div>
+                    </div>
+                    {canUndoReconciliation && (
+                      <div className="flex gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDiscardReconciliation(inProgressReconciliation)}
+                                disabled={discardReconciliation.isPending}
+                              >
+                                {discardReconciliation.isPending ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <LockOpen className="h-4 w-4 mr-2" />
+                                )}
+                                Unlock / Discard
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Discard this in-progress reconciliation and unlock all transactions
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-muted">
@@ -1511,7 +1598,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   </thead>
                   <tbody>
                     {reconciliationHistory
-                      .filter((rec: any) => rec.status === 'completed')
+                      ?.filter((rec: any) => rec.status === 'completed')
                       .sort((a: any, b: any) => new Date(b.statement_date).getTime() - new Date(a.statement_date).getTime())
                       .map((rec: any) => (
                         <tr key={rec.id} className="border-t hover:bg-muted/50">
@@ -1613,6 +1700,34 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Undo Reconciliation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Discard In-Progress Reconciliation Confirmation Dialog */}
+      <AlertDialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard In-Progress Reconciliation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark all transactions from this reconciliation as unreconciled and delete the in-progress record. 
+              The transactions will become available for reconciliation again.
+              {reconciliationToDiscard && (
+                <div className="mt-2 text-sm">
+                  <strong>Statement Date:</strong> {format(new Date(reconciliationToDiscard.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDiscardReconciliation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={discardReconciliation.isPending}
+            >
+              {discardReconciliation.isPending ? "Discarding..." : "Discard Reconciliation"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

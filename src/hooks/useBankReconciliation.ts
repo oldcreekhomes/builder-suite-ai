@@ -1240,6 +1240,42 @@ export const useBankReconciliation = () => {
     },
   });
 
+  // Discard reconciliation via Edge Function (uses service role for reliable execution)
+  const discardReconciliation = useMutation({
+    mutationFn: async (reconciliationId: string) => {
+      const { data, error } = await supabase.functions.invoke('discard-reconciliation', {
+        body: { reconciliationId }
+      });
+      
+      if (error) {
+        console.error('[discardReconciliation] Edge function error:', error);
+        throw new Error(error.message || 'Failed to discard reconciliation');
+      }
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['in-progress-reconciliation'] });
+      toast({
+        title: "Reconciliation Discarded",
+        description: `Unlocked ${data?.discarded?.checks || 0} checks, ${data?.discarded?.deposits || 0} deposits, and ${data?.discarded?.journal_entry_lines || 0} journal entries.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     useReconciliationTransactions,
     createReconciliation,
@@ -1252,5 +1288,6 @@ export const useBankReconciliation = () => {
     updateDepositTransaction,
     updateBillPaymentTransaction,
     undoReconciliation,
+    discardReconciliation,
   };
 };
