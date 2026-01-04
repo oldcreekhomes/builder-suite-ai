@@ -1106,17 +1106,24 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Outstanding Checks & Bill Payments</h3>
                   <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full table-fixed">
+                    <table className="w-full table-fixed">
+                      <colgroup>
+                        <col className="w-10" />
+                        <col className="w-[100px]" />
+                        <col />
+                        <col className="w-[200px]" />
+                        <col className="w-[140px]" />
+                      </colgroup>
                       <thead className="bg-muted">
                         <tr>
-                          <th className="pl-2 pr-1 py-2 text-left w-8">
+                          <th className="pl-2 pr-1 py-2 text-left">
                             <Checkbox
                               checked={allChecksSelected}
                               onCheckedChange={handleSelectAllChecks}
                               disabled={visibleChecks.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left w-[72px]">
+                          <th className="p-2 text-left">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'date') {
@@ -1138,7 +1145,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           </th>
                           <th className="p-2 text-left">Payee</th>
                           <th className="p-2 text-left">Account</th>
-                          <th className="pl-2 pr-4 py-2 text-right w-28">
+                          <th className="pl-2 pr-4 py-2 text-right">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1176,21 +1183,21 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           })
                           .map((check) => (
                             <tr key={check.id} className="border-t">
-                              <td className="p-2">
+                              <td className="pl-2 pr-1 py-2">
                                 <Checkbox
                                   checked={checkedTransactions.has(check.id)}
                                   onCheckedChange={() => handleToggleTransaction(check.id)}
                                 />
                               </td>
-                  <td className="p-2">
-                    <InlineEditCell
-                      value={check.date}
-                      type="date"
-                      onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
-                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
-                    />
-                  </td>
                               <td className="p-2">
+                                <InlineEditCell
+                                  value={check.date}
+                                  type="date"
+                                  onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
+                                  displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                                />
+                              </td>
+                              <td className="p-2 overflow-hidden">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1202,13 +1209,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   </Tooltip>
                                 </TooltipProvider>
                               </td>
-                              <td className="p-2 align-middle">
+                              <td className="p-2 align-middle overflow-hidden">
                                 <AllocationCell 
                                   allocations={check.accountAllocations?.length ? check.accountAllocations : check.allocations} 
                                   labelType={check.accountAllocations?.length ? "account" : "code"} 
                                 />
                               </td>
-                              <td className="pl-2 pr-2 py-2 text-right">
+                              <td className="pl-2 pr-4 py-2 text-right whitespace-nowrap">
                                 <InlineEditCell
                                   value={check.amount.toString()}
                                   type="number"
@@ -1227,16 +1234,23 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   <h3 className="text-lg font-semibold mb-3">Outstanding Deposits</h3>
                   <div className="border rounded-lg overflow-hidden">
                     <table className="w-full table-fixed">
+                      <colgroup>
+                        <col className="w-10" />
+                        <col className="w-[100px]" />
+                        <col />
+                        <col className="w-[200px]" />
+                        <col className="w-[140px]" />
+                      </colgroup>
                       <thead className="bg-muted">
                         <tr>
-                          <th className="pl-2 pr-1 py-2 text-left w-8">
+                          <th className="pl-2 pr-1 py-2 text-left">
                             <Checkbox
                               checked={allDepositsSelected}
                               onCheckedChange={handleSelectAllDeposits}
                               disabled={visibleDeposits.length === 0}
                             />
                           </th>
-                          <th className="p-2 text-left w-[72px]">
+                          <th className="p-2 text-left">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'date') {
@@ -1258,7 +1272,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           </th>
                           <th className="p-2 text-left">Source</th>
                           <th className="p-2 text-left">Account</th>
-                          <th className="pl-2 pr-4 py-2 text-right w-28">
+                          <th className="pl-2 pr-4 py-2 text-right">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1296,21 +1310,21 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           })
                           .map((deposit) => (
                             <tr key={deposit.id} className="border-t">
-                              <td className="p-2">
+                              <td className="pl-2 pr-1 py-2">
                                 <Checkbox
                                   checked={checkedTransactions.has(deposit.id)}
                                   onCheckedChange={() => handleToggleTransaction(deposit.id)}
                                 />
                               </td>
-                  <td className="p-2">
-                    <InlineEditCell
-                      value={deposit.date}
-                      type="date"
-                      onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
-                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
-                    />
-                  </td>
                               <td className="p-2">
+                                <InlineEditCell
+                                  value={deposit.date}
+                                  type="date"
+                                  onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
+                                  displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                                />
+                              </td>
+                              <td className="p-2 overflow-hidden">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1322,10 +1336,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   </Tooltip>
                                 </TooltipProvider>
                               </td>
-                              <td className="p-2 align-middle">
+                              <td className="p-2 align-middle overflow-hidden">
                                 <AllocationCell allocations={deposit.accountAllocations} labelType="account" />
                               </td>
-                              <td className="pl-2 pr-2 py-2 text-right">
+                              <td className="pl-2 pr-4 py-2 text-right whitespace-nowrap">
                                 <InlineEditCell
                                   value={deposit.amount.toString()}
                                   type="number"
