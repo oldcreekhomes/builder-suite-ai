@@ -86,13 +86,13 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   
   if (!hasMultiple) {
-    return <span className="text-sm truncate max-w-[220px] inline-block align-middle">{display}</span>;
+    return <span className="text-sm truncate inline-block align-middle w-full">{display}</span>;
   }
   
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-sm truncate max-w-[220px] inline-block align-middle cursor-help underline decoration-dotted">
+        <span className="text-sm truncate inline-block align-middle w-full cursor-help underline decoration-dotted">
           {display}
         </span>
       </TooltipTrigger>
@@ -1106,7 +1106,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Outstanding Checks & Bill Payments</h3>
                   <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
+                      <table className="w-full table-fixed">
                       <thead className="bg-muted">
                         <tr>
                           <th className="pl-2 pr-1 py-2 text-left w-8">
@@ -1136,9 +1136,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[220px]">Payee</th>
-                          <th className="p-2 text-left w-[240px]">Account</th>
-                          <th className="pl-2 pr-2 py-2 text-right w-28">
+                          <th className="p-2 text-left">Payee</th>
+                          <th className="p-2 text-left">Account</th>
+                          <th className="pl-2 pr-4 py-2 text-right w-28">
                             <button 
                               onClick={() => {
                                 if (checksSortColumn === 'amount') {
@@ -1194,7 +1194,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="block truncate max-w-[200px]">{check.payee}</span>
+                                      <span className="block truncate">{check.payee}</span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs">
                                       <p>{check.payee}</p>
@@ -1226,7 +1226,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Outstanding Deposits</h3>
                   <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
+                    <table className="w-full table-fixed">
                       <thead className="bg-muted">
                         <tr>
                           <th className="pl-2 pr-1 py-2 text-left w-8">
@@ -1256,9 +1256,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="p-2 text-left w-[220px]">Source</th>
-                          <th className="p-2 text-left w-[240px]">Account</th>
-                          <th className="pl-2 pr-2 py-2 text-right w-28">
+                          <th className="p-2 text-left">Source</th>
+                          <th className="p-2 text-left">Account</th>
+                          <th className="pl-2 pr-4 py-2 text-right w-28">
                             <button 
                               onClick={() => {
                                 if (depositsSortColumn === 'amount') {
@@ -1314,7 +1314,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="block truncate max-w-[200px]">{deposit.source}</span>
+                                      <span className="block truncate">{deposit.source}</span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="max-w-xs">
                                       <p>{deposit.source}</p>
