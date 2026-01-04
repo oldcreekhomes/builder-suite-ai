@@ -1112,7 +1112,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                         <col className="w-[110px]" />
                         <col />
                         <col className="w-[170px]" />
-                        <col className="w-[120px]" />
+                        <col className="w-[100px]" />
                       </colgroup>
                       <thead className="bg-muted">
                         <tr>
@@ -1240,7 +1240,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                         <col className="w-[110px]" />
                         <col />
                         <col className="w-[170px]" />
-                        <col className="w-[120px]" />
+                        <col className="w-[100px]" />
                       </colgroup>
                       <thead className="bg-muted">
                         <tr>
