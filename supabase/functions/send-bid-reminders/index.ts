@@ -77,13 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
           ),
           projects (
             address,
-            construction_manager,
-            company_users!projects_construction_manager_fkey (
-              first_name,
-              last_name,
-              email,
-              phone_number
-            )
+            construction_manager
           ),
           project_bids!inner (
             id,
@@ -155,6 +149,25 @@ const handler = async (req: Request): Promise<Response> => {
             .eq('company_id', bid.company_id)
             .eq('receive_bid_notifications', true);
 
+          // Fetch construction manager details separately
+          let managerName = null;
+          let managerEmail = null;
+          let managerPhone = null;
+          
+          if (pkg.projects?.construction_manager) {
+            const { data: manager } = await supabase
+              .from('users')
+              .select('first_name, last_name, email, phone_number')
+              .eq('id', pkg.projects.construction_manager)
+              .single();
+            
+            if (manager) {
+              managerName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim();
+              managerEmail = manager.email;
+              managerPhone = manager.phone_number;
+            }
+          }
+
           if (reps && reps.length > 0) {
             console.log(`  ✅ Will send reminder to ${companyName} (${reps.length} reps)`);
             remindersToSend.push({
@@ -170,11 +183,9 @@ const handler = async (req: Request): Promise<Response> => {
               company_address: bid.companies.address,
               company_phone: bid.companies.phone_number,
               project_address: pkg.projects?.address,
-              project_manager: pkg.projects?.company_users 
-                ? `${pkg.projects.company_users.first_name || ''} ${pkg.projects.company_users.last_name || ''}`.trim() 
-                : null,
-              project_manager_email: pkg.projects?.company_users?.email || null,
-              project_manager_phone: pkg.projects?.company_users?.phone_number || null,
+              project_manager: managerName,
+              project_manager_email: managerEmail,
+              project_manager_phone: managerPhone,
               cost_code: pkg.cost_codes.code,
               cost_code_name: pkg.cost_codes.name,
               representatives: reps
