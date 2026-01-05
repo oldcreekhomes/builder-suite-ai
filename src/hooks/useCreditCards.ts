@@ -46,7 +46,10 @@ export function useCreditCards() {
 
       const { data: linesData, error: linesError } = await supabase
         .from('credit_card_lines')
-        .select('*')
+        .select(`
+          *,
+          project_lots:lot_id (id, lot_name, lot_number)
+        `)
         .order('line_number');
 
       if (linesError) throw linesError;

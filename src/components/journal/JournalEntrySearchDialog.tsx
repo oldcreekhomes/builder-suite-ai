@@ -34,6 +34,22 @@ interface JournalEntry {
   lines?: Array<{
     debit: number;
     credit: number;
+    lot_id?: string | null;
+    project_lots?: {
+      id: string;
+      lot_name: string | null;
+      lot_number: number | null;
+    } | null;
+    cost_codes?: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
+    accounts?: {
+      id: string;
+      name: string;
+      code: string;
+    } | null;
   }>;
 }
 
@@ -46,6 +62,77 @@ interface JournalEntrySearchDialogProps {
   isDateLocked: (date: string) => boolean;
   projectId?: string;
 }
+
+interface LotBreakdownItem {
+  categoryName: string;
+  lots: Array<{ name: string; amount: number }>;
+}
+
+const getLotAllocationData = (lines: JournalEntry['lines']) => {
+  if (!lines || lines.length === 0) {
+    return { display: '-', breakdown: [], totalAmount: 0, count: 0 };
+  }
+
+  // Group lines by category (cost code or account), then by lot
+  const categoryMap = new Map<string, Map<string, number>>();
+  let totalAmount = 0;
+  const lotsWithData = new Set<string>();
+
+  for (const line of lines) {
+    const amount = (line.debit || 0) + (line.credit || 0);
+    if (amount === 0) continue;
+    
+    totalAmount += line.debit || 0;
+    
+    const lotInfo = line.project_lots;
+    if (!lotInfo) continue;
+    
+    lotsWithData.add(lotInfo.id);
+    const lotName = lotInfo.lot_name || `Lot ${lotInfo.lot_number}` || 'Unknown Lot';
+    
+    // Determine category name (cost code or account)
+    let categoryName = 'General';
+    if (line.cost_codes) {
+      categoryName = `${line.cost_codes.code} - ${line.cost_codes.name}`;
+    } else if (line.accounts) {
+      categoryName = `${line.accounts.code} - ${line.accounts.name}`;
+    }
+    
+    if (!categoryMap.has(categoryName)) {
+      categoryMap.set(categoryName, new Map());
+    }
+    const lotMap = categoryMap.get(categoryName)!;
+    lotMap.set(lotName, (lotMap.get(lotName) || 0) + amount);
+  }
+
+  const count = lotsWithData.size;
+  
+  if (count === 0) {
+    return { display: '-', breakdown: [], totalAmount, count: 0 };
+  }
+
+  // Build breakdown for tooltip
+  const breakdown: LotBreakdownItem[] = [];
+  categoryMap.forEach((lotMap, categoryName) => {
+    const lots: Array<{ name: string; amount: number }> = [];
+    lotMap.forEach((amount, lotName) => {
+      lots.push({ name: lotName, amount });
+    });
+    breakdown.push({ categoryName, lots });
+  });
+
+  // Determine display
+  if (count === 1) {
+    // Get the single lot name
+    const firstLotId = Array.from(lotsWithData)[0];
+    const firstLine = lines.find(l => l.project_lots?.id === firstLotId);
+    const lotInfo = firstLine?.project_lots;
+    const display = lotInfo?.lot_name || `Lot ${lotInfo?.lot_number}` || 'Lot';
+    return { display, breakdown, totalAmount, count };
+  }
+
+  return { display: `+${count}`, breakdown, totalAmount, count };
+};
 
 export function JournalEntrySearchDialog({
   open,
@@ -118,7 +205,9 @@ export function JournalEntrySearchDialog({
               <TableHeader>
                 <TableRow className="h-8">
                   <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Journal Entry #</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Address</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-right">Total Debit</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-right">Total Credit</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
@@ -126,12 +215,13 @@ export function JournalEntrySearchDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEntries.map((entry) => {
+                {filteredEntries.map((entry, index) => {
                   const { totalDebit, totalCredit } = getEntryTotals(entry);
                   const isLocked = isDateLocked(entry.entry_date) || !!entry.reversed_at;
                   const lockReason = entry.reversed_at 
                     ? "This entry has been reversed and cannot be deleted"
                     : "This entry is in a closed accounting period and cannot be deleted";
+                  const { display, breakdown, totalAmount, count } = getLotAllocationData(entry.lines);
                   
                   return (
                     <TableRow 
@@ -143,7 +233,44 @@ export function JournalEntrySearchDialog({
                         {format(new Date(entry.entry_date), 'MM/dd/yyyy')}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">
+                        JE-{String(filteredEntries.length - index).padStart(3, '0')}
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-xs">
                         {entry.description || '-'}
+                      </TableCell>
+                      <TableCell className="px-2 py-1 text-xs">
+                        {count <= 1 ? (
+                          display
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="cursor-default underline decoration-dotted">
+                                {display}
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="space-y-2">
+                                  {breakdown.map((cc, i) => (
+                                    <div key={i}>
+                                      <div className="font-medium text-xs">{cc.categoryName}</div>
+                                      <div className="pl-2 space-y-0.5">
+                                        {cc.lots.map((lot, j) => (
+                                          <div key={j} className="flex justify-between gap-4 text-xs">
+                                            <span className="text-muted-foreground">{lot.name}:</span>
+                                            <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <div className="border-t pt-1 flex justify-between font-medium text-xs">
+                                    <span>Total:</span>
+                                    <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs text-right">
                         ${formatAmount(totalDebit)}

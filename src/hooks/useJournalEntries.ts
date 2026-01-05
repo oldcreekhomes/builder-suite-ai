@@ -65,7 +65,8 @@ export const useJournalEntries = () => {
           *,
           accounts:account_id (id, name, code),
           cost_codes:cost_code_id (id, name, code),
-          projects:project_id (id, address)
+          projects:project_id (id, address),
+          project_lots:lot_id (id, lot_name, lot_number)
         `)
         .in("journal_entry_id", entries.map(e => e.id))
         .order("line_number", { ascending: true });
