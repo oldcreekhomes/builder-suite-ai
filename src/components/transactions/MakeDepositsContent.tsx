@@ -101,7 +101,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     queryFn: async () => {
       const { data, error } = await supabase
         .from('deposits')
-        .select('*')
+        .select(`
+          *,
+          companies:company_id (id, company_name),
+          deposit_lines (
+            id,
+            amount,
+            lot_id,
+            account_id,
+            line_type,
+            project_lots:lot_id (id, lot_name, lot_number)
+          )
+        `)
         .eq('is_reversal', false)
         .is('reversed_at', null)
         .order('deposit_date', { ascending: false });

@@ -9,6 +9,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
+interface CheckLine {
+  id: string;
+  amount: number;
+  lot_id?: string | null;
+  project_lots?: {
+    id: string;
+    lot_name: string | null;
+    lot_number: number | null;
+  } | null;
+}
+
 interface CheckSearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -18,6 +29,59 @@ interface CheckSearchDialogProps {
   onCheckSelect: (check: any) => void;
   onDeleteCheck: (checkId: string) => Promise<void>;
 }
+
+interface LotBreakdownItem {
+  categoryName: string;
+  lots: Array<{ name: string; amount: number }>;
+}
+
+const getLotAllocationData = (lines: CheckLine[] | undefined) => {
+  if (!lines || lines.length === 0) {
+    return { display: '-', breakdown: [], totalAmount: 0, count: 0 };
+  }
+
+  // Group lines by lot
+  const lotMap = new Map<string, { name: string; amount: number }>();
+  let totalAmount = 0;
+
+  for (const line of lines) {
+    const amount = line.amount || 0;
+    if (amount === 0) continue;
+    
+    totalAmount += amount;
+    
+    const lotInfo = line.project_lots;
+    if (!lotInfo) continue;
+    
+    const lotId = lotInfo.id;
+    const lotName = lotInfo.lot_name || `Lot ${lotInfo.lot_number}` || 'Unknown Lot';
+    
+    if (!lotMap.has(lotId)) {
+      lotMap.set(lotId, { name: lotName, amount: 0 });
+    }
+    lotMap.get(lotId)!.amount += amount;
+  }
+
+  const count = lotMap.size;
+  
+  if (count === 0) {
+    return { display: '-', breakdown: [], totalAmount, count: 0 };
+  }
+
+  // Build breakdown for tooltip
+  const breakdown: LotBreakdownItem[] = [{
+    categoryName: 'Lot Allocation',
+    lots: Array.from(lotMap.values())
+  }];
+
+  // Determine display
+  if (count === 1) {
+    const firstLot = Array.from(lotMap.values())[0];
+    return { display: firstLot.name, breakdown, totalAmount, count };
+  }
+
+  return { display: `+${count}`, breakdown, totalAmount, count };
+};
 
 export function CheckSearchDialog({
   open,
@@ -122,6 +186,7 @@ export function CheckSearchDialog({
                   <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Pay To</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Address</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-right">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-right">Balance</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
@@ -131,7 +196,7 @@ export function CheckSearchDialog({
               <TableBody>
                 {checksWithBalance.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {searchQuery ? 'No checks match your search.' : 'No checks found'}
                     </TableCell>
                   </TableRow>
@@ -139,6 +204,7 @@ export function CheckSearchDialog({
                   checksWithBalance.map((check) => {
                     const isLocked = isDateLocked(check.check_date) || check.reversed_at;
                     const isReconciled = check.reconciled || !!check.reconciliation_id || !!check.reconciliation_date;
+                    const { display, breakdown, totalAmount, count } = getLotAllocationData(check.check_lines);
                     
                     return (
                       <TableRow
@@ -154,6 +220,39 @@ export function CheckSearchDialog({
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{check.pay_to}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">{check.memo || ''}</TableCell>
+                        <TableCell className="px-2 py-1 text-xs">
+                          {count <= 1 ? (
+                            display
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="cursor-default underline decoration-dotted">
+                                  {display}
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-2">
+                                    {breakdown.map((cc, i) => (
+                                      <div key={i}>
+                                        <div className="pl-2 space-y-0.5">
+                                          {cc.lots.map((lot, j) => (
+                                            <div key={j} className="flex justify-between gap-4 text-xs">
+                                              <span className="text-muted-foreground">{lot.name}:</span>
+                                              <span>{formatCurrency(lot.amount)}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    <div className="border-t pt-1 flex justify-between font-medium text-xs">
+                                      <span>Total:</span>
+                                      <span>{formatCurrency(totalAmount)}</span>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </TableCell>
                         <TableCell className="px-2 py-1 text-xs text-right">
                           {formatCurrency(-check.amount)}
                         </TableCell>
