@@ -9,7 +9,7 @@ import { Send, Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 import { ConfirmPODialog } from '../ConfirmPODialog';
 import { usePOStatus } from '@/hooks/usePOStatus';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Company {
   id: string;
@@ -174,14 +174,25 @@ export function BiddingCompanyRow({
             </Tooltip>
           )}
           {!isReadOnly && (
-            <DeleteButton
-              onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.id)}
-              title="Remove Company"
-              description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
-              size="sm"
-              variant="ghost"
-              showIcon={true}
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <DeleteButton
+                      onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.id)}
+                      title="Remove Company"
+                      description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
+                      size="sm"
+                      variant="ghost"
+                      showIcon={true}
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </TableCell>
