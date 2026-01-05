@@ -84,6 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
           project_bids!inner (
             id,
             company_id,
+            bid_status,
             price,
             proposals,
             reminder_sent_at,
@@ -96,8 +97,8 @@ const handler = async (req: Request): Promise<Response> => {
           )
         `)
         .eq('status', 'sent')
-        .gte('reminder_date', new Date().toISOString().split('T')[0])
-        .lte('reminder_date', new Date().toISOString().split('T')[0]);
+        .gte('reminder_date', `${new Date().toISOString().split('T')[0]}T00:00:00.000Z`)
+        .lte('reminder_date', `${new Date().toISOString().split('T')[0]}T23:59:59.999Z`);
 
       if (fallbackError) {
         throw fallbackError;
@@ -106,44 +107,74 @@ const handler = async (req: Request): Promise<Response> => {
       // Process fallback data
       const remindersToSend: any[] = [];
       
+      console.log(`📋 Processing ${fallbackData?.length || 0} bid packages from database`);
+      
       for (const pkg of fallbackData || []) {
+        console.log(`📦 Bid Package: ${pkg.name} (${pkg.id})`);
+        
         // Get representatives for companies that need reminders
         for (const bid of pkg.project_bids) {
-          // Check if reminder needed: no price OR no proposals AND not already sent
-          const needsReminder = 
-            (bid.price === null || bid.proposals === null || bid.proposals.length === 0) &&
-            bid.reminder_sent_at === null;
+          const companyName = bid.companies.company_name;
+          
+          // Skip if they said NO (will_not_bid)
+          if (bid.bid_status === 'will_not_bid') {
+            console.log(`  ⏭️ Skipping ${companyName} - they declined (will_not_bid)`);
+            continue;
+          }
+          
+          // Skip if reminder already sent
+          if (bid.reminder_sent_at !== null) {
+            console.log(`  ⏭️ Skipping ${companyName} - reminder already sent at ${bid.reminder_sent_at}`);
+            continue;
+          }
+          
+          // Determine if reminder is needed:
+          // 1. They haven't responded yet (bid_status is null), OR
+          // 2. They said "will_bid" but haven't submitted price AND proposals
+          const hasNotResponded = bid.bid_status === null;
+          const hasSubmittedBid = bid.price !== null || (bid.proposals !== null && bid.proposals.length > 0);
+          const saidYesButNotSubmitted = bid.bid_status === 'will_bid' && !hasSubmittedBid;
+          
+          const needsReminder = hasNotResponded || saidYesButNotSubmitted;
+          
+          console.log(`  📊 ${companyName}: bid_status=${bid.bid_status}, price=${bid.price}, proposals=${bid.proposals?.length || 0}, needsReminder=${needsReminder}`);
 
-          if (needsReminder) {
-            // Get representatives
-            const { data: reps } = await supabase
-              .from('company_representatives')
-              .select('id, first_name, last_name, email, phone_number, title')
-              .eq('company_id', bid.company_id)
-              .eq('receive_bid_notifications', true);
+          if (!needsReminder) {
+            console.log(`  ⏭️ Skipping ${companyName} - already submitted bid`);
+            continue;
+          }
 
-            if (reps && reps.length > 0) {
-              remindersToSend.push({
-                bid_package_id: pkg.id,
-                bid_package_name: pkg.name,
-                specifications: pkg.specifications,
-                files: pkg.files || [],
-                due_date: pkg.due_date,
-                reminder_date: pkg.reminder_date,
-                project_bid_id: bid.id,
-                company_id: bid.company_id,
-                company_name: bid.companies.company_name,
-                company_address: bid.companies.address,
-                company_phone: bid.companies.phone_number,
-                project_address: pkg.projects.address,
-                project_manager: pkg.projects.manager,
-                project_manager_email: pkg.projects.manager_email,
-                project_manager_phone: pkg.projects.manager_phone,
-                cost_code: pkg.cost_codes.code,
-                cost_code_name: pkg.cost_codes.name,
-                representatives: reps
-              });
-            }
+          // Get representatives
+          const { data: reps } = await supabase
+            .from('company_representatives')
+            .select('id, first_name, last_name, email, phone_number, title')
+            .eq('company_id', bid.company_id)
+            .eq('receive_bid_notifications', true);
+
+          if (reps && reps.length > 0) {
+            console.log(`  ✅ Will send reminder to ${companyName} (${reps.length} reps)`);
+            remindersToSend.push({
+              bid_package_id: pkg.id,
+              bid_package_name: pkg.name,
+              specifications: pkg.specifications,
+              files: pkg.files || [],
+              due_date: pkg.due_date,
+              reminder_date: pkg.reminder_date,
+              project_bid_id: bid.id,
+              company_id: bid.company_id,
+              company_name: bid.companies.company_name,
+              company_address: bid.companies.address,
+              company_phone: bid.companies.phone_number,
+              project_address: pkg.projects.address,
+              project_manager: pkg.projects.manager,
+              project_manager_email: pkg.projects.manager_email,
+              project_manager_phone: pkg.projects.manager_phone,
+              cost_code: pkg.cost_codes.code,
+              cost_code_name: pkg.cost_codes.name,
+              representatives: reps
+            });
+          } else {
+            console.log(`  ⚠️ ${companyName} needs reminder but has no reps with bid notifications enabled`);
           }
         }
       }
