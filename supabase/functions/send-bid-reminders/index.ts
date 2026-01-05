@@ -77,9 +77,13 @@ const handler = async (req: Request): Promise<Response> => {
           ),
           projects (
             address,
-            manager,
-            manager_email,
-            manager_phone
+            construction_manager,
+            company_users!projects_construction_manager_fkey (
+              first_name,
+              last_name,
+              email,
+              phone_number
+            )
           ),
           project_bids!inner (
             id,
@@ -165,10 +169,12 @@ const handler = async (req: Request): Promise<Response> => {
               company_name: bid.companies.company_name,
               company_address: bid.companies.address,
               company_phone: bid.companies.phone_number,
-              project_address: pkg.projects.address,
-              project_manager: pkg.projects.manager,
-              project_manager_email: pkg.projects.manager_email,
-              project_manager_phone: pkg.projects.manager_phone,
+              project_address: pkg.projects?.address,
+              project_manager: pkg.projects?.company_users 
+                ? `${pkg.projects.company_users.first_name || ''} ${pkg.projects.company_users.last_name || ''}`.trim() 
+                : null,
+              project_manager_email: pkg.projects?.company_users?.email || null,
+              project_manager_phone: pkg.projects?.company_users?.phone_number || null,
               cost_code: pkg.cost_codes.code,
               cost_code_name: pkg.cost_codes.name,
               representatives: reps
