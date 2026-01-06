@@ -7,6 +7,7 @@ import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
 import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
 import { useLatestBankReconciliationsByProject } from "@/hooks/useLatestBankReconciliationsByProject";
 import { useUpdateProjectQBReconciliationDate } from "@/hooks/useUpdateProjectQBReconciliationDate";
+import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ export function AccountantJobsTable() {
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
   const updateQBReconciliationDate = useUpdateProjectQBReconciliationDate();
+  const updateQBInvoiceDates = useUpdateProjectQBInvoiceDates();
   
   // First, get all non-template projects to fetch bill counts for ALL of them
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
@@ -261,6 +263,12 @@ export function AccountantJobsTable() {
             <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
+            {showQuickBooks && (
+              <TableHead rowSpan={2} className="align-bottom">Invoices Approved?</TableHead>
+            )}
+            {showQuickBooks && (
+              <TableHead rowSpan={2} className="align-bottom">Invoices Paid?</TableHead>
+            )}
             <TableHead colSpan={4} className="text-center py-1 h-auto border-b-0">
               <div className="flex items-center justify-center gap-1">
                 <div className="flex-1 h-px bg-muted-foreground/30"></div>
@@ -281,7 +289,7 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 9 : 8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? (showQuickBooks ? 11 : 9) : (showQuickBooks ? 10 : 8)} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
@@ -371,6 +379,86 @@ export function AccountantJobsTable() {
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
+                  {showQuickBooks && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-auto py-1 px-2 font-normal justify-start hover:bg-muted",
+                              !(project as any).qb_invoices_approved_date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {(project as any).qb_invoices_approved_date
+                              ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
+                              : "Select date"
+                            }
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_invoices_approved_date 
+                              ? parseISO((project as any).qb_invoices_approved_date) 
+                              : undefined
+                            }
+                            onSelect={(date) => {
+                              updateQBInvoiceDates.mutate({
+                                projectId: project.id,
+                                field: 'invoices_approved',
+                                date: date ? format(date, "yyyy-MM-dd") : null,
+                              });
+                            }}
+                            className="pointer-events-auto"
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </TableCell>
+                  )}
+                  {showQuickBooks && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-auto py-1 px-2 font-normal justify-start hover:bg-muted",
+                              !(project as any).qb_invoices_paid_date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {(project as any).qb_invoices_paid_date
+                              ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
+                              : "Select date"
+                            }
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_invoices_paid_date 
+                              ? parseISO((project as any).qb_invoices_paid_date) 
+                              : undefined
+                            }
+                            onSelect={(date) => {
+                              updateQBInvoiceDates.mutate({
+                                projectId: project.id,
+                                field: 'invoices_paid',
+                                date: date ? format(date, "yyyy-MM-dd") : null,
+                              });
+                            }}
+                            className="pointer-events-auto"
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </TableCell>
+                  )}
                   <TableCell className="text-center">
                     {bills?.currentCount ? (
                       <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{bills.currentCount}</Badge>
@@ -407,7 +495,7 @@ export function AccountantJobsTable() {
         <TableFooter>
           <TableRow className="bg-muted/50 font-semibold">
             {isReorderEnabled && <TableCell />}
-            <TableCell colSpan={4} className="text-right">Totals</TableCell>
+            <TableCell colSpan={showQuickBooks ? 6 : 4} className="text-right">Totals</TableCell>
             <TableCell className="text-center">
               <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                 {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.currentCount || 0), 0)}
