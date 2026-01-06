@@ -110,7 +110,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             lot_id,
             account_id,
             line_type,
-            project_lots:lot_id (id, lot_name, lot_number)
+            project_lots:lot_id (id, lot_name, lot_number),
+            accounts:account_id (id, code, name)
           )
         `)
         .eq('is_reversal', false)

@@ -48,7 +48,9 @@ export function useCreditCards() {
         .from('credit_card_lines')
         .select(`
           *,
-          project_lots:lot_id (id, lot_name, lot_number)
+          project_lots:lot_id (id, lot_name, lot_number),
+          cost_codes:cost_code_id (id, code, name),
+          accounts:account_id (id, code, name)
         `)
         .order('line_number');
 

@@ -244,7 +244,7 @@ export function JournalEntrySearchDialog({
                         ) : (
                           <TooltipProvider>
                             <Tooltip>
-                              <TooltipTrigger className="cursor-default underline decoration-dotted">
+                              <TooltipTrigger className="cursor-default">
                                 {display}
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
