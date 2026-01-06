@@ -91,7 +91,7 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="text-sm truncate inline-block align-middle w-full cursor-help underline decoration-dotted">
+        <span className="text-sm truncate inline-block align-middle w-full cursor-help">
           {display}
         </span>
       </TooltipTrigger>
@@ -1235,7 +1235,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="px-0 py-2 text-left">Payee</th>
+                          <th className="pl-3 pr-0 py-2 text-left">Payee</th>
                           <th className="px-0 py-2 text-left">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right">
                             <button 
@@ -1289,7 +1289,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                                 />
                               </td>
-                              <td className="px-0 py-2 overflow-hidden">
+                              <td className="pl-3 pr-0 py-2 overflow-hidden">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1363,7 +1363,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               Date
                             </button>
                           </th>
-                          <th className="px-0 py-2 text-left">Source</th>
+                          <th className="pl-3 pr-0 py-2 text-left">Source</th>
                           <th className="px-0 py-2 text-left">Account</th>
                           <th className="pl-2 pr-2 py-2 text-right">
                             <button 
@@ -1417,7 +1417,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
                                 />
                               </td>
-                              <td className="px-0 py-2 overflow-hidden">
+                              <td className="pl-3 pr-0 py-2 overflow-hidden">
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
