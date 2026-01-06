@@ -7,12 +7,7 @@
 
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { calculateTaskDatesFromPredecessors, calculateParentTaskValues } from "./taskCalculations";
-import { createClient } from '@supabase/supabase-js';
-
-// Create a simpler client without deep type inference to avoid TS2589
-const SUPABASE_URL = "https://nlmnwlvmmkngrgatnzkj.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbW53bHZtbWtuZ3JnYXRuemtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDU3OTgsImV4cCI6MjA2NjE4MTc5OH0.gleBmte9X1uQWYaTxX-dLWVqk6Hpvb_qjseN_aG6xM0";
-const simpleSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from "@/integrations/supabase/client";
 
 interface RecalculationResult {
   updatedCount: number;
@@ -110,8 +105,7 @@ function isParentTask(task: ProjectTask, allTasks: ProjectTask[]): boolean {
  */
 export async function recalculateAllTaskDates(
   projectId: string,
-  tasks: ProjectTask[],
-  userId: string
+  tasks: ProjectTask[]
 ): Promise<RecalculationResult> {
   const result: RecalculationResult = {
     updatedCount: 0,
@@ -259,11 +253,11 @@ export async function recalculateAllTaskDates(
           updateObj.progress = update.progress;
         }
         
-        const { error } = await simpleSupabase
+        const { error } = await supabase
           .from('project_schedule_tasks')
           .update(updateObj)
           .eq('id', update.id)
-          .eq('user_id', userId);
+          .eq('project_id', projectId);
         
         if (error) {
           console.error(`❌ Failed to update task ${update.id}:`, error);
