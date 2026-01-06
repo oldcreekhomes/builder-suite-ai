@@ -20,7 +20,7 @@ export function useRecalculateSchedule() {
         throw new Error("User not authenticated");
       }
       
-      return recalculateAllTaskDates(projectId, tasks, user.id);
+      return recalculateAllTaskDates(projectId, tasks);
     },
     onSuccess: (result, variables) => {
       // Invalidate the tasks query to refresh the UI

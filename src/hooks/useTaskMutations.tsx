@@ -306,10 +306,12 @@ export const useTaskMutations = (projectId: string) => {
       const shouldRecalculate = (dateFieldsChanged || predecessorChanged) && !variables.skipCascade;
       
       // Run full schedule recalculation (replaces complex cascade logic)
-      if (shouldRecalculate && updatedCache.length > 0 && user?.id) {
+      let recalculationUpdatedTasks = false;
+      if (shouldRecalculate && updatedCache.length > 0) {
         console.log('🔄 Running full schedule recalculation after task update');
-        const result = await recalculateAllTaskDates(projectId, updatedCache, user.id);
+        const result = await recalculateAllTaskDates(projectId, updatedCache);
         console.log(`✅ Recalculation complete: ${result.updatedCount} tasks updated`);
+        recalculationUpdatedTasks = result.updatedCount > 0;
       }
       
       // Direct parent recalculation on any field change (dates, duration, or progress)
@@ -320,9 +322,12 @@ export const useTaskMutations = (projectId: string) => {
         await recalculateParentDates(data.hierarchy_number);
       }
       
-      // Invalidate AFTER ALL operations complete to sync with server
-      // Only needed when date fields changed (cascade/parent calc may have updated other tasks)
-      if (!variables.suppressInvalidate && (dateFieldsChanged || predecessorChanged)) {
+      // ALWAYS invalidate after cascade recalculation updates other tasks (even if suppressInvalidate is true)
+      // This ensures downstream tasks are refreshed in the UI
+      if (recalculationUpdatedTasks) {
+        console.log('🔄 Cascade recalculation updated tasks, forcing query invalidation');
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
+      } else if (!variables.suppressInvalidate && (dateFieldsChanged || predecessorChanged)) {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
     },
