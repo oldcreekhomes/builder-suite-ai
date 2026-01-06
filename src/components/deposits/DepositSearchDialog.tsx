@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 interface DepositLine {
   id: string;
   amount: number;
+  memo?: string | null;
   lot_id?: string | null;
   project_lots?: {
     id: string;
@@ -24,6 +25,23 @@ interface DepositLine {
     code: string;
   } | null;
 }
+
+const getDepositDescription = (deposit: any): string => {
+  const lines = deposit.deposit_lines || [];
+  const lineMemos = lines
+    .map((line: DepositLine) => line.memo)
+    .filter((memo: string | null | undefined) => memo && memo.trim());
+  
+  const uniqueMemos = [...new Set(lineMemos)];
+  
+  if (uniqueMemos.length === 1) {
+    return uniqueMemos[0] as string;
+  } else if (uniqueMemos.length > 1) {
+    return uniqueMemos.join(', ');
+  }
+  
+  return '';
+};
 
 interface DepositSearchDialogProps {
   open: boolean;
@@ -241,7 +259,7 @@ export function DepositSearchDialog({
                         <TableCell className="px-2 py-1 text-xs">
                           {deposit.companies?.company_name || 'Cash'}
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-xs">{deposit.memo || ''}</TableCell>
+                        <TableCell className="px-2 py-1 text-xs">{getDepositDescription(deposit)}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">
                           {count <= 1 ? (
                             display

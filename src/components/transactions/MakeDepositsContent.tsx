@@ -107,6 +107,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           deposit_lines (
             id,
             amount,
+            memo,
             lot_id,
             account_id,
             line_type,
