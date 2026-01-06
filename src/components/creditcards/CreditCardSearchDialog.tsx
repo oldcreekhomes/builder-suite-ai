@@ -18,6 +18,16 @@ interface CreditCardLine {
     lot_name: string | null;
     lot_number: number | null;
   } | null;
+  cost_codes?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+  accounts?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface CreditCardSearchDialogProps {
@@ -40,9 +50,10 @@ const getLotAllocationData = (lines: CreditCardLine[] | undefined) => {
     return { display: '-', breakdown: [], totalAmount: 0, count: 0 };
   }
 
-  // Group lines by lot
-  const lotMap = new Map<string, { name: string; amount: number }>();
+  // Group lines by category (cost code or account), then by lot
+  const categoryMap = new Map<string, Map<string, number>>();
   let totalAmount = 0;
+  const lotsWithData = new Set<string>();
 
   for (const line of lines) {
     const amount = line.amount || 0;
@@ -53,31 +64,47 @@ const getLotAllocationData = (lines: CreditCardLine[] | undefined) => {
     const lotInfo = line.project_lots;
     if (!lotInfo) continue;
     
-    const lotId = lotInfo.id;
+    lotsWithData.add(lotInfo.id);
     const lotName = lotInfo.lot_name || `Lot ${lotInfo.lot_number}` || 'Unknown Lot';
     
-    if (!lotMap.has(lotId)) {
-      lotMap.set(lotId, { name: lotName, amount: 0 });
+    // Determine category name (cost code or account)
+    let categoryName = 'General';
+    if (line.cost_codes) {
+      categoryName = `${line.cost_codes.code}: ${line.cost_codes.name}`;
+    } else if (line.accounts) {
+      categoryName = `${line.accounts.code}: ${line.accounts.name}`;
     }
-    lotMap.get(lotId)!.amount += amount;
+    
+    if (!categoryMap.has(categoryName)) {
+      categoryMap.set(categoryName, new Map());
+    }
+    const lotMap = categoryMap.get(categoryName)!;
+    lotMap.set(lotName, (lotMap.get(lotName) || 0) + amount);
   }
 
-  const count = lotMap.size;
+  const count = lotsWithData.size;
   
   if (count === 0) {
     return { display: '-', breakdown: [], totalAmount, count: 0 };
   }
 
   // Build breakdown for tooltip
-  const breakdown: LotBreakdownItem[] = [{
-    categoryName: 'Lot Allocation',
-    lots: Array.from(lotMap.values())
-  }];
+  const breakdown: LotBreakdownItem[] = [];
+  categoryMap.forEach((lotMap, categoryName) => {
+    const lots: Array<{ name: string; amount: number }> = [];
+    lotMap.forEach((amount, lotName) => {
+      lots.push({ name: lotName, amount });
+    });
+    breakdown.push({ categoryName, lots });
+  });
 
   // Determine display
   if (count === 1) {
-    const firstLot = Array.from(lotMap.values())[0];
-    return { display: firstLot.name, breakdown, totalAmount, count };
+    const firstLotId = Array.from(lotsWithData)[0];
+    const firstLine = lines.find(l => l.project_lots?.id === firstLotId);
+    const lotInfo = firstLine?.project_lots;
+    const display = lotInfo?.lot_name || `Lot ${lotInfo?.lot_number}` || 'Lot';
+    return { display, breakdown, totalAmount, count };
   }
 
   return { display: `+${count}`, breakdown, totalAmount, count };
@@ -231,15 +258,16 @@ export function CreditCardSearchDialog({
                           ) : (
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger className="cursor-default underline decoration-dotted">
+                                <TooltipTrigger className="cursor-default">
                                   {display}
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <div className="space-y-2">
-                                    {breakdown.map((cc, i) => (
+                                    {breakdown.map((category, i) => (
                                       <div key={i}>
+                                        <div className="font-medium text-xs">{category.categoryName}</div>
                                         <div className="pl-2 space-y-0.5">
-                                          {cc.lots.map((lot, j) => (
+                                          {category.lots.map((lot, j) => (
                                             <div key={j} className="flex justify-between gap-4 text-xs">
                                               <span className="text-muted-foreground">{lot.name}:</span>
                                               <span>{formatCurrency(lot.amount)}</span>

@@ -62,7 +62,9 @@ export const useChecks = () => {
             lot_id,
             amount,
             memo,
-            project_lots:lot_id (id, lot_name, lot_number)
+            project_lots:lot_id (id, lot_name, lot_number),
+            cost_codes:cost_code_id (id, code, name),
+            accounts:account_id (id, code, name)
           )
         `)
         .eq('owner_id', owner_id)
