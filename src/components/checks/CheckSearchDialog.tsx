@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 interface CheckLine {
   id: string;
   amount: number;
+  memo?: string | null;
   lot_id?: string | null;
   project_lots?: {
     id: string;
@@ -29,6 +30,23 @@ interface CheckLine {
     code: string;
   } | null;
 }
+
+const getCheckDescription = (check: any): string => {
+  const lines = check.check_lines || [];
+  const lineMemos = lines
+    .map((line: CheckLine) => line.memo)
+    .filter((memo: string | null | undefined) => memo && memo.trim());
+  
+  const uniqueMemos = [...new Set(lineMemos)];
+  
+  if (uniqueMemos.length === 1) {
+    return uniqueMemos[0] as string;
+  } else if (uniqueMemos.length > 1) {
+    return uniqueMemos.join(', ');
+  }
+  
+  return check.memo || '';
+};
 
 interface CheckSearchDialogProps {
   open: boolean;
@@ -246,7 +264,7 @@ export function CheckSearchDialog({
                           {format(new Date(check.check_date + 'T00:00:00'), 'MM/dd/yyyy')}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{check.pay_to}</TableCell>
-                        <TableCell className="px-2 py-1 text-xs">{check.memo || ''}</TableCell>
+                        <TableCell className="px-2 py-1 text-xs">{getCheckDescription(check)}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">
                           {count <= 1 ? (
                             display
