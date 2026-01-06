@@ -264,9 +264,14 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         options: { suppressInvalidate: true }
       });
       
-      // Predecessors are NOT updated during drag-drop - they stay as-is
-      // This matches competitor software behavior where only task numbers change
-      // and users can see/fix any resulting dependency issues in the Gantt chart
+      // Remap predecessors to match new hierarchy numbers
+      if (result.predecessorUpdates.length > 0) {
+        console.log('🔗 Remapping predecessors:', result.predecessorUpdates.length, 'tasks affected');
+        await bulkUpdatePredecessors.mutateAsync({
+          updates: result.predecessorUpdates,
+          options: { suppressInvalidate: true, skipValidation: true }
+        });
+      }
       
       // Final cache invalidation
       queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });

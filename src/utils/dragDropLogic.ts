@@ -2,8 +2,77 @@ import { ProjectTask } from "@/hooks/useProjectTasks";
 
 export interface DragDropResult {
   hierarchyUpdates: Array<{ id: string; hierarchy_number: string }>;
-  predecessorUpdates: Array<{ taskId: string; newPredecessors: string[] | null }>;
+  predecessorUpdates: Array<{ id: string; predecessor: string[] | null }>;
 }
+
+/**
+ * Remap a single predecessor string using the hierarchy mapping
+ * Handles formats: "9.2", "9.2SS", "9.2SS+5d", "9.2FS-3d"
+ */
+const remapPredecessorString = (
+  predecessor: string,
+  oldToNewHierarchy: Map<string, string>
+): string => {
+  // Pattern: hierarchy number, optional link type (SS/FS/FF/SF), optional lag (+/-Xd)
+  const match = predecessor.match(/^(\d+(?:\.\d+)*)(SS|FS|FF|SF)?([+-]\d+d)?$/i);
+  
+  if (!match) {
+    // Doesn't match expected format, return as-is
+    return predecessor;
+  }
+  
+  const [, hierarchyNum, linkType = '', lag = ''] = match;
+  const newHierarchy = oldToNewHierarchy.get(hierarchyNum);
+  
+  if (newHierarchy) {
+    return `${newHierarchy}${linkType}${lag}`;
+  }
+  
+  return predecessor;
+};
+
+/**
+ * Remap all predecessors in the project using the old-to-new hierarchy mapping
+ */
+const remapPredecessors = (
+  allTasks: ProjectTask[],
+  oldToNewHierarchy: Map<string, string>
+): Array<{ id: string; predecessor: string[] | null }> => {
+  const updates: Array<{ id: string; predecessor: string[] | null }> = [];
+  
+  // Skip if no mappings
+  if (oldToNewHierarchy.size === 0) {
+    return updates;
+  }
+  
+  for (const task of allTasks) {
+    // Handle both string and string[] predecessor formats
+    const predecessors = task.predecessor;
+    if (!predecessors || (Array.isArray(predecessors) && predecessors.length === 0)) {
+      continue;
+    }
+    
+    const predArray = Array.isArray(predecessors) ? predecessors : [predecessors];
+    
+    let hasChanges = false;
+    const newPredecessors = predArray.map(pred => {
+      const remapped = remapPredecessorString(pred, oldToNewHierarchy);
+      if (remapped !== pred) {
+        hasChanges = true;
+      }
+      return remapped;
+    });
+    
+    if (hasChanges) {
+      updates.push({
+        id: task.id,
+        predecessor: newPredecessors
+      });
+    }
+  }
+  
+  return updates;
+};
 
 /**
  * Check if a drop is valid (same parent level, not onto self or children)
@@ -47,11 +116,8 @@ export const computeDragDropUpdates = (
   dropPosition: 'before' | 'after',
   allTasks: ProjectTask[]
 ): DragDropResult => {
-  const hierarchyUpdates: Array<{ id: string; hierarchy_number: string }> = [];
-  const predecessorUpdates: Array<{ taskId: string; newPredecessors: string[] | null }> = [];
-  
   if (!draggedTask.hierarchy_number || !targetTask.hierarchy_number) {
-    return { hierarchyUpdates, predecessorUpdates };
+    return { hierarchyUpdates: [], predecessorUpdates: [] };
   }
   
   const isTopLevel = !draggedTask.hierarchy_number.includes('.');
@@ -73,7 +139,6 @@ const computeTopLevelDragDrop = (
   allTasks: ProjectTask[]
 ): DragDropResult => {
   const hierarchyUpdates: Array<{ id: string; hierarchy_number: string }> = [];
-  const predecessorUpdates: Array<{ taskId: string; newPredecessors: string[] | null }> = [];
   
   // Get all top-level groups sorted
   const topLevelTasks = allTasks
@@ -84,7 +149,7 @@ const computeTopLevelDragDrop = (
   let targetIndex = topLevelTasks.findIndex(t => t.id === targetTask.id);
   
   if (draggedIndex === -1 || targetIndex === -1) {
-    return { hierarchyUpdates, predecessorUpdates };
+    return { hierarchyUpdates: [], predecessorUpdates: [] };
   }
   
   // Adjust target index based on drop position
@@ -99,7 +164,7 @@ const computeTopLevelDragDrop = (
   
   // If no actual movement needed
   if (targetIndex === draggedIndex) {
-    return { hierarchyUpdates, predecessorUpdates };
+    return { hierarchyUpdates: [], predecessorUpdates: [] };
   }
   
   // Build old-to-new hierarchy mapping
@@ -130,9 +195,8 @@ const computeTopLevelDragDrop = (
     }
   });
   
-  // Predecessors are NOT updated during drag-drop - they stay as-is
-  // This matches competitor software behavior where only task numbers change
-  // and users can see/fix any resulting dependency issues in the Gantt chart
+  // Remap all predecessors using the hierarchy mapping
+  const predecessorUpdates = remapPredecessors(allTasks, oldToNewHierarchy);
   
   return { hierarchyUpdates, predecessorUpdates };
 };
@@ -147,7 +211,6 @@ const computeChildDragDrop = (
   allTasks: ProjectTask[]
 ): DragDropResult => {
   const hierarchyUpdates: Array<{ id: string; hierarchy_number: string }> = [];
-  const predecessorUpdates: Array<{ taskId: string; newPredecessors: string[] | null }> = [];
   
   const draggedParts = draggedTask.hierarchy_number!.split('.');
   const parentHierarchy = draggedParts.slice(0, -1).join('.');
@@ -171,7 +234,7 @@ const computeChildDragDrop = (
   let targetIndex = siblings.findIndex(t => t.id === targetTask.id);
   
   if (draggedIndex === -1 || targetIndex === -1) {
-    return { hierarchyUpdates, predecessorUpdates };
+    return { hierarchyUpdates: [], predecessorUpdates: [] };
   }
   
   // Adjust target index based on drop position
@@ -186,7 +249,7 @@ const computeChildDragDrop = (
   
   // If no actual movement needed
   if (targetIndex === draggedIndex) {
-    return { hierarchyUpdates, predecessorUpdates };
+    return { hierarchyUpdates: [], predecessorUpdates: [] };
   }
   
   // Build old-to-new hierarchy mapping
@@ -210,9 +273,8 @@ const computeChildDragDrop = (
     }
   });
   
-  // Predecessors are NOT updated during drag-drop - they stay as-is
-  // This matches competitor software behavior where only task numbers change
-  // and users can see/fix any resulting dependency issues in the Gantt chart
+  // Remap all predecessors using the hierarchy mapping
+  const predecessorUpdates = remapPredecessors(allTasks, oldToNewHierarchy);
   
   return { hierarchyUpdates, predecessorUpdates };
 };
