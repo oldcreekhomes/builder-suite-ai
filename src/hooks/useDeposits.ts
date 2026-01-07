@@ -47,6 +47,12 @@ export const useDeposits = () => {
       console.log('Creating deposit:', depositData);
       console.log('Deposit lines:', depositLines);
 
+      // CRITICAL: Validate that header amount equals sum of line amounts
+      const linesTotal = depositLines.reduce((sum, line) => sum + line.amount, 0);
+      if (Math.abs(depositData.amount - linesTotal) > 0.01) {
+        throw new Error(`Deposit amount ($${depositData.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      }
+
       // Get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
@@ -485,6 +491,12 @@ export const useDeposits = () => {
       depositLines: DepositLineData[];
     }) => {
       console.log('Updating deposit:', depositId, depositData);
+
+      // CRITICAL: Validate that header amount equals sum of line amounts
+      const linesTotal = depositLines.reduce((sum, line) => sum + line.amount, 0);
+      if (Math.abs(depositData.amount - linesTotal) > 0.01) {
+        throw new Error(`Deposit amount ($${depositData.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      }
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
