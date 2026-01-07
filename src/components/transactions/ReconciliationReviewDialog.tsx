@@ -204,7 +204,7 @@ export function ReconciliationReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Reconciliation Review
@@ -240,7 +240,7 @@ export function ReconciliationReviewDialog({
           </div>
         ) : (
           <ScrollArea className="flex-1 pr-4">
-            <div className="space-y-6">
+            <div className="space-y-6 pb-6">
               {/* Checks & Bill Payments (Debits) */}
               <div>
                 <div className="flex justify-between items-center mb-3">
