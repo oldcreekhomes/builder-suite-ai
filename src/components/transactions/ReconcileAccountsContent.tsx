@@ -14,7 +14,8 @@ import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationP
 import { format, addMonths, endOfMonth } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Eye } from "lucide-react";
+import { ReconciliationReviewDialog } from "./ReconciliationReviewDialog";
 import {
   Dialog,
   DialogContent,
@@ -164,6 +165,10 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [selectedReconciliationNotes, setSelectedReconciliationNotes] = useState("");
   const [selectedReconciliationDate, setSelectedReconciliationDate] = useState("");
+  
+  // Review dialog state
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selectedReconciliationForReview, setSelectedReconciliationForReview] = useState<any>(null);
   
   // Track if we need to save on unmount
   const hasUnsavedChangesRef = useRef(false);
@@ -1593,7 +1598,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       <th className="p-3 text-left">Difference</th>
                       <th className="p-3 text-left">Completed Date</th>
                       <th className="p-3 text-center">Notes</th>
-                      {canUndoReconciliation && <th className="p-3 text-center">Actions</th>}
+                      <th className="p-3 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1641,33 +1646,55 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                               <span className="text-muted-foreground">-</span>
                             )}
                           </td>
-                          {canUndoReconciliation && (
-                            <td className="p-3 text-center">
+                          <td className="p-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleUndoReconciliation(rec)}
-                                      disabled={!isLatestCompleted(rec)}
-                                      className={cn(
-                                        "h-8 w-8 p-0",
-                                        isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
-                                      )}
+                                      onClick={() => {
+                                        setSelectedReconciliationForReview(rec);
+                                        setReviewDialogOpen(true);
+                                      }}
+                                      className="h-8 w-8 p-0"
                                     >
-                                      <Lock className="h-4 w-4" />
+                                      <Eye className="h-4 w-4" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {isLatestCompleted(rec) 
-                                      ? "Undo this reconciliation" 
-                                      : "Only the most recent completed reconciliation can be undone"}
+                                    Review cleared transactions for this reconciliation
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
-                            </td>
-                          )}
+                              {canUndoReconciliation && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleUndoReconciliation(rec)}
+                                        disabled={!isLatestCompleted(rec)}
+                                        className={cn(
+                                          "h-8 w-8 p-0",
+                                          isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
+                                        )}
+                                      >
+                                        <Lock className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {isLatestCompleted(rec) 
+                                        ? "Undo this reconciliation" 
+                                        : "Only the most recent completed reconciliation can be undone"}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                            </div>
+                          </td>
                         </tr>
                       ))}
                   </tbody>
@@ -1776,6 +1803,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Review Reconciliation Dialog */}
+      <ReconciliationReviewDialog
+        open={reviewDialogOpen}
+        onOpenChange={setReviewDialogOpen}
+        reconciliation={selectedReconciliationForReview}
+        bankAccountId={selectedBankAccountId}
+      />
     </div>
   );
 }
