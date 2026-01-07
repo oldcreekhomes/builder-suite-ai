@@ -286,19 +286,28 @@ export const useBankReconciliation = () => {
               const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
 
               // Step 5: Build transactions
-              // For each bill, find the corresponding JE and amount
-              const billToJe = new Map();
+              // For each bill, aggregate total credits from ALL related journal entries
+              const billToTotalCredit = new Map<string, number>();
+              const billToLatestDate = new Map<string, string>();
+
               journalEntries.forEach(je => {
-                if (jeToCredit.has(je.id)) {
-                  billToJe.set(je.source_id, je.id);
+                const jeCredit = jeToCredit.get(je.id) || 0;
+                if (jeCredit > 0) {
+                  const existingTotal = billToTotalCredit.get(je.source_id) || 0;
+                  billToTotalCredit.set(je.source_id, existingTotal + jeCredit);
+                  
+                  // Keep the latest entry date for the transaction
+                  const existingDate = billToLatestDate.get(je.source_id);
+                  if (!existingDate || je.entry_date > existingDate) {
+                    billToLatestDate.set(je.source_id, je.entry_date);
+                  }
                 }
               });
 
               billPaymentTransactions = bills
-                .filter(bill => billToJe.has(bill.id))
+                .filter(bill => billToTotalCredit.has(bill.id))
                 .map(bill => {
-                  const jeId = billToJe.get(bill.id);
-                  const entryDate = jeToDate.get(jeId) || '';
+                  const entryDate = billToLatestDate.get(bill.id) || '';
                   // Treat orphaned as effectively unreconciled for this project
                   const effectivelyReconciled = bill.reconciled && bill.reconciliation_id && 
                     validReconciliationIds.has(bill.reconciliation_id);
@@ -308,7 +317,7 @@ export const useBankReconciliation = () => {
                     type: 'bill_payment' as const,
                     payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
                     reference_number: bill.reference_number || undefined,
-                    amount: jeToCredit.get(jeId) || 0,
+                    amount: billToTotalCredit.get(bill.id) || 0,
                     reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
                     reconciliation_date: effectivelyReconciled ? bill.reconciliation_date || undefined : undefined,
                     reconciliation_id: effectivelyReconciled ? bill.reconciliation_id || undefined : undefined,
