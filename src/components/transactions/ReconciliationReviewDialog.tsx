@@ -239,7 +239,7 @@ export function ReconciliationReviewDialog({
             <Skeleton className="h-8 w-full" />
           </div>
         ) : (
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 min-h-0 pr-4">
             <div className="space-y-6 pb-6">
               {/* Checks & Bill Payments (Debits) */}
               <div>
