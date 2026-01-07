@@ -91,6 +91,11 @@ export function useCreditCards() {
       // Calculate total
       const total = data.lines.reduce((sum, line) => sum + Number(line.amount), 0);
 
+      // CRITICAL: Validate that header amount matches line totals (if amount provided separately)
+      if (data.amount !== undefined && Math.abs(data.amount - total) > 0.01) {
+        throw new Error(`Credit card amount ($${data.amount.toFixed(2)}) does not match line items total ($${total.toFixed(2)}). Balance sheet would be out of balance.`);
+      }
+
       // Insert credit card record
       const { data: creditCard, error: creditCardError } = await supabase
         .from('credit_cards')
@@ -220,6 +225,13 @@ export function useCreditCards() {
         }
       }
 
+      // FINAL SAFETY CHECK: Verify debits = credits before inserting
+      const totalDebits = journalLines.reduce((sum, line) => sum + (line.debit || 0), 0);
+      const totalCredits = journalLines.reduce((sum, line) => sum + (line.credit || 0), 0);
+      if (Math.abs(totalDebits - totalCredits) > 0.01) {
+        throw new Error(`CRITICAL: Journal entry would be unbalanced. Debits ($${totalDebits.toFixed(2)}) ≠ Credits ($${totalCredits.toFixed(2)}). Transaction cancelled.`);
+      }
+
       const { error: jelError } = await supabase
         .from('journal_entry_lines')
         .insert(journalLines);
@@ -296,6 +308,12 @@ export function useCreditCards() {
         .single();
 
       const wipAccountId = settings?.wip_account_id;
+
+      // CRITICAL: Validate that header amount equals sum of line amounts
+      const linesTotal = data.lines.reduce((sum, line) => sum + Number(line.amount), 0);
+      if (Math.abs(data.amount - linesTotal) > 0.01) {
+        throw new Error(`Credit card amount ($${data.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      }
 
       // Update the credit card header
       const { error: updateError, data: updatedCC } = await supabase
@@ -400,6 +418,13 @@ export function useCreditCards() {
             });
           }
         });
+
+        // FINAL SAFETY CHECK: Verify debits = credits before inserting
+        const totalDebits = journalLines.reduce((sum, line) => sum + (line.debit || 0), 0);
+        const totalCredits = journalLines.reduce((sum, line) => sum + (line.credit || 0), 0);
+        if (Math.abs(totalDebits - totalCredits) > 0.01) {
+          throw new Error(`CRITICAL: Journal entry would be unbalanced. Debits ($${totalDebits.toFixed(2)}) ≠ Credits ($${totalCredits.toFixed(2)}). Transaction cancelled.`);
+        }
 
         const { error: journalLinesError } = await supabase
           .from('journal_entry_lines')

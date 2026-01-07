@@ -81,6 +81,12 @@ export const useChecks = () => {
 
   const createCheck = useMutation({
     mutationFn: async ({ checkData, checkLines }: { checkData: CheckData; checkLines: CheckLineData[] }) => {
+      // CRITICAL: Validate that check amount equals sum of line amounts
+      const linesTotal = checkLines.reduce((sum, line) => sum + line.amount, 0);
+      if (Math.abs(checkData.amount - linesTotal) > 0.01) {
+        throw new Error(`Check amount ($${checkData.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
@@ -263,6 +269,13 @@ export const useChecks = () => {
         }
       });
 
+      // FINAL SAFETY CHECK: Verify debits = credits before inserting
+      const totalDebits = journalLines.reduce((sum, line) => sum + (line.debit || 0), 0);
+      const totalCredits = journalLines.reduce((sum, line) => sum + (line.credit || 0), 0);
+      if (Math.abs(totalDebits - totalCredits) > 0.01) {
+        throw new Error(`CRITICAL: Journal entry would be unbalanced. Debits ($${totalDebits.toFixed(2)}) ≠ Credits ($${totalCredits.toFixed(2)}). Transaction cancelled.`);
+      }
+
       const { error: journalLinesError } = await supabase
         .from('journal_entry_lines')
         .insert(journalLines);
@@ -360,6 +373,12 @@ export const useChecks = () => {
 
       // If checkLines provided, update them
       if (checkLines && checkLines.length > 0) {
+        // CRITICAL: Validate that check amount equals sum of line amounts
+        const linesTotal = checkLines.reduce((sum, line) => sum + line.amount, 0);
+        const checkAmount = updates.amount !== undefined ? updates.amount : linesTotal;
+        if (Math.abs(checkAmount - linesTotal) > 0.01) {
+          throw new Error(`Check amount ($${checkAmount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+        }
         // Delete existing check lines
         await supabase
           .from("check_lines")
@@ -455,6 +474,13 @@ export const useChecks = () => {
               });
             }
           });
+
+          // FINAL SAFETY CHECK: Verify debits = credits before inserting
+          const totalDebits = journalLines.reduce((sum, line) => sum + (line.debit || 0), 0);
+          const totalCredits = journalLines.reduce((sum, line) => sum + (line.credit || 0), 0);
+          if (Math.abs(totalDebits - totalCredits) > 0.01) {
+            throw new Error(`CRITICAL: Journal entry would be unbalanced. Debits ($${totalDebits.toFixed(2)}) ≠ Credits ($${totalCredits.toFixed(2)}). Transaction cancelled.`);
+          }
 
           const { error: journalLinesError } = await supabase
             .from("journal_entry_lines")
