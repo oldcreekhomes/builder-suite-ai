@@ -204,7 +204,7 @@ export function ReconciliationReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-4xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Reconciliation Review
@@ -239,128 +239,130 @@ export function ReconciliationReviewDialog({
             <Skeleton className="h-8 w-full" />
           </div>
         ) : (
-          <ScrollArea className="flex-1 min-h-0 pr-4">
-            <div className="space-y-6 pb-6">
-              {/* Checks & Bill Payments (Debits) */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-base">Checks & Bill Payments Cleared</h3>
-                  <span className="text-sm font-medium text-destructive">
-                    Total: {formatCurrency(totalDebits)}
-                  </span>
-                </div>
-                {allDebits.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">No checks or bill payments in this reconciliation</p>
-                ) : (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="p-2 text-left">Date</th>
-                          <th className="p-2 text-left">Type</th>
-                          <th className="p-2 text-left">Payee</th>
-                          <th className="p-2 text-left">Reference</th>
-                          <th className="p-2 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allDebits.map((t) => (
-                          <tr key={t.id} className="border-t">
-                            <td className="p-2">
-                              {t.date ? format(new Date(t.date + "T00:00:00"), "MM/dd/yyyy") : '-'}
-                            </td>
-                            <td className="p-2 capitalize">
-                              {t.type === 'bill_payment' ? 'Bill Payment' : 
-                               t.type === 'journal_entry' ? 'Journal Entry' : 'Check'}
-                            </td>
-                            <td className="p-2">{t.payee}</td>
-                            <td className="p-2">{t.reference || '-'}</td>
-                            <td className="p-2 text-right text-destructive font-medium">
-                              ({formatCurrency(t.amount)})
-                            </td>
+          <div className="flex-1 min-h-0">
+            <ScrollArea type="always" className="h-full pr-4">
+              <div className="space-y-6 pb-6">
+                {/* Checks & Bill Payments (Debits) */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-base">Checks & Bill Payments Cleared</h3>
+                    <span className="text-sm font-medium text-destructive">
+                      Total: {formatCurrency(totalDebits)}
+                    </span>
+                  </div>
+                  {allDebits.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">No checks or bill payments in this reconciliation</p>
+                  ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="p-2 text-left">Date</th>
+                            <th className="p-2 text-left">Type</th>
+                            <th className="p-2 text-left">Payee</th>
+                            <th className="p-2 text-left">Reference</th>
+                            <th className="p-2 text-right">Amount</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Deposits (Credits) */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-base">Deposits Cleared</h3>
-                  <span className="text-sm font-medium text-green-600">
-                    Total: {formatCurrency(totalCredits)}
-                  </span>
+                        </thead>
+                        <tbody>
+                          {allDebits.map((t) => (
+                            <tr key={t.id} className="border-t">
+                              <td className="p-2">
+                                {t.date ? format(new Date(t.date + "T00:00:00"), "MM/dd/yyyy") : '-'}
+                              </td>
+                              <td className="p-2 capitalize">
+                                {t.type === 'bill_payment' ? 'Bill Payment' :
+                                 t.type === 'journal_entry' ? 'Journal Entry' : 'Check'}
+                              </td>
+                              <td className="p-2">{t.payee}</td>
+                              <td className="p-2">{t.reference || '-'}</td>
+                              <td className="p-2 text-right text-destructive font-medium">
+                                ({formatCurrency(t.amount)})
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-                {allCredits.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">No deposits in this reconciliation</p>
-                ) : (
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="p-2 text-left">Date</th>
-                          <th className="p-2 text-left">Type</th>
-                          <th className="p-2 text-left">Source</th>
-                          <th className="p-2 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {allCredits.map((t) => (
-                          <tr key={t.id} className="border-t">
-                            <td className="p-2">
-                              {t.date ? format(new Date(t.date + "T00:00:00"), "MM/dd/yyyy") : '-'}
-                            </td>
-                            <td className="p-2">
-                              {t.type === 'journal_entry' ? 'Journal Entry' : 'Deposit'}
-                            </td>
-                            <td className="p-2">{t.payee}</td>
-                            <td className="p-2 text-right text-green-600 font-medium">
-                              {formatCurrency(t.amount)}
-                            </td>
+
+                <Separator />
+
+                {/* Deposits (Credits) */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-base">Deposits Cleared</h3>
+                    <span className="text-sm font-medium text-green-600">
+                      Total: {formatCurrency(totalCredits)}
+                    </span>
+                  </div>
+                  {allCredits.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">No deposits in this reconciliation</p>
+                  ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="p-2 text-left">Date</th>
+                            <th className="p-2 text-left">Type</th>
+                            <th className="p-2 text-left">Source</th>
+                            <th className="p-2 text-right">Amount</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+                        </thead>
+                        <tbody>
+                          {allCredits.map((t) => (
+                            <tr key={t.id} className="border-t">
+                              <td className="p-2">
+                                {t.date ? format(new Date(t.date + "T00:00:00"), "MM/dd/yyyy") : '-'}
+                              </td>
+                              <td className="p-2">
+                                {t.type === 'journal_entry' ? 'Journal Entry' : 'Deposit'}
+                              </td>
+                              <td className="p-2">{t.payee}</td>
+                              <td className="p-2 text-right text-green-600 font-medium">
+                                {formatCurrency(t.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
 
-              <Separator />
+                <Separator />
 
-              {/* Summary */}
-              <div className="bg-muted/50 rounded-lg p-4">
-                <h3 className="font-semibold text-base mb-3">Summary</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Beginning Balance:</span>
-                    <span className="font-medium">{formatCurrency(beginningBalance)}</span>
-                  </div>
-                  <div className="flex justify-between text-green-600">
-                    <span>+ Deposits Cleared:</span>
-                    <span className="font-medium">+{formatCurrency(totalCredits)}</span>
-                  </div>
-                  <div className="flex justify-between text-destructive">
-                    <span>- Checks & Bill Payments Cleared:</span>
-                    <span className="font-medium">-{formatCurrency(totalDebits)}</span>
-                  </div>
-                  <Separator className="my-2" />
-                  <div className="flex justify-between font-semibold text-base">
-                    <span>= Ending Balance:</span>
-                    <span>{formatCurrency(beginningBalance + totalCredits - totalDebits)}</span>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Statement Ending Balance:</span>
-                    <span>{formatCurrency(endingBalance)}</span>
+                {/* Summary */}
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <h3 className="font-semibold text-base mb-3">Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>Beginning Balance:</span>
+                      <span className="font-medium">{formatCurrency(beginningBalance)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>+ Deposits Cleared:</span>
+                      <span className="font-medium">+{formatCurrency(totalCredits)}</span>
+                    </div>
+                    <div className="flex justify-between text-destructive">
+                      <span>- Checks & Bill Payments Cleared:</span>
+                      <span className="font-medium">-{formatCurrency(totalDebits)}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-semibold text-base">
+                      <span>= Ending Balance:</span>
+                      <span>{formatCurrency(beginningBalance + totalCredits - totalDebits)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Statement Ending Balance:</span>
+                      <span>{formatCurrency(endingBalance)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         )}
       </DialogContent>
     </Dialog>
