@@ -36,6 +36,7 @@ interface Transaction {
   memo: string | null;
   description: string | null;
   reference: string | null;
+  accountDisplay: string | null;
   source_type: string;
   debit: number;
   credit: number;
@@ -91,6 +92,7 @@ export function AccountDetailDialog({
           debit,
           credit,
           account_id,
+          cost_code_id,
           reconciled,
           reconciliation_id,
           reconciliation_date,
@@ -165,7 +167,7 @@ export function AccountDetailDialog({
             reconciled,
             reconciliation_id,
             reconciliation_date,
-            check_lines(memo, line_number)
+            check_lines(memo, line_number, account_id, cost_code_id)
           `)
           .eq('is_reversal', false)
           .is('reversed_at', null)
@@ -223,7 +225,7 @@ export function AccountDetailDialog({
             reconciled,
             reconciliation_id,
             reconciliation_date,
-            deposit_lines(memo, line_number),
+            deposit_lines(memo, line_number, account_id),
             companies(company_name)
           `)
           .eq('is_reversal', false)
@@ -260,7 +262,7 @@ export function AccountDetailDialog({
             reconciled,
             reconciliation_id,
             reconciliation_date,
-            credit_card_lines(memo, line_number)
+            credit_card_lines(memo, line_number, account_id, cost_code_id)
           `)
           .eq('is_reversal', false)
           .is('reversed_at', null)
@@ -294,16 +296,23 @@ export function AccountDetailDialog({
             reconciled,
             reconciliation_id,
             reconciliation_date,
-            companies(company_name)
+            companies(company_name),
+            bill_lines(memo, line_number, account_id, cost_code_id)
           `)
           .eq('is_reversal', false)
           .is('reversed_at', null)
           .in('id', billIds);
         
         billsData?.forEach((bill: any) => {
+          // Get first bill line for account display
+          const sortedLines = (bill.bill_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+          const firstLine = sortedLines[0];
+          
           billsMap.set(bill.id, {
             ...bill,
-            vendor_name: bill.companies?.company_name || 'Unknown Vendor'
+            vendor_name: bill.companies?.company_name || 'Unknown Vendor',
+            firstLineAccountId: firstLine?.account_id || null,
+            firstLineCostCodeId: firstLine?.cost_code_id || null
           });
         });
       }
@@ -319,12 +328,75 @@ export function AccountDetailDialog({
         return true; // keep manual types
       });
 
+      // Collect all unique cost_code_ids and account_ids for lookup
+      const allCostCodeIds = new Set<string>();
+      const allAccountIds = new Set<string>();
+
+      // From journal entry lines
+      filteredData.forEach((line: any) => {
+        if (line.cost_code_id) allCostCodeIds.add(line.cost_code_id);
+      });
+
+      // From checks
+      checksMap.forEach((check: any) => {
+        (check.check_lines || []).forEach((cl: any) => {
+          if (cl.cost_code_id) allCostCodeIds.add(cl.cost_code_id);
+          if (cl.account_id) allAccountIds.add(cl.account_id);
+        });
+      });
+
+      // From deposits
+      depositsMap.forEach((deposit: any) => {
+        (deposit.deposit_lines || []).forEach((dl: any) => {
+          if (dl.account_id) allAccountIds.add(dl.account_id);
+        });
+      });
+
+      // From credit cards
+      creditCardsMap.forEach((cc: any) => {
+        (cc.credit_card_lines || []).forEach((cl: any) => {
+          if (cl.cost_code_id) allCostCodeIds.add(cl.cost_code_id);
+          if (cl.account_id) allAccountIds.add(cl.account_id);
+        });
+      });
+
+      // From bills
+      billsMap.forEach((bill: any) => {
+        if (bill.firstLineCostCodeId) allCostCodeIds.add(bill.firstLineCostCodeId);
+        if (bill.firstLineAccountId) allAccountIds.add(bill.firstLineAccountId);
+      });
+
+      // Fetch cost codes
+      let costCodesMap = new Map<string, string>();
+      if (allCostCodeIds.size > 0) {
+        const { data: costCodesData } = await supabase
+          .from('cost_codes')
+          .select('id, code, name')
+          .in('id', Array.from(allCostCodeIds));
+        costCodesData?.forEach((cc: any) => {
+          costCodesMap.set(cc.id, `${cc.code} - ${cc.name}`);
+        });
+      }
+
+      // Fetch accounts for display
+      let accountsDisplayMap = new Map<string, string>();
+      if (allAccountIds.size > 0) {
+        const { data: accountsData } = await supabase
+          .from('accounts')
+          .select('id, code, name')
+          .in('id', Array.from(allAccountIds));
+        accountsData?.forEach((acc: any) => {
+          accountsDisplayMap.set(acc.id, `${acc.code} - ${acc.name}`);
+        });
+      }
+
       const transactions: Transaction[] = filteredData.map((line: any) => {
         let memo = line.memo;
         let reference = null;
         let description = line.memo; // Description always comes from the line memo
         let reconciled = false;
         let reconciliation_date: string | null = null;
+        let accountDisplay: string | null = null;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
@@ -336,6 +408,14 @@ export function AccountDetailDialog({
             reconciliation_date = check.reconciliation_date;
             // Use first check line memo as description (e.g., "Testing")
             description = check.firstLineMemo || description;
+            // Get account from first check line - prefer cost code, then account
+            const sortedLines = (check.check_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+            const firstLine = sortedLines[0];
+            if (firstLine?.cost_code_id && costCodesMap.has(firstLine.cost_code_id)) {
+              accountDisplay = costCodesMap.get(firstLine.cost_code_id) || null;
+            } else if (firstLine?.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+              accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
+            }
           }
         }
 
@@ -349,6 +429,12 @@ export function AccountDetailDialog({
             reconciliation_date = deposit.reconciliation_date;
             // Use first deposit line memo as description
             description = deposit.firstLineMemo || description;
+            // Get account from first deposit line
+            const sortedLines = (deposit.deposit_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+            const firstLine = sortedLines[0];
+            if (firstLine?.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+              accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
+            }
           }
         }
 
@@ -362,6 +448,14 @@ export function AccountDetailDialog({
             reconciliation_date = cc.reconciliation_date;
             // Use first credit card line memo as description
             description = cc.firstLineMemo || description;
+            // Get account from first credit card line - prefer cost code, then account
+            const sortedLines = (cc.credit_card_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
+            const firstLine = sortedLines[0];
+            if (firstLine?.cost_code_id && costCodesMap.has(firstLine.cost_code_id)) {
+              accountDisplay = costCodesMap.get(firstLine.cost_code_id) || null;
+            } else if (firstLine?.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+              accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
+            }
           }
         }
 
@@ -373,13 +467,23 @@ export function AccountDetailDialog({
             description = bill.reference_number || description;
             reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
             reconciliation_date = bill.reconciliation_date;
+            // Get account from first bill line - prefer cost code, then account
+            if (bill.firstLineCostCodeId && costCodesMap.has(bill.firstLineCostCodeId)) {
+              accountDisplay = costCodesMap.get(bill.firstLineCostCodeId) || null;
+            } else if (bill.firstLineAccountId && accountsDisplayMap.has(bill.firstLineAccountId)) {
+              accountDisplay = accountsDisplayMap.get(bill.firstLineAccountId) || null;
+            }
           }
         }
 
-        // For manual journal entries, use the line's own reconciliation data
+        // For manual journal entries, use the line's own reconciliation data and cost code
         if (line.journal_entries.source_type === 'manual') {
           reconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
           reconciliation_date = line.reconciliation_date;
+          // Use the journal entry line's cost code if available
+          if (line.cost_code_id && costCodesMap.has(line.cost_code_id)) {
+            accountDisplay = costCodesMap.get(line.cost_code_id) || null;
+          }
         }
 
         return {
@@ -390,6 +494,7 @@ export function AccountDetailDialog({
           memo: memo,
           description: description,
           reference: reference,
+          accountDisplay: accountDisplay,
           source_type: line.journal_entries.source_type,
           debit: line.debit || 0,
           credit: line.credit || 0,
@@ -753,6 +858,7 @@ export function AccountDetailDialog({
                   <TableHead className="h-8 px-2 py-1">Type</TableHead>
                   <TableHead className="h-8 px-2 py-1">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1">Name</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Account</TableHead>
                   <TableHead className="h-8 px-2 py-1">Memo</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
@@ -795,6 +901,9 @@ export function AccountDetailDialog({
                           onSave={(value) => handleUpdate(txn, "reference", value)}
                           readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type)}
                         />
+                      </TableCell>
+                      <TableCell className="px-2 py-1">
+                        <span className="text-xs">{txn.accountDisplay || '-'}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <AccountTransactionInlineEditor
