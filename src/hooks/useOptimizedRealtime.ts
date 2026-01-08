@@ -26,27 +26,32 @@ export function useOptimizedRealtime(projectId: string) {
       // Clear pending updates
       pendingUpdatesRef.current = [];
 
-      // Check for operation cooldowns
-      const userEditCooldownUntil = (window as any).__userEditCooldownUntil;
+      // Only block updates during active local operations (not cooldowns)
       const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
       const isBatchOperationInProgress = (window as any).__batchOperationInProgress;
-      const batchOperationCooldownUntil = (window as any).__batchOperationCooldownUntil;
 
-      if (userEditCooldownUntil && Date.now() < userEditCooldownUntil) {
-        console.log('🚫 Skipping batched updates - user edit cooldown active');
-        return;
-      }
-
+      // Only skip if we're actively in the middle of an operation
       if (isSyncfusionOperationInProgress || isBatchOperationInProgress) {
-        console.log('🚫 Skipping batched updates - operations in progress');
+        console.log('🚫 Skipping batched updates - active operation in progress');
         return;
       }
 
-      // Post-operation cooldown to prevent realtime from interfering
-      if (batchOperationCooldownUntil && Date.now() < batchOperationCooldownUntil) {
-        console.log('🚫 Skipping batched updates - post-operation cooldown active');
+      // Check if these are local echoes (our own writes coming back)
+      const hasOnlyLocalEchoes = updates.every(u => {
+        const recordId = (u.payload as any).new?.id || (u.payload as any).old?.id;
+        if (recordId && window.__pendingLocalUpdates?.has(recordId)) {
+          const expireTime = window.__pendingLocalUpdates.get(recordId);
+          return expireTime && Date.now() < expireTime;
+        }
+        return false;
+      });
+
+      if (hasOnlyLocalEchoes) {
+        console.log('🚫 Skipping batched updates - all are local echoes');
         return;
       }
+
+      console.log('✅ Processing external updates (e.g., email confirmations)');
 
       // Invalidate queries
       queryClient.invalidateQueries({
