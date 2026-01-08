@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { Badge } from "@/components/ui/badge";
@@ -133,6 +133,14 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     if (!projectId) return checks;
     return checks.filter(check => check.project_id === projectId);
   }, [checks, projectId]);
+
+  // Determine if transaction is locked (reconciled OR closed period)
+  const currentCheck = currentEntryIndex >= 0 ? filteredChecks[currentEntryIndex] : null;
+  const isReconciled = currentCheck?.reconciled || 
+                       !!currentCheck?.reconciliation_id || 
+                       !!currentCheck?.reconciliation_date;
+  const isPeriodLocked = isViewingMode && isDateLocked(format(checkDate, 'yyyy-MM-dd'));
+  const isTransactionLocked = isViewingMode && (isReconciled || isPeriodLocked);
 
   const totalCount = isViewingMode ? filteredChecks.length : filteredChecks.length + 1;
   const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
@@ -957,10 +965,17 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
       <div className="space-y-4">
         <Card className="p-6">
           <div className="space-y-6">
-            {/* Header with Navigation - Matching Make Deposits */}
             <div className="flex items-center justify-between border-b pb-4 mb-6">
               <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold">WRITE CHECKS</h1>
+                {isTransactionLocked && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md">
+                    <Lock className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">
+                      {isReconciled ? 'Reconciled' : 'Period Closed'}
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center gap-4">
@@ -1063,18 +1078,22 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
             {/* Main Form Fields - Matching Make Deposits Layout */}
             <div className="grid grid-cols-12 gap-2 p-3 !w-full">
-              <div className="col-span-3">
+              <div className={`col-span-3 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label htmlFor="bankAccount">Bank Account</Label>
                 <AccountSearchInput
                   value={bankAccount}
                   onChange={(value) => {
-                    setBankAccount(value);
-                    const account = accounts.find(a => `${a.code} - ${a.name}` === value);
-                    if (account) setBankAccountId(account.id);
+                    if (!isTransactionLocked) {
+                      setBankAccount(value);
+                      const account = accounts.find(a => `${a.code} - ${a.name}` === value);
+                      if (account) setBankAccountId(account.id);
+                    }
                   }}
                   onAccountSelect={(account) => {
-                    setBankAccount(`${account.code} - ${account.name}`);
-                    setBankAccountId(account.id);
+                    if (!isTransactionLocked) {
+                      setBankAccount(`${account.code} - ${account.name}`);
+                      setBankAccountId(account.id);
+                    }
                   }}
                   placeholder="Select bank account..."
                   accountType="asset"
@@ -1083,12 +1102,12 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 />
               </div>
 
-              <div className="col-span-5">
+              <div className={`col-span-5 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label htmlFor="payTo">Pay To</Label>
                 <VendorSearchInput
                   value={payTo}
-                  onChange={setPayTo}
-                  onCompanySelect={(company) => setPayToName(company.company_name)}
+                  onChange={(v) => !isTransactionLocked && setPayTo(v)}
+                  onCompanySelect={(company) => !isTransactionLocked && setPayToName(company.company_name)}
                   placeholder="Search or add vendor"
                   className="h-10"
                 />
@@ -1099,20 +1118,21 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 <Input
                   id="checkNumber"
                   value={checkNumber}
-                  onChange={(e) => setCheckNumber(e.target.value)}
+                  onChange={(e) => !isTransactionLocked && setCheckNumber(e.target.value)}
                   placeholder="Optional"
                   maxLength={10}
                   className="h-10"
+                  readOnly={isTransactionLocked}
                 />
               </div>
 
-              <div className="col-span-2 min-w-0">
+              <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label>Attachments</Label>
                 <CheckAttachmentUpload
                   attachments={attachments}
                   onAttachmentsChange={setAttachments}
                   checkId={currentCheckId || undefined}
-                  disabled={false}
+                  disabled={isTransactionLocked}
                 />
               </div>
             </div>
@@ -1348,36 +1368,43 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 <div className="text-base font-semibold">
                   Total: ${getDisplayAmount()}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
-                    Clear
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-10"
-                    onClick={handleSaveAndNew}
-                    disabled={createCheck.isPending}
-                  >
-                    {createCheck.isPending ? "Saving..." : "Save & New"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-10"
-                    onClick={handleSaveAndClose}
-                    disabled={createCheck.isPending || updateCheck.isPending}
-                  >
-                    {createCheck.isPending || updateCheck.isPending ? "Saving..." : "Save & Close"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-10"
-                    onClick={handleSaveEntry}
-                    disabled={createCheck.isPending || updateCheck.isPending}
-                  >
-                    {createCheck.isPending || updateCheck.isPending ? "Saving..." : "Save Entry"}
-                  </Button>
-                </div>
+                {isTransactionLocked ? (
+                  <div className="flex items-center gap-2 text-amber-700">
+                    <Lock className="h-4 w-4" />
+                    <span className="text-sm font-medium">This transaction cannot be edited</span>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                      Clear
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10"
+                      onClick={handleSaveAndNew}
+                      disabled={createCheck.isPending}
+                    >
+                      {createCheck.isPending ? "Saving..." : "Save & New"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-10"
+                      onClick={handleSaveAndClose}
+                      disabled={createCheck.isPending || updateCheck.isPending}
+                    >
+                      {createCheck.isPending || updateCheck.isPending ? "Saving..." : "Save & Close"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-10"
+                      onClick={handleSaveEntry}
+                      disabled={createCheck.isPending || updateCheck.isPending}
+                    >
+                      {createCheck.isPending || updateCheck.isPending ? "Saving..." : "Save Entry"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

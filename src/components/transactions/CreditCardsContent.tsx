@@ -10,7 +10,7 @@ import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Search } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Search, Lock } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
@@ -112,6 +112,14 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     }, 100);
     return () => clearTimeout(timer);
   }, [currentCreditCardId, isViewingMode]);
+
+  // Determine if transaction is locked (reconciled OR closed period)
+  const currentCreditCard = currentIndex >= 0 ? creditCards[currentIndex] : null;
+  const isReconciled = currentCreditCard?.reconciled || 
+                       !!currentCreditCard?.reconciliation_id || 
+                       !!currentCreditCard?.reconciliation_date;
+  const isPeriodLocked = isViewingMode && isDateLocked(format(transactionDate, 'yyyy-MM-dd'));
+  const isTransactionLocked = isViewingMode && (isReconciled || isPeriodLocked);
 
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
@@ -469,23 +477,35 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             <div className="flex items-center gap-4">
               <h1 className="text-3xl font-bold">CREDIT CARD</h1>
               
+              {isTransactionLocked && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md">
+                  <Lock className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm font-medium text-amber-700">
+                    {isReconciled ? 'Reconciled' : 'Period Closed'}
+                  </span>
+                </div>
+              )}
+              
               {/* Type Toggle */}
               <div className="flex items-center gap-2">
                 <Label>Type:</Label>
                 <ToggleGroup 
                   type="single" 
                   value={transactionType} 
-                  onValueChange={(value) => value && setTransactionType(value as 'purchase' | 'refund')}
+                  onValueChange={(value) => !isTransactionLocked && value && setTransactionType(value as 'purchase' | 'refund')}
+                  disabled={isTransactionLocked}
                   className="bg-muted p-0.5 rounded-md h-10"
                 >
                   <ToggleGroupItem 
                     value="purchase" 
+                    disabled={isTransactionLocked}
                     className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
                   >
                     Purchase
                   </ToggleGroupItem>
                   <ToggleGroupItem 
                     value="refund"
+                    disabled={isTransactionLocked}
                     className="data-[state=on]:bg-background data-[state=on]:shadow-sm h-9"
                   >
                     Refund
@@ -595,41 +615,45 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
           {/* Main Form Fields */}
           <div className="grid grid-cols-12 gap-2 p-3 !w-full">
-              <div className="col-span-3">
+              <div className={`col-span-3 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label>Credit Card Account</Label>
                 <AccountSearchInput
                   value={creditCardAccount}
                   onChange={(value) => { 
-                    setCreditCardAccount(value); 
-                    if (!value) setCreditCardAccountId(""); 
+                    if (!isTransactionLocked) {
+                      setCreditCardAccount(value); 
+                      if (!value) setCreditCardAccountId(""); 
+                    }
                   }}
                   onAccountSelect={(account) => {
-                    setCreditCardAccount(`${account.code} - ${account.name}`);
-                    setCreditCardAccountId(account.id);
+                    if (!isTransactionLocked) {
+                      setCreditCardAccount(`${account.code} - ${account.name}`);
+                      setCreditCardAccountId(account.id);
+                    }
                   }}
                   placeholder="Select credit card account"
                   className="h-10"
                 />
               </div>
 
-              <div className="col-span-7">
+              <div className={`col-span-7 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label>Vendor</Label>
                 <VendorSearchInput
                   value={vendor}
-                  onChange={setVendor}
+                  onChange={(v) => !isTransactionLocked && setVendor(v)}
                   onCompanySelect={(company) => {
-                    setVendor(company.company_name);
+                    if (!isTransactionLocked) setVendor(company.company_name);
                   }}
                   placeholder="Enter vendor name"
                 />
               </div>
 
-              <div className="col-span-2 min-w-0">
+              <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label>Attachments</Label>
                 <AttachmentFilesRow
                   files={attachments}
-                  onFileUpload={uploadFiles}
-                  onDeleteFile={deleteFile}
+                  onFileUpload={isTransactionLocked ? async () => [] : uploadFiles}
+                  onDeleteFile={isTransactionLocked ? async () => {} : deleteFile}
                   isUploading={isUploading}
                   entityType="credit_card"
                 />
@@ -900,45 +924,52 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
               <div className="text-base font-semibold">
                 Total: ${calculateTotal().toFixed(2)}
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  onClick={clearForm} 
-                  size="sm" 
-                  className="h-10"
-                >
-                  Clear
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-10"
-                  onClick={() => handleSave(true)}
-                  disabled={createCreditCard.isPending}
-                >
-                  {createCreditCard.isPending ? "Saving..." : "Save & New"}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-10"
-                  onClick={() => handleSave(false)}
-                  disabled={createCreditCard.isPending || updateCreditCard.isPending}
-                >
-                  {createCreditCard.isPending || updateCreditCard.isPending ? "Saving..." : "Save & Close"}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="h-10"
-                  onClick={() => handleSave('stay')}
-                  disabled={createCreditCard.isPending || updateCreditCard.isPending}
-                >
-                  {createCreditCard.isPending || updateCreditCard.isPending ? "Saving..." : "Save Entry"}
-                </Button>
-              </div>
+              {isTransactionLocked ? (
+                <div className="flex items-center gap-2 text-amber-700">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm font-medium">This transaction cannot be edited</span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={clearForm} 
+                    size="sm" 
+                    className="h-10"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSave(true)}
+                    disabled={createCreditCard.isPending}
+                  >
+                    {createCreditCard.isPending ? "Saving..." : "Save & New"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSave(false)}
+                    disabled={createCreditCard.isPending || updateCreditCard.isPending}
+                  >
+                    {createCreditCard.isPending || updateCreditCard.isPending ? "Saving..." : "Save & Close"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSave('stay')}
+                    disabled={createCreditCard.isPending || updateCreditCard.isPending}
+                  >
+                    {createCreditCard.isPending || updateCreditCard.isPending ? "Saving..." : "Save Entry"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Search, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
@@ -110,6 +110,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     }, 100);
     return () => clearTimeout(timer);
   }, [currentJournalEntryId, isViewingMode]);
+
+  // Determine if transaction is locked (reconciled lines OR closed period)
+  const currentEntry = currentEntryIndex >= 0 ? filteredEntries[currentEntryIndex] : null;
+  const hasReconciledLines = currentEntry?.lines?.some(
+    (line: any) => line.reconciled || line.reconciliation_id
+  );
+  const isPeriodLocked = isViewingMode && isDateLocked(entryDate.toISOString().split('T')[0]);
+  const isTransactionLocked = isViewingMode && (hasReconciledLines || isPeriodLocked);
 
   // Calculate position counter (includes "new" entry in count)
   const totalCount = isViewingMode ? filteredEntries.length : filteredEntries.length + 1;
@@ -549,6 +557,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         <div className="flex items-center justify-between border-b pb-4 mb-6">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold">JOURNAL ENTRY</h1>
+            {isTransactionLocked && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md">
+                <Lock className="h-4 w-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-700">
+                  {hasReconciledLines ? 'Reconciled' : 'Period Closed'}
+                </span>
+              </div>
+            )}
           </div>
           
             <div className="flex items-center gap-4">
@@ -658,8 +674,9 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               id="description"
               placeholder="Entry description (optional)"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => !isTransactionLocked && setDescription(e.target.value)}
               className="h-10"
+              readOnly={isTransactionLocked}
             />
           </div>
 
@@ -673,7 +690,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             />
           </div>
 
-          <div className="col-span-2 min-w-0">
+          <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
             <Label>Attachments</Label>
             <JournalEntryAttachmentUpload
               attachments={attachments}
@@ -977,20 +994,27 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={createNewEntry}
-          >
-            Clear
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
-          >
-            {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save Entry"}
-          </Button>
-        </div>
+        {isTransactionLocked ? (
+          <div className="flex justify-end items-center gap-2 text-amber-700">
+            <Lock className="h-4 w-4" />
+            <span className="text-sm font-medium">This entry cannot be edited</span>
+          </div>
+        ) : (
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={createNewEntry}
+            >
+              Clear
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
+            >
+              {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save Entry"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
 

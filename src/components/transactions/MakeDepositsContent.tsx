@@ -14,7 +14,7 @@ import { AccountSearchInputInline } from "@/components/AccountSearchInputInline"
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock } from "lucide-react";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
@@ -166,6 +166,14 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const totalCount = sortedDeposits.length;
   const currentPosition = currentEntryIndex >= 0 ? currentEntryIndex + 1 : 0;
+
+  // Determine if transaction is locked (reconciled OR closed period)
+  const currentDeposit = currentEntryIndex >= 0 ? sortedDeposits[currentEntryIndex] : null;
+  const isReconciled = currentDeposit?.reconciled || 
+                       !!currentDeposit?.reconciliation_id || 
+                       !!currentDeposit?.reconciliation_date;
+  const isPeriodLocked = isViewingMode && isDateLocked(format(depositDate, 'yyyy-MM-dd'));
+  const isTransactionLocked = isViewingMode && (isReconciled || isPeriodLocked);
 
   // Register with unsaved changes context
   const { registerForm, unregisterForm } = useUnsavedChangesContext();
@@ -736,6 +744,14 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             <div className="flex items-center justify-between border-b pb-4 mb-6">
               <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold">MAKE DEPOSITS</h1>
+                {isTransactionLocked && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md">
+                    <Lock className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">
+                      {isReconciled ? 'Reconciled' : 'Period Closed'}
+                    </span>
+                  </div>
+                )}
               </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -837,30 +853,32 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
             {/* Search Input Box - Same as Manage Bills */}
 
           <div className="grid grid-cols-12 gap-2 p-3 !w-full">
-            <div className="col-span-3">
+            <div className={`col-span-3 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
               <AccountSearchInputInline
                 value={bankAccount}
-                onChange={(v) => { setBankAccount(v); if (!v) setBankAccountId(""); }}
+                onChange={(v) => { if (!isTransactionLocked) { setBankAccount(v); if (!v) setBankAccountId(""); } }}
                 onAccountSelect={(account) => {
-                  setBankAccountId(account.id);
-                  setBankAccount(`${account.code} - ${account.name}`);
+                  if (!isTransactionLocked) {
+                    setBankAccountId(account.id);
+                    setBankAccount(`${account.code} - ${account.name}`);
+                  }
                 }}
                 accountType="asset"
                 placeholder="Select bank account"
               />
             </div>
 
-            <div className="col-span-5">
+            <div className={`col-span-5 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
               <Label htmlFor="receivedFrom">Received From</Label>
               <VendorSearchInput
                 value={depositSourceId}
                 displayValue={depositSourceName}
                 onChange={(companyId) => {
-                  setDepositSourceId(companyId);
+                  if (!isTransactionLocked) setDepositSourceId(companyId);
                 }}
                 onCompanySelect={(company) => {
-                  setDepositSourceName(company.company_name);
+                  if (!isTransactionLocked) setDepositSourceName(company.company_name);
                 }}
                 placeholder="Search subcontractors or vendors"
               />
@@ -871,20 +889,21 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               <Input
                 id="checkNumber"
                 value={checkNumber}
-                onChange={(e) => setCheckNumber(e.target.value)}
+                onChange={(e) => !isTransactionLocked && setCheckNumber(e.target.value)}
                 placeholder="Optional"
                 maxLength={10}
                 className="h-10"
+                readOnly={isTransactionLocked}
               />
             </div>
 
-            <div className="col-span-2 min-w-0">
+            <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
               <Label>Attachments</Label>
               <DepositAttachmentUpload
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
                 depositId={currentDepositId || undefined}
-                disabled={false}
+                disabled={isTransactionLocked}
               />
             </div>
 
@@ -1128,36 +1147,43 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
               <div className="text-base font-semibold">
                 Total: ${getDisplayAmount()}
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
-                  Clear
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-10"
-                  onClick={() => handleSave(true)}
-                  disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
-                >
-                  {isSaving ? "Saving..." : "Save & New"}
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-10"
-                  onClick={() => handleSave(false)}
-                  disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
-                >
-                  {isSaving ? "Saving..." : "Save & Close"}
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-10"
-                  onClick={() => handleSave('stay')}
-                  disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
-                >
-                  {isSaving ? "Saving..." : "Save Entry"}
-                </Button>
-              </div>
+              {isTransactionLocked ? (
+                <div className="flex items-center gap-2 text-amber-700">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm font-medium">This transaction cannot be edited</span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSave(true)}
+                    disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
+                  >
+                    {isSaving ? "Saving..." : "Save & New"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSave(false)}
+                    disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
+                  >
+                    {isSaving ? "Saving..." : "Save & Close"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSave('stay')}
+                    disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
+                  >
+                    {isSaving ? "Saving..." : "Save Entry"}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           </div>
