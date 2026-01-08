@@ -686,6 +686,30 @@ export function AccountDetailDialog({
     return formatted;
   };
 
+  const formatTransactionAmount = (txn: Transaction, accType: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') => {
+    // Calculate net amount based on account type
+    // For assets/expenses: debit increases (positive), credit decreases (negative)
+    // For liabilities/equity/revenue: credit increases (positive), debit decreases (negative)
+    let amount: number;
+    if (accType === 'asset' || accType === 'expense') {
+      amount = txn.debit - txn.credit;
+    } else {
+      amount = txn.credit - txn.debit;
+    }
+
+    const absAmount = Math.abs(amount);
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(absAmount);
+
+    if (amount < 0) {
+      return <span className="text-red-600">({formatted})</span>;
+    }
+    return <span className="text-foreground">{formatted}</span>;
+  };
+
   const calculateRunningBalance = (transactions: Transaction[]) => {
     let balance = 0;
     return transactions.map((txn) => {
@@ -730,8 +754,7 @@ export function AccountDetailDialog({
                   <TableHead className="h-8 px-2 py-1">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1">Name</TableHead>
                   <TableHead className="h-8 px-2 py-1">Memo</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Debit</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Credit</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
@@ -782,10 +805,7 @@ export function AccountDetailDialog({
                         />
                       </TableCell>
               <TableCell className="px-2 py-1 text-right">
-                <span className="text-xs">{txn.debit > 0 ? formatCurrency(txn.debit) : ''}</span>
-              </TableCell>
-              <TableCell className="px-2 py-1 text-right">
-                <span className="text-xs">{txn.credit > 0 ? formatCurrency(txn.credit) : ''}</span>
+                <span className="text-xs">{formatTransactionAmount(txn, accountType)}</span>
               </TableCell>
               <TableCell className="px-2 py-1 text-right">
                 <span className="text-xs">{formatAmountWithSign(balances[index])}</span>
