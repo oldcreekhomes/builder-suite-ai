@@ -158,6 +158,6 @@ export const useProjectTasks = (projectId: string) => {
     },
     enabled: !!user && !!projectId,
     staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnWindowFocus: true, // Don't refetch on window focus
   });
 };
