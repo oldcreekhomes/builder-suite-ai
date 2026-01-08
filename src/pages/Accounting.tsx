@@ -175,6 +175,30 @@ export default function Accounting() {
     }
   });
 
+  // Fetch latest closed accounting period
+  const { data: closedBooksMetrics } = useQuery({
+    queryKey: ['closed-books-metrics', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      if (!projectId) return { lastClosedDate: null };
+      
+      const { data, error } = await supabase
+        .from('accounting_periods')
+        .select('period_end_date, closed_at')
+        .eq('project_id', projectId)
+        .eq('status', 'closed')
+        .order('period_end_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      return {
+        lastClosedDate: data?.period_end_date || null
+      };
+    }
+  });
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -376,7 +400,10 @@ export default function Accounting() {
                     <CardContent className="space-y-1">
                       <div className="text-3xl font-bold">Manage</div>
                       <p className="text-xs text-muted-foreground">
-                        Lock accounting periods
+                        {closedBooksMetrics?.lastClosedDate 
+                          ? `Last: ${format(new Date(closedBooksMetrics.lastClosedDate + 'T00:00:00'), 'MMM d, yyyy')}`
+                          : 'Lock accounting periods'
+                        }
                       </p>
                     </CardContent>
                   </Card>
