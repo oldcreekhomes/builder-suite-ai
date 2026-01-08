@@ -26,6 +26,7 @@ import { useScheduleUndo } from "@/hooks/useScheduleUndo";
 import { useTaskDelete } from "@/hooks/useTaskDelete";
 import { useTaskAdd } from "@/hooks/useTaskAdd";
 import { useTaskHierarchy } from "@/hooks/useTaskHierarchy";
+import { usePublishSchedule } from "@/hooks/usePublishSchedule";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -41,6 +42,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { captureState, undo, canUndo, isUndoing } = useScheduleUndo(projectId, user?.id);
+  const { publishSchedule, isLoading: isPublishing } = usePublishSchedule(projectId);
   
   // Parent recalculation is now handled directly in useTaskMutations.tsx
   // This eliminates the 3-second cooldown and 1.5-second debounce that caused lag
@@ -723,9 +725,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         open={showPublishDialog}
         onOpenChange={setShowPublishDialog}
         onPublish={(data) => {
-          // Handle publish logic here
           console.log("Publishing schedule with data:", data);
-          toast({ title: "Success", description: "Schedule published successfully" });
+          if (data.daysFromToday) {
+            publishSchedule({ daysFromToday: data.daysFromToday, message: data.message });
+          }
         }}
       />
 
