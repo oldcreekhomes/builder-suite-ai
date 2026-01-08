@@ -70,7 +70,13 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('asc');
-  const [hidePaid, setHidePaid] = useState(false);
+  
+  // Detect if this is an Accounts Payable account
+  const isAccountsPayable = accountCode === '2010' || accountName.toLowerCase().includes('accounts payable');
+  
+  // Default hidePaid to ON for Accounts Payable
+  const [hidePaid, setHidePaid] = useState(isAccountsPayable);
+  
   const { deleteCheck, updateCheck, correctCheck } = useChecks();
   const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
   const { deleteCreditCard, correctCreditCard } = useCreditCards();
@@ -79,9 +85,6 @@ export function AccountDetailDialog({
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
-
-  // Detect if this is an Accounts Payable account
-  const isAccountsPayable = accountCode === '2010' || accountName.toLowerCase().includes('accounts payable');
 
   // Helper to parse date-only strings as local midnight (avoids timezone shift)
   const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
