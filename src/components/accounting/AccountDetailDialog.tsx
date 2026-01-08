@@ -27,6 +27,8 @@ import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor
 import { Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Transaction {
   source_id: string;
@@ -43,6 +45,7 @@ interface Transaction {
   created_at: string;
   reconciled: boolean;
   reconciliation_date?: string | null;
+  isPaid?: boolean;
 }
 
 interface AccountDetailDialogProps {
@@ -67,6 +70,7 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('asc');
+  const [hidePaid, setHidePaid] = useState(false);
   const { deleteCheck, updateCheck, correctCheck } = useChecks();
   const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
   const { deleteCreditCard, correctCreditCard } = useCreditCards();
@@ -75,6 +79,9 @@ export function AccountDetailDialog({
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
+
+  // Detect if this is an Accounts Payable account
+  const isAccountsPayable = accountCode === '2010' || accountName.toLowerCase().includes('accounts payable');
 
   // Helper to parse date-only strings as local midnight (avoids timezone shift)
   const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
@@ -293,6 +300,9 @@ export function AccountDetailDialog({
             id,
             vendor_id,
             reference_number,
+            total_amount,
+            amount_paid,
+            status,
             reconciled,
             reconciliation_id,
             reconciliation_date,
@@ -308,11 +318,15 @@ export function AccountDetailDialog({
           const sortedLines = (bill.bill_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
           const firstLine = sortedLines[0];
           
+          // Determine if bill is fully paid
+          const isPaid = bill.amount_paid >= bill.total_amount || bill.status === 'paid';
+          
           billsMap.set(bill.id, {
             ...bill,
             vendor_name: bill.companies?.company_name || 'Unknown Vendor',
             firstLineAccountId: firstLine?.account_id || null,
-            firstLineCostCodeId: firstLine?.cost_code_id || null
+            firstLineCostCodeId: firstLine?.cost_code_id || null,
+            isPaid
           });
         });
       }
@@ -460,6 +474,9 @@ export function AccountDetailDialog({
         }
 
         // If this is a bill or bill payment, get vendor name from bills table
+        // Track if bill is paid for filtering
+        let isPaid: boolean | undefined = undefined;
+        
         if (line.journal_entries.source_type === 'bill' || line.journal_entries.source_type === 'bill_payment') {
           const bill = billsMap.get(line.journal_entries.source_id);
           if (bill) {
@@ -467,6 +484,7 @@ export function AccountDetailDialog({
             description = bill.reference_number || description;
             reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
             reconciliation_date = bill.reconciliation_date;
+            isPaid = bill.isPaid;
             // Get account from first bill line - prefer cost code, then account
             if (bill.firstLineCostCodeId && costCodesMap.has(bill.firstLineCostCodeId)) {
               accountDisplay = costCodesMap.get(bill.firstLineCostCodeId) || null;
@@ -501,6 +519,7 @@ export function AccountDetailDialog({
           created_at: line.journal_entries.created_at,
           reconciled: reconciled,
           reconciliation_date: reconciliation_date,
+          isPaid: isPaid,
         };
       });
 
@@ -829,15 +848,44 @@ export function AccountDetailDialog({
     });
   };
 
-  const balances = transactions ? calculateRunningBalance(transactions) : [];
+  // Filter transactions based on hidePaid toggle
+  const displayedTransactions = transactions?.filter(txn => {
+    // If hidePaid is off, show all transactions
+    if (!hidePaid) return true;
+    
+    // If hidePaid is on, filter out paid bill and bill_payment transactions
+    if (txn.source_type === 'bill' || txn.source_type === 'bill_payment') {
+      return !txn.isPaid;
+    }
+    
+    // Show all other transaction types
+    return true;
+  }) || [];
+
+  const balances = calculateRunningBalance(displayedTransactions);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-base">
-            {accountCode} - {accountName}
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-base">
+              {accountCode} - {accountName}
+            </DialogTitle>
+            
+            {isAccountsPayable && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="hide-paid-toggle" className="text-sm text-muted-foreground cursor-pointer">
+                  Hide Paid
+                </Label>
+                <Switch
+                  id="hide-paid-toggle"
+                  checked={hidePaid}
+                  onCheckedChange={setHidePaid}
+                />
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="mt-4">
@@ -847,9 +895,12 @@ export function AccountDetailDialog({
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : !transactions || transactions.length === 0 ? (
+          ) : displayedTransactions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No transactions found for this account.
+              {hidePaid && transactions && transactions.length > 0 
+                ? "All bills are paid. Toggle off 'Hide Paid' to see all transactions."
+                : "No transactions found for this account."
+              }
             </div>
           ) : (
             <Table className="text-xs">
@@ -867,7 +918,7 @@ export function AccountDetailDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.map((txn, index) => {
+                {displayedTransactions.map((txn, index) => {
                   // Determine transaction type label matching QuickBooks
                   const getTypeLabel = (sourceType: string) => {
                     switch (sourceType) {
