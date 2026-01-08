@@ -1020,6 +1020,22 @@ export function AccountDetailDialog({
               </TableBody>
             </Table>
           )}
+          
+          {/* Summary section for Accounts Payable */}
+          {isAccountsPayable && displayedTransactions.length > 0 && (() => {
+            const billTransactions = displayedTransactions.filter(txn => txn.source_type === 'bill');
+            const totalBillCount = billTransactions.length;
+            // For liability accounts, credits represent the bill amounts
+            const totalBillAmount = billTransactions.reduce((sum, txn) => sum + txn.credit, 0);
+            return (
+              <div className="mt-4 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  <p>Total bills: {totalBillCount}</p>
+                  <p>Total amount: {formatCurrency(totalBillAmount)}</p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </DialogContent>
     </Dialog>
