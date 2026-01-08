@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
-import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
+import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -152,22 +151,24 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     return expenseTotal + jobCostTotal;
   };
 
-  // Unsaved changes hook - need handleSave reference
-  const handleSaveForDialog = useCallback(async () => {
-    await handleSave('stay');
-    initialFormStateRef.current = getFormStateSnapshot();
-  }, [getFormStateSnapshot]);
+  // Register with unsaved changes context
+  const { registerForm, unregisterForm } = useUnsavedChangesContext();
 
-  const {
-    showDialog: showUnsavedDialog,
-    confirmLeave,
-    cancelLeave,
-    saveAndLeave,
-    isSaving: isSavingFromDialog,
-  } = useUnsavedChanges({
-    hasChanges: hasFormChanges,
-    onSave: handleSaveForDialog,
-  });
+  useEffect(() => {
+    const handleSaveForContext = async () => {
+      await handleSave('stay');
+      initialFormStateRef.current = getFormStateSnapshot();
+    };
+
+    registerForm({
+      hasChanges: hasFormChanges,
+      onSave: handleSaveForContext,
+    });
+
+    return () => {
+      unregisterForm();
+    };
+  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot]);
 
   const clearForm = () => {
     setTransactionType('purchase');
@@ -952,14 +953,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           onDeleteCreditCard={async (creditCardId) => {
             await deleteCreditCard.mutateAsync(creditCardId);
           }}
-        />
-        
-        <UnsavedChangesDialog
-          open={showUnsavedDialog}
-          onSave={saveAndLeave}
-          onDiscard={confirmLeave}
-          onCancel={cancelLeave}
-          isSaving={isSavingFromDialog}
         />
       </TooltipProvider>
     </Card>

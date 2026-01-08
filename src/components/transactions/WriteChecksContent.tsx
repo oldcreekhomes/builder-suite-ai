@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
-import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
+import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,20 +137,24 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const totalCount = isViewingMode ? filteredChecks.length : filteredChecks.length + 1;
   const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
 
-  // Unsaved changes hook
-  const {
-    showDialog: showUnsavedDialog,
-    confirmLeave,
-    cancelLeave,
-    saveAndLeave,
-    isSaving: isSavingFromDialog,
-  } = useUnsavedChanges({
-    hasChanges: hasFormChanges,
-    onSave: async () => {
+  // Register with unsaved changes context
+  const { registerForm, unregisterForm } = useUnsavedChangesContext();
+
+  useEffect(() => {
+    const handleSaveForContext = async () => {
       await handleSaveEntry();
       initialFormStateRef.current = getFormStateSnapshot();
-    },
-  });
+    };
+
+    registerForm({
+      hasChanges: hasFormChanges,
+      onSave: handleSaveForContext,
+    });
+
+    return () => {
+      unregisterForm();
+    };
+  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot]);
 
   useEffect(() => {
     if (settings) {
@@ -1391,14 +1394,6 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         onDeleteCheck={async (checkId) => {
           await deleteCheck.mutateAsync(checkId);
         }}
-      />
-      
-      <UnsavedChangesDialog
-        open={showUnsavedDialog}
-        onSave={saveAndLeave}
-        onDiscard={confirmLeave}
-        onCancel={cancelLeave}
-        isSaving={isSavingFromDialog}
       />
     </TooltipProvider>
   );
