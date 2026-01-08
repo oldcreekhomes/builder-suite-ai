@@ -43,6 +43,9 @@ const matchResourceToRepresentative = (resourceName: string, representatives: an
   });
 };
 
+// Delay helper to avoid rate limiting
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const usePublishSchedule = (projectId: string) => {
   const queryClient = useQueryClient();
 
@@ -254,10 +257,11 @@ export const usePublishSchedule = (projectId: string) => {
           }
         }
 
-        // Send emails to each user
-        for (const userToNotify of usersToNotify) {
+        // Send emails to each user with delay between each to avoid rate limits
+        for (let i = 0; i < usersToNotify.length; i++) {
+          const userToNotify = usersToNotify[i];
           try {
-            console.log(`Sending email to ${userToNotify.user.email}...`);
+            console.log(`Sending email ${i + 1}/${usersToNotify.length} to ${userToNotify.user.email}...`);
             
             const emailData = {
               recipientEmail: userToNotify.user.email,
@@ -286,22 +290,29 @@ export const usePublishSchedule = (projectId: string) => {
               { body: emailData }
             );
 
-            if (emailError) {
-              console.error('Email sending error:', emailError);
+            // Check BOTH the invoke error AND the response body for failures
+            if (emailError || emailResponse?.success === false) {
+              const errorMessage = emailError?.message || emailResponse?.error || 'Unknown error';
+              console.error(`Failed to send email to ${userToNotify.user.email}:`, errorMessage);
               emailResults.push({
                 user: userToNotify.user.email,
                 success: false,
-                error: emailError.message
+                error: errorMessage
               });
             } else {
               console.log('Email sent successfully:', emailResponse);
               emailResults.push({
                 user: userToNotify.user.email,
                 success: true,
-                messageId: emailResponse.messageId
+                messageId: emailResponse?.messageId
               });
             }
-          } catch (emailError) {
+            
+            // Wait 600ms between emails to avoid Resend rate limits
+            if (i < usersToNotify.length - 1) {
+              await delay(600);
+            }
+          } catch (emailError: any) {
             console.error('Error sending email to', userToNotify.user.email, ':', emailError);
             emailResults.push({
               user: userToNotify.user.email,
@@ -335,36 +346,35 @@ export const usePublishSchedule = (projectId: string) => {
     onSuccess: (result) => {
       console.log('Publish schedule result:', result);
       
-      let toastMessage = result.message;
+      const successfulEmails = result.emailResults?.filter((er: any) => er.success) || [];
+      const failedEmails = result.emailResults?.filter((er: any) => !er.success) || [];
       
-      if (result.notifiedUsers.length > 0) {
-        const usersList = result.notifiedUsers
-          .map((nu: any) => nu.user.first_name + ' ' + nu.user.last_name)
-          .join(', ');
-        
-        toastMessage += `\n\nNotified users: ${usersList}`;
-        
-        // Add email sending results
-        if (result.emailResults && result.emailResults.length > 0) {
-          const successfulEmails = result.emailResults.filter((er: any) => er.success).length;
-          const failedEmails = result.emailResults.filter((er: any) => !er.success).length;
-          
-          if (successfulEmails > 0) {
-            toastMessage += `\n✅ Emails sent: ${successfulEmails}`;
-          }
-          if (failedEmails > 0) {
-            toastMessage += `\n❌ Email failures: ${failedEmails}`;
-          }
-        }
+      let toastTitle = "Schedule Notifications Sent";
+      let toastParts: string[] = [];
+      
+      if (successfulEmails.length > 0) {
+        const usersList = successfulEmails.map((e: any) => e.user).join(', ');
+        toastParts.push(`✅ Sent to: ${usersList}`);
+      }
+      
+      if (failedEmails.length > 0) {
+        const failedList = failedEmails.map((e: any) => `${e.user}: ${e.error}`).join(', ');
+        toastParts.push(`❌ Failed: ${failedList}`);
+        toastTitle = "Schedule Notifications (Some Failed)";
       }
       
       if (result.unmatchedResources && result.unmatchedResources.length > 0) {
-        toastMessage += `\n\nUnmatched resources: ${result.unmatchedResources.join(', ')}`;
+        toastParts.push(`⚠️ Unmatched: ${result.unmatchedResources.join(', ')}`);
+      }
+      
+      if (toastParts.length === 0) {
+        toastParts.push(result.message);
       }
 
       toast({
-        title: "Schedule Notifications Sent",
-        description: toastMessage,
+        title: toastTitle,
+        description: toastParts.join('\n\n'),
+        duration: failedEmails.length > 0 ? 15000 : 5000,
       });
     },
 
