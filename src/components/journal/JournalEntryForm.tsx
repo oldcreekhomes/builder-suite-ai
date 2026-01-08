@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
-import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
+import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -179,22 +178,24 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     return { totalDebits, totalCredits, difference, isBalanced, missingSelections };
   }, [expenseLines, jobCostLines]);
 
-  // Unsaved changes hook
-  const handleSaveForDialog = useCallback(async () => {
-    await handleSubmit();
-    initialFormStateRef.current = getFormStateSnapshot();
-  }, [getFormStateSnapshot]);
+  // Register with unsaved changes context
+  const { registerForm, unregisterForm } = useUnsavedChangesContext();
 
-  const {
-    showDialog: showUnsavedDialog,
-    confirmLeave,
-    cancelLeave,
-    saveAndLeave,
-    isSaving: isSavingFromDialog,
-  } = useUnsavedChanges({
-    hasChanges: hasFormChanges,
-    onSave: handleSaveForDialog,
-  });
+  useEffect(() => {
+    const handleSaveForContext = async () => {
+      await handleSubmit();
+      initialFormStateRef.current = getFormStateSnapshot();
+    };
+
+    registerForm({
+      hasChanges: hasFormChanges,
+      onSave: handleSaveForContext,
+    });
+
+    return () => {
+      unregisterForm();
+    };
+  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot]);
 
   const addExpenseLine = () => {
     setExpenseLines([...expenseLines, { 
@@ -1012,14 +1013,6 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       }}
       isDateLocked={isDateLocked}
       projectId={projectId}
-    />
-    
-    <UnsavedChangesDialog
-      open={showUnsavedDialog}
-      onSave={saveAndLeave}
-      onDiscard={confirmLeave}
-      onCancel={cancelLeave}
-      isSaving={isSavingFromDialog}
     />
     </TooltipProvider>
   );
