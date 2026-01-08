@@ -212,7 +212,12 @@ export default function Accounting() {
   };
 
   const handleTotalOutstandingClick = () => {
-    const path = projectId ? `/project/${projectId}/accounting/bills/approve` : '/accounting/bills/approve';
+    const path = projectId ? `/project/${projectId}/accounting/bills/approve?tab=approve` : '/accounting/bills/approve?tab=approve';
+    navigate(path);
+  };
+
+  const handleOverdueBillsClick = () => {
+    const path = projectId ? `/project/${projectId}/accounting/bills/approve?tab=approve` : '/accounting/bills/approve?tab=approve';
     navigate(path);
   };
 
@@ -278,7 +283,7 @@ export default function Accounting() {
                   </CardContent>
                 </Card>
                 
-                <Card>
+                <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={handleOverdueBillsClick}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-medium">Overdue Bills</CardTitle>
                     <Clock className="h-4 w-4 text-muted-foreground" />

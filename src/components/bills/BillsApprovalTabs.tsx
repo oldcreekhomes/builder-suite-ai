@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,9 @@ interface BatchBill extends PendingBill {
 }
 
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
-  const [activeTab, setActiveTab] = useState(reviewOnly ? "review" : "upload");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || (reviewOnly ? "review" : "upload");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
   const [dueDateFilter, setDueDateFilter] = useState<"all" | "due-on-or-before">("all");
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
