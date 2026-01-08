@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useBlocker } from "react-router-dom";
 
 interface UseUnsavedChangesOptions {
   /**
@@ -51,19 +50,6 @@ export function useUnsavedChanges({
     hasChangesRef.current = hasChanges;
   }, [hasChanges]);
 
-  // Block navigation when there are unsaved changes
-  const blocker = useBlocker(
-    useCallback(
-      ({ currentLocation, nextLocation }) => {
-        return (
-          hasChangesRef.current() &&
-          currentLocation.pathname !== nextLocation.pathname
-        );
-      },
-      []
-    )
-  );
-
   // Handle browser back/forward and tab close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -81,45 +67,40 @@ export function useUnsavedChanges({
   }, []);
 
   const confirmLeave = useCallback(() => {
-    if (blocker.state === "blocked") {
-      blocker.proceed();
-    }
-  }, [blocker]);
+    // No-op - navigation blocking removed since BrowserRouter doesn't support useBlocker
+  }, []);
 
   const cancelLeave = useCallback(() => {
-    if (blocker.state === "blocked") {
-      blocker.reset();
-    }
-  }, [blocker]);
+    // No-op - navigation blocking removed since BrowserRouter doesn't support useBlocker
+  }, []);
 
   const saveAndLeave = useCallback(async () => {
     if (!onSave) {
-      confirmLeave();
       return;
     }
 
     setIsSaving(true);
     try {
       await onSave();
-      // After successful save, proceed with navigation
-      if (blocker.state === "blocked") {
-        blocker.proceed();
-      }
     } catch (error) {
-      // If save fails, stay on page
       console.error("Failed to save:", error);
     } finally {
       setIsSaving(false);
     }
-  }, [onSave, blocker, confirmLeave]);
+  }, [onSave]);
 
   const markAsSaved = useCallback(() => {
     // This is a no-op since we use the hasChanges function dynamically
     // The caller should update their state to make hasChanges() return false
   }, []);
 
+  // Note: In-app navigation blocking requires a data router (createBrowserRouter).
+  // Since this app uses BrowserRouter, we only handle browser-level navigation
+  // (refresh, close tab) via beforeunload. For full in-app blocking, the app
+  // would need to migrate to createBrowserRouter.
+
   return {
-    showDialog: blocker.state === "blocked",
+    showDialog: false, // Always false since we can't block without data router
     confirmLeave,
     cancelLeave,
     saveAndLeave,
