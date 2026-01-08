@@ -521,7 +521,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     });
   };
 
-  const handleSave = useCallback(async (saveAndNew: boolean = false) => {
+  const handleSave = useCallback(async (mode: boolean | 'stay' = false) => {
     // Prevent duplicate saves
     if (isSaving) {
       console.log('Save already in progress, ignoring');
@@ -660,9 +660,17 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         }
       }
       
-      if (saveAndNew) {
+      if (mode === true) {
+        // Save & New
         createNewDeposit();
+      } else if (mode === 'stay') {
+        // Save Entry - stay on the screen
+        toast({
+          title: "Success",
+          description: "Deposit saved successfully",
+        });
       } else {
+        // Save & Close
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
       }
     } catch (error) {
@@ -1092,6 +1100,14 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
                 >
                   {isSaving ? "Saving..." : "Save & Close"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-10"
+                  onClick={() => handleSave('stay')}
+                  disabled={isSaving || createDeposit.isPending || updateDepositFull.isPending}
+                >
+                  {isSaving ? "Saving..." : "Save Entry"}
                 </Button>
               </div>
             </div>

@@ -168,7 +168,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     createNewTransaction();
   };
 
-  const handleSave = async (saveAndNew: boolean) => {
+  const handleSave = async (mode: boolean | 'stay') => {
     if (!creditCardAccountId) {
       toast({
         title: "Validation Error",
@@ -312,9 +312,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
         data: creditCardData,
       });
       
-      if (saveAndNew) {
+      if (mode === true) {
         createNewTransaction();
+      } else if (mode === 'stay') {
+        toast({
+          title: "Success",
+          description: "Credit card transaction saved successfully",
+        });
       }
+      // mode === false: do nothing, stay on screen (handled by caller for close)
     } else {
       // Create new credit card
       const result = await createCreditCard.mutateAsync(creditCardData);
@@ -323,10 +329,16 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
       if (result?.id) {
         await finalizePendingAttachments(result.id);
         setCurrentCreditCardId(result.id);
+        setIsViewingMode(true);
       }
 
-      if (saveAndNew) {
+      if (mode === true) {
         createNewTransaction();
+      } else if (mode === 'stay') {
+        toast({
+          title: "Success",
+          description: "Credit card transaction saved successfully",
+        });
       }
     }
   };
@@ -864,9 +876,18 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   size="sm"
                   className="h-10"
                   onClick={() => handleSave(false)}
-                  disabled={createCreditCard.isPending}
+                  disabled={createCreditCard.isPending || updateCreditCard.isPending}
                 >
-                  {createCreditCard.isPending ? "Saving..." : "Save & Close"}
+                  {createCreditCard.isPending || updateCreditCard.isPending ? "Saving..." : "Save & Close"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-10"
+                  onClick={() => handleSave('stay')}
+                  disabled={createCreditCard.isPending || updateCreditCard.isPending}
+                >
+                  {createCreditCard.isPending || updateCreditCard.isPending ? "Saving..." : "Save Entry"}
                 </Button>
               </div>
             </div>
