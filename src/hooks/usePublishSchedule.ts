@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
+import { today as getTodayString, addDays } from "@/utils/dateOnly";
 interface PublishScheduleData {
   daysFromToday: string;
   message?: string;
@@ -51,10 +51,12 @@ export const usePublishSchedule = (projectId: string) => {
       console.log('Publishing schedule with data:', data);
       
       const daysFromToday = convertWeeksToDays(data.daysFromToday);
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() + daysFromToday);
       
-      console.log('Looking for tasks starting within', daysFromToday, 'days from today (until', cutoffDate.toISOString(), ')');
+      // Use string-only date comparison - no Date objects, no timezone issues
+      const todayStr = getTodayString(); // "YYYY-MM-DD"
+      const cutoffStr = addDays(todayStr, daysFromToday - 1); // 21 days = today + 20 more days
+      
+      console.log(`Date range: ${todayStr} to ${cutoffStr} (${daysFromToday} days)`);
 
       // 1. Get all tasks for this project directly from the table
       const { data: tasks, error: tasksError } = await supabase
@@ -70,9 +72,7 @@ export const usePublishSchedule = (projectId: string) => {
       console.log('All project tasks:', tasks?.length || 0, 'tasks found');
 
       // Filter tasks: start_date within range AND progress < 100
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
+      // Direct string comparison on YYYY-MM-DD format - no timezone issues
       const upcomingTasks = (tasks || []).filter((task: any) => {
         // Skip tasks that are 100% complete
         if (task.progress === 100) {
@@ -85,17 +85,16 @@ export const usePublishSchedule = (projectId: string) => {
           return false;
         }
         
-        const taskStartDate = new Date(task.start_date);
+        // Direct string comparison - task.start_date is already "YYYY-MM-DD" from database
+        const taskStart = task.start_date;
+        const isInRange = taskStart >= todayStr && taskStart <= cutoffStr;
         
-        // Include task if start_date is between today and cutoff
-        const isInRange = taskStartDate >= today && taskStartDate <= cutoffDate;
-        if (isInRange) {
-          console.log(`Including task "${task.task_name}" - starts ${task.start_date}, progress ${task.progress}%`);
-        }
+        console.log(`Task "${task.task_name}" starts ${taskStart}, in range [${todayStr} to ${cutoffStr}]: ${isInRange}`);
+        
         return isInRange;
       });
 
-      console.log('Upcoming tasks within timeframe:', upcomingTasks);
+      console.log('Upcoming tasks within timeframe:', upcomingTasks.length);
 
       if (upcomingTasks.length === 0) {
         return {
