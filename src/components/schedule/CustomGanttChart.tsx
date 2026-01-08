@@ -4,7 +4,6 @@ import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
 
 import { useOptimizedRealtime } from "@/hooks/useOptimizedRealtime";
-import { useRecalculateSchedule } from "@/hooks/useRecalculateSchedule";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +36,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
   const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
   const copyScheduleMutation = useCopySchedule();
-  const recalculateSchedule = useRecalculateSchedule();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -687,8 +685,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           hasCorruptedTasks={hasCorruptedTasks}
           onBulkDelete={handleBulkDelete}
           isDeleting={isDeletingBulk}
-          onRecalculateSchedule={() => recalculateSchedule.mutate({ projectId, tasks })}
-          isRecalculating={recalculateSchedule.isPending}
         />
         
         <UnifiedScheduleTable
