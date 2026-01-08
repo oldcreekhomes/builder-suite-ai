@@ -56,33 +56,43 @@ export const usePublishSchedule = (projectId: string) => {
       
       console.log('Looking for tasks starting within', daysFromToday, 'days from today (until', cutoffDate.toISOString(), ')');
 
-      // 1. Get all tasks for this project that start within the specified time frame
+      // 1. Get all tasks for this project directly from the table
       const { data: tasks, error: tasksError } = await supabase
-        .rpc('get_project_tasks', { project_id_param: projectId });
+        .from('project_schedule_tasks')
+        .select('id, task_name, start_date, end_date, resources, progress')
+        .eq('project_id', projectId);
 
       if (tasksError) {
         console.error('Error fetching tasks:', tasksError);
-        throw new Error('Failed to fetch project tasks');
+        throw new Error(`Failed to fetch project tasks: ${tasksError.message}`);
       }
 
-      console.log('All project tasks:', tasks);
+      console.log('All project tasks:', tasks?.length || 0, 'tasks found');
 
-      // Filter tasks that overlap with the specified date range
-      const upcomingTasks = tasks.filter((task: any) => {
-        const taskStartDate = new Date(task.start_date);
-        const taskEndDate = new Date(task.end_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Start of today
+      // Filter tasks: start_date within range AND progress < 100
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const upcomingTasks = (tasks || []).filter((task: any) => {
+        // Skip tasks that are 100% complete
+        if (task.progress === 100) {
+          console.log(`Skipping task "${task.task_name}" - 100% complete`);
+          return false;
+        }
         
-        // Task overlaps with the date range if:
-        // 1. Task starts within the range, OR
-        // 2. Task ends within the range, OR  
-        // 3. Task spans the entire range
-        return (
-          (taskStartDate >= today && taskStartDate <= cutoffDate) ||
-          (taskEndDate >= today && taskEndDate <= cutoffDate) ||
-          (taskStartDate <= today && taskEndDate >= cutoffDate)
-        );
+        // Skip tasks without a start_date
+        if (!task.start_date) {
+          return false;
+        }
+        
+        const taskStartDate = new Date(task.start_date);
+        
+        // Include task if start_date is between today and cutoff
+        const isInRange = taskStartDate >= today && taskStartDate <= cutoffDate;
+        if (isInRange) {
+          console.log(`Including task "${task.task_name}" - starts ${task.start_date}, progress ${task.progress}%`);
+        }
+        return isInRange;
       });
 
       console.log('Upcoming tasks within timeframe:', upcomingTasks);
@@ -363,8 +373,9 @@ export const usePublishSchedule = (projectId: string) => {
       console.error('Publish schedule error:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to analyze schedule",
+        title: "Schedule Publish Failed",
+        description: error.message || "Failed to send schedule notifications",
+        duration: 10000,
       });
     },
   });
