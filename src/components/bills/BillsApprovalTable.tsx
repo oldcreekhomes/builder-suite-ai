@@ -640,7 +640,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               )}
               {canShowDeleteButton && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">
-                  {showEditButton ? 'Actions' : 'Delete'}
+                  {showEditButton || isPaidTab ? 'Actions' : 'Delete'}
                 </TableHead>
               )}
             </TableRow>
@@ -846,40 +846,49 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   )}
                    {canShowDeleteButton && (
                     <TableCell className="py-1 text-center">
-                      {!bill.reconciled && (
-                        <div className="flex items-center justify-center gap-1">
-                          {showEditButton && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
-                              onClick={() => setEditingBillId(bill.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {!isDateLocked(bill.bill_date) ? (
-                            <DeleteButton
-                              onDelete={() => deleteBill.mutate(bill.id)}
-                              title="Delete Bill"
-                              description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
-                              size="icon"
-                              variant="ghost"
-                              isLoading={deleteBill.isPending}
-                              className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                            />
-                          ) : (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              disabled
-                              className="h-8 w-8"
-                            >
-                              <span className="text-lg">🔒</span>
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex items-center justify-center gap-1">
+                        {isPaidTab ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 cursor-default pointer-events-none"
+                          >
+                            <span className="text-lg">🔒</span>
+                          </Button>
+                        ) : !bill.reconciled && (
+                          <>
+                            {showEditButton && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
+                                onClick={() => setEditingBillId(bill.id)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {!isDateLocked(bill.bill_date) ? (
+                              <DeleteButton
+                                onDelete={() => deleteBill.mutate(bill.id)}
+                                title="Delete Bill"
+                                description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
+                                size="icon"
+                                variant="ghost"
+                                isLoading={deleteBill.isPending}
+                                className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                              />
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 cursor-default pointer-events-none"
+                              >
+                                <span className="text-lg">🔒</span>
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                    )}
                 </TableRow>
