@@ -88,8 +88,8 @@ export const usePublishSchedule = (projectId: string) => {
           return false;
         }
         
-        // Direct string comparison - task.start_date is already "YYYY-MM-DD" from database
-        const taskStart = task.start_date;
+        // Strip timestamp from task.start_date (e.g., "2026-01-28 00:00:00+00" → "2026-01-28")
+        const taskStart = task.start_date?.split(' ')[0]?.split('T')[0] || '';
         const isInRange = taskStart >= todayStr && taskStart <= cutoffStr;
         
         console.log(`Task "${task.task_name}" starts ${taskStart}, in range [${todayStr} to ${cutoffStr}]: ${isInRange}`);
@@ -353,8 +353,8 @@ export const usePublishSchedule = (projectId: string) => {
       let toastParts: string[] = [];
       
       if (successfulEmails.length > 0) {
-        const usersList = successfulEmails.map((e: any) => e.user).join(', ');
-        toastParts.push(`✅ Sent to: ${usersList}`);
+        const userWord = successfulEmails.length === 1 ? 'user' : 'users';
+        toastParts.push(`✅ Sent to ${successfulEmails.length} ${userWord}`);
       }
       
       if (failedEmails.length > 0) {
