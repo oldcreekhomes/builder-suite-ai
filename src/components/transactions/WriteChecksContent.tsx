@@ -751,6 +751,137 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     }
   };
 
+  const handleSaveEntry = async () => {
+    if (!validateCheckAmountMatchesLineItems()) {
+      toast({
+        title: "Validation Error",
+        description: "Check amount must equal the total of all line items",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!payTo) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter who the check is payable to",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!bankAccountId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a bank account",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const resolvedJobCost = resolveRowsForSave(jobCostRows, 'job');
+    const resolvedExpense = resolveRowsForSave(expenseRows, 'exp');
+
+    const invalidJobCost = resolvedJobCost.filter(row => !validateRowSelection(row));
+    const invalidExpense = resolvedExpense.filter(row => !validateRowSelection(row));
+
+    const errors: Record<string, boolean> = {};
+    invalidJobCost.forEach(row => errors[row.id] = true);
+    invalidExpense.forEach(row => errors[row.id] = true);
+    setRowErrors(errors);
+
+    if (invalidJobCost.length > 0 || invalidExpense.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "For every line with an amount, select a cost code (Job Cost) or an expense account (Expense).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const allRows = [...resolvedJobCost, ...resolvedExpense].filter(row => row.accountId && amountOfRow(row) > 0);
+    
+    if (allRows.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one line item with a cost code/account and amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const checkLines: CheckLineData[] = [
+      ...resolvedJobCost
+        .filter(row => row.accountId && amountOfRow(row) > 0)
+        .map(row => ({
+          line_type: 'job_cost' as const,
+          cost_code_id: row.accountId,
+          project_id: row.projectId || undefined,
+          amount: amountOfRow(row),
+          memo: row.memo || undefined,
+          lot_id: row.lotId || undefined
+        })),
+      ...resolvedExpense
+        .filter(row => row.accountId && amountOfRow(row) > 0)
+        .map(row => ({
+          line_type: 'expense' as const,
+          account_id: row.accountId,
+          project_id: row.projectId || undefined,
+          amount: amountOfRow(row),
+          memo: row.memo || undefined,
+          lot_id: row.lotId || undefined
+        }))
+    ];
+
+    const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
+
+    const checkData: CheckData = {
+      check_number: checkNumber || undefined,
+      check_date: checkDate.toISOString().split('T')[0],
+      pay_to: payToName || payTo,
+      bank_account_id: bankAccountId,
+      project_id: projectId || undefined,
+      amount: checkAmount,
+      company_name: companyName,
+      company_address: companyAddress,
+      company_city_state: companyCityState,
+      bank_name: bankName,
+      routing_number: routingNumber,
+      account_number: accountNumber
+    };
+
+    try {
+      if (currentCheckId) {
+        await updateCheck.mutateAsync({ 
+          checkId: currentCheckId, 
+          updates: {
+            check_date: checkData.check_date,
+            check_number: checkData.check_number,
+            pay_to: checkData.pay_to,
+            amount: checkData.amount
+          },
+          checkLines
+        });
+        toast({ title: "Success", description: "Check updated successfully" });
+      } else {
+        const newCheck = await createCheck.mutateAsync({ checkData, checkLines });
+        if (newCheck?.id) {
+          setCurrentCheckId(newCheck.id);
+          setIsViewingMode(true);
+        }
+        toast({ title: "Success", description: "Check saved successfully" });
+      }
+      // Stay on the same screen - don't navigate or clear
+    } catch (error) {
+      console.error('Error saving check:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save check",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleClear = () => {
     setCheckDate(new Date());
     setPayTo("");
@@ -1184,9 +1315,17 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                     size="sm"
                     className="h-10"
                     onClick={handleSaveAndClose}
-                    disabled={createCheck.isPending}
+                    disabled={createCheck.isPending || updateCheck.isPending}
                   >
-                    {createCheck.isPending ? "Saving..." : "Save & Close"}
+                    {createCheck.isPending || updateCheck.isPending ? "Saving..." : "Save & Close"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-10"
+                    onClick={handleSaveEntry}
+                    disabled={createCheck.isPending || updateCheck.isPending}
+                  >
+                    {createCheck.isPending || updateCheck.isPending ? "Saving..." : "Save Entry"}
                   </Button>
                 </div>
               </div>
