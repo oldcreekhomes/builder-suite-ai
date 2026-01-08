@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +86,32 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   });
   const hasInitializedRef = useRef(false);
 
+  // Track initial state for unsaved changes detection
+  const initialFormStateRef = useRef<string>("");
+  
+  const getFormStateSnapshot = useCallback(() => {
+    return JSON.stringify({
+      entryDate: entryDate.toISOString(),
+      description,
+      expenseLines: expenseLines.map(l => ({ account_id: l.account_id, debit: l.debit, credit: l.credit, memo: l.memo })),
+      jobCostLines: jobCostLines.map(l => ({ cost_code_id: l.cost_code_id, debit: l.debit, credit: l.credit, memo: l.memo })),
+    });
+  }, [entryDate, description, expenseLines, jobCostLines]);
+
+  const hasFormChanges = useCallback(() => {
+    if (!initialFormStateRef.current) return false;
+    const currentState = getFormStateSnapshot();
+    return currentState !== initialFormStateRef.current;
+  }, [getFormStateSnapshot]);
+
+  // Update initial state when loading a journal entry or creating new
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      initialFormStateRef.current = getFormStateSnapshot();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentJournalEntryId, isViewingMode]);
+
   // Calculate position counter (includes "new" entry in count)
   const totalCount = isViewingMode ? filteredEntries.length : filteredEntries.length + 1;
   const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
@@ -150,6 +178,23 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
 
     return { totalDebits, totalCredits, difference, isBalanced, missingSelections };
   }, [expenseLines, jobCostLines]);
+
+  // Unsaved changes hook
+  const handleSaveForDialog = useCallback(async () => {
+    await handleSubmit();
+    initialFormStateRef.current = getFormStateSnapshot();
+  }, [getFormStateSnapshot]);
+
+  const {
+    showDialog: showUnsavedDialog,
+    confirmLeave,
+    cancelLeave,
+    saveAndLeave,
+    isSaving: isSavingFromDialog,
+  } = useUnsavedChanges({
+    hasChanges: hasFormChanges,
+    onSave: handleSaveForDialog,
+  });
 
   const addExpenseLine = () => {
     setExpenseLines([...expenseLines, { 
@@ -967,6 +1012,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       }}
       isDateLocked={isDateLocked}
       projectId={projectId}
+    />
+    
+    <UnsavedChangesDialog
+      open={showUnsavedDialog}
+      onSave={saveAndLeave}
+      onDiscard={confirmLeave}
+      onCancel={cancelLeave}
+      isSaving={isSavingFromDialog}
     />
     </TooltipProvider>
   );

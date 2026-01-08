@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,6 +98,34 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
 
+  // Track initial state for unsaved changes detection
+  const initialFormStateRef = useRef<string>("");
+  
+  const getFormStateSnapshot = useCallback(() => {
+    return JSON.stringify({
+      depositDate: depositDate.toISOString(),
+      depositSourceId,
+      bankAccountId,
+      checkNumber,
+      revenueRows: revenueRows.map(r => ({ accountId: r.accountId, amount: r.amount, memo: r.memo })),
+      otherRows: otherRows.map(r => ({ accountId: r.accountId, amount: r.amount, memo: r.memo })),
+    });
+  }, [depositDate, depositSourceId, bankAccountId, checkNumber, revenueRows, otherRows]);
+
+  const hasFormChanges = useCallback(() => {
+    if (!initialFormStateRef.current) return false;
+    const currentState = getFormStateSnapshot();
+    return currentState !== initialFormStateRef.current;
+  }, [getFormStateSnapshot]);
+
+  // Update initial state when loading a deposit or creating new
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      initialFormStateRef.current = getFormStateSnapshot();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentDepositId, isViewingMode]);
+
   const { data: deposits = [], isLoading: depositsLoading } = useQuery({
     queryKey: ['deposits'],
     queryFn: async () => {
@@ -137,6 +167,23 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const totalCount = sortedDeposits.length;
   const currentPosition = currentEntryIndex >= 0 ? currentEntryIndex + 1 : 0;
+
+  // Unsaved changes hook - need handleSave reference
+  const handleSaveForDialog = useCallback(async () => {
+    await handleSave('stay');
+    initialFormStateRef.current = getFormStateSnapshot();
+  }, [getFormStateSnapshot]);
+
+  const {
+    showDialog: showUnsavedDialog,
+    confirmLeave,
+    cancelLeave,
+    saveAndLeave,
+    isSaving: isSavingFromDialog,
+  } = useUnsavedChanges({
+    hasChanges: hasFormChanges,
+    onSave: handleSaveForDialog,
+  });
 
   useEffect(() => {
     if (settings) {
@@ -1126,6 +1173,14 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       onDeleteDeposit={async (depositId) => {
         await deleteDeposit.mutateAsync(depositId);
       }}
+    />
+    
+    <UnsavedChangesDialog
+      open={showUnsavedDialog}
+      onSave={saveAndLeave}
+      onDiscard={confirmLeave}
+      onCancel={cancelLeave}
+      isSaving={isSavingFromDialog}
     />
     </TooltipProvider>
   );

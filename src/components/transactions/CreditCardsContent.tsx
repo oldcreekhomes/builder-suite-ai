@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -83,6 +85,35 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     finalizePendingAttachments
   } = useCreditCardAttachments(currentCreditCardId, `credit-card-draft-${Date.now()}`);
 
+  // Track initial state for unsaved changes detection
+  const initialFormStateRef = useRef<string>("");
+  
+  const getFormStateSnapshot = useCallback(() => {
+    return JSON.stringify({
+      transactionType,
+      transactionDate: transactionDate.toISOString(),
+      creditCardAccountId,
+      vendor,
+      selectedProjectId,
+      expenseRows: expenseRows.map(r => ({ accountId: r.accountId, amount: r.amount, memo: r.memo })),
+      jobCostRows: jobCostRows.map(r => ({ costCodeId: r.costCodeId, amount: r.amount, memo: r.memo })),
+    });
+  }, [transactionType, transactionDate, creditCardAccountId, vendor, selectedProjectId, expenseRows, jobCostRows]);
+
+  const hasFormChanges = useCallback(() => {
+    if (!initialFormStateRef.current) return false;
+    const currentState = getFormStateSnapshot();
+    return currentState !== initialFormStateRef.current;
+  }, [getFormStateSnapshot]);
+
+  // Update initial state when loading a credit card or creating new
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      initialFormStateRef.current = getFormStateSnapshot();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentCreditCardId, isViewingMode]);
+
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
   };
@@ -120,6 +151,23 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     const jobCostTotal = jobCostRows.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0);
     return expenseTotal + jobCostTotal;
   };
+
+  // Unsaved changes hook - need handleSave reference
+  const handleSaveForDialog = useCallback(async () => {
+    await handleSave('stay');
+    initialFormStateRef.current = getFormStateSnapshot();
+  }, [getFormStateSnapshot]);
+
+  const {
+    showDialog: showUnsavedDialog,
+    confirmLeave,
+    cancelLeave,
+    saveAndLeave,
+    isSaving: isSavingFromDialog,
+  } = useUnsavedChanges({
+    hasChanges: hasFormChanges,
+    onSave: handleSaveForDialog,
+  });
 
   const clearForm = () => {
     setTransactionType('purchase');
@@ -904,6 +952,14 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           onDeleteCreditCard={async (creditCardId) => {
             await deleteCreditCard.mutateAsync(creditCardId);
           }}
+        />
+        
+        <UnsavedChangesDialog
+          open={showUnsavedDialog}
+          onSave={saveAndLeave}
+          onDiscard={confirmLeave}
+          onCancel={cancelLeave}
+          isSaving={isSavingFromDialog}
         />
       </TooltipProvider>
     </Card>

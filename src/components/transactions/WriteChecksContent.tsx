@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,6 +89,36 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   // Search dialog state
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
+  // Track initial state for unsaved changes detection
+  const initialFormStateRef = useRef<string>("");
+  
+  const getFormStateSnapshot = useCallback(() => {
+    return JSON.stringify({
+      checkDate: checkDate.toISOString(),
+      payTo,
+      checkNumber,
+      bankAccountId,
+      jobCostRows: jobCostRows.map(r => ({ accountId: r.accountId, amount: r.amount, memo: r.memo })),
+      expenseRows: expenseRows.map(r => ({ accountId: r.accountId, amount: r.amount, memo: r.memo })),
+    });
+  }, [checkDate, payTo, checkNumber, bankAccountId, jobCostRows, expenseRows]);
+
+  const hasFormChanges = useCallback(() => {
+    // If we're in viewing mode and haven't made changes, no unsaved changes
+    if (!initialFormStateRef.current) return false;
+    const currentState = getFormStateSnapshot();
+    return currentState !== initialFormStateRef.current;
+  }, [getFormStateSnapshot]);
+
+  // Update initial state when loading a check or creating new
+  useEffect(() => {
+    // Small delay to let state settle
+    const timer = setTimeout(() => {
+      initialFormStateRef.current = getFormStateSnapshot();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentCheckId, isViewingMode]);
+
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
   const { checks = [], isLoading: checksLoading, createCheck, updateCheck, deleteCheck } = useChecks();
@@ -105,6 +137,21 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
 
   const totalCount = isViewingMode ? filteredChecks.length : filteredChecks.length + 1;
   const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
+
+  // Unsaved changes hook
+  const {
+    showDialog: showUnsavedDialog,
+    confirmLeave,
+    cancelLeave,
+    saveAndLeave,
+    isSaving: isSavingFromDialog,
+  } = useUnsavedChanges({
+    hasChanges: hasFormChanges,
+    onSave: async () => {
+      await handleSaveEntry();
+      initialFormStateRef.current = getFormStateSnapshot();
+    },
+  });
 
   useEffect(() => {
     if (settings) {
@@ -1344,6 +1391,14 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         onDeleteCheck={async (checkId) => {
           await deleteCheck.mutateAsync(checkId);
         }}
+      />
+      
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onSave={saveAndLeave}
+        onDiscard={confirmLeave}
+        onCancel={cancelLeave}
+        isSaving={isSavingFromDialog}
       />
     </TooltipProvider>
   );
