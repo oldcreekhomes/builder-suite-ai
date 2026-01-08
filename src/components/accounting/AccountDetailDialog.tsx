@@ -859,7 +859,7 @@ export function AccountDetailDialog({
                   <TableHead className="h-8 px-2 py-1">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1">Name</TableHead>
                   <TableHead className="h-8 px-2 py-1">Account</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Memo</TableHead>
+                  <TableHead className="h-8 px-2 py-1">Description</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
