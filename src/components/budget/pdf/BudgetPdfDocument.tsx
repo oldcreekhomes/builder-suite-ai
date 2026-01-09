@@ -90,7 +90,7 @@ interface BudgetPdfDocumentProps {
     historical: boolean;
     variance: boolean;
   };
-  selectedHistoricalProject: any;
+  historicalProjectAddress?: string | null;
   showVarianceAsPercentage: boolean;
   historicalActualCosts: any;
   subcategoryTotals: Record<string, number>;
@@ -100,7 +100,7 @@ export function BudgetPdfDocument({
   projectAddress,
   groupedBudgetItems,
   visibleColumns,
-  selectedHistoricalProject,
+  historicalProjectAddress,
   showVarianceAsPercentage,
   historicalActualCosts,
   subcategoryTotals,
@@ -189,19 +189,20 @@ export function BudgetPdfDocument({
   const showVariance = visibleColumns.variance;
   
   // Handle all four visibility combinations
+  // Column widths: col4=Total Budget (always), col5=Variance (optional), col6=Historical (optional, rightmost)
   const getColumnWidths = () => {
     if (showHistorical && showVariance) {
-      // Both visible: Code 8%, Name 32%, Source 14%, Historical 12%, Variance 12%, Total 22%
-      return { col1: '8%', col2: '32%', col3: '14%', col4: '12%', col5: '12%', col6: '22%' };
+      // Both visible: Code 8%, Name 32%, Source 14%, Total 22%, Variance 12%, Historical 12%
+      return { col1: '8%', col2: '32%', col3: '14%', col4: '22%', col5: '12%', col6: '12%' };
     } else if (showHistorical && !showVariance) {
-      // Only Historical: Code 8%, Name 37%, Source 15%, Historical 15%, Total 25%
-      return { col1: '8%', col2: '37%', col3: '15%', col4: '15%', col5: '0%', col6: '25%' };
+      // Only Historical: Code 8%, Name 37%, Source 15%, Total 25%, Historical 15%
+      return { col1: '8%', col2: '37%', col3: '15%', col4: '25%', col5: '0%', col6: '15%' };
     } else if (!showHistorical && showVariance) {
-      // Only Variance: Code 8%, Name 37%, Source 15%, Variance 15%, Total 25%
-      return { col1: '8%', col2: '37%', col3: '15%', col4: '0%', col5: '15%', col6: '25%' };
+      // Only Variance: Code 8%, Name 37%, Source 15%, Total 25%, Variance 15%
+      return { col1: '8%', col2: '37%', col3: '15%', col4: '25%', col5: '15%', col6: '0%' };
     } else {
       // Neither visible: Code 10%, Name 50%, Source 22%, Total 18%
-      return { col1: '10%', col2: '50%', col3: '22%', col4: '0%', col5: '0%', col6: '18%' };
+      return { col1: '10%', col2: '50%', col3: '22%', col4: '18%', col5: '0%', col6: '0%' };
     }
   };
 
@@ -227,9 +228,16 @@ export function BudgetPdfDocument({
             <Text style={col1Style}>Cost Code</Text>
             <Text style={col2Style}>Name</Text>
             <Text style={col3Style}>Source</Text>
-            {visibleColumns.historical && <Text style={col4Style}>Historical</Text>}
+            <Text style={col4Style}>Total Budget</Text>
             {visibleColumns.variance && <Text style={col5Style}>Variance</Text>}
-            <Text style={col6Style}>Total Budget</Text>
+            {visibleColumns.historical && (
+              <View style={col6Style}>
+                <Text>Historical</Text>
+                {historicalProjectAddress && (
+                  <Text style={{ fontSize: 7, color: '#666' }}>{historicalProjectAddress}</Text>
+                )}
+              </View>
+            )}
           </View>
 
           {Object.entries(groupedBudgetItems).map(([group, items]) => (
@@ -246,9 +254,7 @@ export function BudgetPdfDocument({
                     <Text style={col1Style}>{costCode?.code || '-'}</Text>
                     <Text style={col2Style}>{costCode?.name || '-'}</Text>
                     <Text style={col3Style}>{getSourceLabel(item)}</Text>
-                    {visibleColumns.historical && (
-                      <Text style={col4Style}>{formatCurrency(historical)}</Text>
-                    )}
+                    <Text style={col4Style}>{formatCurrency(total)}</Text>
                     {visibleColumns.variance && (
                       <Text style={col5Style}>
                         {showVarianceAsPercentage
@@ -256,7 +262,9 @@ export function BudgetPdfDocument({
                           : `${variance >= 0 ? '+' : ''}${formatCurrency(Math.abs(variance))}`}
                       </Text>
                     )}
-                    <Text style={col6Style}>{formatCurrency(total)}</Text>
+                    {visibleColumns.historical && (
+                      <Text style={col6Style}>{formatCurrency(historical)}</Text>
+                    )}
                   </View>
                 );
               })}
@@ -265,15 +273,15 @@ export function BudgetPdfDocument({
                 <Text style={col1Style}></Text>
                 <Text style={{ ...col2Style, fontWeight: 'bold' }}>Subtotal for {group.split(' - ')[0]}</Text>
                 <Text style={col3Style}></Text>
+                <Text style={{ ...col4Style, fontWeight: 'bold' }}>
+                  {formatCurrency(calculateGroupTotal(items))}
+                </Text>
+                {visibleColumns.variance && <Text style={col5Style}></Text>}
                 {visibleColumns.historical && (
-                  <Text style={{ ...col4Style, fontWeight: 'bold' }}>
+                  <Text style={{ ...col6Style, fontWeight: 'bold' }}>
                     {formatCurrency(calculateGroupHistorical(items))}
                   </Text>
                 )}
-                {visibleColumns.variance && <Text style={col5Style}></Text>}
-                <Text style={{ ...col6Style, fontWeight: 'bold' }}>
-                  {formatCurrency(calculateGroupTotal(items))}
-                </Text>
               </View>
             </View>
           ))}
@@ -282,11 +290,9 @@ export function BudgetPdfDocument({
             <Text style={col1Style}></Text>
             <Text style={{ ...col2Style, fontWeight: 'bold' }}>Project Total:</Text>
             <Text style={col3Style}></Text>
-            {visibleColumns.historical && (
-              <Text style={{ ...col4Style, fontWeight: 'bold' }}>
-                {formatCurrency(calculateProjectHistorical())}
-              </Text>
-            )}
+            <Text style={{ ...col4Style, fontWeight: 'bold' }}>
+              {formatCurrency(calculateProjectTotal())}
+            </Text>
             {visibleColumns.variance && (
               <Text style={{ ...col5Style, fontWeight: 'bold' }}>
                 {(() => {
@@ -299,9 +305,11 @@ export function BudgetPdfDocument({
                 })()}
               </Text>
             )}
-            <Text style={{ ...col6Style, fontWeight: 'bold' }}>
-              {formatCurrency(calculateProjectTotal())}
-            </Text>
+            {visibleColumns.historical && (
+              <Text style={{ ...col6Style, fontWeight: 'bold' }}>
+                {formatCurrency(calculateProjectHistorical())}
+              </Text>
+            )}
           </View>
         </View>
 
