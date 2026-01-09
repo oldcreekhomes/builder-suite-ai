@@ -16,6 +16,7 @@ import { BudgetPdfDocument } from './pdf/BudgetPdfDocument';
 import { HistoricalOnlyRow } from './HistoricalOnlyRow';
 import { BudgetExportPdfDialog, ExportPdfOptions } from './BudgetExportPdfDialog';
 import { pdf } from '@react-pdf/renderer';
+import { fetchHistoricalActualCosts } from '@/utils/fetchHistoricalActualCosts';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
@@ -355,12 +356,12 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         variance: options.includeVariance,
       };
 
-      // Fetch historical data if needed for the PDF
+      // Fetch historical data directly for the selected project
       let pdfHistoricalData = null;
       if (options.includeHistorical && options.historicalProjectId) {
-        // Use the historicalData if it matches the selected project, otherwise we'd need to fetch it
-        // For now, we'll pass the historicalProjectId and let the PDF component handle it
-        pdfHistoricalData = options.historicalProjectId === selectedHistoricalProject ? historicalData : null;
+        console.log('Fetching historical data for project:', options.historicalProjectId);
+        pdfHistoricalData = await fetchHistoricalActualCosts(options.historicalProjectId);
+        console.log('Historical data fetched:', pdfHistoricalData);
       }
 
       console.log('Generating PDF document...');
