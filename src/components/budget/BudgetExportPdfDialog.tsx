@@ -24,6 +24,7 @@ import { FileDown, Loader2 } from 'lucide-react';
 export interface ExportPdfOptions {
   includeHistorical: boolean;
   historicalProjectId: string | null;
+  historicalProjectAddress: string | null;
   includeVariance: boolean;
   varianceAsPercentage: boolean;
 }
@@ -67,12 +68,15 @@ export function BudgetExportPdfDialog({
   }, [includeHistorical]);
 
   const handleExport = () => {
+    const selectedProject = historicalProjects.find(p => p.id === historicalProjectId);
     onExport({
       includeHistorical,
       historicalProjectId: includeHistorical && historicalProjectId ? historicalProjectId : null,
+      historicalProjectAddress: includeHistorical && selectedProject ? selectedProject.address : null,
       includeVariance,
       varianceAsPercentage,
     });
+    onOpenChange(false);
   };
 
   const canExport = !includeHistorical || (includeHistorical && historicalProjectId);

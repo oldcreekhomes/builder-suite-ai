@@ -371,7 +371,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           projectAddress={projectAddress}
           groupedBudgetItems={groupedBudgetItems}
           visibleColumns={pdfVisibleColumns}
-          selectedHistoricalProject={options.includeHistorical ? options.historicalProjectId : null}
+          historicalProjectAddress={options.historicalProjectAddress}
           showVarianceAsPercentage={options.varianceAsPercentage}
           historicalActualCosts={pdfHistoricalData}
           subcategoryTotals={subcategoryTotalsMap}
