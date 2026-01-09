@@ -77,6 +77,13 @@ export function AccountDetailDialog({
   // Default hidePaid to ON for Accounts Payable
   const [hidePaid, setHidePaid] = useState(isAccountsPayable);
   
+  // Reset hidePaid to default when dialog opens or account changes
+  useEffect(() => {
+    if (open) {
+      setHidePaid(isAccountsPayable);
+    }
+  }, [open, accountId, isAccountsPayable]);
+  
   const { deleteCheck, updateCheck, correctCheck } = useChecks();
   const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
   const { deleteCreditCard, correctCreditCard } = useCreditCards();
