@@ -1060,14 +1060,12 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                           isLoading={deleteBill.isPending}
                         />
                       ) : (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          disabled
-                          className="h-8 w-8"
+                        <div
+                          className="h-8 w-8 inline-flex items-center justify-center rounded-md"
+                          aria-label="Bill is in a closed accounting period"
                         >
                           <span className="text-lg">🔒</span>
-                        </Button>
+                        </div>
                       )}
                     </div>
                   </TableCell>
