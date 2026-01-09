@@ -660,7 +660,6 @@ return parentRows;
               <Button 
                 onClick={handleExportPdf} 
                 variant="outline" 
-                size="sm" 
                 disabled={isExportingPdf || !jobCostsData || jobCostsData.length === 0}
               >
                 <FileDown className="h-4 w-4 mr-2" />
