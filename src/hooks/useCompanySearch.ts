@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Company {
@@ -10,44 +10,41 @@ interface Company {
 
 /**
  * Hook to search companies from the database.
+ * Uses React Query for automatic refetching when data changes.
  * @param companyTypes - Optional array of company types to filter by (e.g., ['Subcontractor', 'Vendor']).
  *                       If not provided, all companies are returned.
  */
 export function useCompanySearch(companyTypes?: string[]) {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Create a stable query key based on company types
+  const queryKey = companyTypes 
+    ? ['companies', ...companyTypes.sort()]
+    : ['companies'];
 
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      try {
-        let query = supabase
-          .from('companies')
-          .select('id, company_name, company_type, address')
-          .order('company_name');
+  const { data: companies = [], isLoading: loading } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      let query = supabase
+        .from('companies')
+        .select('id, company_name, company_type, address')
+        .order('company_name');
 
-        // Filter by company types if provided
-        if (companyTypes && companyTypes.length > 0) {
-          query = query.in('company_type', companyTypes);
-          console.log('useCompanySearch: Filtering by company types:', companyTypes);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-        setCompanies(data || []);
-        
-        console.log(`useCompanySearch: Fetched ${data?.length || 0} companies`, {
-          typesFilter: companyTypes || 'all',
-        });
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-      } finally {
-        setLoading(false);
+      // Filter by company types if provided
+      if (companyTypes && companyTypes.length > 0) {
+        query = query.in('company_type', companyTypes);
+        console.log('useCompanySearch: Filtering by company types:', companyTypes);
       }
-    };
 
-    fetchCompanies();
-  }, [companyTypes?.join(',')]); // Re-fetch if companyTypes change
+      const { data, error } = await query;
+
+      if (error) throw error;
+      
+      console.log(`useCompanySearch: Fetched ${data?.length || 0} companies`, {
+        typesFilter: companyTypes || 'all',
+      });
+      
+      return (data || []) as Company[];
+    },
+  });
 
   const searchCompanies = (query: string) => {
     if (!query.trim()) return companies;
