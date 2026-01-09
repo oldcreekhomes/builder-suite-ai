@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   col3Base: { width: '18%' }, // Source
   col4: { width: '10%', textAlign: 'right' }, // Historical
   col5: { width: '10%', textAlign: 'right' }, // Variance
-  col6Base: { width: '12%', textAlign: 'left' }, // Budget Total (far right)
+  col6Base: { width: '12%', textAlign: 'right' }, // Budget Total (far right)
   footerContainer: {
     position: 'absolute',
     bottom: 20,
@@ -191,14 +191,14 @@ export function BudgetPdfDocument({
   // Handle all four visibility combinations
   const getColumnWidths = () => {
     if (showHistorical && showVariance) {
-      // Both visible: Code 8%, Name 35%, Source 15%, Historical 12%, Variance 12%, Total 18%
-      return { col1: '8%', col2: '35%', col3: '15%', col4: '12%', col5: '12%', col6: '18%' };
+      // Both visible: Code 8%, Name 32%, Source 14%, Historical 12%, Variance 12%, Total 22%
+      return { col1: '8%', col2: '32%', col3: '14%', col4: '12%', col5: '12%', col6: '22%' };
     } else if (showHistorical && !showVariance) {
-      // Only Historical: Code 8%, Name 40%, Source 17%, Historical 15%, Total 20%
-      return { col1: '8%', col2: '40%', col3: '17%', col4: '15%', col5: '0%', col6: '20%' };
+      // Only Historical: Code 8%, Name 37%, Source 15%, Historical 15%, Total 25%
+      return { col1: '8%', col2: '37%', col3: '15%', col4: '15%', col5: '0%', col6: '25%' };
     } else if (!showHistorical && showVariance) {
-      // Only Variance: Code 8%, Name 40%, Source 17%, Variance 15%, Total 20%
-      return { col1: '8%', col2: '40%', col3: '17%', col4: '0%', col5: '15%', col6: '20%' };
+      // Only Variance: Code 8%, Name 37%, Source 15%, Variance 15%, Total 25%
+      return { col1: '8%', col2: '37%', col3: '15%', col4: '0%', col5: '15%', col6: '25%' };
     } else {
       // Neither visible: Code 10%, Name 50%, Source 22%, Total 18%
       return { col1: '10%', col2: '50%', col3: '22%', col4: '0%', col5: '0%', col6: '18%' };
@@ -210,9 +210,9 @@ export function BudgetPdfDocument({
   const col1Style = { ...styles.col1Base, width: columnWidths.col1 };
   const col2Style = { ...styles.col2Base, width: columnWidths.col2 };
   const col3Style = { ...styles.col3Base, width: columnWidths.col3 };
-  const col4Style = { ...styles.col4, width: columnWidths.col4 };
-  const col5Style = { ...styles.col5, width: columnWidths.col5 };
-  const col6Style = { ...styles.col6Base, width: columnWidths.col6 };
+  const col4Style = { ...styles.col4, width: columnWidths.col4, paddingRight: 4 };
+  const col5Style = { ...styles.col5, width: columnWidths.col5, paddingRight: 4 };
+  const col6Style = { ...styles.col6Base, width: columnWidths.col6, paddingLeft: 8 };
 
   return (
     <Document>
