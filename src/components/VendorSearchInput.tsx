@@ -29,8 +29,8 @@ export function VendorSearchInput({
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  // Include all company types that can submit invoices/bills
-  const { companies, loading } = useCompanySearch(['Vendor', 'Subcontractor', 'Consultant']);
+  // Include all company types so any company can receive a check
+  const { companies, loading } = useCompanySearch();
   const skipNextValueUpdate = useRef(false);
 
   useEffect(() => {
