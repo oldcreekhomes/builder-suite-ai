@@ -848,7 +848,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     <TableCell className="py-1 text-center">
                       <div className="flex items-center justify-center gap-1">
                         {isPaidTab ? (
-                          <span className="text-lg" style={{ opacity: 1, filter: 'none' }}>🔒</span>
+                          <span className="text-lg" style={{ opacity: 1, filter: 'none', color: 'initial', WebkitFilter: 'none', textShadow: 'none' }}>🔒</span>
                         ) : !bill.reconciled && (
                           <>
                             {showEditButton && (
@@ -872,7 +872,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                 className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                               />
                             ) : (
-                              <span className="text-lg" style={{ opacity: 1, filter: 'none' }}>🔒</span>
+                              <span className="text-lg" style={{ opacity: 1, filter: 'none', color: 'initial', WebkitFilter: 'none', textShadow: 'none' }}>🔒</span>
                             )}
                           </>
                         )}
