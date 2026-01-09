@@ -12,7 +12,7 @@ import { JobCostGroupTotalRow } from "./JobCostGroupTotalRow";
 import { JobCostRow } from "./JobCostRow";
 import { JobCostProjectTotalRow } from "./JobCostProjectTotalRow";
 import { format } from "date-fns";
-import { CalendarIcon, Lock, LockOpen } from "lucide-react";
+import { CalendarIcon, Lock, LockOpen, FileDown } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,9 @@ import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { pdf } from "@react-pdf/renderer";
+import { JobCostsPdfDocument } from "./pdf/JobCostsPdfDocument";
+import { useToast } from "@/hooks/use-toast";
 
 const getTopLevelGroup = (costCode: string): string => {
   const num = parseFloat(costCode);
@@ -57,6 +60,23 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch project address for PDF export
+  const { data: projectData } = useQuery({
+    queryKey: ['project-address', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('address')
+        .eq('id', projectId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!projectId,
+  });
 
   const { isLocked, canLockBudgets, lockBudget, unlockBudget, isLocking, isUnlocking } = useBudgetLockStatus(projectId || '');
 
@@ -390,6 +410,59 @@ return parentRows;
     }).format(value);
   };
 
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    
+    try {
+      // Prepare grouped data for PDF
+      const groupedForPdf: Record<string, { costCode: string; costCodeName: string; budget: number; actual: number; variance: number }[]> = {};
+      
+      Object.entries(groupedJobCosts).forEach(([group, rows]) => {
+        groupedForPdf[group] = rows.map(row => ({
+          costCode: row.costCode,
+          costCodeName: row.costCodeName,
+          budget: row.budget,
+          actual: row.actual,
+          variance: row.variance,
+        }));
+      });
+
+      const blob = await pdf(
+        <JobCostsPdfDocument
+          projectAddress={projectData?.address}
+          asOfDate={asOfDate.toISOString().split('T')[0]}
+          groupedCostCodes={groupedForPdf}
+          totalBudget={totalBudget}
+          totalActual={totalActual}
+          totalVariance={totalVariance}
+        />
+      ).toBlob();
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Job_Costs_Report-${asOfDate.toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "PDF exported successfully",
+        description: "Your job costs report has been downloaded",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "PDF export failed",
+        description: error instanceof Error ? error.message : "An error occurred while generating the PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   if (!projectId) {
     return (
       <div className="space-y-4">
@@ -583,11 +656,22 @@ return parentRows;
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <LotSelector
-              projectId={projectId}
-              selectedLotId={selectedLotId}
-              onSelectLot={setSelectedLotId}
-            />
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={handleExportPdf} 
+                variant="outline" 
+                size="sm" 
+                disabled={isExportingPdf || !jobCostsData || jobCostsData.length === 0}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {isExportingPdf ? 'Exporting...' : 'Export PDF'}
+              </Button>
+              <LotSelector
+                projectId={projectId}
+                selectedLotId={selectedLotId}
+                onSelectLot={setSelectedLotId}
+              />
+            </div>
           </CardHeader>
 
           {/* Lock/Unlock Confirmation Dialog */}
