@@ -14,6 +14,7 @@ import { BudgetPrintToolbar } from './BudgetPrintToolbar';
 import { BudgetPrintView } from './BudgetPrintView';
 import { BudgetPdfDocument } from './pdf/BudgetPdfDocument';
 import { HistoricalOnlyRow } from './HistoricalOnlyRow';
+import { BudgetExportPdfDialog, ExportPdfOptions } from './BudgetExportPdfDialog';
 import { pdf } from '@react-pdf/renderer';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
@@ -53,6 +54,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
   
@@ -341,16 +343,25 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }
   };
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = async (options: ExportPdfOptions) => {
     setIsExportingPdf(true);
+    setShowExportDialog(false);
     
     try {
-      console.log('Starting PDF export...');
+      console.log('Starting PDF export with options:', options);
       
       const pdfVisibleColumns = {
-        historical: false,
-        variance: false,
+        historical: options.includeHistorical,
+        variance: options.includeVariance,
       };
+
+      // Fetch historical data if needed for the PDF
+      let pdfHistoricalData = null;
+      if (options.includeHistorical && options.historicalProjectId) {
+        // Use the historicalData if it matches the selected project, otherwise we'd need to fetch it
+        // For now, we'll pass the historicalProjectId and let the PDF component handle it
+        pdfHistoricalData = options.historicalProjectId === selectedHistoricalProject ? historicalData : null;
+      }
 
       console.log('Generating PDF document...');
       
@@ -359,9 +370,9 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           projectAddress={projectAddress}
           groupedBudgetItems={groupedBudgetItems}
           visibleColumns={pdfVisibleColumns}
-          selectedHistoricalProject={selectedHistoricalProject !== 'none' ? selectedHistoricalProject : null}
-          showVarianceAsPercentage={showVarianceAsPercentage}
-          historicalActualCosts={historicalData}
+          selectedHistoricalProject={options.includeHistorical ? options.historicalProjectId : null}
+          showVarianceAsPercentage={options.varianceAsPercentage}
+          historicalActualCosts={pdfHistoricalData}
           subcategoryTotals={subcategoryTotalsMap}
         />
       ).toBlob();
@@ -435,7 +446,7 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         selectedLotId={selectedLotId}
         onSelectLot={selectLot}
         onPrint={handlePrint}
-        onExportPdf={handleExportPdf}
+        onExportPdf={() => setShowExportDialog(true)}
         onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
@@ -666,6 +677,13 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         selectedHistoricalProject={selectedHistoricalProject}
         showVarianceAsPercentage={showVarianceAsPercentage}
         historicalActualCosts={historicalActualCosts}
+      />
+
+      <BudgetExportPdfDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        onExport={handleExportPdf}
+        isExporting={isExportingPdf}
       />
 
       {showAddBudgetModal && (
