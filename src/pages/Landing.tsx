@@ -179,18 +179,11 @@ const Landing = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth?tab=signup">
                 <Button size="lg" className="px-8 py-6 text-lg">
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="px-8 py-6 text-lg">
-                <Play className="mr-2 h-5 w-5" />
-                Watch Demo
-              </Button>
             </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              No credit card required • 14-day free trial
-            </p>
           </div>
         </div>
       </section>
