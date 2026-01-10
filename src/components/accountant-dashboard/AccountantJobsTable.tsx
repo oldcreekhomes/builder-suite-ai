@@ -323,7 +323,7 @@ export function AccountantJobsTable() {
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium whitespace-nowrap">
                     {project.address || "No address"}
                   </TableCell>
                   {!showQuickBooks && (
@@ -334,7 +334,7 @@ export function AccountantJobsTable() {
                       }
                     </TableCell>
                   )}
-                  <TableCell onClick={(e) => showQuickBooks && e.stopPropagation()}>
+                  <TableCell className="whitespace-nowrap" onClick={(e) => showQuickBooks && e.stopPropagation()}>
                     {showQuickBooks ? (
                       <Popover>
                         <PopoverTrigger asChild>
@@ -342,7 +342,7 @@ export function AccountantJobsTable() {
                             variant="ghost"
                             size="sm"
                             className={cn(
-                              "h-auto py-1 px-2 font-normal justify-start hover:bg-muted",
+                              "h-auto py-0.5 px-1.5 font-normal justify-start hover:bg-muted",
                               !(project as any).qb_last_reconciliation_date && "text-muted-foreground"
                             )}
                           >
@@ -377,21 +377,21 @@ export function AccountantJobsTable() {
                         : <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {closedPeriods[project.id]?.period_end_date 
                       ? format(parseISO(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
                   {showQuickBooks && (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
                             className={cn(
-                              "h-auto py-1 px-2 font-normal justify-start hover:bg-muted",
+                              "h-auto py-0.5 px-1.5 font-normal justify-start hover:bg-muted",
                               !(project as any).qb_invoices_approved_date && "text-muted-foreground"
                             )}
                           >
@@ -424,14 +424,14 @@ export function AccountantJobsTable() {
                     </TableCell>
                   )}
                   {showQuickBooks && (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
                             className={cn(
-                              "h-auto py-1 px-2 font-normal justify-start hover:bg-muted",
+                              "h-auto py-0.5 px-1.5 font-normal justify-start hover:bg-muted",
                               !(project as any).qb_invoices_paid_date && "text-muted-foreground"
                             )}
                           >
