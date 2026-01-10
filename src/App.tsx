@@ -28,6 +28,7 @@ import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import PasswordReset from "./pages/PasswordReset";
 import Index from "./pages/Index";
+import RootRoute from "./components/RootRoute";
 import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
 
@@ -103,11 +104,11 @@ const AppContent = () => {
           {/* Auth route */}
           <Route path="/auth" element={<Auth />} />
           
-          {/* Landing page route */}
-          <Route path="/landing" element={<Landing />} />
+          {/* Landing page route - redirect to root */}
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           
-          {/* Root route - show Index for authenticated users, redirect to auth for unauthenticated */}
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          {/* Root route - conditionally shows Landing or Dashboard */}
+          <Route path="/" element={<RootRoute />} />
           
           {/* Accounting routes */}
           <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
