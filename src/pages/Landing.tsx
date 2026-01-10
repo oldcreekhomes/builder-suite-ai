@@ -177,7 +177,7 @@ const Landing = () => {
               We didn't want to build software—we had to. Every tool out there is built by some private equity funded silicon valley tech engineer who doesn't understand our industry.
             </p>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              So we built our own...
+              So we built our own and sharing it with you...
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth?tab=signup">
