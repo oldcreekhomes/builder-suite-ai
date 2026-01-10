@@ -202,15 +202,12 @@ const Landing = () => {
                   </div>
                   <span className="text-sm text-muted-foreground ml-4">BuilderSuite AI Dashboard</span>
                 </div>
-                <div className="aspect-video bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                  <div className="text-center">
-                    <Building2 className="h-20 w-20 text-primary/30 mx-auto mb-4" />
-                    <p className="text-muted-foreground text-lg">Dashboard Preview Coming Soon</p>
-                    <Button variant="outline" className="mt-4">
-                      <Play className="mr-2 h-4 w-4" />
-                      Watch Demo Video
-                    </Button>
-                  </div>
+                <div className="aspect-video overflow-hidden">
+                  <img 
+                    src="/dashboard-preview.png" 
+                    alt="BuilderSuite AI Dashboard showing project management, insurance alerts, accounting, weather forecast, and recent photos"
+                    className="w-full h-full object-cover object-top"
+                  />
                 </div>
               </div>
             </div>
