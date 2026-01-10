@@ -170,8 +170,8 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 tracking-tight">
-              A Home Building Software
-              <span className="text-primary block mt-2">Built by Home Builders</span>
+              Construction Management Software
+              <span className="text-primary block mt-2">Built by HomeBuilder.</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               We didn't want to create software—we had to. Every tool out there was built by software engineers, not home builders. So we built our own, and now we're sharing it with builders like us.
