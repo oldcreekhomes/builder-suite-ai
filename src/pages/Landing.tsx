@@ -157,7 +157,7 @@ const Landing = () => {
               <Link to="/auth">
                 <Button variant="ghost">Sign In</Button>
               </Link>
-              <Link to="/auth">
+              <Link to="/auth?tab=signup">
                 <Button>Get Started</Button>
               </Link>
             </div>
@@ -178,7 +178,7 @@ const Landing = () => {
               Built with AI to make construction management effortless.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
+              <Link to="/auth?tab=signup">
                 <Button size="lg" className="px-8 py-6 text-lg">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -395,7 +395,7 @@ const Landing = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/auth" className="block">
+                  <Link to="/auth?tab=signup" className="block">
                     <Button 
                       className="w-full" 
                       variant={plan.highlighted ? "default" : "outline"}
