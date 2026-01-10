@@ -260,7 +260,9 @@ export function AccountantJobsTable() {
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
+            {!showQuickBooks && (
+              <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
+            )}
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
             {showQuickBooks && (
@@ -289,7 +291,7 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? (showQuickBooks ? 11 : 9) : (showQuickBooks ? 10 : 8)} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? (showQuickBooks ? 10 : 9) : (showQuickBooks ? 9 : 8)} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
@@ -324,12 +326,14 @@ export function AccountantJobsTable() {
                   <TableCell className="font-medium">
                     {project.address || "No address"}
                   </TableCell>
-                  <TableCell>
-                    {project.accounting_manager_user 
-                      ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`
-                      : <span className="text-muted-foreground">-</span>
-                    }
-                  </TableCell>
+                  {!showQuickBooks && (
+                    <TableCell>
+                      {project.accounting_manager_user 
+                        ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`
+                        : <span className="text-muted-foreground">-</span>
+                      }
+                    </TableCell>
+                  )}
                   <TableCell onClick={(e) => showQuickBooks && e.stopPropagation()}>
                     {showQuickBooks ? (
                       <Popover>
@@ -495,7 +499,7 @@ export function AccountantJobsTable() {
         <TableFooter>
           <TableRow className="bg-muted/50 font-semibold">
             {isReorderEnabled && <TableCell />}
-            <TableCell colSpan={showQuickBooks ? 6 : 4} className="text-right">Totals</TableCell>
+            <TableCell colSpan={showQuickBooks ? 5 : 4} className="text-right">Totals</TableCell>
             <TableCell className="text-center">
               <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                 {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.currentCount || 0), 0)}
