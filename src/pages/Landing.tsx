@@ -46,49 +46,49 @@ const Landing = () => {
     {
       icon: Building2,
       title: "Project Management",
-      description: "Centralized dashboard for all your construction projects with real-time updates",
+      description: "Centralized dashboard for all your construction projects with real-time updates and progress tracking.",
       color: "text-blue-600"
     },
     {
       icon: CreditCard,
       title: "QuickBooks Integration",
-      description: "Seamless two-way sync with QuickBooks for effortless accounting",
+      description: "Seamless two-way sync with QuickBooks for effortless accounting and financial management.",
       color: "text-green-600"
     },
     {
       icon: Camera,
       title: "Photo Management",
-      description: "AI-powered photo organization with automatic tagging and easy sharing",
+      description: "AI-powered photo organization with automatic tagging, easy sharing, and client access.",
       color: "text-purple-600"
     },
     {
       icon: Gavel,
       title: "Bid Tracking",
-      description: "Send, track, and manage subcontractor bids all in one place",
+      description: "Send, track, and manage subcontractor bids all in one centralized and organized place.",
       color: "text-orange-600"
     },
     {
       icon: Calendar,
       title: "Gantt Scheduling",
-      description: "Visual project timelines with drag-and-drop scheduling",
+      description: "Visual project timelines with intuitive drag-and-drop scheduling and milestone tracking.",
       color: "text-pink-600"
     },
     {
       icon: Calculator,
       title: "Estimating AI",
-      description: "AI-assisted cost estimation from plans and historical data",
+      description: "AI-assisted cost estimation from plans, historical data, and industry benchmarks.",
       color: "text-cyan-600"
     },
     {
       icon: FileText,
       title: "Document Management",
-      description: "Secure file storage with version control and easy access",
+      description: "Secure file storage with version control, easy access, and organized project folders.",
       color: "text-indigo-600"
     },
     {
       icon: BarChart3,
       title: "Multi-Dashboard Views",
-      description: "Tailored views for owners, project managers, and accountants",
+      description: "Tailored views for owners, project managers, accountants, and team members.",
       color: "text-amber-600"
     }
   ];
@@ -232,10 +232,10 @@ const Landing = () => {
               <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow border-border">
                 <CardHeader className="pb-2">
                   <feature.icon className={`h-12 w-12 ${feature.color} mx-auto mb-4`} />
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg whitespace-nowrap">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-muted-foreground">
+                  <CardDescription className="text-muted-foreground line-clamp-3 min-h-[4.5rem]">
                     {feature.description}
                   </CardDescription>
                 </CardContent>
