@@ -174,7 +174,7 @@ const Landing = () => {
               <span className="text-primary block mt-2">Built by a Home Builder</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              We didn't want to create software—we had to. Every tool out there was built by software engineers, not home builders. So we built our own, and now we're sharing it with builders like us.
+              We didn't want to build software—we had to. Every tool out there was made by engineers, NOT BUILDERS. So we made our own...
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth?tab=signup">
