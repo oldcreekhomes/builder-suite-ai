@@ -6,8 +6,6 @@ import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
 import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
 import { useLatestBankReconciliationsByProject } from "@/hooks/useLatestBankReconciliationsByProject";
-import { useUpdateProjectQBReconciliationDate } from "@/hooks/useUpdateProjectQBReconciliationDate";
-import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
 import {
   Table,
   TableBody,
@@ -20,14 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search, CalendarIcon } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusPriority: Record<string, number> = {
@@ -49,8 +40,6 @@ export function AccountantJobsTable() {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
-  const updateQBReconciliationDate = useUpdateProjectQBReconciliationDate();
-  const updateQBInvoiceDates = useUpdateProjectQBInvoiceDates();
   
   // First, get all non-template projects to fetch bill counts for ALL of them
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
@@ -334,43 +323,11 @@ export function AccountantJobsTable() {
                       }
                     </TableCell>
                   )}
-                  <TableCell className="whitespace-nowrap" onClick={(e) => showQuickBooks && e.stopPropagation()}>
+                  <TableCell className="whitespace-nowrap">
                     {showQuickBooks ? (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "h-auto py-0.5 px-1.5 font-normal justify-start hover:bg-muted",
-                              !(project as any).qb_last_reconciliation_date && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                            {(project as any).qb_last_reconciliation_date
-                              ? format(parseISO((project as any).qb_last_reconciliation_date), "MMM d, yyyy")
-                              : "Select date"
-                            }
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={(project as any).qb_last_reconciliation_date 
-                              ? parseISO((project as any).qb_last_reconciliation_date) 
-                              : undefined
-                            }
-                            onSelect={(date) => {
-                              updateQBReconciliationDate.mutate({
-                                projectId: project.id,
-                                date: date ? format(date, "yyyy-MM-dd") : null,
-                              });
-                            }}
-                            className="pointer-events-auto"
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      (project as any).qb_last_reconciliation_date
+                        ? format(parseISO((project as any).qb_last_reconciliation_date), "MMM d, yyyy")
+                        : <span className="text-muted-foreground">-</span>
                     ) : (
                       latestReconciliations[project.id]?.statement_date 
                         ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
@@ -384,83 +341,19 @@ export function AccountantJobsTable() {
                     }
                   </TableCell>
                   {showQuickBooks && (
-                    <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "h-auto py-0.5 px-1.5 font-normal justify-start hover:bg-muted",
-                              !(project as any).qb_invoices_approved_date && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                            {(project as any).qb_invoices_approved_date
-                              ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
-                              : "Select date"
-                            }
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={(project as any).qb_invoices_approved_date 
-                              ? parseISO((project as any).qb_invoices_approved_date) 
-                              : undefined
-                            }
-                            onSelect={(date) => {
-                              updateQBInvoiceDates.mutate({
-                                projectId: project.id,
-                                field: 'invoices_approved',
-                                date: date ? format(date, "yyyy-MM-dd") : null,
-                              });
-                            }}
-                            className="pointer-events-auto"
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <TableCell className="whitespace-nowrap">
+                      {(project as any).qb_invoices_approved_date
+                        ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
+                        : <span className="text-muted-foreground">-</span>
+                      }
                     </TableCell>
                   )}
                   {showQuickBooks && (
-                    <TableCell className="whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "h-auto py-0.5 px-1.5 font-normal justify-start hover:bg-muted",
-                              !(project as any).qb_invoices_paid_date && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                            {(project as any).qb_invoices_paid_date
-                              ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
-                              : "Select date"
-                            }
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={(project as any).qb_invoices_paid_date 
-                              ? parseISO((project as any).qb_invoices_paid_date) 
-                              : undefined
-                            }
-                            onSelect={(date) => {
-                              updateQBInvoiceDates.mutate({
-                                projectId: project.id,
-                                field: 'invoices_paid',
-                                date: date ? format(date, "yyyy-MM-dd") : null,
-                              });
-                            }}
-                            className="pointer-events-auto"
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <TableCell className="whitespace-nowrap">
+                      {(project as any).qb_invoices_paid_date
+                        ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
+                        : <span className="text-muted-foreground">-</span>
+                      }
                     </TableCell>
                   )}
                   <TableCell className="text-center">
