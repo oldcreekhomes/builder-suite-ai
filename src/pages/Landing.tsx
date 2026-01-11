@@ -152,7 +152,7 @@ const Landing = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Building2 className="h-8 w-8 text-primary" />
-              <span className="ml-2 text-xl font-bold text-foreground">BuilderSuite AI</span>
+              <span className="ml-2 text-xl font-bold text-foreground">BuilderSuite</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/auth">
@@ -201,11 +201,11 @@ const Landing = () => {
       <FeatureRow
         label="ACCOUNTING"
         title="Streamlined Financial Management"
-        description="No more QuickBooks. No more integration headaches. Accounting is built right into BuilderSuite AI, keeping everything consolidated in one system."
+        description="No more QuickBooks. No more integration headaches. Accounting is built right into BuilderSuite, keeping everything consolidated in one system."
         buttonText="Learn more"
         buttonLink="/accounting"
         imageSrc="/dashboard-preview.png"
-        imageAlt="BuilderSuite AI Accounting Dashboard"
+        imageAlt="BuilderSuite Accounting Dashboard"
         className="bg-muted/30"
       />
 
@@ -216,7 +216,7 @@ const Landing = () => {
         buttonText="Learn more"
         buttonLink="/ai-bill-management"
         imageSrc="/dashboard-preview.png"
-        imageAlt="BuilderSuite AI Bill Management"
+        imageAlt="BuilderSuite Bill Management"
         reversed={true}
       />
 
@@ -227,7 +227,7 @@ const Landing = () => {
         buttonText="Learn more"
         buttonLink="/bid-management"
         imageSrc="/dashboard-preview.png"
-        imageAlt="BuilderSuite AI Bid Management"
+        imageAlt="BuilderSuite Bid Management"
         className="bg-muted/30"
       />
 
@@ -302,7 +302,7 @@ const Landing = () => {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                "BuilderSuite AI has transformed how we manage our projects. The QuickBooks integration alone saves us hours every week."
+                "BuilderSuite has transformed how we manage our projects. The QuickBooks integration alone saves us hours every week."
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -421,7 +421,7 @@ const Landing = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-                Why Choose BuilderSuite AI?
+                Why Choose BuilderSuite?
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start">
@@ -529,7 +529,7 @@ const Landing = () => {
             <div>
               <div className="flex items-center mb-4">
                 <Building2 className="h-6 w-6 text-primary" />
-                <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite AI</span>
+                <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite</span>
               </div>
               <p className="text-muted-foreground">
                 The complete construction management platform for modern builders.
@@ -561,7 +561,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2025 BuilderSuite AI. All rights reserved.</p>
+            <p>&copy; 2025 BuilderSuite. All rights reserved.</p>
           </div>
         </div>
       </footer>
