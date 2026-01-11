@@ -269,7 +269,7 @@ const Landing = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
             <div className="text-center">
               <p className="text-4xl font-bold text-primary">100+</p>
-              <p className="text-muted-foreground">Projects Managed</p>
+              <p className="text-muted-foreground">Lots Managed</p>
             </div>
             <div className="text-center">
               <p className="text-4xl font-bold text-primary">$100M+</p>
