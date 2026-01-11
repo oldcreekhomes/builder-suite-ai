@@ -214,9 +214,17 @@ const Landing = () => {
             
             {/* Right Column - Quote */}
             <div>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
-                "After 15 years of running Old Creek Homes, I was drowning in software. QuickBooks for accounting. Buildertrend for projects. Dropbox for files. None of them talked to each other, and none of them were built for how we actually work. So I built our own system. What started as an internal tool became BuilderSuite—software built by a builder, for builders."
-              </p>
+              <div className="space-y-4">
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
+                  "We at Old Creek Homes didn't want to build software — we had no choice. We needed a system that had accounting, chat, budgets, automation, AI, product cost tracking and more. There is software out there, but the people building it are engineers — not builders so they really don't get it."
+                </p>
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
+                  "Here's the best part. Everyday we keep making it better as our company grows, so will the ability and needs of the software."
+                </p>
+                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
+                  "There are no demos either. It was built to be intuitive so there are no questions. Try it out and let me know what you think!"
+                </p>
+              </div>
             </div>
             
           </div>
