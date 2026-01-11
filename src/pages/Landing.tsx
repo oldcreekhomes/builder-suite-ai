@@ -176,7 +176,7 @@ const Landing = () => {
             <p className="text-xl text-muted-foreground mb-2 max-w-2xl mx-auto">
               We didn't want to build software—we had to.
             </p>
-            <p className="text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground mb-4 max-w-3xl mx-auto">
               Every tool out there is built by a silicon valley tech engineer who doesn't understand our industry.
             </p>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
