@@ -216,9 +216,10 @@ const Landing = () => {
         description="Say goodbye to hours of manual data entry. Scan hundreds of bills at once and let AI extract all the data within seconds. Review the extracted information, verify assigned cost codes, and route everything for approval—all in a fraction of the time."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/dashboard-preview.png"
+        imageSrc="/images/ai-bill-management-preview.png"
         imageAlt="BuilderSuite Bill Management"
         reversed={true}
+        expandableImage={true}
       />
 
       <FeatureRow
