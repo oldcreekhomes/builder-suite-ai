@@ -6,7 +6,9 @@ import {
   Dialog,
   DialogContent,
   DialogClose,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface FeatureRowProps {
   label: string;
@@ -68,7 +70,7 @@ export function FeatureRow({
           {/* Image */}
           <div className={`${reversed ? "lg:order-1" : "lg:order-2"}`}>
             <div 
-              className={`rounded-2xl overflow-hidden shadow-xl ${expandableImage ? 'cursor-pointer group' : ''}`}
+              className={`relative rounded-2xl overflow-hidden shadow-xl ${expandableImage ? 'cursor-pointer group' : ''}`}
               onClick={expandableImage ? () => setIsImageOpen(true) : undefined}
             >
               <img
@@ -92,6 +94,9 @@ export function FeatureRow({
       {expandableImage && (
         <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
           <DialogContent className="max-w-[95vw] w-full h-auto p-0 border-none bg-transparent shadow-none">
+            <VisuallyHidden>
+              <DialogTitle>Expanded image view</DialogTitle>
+            </VisuallyHidden>
             <DialogClose className="absolute right-4 top-4 z-50 rounded-full bg-background/90 p-2 hover:bg-background transition-colors">
               <X className="h-6 w-6" />
               <span className="sr-only">Close</span>
