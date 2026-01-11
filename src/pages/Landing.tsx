@@ -282,11 +282,8 @@ const Landing = () => {
         description="No more Slack. No more Basecamp. No more Microsoft Teams. Keep all project communication directly in BuilderSuite. Message team members, share files, and coordinate efficiently—without switching between apps or losing important conversations in scattered threads."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/images/team-chat-preview.png"
-        imageAlt="BuilderSuite Team Communication"
         reversed={true}
         className="bg-muted/30"
-        expandableImage={true}
       />
 
       {/* Social Proof Section */}
