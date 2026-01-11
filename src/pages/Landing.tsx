@@ -328,9 +328,11 @@ const Landing = () => {
                 "We tried them all, Tokenstruct, JobTred, BuilderTrend and everybody in between. Nobody could even understand that accounting was absolutely critical to be 100% integrated into an application. That's why we started Builder Suite."
               </p>
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                  MG
-                </div>
+                <img 
+                  src="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/avatars/2653aba8-d154-4301-99bf-77d559492e19/avatar.png"
+                  alt="Matt Gray"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
                 <div className="ml-3">
                   <p className="font-semibold text-foreground">Matt Gray</p>
                   <p className="text-sm text-muted-foreground">Old Creek Homes</p>
