@@ -252,6 +252,17 @@ const Landing = () => {
         expandableImage={true}
       />
 
+      <FeatureRow
+        label="TEAM COMMUNICATION"
+        title="All Your Conversations in One Place"
+        description="No more Slack. No more Basecamp. No more Microsoft Teams. Keep all project communication directly within BuilderSuite. Message team members, share updates, and coordinate with subcontractors—without switching between apps or losing important conversations in scattered threads."
+        buttonText="Sign Up"
+        buttonLink="/auth?tab=signup"
+        imageSrc="/images/team-chat-preview.png"
+        imageAlt="BuilderSuite Team Chat"
+        reversed={true}
+        expandableImage={true}
+      />
 
       {/* Social Proof Section */}
       <section className="py-20 bg-background">
