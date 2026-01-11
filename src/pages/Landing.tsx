@@ -210,6 +210,17 @@ const Landing = () => {
       />
 
       <FeatureRow
+        label="AI BILL MANAGEMENT"
+        title="Categorize Bills Using AI"
+        description="Let AI automatically categorize and organize your bills. Upload invoices and watch as BuilderSuite AI extracts key information, assigns cost codes, and routes them for approval."
+        buttonText="Learn more"
+        buttonLink="/ai-bill-management"
+        imageSrc="/dashboard-preview.png"
+        imageAlt="BuilderSuite AI Bill Management"
+        reversed={true}
+      />
+
+      <FeatureRow
         label="BID MANAGEMENT"
         title="Win More Bids, Faster"
         description="Create, track, and manage all your project bids in one place. From initial estimates to final proposals, streamline your bidding process and close more deals."
@@ -217,7 +228,7 @@ const Landing = () => {
         buttonLink="/bid-management"
         imageSrc="/dashboard-preview.png"
         imageAlt="BuilderSuite AI Bid Management"
-        reversed={true}
+        className="bg-muted/30"
       />
 
       {/* Features Section */}
