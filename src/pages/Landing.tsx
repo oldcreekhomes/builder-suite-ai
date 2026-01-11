@@ -223,7 +223,7 @@ const Landing = () => {
       <FeatureRow
         label="BID MANAGEMENT"
         title="Win More Bids, Faster"
-        description="Create, track, and manage all your project bids in one place. From initial estimates to final proposals, streamline your bidding process and close more deals."
+        description="Create bid packages in a fraction of the time. BuilderSuite automatically tracks responses, finds subcontractors who haven't submitted bids, and sends reminders for you—no manual follow-up required."
         buttonText="Learn more"
         buttonLink="/bid-management"
         imageSrc="/dashboard-preview.png"
