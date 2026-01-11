@@ -197,33 +197,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Product Screenshot Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative">
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-2xl p-8 md:p-12">
-              <div className="bg-card rounded-xl shadow-2xl border border-border overflow-hidden">
-                <div className="bg-muted/50 px-4 py-3 border-b border-border flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                  </div>
-                  <span className="text-sm text-muted-foreground ml-4">BuilderSuite AI Dashboard</span>
-                </div>
-                <div className="aspect-video overflow-hidden">
-                  <img 
-                    src="/dashboard-preview.png" 
-                    alt="BuilderSuite AI Dashboard showing project management, insurance alerts, accounting, weather forecast, and recent photos"
-                    className="w-full h-full object-cover object-top"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Feature Rows */}
       <FeatureRow
         label="ACCOUNTING"
@@ -233,6 +206,18 @@ const Landing = () => {
         buttonLink="/accounting"
         imageSrc="/dashboard-preview.png"
         imageAlt="BuilderSuite AI Accounting Dashboard"
+        className="bg-muted/30"
+      />
+
+      <FeatureRow
+        label="BID MANAGEMENT"
+        title="Win More Bids, Faster"
+        description="Create, track, and manage all your project bids in one place. From initial estimates to final proposals, streamline your bidding process and close more deals."
+        buttonText="Learn more"
+        buttonLink="/bid-management"
+        imageSrc="/dashboard-preview.png"
+        imageAlt="BuilderSuite AI Bid Management"
+        reversed={true}
       />
 
       {/* Features Section */}
