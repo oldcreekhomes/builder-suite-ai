@@ -194,38 +194,20 @@ const Landing = () => {
 
       {/* Founder's Message Section */}
       <section className="py-20 bg-muted/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Photo + Attribution */}
-            <div className="flex flex-col items-center md:items-start">
-              <img 
-                src="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/avatars/2653aba8-d154-4301-99bf-77d559492e19/avatar.png" 
-                alt="Matt Gray, Founder of BuilderSuite" 
-                className="rounded-2xl shadow-xl w-full max-w-md object-cover aspect-square"
-              />
-              <div className="mt-6">
-                <p className="font-semibold text-xl text-foreground">Matt Gray</p>
-                <p className="text-muted-foreground">Founder, Old Creek Homes, LLC</p>
-              </div>
-            </div>
-            
-            {/* Content */}
-            <div className="space-y-6">
-              <span className="text-sm font-medium text-primary uppercase tracking-wider">
-                FROM THE FOUNDER
-              </span>
-              
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-                Built by a Builder, for Builders
-              </h2>
-              
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                After 15 years of running Old Creek Homes, I was drowning in software. QuickBooks for accounting. Buildertrend for projects. Dropbox for files. None of them talked to each other, and none of them were built for how we actually work.
-              </p>
-              
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                So I built our own system. What started as an internal tool became BuilderSuite. This isn't software designed by engineers who've never stepped foot on a job site. This is software built by a builder, for builders.
-              </p>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8">
+            "After 15 years of running Old Creek Homes, I was drowning in software. QuickBooks for accounting. Buildertrend for projects. Dropbox for files. None of them talked to each other, and none of them were built for how we actually work. So I built our own system. What started as an internal tool became BuilderSuite—software built by a builder, for builders."
+          </p>
+          
+          <div className="flex items-center justify-center gap-3">
+            <img 
+              src="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/avatars/2653aba8-d154-4301-99bf-77d559492e19/avatar.png" 
+              alt="Matt Gray" 
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div className="text-left">
+              <p className="font-semibold text-foreground">Matt Gray</p>
+              <p className="text-sm text-muted-foreground">Founder, Old Creek Homes, LLC</p>
             </div>
           </div>
         </div>
