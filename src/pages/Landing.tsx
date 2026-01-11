@@ -258,7 +258,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Software for Builders, Built by Builders
+              Software for Builders. Built by Builders.
             </h2>
             <p className="text-xl text-muted-foreground">
               We're just getting started, but here are some stats.
@@ -525,7 +525,7 @@ const Landing = () => {
               <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite</span>
             </div>
             <p className="text-muted-foreground mb-6">
-              Built by builders, for builders.
+              Software for Builders. Built by Builders.
             </p>
             <p className="text-sm text-muted-foreground">
               © 2026 BuilderSuite AI. All rights reserved.
