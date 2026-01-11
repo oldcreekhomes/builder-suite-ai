@@ -232,6 +232,7 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/accounting-bills-preview.png"
         imageAlt="BuilderSuite Accounting Dashboard"
+        reversed={true}
         className="bg-background"
         expandableImage={true}
       />
@@ -244,7 +245,6 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/ai-bill-management-preview.png"
         imageAlt="BuilderSuite Bill Management"
-        reversed={true}
         className="bg-muted/30"
         expandableImage={true}
       />
@@ -257,6 +257,7 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/bid-management-preview.png"
         imageAlt="BuilderSuite Bid Management"
+        reversed={true}
         className="bg-background"
         expandableImage={true}
       />
@@ -269,7 +270,6 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/document-management-preview.png"
         imageAlt="BuilderSuite Document Management"
-        reversed={true}
         className="bg-muted/30"
         expandableImage={true}
       />
@@ -282,6 +282,7 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/gantt-schedule-preview.png"
         imageAlt="BuilderSuite Gantt Scheduling with Color-Coded Status"
+        reversed={true}
         className="bg-background"
         expandableImage={true}
       />
@@ -294,7 +295,6 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/team-communication-forecast-messages.png"
         imageAlt="BuilderSuite Team Communication"
-        reversed={true}
         className="bg-muted/30"
         expandableImage={true}
       />
