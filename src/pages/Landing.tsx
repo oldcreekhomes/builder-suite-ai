@@ -152,7 +152,7 @@ const Landing = () => {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Building2 className="h-8 w-8 text-primary" />
-              <span className="ml-2 text-xl font-bold text-foreground">BuilderSuite</span>
+              <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/auth">
