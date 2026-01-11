@@ -499,7 +499,7 @@ const Landing = () => {
       </section> */}
 
       {/* Trust Signals */}
-      <section className="py-12 bg-background border-t border-border">
+      <section className="py-12 bg-muted/30 border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-8 text-muted-foreground">
             <div className="flex items-center gap-2">
@@ -525,43 +525,17 @@ const Landing = () => {
       {/* Footer */}
       <footer className="bg-card border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <Building2 className="h-6 w-6 text-primary" />
-                <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite</span>
-              </div>
-              <p className="text-muted-foreground">
-                The complete construction management platform for modern builders.
-              </p>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <Building2 className="h-6 w-6 text-primary" />
+              <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite</span>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4 text-foreground">Product</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Demo</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4 text-foreground">Support</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4 text-foreground">Company</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2025 BuilderSuite. All rights reserved.</p>
+            <p className="text-muted-foreground mb-6">
+              Built by builders, for builders.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              © 2026 BuilderSuite AI. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
