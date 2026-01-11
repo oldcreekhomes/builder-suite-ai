@@ -204,12 +204,12 @@ const Landing = () => {
                 alt="Matt Gray"
                 className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover mb-6"
               />
-              <h3 className="text-2xl md:text-3xl font-bold text-foreground">
+              <span className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
                 Matt Gray
-              </h3>
-              <p className="text-lg md:text-xl text-muted-foreground mt-2">
+              </span>
+              <h3 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight mt-4">
                 Founder, Old Creek Homes, LLC
-              </p>
+              </h3>
             </div>
             
             {/* Right Column - Quote */}
