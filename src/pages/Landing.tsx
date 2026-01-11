@@ -173,8 +173,11 @@ const Landing = () => {
               Construction Management Software
               <span className="text-primary block mt-2">Built by a Home Builder</span>
             </h1>
+            <p className="text-xl text-muted-foreground mb-2 max-w-2xl mx-auto">
+              We didn't want to build software—we had to.
+            </p>
             <p className="text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
-              We didn't want to build software—we had to. Every tool out there is built by a silicon valley tech engineer who doesn't understand our industry.
+              Every tool out there is built by a silicon valley tech engineer who doesn't understand our industry.
             </p>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               So we built our own and sharing it with you...
