@@ -254,38 +254,9 @@ const Landing = () => {
         expandableImage={true}
       />
 
-      {/* Features Section */}
-      <section className="py-20 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Everything You Need to Build Better
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Powerful tools designed specifically for construction professionals
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow border-border">
-                <CardHeader className="pb-2">
-                  <feature.icon className={`h-12 w-12 ${feature.color} mx-auto mb-4`} />
-                  <CardTitle className="text-lg whitespace-nowrap">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-muted-foreground line-clamp-3 min-h-[4.5rem]">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Social Proof Section */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -383,8 +354,8 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-20 bg-background">
+      {/* Pricing Section - Hidden */}
+      {/* <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -438,10 +409,10 @@ const Landing = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* Benefits & CTA Section */}
-      <section className="py-20 bg-muted/30">
+      {/* Benefits & CTA Section - Hidden */}
+      {/* <section className="py-20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -521,7 +492,7 @@ const Landing = () => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Trust Signals */}
       <section className="py-12 bg-background border-t border-border">
