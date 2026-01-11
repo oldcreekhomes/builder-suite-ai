@@ -325,7 +325,7 @@ const Landing = () => {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                "We tried them all, CoConstruct, JobTread, BuilderTrend and everybody in between. Nobody could even understand that accounting was absolutely critical to be 100% integrated into an application. That's why we started BuilderSuite."
+                "We tried them all: CoConstruct, JobTread, BuilderTrend and everybody in between. Nobody could even understand that accounting was absolutely critical to be 100% integrated into an application. That's why we started BuilderSuite."
               </p>
               <div className="flex items-center">
                 <img 
