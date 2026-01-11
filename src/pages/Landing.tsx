@@ -194,22 +194,22 @@ const Landing = () => {
 
       {/* Founder's Message Section */}
       <section className="py-20 bg-muted/30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             
             {/* Left Column - Photo + Name */}
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+            <div className="space-y-8">
               <img 
                 src="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/avatars/2653aba8-d154-4301-99bf-77d559492e19/avatar.png" 
                 alt="Matt Gray"
-                className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover mb-6"
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover"
               />
-              <span className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+              <span className="block text-sm font-semibold tracking-widest uppercase text-muted-foreground">
                 Matt Gray
               </span>
-              <h3 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight mt-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
                 Founder, Old Creek Homes, LLC
-              </h3>
+              </h2>
             </div>
             
             {/* Right Column - Quote */}
