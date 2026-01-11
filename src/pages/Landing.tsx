@@ -212,7 +212,7 @@ const Landing = () => {
       <FeatureRow
         label="AI BILL MANAGEMENT"
         title="Categorize Bills Using AI"
-        description="Let AI automatically categorize and organize your bills. Upload invoices and watch as BuilderSuite AI extracts key information, assigns cost codes, and routes them for approval."
+        description="Say goodbye to hours of manual data entry. Scan hundreds of bills at once and let AI extract all the data within seconds. Review the extracted information, verify assigned cost codes, and route everything for approval—all in a fraction of the time."
         buttonText="Learn more"
         buttonLink="/ai-bill-management"
         imageSrc="/dashboard-preview.png"
