@@ -286,8 +286,8 @@ const Landing = () => {
           </div>
 
           {/* Testimonials */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="p-6 border-border">
+          <div className="flex justify-center">
+            <Card className="p-6 border-border max-w-xl">
               <div className="flex items-center mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star key={star} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
@@ -305,46 +305,6 @@ const Landing = () => {
                 <div className="ml-3">
                   <p className="font-semibold text-foreground">Matt Gray</p>
                   <p className="text-sm text-muted-foreground">Old Creek Homes</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 border-border">
-              <div className="flex items-center mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                ))}
-              </div>
-              <p className="text-muted-foreground mb-4">
-                "The photo management feature is incredible. Our clients love being able to see progress photos organized by date and room."
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div className="ml-3">
-                  <p className="font-semibold text-foreground">Sarah Chen</p>
-                  <p className="text-sm text-muted-foreground">Modern Living Builders</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 border-border">
-              <div className="flex items-center mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                ))}
-              </div>
-              <p className="text-muted-foreground mb-4">
-                "Finally, a construction management tool that understands how builders actually work. The bid tracking is a game changer."
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div className="ml-3">
-                  <p className="font-semibold text-foreground">David Martinez</p>
-                  <p className="text-sm text-muted-foreground">Premier Construction Co.</p>
                 </div>
               </div>
             </Card>
