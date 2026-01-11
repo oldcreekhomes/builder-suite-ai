@@ -182,7 +182,7 @@ const Landing = () => {
               </span>
             </p>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              So we built our own and sharing it with you...
+              So we built our own.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth?tab=signup">
