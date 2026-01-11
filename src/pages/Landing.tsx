@@ -228,7 +228,7 @@ const Landing = () => {
       <FeatureRow
         label="ACCOUNTING"
         title="Streamlined Financial Management"
-        description="Take control of your construction finances with integrated accounting tools. Track expenses, manage budgets, process invoices, and generate financial reports—all in one place."
+        description="No more QuickBooks. No more integration headaches. Accounting is built right into BuilderSuite AI, keeping everything consolidated in one system."
         buttonText="Learn more"
         buttonLink="/accounting"
         imageSrc="/dashboard-preview.png"
