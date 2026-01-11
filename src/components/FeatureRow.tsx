@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface FeatureRowProps {
   label: string;
@@ -39,13 +40,12 @@ export function FeatureRow({
             <p className="text-lg text-muted-foreground max-w-lg">
               {description}
             </p>
-            <Link
-              to={buttonLink}
-              className="inline-flex items-center gap-2 text-primary font-semibold hover:underline group"
-            >
-              {buttonText}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            <Button variant="outline" size="lg" asChild className="group">
+              <Link to={buttonLink}>
+                {buttonText}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
           </div>
 
           {/* Image */}
