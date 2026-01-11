@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FeatureRow } from "@/components/FeatureRow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -222,6 +223,17 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Feature Rows */}
+      <FeatureRow
+        label="ACCOUNTING"
+        title="Streamlined Financial Management"
+        description="Take control of your construction finances with integrated accounting tools. Track expenses, manage budgets, process invoices, and generate financial reports—all in one place."
+        buttonText="Learn more"
+        buttonLink="/accounting"
+        imageSrc="/dashboard-preview.png"
+        imageAlt="BuilderSuite AI Accounting Dashboard"
+      />
 
       {/* Features Section */}
       <section className="py-20 bg-background">
