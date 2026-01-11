@@ -240,9 +240,10 @@ const Landing = () => {
         description="No more Google Drive. No more Dropbox. Store, organize, and share project documents directly within BuilderSuite. Your team can access everything they need—plans, contracts, change orders—without juggling multiple platforms or worrying about version control."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/dashboard-preview.png"
+        imageSrc="/images/document-management-preview.png"
         imageAlt="BuilderSuite Document Management"
         reversed={true}
+        expandableImage={true}
       />
 
       <FeatureRow
