@@ -1,4 +1,5 @@
 import { useState } from "react";
+import founderPhoto from "@/assets/founder-photo.png";
 import { FeatureRow } from "@/components/FeatureRow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,6 +187,44 @@ const Landing = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Founder's Message Section */}
+      <section className="py-20 bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Photo */}
+            <div className="flex justify-center md:justify-end">
+              <div className="relative">
+                <img 
+                  src={founderPhoto} 
+                  alt="Matt Gray, Founder of BuilderSuite" 
+                  className="rounded-2xl shadow-xl w-full max-w-md object-cover"
+                />
+              </div>
+            </div>
+            
+            {/* Quote */}
+            <div className="space-y-6">
+              <div className="inline-block px-4 py-1.5 bg-primary/10 rounded-full">
+                <span className="text-primary font-medium text-sm">Why I Built This</span>
+              </div>
+              
+              <blockquote className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+                <span className="text-4xl text-primary/30 font-serif">"</span>
+                After 15 years of running Old Creek Homes, I was drowning in software. QuickBooks for accounting. Buildertrend for projects. Dropbox for files. None of them talked to each other, and none of them were built for how we actually work.
+                <br /><br />
+                So I built our own system. What started as an internal tool became BuilderSuite. This isn't software designed by engineers who've never stepped foot on a job site. This is software built by a builder, for builders.
+                <span className="text-4xl text-primary/30 font-serif">"</span>
+              </blockquote>
+              
+              <div className="pt-4 border-t border-border">
+                <p className="font-semibold text-foreground">Matt Gray</p>
+                <p className="text-sm text-muted-foreground">Founder, Old Creek Homes</p>
+              </div>
             </div>
           </div>
         </div>
