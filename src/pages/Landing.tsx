@@ -289,7 +289,7 @@ const Landing = () => {
           <div className="flex justify-center">
             <Card className="p-6 border-border max-w-3xl">
               <p className="text-muted-foreground mb-4">
-                "We tried them all: CoConstruct, JobTread, BuilderTrend, BuildTools and everybody in between. None of these companies even understood how critical accounting was to a builder being successful.<br /><br />They also have a mentality of 'set it and forget it' meaning there are no updates in the system. If there is a software glitch, good luck getting it fixed! I've waited years with one company just to fix a setting. It's still broken 2 years later.<br /><br />That's why we started BuilderSuite."
+                ""We tried them all: CoConstruct, JobTread, BuilderTrend, BuildTools and everybody in between. None of these companies even understood how critical accounting was to a builder being successful.<br /><br />They also have a mentality of "set it and forget it" meaning there are no updates in the system. If there is a software glitch, good luck getting it fixed! I've waited years with one company just to fix a setting. It's still broken 2 years later.<br /><br />That's why we started BuilderSuite.""
               </p>
               <div className="flex items-center">
                 <img 
