@@ -29,10 +29,6 @@ const Auth = () => {
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             Welcome to BuilderSuite AI
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Currently, this is an invitation only platform built by<br />
-            Old Creek Homes, LLC.
-          </p>
         </div>
         
         <Card className="w-full">
