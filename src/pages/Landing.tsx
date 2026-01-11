@@ -325,15 +325,15 @@ const Landing = () => {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                "BuilderSuite has transformed how we manage our projects. The QuickBooks integration alone saves us hours every week."
+                "We tried them all, Tokenstruct, JobTred, BuilderTrend and everybody in between. Nobody could even understand that accounting was absolutely critical to be 100% integrated into an application. That's why we started Builder Suite."
               </p>
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-primary" />
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
+                  MG
                 </div>
                 <div className="ml-3">
-                  <p className="font-semibold text-foreground">Mike Johnson</p>
-                  <p className="text-sm text-muted-foreground">Johnson Custom Homes</p>
+                  <p className="font-semibold text-foreground">Matt Gray</p>
+                  <p className="text-sm text-muted-foreground">Old Creek Homes</p>
                 </div>
               </div>
             </Card>
