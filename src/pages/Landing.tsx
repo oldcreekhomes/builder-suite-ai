@@ -193,7 +193,7 @@ const Landing = () => {
       </section>
 
       {/* Founder's Message Section */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-amber-50/50 border-y border-amber-100/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Photo */}
@@ -239,7 +239,7 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/accounting-bills-preview.png"
         imageAlt="BuilderSuite Accounting Dashboard"
-        className="bg-muted/30"
+        className="bg-background"
         expandableImage={true}
       />
 
@@ -252,6 +252,7 @@ const Landing = () => {
         imageSrc="/images/ai-bill-management-preview.png"
         imageAlt="BuilderSuite Bill Management"
         reversed={true}
+        className="bg-muted/30"
         expandableImage={true}
       />
 
@@ -263,7 +264,7 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/bid-management-preview.png"
         imageAlt="BuilderSuite Bid Management"
-        className="bg-muted/30"
+        className="bg-background"
         expandableImage={true}
       />
 
@@ -276,6 +277,7 @@ const Landing = () => {
         imageSrc="/images/document-management-preview.png"
         imageAlt="BuilderSuite Document Management"
         reversed={true}
+        className="bg-muted/30"
         expandableImage={true}
       />
 
@@ -287,7 +289,7 @@ const Landing = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/gantt-schedule-preview.png"
         imageAlt="BuilderSuite Gantt Scheduling with Color-Coded Status"
-        className="bg-muted/30"
+        className="bg-background"
         expandableImage={true}
       />
 
@@ -300,11 +302,12 @@ const Landing = () => {
         imageSrc="/images/team-chat-preview.png"
         imageAlt="BuilderSuite Team Chat"
         reversed={true}
+        className="bg-muted/30"
         expandableImage={true}
       />
 
       {/* Social Proof Section */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
