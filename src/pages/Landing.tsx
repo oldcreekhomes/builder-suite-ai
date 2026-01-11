@@ -228,9 +228,10 @@ const Landing = () => {
         description="Create bid packages in a fraction of the time. BuilderSuite automatically tracks responses, finds subcontractors who haven't submitted bids, and sends reminders for you—no manual follow-up required."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/dashboard-preview.png"
+        imageSrc="/images/bid-management-preview.png"
         imageAlt="BuilderSuite Bid Management"
         className="bg-muted/30"
+        expandableImage={true}
       />
 
       <FeatureRow
