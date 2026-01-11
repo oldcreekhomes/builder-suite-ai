@@ -204,9 +204,10 @@ const Landing = () => {
         description="No more QuickBooks. No more integration headaches. Accounting is built right into BuilderSuite, keeping everything consolidated in one system."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/dashboard-preview.png"
+        imageSrc="/images/accounting-bills-preview.png"
         imageAlt="BuilderSuite Accounting Dashboard"
         className="bg-muted/30"
+        expandableImage={true}
       />
 
       <FeatureRow
