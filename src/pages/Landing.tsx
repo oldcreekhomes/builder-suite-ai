@@ -167,7 +167,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-b from-muted/50 to-background">
+      <section className="py-20 bg-gradient-to-b from-muted/30 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6 tracking-tight text-center">
