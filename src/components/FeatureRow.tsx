@@ -11,6 +11,7 @@ import {
 interface FeatureRowProps {
   label: string;
   title: string;
+  subtitle?: string;
   description: string;
   buttonText?: string;
   buttonLink: string;
@@ -24,6 +25,7 @@ interface FeatureRowProps {
 export function FeatureRow({
   label,
   title,
+  subtitle,
   description,
   buttonText = "Learn more",
   buttonLink,
@@ -47,6 +49,11 @@ export function FeatureRow({
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
               {title}
             </h2>
+            {subtitle && (
+              <p className="text-xl md:text-2xl font-medium text-primary">
+                {subtitle}
+              </p>
+            )}
             <p className="text-lg text-muted-foreground max-w-lg">
               {description}
             </p>

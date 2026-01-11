@@ -244,7 +244,8 @@ const Landing = () => {
 
       <FeatureRow
         label="GANTT SCHEDULING"
-        title="Smart Scheduling That Communicates"
+        title="Smart Gantt Scheduling"
+        subtitle="Scheduling that Communicates"
         description="No more phone tag with subcontractors. BuilderSuite's Gantt scheduling automatically sends schedule updates via email. Subcontractors confirm or decline their availability with a single click, and the chart updates in real-time with color-coded status indicators—green for confirmed, blue for pending, and more. Always know who's ready to work at a glance."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
