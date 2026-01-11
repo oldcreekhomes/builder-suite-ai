@@ -171,8 +171,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6 tracking-tight text-center">
-              Construction Management Software
-              <span className="text-primary block mt-2">Built by a Home Builder</span>
+              Construction Management Software <span className="text-primary">Built by Builders</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-4 max-w-4xl mx-auto">
               <span className="block sm:whitespace-nowrap">
