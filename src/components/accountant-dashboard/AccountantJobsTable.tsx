@@ -6,6 +6,9 @@ import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
 import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
 import { useLatestBankReconciliationsByProject } from "@/hooks/useLatestBankReconciliationsByProject";
+import { useUpdateProjectQBReconciliationDate } from "@/hooks/useUpdateProjectQBReconciliationDate";
+import { useUpdateProjectQBClosedBooksDate } from "@/hooks/useUpdateProjectQBClosedBooksDate";
+import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
 import {
   Table,
   TableBody,
@@ -18,6 +21,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +36,10 @@ export function AccountantJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const { updateDisplayOrder } = useProjectDisplayOrder();
+  const updateReconciliationDate = useUpdateProjectQBReconciliationDate();
+  const updateClosedBooksDate = useUpdateProjectQBClosedBooksDate();
+  const updateInvoiceDates = useUpdateProjectQBInvoiceDates();
+  
   const [sortColumn, setSortColumn] = useState<'address'>('address');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
@@ -39,6 +48,10 @@ export function AccountantJobsTable() {
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
+  const [openDatePicker, setOpenDatePicker] = useState<{
+    projectId: string;
+    field: 'reconciliation' | 'closed_books' | 'invoices_approved' | 'invoices_paid';
+  } | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
   
   // First, get all non-template projects to fetch bill counts for ALL of them
@@ -195,6 +208,30 @@ export function AccountantJobsTable() {
     navigate(`/project/${projectId}`);
   };
 
+  const handleDateSelect = (
+    projectId: string,
+    field: 'reconciliation' | 'closed_books' | 'invoices_approved' | 'invoices_paid',
+    date: Date | undefined
+  ) => {
+    const formattedDate = date ? format(date, 'yyyy-MM-dd') : null;
+    
+    switch (field) {
+      case 'reconciliation':
+        updateReconciliationDate.mutate({ projectId, date: formattedDate });
+        break;
+      case 'closed_books':
+        updateClosedBooksDate.mutate({ projectId, date: formattedDate });
+        break;
+      case 'invoices_approved':
+        updateInvoiceDates.mutate({ projectId, field: 'invoices_approved', date: formattedDate });
+        break;
+      case 'invoices_paid':
+        updateInvoiceDates.mutate({ projectId, field: 'invoices_paid', date: formattedDate });
+        break;
+    }
+    setOpenDatePicker(null);
+  };
+
   return (
     <div className="rounded-lg border bg-card">
       <div className="p-4 border-b flex items-center justify-between">
@@ -325,9 +362,31 @@ export function AccountantJobsTable() {
                   )}
                   <TableCell className="whitespace-nowrap">
                     {showQuickBooks ? (
-                      (project as any).qb_last_reconciliation_date
-                        ? format(parseISO((project as any).qb_last_reconciliation_date), "MMM d, yyyy")
-                        : <span className="text-muted-foreground">-</span>
+                      <Popover 
+                        open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'reconciliation'} 
+                        onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'reconciliation' } : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button 
+                            className="text-left hover:underline cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(project as any).qb_last_reconciliation_date
+                              ? format(parseISO((project as any).qb_last_reconciliation_date), "MMM d, yyyy")
+                              : <span className="text-muted-foreground">-</span>
+                            }
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_last_reconciliation_date ? parseISO((project as any).qb_last_reconciliation_date) : undefined}
+                            onSelect={(date) => handleDateSelect(project.id, 'reconciliation', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     ) : (
                       latestReconciliations[project.id]?.statement_date 
                         ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
@@ -335,25 +394,94 @@ export function AccountantJobsTable() {
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {closedPeriods[project.id]?.period_end_date 
-                      ? format(parseISO(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
-                      : <span className="text-muted-foreground">-</span>
-                    }
+                    {showQuickBooks ? (
+                      <Popover 
+                        open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'closed_books'} 
+                        onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'closed_books' } : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button 
+                            className="text-left hover:underline cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(project as any).qb_closed_books_date
+                              ? format(parseISO((project as any).qb_closed_books_date), "MMM d, yyyy")
+                              : <span className="text-muted-foreground">-</span>
+                            }
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_closed_books_date ? parseISO((project as any).qb_closed_books_date) : undefined}
+                            onSelect={(date) => handleDateSelect(project.id, 'closed_books', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      closedPeriods[project.id]?.period_end_date 
+                        ? format(parseISO(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
+                        : <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   {showQuickBooks && (
                     <TableCell className="whitespace-nowrap">
-                      {(project as any).qb_invoices_approved_date
-                        ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
-                        : <span className="text-muted-foreground">-</span>
-                      }
+                      <Popover 
+                        open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'invoices_approved'} 
+                        onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'invoices_approved' } : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button 
+                            className="text-left hover:underline cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(project as any).qb_invoices_approved_date
+                              ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
+                              : <span className="text-muted-foreground">-</span>
+                            }
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_invoices_approved_date ? parseISO((project as any).qb_invoices_approved_date) : undefined}
+                            onSelect={(date) => handleDateSelect(project.id, 'invoices_approved', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                   )}
                   {showQuickBooks && (
                     <TableCell className="whitespace-nowrap">
-                      {(project as any).qb_invoices_paid_date
-                        ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
-                        : <span className="text-muted-foreground">-</span>
-                      }
+                      <Popover 
+                        open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'invoices_paid'} 
+                        onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'invoices_paid' } : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button 
+                            className="text-left hover:underline cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(project as any).qb_invoices_paid_date
+                              ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
+                              : <span className="text-muted-foreground">-</span>
+                            }
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_invoices_paid_date ? parseISO((project as any).qb_invoices_paid_date) : undefined}
+                            onSelect={(date) => handleDateSelect(project.id, 'invoices_paid', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                   )}
                   <TableCell className="text-center">

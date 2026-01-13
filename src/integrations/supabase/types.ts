@@ -2866,6 +2866,7 @@ export type Database = {
           id: string
           last_schedule_published_at: string | null
           owner_id: string
+          qb_closed_books_date: string | null
           qb_invoices_approved_date: string | null
           qb_invoices_paid_date: string | null
           qb_last_reconciliation_date: string | null
@@ -2887,6 +2888,7 @@ export type Database = {
           id?: string
           last_schedule_published_at?: string | null
           owner_id: string
+          qb_closed_books_date?: string | null
           qb_invoices_approved_date?: string | null
           qb_invoices_paid_date?: string | null
           qb_last_reconciliation_date?: string | null
@@ -2908,6 +2910,7 @@ export type Database = {
           id?: string
           last_schedule_published_at?: string | null
           owner_id?: string
+          qb_closed_books_date?: string | null
           qb_invoices_approved_date?: string | null
           qb_invoices_paid_date?: string | null
           qb_last_reconciliation_date?: string | null
