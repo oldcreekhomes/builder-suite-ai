@@ -79,8 +79,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // Calculate positions for multiple chat windows
   const getWindowPosition = (index: number, isMinimized: boolean) => {
-    const windowWidth = isMinimized ? 256 : 320;
-    const spacing = 16;
+    const windowWidth = isMinimized ? 256 : 423;
+    const spacing = 8;
     return (windowWidth + spacing) * index;
   };
 
