@@ -29,8 +29,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Schedule response params:', { taskId, companyId, response });
 
-    if (!taskId || !companyId || !response) {
-      console.error('Missing required parameters');
+    if (!taskId || !response) {
+      console.error('Missing required parameters - taskId:', taskId, 'response:', response);
       return new Response(
         generateErrorHTML('Missing required parameters'),
         {
@@ -90,15 +90,20 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Error fetching task details:', taskError);
     }
 
-    // Get company details
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('company_name')
-      .eq('id', companyId)
-      .single();
+    // Get company details (only if companyId is provided)
+    let companyName = 'Internal User';
+    if (companyId) {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('company_name')
+        .eq('id', companyId)
+        .single();
 
-    if (companyError) {
-      console.error('Error fetching company details:', companyError);
+      if (companyError) {
+        console.error('Error fetching company details:', companyError);
+      } else if (company) {
+        companyName = company.company_name;
+      }
     }
 
     // Redirect to confirmation page with details
@@ -106,7 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
     confirmationUrl.searchParams.set('response', response);
     confirmationUrl.searchParams.set('task_name', taskDetails?.task_name || 'Unknown Task');
     confirmationUrl.searchParams.set('project_name', taskDetails?.projects?.name || 'Unknown Project');
-    confirmationUrl.searchParams.set('company_name', company?.company_name || 'Unknown Company');
+    confirmationUrl.searchParams.set('company_name', companyName);
     confirmationUrl.searchParams.set('status', 'success');
 
     console.log('Redirecting to:', confirmationUrl.toString());
