@@ -886,6 +886,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         </Table>
       </div>
 
+      {filteredBills.length > 0 && (
+        <div className="mt-4 text-sm text-muted-foreground">
+          <p>Total bills: {filteredBills.length}</p>
+          <p>Total amount: {formatCurrency(filteredBills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
+        </div>
+      )}
+
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && handleCancelAction()}>
         <AlertDialogContent>
           <AlertDialogHeader>
