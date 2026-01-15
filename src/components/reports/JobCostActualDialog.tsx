@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
+import { Check, Lock, Pencil } from "lucide-react";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 
@@ -27,6 +27,7 @@ interface JournalEntryLine {
   credit: number;
   memo: string | null;
   is_reversal: boolean;
+  reconciled: boolean | null;
   journal_entries: {
     entry_date: string;
     description: string | null;
@@ -91,6 +92,7 @@ export function JobCostActualDialog({
           credit,
           memo,
           is_reversal,
+          reconciled,
           journal_entries!inner(
             entry_date,
             description,
@@ -111,7 +113,7 @@ export function JobCostActualDialog({
         query = query.or(`lot_id.eq.${lotId},lot_id.is.null`);
       }
 
-      const { data: lines, error: linesError } = await query.order('journal_entries(entry_date)', { ascending: false });
+      const { data: lines, error: linesError } = await query.order('journal_entries(entry_date)', { ascending: true });
 
       if (linesError) throw linesError;
       
@@ -165,23 +167,32 @@ export function JobCostActualDialog({
     enabled: isOpen && !!projectId && !!costCode && !!userId,
   });
 
-  // Calculate total from actual filtered lines instead of prop
-  const calculatedTotal = useMemo(() => {
-    if (!journalLines) return 0;
-    return journalLines.reduce((sum, line) => sum + (line.debit - line.credit), 0);
+  // Calculate running balances
+  const { balances, total } = useMemo(() => {
+    if (!journalLines) return { balances: [], total: 0 };
+    
+    let runningBalance = 0;
+    const balances = journalLines.map(line => {
+      const netAmount = line.debit - line.credit;
+      runningBalance += netAmount;
+      return runningBalance;
+    });
+    
+    return { balances, total: runningBalance };
   }, [journalLines]);
 
   const formatCurrency = (value: number) => {
-    return `$${Math.round(value).toLocaleString()}`;
+    const formatted = Math.abs(Math.round(value)).toLocaleString();
+    return value < 0 ? `(${formatted})` : formatted;
   };
 
   const getTypeLabel = (sourceType: string | undefined) => {
     switch (sourceType) {
       case 'bill': return 'Bill';
       case 'check': return 'Check';
-      case 'manual': return 'JE';
-      case 'credit_card': return 'CC';
-      case 'deposit': return 'Dep';
+      case 'manual': return 'Journal Entry';
+      case 'credit_card': return 'Credit Card';
+      case 'deposit': return 'Deposit';
       default: return sourceType || '-';
     }
   };
@@ -202,86 +213,95 @@ export function JobCostActualDialog({
         <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">
-              Actual Costs - {costCode} {costCodeName}
+              {costCode} - {costCodeName}
             </DialogTitle>
-            <div className="text-sm text-muted-foreground">
-              As of {format(asOfDate, 'MMM d, yyyy')}
-            </div>
           </DialogHeader>
 
           <div className="flex-1 overflow-auto min-h-0">
             {isLoading ? (
               <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
               </div>
             ) : journalLines && journalLines.length > 0 ? (
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[90px]">Date</TableHead>
-                      <TableHead className="w-[50px]">Type</TableHead>
-                      <TableHead>Vendor</TableHead>
-                      <TableHead>Ref #</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right w-[100px]">Net Amount</TableHead>
-                      <TableHead className="w-[60px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {journalLines.map((line) => {
-                      const netAmount = line.debit - line.credit;
-                      
-                      return (
-                        <TableRow key={line.id}>
-                          <TableCell className="text-sm">
-                            {format(new Date(line.journal_entries.entry_date), 'MM/dd/yyyy')}
-                          </TableCell>
-                          <TableCell className="text-sm font-medium">
-                            {getTypeLabel(line.source_type)}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {line.vendor_name || '-'}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {line.reference_number || '-'}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {line.memo || line.journal_entries.description || '-'}
-                          </TableCell>
-                          <TableCell className={`text-right text-sm font-medium ${
-                            netAmount >= 0 ? 'text-foreground' : 'text-red-600'
-                          }`}>
-                            {formatCurrency(netAmount)}
-                          </TableCell>
-                          <TableCell>
-                            {line.bill_id && (
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow className="h-8">
+                    <TableHead className="h-8 px-2 py-1">Type</TableHead>
+                    <TableHead className="h-8 px-2 py-1">Date</TableHead>
+                    <TableHead className="h-8 px-2 py-1">Name</TableHead>
+                    <TableHead className="h-8 px-2 py-1">Description</TableHead>
+                    <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
+                    <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
+                    <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
+                    <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {journalLines.map((line, index) => {
+                    const netAmount = line.debit - line.credit;
+                    
+                    return (
+                      <TableRow key={line.id} className="h-8">
+                        <TableCell className="px-2 py-1 whitespace-nowrap">
+                          <span className="text-xs">{getTypeLabel(line.source_type)}</span>
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <span className="text-xs">{format(new Date(line.journal_entries.entry_date), 'MM/dd/yyyy')}</span>
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <span className="text-xs">{line.vendor_name || '-'}</span>
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <span className="text-xs">{line.memo || line.journal_entries.description || '-'}</span>
+                        </TableCell>
+                        <TableCell className="px-2 py-1 text-right">
+                          <span className="text-xs">{formatCurrency(netAmount)}</span>
+                        </TableCell>
+                        <TableCell className="px-2 py-1 text-right">
+                          <span className="text-xs">{formatCurrency(balances[index])}</span>
+                        </TableCell>
+                        <TableCell className="px-2 py-1 text-center">
+                          <div className="flex items-center justify-center">
+                            {line.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-2 py-1">
+                          <div className="flex items-center justify-center">
+                            {line.bill_id && !line.reconciled ? (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="h-6 w-6 p-0"
                                 onClick={() => handleEditBill(line.bill_id!)}
                                 title="Edit Bill"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3 w-3" />
                               </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    
-                    {/* Total Row */}
-                    <TableRow className="font-semibold bg-muted/30">
-                      <TableCell colSpan={5}>Total Actual</TableCell>
-                      <TableCell className="text-right">{formatCurrency(calculatedTotal)}</TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
+                            ) : line.reconciled ? (
+                              <Lock className="h-3 w-3 text-muted-foreground" />
+                            ) : null}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  
+                  {/* Total Row */}
+                  <TableRow className="h-8 font-semibold bg-muted/30">
+                    <TableCell className="px-2 py-1" colSpan={4}>
+                      <span className="text-xs font-semibold">Total</span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1 text-right">
+                      <span className="text-xs font-semibold">{formatCurrency(total)}</span>
+                    </TableCell>
+                    <TableCell className="px-2 py-1"></TableCell>
+                    <TableCell className="px-2 py-1"></TableCell>
+                    <TableCell className="px-2 py-1"></TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             ) : (
               <div className="text-center py-8 text-sm text-muted-foreground">
                 No actual cost data available for this cost code.
