@@ -50,13 +50,30 @@ export function CostCodesTab({
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addDialogInitialData, setAddDialogInitialData] = React.useState<{ parent_group?: string } | undefined>();
 
-  // Filter cost codes based on search query
+  // Filter cost codes based on search query - include parents when children match
   const filteredCostCodes = useMemo(() => {
     if (!searchQuery.trim()) return costCodes;
     const query = searchQuery.toLowerCase();
-    return costCodes.filter(cc => 
+    
+    // First, find all codes that directly match the search
+    const directMatches = costCodes.filter(cc => 
       cc.code.toLowerCase().includes(query) ||
       cc.name.toLowerCase().includes(query)
+    );
+    
+    // Collect parent codes that need to be included for hierarchy rendering
+    const parentGroupsToInclude = new Set<string>();
+    directMatches.forEach(cc => {
+      if (cc.parent_group) {
+        parentGroupsToInclude.add(cc.parent_group.trim());
+      }
+    });
+    
+    // Include both direct matches AND their parent codes
+    return costCodes.filter(cc => 
+      cc.code.toLowerCase().includes(query) ||
+      cc.name.toLowerCase().includes(query) ||
+      parentGroupsToInclude.has(cc.code.trim())
     );
   }, [costCodes, searchQuery]);
 
