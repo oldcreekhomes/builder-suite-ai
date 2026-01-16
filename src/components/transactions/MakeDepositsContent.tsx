@@ -35,6 +35,7 @@ interface DepositRow {
   id: string;
   account: string;
   accountId?: string;
+  costCodeId?: string;
   project: string;
   projectId?: string;
   quantity?: string;
@@ -302,6 +303,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         id: line.id,
         account: "",
         accountId: line.account_id || "",
+        costCodeId: line.cost_code_id || "",
         project: "",
         projectId: line.project_id || projectId || "",
         quantity: "1", // Deposits always use quantity of 1
@@ -312,8 +314,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       
       // Set account display text
       if (line.line_type === 'customer_payment') {
-        // This is a Job Cost line - find the cost code
-        const costCode = costCodes.find(cc => cc.id === line.account_id);
+        // This is a Job Cost line - find the cost code using cost_code_id
+        const costCode = costCodes.find(cc => cc.id === line.cost_code_id);
         if (costCode) {
           row.account = `${costCode.code} - ${costCode.name}`;
         }
@@ -566,12 +568,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     return rows.map(row => {
       const amt = amountOfRow(row);
       let resolvedAccountId = row.accountId;
-      if (amt > 0 && !resolvedAccountId) {
-        resolvedAccountId = kind === 'revenue' ? findCostCodeIdFromText(row.account) : findAccountIdFromText(row.account);
+      let resolvedCostCodeId = row.costCodeId;
+      if (amt > 0) {
+        if (kind === 'revenue' && !resolvedCostCodeId) {
+          resolvedCostCodeId = findCostCodeIdFromText(row.account);
+        } else if (kind === 'other' && !resolvedAccountId) {
+          resolvedAccountId = findAccountIdFromText(row.account);
+        }
       }
       return {
         ...row,
         accountId: resolvedAccountId,
+        costCodeId: resolvedCostCodeId,
         projectId: row.projectId || (projectId || ""),
       };
     });
@@ -614,7 +622,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       const resolvedOtherRows = resolveRowsForSave(otherRows, 'other');
 
       const allRows = [...resolvedRevenueRows, ...resolvedOtherRows];
-      const validRows = allRows.filter(row => row.accountId && amountOfRow(row) > 0);
+      const validRows = allRows.filter(row => (row.accountId || row.costCodeId) && amountOfRow(row) > 0);
 
       if (validRows.length === 0) {
         toast({
@@ -637,10 +645,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         }));
 
       const jobCostLines: DepositLineData[] = resolvedRevenueRows
-        .filter(row => row.accountId && amountOfRow(row) > 0)
+        .filter(row => row.costCodeId && amountOfRow(row) > 0)
         .map(row => ({
           line_type: 'customer_payment' as const,
-          cost_code_id: row.accountId!,
+          cost_code_id: row.costCodeId!,
           project_id: row.projectId || projectId || undefined,
           lot_id: row.lotId || undefined,
           amount: amountOfRow(row),

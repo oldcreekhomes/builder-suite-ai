@@ -99,10 +99,8 @@ export const useDeposits = () => {
         owner_id,
         line_number: index + 1,
         line_type: line.line_type,
-        // For customer_payment lines, store cost_code_id in account_id field
-        account_id: line.line_type === 'customer_payment' 
-          ? (line.cost_code_id || null) 
-          : (line.account_id || null),
+        account_id: line.account_id || null,
+        cost_code_id: line.cost_code_id || null,
         project_id: line.project_id || null,
         lot_id: line.lot_id || null,
         amount: line.amount,
@@ -551,10 +549,8 @@ export const useDeposits = () => {
         owner_id,
         line_number: index + 1,
         line_type: line.line_type,
-        // For customer_payment lines, store cost_code_id in account_id field
-        account_id: line.line_type === 'customer_payment' 
-          ? (line.cost_code_id || null) 
-          : (line.account_id || null),
+        account_id: line.account_id || null,
+        cost_code_id: line.cost_code_id || null,
         project_id: line.project_id || null,
         lot_id: line.lot_id || null,
         amount: line.amount,
