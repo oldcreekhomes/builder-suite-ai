@@ -368,7 +368,7 @@ export function AccountantJobsTable() {
                       >
                         <PopoverTrigger asChild>
                           <button 
-                            className="text-left hover:underline cursor-pointer"
+                            className="w-full h-full py-2 text-left hover:underline cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {(project as any).qb_last_reconciliation_date
@@ -401,7 +401,7 @@ export function AccountantJobsTable() {
                       >
                         <PopoverTrigger asChild>
                           <button 
-                            className="text-left hover:underline cursor-pointer"
+                            className="w-full h-full py-2 text-left hover:underline cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {(project as any).qb_closed_books_date
@@ -434,7 +434,7 @@ export function AccountantJobsTable() {
                       >
                         <PopoverTrigger asChild>
                           <button 
-                            className="text-left hover:underline cursor-pointer"
+                            className="w-full h-full py-2 text-left hover:underline cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {(project as any).qb_invoices_approved_date
@@ -463,7 +463,7 @@ export function AccountantJobsTable() {
                       >
                         <PopoverTrigger asChild>
                           <button 
-                            className="text-left hover:underline cursor-pointer"
+                            className="w-full h-full py-2 text-left hover:underline cursor-pointer"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {(project as any).qb_invoices_paid_date
