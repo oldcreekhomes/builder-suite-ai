@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { BulkActionBar } from './BulkActionBar';
 import { SpecificationsTable } from './SpecificationsTable';
 import { useCostCodeGrouping } from '@/hooks/useCostCodeGrouping';
@@ -46,6 +48,18 @@ export function SpecificationsTab({
   onFileUpload,
   onDeleteIndividualFile
 }: SpecificationsTabProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter specifications based on search query
+  const filteredSpecifications = useMemo(() => {
+    if (!searchQuery.trim()) return specifications;
+    const query = searchQuery.toLowerCase();
+    return specifications.filter(spec => 
+      spec.cost_code.code.toLowerCase().includes(query) ||
+      spec.cost_code.name.toLowerCase().includes(query)
+    );
+  }, [specifications, searchQuery]);
+
   // Use ALL cost codes for grouping so we can find parent codes like "4000"
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(allCostCodes, true);
   
@@ -53,7 +67,7 @@ export function SpecificationsTab({
   const groupedSpecifications = React.useMemo(() => {
     const acc: Record<string, SpecificationWithCostCode[]> = {};
 
-    specifications.forEach(spec => {
+    filteredSpecifications.forEach(spec => {
       const parentGroup = (spec.cost_code.parent_group || '').trim();
       const key = parentGroup !== ''
         ? parentGroup
@@ -75,7 +89,7 @@ export function SpecificationsTab({
     });
 
     return acc;
-  }, [specifications, parentCodes, groupedCostCodes]);
+  }, [filteredSpecifications, parentCodes, groupedCostCodes]);
 
   const getParentSpecification = (parentGroupCode: string): SpecificationWithCostCode | undefined => {
     // First, try to find the actual parent cost code using the hook
@@ -124,8 +138,18 @@ export function SpecificationsTab({
         </div>
       </div>
       
+      <div className="relative w-64">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      
       <SpecificationsTable
-        specifications={specifications}
+        specifications={filteredSpecifications}
         loading={loading}
         selectedSpecifications={selectedSpecifications}
         collapsedGroups={collapsedGroups}
