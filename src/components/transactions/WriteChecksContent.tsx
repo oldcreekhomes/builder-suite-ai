@@ -85,6 +85,9 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   // Attachments
   const [attachments, setAttachments] = useState<CheckAttachment[]>([]);
 
+  // Active tab state for controlled Tabs
+  const [activeTab, setActiveTab] = useState<string>("other");
+
   // Search dialog state
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
@@ -371,6 +374,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setIsViewingMode(false);
     setCurrentEntryIndex(-1);
     setCurrentCheckId(null);
+    setActiveTab("other"); // Reset to default tab
     handleClear();
   };
 
@@ -460,6 +464,18 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     setExpenseRows(expenseLinesData.length > 0 ? expenseLinesData : [
       { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }
     ]);
+    
+    // Auto-select tab based on which rows have data
+    const hasChartOfAccountsData = expenseLinesData.length > 0;
+    const hasJobCostData = jobCostLinesData.length > 0;
+    
+    if (hasChartOfAccountsData) {
+      setActiveTab("other"); // Chart of Accounts takes priority
+    } else if (hasJobCostData) {
+      setActiveTab("job-cost"); // Job Cost only
+    } else {
+      setActiveTab("other"); // Default to Chart of Accounts
+    }
   };
 
   const handleCheckSelect = (check: any) => {
@@ -1138,7 +1154,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
             </div>
 
             {/* Tabs Section - Matching Make Deposits */}
-            <Tabs defaultValue="other" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <div className="grid grid-cols-12 gap-2 p-3">
                 <div className="col-span-3">
                   <TabsList className="grid grid-cols-2 w-auto">

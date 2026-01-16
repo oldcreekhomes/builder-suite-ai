@@ -338,6 +338,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     // Set rows with at least one empty row as default
     setRevenueRows(newRevenueRows.length > 0 ? newRevenueRows : [{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
     setOtherRows(newOtherRows.length > 0 ? newOtherRows : [{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "1", amount: "", memo: "" }]);
+    
+    // Auto-select tab based on which rows have data
+    const hasChartOfAccountsData = newOtherRows.length > 0;
+    const hasJobCostData = newRevenueRows.length > 0;
+    
+    if (hasChartOfAccountsData) {
+      setActiveTab("other"); // Chart of Accounts takes priority
+    } else if (hasJobCostData) {
+      setActiveTab("revenue"); // Job Cost only
+    } else {
+      setActiveTab("other"); // Default to Chart of Accounts
+    }
   };
 
   const handleDepositSelect = (deposit: any) => {
@@ -376,6 +388,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     setBankAccount("");
     setBankAccountId("");
     setCheckNumber("");
+    setActiveTab("other"); // Reset to default tab
     handleClear();
   };
 
