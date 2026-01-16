@@ -425,7 +425,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
                       </div>
                     </div>
                     
-                    {entry.notes && (
+                    {entry.notes && !entry.notes.startsWith('Price changed from $') && (
                       <div className="text-sm text-muted-foreground">
                         {entry.notes}
                       </div>
