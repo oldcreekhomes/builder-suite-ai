@@ -1527,6 +1527,7 @@ export type Database = {
         Row: {
           account_id: string | null
           amount: number
+          cost_code_id: string | null
           created_at: string
           deposit_id: string
           id: string
@@ -1543,6 +1544,7 @@ export type Database = {
         Insert: {
           account_id?: string | null
           amount?: number
+          cost_code_id?: string | null
           created_at?: string
           deposit_id: string
           id?: string
@@ -1559,6 +1561,7 @@ export type Database = {
         Update: {
           account_id?: string | null
           amount?: number
+          cost_code_id?: string | null
           created_at?: string
           deposit_id?: string
           id?: string
@@ -1578,6 +1581,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
             referencedColumns: ["id"]
           },
           {
