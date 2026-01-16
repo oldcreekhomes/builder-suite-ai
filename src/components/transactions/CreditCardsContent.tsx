@@ -74,6 +74,9 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
   // Search dialog state
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
+  // Active tab state for controlled Tabs
+  const [activeTab, setActiveTab] = useState<string>("expense");
+
   // Attachments
   const {
     attachments, 
@@ -197,6 +200,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
     setCurrentIndex(-1);
     setIsViewingMode(false);
     setCurrentCreditCardId(null);
+    setActiveTab("expense"); // Reset to default tab
     clearForm();
   };
 
@@ -459,6 +463,18 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
     setExpenseRows(expenseLines.length > 0 ? expenseLines : [{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
     setJobCostRows(jobCostLines.length > 0 ? jobCostLines : [{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
+    
+    // Auto-select tab based on which rows have data
+    const hasChartOfAccountsData = expenseLines.length > 0;
+    const hasJobCostData = jobCostLines.length > 0;
+    
+    if (hasChartOfAccountsData) {
+      setActiveTab("expense"); // Chart of Accounts takes priority
+    } else if (hasJobCostData) {
+      setActiveTab("job-cost"); // Job Cost only
+    } else {
+      setActiveTab("expense"); // Default to Chart of Accounts
+    }
   };
 
   const handleCreditCardSelect = (creditCard: any) => {
@@ -662,7 +678,7 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
             </div>
 
           {/* Transaction Details Section */}
-          <Tabs defaultValue="expense" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <div className="grid grid-cols-12 gap-2 p-3">
               <div className="col-span-3">
                 <TabsList className="grid grid-cols-2 w-auto">
