@@ -100,7 +100,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   // Default dashboard header with project context support
   return (
     <>
-      <header className="bg-white border-b border-border px-6 py-4 mt-1">
+      <header className="bg-white border-b border-border px-6 py-2 mt-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <SidebarTrigger className="text-gray-600 hover:text-black" />

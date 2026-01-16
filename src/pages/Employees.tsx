@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, ShieldAlert } from "lucide-react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { EmployeeTable } from "@/components/employees/EmployeeTable";
@@ -25,9 +25,9 @@ export default function Employees() {
   if (isLoading) {
     return (
       <SidebarProvider>
-        <div className="flex min-h-screen w-full">
+        <div className="min-h-screen flex w-full bg-gray-50">
           <AppSidebar />
-          <SidebarInset className="flex-1">
+          <main className="flex-1 flex flex-col">
             <DashboardHeader />
             <div className="p-6">
               <div className="animate-pulse space-y-4">
@@ -35,7 +35,7 @@ export default function Employees() {
                 <div className="h-64 bg-muted rounded"></div>
               </div>
             </div>
-          </SidebarInset>
+          </main>
         </div>
       </SidebarProvider>
     );
@@ -45,9 +45,9 @@ export default function Employees() {
   if (!hasAccess) {
     return (
       <SidebarProvider>
-        <div className="flex min-h-screen w-full">
+        <div className="min-h-screen flex w-full bg-gray-50">
           <AppSidebar />
-          <SidebarInset className="flex-1">
+          <main className="flex-1 flex flex-col">
             <DashboardHeader />
             <div className="p-6 flex items-center justify-center min-h-[calc(100vh-4rem)]">
               <Card className="max-w-md">
@@ -67,7 +67,7 @@ export default function Employees() {
                 </CardContent>
               </Card>
             </div>
-          </SidebarInset>
+          </main>
         </div>
       </SidebarProvider>
     );
@@ -75,9 +75,9 @@ export default function Employees() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <main className="flex-1 flex flex-col">
           <DashboardHeader />
           
           <div className="p-6 space-y-6">
@@ -98,7 +98,7 @@ export default function Employees() {
             open={addEmployeeOpen} 
             onOpenChange={setAddEmployeeOpen} 
           />
-        </SidebarInset>
+        </main>
       </div>
     </SidebarProvider>
   );

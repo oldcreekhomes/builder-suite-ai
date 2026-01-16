@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CompaniesTable } from "@/components/companies/CompaniesTable";
@@ -27,9 +27,9 @@ export default function Companies() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <main className="flex-1 flex flex-col">
           <DashboardHeader />
           
           <div className="p-6 space-y-6">
@@ -134,7 +134,7 @@ export default function Companies() {
             open={addMarketplaceRepresentativeOpen} 
             onOpenChange={setAddMarketplaceRepresentativeOpen} 
           />
-        </SidebarInset>
+        </main>
       </div>
     </SidebarProvider>
   );
