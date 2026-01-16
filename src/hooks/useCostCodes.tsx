@@ -198,7 +198,7 @@ export const useCostCodes = () => {
               price: newPrice || 0,
               changed_by: user.id,
               owner_id: ownerId || user.id,
-              notes: `Price changed from $${oldPrice || 0} to $${newPrice || 0}`
+              notes: null
             });
 
           if (historyError) {
