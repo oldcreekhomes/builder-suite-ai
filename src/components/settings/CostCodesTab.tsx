@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { CostCodesHeader } from './CostCodesHeader';
 import { CostCodesTable } from './CostCodesTable';
 import { useCostCodeGrouping } from '@/hooks/useCostCodeGrouping';
@@ -44,9 +46,21 @@ export function CostCodesTab({
   onPriceSync,
   isEditing = false
 }: CostCodesTabProps) {
-  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(costCodes);
+  const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addDialogInitialData, setAddDialogInitialData] = React.useState<{ parent_group?: string } | undefined>();
+
+  // Filter cost codes based on search query
+  const filteredCostCodes = useMemo(() => {
+    if (!searchQuery.trim()) return costCodes;
+    const query = searchQuery.toLowerCase();
+    return costCodes.filter(cc => 
+      cc.code.toLowerCase().includes(query) ||
+      cc.name.toLowerCase().includes(query)
+    );
+  }, [costCodes, searchQuery]);
+
+  const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(filteredCostCodes);
 
   const handleAddCostCode = (parentCode?: string) => {
     // Set initial data and open dialog
@@ -67,8 +81,18 @@ export function CostCodesTab({
         onAddDialogOpenChange={setAddDialogOpen}
       />
       
+      <div className="relative w-64">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      
       <CostCodesTable
-        costCodes={costCodes}
+        costCodes={filteredCostCodes}
         loading={loading}
         selectedCostCodes={selectedCostCodes}
         collapsedGroups={collapsedGroups}
