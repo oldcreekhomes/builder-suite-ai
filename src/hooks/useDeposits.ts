@@ -130,12 +130,12 @@ export const useDeposits = () => {
       if (journalError) throw journalError;
       if (!journalEntry) throw new Error("Failed to create journal entry");
 
-      // Find Equity account (2905) for customer payments
-      const { data: equityAccount } = await supabase
+      // Find WIP account (1430) for job cost deposits - credits reduce job costs
+      const { data: wipAccount } = await supabase
         .from('accounts')
         .select('id')
         .eq('owner_id', owner_id)
-        .eq('code', '2905')
+        .eq('code', '1430')
         .single();
 
       // Create journal entry lines
@@ -156,12 +156,12 @@ export const useDeposits = () => {
         let creditAccountId = line.account_id;
         let costCodeId = null;
 
-        // For customer payments (Job Cost), use Equity account 2905
+        // For customer payments (Job Cost), use WIP account 1430 so it appears in Job Costs report
         if (line.line_type === 'customer_payment') {
-          if (!equityAccount) {
-            throw new Error('Equity account (2905) not found. Please add it in Chart of Accounts before making customer deposits.');
+          if (!wipAccount) {
+            throw new Error('WIP account (1430) not found. Please add it in Chart of Accounts before making job cost deposits.');
           }
-          creditAccountId = equityAccount.id;
+          creditAccountId = wipAccount.id;
           costCodeId = line.cost_code_id || null;
         }
 
@@ -597,12 +597,12 @@ export const useDeposits = () => {
 
       if (deleteJELinesError) throw deleteJELinesError;
 
-      // Step 7: Find Equity account (2905) for customer payments
-      const { data: equityAccount } = await supabase
+      // Step 7: Find WIP account (1430) for job cost deposits
+      const { data: wipAccount } = await supabase
         .from('accounts')
         .select('id')
         .eq('owner_id', owner_id)
-        .eq('code', '2905')
+        .eq('code', '1430')
         .single();
 
       // Step 8: Insert new journal entry lines
@@ -623,11 +623,12 @@ export const useDeposits = () => {
         let creditAccountId = line.account_id;
         let costCodeId = null;
 
+        // For customer payments (Job Cost), use WIP account 1430 so it appears in Job Costs report
         if (line.line_type === 'customer_payment') {
-          if (!equityAccount) {
-            throw new Error('Equity account (2905) not found.');
+          if (!wipAccount) {
+            throw new Error('WIP account (1430) not found.');
           }
-          creditAccountId = equityAccount.id;
+          creditAccountId = wipAccount.id;
           costCodeId = line.cost_code_id || null;
         }
 
