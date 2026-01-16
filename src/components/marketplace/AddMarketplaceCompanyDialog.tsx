@@ -154,7 +154,15 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!companyName.trim() || !companyType) {
+    // Debug: log state values to diagnose Google Places sync issues
+    console.log('Submit attempt - companyName state:', companyName, 'companyType:', companyType);
+    console.log('Submit attempt - companyNameRef value:', companyNameRef.current?.value);
+    
+    // Use the ref's current value as fallback if state is empty but DOM has value
+    // This handles cases where Google Places autocomplete updates DOM but React state wasn't synced
+    const effectiveCompanyName = companyName.trim() || companyNameRef.current?.value?.trim() || '';
+    
+    if (!effectiveCompanyName || !companyType) {
       toast({
         title: "Error",
         description: "Company name and type are required.",
@@ -178,7 +186,7 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
       const { error } = await supabase
         .from('marketplace_companies')
         .insert({
-          company_name: companyName.trim(),
+          company_name: effectiveCompanyName,
           company_type: companyType,
           address: fullAddress || null,
           website: website.trim() || null,
