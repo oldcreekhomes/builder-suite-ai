@@ -59,7 +59,7 @@ export function useIssueMutations() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['company-issues', variables.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v6'] });
     },
   });
 
@@ -92,7 +92,7 @@ export function useIssueMutations() {
       // Invalidate new category (where issue now is)
       queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] });
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v6'] });
     },
   });
 
@@ -111,7 +111,7 @@ export function useIssueMutations() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v6'] });
     },
   });
 
@@ -176,7 +176,7 @@ export function useIssueMutations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v6'] });
     },
   });
 
