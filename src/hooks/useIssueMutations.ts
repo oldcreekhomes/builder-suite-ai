@@ -133,6 +133,7 @@ export function useIssueMutations() {
             issueCategory: issue.category,
             companyName: issue.company_name,
             solutionFiles: issue.solution_files || [],
+            solutionMessage: issue.solution || '',
           },
         });
         console.log('📬 send-issue-closure-email result:', { emailResult, emailError });
