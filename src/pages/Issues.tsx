@@ -55,7 +55,7 @@ const Issues = () => {
                           className="justify-start w-full pl-4 pr-4 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm font-medium text-muted-foreground data-[state=active]:text-foreground hover:bg-muted/50"
                         >
                           <span className="flex-1 text-left">{category}</span>
-                          <div className="flex flex-col items-end gap-0.5">
+                          <div className="flex items-center gap-1">
                             {issueCounts[category]?.normal > 0 && (
                               <span className="bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
                                 {issueCounts[category].normal}
@@ -71,8 +71,6 @@ const Issues = () => {
                       ))}
                     </TabsList>
                     
-                    {/* Full-width horizontal separator at bottom */}
-                    <div className="border-b border-border mt-4" />
                   </div>
                 </div>
                 
