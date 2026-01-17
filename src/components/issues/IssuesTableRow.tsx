@@ -152,7 +152,7 @@ export function IssuesTableRow({
       
       <TableCell className="px-2 py-1 w-20">
         <Select value={issue.priority} onValueChange={handlePriorityChange}>
-          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
+          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:ring-offset-0 focus:outline-none [&>svg]:hidden">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -227,7 +227,7 @@ export function IssuesTableRow({
           // Handle location update here
           onUpdate(issue.id, { location: value });
         }}>
-          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
+          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:ring-offset-0 focus:outline-none [&>svg]:hidden">
             <SelectValue placeholder="Select location" />
           </SelectTrigger>
           <SelectContent className="bg-background border-border shadow-lg z-50">
