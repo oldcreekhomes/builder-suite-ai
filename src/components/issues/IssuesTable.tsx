@@ -25,6 +25,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
     solution?: string;
     solution_files?: string[];
     location?: string;
+    category?: string;
   }) => {
     updateIssue.mutate({ id, ...updates });
   };

@@ -19,6 +19,7 @@ interface UpdateIssueData {
   solution?: string;
   solution_files?: string[];
   location?: string;
+  category?: string;
 }
 
 interface UpdateIssueStatusData {
@@ -65,6 +66,14 @@ export function useIssueMutations() {
   const updateIssue = useMutation({
     mutationFn: async (data: UpdateIssueData) => {
       const { id, ...updateData } = data;
+      
+      // Get the current issue to know the old category (for cache invalidation)
+      const { data: currentIssue } = await supabase
+        .from('company_issues')
+        .select('category')
+        .eq('id', id)
+        .single();
+      
       const { data: result, error } = await supabase
         .from('company_issues')
         .update(updateData)
@@ -73,12 +82,17 @@ export function useIssueMutations() {
         .single();
 
       if (error) throw error;
-      return result;
+      return { result, oldCategory: currentIssue?.category };
     },
-    onSuccess: (result) => {
+    onSuccess: ({ result, oldCategory }) => {
+      // Invalidate old category (where issue was)
+      if (oldCategory) {
+        queryClient.invalidateQueries({ queryKey: ['company-issues', oldCategory] });
+      }
+      // Invalidate new category (where issue now is)
       queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
-      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] }); // Invalidate counts
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v2'] });
     },
   });
 
