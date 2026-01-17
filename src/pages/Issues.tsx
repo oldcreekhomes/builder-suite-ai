@@ -45,14 +45,14 @@ const Issues = () => {
                   {/* Full-width horizontal separator below title */}
                   <div className="border-b border-border mt-[21px] mb-4" />
                   
-                  {/* Menu section with horizontal padding only */}
-                  <div className="px-4 flex-1">
+                  {/* Menu section - full width for highlights */}
+                  <div className="flex-1">
                     <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
                       {categories.map((category) => (
                         <TabsTrigger 
                           key={category} 
                           value={category} 
-                          className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm font-medium text-muted-foreground data-[state=active]:text-foreground hover:bg-muted/50"
+                          className="justify-start w-full pl-4 pr-4 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm font-medium text-muted-foreground data-[state=active]:text-foreground hover:bg-muted/50"
                         >
                           <span className="flex-1 text-left">{category}</span>
                           <div className="flex gap-1">
@@ -73,7 +73,7 @@ const Issues = () => {
                   </div>
                   
                   {/* Full-width horizontal separator at bottom */}
-                  <div className="w-full border-b border-border" />
+                  <div className="w-full border-b border-border mt-4" />
                 </div>
                 
                 {/* Main content area */}
