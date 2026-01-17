@@ -103,11 +103,10 @@ export const useProjectTasks = (projectId: string) => {
             return;
           }
           
-          // Check if Syncfusion or batch operation is in progress - if so, skip real-time updates
-          const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
+          // Check if batch operation is in progress - if so, skip real-time updates
           const isBatchOperationInProgress = (window as any).__batchOperationInProgress;
-          if (isSyncfusionOperationInProgress || isBatchOperationInProgress) {
-            console.log('🚫 Skipping real-time update - Operation in progress');
+          if (isBatchOperationInProgress) {
+            console.log('🚫 Skipping real-time update - Batch operation in progress');
             return;
           }
           

@@ -51,9 +51,7 @@ export function canIndent(task: ProjectTask, tasks: ProjectTask[]): boolean {
   return currentIndex > 0;
 }
 
-export function canOutdent(task: ProjectTask): boolean {
-  return false; // Disabled during refactoring
-}
+// canOutdent removed - was disabled stub returning false
 
 export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
   if (!task.hierarchy_number) return null;
@@ -202,9 +200,7 @@ export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): 
   return updates;
 }
 
-export function generateOutdentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
-  return null; // Disabled during refactoring
-}
+// generateOutdentHierarchy removed - was disabled stub returning null
 
 // SIMPLE: Basic renumbering function that actually works
 // BUG FIX: Filter children from ORIGINAL sortedTasks, not from result array (which has modified hierarchy numbers)
@@ -271,9 +267,7 @@ export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
   return result;
 }
 
-export function generateHierarchyNumber(tasks: ProjectTask[], targetIndex: number): string {
-  return "1"; // Disabled during refactoring - just return "1"
-}
+// generateHierarchyNumber removed - was disabled stub returning "1"
 
 /**
  * Get the visual indentation level from hierarchy number
