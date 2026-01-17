@@ -30,6 +30,7 @@ interface IssuesTableRowProps {
     solution?: string;
     solution_files?: string[];
     location?: string;
+    category?: string;
   }) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
@@ -223,9 +224,10 @@ export function IssuesTableRow({
       />
 
       <TableCell className="px-2 py-1 w-24">
-        <Select value={issue.location || ''} onValueChange={(value) => {
-          // Handle location update here
-          onUpdate(issue.id, { location: value });
+        <Select value={issue.category?.toLowerCase() || ''} onValueChange={(value) => {
+          // Convert to Title Case to match tab values and update category
+          const category = value.charAt(0).toUpperCase() + value.slice(1);
+          onUpdate(issue.id, { category });
         }}>
           <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:ring-offset-0 focus:outline-none [&>svg]:hidden">
             <SelectValue placeholder="Select location" />
