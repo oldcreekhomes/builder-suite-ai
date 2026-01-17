@@ -43,7 +43,7 @@ const Issues = () => {
                   </div>
                   
                   {/* Full-width horizontal separator below title */}
-                  <div className="border-b border-border my-4" />
+                  <div className="border-b border-border mt-6 mb-4" />
                   
                   {/* Menu section with horizontal padding only */}
                   <div className="px-4 flex-1">
@@ -73,7 +73,7 @@ const Issues = () => {
                   </div>
                   
                   {/* Full-width horizontal separator at bottom */}
-                  <div className="border-b border-border" />
+                  <div className="w-full border-b border-border" />
                 </div>
                 
                 {/* Main content area */}
