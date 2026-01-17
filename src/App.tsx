@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -50,46 +49,9 @@ import BidDeclined from "./pages/BidDeclined";
 import SubmitBid from "./pages/SubmitBid";
 import CloseBooks from "./pages/accounting/CloseBooks";
 
-import { supabase } from "@/integrations/supabase/client";
-import { registerLicense } from '@syncfusion/ej2-base';
-
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const [syncfusionLicenseRegistered, setSyncfusionLicenseRegistered] = useState(false);
-
-  // Register Syncfusion license at application startup
-  useEffect(() => {
-    const registerSyncfusionLicense = async () => {
-      try {
-        console.log('Registering Syncfusion license...');
-        
-        // Simple timeout without AbortController
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('License fetch timeout')), 1000);
-        });
-        
-        const fetchPromise = supabase.functions.invoke('get-syncfusion-key');
-        
-        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-        
-        if (error) {
-          console.error('Error fetching Syncfusion license:', error);
-        } else if (data?.key) {
-          registerLicense(data.key);
-          console.log('Syncfusion license registered successfully');
-        } else {
-          console.warn('No Syncfusion license key found');
-        }
-      } catch (error) {
-        console.error('Failed to register Syncfusion license:', error);
-      } finally {
-        setSyncfusionLicenseRegistered(true);
-      }
-    };
-
-    registerSyncfusionLicense();
-  }, []);
 
   // Note: Global chat notifications are now handled by FloatingChatManager using the master hook
   // to prevent duplicate Supabase subscriptions
