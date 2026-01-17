@@ -160,7 +160,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
             <SelectItem value="companies" className="text-xs hover:bg-accent">Companies</SelectItem>
             <SelectItem value="files" className="text-xs hover:bg-accent">Files</SelectItem>
             <SelectItem value="messages" className="text-xs hover:bg-accent">Messages</SelectItem>
-            <SelectItem value="orders" className="text-xs hover:bg-accent">Orders</SelectItem>
+            <SelectItem value="orders" className="text-xs hover:bg-accent">Purchase Orders</SelectItem>
             <SelectItem value="photos" className="text-xs hover:bg-accent">Photos</SelectItem>
             <SelectItem value="schedule" className="text-xs hover:bg-accent">Schedule</SelectItem>
             <SelectItem value="settings" className="text-xs hover:bg-accent">Settings</SelectItem>

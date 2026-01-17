@@ -17,7 +17,7 @@ const Issues = () => {
     "Companies",
     "Files",
     "Messages",
-    "Orders",
+    "Purchase Orders",
     "Photos",
     "Schedule",
     "Settings"
@@ -47,7 +47,7 @@ const Issues = () => {
                   
                   {/* Menu section - full width for highlights */}
                   <div className="flex-1">
-                    <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1 border-0 pb-4">
+                    <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
                       {categories.map((category) => (
                         <TabsTrigger 
                           key={category} 
@@ -77,6 +77,9 @@ const Issues = () => {
                       ))}
                     </TabsList>
                   </div>
+                  
+                  {/* Full-width horizontal separator below menu */}
+                  <div className="border-b border-border mb-4" />
                 </div>
                 
                 {/* Main content area */}
