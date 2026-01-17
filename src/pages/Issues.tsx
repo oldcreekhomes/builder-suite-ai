@@ -36,7 +36,7 @@ const Issues = () => {
             <div className="flex-1 flex">
               <Tabs defaultValue={defaultCategory} orientation="vertical" className="flex w-full">
                 {/* Left sidebar - category navigation */}
-                <div className="w-52 shrink-0 border-r border-border bg-background min-h-full flex flex-col pb-4">
+                <div className="w-52 shrink-0 border-r border-border bg-background min-h-full flex flex-col">
                   {/* Title section with padding */}
                   <div className="p-4 pb-0">
                     <h1 className="text-2xl font-bold text-foreground">Software Issues</h1>
@@ -47,7 +47,7 @@ const Issues = () => {
                   
                   {/* Menu section - full width for highlights */}
                   <div className="flex-1">
-                    <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
+                    <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1 border-0 pb-4">
                       {categories.map((category) => (
                         <TabsTrigger 
                           key={category} 
