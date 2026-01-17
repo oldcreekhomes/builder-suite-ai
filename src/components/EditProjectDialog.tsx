@@ -190,6 +190,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                 <SelectContent>
                   <SelectItem value="quickbooks">QuickBooks</SelectItem>
                   <SelectItem value="builder_suite">Builder Suite</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
