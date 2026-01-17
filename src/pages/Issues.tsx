@@ -30,13 +30,13 @@ const Issues = () => {
       <UniversalFilePreviewProvider>
         <div className="min-h-screen flex w-full">
           <AppSidebar />
-          <SidebarInset className="flex-1">
+          <SidebarInset className="flex-1 flex flex-col">
             <DashboardHeader title="Software Issues" />
             
-            <div className="flex-1 p-4 md:p-8 pt-6">
-              <Tabs defaultValue={defaultCategory} orientation="vertical" className="flex gap-8">
+            <div className="flex-1 flex">
+              <Tabs defaultValue={defaultCategory} orientation="vertical" className="flex w-full">
                 {/* Left sidebar - category navigation */}
-                <div className="w-52 shrink-0 border-r border-border bg-background p-4">
+                <div className="w-52 shrink-0 border-r border-border bg-background p-4 min-h-full">
                   <h1 className="text-2xl font-bold text-foreground mb-6">Software Issues</h1>
                   <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
                     {categories.map((category) => (
@@ -64,7 +64,7 @@ const Issues = () => {
                 </div>
                 
                 {/* Main content area */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 p-6">
                   {categories.map((category) => (
                     <TabsContent key={category} value={category} className="mt-0">
                       <IssuesTable category={category} />
