@@ -36,31 +36,44 @@ const Issues = () => {
             <div className="flex-1 flex">
               <Tabs defaultValue={defaultCategory} orientation="vertical" className="flex w-full">
                 {/* Left sidebar - category navigation */}
-                <div className="w-52 shrink-0 border-r border-border bg-background p-4 min-h-full">
-                  <h1 className="text-2xl font-bold text-foreground mb-6">Software Issues</h1>
-                  <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
-                    {categories.map((category) => (
-                      <TabsTrigger 
-                        key={category} 
-                        value={category} 
-                        className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm font-medium text-muted-foreground data-[state=active]:text-foreground hover:bg-muted/50"
-                      >
-                        <span className="flex-1 text-left">{category}</span>
-                        <div className="flex gap-1">
-                          {issueCounts[category]?.normal > 0 && (
-                            <span className="bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                              {issueCounts[category].normal}
-                            </span>
-                          )}
-                          {issueCounts[category]?.high > 0 && (
-                            <span className="bg-red-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                              {issueCounts[category].high}
-                            </span>
-                          )}
-                        </div>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
+                <div className="w-52 shrink-0 border-r border-border bg-background min-h-full flex flex-col">
+                  {/* Title section with padding */}
+                  <div className="p-4 pb-0">
+                    <h1 className="text-2xl font-bold text-foreground">Software Issues</h1>
+                  </div>
+                  
+                  {/* Full-width horizontal separator below title */}
+                  <div className="border-b border-border my-4" />
+                  
+                  {/* Menu section with horizontal padding only */}
+                  <div className="px-4 flex-1">
+                    <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
+                      {categories.map((category) => (
+                        <TabsTrigger 
+                          key={category} 
+                          value={category} 
+                          className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm font-medium text-muted-foreground data-[state=active]:text-foreground hover:bg-muted/50"
+                        >
+                          <span className="flex-1 text-left">{category}</span>
+                          <div className="flex gap-1">
+                            {issueCounts[category]?.normal > 0 && (
+                              <span className="bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                                {issueCounts[category].normal}
+                              </span>
+                            )}
+                            {issueCounts[category]?.high > 0 && (
+                              <span className="bg-red-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                                {issueCounts[category].high}
+                              </span>
+                            )}
+                          </div>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </div>
+                  
+                  {/* Full-width horizontal separator at bottom */}
+                  <div className="border-b border-border" />
                 </div>
                 
                 {/* Main content area */}
