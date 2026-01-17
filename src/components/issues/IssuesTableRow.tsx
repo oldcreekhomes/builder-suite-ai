@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { IssueFilesCell } from './IssueFilesCell';
 import { SolutionFilesCell } from './SolutionFilesCell';
+import { IssueCommentCell } from './IssueCommentCell';
 import { DeleteButton } from '@/components/ui/delete-button';
 import type { CompanyIssue } from '@/hooks/useCompanyIssues';
 
@@ -97,8 +98,12 @@ export function IssuesTableRow({
     onUpdate(issue.id, { priority });
   };
 
-  const handleSolutionChange = (solution: string, solutionFiles: string[]) => {
-    onUpdate(issue.id, { solution, solution_files: solutionFiles });
+  const handleSolutionChange = (solutionFiles: string[]) => {
+    onUpdate(issue.id, { solution_files: solutionFiles });
+  };
+
+  const handleCommentChange = (comment: string) => {
+    onUpdate(issue.id, { solution: comment });
   };
 
   const getPriorityBadge = (priority: string) => {
@@ -239,9 +244,14 @@ export function IssuesTableRow({
 
       <SolutionFilesCell
         issueId={issue.id}
-        solution={issue.solution}
         solutionFiles={issue.solution_files}
         onSolutionChange={handleSolutionChange}
+      />
+
+      <IssueCommentCell
+        issueId={issue.id}
+        comment={issue.solution}
+        onCommentChange={handleCommentChange}
       />
       
       <TableCell className="px-2 py-1 w-16">

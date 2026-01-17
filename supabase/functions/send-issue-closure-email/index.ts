@@ -23,6 +23,7 @@ interface IssueClosureEmailRequest {
   issueCategory: string;
   companyName: string;
   solutionFiles?: string[];
+  solutionMessage?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,7 +39,8 @@ const handler = async (req: Request): Promise<Response> => {
       issueDescription, 
       issueCategory, 
       companyName,
-      solutionFiles = []
+      solutionFiles = [],
+      solutionMessage = ''
     }: IssueClosureEmailRequest = await req.json();
 
     const closureDate = new Date().toLocaleDateString();
@@ -55,6 +57,14 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Dynamic text based on number of files
     const fileText = solutionFiles.length === 1 ? 'file' : 'files';
+    
+    // Generate comment row HTML if message exists
+    const commentRowHtml = solutionMessage && solutionMessage.trim().length > 0 
+      ? `<tr>
+           <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Comment:</td>
+           <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${solutionMessage}</td>
+         </tr>`
+      : '';
 
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
@@ -120,7 +130,8 @@ const handler = async (req: Request): Promise<Response> => {
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #dc2626;">Solution Files:</td>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${solutionFilesHtml}</td>
                                                         </tr>
-                                                        <tr>
+                                                        ${commentRowHtml}
+                                                        <tr${!commentRowHtml ? ' style="background-color: #f5f5f5;"' : ''}>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Date Closed:</td>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${closureDate}</td>
                                                         </tr>

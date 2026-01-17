@@ -14,15 +14,13 @@ interface SolutionFile {
 interface SolutionFilesCellProps {
   issueId: string;
   solutionFiles?: string[];
-  onSolutionChange: (solution: string, files: string[]) => void;
-  solution?: string;
+  onSolutionChange: (files: string[]) => void;
 }
 
 export function SolutionFilesCell({ 
   issueId, 
   solutionFiles = [], 
-  onSolutionChange,
-  solution = ''
+  onSolutionChange
 }: SolutionFilesCellProps) {
   const [localFiles, setLocalFiles] = useState<SolutionFile[]>(
     solutionFiles.map(path => ({
@@ -65,7 +63,7 @@ export function SolutionFilesCell({
       
       const newFiles = [...localFiles, ...uploadedFiles];
       setLocalFiles(newFiles);
-      onSolutionChange(solution, newFiles.map(f => f.path));
+      onSolutionChange(newFiles.map(f => f.path));
       
       toast({ 
         title: 'Files uploaded successfully',
@@ -81,7 +79,7 @@ export function SolutionFilesCell({
     } finally {
       setIsUploading(false);
     }
-  }, [issueId, localFiles, solution, onSolutionChange]);
+  }, [issueId, localFiles, onSolutionChange]);
 
   const handleFileUpload = () => {
     const input = document.createElement('input');
@@ -108,7 +106,7 @@ export function SolutionFilesCell({
       
       const newFiles = localFiles.filter(f => f.path !== filePath);
       setLocalFiles(newFiles);
-      onSolutionChange(solution, newFiles.map(f => f.path));
+      onSolutionChange(newFiles.map(f => f.path));
       
       toast({ title: 'File removed successfully' });
     } catch (error: any) {

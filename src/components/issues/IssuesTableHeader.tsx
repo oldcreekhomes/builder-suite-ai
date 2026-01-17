@@ -12,6 +12,7 @@ export function IssuesTableHeader() {
         <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Issue Files</TableHead>
         <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Location</TableHead>
         <TableHead className="h-8 px-2 py-1 text-xs font-medium">Solution Files</TableHead>
+        <TableHead className="h-8 px-2 py-1 text-xs font-medium w-20">Comment</TableHead>
         <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Actions</TableHead>
       </TableRow>
     </TableHeader>
