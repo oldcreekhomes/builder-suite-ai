@@ -183,7 +183,7 @@
     list-style-type: square;
   }
 
-  /* Ensure PDF layers never block Fabric interactions */
+  /* Ensure PDF layers don't block user interactions */
   .react-pdf__Page__textContent,
   .react-pdf__Page__annotations,
   .react-pdf__Page canvas {
