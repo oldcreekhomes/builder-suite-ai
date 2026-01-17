@@ -452,7 +452,8 @@ export default function SimplifiedAIBillExtraction({
 
           await page.render({
             canvasContext: context,
-            viewport: viewport
+            viewport: viewport,
+            canvas: canvas
           }).promise;
 
           images.push(canvas.toDataURL('image/png'));
