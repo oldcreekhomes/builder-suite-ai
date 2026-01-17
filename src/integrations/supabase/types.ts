@@ -729,7 +729,6 @@ export type Database = {
       }
       checks: {
         Row: {
-          account_number: string | null
           amount: number
           bank_account_id: string
           bank_name: string | null
@@ -753,12 +752,10 @@ export type Database = {
           reversed_at: string | null
           reversed_by_id: string | null
           reverses_id: string | null
-          routing_number: string | null
           status: string
           updated_at: string
         }
         Insert: {
-          account_number?: string | null
           amount?: number
           bank_account_id: string
           bank_name?: string | null
@@ -782,12 +779,10 @@ export type Database = {
           reversed_at?: string | null
           reversed_by_id?: string | null
           reverses_id?: string | null
-          routing_number?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
-          account_number?: string | null
           amount?: number
           bank_account_id?: string
           bank_name?: string | null
@@ -811,7 +806,6 @@ export type Database = {
           reversed_at?: string | null
           reversed_by_id?: string | null
           reverses_id?: string | null
-          routing_number?: string | null
           status?: string
           updated_at?: string
         }
