@@ -36,7 +36,7 @@ const Issues = () => {
             <div className="flex-1 p-4 md:p-8 pt-6">
               <Tabs defaultValue={defaultCategory} orientation="vertical" className="flex gap-8">
                 {/* Left sidebar - category navigation */}
-                <div className="w-52 shrink-0">
+                <div className="w-52 shrink-0 border-r border-border bg-background p-4">
                   <h1 className="text-2xl font-bold text-foreground mb-6">Software Issues</h1>
                   <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
                     {categories.map((category) => (
