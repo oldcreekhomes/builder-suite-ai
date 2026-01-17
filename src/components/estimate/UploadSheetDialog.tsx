@@ -126,7 +126,8 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
           await page.render({
             canvasContext: context,
-            viewport: viewport
+            viewport: viewport,
+            canvas: canvas
           }).promise;
 
           // Small delay to ensure canvas content is fully committed before blob conversion
