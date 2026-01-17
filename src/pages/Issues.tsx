@@ -56,16 +56,22 @@ const Issues = () => {
                         >
                           <span className="flex-1 text-left">{category}</span>
                           <div className="flex items-center gap-1">
-                            {issueCounts[category]?.normal > 0 && (
-                              <span className="bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                                {issueCounts[category].normal}
-                              </span>
-                            )}
-                            {issueCounts[category]?.high > 0 && (
-                              <span className="bg-red-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                                {issueCounts[category].high}
-                              </span>
-                            )}
+                            {/* Urgent column (red) - fixed width, always reserves space */}
+                            <div className="w-5 flex justify-center">
+                              {issueCounts[category]?.high > 0 && (
+                                <span className="bg-red-500 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                                  {issueCounts[category].high}
+                                </span>
+                              )}
+                            </div>
+                            {/* Non-urgent column (black) - fixed width, always reserves space */}
+                            <div className="w-5 flex justify-center">
+                              {issueCounts[category]?.normal > 0 && (
+                                <span className="bg-black text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
+                                  {issueCounts[category].normal}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </TabsTrigger>
                       ))}
