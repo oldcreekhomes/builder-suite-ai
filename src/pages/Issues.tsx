@@ -10,17 +10,21 @@ const Issues = () => {
   const { data: issueCounts = {} } = useIssueCounts();
 
   const categories = [
-    "Messages",
-    "Files", 
-    "Photos",
-    "Budget",
+    "Accounting",
+    "Authentication",
     "Bidding",
+    "Budget",
+    "Companies",
+    "Files",
+    "Messages",
+    "Orders",
+    "Photos",
     "Schedule",
-    "Authentication"
+    "Settings"
   ];
 
-  // Always show all categories, default to "Messages"
-  const defaultCategory = "Messages";
+  // Always show all categories, default to first alphabetically
+  const defaultCategory = "Accounting";
 
   return (
     <SidebarProvider>
@@ -32,7 +36,7 @@ const Issues = () => {
             
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
               <Tabs defaultValue={defaultCategory} className="w-full">
-                <TabsList className="grid w-full grid-cols-7">
+                <TabsList className="grid w-full grid-cols-11">
                   {categories.map((category) => (
                     <TabsTrigger key={category} value={category} className="relative">
                       <span>{category}</span>

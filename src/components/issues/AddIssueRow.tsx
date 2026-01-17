@@ -153,13 +153,17 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
             <SelectValue placeholder="Select location" />
           </SelectTrigger>
           <SelectContent className="bg-background border-border shadow-lg z-50">
-            <SelectItem value="messages" className="text-xs hover:bg-accent">Messages</SelectItem>
-            <SelectItem value="files" className="text-xs hover:bg-accent">Files</SelectItem>
-            <SelectItem value="photos" className="text-xs hover:bg-accent">Photos</SelectItem>
-            <SelectItem value="budget" className="text-xs hover:bg-accent">Budget</SelectItem>
-            <SelectItem value="bidding" className="text-xs hover:bg-accent">Bidding</SelectItem>
-            <SelectItem value="schedule" className="text-xs hover:bg-accent">Schedule</SelectItem>
+            <SelectItem value="accounting" className="text-xs hover:bg-accent">Accounting</SelectItem>
             <SelectItem value="authentication" className="text-xs hover:bg-accent">Authentication</SelectItem>
+            <SelectItem value="bidding" className="text-xs hover:bg-accent">Bidding</SelectItem>
+            <SelectItem value="budget" className="text-xs hover:bg-accent">Budget</SelectItem>
+            <SelectItem value="companies" className="text-xs hover:bg-accent">Companies</SelectItem>
+            <SelectItem value="files" className="text-xs hover:bg-accent">Files</SelectItem>
+            <SelectItem value="messages" className="text-xs hover:bg-accent">Messages</SelectItem>
+            <SelectItem value="orders" className="text-xs hover:bg-accent">Orders</SelectItem>
+            <SelectItem value="photos" className="text-xs hover:bg-accent">Photos</SelectItem>
+            <SelectItem value="schedule" className="text-xs hover:bg-accent">Schedule</SelectItem>
+            <SelectItem value="settings" className="text-xs hover:bg-accent">Settings</SelectItem>
           </SelectContent>
         </Select>
       </TableCell>
