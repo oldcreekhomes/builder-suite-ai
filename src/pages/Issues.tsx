@@ -76,6 +76,9 @@ const Issues = () => {
                         </TabsTrigger>
                       ))}
                     </TabsList>
+                    
+                    {/* Full-width horizontal separator below menu - mirrors top separator */}
+                    <div className="border-b border-border mt-4" />
                   </div>
                 </div>
                 
