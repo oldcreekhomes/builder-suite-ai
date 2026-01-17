@@ -46,7 +46,7 @@ const Issues = () => {
                   <div className="border-b border-border mt-[21px] mb-4" />
                   
                   {/* Menu section - full width for highlights */}
-                  <div className="flex-1">
+                  <div className="flex-1 pb-4">
                     <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
                       {categories.map((category) => (
                         <TabsTrigger 
