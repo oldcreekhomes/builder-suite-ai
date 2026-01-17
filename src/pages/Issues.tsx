@@ -77,9 +77,6 @@ const Issues = () => {
                       ))}
                     </TabsList>
                   </div>
-                  
-                  {/* Full-width horizontal separator below menu */}
-                  <div className="border-b border-border mb-4" />
                 </div>
                 
                 {/* Main content area */}
