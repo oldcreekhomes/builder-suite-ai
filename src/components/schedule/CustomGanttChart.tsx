@@ -10,7 +10,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { calculateParentTaskValues, shouldUpdateParentTask, calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
 import { DateString, today, addDays, addBusinessDays, getNextBusinessDay, isBusinessDay, calculateBusinessEndDate, getCalendarDaysBetween, getBusinessDaysBetween, ensureBusinessDay, formatYMD } from "@/utils/dateOnly";
 import { UnifiedScheduleTable } from "./UnifiedScheduleTable";
-import { AddTaskDialog } from "./AddTaskDialog";
 import { PublishScheduleDialog } from "./PublishScheduleDialog";
 import { ScheduleToolbar } from "./ScheduleToolbar";
 import { CopyScheduleDialog } from "./CopyScheduleDialog";
@@ -709,12 +708,6 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         />
       </div>
 
-      {/* DISABLED: AddTaskDialog during refactoring - using simple add instead */}
-      {/* <AddTaskDialog 
-        projectId={projectId}
-        open={showAddTaskDialog}
-        onOpenChange={setShowAddTaskDialog}
-      /> */}
 
       {/* Publish Dialog */}
       <PublishScheduleDialog

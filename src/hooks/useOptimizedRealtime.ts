@@ -27,12 +27,11 @@ export function useOptimizedRealtime(projectId: string) {
       pendingUpdatesRef.current = [];
 
       // Only block updates during active local operations (not cooldowns)
-      const isSyncfusionOperationInProgress = (window as any).__syncfusionOperationInProgress;
       const isBatchOperationInProgress = (window as any).__batchOperationInProgress;
 
       // Only skip if we're actively in the middle of an operation
-      if (isSyncfusionOperationInProgress || isBatchOperationInProgress) {
-        console.log('🚫 Skipping batched updates - active operation in progress');
+      if (isBatchOperationInProgress) {
+        console.log('🚫 Skipping batched updates - batch operation in progress');
         return;
       }
 
