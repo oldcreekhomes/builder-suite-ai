@@ -562,12 +562,12 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Bill</DialogTitle>
-          <DialogDescription>
-            {isApprovedBill 
-              ? "Only date, cost code allocation, files, and notes can be modified for approved bills."
-              : "Make changes to this rejected bill. It will be sent back for review once saved."
-            }
-          </DialogDescription>
+        <DialogDescription>
+          {isApprovedBill 
+            ? "Only date, cost code allocation, files, and notes can be modified for approved bills."
+            : "Make changes to this bill."
+          }
+        </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
