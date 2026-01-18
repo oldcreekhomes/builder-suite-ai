@@ -141,34 +141,15 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       </TableCell>
 
       <TableCell className="px-2 py-1">
-        <div className="flex flex-col gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={uploading}
-            className="h-6 text-xs px-2"
-            onClick={handleFileUpload}
-          >
-            {uploading ? 'Uploading...' : selectedFiles.length > 0 ? `${selectedFiles.length} file(s)` : 'Add Files'}
-          </Button>
-          {selectedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center gap-1 text-xs bg-muted px-1.5 py-0.5 rounded">
-                  <FileText className="h-3 w-3" />
-                  <span className="max-w-[80px] truncate">{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleFileRemove(index)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          className="h-6 text-xs px-2"
+          onClick={handleFileUpload}
+        >
+          {uploading ? 'Uploading...' : selectedFiles.length > 0 ? `${selectedFiles.length} file(s)` : 'Add Files'}
+        </Button>
       </TableCell>
 
       <TableCell className="px-2 py-1">
