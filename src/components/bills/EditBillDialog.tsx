@@ -388,14 +388,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
-    // For approved/posted/paid bills, save directly without review confirmation
-    if (['approved', 'posted', 'paid'].includes(billData?.status)) {
-      await handleConfirmedSave();
-      return;
-    }
-
-    // For other statuses, show confirmation dialog
-    setShowSaveConfirmation(true);
+    // Save directly without requiring review confirmation
+    await handleConfirmedSave();
   };
 
   const handleConfirmedSave = async () => {
