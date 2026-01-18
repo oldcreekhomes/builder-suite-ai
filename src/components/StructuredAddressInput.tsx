@@ -2,6 +2,23 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { US_STATES } from "@/lib/us-states";
 
 declare global {
   interface Window {
@@ -32,6 +49,10 @@ export function StructuredAddressInput({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
+
+  // Find the full state name for display
+  const selectedState = US_STATES.find(s => s.abbreviation === value.state);
 
   useEffect(() => {
     const getApiKey = async () => {
@@ -214,6 +235,11 @@ export function StructuredAddressInput({
     });
   };
 
+  const handleStateSelect = (abbreviation: string) => {
+    handleFieldChange('state', abbreviation);
+    setStateDropdownOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -258,15 +284,47 @@ export function StructuredAddressInput({
 
         <div>
           <Label htmlFor="state">State</Label>
-          <Input
-            id="state"
-            value={value.state}
-            onChange={(e) => handleFieldChange('state', e.target.value)}
-            placeholder="TX"
-            disabled={disabled}
-            autoComplete="address-level1"
-            maxLength={2}
-          />
+          <Popover open={stateDropdownOpen} onOpenChange={setStateDropdownOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={stateDropdownOpen}
+                className="w-full justify-between font-normal"
+                disabled={disabled}
+              >
+                {selectedState 
+                  ? `${selectedState.name} (${selectedState.abbreviation})`
+                  : "Enter state"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search states..." />
+                <CommandList>
+                  <CommandEmpty>No state found.</CommandEmpty>
+                  <CommandGroup>
+                    {US_STATES.map((state) => (
+                      <CommandItem
+                        key={state.abbreviation}
+                        value={`${state.name} ${state.abbreviation}`}
+                        onSelect={() => handleStateSelect(state.abbreviation)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value.state === state.abbreviation ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {state.name} ({state.abbreviation})
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div>
