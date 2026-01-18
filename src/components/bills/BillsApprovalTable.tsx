@@ -342,6 +342,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   }, [sortedBills, searchQuery]);
 
   const handleActionChange = (billId: string, action: string) => {
+    if (action === 'edit') {
+      setEditingBillId(billId);
+      return;
+    }
+    
     const bill = bills.find(b => b.id === billId);
     setConfirmDialog({
       open: true,
@@ -851,6 +856,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                           </SelectTrigger>
                           <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                             <SelectItem value="approve" className="text-xs hover:bg-gray-100 bg-white">Approve</SelectItem>
+                            <SelectItem value="edit" className="text-xs hover:bg-gray-100 bg-white">Edit</SelectItem>
                             <SelectItem value="reject" className="text-xs hover:bg-gray-100 bg-white">Reject</SelectItem>
                           </SelectContent>
                         </Select>
