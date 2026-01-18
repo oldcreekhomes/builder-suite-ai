@@ -48,12 +48,13 @@ export function useCompanyIssues(category: string) {
 
       if (!companyName) throw new Error('No company found for user');
 
-      // Query issues for this company and category
+      // Query issues for this company and category (only Open issues)
       const { data, error } = await supabase
         .from('company_issues')
         .select('*')
         .eq('category', category)
         .eq('company_name', companyName)
+        .eq('status', 'Open')
         .order('priority', { ascending: false }) // High priority first
         .order('created_at', { ascending: false }); // Most recent first within same priority
 
@@ -94,11 +95,12 @@ export function useAllCompanyIssues() {
 
       if (!companyName) throw new Error('No company found for user');
 
-      // Query all issues for this company
+      // Query all issues for this company (only Open issues)
       const { data, error } = await supabase
         .from('company_issues')
         .select('*')
         .eq('company_name', companyName)
+        .eq('status', 'Open')
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false });
 

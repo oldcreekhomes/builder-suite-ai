@@ -115,7 +115,7 @@ export function useIssueMutations() {
     },
   });
 
-  const deleteIssue = useMutation({
+  const resolveIssue = useMutation({
     mutationFn: async (id: string) => {
       // First, get the issue details and author information
       const { data: issue, error: issueError } = await supabase
@@ -135,7 +135,7 @@ export function useIssueMutations() {
 
       if (authorError) throw authorError;
 
-      // Send closure email (non-blocking)
+      // Send resolution email (non-blocking)
       try {
         console.log('📨 Invoking send-issue-closure-email function...');
         const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-issue-closure-email', {
@@ -153,28 +153,32 @@ export function useIssueMutations() {
         console.log('📬 send-issue-closure-email result:', { emailResult, emailError });
         if (emailError) {
           console.error('❌ send-issue-closure-email error:', emailError);
-          toast({ title: 'Issue closed, email not sent', description: 'We could not send the closure email.' });
+          toast({ title: 'Issue resolved, email not sent', description: 'We could not send the resolution email.' });
         } else if (!emailResult?.success) {
           console.warn('⚠️ send-issue-closure-email returned unsuccessful:', emailResult);
-          toast({ title: 'Issue closed, email status unknown', description: 'Email provider did not confirm sending.' });
+          toast({ title: 'Issue resolved, email status unknown', description: 'Email provider did not confirm sending.' });
         } else {
-          toast({ title: 'Issue closed', description: `A confirmation email was sent to ${author.email}.` });
+          toast({ title: 'Issue resolved', description: `A confirmation email was sent to ${author.email}.` });
         }
       } catch (emailError) {
-        console.error('Failed to send closure email:', emailError);
-        // Don't fail the deletion if email fails
-        toast({ title: 'Issue closed, email failed', description: 'Email could not be sent.' });
+        console.error('Failed to send resolution email:', emailError);
+        // Don't fail the resolution if email fails
+        toast({ title: 'Issue resolved, email failed', description: 'Email could not be sent.' });
       }
 
-      // Delete the issue
-      const { error } = await supabase
+      // Update the issue status to Resolved (preserve data instead of deleting)
+      const { data: result, error } = await supabase
         .from('company_issues')
-        .delete()
-        .eq('id', id);
+        .update({ status: 'Resolved' })
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) throw error;
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
       queryClient.invalidateQueries({ queryKey: ['company-issues'] });
       queryClient.invalidateQueries({ queryKey: ['issue-counts-v6'] });
     },
@@ -184,6 +188,6 @@ export function useIssueMutations() {
     createIssue,
     updateIssue,
     updateIssueStatus,
-    deleteIssue,
+    resolveIssue,
   };
 }

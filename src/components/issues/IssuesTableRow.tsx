@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { IssueFilesCell } from './IssueFilesCell';
 import { SolutionFilesCell } from './SolutionFilesCell';
 import { IssueCommentCell } from './IssueCommentCell';
-import { DeleteButton } from '@/components/ui/delete-button';
+import { ResolveButton } from '@/components/ui/resolve-button';
 import type { CompanyIssue } from '@/hooks/useCompanyIssues';
 
 interface IssueFile {
@@ -32,16 +32,16 @@ interface IssuesTableRowProps {
     location?: string;
     category?: string;
   }) => void;
-  onDelete: (id: string) => void;
-  isDeleting?: boolean;
+  onResolve: (id: string) => void;
+  isResolving?: boolean;
 }
 
 export function IssuesTableRow({ 
   issue, 
   issueNumber,
   onUpdate,
-  onDelete,
-  isDeleting = false
+  onResolve,
+  isResolving = false
 }: IssuesTableRowProps) {
   const [title, setTitle] = useState(issue.title);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -262,11 +262,11 @@ export function IssuesTableRow({
       
       <TableCell className="px-2 py-1 w-16">
         <div className="flex items-center space-x-1">
-          <DeleteButton
-            onDelete={() => onDelete(issue.id)}
-            title=""
-            description="Are you sure you want to delete this issue? This action cannot be undone."
-            isLoading={isDeleting}
+          <ResolveButton
+            onResolve={() => onResolve(issue.id)}
+            title="Resolve Issue"
+            description="Are you sure you want to resolve this issue? It will be marked as resolved and removed from the active list."
+            isLoading={isResolving}
             className="h-6 w-6 p-0"
             showIcon={true}
           />
