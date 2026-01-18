@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { AlertTriangle, FileText, DollarSign } from "lucide-react";
+import { AlertTriangle, DollarSign } from "lucide-react";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
 import { useBillsReadyToPay } from "@/hooks/useBillsReadyToPay";
 import { useBillCounts } from "@/hooks/useBillCounts";
@@ -98,8 +98,7 @@ export function ProjectWarnings() {
                       setIsPendingDialogOpen(true);
                     }}
                   >
-                    <div className="flex items-center space-x-2 min-w-0 flex-1 mr-4">
-                      <FileText className="h-5 w-5 text-gray-600 flex-shrink-0" />
+                    <div className="flex items-center min-w-0 flex-1 mr-4">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
