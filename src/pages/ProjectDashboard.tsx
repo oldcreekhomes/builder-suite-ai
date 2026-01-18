@@ -1,27 +1,21 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
-  Calendar, 
-  DollarSign, 
-  FileText, 
-  Users, 
   Image,
-  Plus,
   ChevronRight,
   Building2,
-  ArrowLeft,
   Pencil
 } from "lucide-react";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
-import { formatDistanceToNow } from "date-fns";
 import { WeatherForecast } from "@/components/WeatherForecast";
+import { ProjectAccountingAlerts } from "@/components/project-dashboard/ProjectAccountingAlerts";
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
@@ -75,39 +69,6 @@ export default function ProjectDashboard() {
     );
   }
 
-  const dashboardCards = [
-    {
-      title: "Project Photos",
-      description: `${photos.length} photos uploaded`,
-      icon: Image,
-      onClick: handlePhotosClick,
-      content: (
-        <div className="mt-4">
-          {recentPhotos.length > 0 ? (
-            <div className="grid grid-cols-6 gap-2">
-              {recentPhotos.map((photo) => (
-                <div key={photo.id} className="aspect-square rounded-md overflow-hidden bg-gray-100">
-                  <img
-                    src={photo.url}
-                    alt={photo.description || 'Project photo'}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-sm">No photos yet</p>
-          )}
-          {photos.length > 12 && (
-            <p className="text-xs text-gray-400 mt-2">
-              +{photos.length - 12} more photos
-            </p>
-          )}
-        </div>
-      )
-    },
-  ];
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
@@ -154,16 +115,18 @@ export default function ProjectDashboard() {
 
           
           <div className="flex-1 p-6">
-            {/* Weather Forecast Section */}
-            <div className="mb-8">
-              <WeatherForecast address={currentProject.address} />
-            </div>
+            {/* Top Row: Accounting Alerts (left) and Project Photos (right) */}
+            <div className="grid gap-6 md:grid-cols-2 mb-8">
+              {/* Accounting Alerts */}
+              <ProjectAccountingAlerts 
+                projectId={projectId} 
+                projectAddress={currentProject.address} 
+              />
 
-            {/* Project Photos Section */}
-            <div className="mb-8">
+              {/* Project Photos */}
               <Card 
                 className="p-6 hover:shadow-lg transition-shadow cursor-pointer group"
-                onClick={dashboardCards[0].onClick}
+                onClick={handlePhotosClick}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -171,14 +134,40 @@ export default function ProjectDashboard() {
                       <div className="bg-gray-100 p-2 rounded-lg">
                         <Image className="h-5 w-5 text-gray-700" />
                       </div>
-                      <h3 className="text-lg font-semibold text-black">{dashboardCards[0].title}</h3>
+                      <h3 className="text-lg font-semibold text-black">Project Photos</h3>
                     </div>
-                    <p className="text-gray-600 text-sm mb-4">{dashboardCards[0].description}</p>
-                    {dashboardCards[0].content}
+                    <p className="text-gray-600 text-sm mb-4">{photos.length} photos uploaded</p>
+                    <div className="mt-4">
+                      {recentPhotos.length > 0 ? (
+                        <div className="grid grid-cols-6 gap-2">
+                          {recentPhotos.map((photo) => (
+                            <div key={photo.id} className="aspect-square rounded-md overflow-hidden bg-gray-100">
+                              <img
+                                src={photo.url}
+                                alt={photo.description || 'Project photo'}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">No photos yet</p>
+                      )}
+                      {photos.length > 12 && (
+                        <p className="text-xs text-gray-400 mt-2">
+                          +{photos.length - 12} more photos
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
                 </div>
               </Card>
+            </div>
+
+            {/* Weather Forecast Section - Full Width at Bottom */}
+            <div className="mb-8">
+              <WeatherForecast address={currentProject.address} />
             </div>
           </div>
         </main>
