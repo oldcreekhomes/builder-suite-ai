@@ -247,12 +247,21 @@ export function StructuredAddressInput({
       const processAddressComponents = (components: google.maps.GeocoderAddressComponent[]) => {
         const addressData = parseAddressComponents(components, value.address_line_2);
         console.log('[StructuredAddressInput] Final address data:', addressData);
+        
+        // CRITICAL: Directly set the input DOM value to the parsed street address
+        // This overrides Google's injection of the full formatted address
+        if (inputRef.current) {
+          inputRef.current.value = addressData.address_line_1;
+          console.log('[StructuredAddressInput] Set input DOM value to:', addressData.address_line_1);
+        }
+        
+        // Now call onChange with the structured data
         onChange(addressData);
         
         // Reset suppress flag after a short delay
         setTimeout(() => {
           suppressInputChangeRef.current = false;
-        }, 100);
+        }, 150);
       };
 
       // Helper function to try Geocoder as fallback
