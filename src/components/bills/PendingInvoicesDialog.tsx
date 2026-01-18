@@ -34,16 +34,16 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
           requestAnimationFrame(() => searchRef.current?.focus());
         }}
       >
-        <DialogHeader className="px-6 pt-6 pb-4">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Pending Invoices</DialogTitle>
           <DialogDescription>
             Review and approve invoices that need your attention.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-auto px-6 pb-6">
+        <div className="flex-1 min-h-0 overflow-hidden px-6 pb-4">
           <UniversalFilePreviewProvider>
-            <Tabs defaultValue="review" className="w-full">
-              <TabsList>
+            <Tabs defaultValue="review" className="w-full h-full flex flex-col">
+              <TabsList className="shrink-0">
                 <TabsTrigger value="review" className="flex items-center gap-2">
                   Review
                   {billCounts && billCounts.pendingCount > 0 && (
@@ -68,7 +68,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
                 </TabsTrigger>
               </TabsList>
               
-              <div className="relative max-w-sm mt-4 mb-6">
+              <div className="relative max-w-sm mt-2 mb-3 shrink-0">
                 <Input
                   ref={searchRef}
                   placeholder="Search bills..."
@@ -77,7 +77,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
                 />
               </div>
               
-              <TabsContent value="review" className="mt-0">
+              <TabsContent value="review" className="mt-0 flex-1 min-h-0">
                 <BillsApprovalTable 
                   status="draft"
                   projectIds={projectIds}
@@ -89,7 +89,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
                 />
               </TabsContent>
 
-              <TabsContent value="approve" className="mt-0">
+              <TabsContent value="approve" className="mt-0 flex-1 min-h-0">
                 <BillsApprovalTable 
                   status={['posted', 'paid']}
                   projectIds={projectIds}
