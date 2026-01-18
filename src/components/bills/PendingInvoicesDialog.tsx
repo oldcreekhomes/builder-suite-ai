@@ -81,6 +81,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
                   sortOrder="asc"
                   enableSorting={true}
                   searchQuery={searchQuery}
+                  showEditButton={true}
                 />
               </TabsContent>
 
