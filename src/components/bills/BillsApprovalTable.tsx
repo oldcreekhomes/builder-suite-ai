@@ -528,13 +528,16 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
   return (
     <>
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="h-8">
-              {showProjectColumn && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">
-                {enableSorting ? (
+      <div className="flex flex-col h-full">
+        {/* Scrollable table container with fixed max-height */}
+        <div className="border rounded-lg overflow-hidden flex-1 min-h-0">
+          <div className="overflow-auto max-h-[calc(90vh-280px)]">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow className="h-8">
+                  {showProjectColumn && (
+                    <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+                    {enableSorting ? (
                   <button
                     type="button"
                     onClick={() => handleSort('project')}
@@ -893,16 +896,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 </TableRow>
               ))
             )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {filteredBills.length > 0 && (
-        <div className="mt-4 text-sm text-muted-foreground">
-          <p>Total bills: {filteredBills.length}</p>
-          <p>Total amount: {formatCurrency(filteredBills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      )}
+
+        {/* Footer - always visible, never scrolls */}
+        {filteredBills.length > 0 && (
+          <div className="mt-4 text-sm text-muted-foreground shrink-0">
+            <p>Total bills: {filteredBills.length}</p>
+            <p>Total amount: {formatCurrency(filteredBills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
+          </div>
+        )}
+      </div>
 
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && handleCancelAction()}>
         <AlertDialogContent>
