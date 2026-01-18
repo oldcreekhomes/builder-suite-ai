@@ -91,6 +91,8 @@ export function StructuredAddressInput({
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const requestIdRef = useRef<number>(0);
+  // This ref prevents the input's onChange from overwriting structured address data
+  const suppressInputChangeRef = useRef<boolean>(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
@@ -188,6 +190,9 @@ export function StructuredAddressInput({
           return;
         }
 
+        // Set suppress flag BEFORE updating - this prevents the input's onChange from overwriting
+        suppressInputChangeRef.current = true;
+
         // Increment request ID to track this specific request
         const currentRequestId = ++requestIdRef.current;
 
@@ -197,11 +202,20 @@ export function StructuredAddressInput({
           placeId: place.place_id
         });
 
+        // Helper to apply parsed address and clear suppress flag after a microtask
+        const applyAddressData = (addressData: StructuredAddressData) => {
+          onChange(addressData);
+          // Reset suppress flag after a short delay to allow any pending onChange to be ignored
+          setTimeout(() => {
+            suppressInputChangeRef.current = false;
+          }, 50);
+        };
+
         // If we have address_components, use them directly
         if (place.address_components && place.address_components.length > 0) {
           console.log('[StructuredAddressInput] Using address_components directly');
           const addressData = parseAddressComponents(place.address_components, value.address_line_2);
-          onChange(addressData);
+          applyAddressData(addressData);
           return;
         }
 
@@ -218,6 +232,7 @@ export function StructuredAddressInput({
               // Check if this is still the latest request
               if (currentRequestId !== requestIdRef.current) {
                 console.log('[StructuredAddressInput] Stale request, ignoring');
+                suppressInputChangeRef.current = false;
                 return;
               }
 
@@ -229,15 +244,17 @@ export function StructuredAddressInput({
 
               if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components) {
                 const addressData = parseAddressComponents(details.address_components, value.address_line_2);
-                onChange(addressData);
+                applyAddressData(addressData);
               } else {
                 console.error('[StructuredAddressInput] Failed to get place details:', status);
                 // As a last resort, just use the formatted address
                 if (place.formatted_address) {
-                  onChange({
+                  applyAddressData({
                     ...value,
                     address_line_1: place.formatted_address
                   });
+                } else {
+                  suppressInputChangeRef.current = false;
                 }
               }
             }
@@ -245,10 +262,12 @@ export function StructuredAddressInput({
         } else if (place.formatted_address) {
           // Last resort: use formatted address
           console.log('[StructuredAddressInput] Using formatted_address as fallback');
-          onChange({
+          applyAddressData({
             ...value,
             address_line_1: place.formatted_address
           });
+        } else {
+          suppressInputChangeRef.current = false;
         }
       });
 
@@ -258,6 +277,12 @@ export function StructuredAddressInput({
   }, [isLoaded, onChange, value.address_line_2]);
 
   const handleFieldChange = (field: keyof StructuredAddressData, fieldValue: string) => {
+    // If we're suppressing input changes (after a place selection), ignore this onChange
+    if (field === 'address_line_1' && suppressInputChangeRef.current) {
+      console.log('[StructuredAddressInput] Suppressing onChange for address_line_1');
+      return;
+    }
+    
     onChange({
       ...value,
       [field]: fieldValue
