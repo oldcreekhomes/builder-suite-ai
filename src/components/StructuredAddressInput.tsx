@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,18 +128,41 @@ export function StructuredAddressInput({
   onChange, 
   disabled = false 
 }: StructuredAddressInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Use uncontrolled input for street address to prevent Google/React race condition
+  const streetInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  // This ref prevents the input's onChange from overwriting structured address data
-  const suppressInputChangeRef = useRef<boolean>(false);
+  
+  // Track if we're in the middle of processing a place selection
+  const isProcessingSelectionRef = useRef<boolean>(false);
+  
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
+  
+  // Local state for other fields (synced with parent)
+  const [localAddressLine2, setLocalAddressLine2] = useState(value.address_line_2);
+  const [localCity, setLocalCity] = useState(value.city);
+  const [localState, setLocalState] = useState(value.state);
+  const [localZipCode, setLocalZipCode] = useState(value.zip_code);
 
   // Find the full state name for display
-  const selectedState = US_STATES.find(s => s.abbreviation === value.state);
+  const selectedState = US_STATES.find(s => s.abbreviation === localState);
+
+  // Sync local state with parent value when it changes externally
+  useEffect(() => {
+    // Only sync if we're NOT processing a selection (to prevent overwriting our parsed data)
+    if (!isProcessingSelectionRef.current) {
+      if (streetInputRef.current && streetInputRef.current.value !== value.address_line_1) {
+        streetInputRef.current.value = value.address_line_1;
+      }
+      setLocalAddressLine2(value.address_line_2);
+      setLocalCity(value.city);
+      setLocalState(value.state);
+      setLocalZipCode(value.zip_code);
+    }
+  }, [value]);
 
   useEffect(() => {
     const getApiKey = async () => {
@@ -176,25 +199,14 @@ export function StructuredAddressInput({
     loadGoogleMaps();
   }, [apiKey]);
 
-  // Pre-emptive suppression: Set flag BEFORE Google updates the input value
-  // This catches the mousedown on .pac-item before click/input change fires
+  // Stable callback ref for onChange to avoid re-initializing autocomplete
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
-    const handlePacItemMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.pac-container .pac-item')) {
-        console.log('[StructuredAddressInput] PAC item mousedown - pre-emptively setting suppress flag');
-        suppressInputChangeRef.current = true;
-      }
-    };
-
-    document.addEventListener('mousedown', handlePacItemMouseDown, true);
-    return () => {
-      document.removeEventListener('mousedown', handlePacItemMouseDown, true);
-    };
-  }, []);
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
-    if (!isLoaded || !inputRef.current) return;
+    if (!isLoaded || !streetInputRef.current) return;
 
     try {
       // Create a hidden div for PlacesService (it requires a DOM element)
@@ -205,7 +217,7 @@ export function StructuredAddressInput({
       geocoderRef.current = new window.google.maps.Geocoder();
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
-        inputRef.current,
+        streetInputRef.current,
         {
           types: ['address'],
           componentRestrictions: { country: 'us' },
@@ -245,25 +257,31 @@ export function StructuredAddressInput({
 
       // Helper function to process address components and call onChange
       const processAddressComponents = (components: google.maps.GeocoderAddressComponent[]) => {
-        const addressData = parseAddressComponents(components, value.address_line_2);
+        const addressData = parseAddressComponents(components, localAddressLine2);
         console.log('[StructuredAddressInput] Final address data:', addressData);
         
-        // CRITICAL FIX: Call onChange FIRST to update React state
-        // This triggers a re-render with the correct structured data
-        onChange(addressData);
+        // Set the processing flag to prevent external value sync from overwriting
+        isProcessingSelectionRef.current = true;
         
-        // Then use requestAnimationFrame to set DOM value AFTER React re-renders
-        // This ensures the controlled input shows the parsed street, not full address
-        requestAnimationFrame(() => {
-          if (inputRef.current) {
-            inputRef.current.value = addressData.address_line_1;
-            console.log('[StructuredAddressInput] Set input DOM value after render:', addressData.address_line_1);
-          }
-          // Reset suppress flag after DOM is correct
-          setTimeout(() => {
-            suppressInputChangeRef.current = false;
-          }, 50);
-        });
+        // Update the uncontrolled street input directly
+        if (streetInputRef.current) {
+          streetInputRef.current.value = addressData.address_line_1;
+          console.log('[StructuredAddressInput] Set street input to:', addressData.address_line_1);
+        }
+        
+        // Update local state for other fields
+        setLocalAddressLine2(addressData.address_line_2);
+        setLocalCity(addressData.city);
+        setLocalState(addressData.state);
+        setLocalZipCode(addressData.zip_code);
+        
+        // Call parent onChange with all the parsed data
+        onChangeRef.current(addressData);
+        
+        // Reset processing flag after a short delay to allow React to settle
+        setTimeout(() => {
+          isProcessingSelectionRef.current = false;
+        }, 300);
       };
 
       // Helper function to try Geocoder as fallback
@@ -278,7 +296,7 @@ export function StructuredAddressInput({
           } else {
             console.error('[StructuredAddressInput] Geocoder fallback failed:', status);
             toast.error("Couldn't parse address. Please enter details manually.");
-            suppressInputChangeRef.current = false;
+            isProcessingSelectionRef.current = false;
           }
         });
       };
@@ -288,7 +306,6 @@ export function StructuredAddressInput({
         
         if (!place || !place.place_id) {
           console.log('[StructuredAddressInput] No place or place_id returned');
-          suppressInputChangeRef.current = false;
           return;
         }
 
@@ -297,6 +314,9 @@ export function StructuredAddressInput({
           hasAddressComponents: !!place.address_components,
           componentCount: place.address_components?.length
         });
+
+        // Set processing flag immediately
+        isProcessingSelectionRef.current = true;
 
         // Strategy 1: Try PlacesService.getDetails first (most reliable)
         placesServiceRef.current!.getDetails(
@@ -330,25 +350,49 @@ export function StructuredAddressInput({
     } catch (error) {
       console.error('Error initializing Google Places Autocomplete:', error);
     }
-  }, [isLoaded, onChange, value.address_line_2]);
+  }, [isLoaded]); // Only depend on isLoaded, use refs for callbacks
+
+  // Handler for manual street address changes (when user types directly)
+  const handleStreetChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only update if not processing a selection
+    if (!isProcessingSelectionRef.current) {
+      onChangeRef.current({
+        address_line_1: e.target.value,
+        address_line_2: localAddressLine2,
+        city: localCity,
+        state: localState,
+        zip_code: localZipCode
+      });
+    }
+  }, [localAddressLine2, localCity, localState, localZipCode]);
 
   const handleFieldChange = (field: keyof StructuredAddressData, fieldValue: string) => {
-    // If we're suppressing input changes (after a place selection), ignore this onChange
-    if (field === 'address_line_1' && suppressInputChangeRef.current) {
-      console.log('[StructuredAddressInput] Suppressing onChange for address_line_1');
-      return;
-    }
-    
-    onChange({
-      ...value,
+    const updatedValue = {
+      address_line_1: streetInputRef.current?.value || '',
+      address_line_2: localAddressLine2,
+      city: localCity,
+      state: localState,
+      zip_code: localZipCode,
       [field]: fieldValue
-    });
+    };
+    
+    // Update local state
+    if (field === 'address_line_2') setLocalAddressLine2(fieldValue);
+    if (field === 'city') setLocalCity(fieldValue);
+    if (field === 'state') setLocalState(fieldValue);
+    if (field === 'zip_code') setLocalZipCode(fieldValue);
+    
+    onChange(updatedValue);
   };
 
   const handleStateSelect = (abbreviation: string) => {
+    setLocalState(abbreviation);
     onChange({
-      ...value,
-      state: abbreviation
+      address_line_1: streetInputRef.current?.value || '',
+      address_line_2: localAddressLine2,
+      city: localCity,
+      state: abbreviation,
+      zip_code: localZipCode
     });
     setStateDropdownOpen(false);
   };
@@ -359,9 +403,9 @@ export function StructuredAddressInput({
         <Label htmlFor="address_line_1">Street Address</Label>
         <Input
           id="address_line_1"
-          ref={inputRef}
-          value={value.address_line_1}
-          onChange={(e) => handleFieldChange('address_line_1', e.target.value)}
+          ref={streetInputRef}
+          defaultValue={value.address_line_1}
+          onChange={handleStreetChange}
           placeholder="Start typing address..."
           disabled={disabled}
           className="bg-background"
@@ -372,7 +416,7 @@ export function StructuredAddressInput({
         <Label htmlFor="address_line_2">Suite / Unit / Apt (optional)</Label>
         <Input
           id="address_line_2"
-          value={value.address_line_2}
+          value={localAddressLine2}
           onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
           placeholder="Suite 100"
           disabled={disabled}
@@ -385,7 +429,7 @@ export function StructuredAddressInput({
           <Label htmlFor="city">City</Label>
           <Input
             id="city"
-            value={value.city}
+            value={localCity}
             onChange={(e) => handleFieldChange('city', e.target.value)}
             placeholder="City"
             disabled={disabled}
@@ -423,7 +467,7 @@ export function StructuredAddressInput({
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            value.state === state.abbreviation ? "opacity-100" : "opacity-0"
+                            localState === state.abbreviation ? "opacity-100" : "opacity-0"
                           )}
                         />
                         {state.name} ({state.abbreviation})
@@ -440,7 +484,7 @@ export function StructuredAddressInput({
           <Label htmlFor="zip_code">ZIP Code</Label>
           <Input
             id="zip_code"
-            value={value.zip_code}
+            value={localZipCode}
             onChange={(e) => handleFieldChange('zip_code', e.target.value)}
             placeholder="12345"
             disabled={disabled}
