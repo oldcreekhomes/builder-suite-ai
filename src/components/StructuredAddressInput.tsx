@@ -163,63 +163,8 @@ export function StructuredAddressInput({
         }
       });
 
-      // Add event listeners to handle clicking on Google Places suggestions
-      const handleMouseDown = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (target.closest('.pac-item')) {
-          e.stopPropagation();
-        }
-      };
-
-      const handleClick = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        const pacItem = target.closest('.pac-item');
-        if (pacItem) {
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Trigger the place selection
-          setTimeout(() => {
-            const place = autocompleteRef.current?.getPlace();
-            if (place && place.address_components) {
-              const addressData: StructuredAddressData = {
-                address_line_1: '',
-                address_line_2: value.address_line_2,
-                city: '',
-                state: '',
-                zip_code: ''
-              };
-
-              place.address_components.forEach((component) => {
-                const types = component.types;
-                
-                if (types.includes('street_number')) {
-                  addressData.address_line_1 = component.long_name + ' ';
-                } else if (types.includes('route')) {
-                  addressData.address_line_1 += component.long_name;
-                } else if (types.includes('locality')) {
-                  addressData.city = component.long_name;
-                } else if (types.includes('administrative_area_level_1')) {
-                  addressData.state = component.short_name;
-                } else if (types.includes('postal_code')) {
-                  addressData.zip_code = component.long_name;
-                }
-              });
-
-              onChange(addressData);
-            }
-          }, 0);
-        }
-      };
-
-      // Add event listeners
-      document.addEventListener('mousedown', handleMouseDown, true);
-      document.addEventListener('click', handleClick, true);
-
       // Cleanup function
       return () => {
-        document.removeEventListener('mousedown', handleMouseDown, true);
-        document.removeEventListener('click', handleClick, true);
         document.head.removeChild(style);
       };
 
