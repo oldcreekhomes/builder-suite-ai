@@ -498,11 +498,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                               zip_code: form.watch("zip_code") || "",
                             }}
                             onChange={(addressData) => {
-                              form.setValue("address_line_1", addressData.address_line_1);
-                              form.setValue("address_line_2", addressData.address_line_2);
-                              form.setValue("city", addressData.city);
-                              form.setValue("state", addressData.state);
-                              form.setValue("zip_code", addressData.zip_code);
+                              const options = { shouldDirty: true, shouldTouch: true, shouldValidate: true };
+                              form.setValue("address_line_1", addressData.address_line_1, options);
+                              form.setValue("address_line_2", addressData.address_line_2, options);
+                              form.setValue("city", addressData.city, options);
+                              form.setValue("state", addressData.state, options);
+                              form.setValue("zip_code", addressData.zip_code, options);
                             }}
                           />
                         </FormControl>

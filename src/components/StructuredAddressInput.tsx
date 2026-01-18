@@ -41,7 +41,7 @@ interface StructuredAddressInputProps {
   disabled?: boolean;
 }
 
-// Parse address components from Google Places API response
+// Parse address components from Google Places API response with robust fallbacks
 const parseAddressComponents = (
   addressComponents: google.maps.GeocoderAddressComponent[],
   existingAddressLine2: string
@@ -56,30 +56,70 @@ const parseAddressComponents = (
 
   let streetNumber = '';
   let route = '';
+  let subpremise = '';
+
+  // Priority order for city fallbacks
+  let locality = '';
+  let postalTown = '';
+  let sublocality = '';
+  let sublocalityLevel1 = '';
+  let neighborhood = '';
+  let adminLevel3 = '';
+  let adminLevel2 = '';
 
   for (const component of addressComponents) {
     const types = component.types;
+    
+    // Street components
     if (types.includes('street_number')) {
       streetNumber = component.long_name;
     } else if (types.includes('route')) {
       route = component.long_name;
-    } else if (types.includes('locality')) {
-      addressData.city = component.long_name;
-    } else if (types.includes('postal_town') && !addressData.city) {
-      // Fallback for city if locality is missing
-      addressData.city = component.long_name;
-    } else if (types.includes('sublocality_level_1') && !addressData.city) {
-      // Another fallback for city
-      addressData.city = component.long_name;
-    } else if (types.includes('administrative_area_level_1')) {
+    } else if (types.includes('subpremise')) {
+      subpremise = component.long_name;
+    }
+    
+    // City/locality components (collect all, pick best later)
+    else if (types.includes('locality')) {
+      locality = component.long_name;
+    } else if (types.includes('postal_town')) {
+      postalTown = component.long_name;
+    } else if (types.includes('sublocality')) {
+      sublocality = component.long_name;
+    } else if (types.includes('sublocality_level_1')) {
+      sublocalityLevel1 = component.long_name;
+    } else if (types.includes('neighborhood')) {
+      neighborhood = component.long_name;
+    } else if (types.includes('administrative_area_level_3')) {
+      adminLevel3 = component.long_name;
+    } else if (types.includes('administrative_area_level_2')) {
+      adminLevel2 = component.long_name;
+    }
+    
+    // State and ZIP
+    else if (types.includes('administrative_area_level_1')) {
       addressData.state = component.short_name;
     } else if (types.includes('postal_code')) {
       addressData.zip_code = component.long_name;
+    } else if (types.includes('postal_code_suffix') && addressData.zip_code) {
+      // Append suffix for full ZIP+4
+      addressData.zip_code = `${addressData.zip_code}-${component.long_name}`;
     }
   }
 
+  // Build address line 1
   addressData.address_line_1 = [streetNumber, route].filter(Boolean).join(' ');
+  
+  // If there's a subpremise and no address_line_2, use it
+  if (subpremise && !existingAddressLine2) {
+    addressData.address_line_2 = subpremise;
+  }
 
+  // Pick city using priority fallbacks
+  addressData.city = locality || postalTown || sublocalityLevel1 || sublocality || 
+                     neighborhood || adminLevel3 || adminLevel2 || '';
+
+  console.log('[parseAddressComponents] Parsed result:', addressData);
   return addressData;
 };
 
@@ -91,6 +131,7 @@ export function StructuredAddressInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   // This ref prevents the input's onChange from overwriting structured address data
   const suppressInputChangeRef = useRef<boolean>(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -159,6 +200,9 @@ export function StructuredAddressInput({
       // Create a hidden div for PlacesService (it requires a DOM element)
       const serviceDiv = document.createElement('div');
       placesServiceRef.current = new window.google.maps.places.PlacesService(serviceDiv);
+      
+      // Create Geocoder for fallback
+      geocoderRef.current = new window.google.maps.Geocoder();
 
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         inputRef.current,
@@ -199,6 +243,35 @@ export function StructuredAddressInput({
       `;
       document.head.appendChild(style);
 
+      // Helper function to process address components and call onChange
+      const processAddressComponents = (components: google.maps.GeocoderAddressComponent[]) => {
+        const addressData = parseAddressComponents(components, value.address_line_2);
+        console.log('[StructuredAddressInput] Final address data:', addressData);
+        onChange(addressData);
+        
+        // Reset suppress flag after a short delay
+        setTimeout(() => {
+          suppressInputChangeRef.current = false;
+        }, 100);
+      };
+
+      // Helper function to try Geocoder as fallback
+      const tryGeocoderFallback = (placeId: string) => {
+        console.log('[StructuredAddressInput] Trying Geocoder fallback for:', placeId);
+        
+        geocoderRef.current!.geocode({ placeId }, (results, status) => {
+          console.log('[StructuredAddressInput] Geocoder response:', { status, hasResults: !!results?.length });
+          
+          if (status === 'OK' && results?.[0]?.address_components) {
+            processAddressComponents(results[0].address_components);
+          } else {
+            console.error('[StructuredAddressInput] Geocoder fallback failed:', status);
+            toast.error("Couldn't parse address. Please enter details manually.");
+            suppressInputChangeRef.current = false;
+          }
+        });
+      };
+
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
         
@@ -208,30 +281,37 @@ export function StructuredAddressInput({
           return;
         }
 
-        console.log('[StructuredAddressInput] place_changed fired, fetching details for:', place.place_id);
+        console.log('[StructuredAddressInput] place_changed fired:', {
+          placeId: place.place_id,
+          hasAddressComponents: !!place.address_components,
+          componentCount: place.address_components?.length
+        });
 
-        // Always use getDetails for consistent results - this mirrors the reliable 
-        // pattern used in company name search (useGooglePlaces hook)
+        // Strategy 1: Try PlacesService.getDetails first (most reliable)
         placesServiceRef.current!.getDetails(
           {
             placeId: place.place_id,
             fields: ['address_components', 'formatted_address', 'geometry', 'name']
           },
           (details, status) => {
-            console.log('[StructuredAddressInput] getDetails response:', { status, hasDetails: !!details });
+            console.log('[StructuredAddressInput] getDetails response:', { 
+              status, 
+              hasDetails: !!details,
+              hasComponents: !!details?.address_components,
+              componentCount: details?.address_components?.length
+            });
 
-            if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components) {
-              const addressData = parseAddressComponents(details.address_components, value.address_line_2);
-              onChange(addressData);
-            } else {
-              console.error('[StructuredAddressInput] getDetails failed:', status);
-              toast.error("Couldn't fetch address details. Please try again.");
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && 
+                details?.address_components && 
+                details.address_components.length > 0) {
+              // Success with PlacesService
+              processAddressComponents(details.address_components);
+            } 
+            // Strategy 2: Try Geocoder as fallback
+            else {
+              console.log('[StructuredAddressInput] getDetails incomplete, trying Geocoder fallback');
+              tryGeocoderFallback(place.place_id!);
             }
-            
-            // Reset suppress flag after processing
-            setTimeout(() => {
-              suppressInputChangeRef.current = false;
-            }, 50);
           }
         );
       });
