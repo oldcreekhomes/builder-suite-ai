@@ -137,6 +137,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     initialNotes: '',
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [actionValue, setActionValue] = useState<Record<string, string>>({});
 
   const updateNotesMutation = useMutation({
     mutationFn: async ({ billId, newNote, existingNotes }: { billId: string; newNote: string; existingNotes: string }) => {
@@ -848,7 +849,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     <TableCell className="py-1 text-left">
                       <div className="flex justify-start">
                         <Select
-                          onValueChange={(value) => handleActionChange(bill.id, value)}
+                          value={actionValue[bill.id] || ''}
+                          onValueChange={(value) => {
+                            setActionValue(prev => ({ ...prev, [bill.id]: value }));
+                            handleActionChange(bill.id, value);
+                          }}
                           disabled={approveBill.isPending || rejectBill.isPending}
                         >
                           <SelectTrigger className="h-8 w-24 text-xs border-gray-200 bg-white hover:bg-gray-50">
@@ -990,7 +995,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       <EditBillDialog
         open={editingBillId !== null}
-        onOpenChange={(open) => !open && setEditingBillId(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (editingBillId) {
+              setActionValue(prev => ({ ...prev, [editingBillId]: '' }));
+            }
+            setEditingBillId(null);
+          }
+        }}
         billId={editingBillId || ''}
       />
     </>
