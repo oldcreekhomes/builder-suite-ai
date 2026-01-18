@@ -49,7 +49,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
                   {billCounts && billCounts.pendingCount > 0 && (
                     <Badge 
                       variant="secondary" 
-                      className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                      className="ml-auto rounded-full border-2 border-black h-6 min-w-6 px-2 flex items-center justify-center"
                     >
                       {billCounts.pendingCount}
                     </Badge>
@@ -60,9 +60,9 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
                   {billCounts && billCounts.approvedCount > 0 && (
                     <Badge 
                       variant="secondary" 
-                      className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                      className="ml-auto rounded-full border-2 border-black h-6 min-w-6 px-2 flex items-center justify-center"
                     >
-                      {billCounts.approvedCount}
+                      {(billCounts.approvedCount || 0) + (billCounts.payBillsCount || 0)}
                     </Badge>
                   )}
                 </TabsTrigger>
