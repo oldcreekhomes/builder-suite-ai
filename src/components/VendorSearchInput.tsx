@@ -111,11 +111,16 @@ export function VendorSearchInput({
         type="text"
         value={searchQuery}
         onChange={handleInputChange}
-        onFocus={handleInputFocus}
+        onFocus={(e) => {
+          // Prevent text selection on focus - move cursor to end
+          e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+          handleInputFocus();
+        }}
         onBlur={handleInputBlur}
         placeholder={placeholder}
         className={className}
         disabled={disabled}
+        autoFocus={false}
       />
       
       {showResults && (
