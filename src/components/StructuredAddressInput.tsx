@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -236,55 +237,71 @@ export function StructuredAddressInput({
           return;
         }
 
-        // Fallback: If no address_components but we have place_id, fetch details
+        // No address_components - need to fetch via getDetails with retry logic
         if (place.place_id && placesServiceRef.current) {
-          console.log('[StructuredAddressInput] Fetching details via PlacesService for place_id:', place.place_id);
+          console.log('[StructuredAddressInput] No address_components, fetching via PlacesService with retries');
           
-          placesServiceRef.current.getDetails(
-            {
-              placeId: place.place_id,
-              fields: ['address_components', 'formatted_address', 'geometry', 'name']
-            },
-            (details, status) => {
-              // Check if this is still the latest request
-              if (currentRequestId !== requestIdRef.current) {
-                console.log('[StructuredAddressInput] Stale request, ignoring');
-                suppressInputChangeRef.current = false;
-                return;
-              }
+          const RETRY_DELAYS = [0, 150, 300, 500]; // Immediate, then 150ms, 300ms, 500ms
+          let attemptIndex = 0;
 
-              console.log('[StructuredAddressInput] getDetails response:', {
-                status,
-                hasDetails: !!details,
-                hasAddressComponents: !!(details?.address_components)
-              });
+          const attemptGetDetails = () => {
+            // Check if this is still the latest request
+            if (currentRequestId !== requestIdRef.current) {
+              console.log('[StructuredAddressInput] Stale request, ignoring');
+              suppressInputChangeRef.current = false;
+              return;
+            }
 
-              if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components) {
-                const addressData = parseAddressComponents(details.address_components, value.address_line_2);
-                applyAddressData(addressData);
-              } else {
-                console.error('[StructuredAddressInput] Failed to get place details:', status);
-                // As a last resort, just use the formatted address
-                if (place.formatted_address) {
-                  applyAddressData({
-                    ...value,
-                    address_line_1: place.formatted_address
-                  });
-                } else {
+            console.log(`[StructuredAddressInput] getDetails attempt ${attemptIndex + 1}/${RETRY_DELAYS.length}`);
+            
+            placesServiceRef.current!.getDetails(
+              {
+                placeId: place.place_id!,
+                fields: ['address_components', 'formatted_address', 'geometry', 'name']
+              },
+              (details, status) => {
+                // Check again if this is still the latest request
+                if (currentRequestId !== requestIdRef.current) {
+                  console.log('[StructuredAddressInput] Stale request after getDetails, ignoring');
                   suppressInputChangeRef.current = false;
+                  return;
+                }
+
+                console.log('[StructuredAddressInput] getDetails response:', {
+                  attempt: attemptIndex + 1,
+                  status,
+                  hasDetails: !!details,
+                  hasAddressComponents: !!(details?.address_components)
+                });
+
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components && details.address_components.length > 0) {
+                  // Success! Apply the parsed address
+                  const addressData = parseAddressComponents(details.address_components, value.address_line_2);
+                  applyAddressData(addressData);
+                } else {
+                  // Failed - try again if we have retries left
+                  attemptIndex++;
+                  if (attemptIndex < RETRY_DELAYS.length) {
+                    console.log(`[StructuredAddressInput] Retrying in ${RETRY_DELAYS[attemptIndex]}ms...`);
+                    setTimeout(attemptGetDetails, RETRY_DELAYS[attemptIndex]);
+                  } else {
+                    // All retries exhausted - show error, do NOT populate with formatted address
+                    console.error('[StructuredAddressInput] All getDetails retries exhausted');
+                    suppressInputChangeRef.current = false;
+                    toast.error("Couldn't fetch address details. Please select the address again or type manually.");
+                  }
                 }
               }
-            }
-          );
-        } else if (place.formatted_address) {
-          // Last resort: use formatted address
-          console.log('[StructuredAddressInput] Using formatted_address as fallback');
-          applyAddressData({
-            ...value,
-            address_line_1: place.formatted_address
-          });
+            );
+          };
+
+          // Start the first attempt
+          attemptGetDetails();
         } else {
+          // No place_id available - show error instead of using formatted_address
+          console.error('[StructuredAddressInput] No place_id available for details lookup');
           suppressInputChangeRef.current = false;
+          toast.error("Couldn't get address details. Please type the address manually.");
         }
       });
 
