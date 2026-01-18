@@ -81,7 +81,30 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
   };
 
   const handleSave = async () => {
-    if (!title.trim()) return;
+    // Validate all required fields
+    const missingFields: string[] = [];
+    
+    if (!title.trim()) {
+      missingFields.push('Title');
+    }
+    if (!priority) {
+      missingFields.push('Priority');
+    }
+    if (selectedFiles.length === 0) {
+      missingFields.push('Files (screenshot or attachment)');
+    }
+    if (!location) {
+      missingFields.push('Location');
+    }
+    
+    if (missingFields.length > 0) {
+      toast({
+        title: "Missing Required Fields",
+        description: `Please provide the following: ${missingFields.join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     createIssue.mutate({
       title: title.trim(),
@@ -183,7 +206,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
             size="sm"
             variant="ghost"
             onClick={handleSave}
-            disabled={!title.trim() || createIssue.isPending}
+            disabled={createIssue.isPending}
             className="h-6 w-6 p-0"
           >
             <Check className="h-3 w-3" />
