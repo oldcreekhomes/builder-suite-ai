@@ -264,13 +264,10 @@ export const useBills = () => {
           ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() 
           : 'Unknown User';
         
-        // Format: "First Last: Note\n\n" + existing notes
-        const newNote = `${userName}: ${notes.trim()}`;
-        let finalNotes = newNote;
-        
-        if (billData?.notes && billData.notes.trim()) {
-          finalNotes = `${newNote}\n\n${billData.notes}`;
-        }
+        // Format with date: "First Last | MM/DD/YYYY: Note\n\n" + existing notes
+        const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+        const newNote = formatBillNote(userName, notes.trim());
+        const finalNotes = appendBillNote(billData?.notes || '', newNote);
         
         const { error: notesError } = await supabase
           .from('bills')
@@ -469,12 +466,31 @@ export const useBills = () => {
           const newAmountPaid = (bill.amount_paid || 0) + paymentAmount;
           const isFullyPaid = newAmountPaid >= bill.total_amount;
 
+          // Get current user for attribution
+          const { data: payerData } = await supabase
+            .from('users')
+            .select('first_name, last_name')
+            .eq('id', user.id)
+            .single();
+          
+          const payerName = payerData 
+            ? `${payerData.first_name || ''} ${payerData.last_name || ''}`.trim() 
+            : 'Unknown User';
+          
+          // Format payment note with attribution and append to existing
+          const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+          const paymentNoteContent = memo 
+            ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` 
+            : (isFullyPaid ? 'Paid' : 'Partial payment');
+          const formattedPaymentNote = formatBillNote(payerName, paymentNoteContent);
+          const updatedNotes = appendBillNote(bill.notes, formattedPaymentNote);
+
           const { error: updateError } = await supabase
             .from('bills')
             .update({ 
               amount_paid: newAmountPaid,
               status: isFullyPaid ? 'paid' as any : 'posted' as any,
-              notes: memo ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` : (isFullyPaid ? 'Paid' : 'Partial payment'),
+              notes: updatedNotes,
               updated_at: new Date().toISOString()
             })
             .eq('id', billId);
@@ -616,12 +632,31 @@ export const useBills = () => {
       const newAmountPaid = (bill.amount_paid || 0) + amountToPay;
       const isFullyPaid = newAmountPaid >= bill.total_amount;
 
+      // Get current user for attribution
+      const { data: payerData } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      const payerName = payerData 
+        ? `${payerData.first_name || ''} ${payerData.last_name || ''}`.trim() 
+        : 'Unknown User';
+      
+      // Format payment note with attribution and append to existing
+      const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+      const paymentNoteContent = memo 
+        ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` 
+        : (isFullyPaid ? 'Paid' : 'Partial payment');
+      const formattedPaymentNote = formatBillNote(payerName, paymentNoteContent);
+      const updatedNotes = appendBillNote(bill.notes, formattedPaymentNote);
+
       const { error: updateError } = await supabase
         .from('bills')
         .update({ 
           amount_paid: newAmountPaid,
           status: isFullyPaid ? 'paid' as any : 'posted' as any,
-          notes: memo ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` : (isFullyPaid ? 'Paid' : 'Partial payment'),
+          notes: updatedNotes,
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
