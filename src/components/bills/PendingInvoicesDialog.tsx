@@ -17,9 +17,10 @@ interface PendingInvoicesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectIds?: string[];
+  showProjectColumn?: boolean;
 }
 
-export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: PendingInvoicesDialogProps) {
+export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProjectColumn = true }: PendingInvoicesDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: billCounts } = useBillCounts(undefined, projectIds);
 
@@ -74,6 +75,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
                 <BillsApprovalTable 
                   status="draft"
                   projectIds={projectIds}
+                  showProjectColumn={showProjectColumn}
                   defaultSortBy="due_date"
                   sortOrder="asc"
                   enableSorting={true}
@@ -85,6 +87,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds }: Pendin
                 <BillsApprovalTable 
                   status={['posted', 'paid']}
                   projectIds={projectIds}
+                  showProjectColumn={showProjectColumn}
                   searchQuery={searchQuery}
                 />
               </TabsContent>
