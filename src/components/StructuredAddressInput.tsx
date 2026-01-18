@@ -91,7 +91,6 @@ export function StructuredAddressInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
-  const requestIdRef = useRef<number>(0);
   // This ref prevents the input's onChange from overwriting structured address data
   const suppressInputChangeRef = useRef<boolean>(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -203,106 +202,38 @@ export function StructuredAddressInput({
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
         
-        if (!place) {
-          console.log('[StructuredAddressInput] No place returned');
-          return;
-        }
-
-        // Note: suppressInputChangeRef.current is already set to true by the mousedown handler
-        // This ensures the flag is set BEFORE Google updates the input value
-
-        // Increment request ID to track this specific request
-        const currentRequestId = ++requestIdRef.current;
-
-        console.log('[StructuredAddressInput] place_changed fired:', {
-          hasAddressComponents: !!place.address_components,
-          hasPlaceId: !!place.place_id,
-          placeId: place.place_id
-        });
-
-        // Helper to apply parsed address and clear suppress flag after a microtask
-        const applyAddressData = (addressData: StructuredAddressData) => {
-          onChange(addressData);
-          // Reset suppress flag after a short delay to allow any pending onChange to be ignored
-          setTimeout(() => {
-            suppressInputChangeRef.current = false;
-          }, 50);
-        };
-
-        // If we have address_components, use them directly
-        if (place.address_components && place.address_components.length > 0) {
-          console.log('[StructuredAddressInput] Using address_components directly');
-          const addressData = parseAddressComponents(place.address_components, value.address_line_2);
-          applyAddressData(addressData);
-          return;
-        }
-
-        // No address_components - need to fetch via getDetails with retry logic
-        if (place.place_id && placesServiceRef.current) {
-          console.log('[StructuredAddressInput] No address_components, fetching via PlacesService with retries');
-          
-          const RETRY_DELAYS = [0, 150, 300, 500]; // Immediate, then 150ms, 300ms, 500ms
-          let attemptIndex = 0;
-
-          const attemptGetDetails = () => {
-            // Check if this is still the latest request
-            if (currentRequestId !== requestIdRef.current) {
-              console.log('[StructuredAddressInput] Stale request, ignoring');
-              suppressInputChangeRef.current = false;
-              return;
-            }
-
-            console.log(`[StructuredAddressInput] getDetails attempt ${attemptIndex + 1}/${RETRY_DELAYS.length}`);
-            
-            placesServiceRef.current!.getDetails(
-              {
-                placeId: place.place_id!,
-                fields: ['address_components', 'formatted_address', 'geometry', 'name']
-              },
-              (details, status) => {
-                // Check again if this is still the latest request
-                if (currentRequestId !== requestIdRef.current) {
-                  console.log('[StructuredAddressInput] Stale request after getDetails, ignoring');
-                  suppressInputChangeRef.current = false;
-                  return;
-                }
-
-                console.log('[StructuredAddressInput] getDetails response:', {
-                  attempt: attemptIndex + 1,
-                  status,
-                  hasDetails: !!details,
-                  hasAddressComponents: !!(details?.address_components)
-                });
-
-                if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components && details.address_components.length > 0) {
-                  // Success! Apply the parsed address
-                  const addressData = parseAddressComponents(details.address_components, value.address_line_2);
-                  applyAddressData(addressData);
-                } else {
-                  // Failed - try again if we have retries left
-                  attemptIndex++;
-                  if (attemptIndex < RETRY_DELAYS.length) {
-                    console.log(`[StructuredAddressInput] Retrying in ${RETRY_DELAYS[attemptIndex]}ms...`);
-                    setTimeout(attemptGetDetails, RETRY_DELAYS[attemptIndex]);
-                  } else {
-                    // All retries exhausted - show error, do NOT populate with formatted address
-                    console.error('[StructuredAddressInput] All getDetails retries exhausted');
-                    suppressInputChangeRef.current = false;
-                    toast.error("Couldn't fetch address details. Please select the address again or type manually.");
-                  }
-                }
-              }
-            );
-          };
-
-          // Start the first attempt
-          attemptGetDetails();
-        } else {
-          // No place_id available - show error instead of using formatted_address
-          console.error('[StructuredAddressInput] No place_id available for details lookup');
+        if (!place || !place.place_id) {
+          console.log('[StructuredAddressInput] No place or place_id returned');
           suppressInputChangeRef.current = false;
-          toast.error("Couldn't get address details. Please type the address manually.");
+          return;
         }
+
+        console.log('[StructuredAddressInput] place_changed fired, fetching details for:', place.place_id);
+
+        // Always use getDetails for consistent results - this mirrors the reliable 
+        // pattern used in company name search (useGooglePlaces hook)
+        placesServiceRef.current!.getDetails(
+          {
+            placeId: place.place_id,
+            fields: ['address_components', 'formatted_address', 'geometry', 'name']
+          },
+          (details, status) => {
+            console.log('[StructuredAddressInput] getDetails response:', { status, hasDetails: !!details });
+
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components) {
+              const addressData = parseAddressComponents(details.address_components, value.address_line_2);
+              onChange(addressData);
+            } else {
+              console.error('[StructuredAddressInput] getDetails failed:', status);
+              toast.error("Couldn't fetch address details. Please try again.");
+            }
+            
+            // Reset suppress flag after processing
+            setTimeout(() => {
+              suppressInputChangeRef.current = false;
+            }, 50);
+          }
+        );
       });
 
     } catch (error) {
