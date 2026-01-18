@@ -1,15 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { AlertTriangle, DollarSign } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
-import { useBillsReadyToPay } from "@/hooks/useBillsReadyToPay";
-import { useBillCounts } from "@/hooks/useBillCounts";
 import { PendingInvoicesDialog } from "@/components/bills/PendingInvoicesDialog";
-import { BillsReadyToPayDialog } from "@/components/bills/BillsReadyToPayDialog";
 
 // Helper function to get street address only (before first comma)
 const getStreetAddress = (address: string) => {
@@ -20,17 +16,11 @@ const getStreetAddress = (address: string) => {
 
 export function ProjectWarnings() {
   const [isPendingDialogOpen, setIsPendingDialogOpen] = useState(false);
-  const [isReadyToPayDialogOpen, setIsReadyToPayDialogOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   
   const { data: pendingData, isLoading: pendingLoading, error: pendingError } = useAccountingManagerBills();
-  const { data: readyToPayData, isLoading: readyToPayLoading, error: readyToPayError } = useBillsReadyToPay();
-  const { data: billCounts, isLoading: countsLoading } = useBillCounts();
 
-  const isLoading = pendingLoading || readyToPayLoading || countsLoading;
-  const error = pendingError || readyToPayError;
-
-  if (isLoading) {
+  if (pendingLoading) {
     return (
       <Card>
         <div className="p-6 border-b border-gray-200">
@@ -46,7 +36,7 @@ export function ProjectWarnings() {
     );
   }
 
-  if (error) {
+  if (pendingError) {
     return (
       <Card>
         <div className="p-6 border-b border-gray-200">
@@ -66,11 +56,8 @@ export function ProjectWarnings() {
     projectIds: [], 
     projectsWithCounts: [] 
   };
-  const { count: readyToPayCount, projectIds: readyToPayProjectIds, hasAccess } = readyToPayData || { count: 0, projectIds: [], hasAccess: false };
-  const readyToPayTotal = (billCounts?.readyToPayCount || 0) + (billCounts?.rejectedCount || 0);
   
-  const hasProjectAlerts = projectsWithCounts.some(p => p.totalCount > 0);
-  const hasAlerts = hasProjectAlerts || (hasAccess && readyToPayTotal > 0);
+  const hasAlerts = projectsWithCounts.some(p => p.totalCount > 0);
 
   return (
     <>
@@ -131,34 +118,6 @@ export function ProjectWarnings() {
                   </div>
                 )
               ))}
-              
-              {hasAccess && readyToPayTotal > 0 && (
-                <div
-                  className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
-                  onClick={() => setIsReadyToPayDialogOpen(true)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <DollarSign className="h-5 w-5 text-gray-600" />
-                    <span className="text-sm font-medium">Ready for Review</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Pay</span>
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
-                        {billCounts?.readyToPayCount || 0}
-                      </Badge>
-                    </div>
-                    
-                    <div className="relative">
-                      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Rejected</span>
-                      <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
-                        {billCounts?.rejectedCount || 0}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
@@ -171,11 +130,6 @@ export function ProjectWarnings() {
           if (!open) setSelectedProjectId(null);
         }}
         projectIds={selectedProjectId ? [selectedProjectId] : projectIds}
-      />
-      
-      <BillsReadyToPayDialog 
-        open={isReadyToPayDialogOpen} 
-        onOpenChange={setIsReadyToPayDialogOpen}
       />
     </>
   );
