@@ -124,6 +124,7 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
         open={isPendingDialogOpen} 
         onOpenChange={setIsPendingDialogOpen}
         projectIds={[projectId]}
+        showProjectColumn={false}
       />
     </>
   );
