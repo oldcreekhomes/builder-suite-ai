@@ -248,20 +248,22 @@ export function StructuredAddressInput({
         const addressData = parseAddressComponents(components, value.address_line_2);
         console.log('[StructuredAddressInput] Final address data:', addressData);
         
-        // CRITICAL: Directly set the input DOM value to the parsed street address
-        // This overrides Google's injection of the full formatted address
-        if (inputRef.current) {
-          inputRef.current.value = addressData.address_line_1;
-          console.log('[StructuredAddressInput] Set input DOM value to:', addressData.address_line_1);
-        }
-        
-        // Now call onChange with the structured data
+        // CRITICAL FIX: Call onChange FIRST to update React state
+        // This triggers a re-render with the correct structured data
         onChange(addressData);
         
-        // Reset suppress flag after a short delay
-        setTimeout(() => {
-          suppressInputChangeRef.current = false;
-        }, 150);
+        // Then use requestAnimationFrame to set DOM value AFTER React re-renders
+        // This ensures the controlled input shows the parsed street, not full address
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.value = addressData.address_line_1;
+            console.log('[StructuredAddressInput] Set input DOM value after render:', addressData.address_line_1);
+          }
+          // Reset suppress flag after DOM is correct
+          setTimeout(() => {
+            suppressInputChangeRef.current = false;
+          }, 50);
+        });
       };
 
       // Helper function to try Geocoder as fallback
