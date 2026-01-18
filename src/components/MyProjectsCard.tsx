@@ -18,7 +18,6 @@ const statusGroups = [
   { status: "Permitting", color: "bg-blue-100 text-blue-800" },
   { status: "Under Construction", color: "bg-orange-100 text-orange-800" },
   { status: "Completed", color: "bg-green-100 text-green-800" },
-  { status: "Permanently Closed", color: "bg-gray-100 text-gray-600" },
   { status: "Template", color: "bg-purple-100 text-purple-800" },
 ];
 
@@ -47,11 +46,14 @@ export function MyProjectsCard() {
     enabled: !!user?.id,
   });
 
+  // Filter out permanently closed projects
+  const activeProjects = projects.filter((p) => p.status !== "Permanently Closed");
+
   // Group projects by status
   const projectsByStatus = statusGroups
     .map((group) => ({
       ...group,
-      projects: projects.filter((p) => p.status === group.status),
+      projects: activeProjects.filter((p) => p.status === group.status),
     }))
     .filter((group) => group.projects.length > 0);
 
@@ -63,9 +65,9 @@ export function MyProjectsCard() {
             <FolderOpen className="h-5 w-5 text-primary" />
             My Projects
           </CardTitle>
-          {projects.length > 0 && (
+          {activeProjects.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {projects.length}
+              {activeProjects.length}
             </Badge>
           )}
         </div>
@@ -73,7 +75,7 @@ export function MyProjectsCard() {
       <CardContent className="pt-0">
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Loading projects...</div>
-        ) : projects.length === 0 ? (
+        ) : activeProjects.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-4">
             No projects assigned
           </div>
