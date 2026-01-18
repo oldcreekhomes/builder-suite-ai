@@ -10,6 +10,14 @@ interface BillSummary {
   project_id: string;
 }
 
+interface ProjectBillSummary {
+  projectId: string;
+  projectAddress: string;
+  currentCount: number;
+  lateCount: number;
+  totalCount: number;
+}
+
 interface AccountingManagerBillsData {
   pendingCount: number;
   currentCount: number;
@@ -17,6 +25,7 @@ interface AccountingManagerBillsData {
   totalAmount: number;
   recentBills: BillSummary[];
   projectIds: string[];
+  projectsWithCounts: ProjectBillSummary[];
 }
 
 export function useAccountingManagerBills() {
@@ -26,22 +35,22 @@ export function useAccountingManagerBills() {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
-      // Get projects where current user is the accounting manager
+      // Get projects where current user is the accounting manager (include address)
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select('id')
+        .select('id, address')
         .eq('accounting_manager', user.id);
 
       if (projectsError) {
         console.error('Error fetching managed projects:', projectsError);
-        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
       if (!projects || projects.length === 0) {
-        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
       const projectIds = projects.map(p => p.id);
@@ -64,21 +73,49 @@ export function useAccountingManagerBills() {
 
       if (billsError) {
         console.error('Error fetching bills:', billsError);
-        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [] };
+        return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      // Calculate per-project counts
+      const projectsWithCounts: ProjectBillSummary[] = projects.map(project => {
+        const projectBills = bills?.filter(bill => bill.project_id === project.id) || [];
+        
+        const currentBills = projectBills.filter(bill => {
+          if (!bill.due_date) return true; // No due date = not late
+          const dueDate = new Date(bill.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate >= today;
+        });
+
+        const lateBills = projectBills.filter(bill => {
+          if (!bill.due_date) return false; // No due date = not late
+          const dueDate = new Date(bill.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate < today;
+        });
+
+        return {
+          projectId: project.id,
+          projectAddress: project.address || 'Unknown Project',
+          currentCount: currentBills.length,
+          lateCount: lateBills.length,
+          totalCount: projectBills.length,
+        };
+      });
+
+      // Calculate global counts
       const currentBills = bills?.filter(bill => {
-        if (!bill.due_date) return true; // No due date = not late
+        if (!bill.due_date) return true;
         const dueDate = new Date(bill.due_date);
         dueDate.setHours(0, 0, 0, 0);
         return dueDate >= today;
       }) || [];
 
       const lateBills = bills?.filter(bill => {
-        if (!bill.due_date) return false; // No due date = not late
+        if (!bill.due_date) return false;
         const dueDate = new Date(bill.due_date);
         dueDate.setHours(0, 0, 0, 0);
         return dueDate < today;
@@ -105,6 +142,7 @@ export function useAccountingManagerBills() {
         totalAmount,
         recentBills,
         projectIds,
+        projectsWithCounts,
       };
     },
     refetchInterval: 30000, // Refetch every 30 seconds
