@@ -606,7 +606,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 <button
                   type="button"
                   onClick={() => handleSort('due_date')}
-                  className="flex items-center gap-1 hover:text-primary"
+                  className="flex items-center gap-1 hover:text-primary whitespace-nowrap"
                 >
                   <span>Due Date</span>
                   {sortColumn === 'due_date' ? (
@@ -620,7 +620,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   )}
                 </button>
               ) : (
-                'Due Date'
+                <span className="whitespace-nowrap">Due Date</span>
               )}
             </TableHead>
             <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Amount</TableHead>
@@ -660,8 +660,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       {bill.projects?.address || '-'}
                     </TableCell>
                   )}
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap w-40">
-                    {bill.companies?.company_name || 'Unknown Vendor'}
+                  <TableCell className="px-2 py-1 text-xs w-40">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="block truncate max-w-[160px]">
+                            {bill.companies?.company_name || 'Unknown Vendor'}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{bill.companies?.company_name || 'Unknown Vendor'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap w-48">
                     {(() => {
@@ -731,10 +742,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap w-40">
                     {bill.reference_number || '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs w-24">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
                       if (uniqueLotCount <= 1) {
@@ -772,10 +783,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs w-24">
                     {formatTerms(bill.terms)}
                   </TableCell>
-            <TableCell className="px-2 py-1">
+            <TableCell className="px-2 py-1 w-16">
               <BillFilesCell attachments={bill.bill_attachments || []} />
             </TableCell>
             <TableCell className="px-2 py-1 text-center">
