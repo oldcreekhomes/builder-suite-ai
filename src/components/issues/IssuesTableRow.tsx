@@ -32,7 +32,7 @@ interface IssuesTableRowProps {
     location?: string;
     category?: string;
   }) => void;
-  onResolve: (id: string) => void;
+  onResolve: (id: string, ccUserIds: string[]) => void;
   isResolving?: boolean;
 }
 
@@ -263,12 +263,13 @@ export function IssuesTableRow({
       <TableCell className="px-2 py-1 w-16">
         <div className="flex items-center space-x-1">
           <ResolveButton
-            onResolve={() => onResolve(issue.id)}
+            onResolve={(ccUserIds) => onResolve(issue.id, ccUserIds)}
             title="Resolve Issue"
             description="Are you sure you want to resolve this issue? It will be marked as resolved and removed from the active list."
             isLoading={isResolving}
             className="h-6 w-6 p-0"
             showIcon={true}
+            authorId={issue.created_by}
           />
         </div>
       </TableCell>
