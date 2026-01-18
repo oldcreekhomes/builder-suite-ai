@@ -160,24 +160,6 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
         <div className="space-y-3 pl-6">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="bill-payment-alerts" className="text-sm font-normal cursor-pointer">
-                Dashboard Project Alerts - Show Bills Ready to Pay
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Display alerts on the dashboard for bills that are approved and ready to be paid
-              </p>
-            </div>
-            <Switch
-              id="bill-payment-alerts"
-              checked={preferences.receive_bill_payment_alerts}
-              onCheckedChange={(checked) => 
-                updatePreferences({ receive_bill_payment_alerts: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
               <Label htmlFor="access-accounting" className="text-sm font-normal cursor-pointer">
                 Access Accounting Menu
               </Label>
