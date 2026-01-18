@@ -578,7 +578,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   value={vendor}
                   onChange={setVendor}
                   placeholder="Search vendors..."
-                  className="h-8"
+                  className="h-10"
                   disabled={isApprovedBill}
                 />
             </div>
