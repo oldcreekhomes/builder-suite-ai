@@ -56,7 +56,7 @@ export const InsuranceAlertsCard = () => {
                   ) : (
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                   )}
-                  <p className="text-sm font-medium text-foreground truncate flex-1 min-w-0">
+                  <p className="text-sm text-foreground truncate flex-1 min-w-0">
                     {alert.companyName}
                   </p>
                   <p className="text-xs text-muted-foreground truncate max-w-[140px] flex-shrink-0">

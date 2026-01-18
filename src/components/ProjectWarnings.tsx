@@ -103,7 +103,7 @@ export function ProjectWarnings() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm font-medium truncate">
+                            <span className="text-sm truncate">
                               {getStreetAddress(project.projectAddress)}
                             </span>
                           </TooltipTrigger>
