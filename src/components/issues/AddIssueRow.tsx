@@ -149,7 +149,6 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
             className="h-6 text-xs px-2"
             onClick={handleFileUpload}
           >
-            <Upload className="h-3 w-3 mr-1" />
             {uploading ? 'Uploading...' : selectedFiles.length > 0 ? `${selectedFiles.length} file(s)` : 'Add Files'}
           </Button>
           {selectedFiles.length > 0 && (
