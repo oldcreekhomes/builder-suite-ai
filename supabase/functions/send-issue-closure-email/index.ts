@@ -69,14 +69,14 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [authorEmail],
-      subject: "Issue Closed on BuilderSuite AI",
+      subject: "Issue Resolved on Builder Suite AI",
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Issue Closed on Builder Suite</title>
+    <title>Issue Resolved on Builder Suite</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
@@ -90,8 +90,8 @@ const handler = async (req: Request): Promise<Response> => {
                     
                     <!-- Header -->
                     <tr>
-                        <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Issue Closed</h1>
+                        <td align="center" style="padding: 40px 30px; background-color: #16a34a; margin: 0;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Issue Resolved</h1>
                         </td>
                     </tr>
                     
@@ -132,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
                                                         </tr>
                                                         ${commentRowHtml}
                                                         <tr${!commentRowHtml ? ' style="background-color: #f5f5f5;"' : ''}>
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Date Closed:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Date Resolved:</td>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${closureDate}</td>
                                                         </tr>
                                                     </table>
@@ -145,7 +145,7 @@ const handler = async (req: Request): Promise<Response> => {
                             
                             <p style="color: #000000; font-size: 16px; margin: 30px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Best regards,<br>Builder Suite</p>
                             
-                            <p style="color: #666666; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
+                            <p style="color: #000000; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #000000; text-decoration: none; font-weight: bold;">WWW.BUILDERSUITEAI.COM</a></p>
                         </td>
                     </tr>
                 </table>
