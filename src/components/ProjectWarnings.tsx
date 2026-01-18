@@ -10,6 +10,13 @@ import { useBillCounts } from "@/hooks/useBillCounts";
 import { PendingInvoicesDialog } from "@/components/bills/PendingInvoicesDialog";
 import { BillsReadyToPayDialog } from "@/components/bills/BillsReadyToPayDialog";
 
+// Helper function to get street address only (before first comma)
+const getStreetAddress = (address: string) => {
+  if (!address) return '';
+  const commaIndex = address.indexOf(',');
+  return commaIndex > -1 ? address.substring(0, commaIndex) : address;
+};
+
 export function ProjectWarnings() {
   const [isPendingDialogOpen, setIsPendingDialogOpen] = useState(false);
   const [isReadyToPayDialogOpen, setIsReadyToPayDialogOpen] = useState(false);
@@ -92,7 +99,7 @@ export function ProjectWarnings() {
                   >
                     <div className="flex items-center space-x-2">
                       <FileText className="h-5 w-5 text-gray-600" />
-                      <span className="text-sm font-medium truncate max-w-[200px]">{project.projectAddress}</span>
+                      <span className="text-sm font-medium truncate max-w-[200px]">{getStreetAddress(project.projectAddress)}</span>
                     </div>
                     
                     <div className="flex items-center gap-4">
