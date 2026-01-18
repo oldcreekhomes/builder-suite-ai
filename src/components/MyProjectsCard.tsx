@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FolderOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +13,13 @@ interface Project {
   address: string;
   status: string;
 }
+
+// Helper function to get street address only (before first comma)
+const getStreetAddress = (address: string) => {
+  if (!address) return '';
+  const commaIndex = address.indexOf(',');
+  return commaIndex > -1 ? address.substring(0, commaIndex) : address;
+};
 
 const statusGroups = [
   { status: "In Design", color: "bg-yellow-100 text-yellow-800" },
@@ -94,7 +102,16 @@ export function MyProjectsCard() {
                         onClick={() => navigate(`/project/${project.id}`)}
                         className="flex items-center py-1 px-2 rounded hover:bg-muted/50 cursor-pointer transition-colors"
                       >
-                        <p className="text-sm truncate">{project.address}</p>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-sm truncate">{getStreetAddress(project.address)}</p>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{project.address}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     ))}
                   </div>
