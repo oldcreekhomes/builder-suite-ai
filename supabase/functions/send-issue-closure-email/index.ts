@@ -15,6 +15,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface CcRecipient {
+  email: string;
+  name: string;
+}
+
 interface IssueClosureEmailRequest {
   authorEmail: string;
   authorName: string;
@@ -24,6 +29,7 @@ interface IssueClosureEmailRequest {
   companyName: string;
   solutionFiles?: string[];
   solutionMessage?: string;
+  ccEmails?: CcRecipient[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -40,8 +46,11 @@ const handler = async (req: Request): Promise<Response> => {
       issueCategory, 
       companyName,
       solutionFiles = [],
-      solutionMessage = ''
+      solutionMessage = '',
+      ccEmails = []
     }: IssueClosureEmailRequest = await req.json();
+    
+    console.log(`📧 Sending to: ${authorEmail}, CC: ${ccEmails.map(c => c.email).join(', ') || 'none'}`);
 
     const closureDate = new Date().toLocaleDateString();
     const firstName = authorName.split(' ')[0];
@@ -66,9 +75,13 @@ const handler = async (req: Request): Promise<Response> => {
          </tr>`
       : '';
 
+    // Extract CC email addresses
+    const ccEmailAddresses = ccEmails.map(c => c.email).filter(Boolean);
+
     const emailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [authorEmail],
+      ...(ccEmailAddresses.length > 0 && { cc: ccEmailAddresses }),
       subject: "Issue Resolved on Builder Suite AI",
       html: `<!DOCTYPE html>
 <html lang="en">

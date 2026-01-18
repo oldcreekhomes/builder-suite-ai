@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { ResolveConfirmationDialog } from "./resolve-confirmation-dialog";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 
 interface ResolveButtonProps {
-  onResolve: () => void | Promise<void>;
+  onResolve: (ccUserIds: string[]) => void | Promise<void>;
   title: string;
   description: string;
   size?: "default" | "sm" | "lg" | "icon";
@@ -14,6 +15,7 @@ interface ResolveButtonProps {
   showIcon?: boolean;
   disabled?: boolean;
   children?: React.ReactNode;
+  authorId?: string;
 }
 
 export function ResolveButton({
@@ -26,13 +28,15 @@ export function ResolveButton({
   className = "",
   showIcon = true,
   disabled = false,
-  children
+  children,
+  authorId
 }: ResolveButtonProps) {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const { users } = useCompanyUsers();
 
-  const handleResolve = async () => {
+  const handleResolve = async (selectedUserIds: string[]) => {
     try {
-      await onResolve();
+      await onResolve(selectedUserIds);
       setShowConfirmation(false);
     } catch (error) {
       console.error('Resolve operation failed:', error);
@@ -60,6 +64,8 @@ export function ResolveButton({
         description={description}
         onConfirm={handleResolve}
         isLoading={isLoading}
+        users={users}
+        authorId={authorId}
       />
     </>
   );

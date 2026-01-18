@@ -30,8 +30,8 @@ export function IssuesTable({ category }: IssuesTableProps) {
     updateIssue.mutate({ id, ...updates });
   };
 
-  const handleResolveIssue = (id: string) => {
-    resolveIssue.mutate(id);
+  const handleResolveIssue = (id: string, ccUserIds: string[]) => {
+    resolveIssue.mutate({ id, ccUserIds });
   };
 
   const filteredIssues = useMemo(() => {
