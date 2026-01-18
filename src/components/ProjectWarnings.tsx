@@ -74,12 +74,19 @@ export function ProjectWarnings() {
               No pending warnings
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="px-4 py-2">
+              {/* Column headers - shown once */}
+              <div className="flex items-center justify-end mb-1 pr-1">
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] text-muted-foreground w-[40px] text-center">Current</span>
+                  <span className="text-[10px] text-muted-foreground w-[40px] text-center">Late</span>
+                </div>
+              </div>
               {projectsWithCounts.map((project) => (
                 project.totalCount > 0 && (
                   <div
                     key={project.projectId}
-                    className="p-4 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between"
+                    className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between rounded"
                     onClick={() => {
                       setSelectedProjectId(project.projectId);
                       setIsPendingDialogOpen(true);
@@ -101,15 +108,13 @@ export function ProjectWarnings() {
                     </div>
                     
                     <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="relative">
-                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Current</span>
+                      <div className="w-[40px] flex justify-center">
                         <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
                           {project.currentCount}
                         </Badge>
                       </div>
                       
-                      <div className="relative">
-                        <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Late</span>
+                      <div className="w-[40px] flex justify-center">
                         <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
                           {project.lateCount}
                         </Badge>
