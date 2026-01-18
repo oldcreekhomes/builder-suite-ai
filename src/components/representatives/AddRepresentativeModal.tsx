@@ -28,7 +28,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
@@ -178,13 +179,8 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="general" className="space-y-4">
+            <ScrollArea className="max-h-[60vh] pr-4">
+              <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -244,33 +240,33 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                     )}
                   />
 
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select title *" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Estimator">Estimator</SelectItem>
-                          <SelectItem value="Project Manager">Project Manager</SelectItem>
-                          <SelectItem value="Foreman">Foreman</SelectItem>
-                          <SelectItem value="Superintendent">Superintendent</SelectItem>
-                          <SelectItem value="Sales Rep">Sales Rep</SelectItem>
-                          <SelectItem value="Owner">Owner</SelectItem>
-                          <SelectItem value="Office Manager">Office Manager</SelectItem>
-                          <SelectItem value="Accountant">Accountant</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select title *" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Estimator">Estimator</SelectItem>
+                            <SelectItem value="Project Manager">Project Manager</SelectItem>
+                            <SelectItem value="Foreman">Foreman</SelectItem>
+                            <SelectItem value="Superintendent">Superintendent</SelectItem>
+                            <SelectItem value="Sales Rep">Sales Rep</SelectItem>
+                            <SelectItem value="Owner">Owner</SelectItem>
+                            <SelectItem value="Office Manager">Office Manager</SelectItem>
+                            <SelectItem value="Accountant">Accountant</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <FormField
@@ -281,7 +277,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                       <FormLabel>Company</FormLabel>
                       <div className="space-y-2">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             placeholder="Search and select company..."
                             value={companySearch || field.value}
@@ -290,11 +286,11 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                           />
                         </div>
                         {companySearch && filteredCompanies.length > 0 && (
-                          <div className="border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
+                          <div className="border rounded-md bg-background shadow-sm max-h-32 overflow-y-auto">
                             {filteredCompanies.map((company) => (
                               <div
                                 key={company.id}
-                                className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                                className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
                                 onClick={() => handleCompanySelect(company.company_name)}
                               >
                                 {company.company_name}
@@ -303,7 +299,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                           </div>
                         )}
                         {companySearch && filteredCompanies.length === 0 && (
-                          <div className="border rounded-md bg-white shadow-sm p-3 text-gray-500 text-sm text-center">
+                          <div className="border rounded-md bg-background shadow-sm p-3 text-muted-foreground text-sm text-center">
                             No companies found matching your search
                           </div>
                         )}
@@ -312,64 +308,69 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                     </FormItem>
                   )}
                 />
-              </TabsContent>
 
-              <TabsContent value="notifications" className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="receive_bid_notifications"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Receive Bid Notifications</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                <div className="pt-2">
+                  <Separator className="mb-4" />
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Notifications</p>
+                  
+                  <div className="space-y-3">
+                    <FormField
+                      control={form.control}
+                      name="receive_bid_notifications"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Receive Bid Notifications</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="receive_schedule_notifications"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Receive Schedule Notifications</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="receive_schedule_notifications"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Receive Schedule Notifications</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="receive_po_notifications"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Receive PO Notifications</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-            </Tabs>
+                    <FormField
+                      control={form.control}
+                      name="receive_po_notifications"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>Receive PO Notifications</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
 
             <div className="flex justify-end space-x-4 pt-4">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
