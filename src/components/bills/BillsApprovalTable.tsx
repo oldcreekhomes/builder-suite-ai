@@ -152,13 +152,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() 
         : 'Unknown User';
       
-      // Format the new note with attribution and append to existing
+      // Format the new note with attribution, date, and append to existing
       let finalNotes = existingNotes;
       if (newNote.trim()) {
-        const attributedNote = `${userName}: ${newNote.trim()}`;
-        finalNotes = existingNotes.trim() 
-          ? `${attributedNote}\n\n${existingNotes}` 
-          : attributedNote;
+        const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+        const attributedNote = formatBillNote(userName, newNote.trim());
+        finalNotes = appendBillNote(existingNotes, attributedNote);
       }
       
       const { error } = await supabase
