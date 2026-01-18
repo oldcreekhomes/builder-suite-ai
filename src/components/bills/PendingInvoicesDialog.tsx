@@ -36,32 +36,30 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
         <div className="flex-1 overflow-auto px-6 pb-6">
           <UniversalFilePreviewProvider>
             <Tabs defaultValue="review" className="w-full">
-              <div className="max-w-sm">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="review" className="flex items-center gap-2">
-                    Review
-                    {billCounts && billCounts.pendingCount > 0 && (
-                      <Badge 
-                        variant="secondary" 
-                        className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
-                      >
-                        {billCounts.pendingCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="approve" className="flex items-center gap-2">
-                    Approved
-                    {billCounts && billCounts.approvedCount > 0 && (
-                      <Badge 
-                        variant="secondary" 
-                        className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
-                      >
-                        {billCounts.approvedCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+              <TabsList>
+                <TabsTrigger value="review" className="flex items-center gap-2">
+                  Review
+                  {billCounts && billCounts.pendingCount > 0 && (
+                    <Badge 
+                      variant="secondary" 
+                      className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                    >
+                      {billCounts.pendingCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="approve" className="flex items-center gap-2">
+                  Approved
+                  {billCounts && billCounts.approvedCount > 0 && (
+                    <Badge 
+                      variant="secondary" 
+                      className="ml-auto rounded-full border-2 border-black h-6 w-6 flex items-center justify-center p-0"
+                    >
+                      {billCounts.approvedCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
               
               <div className="relative max-w-sm mt-4 mb-6">
                 <Input
