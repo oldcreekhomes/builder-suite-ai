@@ -97,7 +97,8 @@ export function StructuredAddressInput({
         inputRef.current,
         {
           types: ['address'],
-          componentRestrictions: { country: 'us' }
+          componentRestrictions: { country: 'us' },
+          fields: ['address_components', 'formatted_address', 'geometry', 'name']
         }
       );
 
