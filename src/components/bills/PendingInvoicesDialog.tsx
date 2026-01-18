@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,10 +23,17 @@ interface PendingInvoicesDialogProps {
 export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProjectColumn = true }: PendingInvoicesDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: billCounts } = useBillCounts(undefined, projectIds);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">
+      <DialogContent 
+        className="max-w-[95vw] h-[90vh] flex flex-col p-0"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }}
+      >
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Pending Invoices</DialogTitle>
           <DialogDescription>
@@ -63,6 +70,7 @@ export function PendingInvoicesDialog({ open, onOpenChange, projectIds, showProj
               
               <div className="relative max-w-sm mt-4 mb-6">
                 <Input
+                  ref={searchRef}
                   placeholder="Search bills..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
