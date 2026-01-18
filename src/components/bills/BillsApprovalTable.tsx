@@ -556,7 +556,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 )}
               </TableHead>
             )}
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">
               {enableSorting ? (
                 <button
                   type="button"
@@ -578,8 +578,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 'Vendor'
               )}
             </TableHead>
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium w-48">Cost Code</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">
               {enableSorting ? (
                 <button
                   type="button"
@@ -601,7 +601,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 'Bill Date'
               )}
             </TableHead>
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">
               {enableSorting ? (
                 <button
                   type="button"
@@ -623,7 +623,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 'Due Date'
               )}
             </TableHead>
-            <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
+            <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
@@ -660,10 +660,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       {bill.projects?.address || '-'}
                     </TableCell>
                   )}
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap w-40">
                     {bill.companies?.company_name || 'Unknown Vendor'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap w-48">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       if (count <= 1) {
@@ -701,10 +701,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs w-24">
                     {formatDisplayFromAny(bill.bill_date)}
                   </TableCell>
-            <TableCell className="px-2 py-1 text-xs">
+            <TableCell className="px-2 py-1 text-xs w-24">
               {bill.due_date ? (
                 (() => {
                   const today = new Date();
@@ -721,7 +721,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 })()
               ) : '-'}
             </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell className="px-2 py-1 text-xs w-28">
                     <div className="flex items-center gap-2">
                       {formatCurrency(bill.total_amount)}
                       {bill.total_amount < 0 && (
