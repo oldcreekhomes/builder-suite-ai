@@ -42,8 +42,14 @@ export function ResolveConfirmationDialog({
 }: ResolveConfirmationDialogProps) {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
 
-  // Filter out the author from the CC list
-  const availableUsers = users.filter(user => user.id !== authorId);
+  // Filter out the author from the CC list and sort alphabetically by first name
+  const availableUsers = users
+    .filter(user => user.id !== authorId)
+    .sort((a, b) => {
+      const nameA = (a.first_name || a.email).toLowerCase();
+      const nameB = (b.first_name || b.email).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
 
   const handleUserToggle = (userId: string, checked: boolean) => {
     if (checked) {
@@ -97,14 +103,9 @@ export function ResolveConfirmationDialog({
                     />
                     <label
                       htmlFor={`user-${user.id}`}
-                      className="text-sm leading-tight cursor-pointer"
+                      className="text-sm leading-tight cursor-pointer font-medium"
                     >
-                      <span className="font-medium">{getUserDisplayName(user)}</span>
-                      {user.first_name && (
-                        <span className="text-muted-foreground ml-1">
-                          ({user.email})
-                        </span>
-                      )}
+                      {getUserDisplayName(user)}
                     </label>
                   </div>
                 ))}
