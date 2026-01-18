@@ -30,7 +30,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText } from 'lucide-react';
 import { EditBillDialog } from './EditBillDialog';
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -796,7 +796,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <StickyNote className="h-3.5 w-3.5 text-muted-foreground mx-auto cursor-default" />
+                            <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             <p className="whitespace-pre-wrap">{memoSummary}</p>
