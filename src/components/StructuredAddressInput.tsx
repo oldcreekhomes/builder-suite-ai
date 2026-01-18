@@ -135,6 +135,23 @@ export function StructuredAddressInput({
     loadGoogleMaps();
   }, [apiKey]);
 
+  // Pre-emptive suppression: Set flag BEFORE Google updates the input value
+  // This catches the mousedown on .pac-item before click/input change fires
+  useEffect(() => {
+    const handlePacItemMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.pac-container .pac-item')) {
+        console.log('[StructuredAddressInput] PAC item mousedown - pre-emptively setting suppress flag');
+        suppressInputChangeRef.current = true;
+      }
+    };
+
+    document.addEventListener('mousedown', handlePacItemMouseDown, true);
+    return () => {
+      document.removeEventListener('mousedown', handlePacItemMouseDown, true);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isLoaded || !inputRef.current) return;
 
@@ -190,8 +207,8 @@ export function StructuredAddressInput({
           return;
         }
 
-        // Set suppress flag BEFORE updating - this prevents the input's onChange from overwriting
-        suppressInputChangeRef.current = true;
+        // Note: suppressInputChangeRef.current is already set to true by the mousedown handler
+        // This ensures the flag is set BEFORE Google updates the input value
 
         // Increment request ID to track this specific request
         const currentRequestId = ++requestIdRef.current;
