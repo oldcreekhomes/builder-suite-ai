@@ -137,16 +137,13 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
           console.log('Valid place selected, processing...', place.name);
           setIsLoadingGoogleData(true);
           
-          // Use the ref to get the latest callback
-          setTimeout(() => {
-            onPlaceSelectedRef.current(place);
-            setIsLoadingGoogleData(false);
-            
-            toast({
-              title: "Success",
-              description: "Company information loaded from Google Places",
-            });
-          }, 100);
+          onPlaceSelectedRef.current(place);
+          setIsLoadingGoogleData(false);
+          
+          toast({
+            title: "Success",
+            description: "Company information loaded from Google Places",
+          });
         }
       });
 
@@ -187,41 +184,6 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
     }
   }, [open]);
 
-  // Handle document clicks on autocomplete items
-  useEffect(() => {
-    if (!open || !isGoogleLoaded) return;
-
-    const handleDocumentClick = (event: Event) => {
-      const target = event.target as HTMLElement;
-      const pacItem = target.closest('.pac-item');
-      
-      if (pacItem) {
-        console.log('PAC item clicked:', pacItem);
-        
-        // Force trigger the place_changed event after a small delay
-        setTimeout(() => {
-          const place = autocompleteRef.current?.getPlace();
-          console.log('Place from clicked item:', place);
-          
-          if (place && place.name) {
-            setIsLoadingGoogleData(true);
-            onPlaceSelectedRef.current(place);
-            setIsLoadingGoogleData(false);
-            toast({
-              title: "Success",
-              description: "Company information loaded from Google Places",
-            });
-          }
-        }, 200);
-      }
-    };
-
-    document.addEventListener('click', handleDocumentClick, true);
-
-    return () => {
-      document.removeEventListener('click', handleDocumentClick, true);
-    };
-  }, [open, isGoogleLoaded]);
 
   return {
     companyNameRef,
