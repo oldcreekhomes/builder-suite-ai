@@ -40,6 +40,48 @@ interface StructuredAddressInputProps {
   disabled?: boolean;
 }
 
+// Parse address components from Google Places API response
+const parseAddressComponents = (
+  addressComponents: google.maps.GeocoderAddressComponent[],
+  existingAddressLine2: string
+): StructuredAddressData => {
+  const addressData: StructuredAddressData = {
+    address_line_1: '',
+    address_line_2: existingAddressLine2,
+    city: '',
+    state: '',
+    zip_code: ''
+  };
+
+  let streetNumber = '';
+  let route = '';
+
+  for (const component of addressComponents) {
+    const types = component.types;
+    if (types.includes('street_number')) {
+      streetNumber = component.long_name;
+    } else if (types.includes('route')) {
+      route = component.long_name;
+    } else if (types.includes('locality')) {
+      addressData.city = component.long_name;
+    } else if (types.includes('postal_town') && !addressData.city) {
+      // Fallback for city if locality is missing
+      addressData.city = component.long_name;
+    } else if (types.includes('sublocality_level_1') && !addressData.city) {
+      // Another fallback for city
+      addressData.city = component.long_name;
+    } else if (types.includes('administrative_area_level_1')) {
+      addressData.state = component.short_name;
+    } else if (types.includes('postal_code')) {
+      addressData.zip_code = component.long_name;
+    }
+  }
+
+  addressData.address_line_1 = [streetNumber, route].filter(Boolean).join(' ');
+
+  return addressData;
+};
+
 export function StructuredAddressInput({ 
   value, 
   onChange, 
@@ -47,6 +89,8 @@ export function StructuredAddressInput({
 }: StructuredAddressInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const requestIdRef = useRef<number>(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
@@ -93,12 +137,16 @@ export function StructuredAddressInput({
     if (!isLoaded || !inputRef.current) return;
 
     try {
+      // Create a hidden div for PlacesService (it requires a DOM element)
+      const serviceDiv = document.createElement('div');
+      placesServiceRef.current = new window.google.maps.places.PlacesService(serviceDiv);
+
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         inputRef.current,
         {
           types: ['address'],
           componentRestrictions: { country: 'us' },
-          fields: ['address_components', 'formatted_address', 'geometry', 'name']
+          fields: ['address_components', 'formatted_address', 'geometry', 'name', 'place_id']
         }
       );
 
@@ -134,40 +182,75 @@ export function StructuredAddressInput({
 
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
-        if (place && place.address_components) {
-          const addressData: StructuredAddressData = {
-            address_line_1: '',
-            address_line_2: value.address_line_2, // Keep existing suite number
-            city: '',
-            state: '',
-            zip_code: ''
-          };
+        
+        if (!place) {
+          console.log('[StructuredAddressInput] No place returned');
+          return;
+        }
 
-          // Parse address components
-          place.address_components.forEach((component) => {
-            const types = component.types;
-            
-            if (types.includes('street_number')) {
-              addressData.address_line_1 = component.long_name + ' ';
-            } else if (types.includes('route')) {
-              addressData.address_line_1 += component.long_name;
-            } else if (types.includes('locality')) {
-              addressData.city = component.long_name;
-            } else if (types.includes('administrative_area_level_1')) {
-              addressData.state = component.short_name;
-            } else if (types.includes('postal_code')) {
-              addressData.zip_code = component.long_name;
-            }
-          });
+        // Increment request ID to track this specific request
+        const currentRequestId = ++requestIdRef.current;
 
+        console.log('[StructuredAddressInput] place_changed fired:', {
+          hasAddressComponents: !!place.address_components,
+          hasPlaceId: !!place.place_id,
+          placeId: place.place_id
+        });
+
+        // If we have address_components, use them directly
+        if (place.address_components && place.address_components.length > 0) {
+          console.log('[StructuredAddressInput] Using address_components directly');
+          const addressData = parseAddressComponents(place.address_components, value.address_line_2);
           onChange(addressData);
+          return;
+        }
+
+        // Fallback: If no address_components but we have place_id, fetch details
+        if (place.place_id && placesServiceRef.current) {
+          console.log('[StructuredAddressInput] Fetching details via PlacesService for place_id:', place.place_id);
+          
+          placesServiceRef.current.getDetails(
+            {
+              placeId: place.place_id,
+              fields: ['address_components', 'formatted_address', 'geometry', 'name']
+            },
+            (details, status) => {
+              // Check if this is still the latest request
+              if (currentRequestId !== requestIdRef.current) {
+                console.log('[StructuredAddressInput] Stale request, ignoring');
+                return;
+              }
+
+              console.log('[StructuredAddressInput] getDetails response:', {
+                status,
+                hasDetails: !!details,
+                hasAddressComponents: !!(details?.address_components)
+              });
+
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components) {
+                const addressData = parseAddressComponents(details.address_components, value.address_line_2);
+                onChange(addressData);
+              } else {
+                console.error('[StructuredAddressInput] Failed to get place details:', status);
+                // As a last resort, just use the formatted address
+                if (place.formatted_address) {
+                  onChange({
+                    ...value,
+                    address_line_1: place.formatted_address
+                  });
+                }
+              }
+            }
+          );
+        } else if (place.formatted_address) {
+          // Last resort: use formatted address
+          console.log('[StructuredAddressInput] Using formatted_address as fallback');
+          onChange({
+            ...value,
+            address_line_1: place.formatted_address
+          });
         }
       });
-
-      // Cleanup function
-      return () => {
-        document.head.removeChild(style);
-      };
 
     } catch (error) {
       console.error('Error initializing Google Places Autocomplete:', error);
@@ -182,72 +265,71 @@ export function StructuredAddressInput({
   };
 
   const handleStateSelect = (abbreviation: string) => {
-    handleFieldChange('state', abbreviation);
+    onChange({
+      ...value,
+      state: abbreviation
+    });
     setStateDropdownOpen(false);
   };
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
-          <Label htmlFor="address_line_1">Street Address *</Label>
-          <Input
-            ref={inputRef}
-            id="address_line_1"
-            value={value.address_line_1}
-            onChange={(e) => handleFieldChange('address_line_1', e.target.value)}
-            placeholder={isLoaded ? "Start typing address..." : "Enter street address"}
-            disabled={disabled}
-            autoComplete="street-address"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="address_line_2">Suite/Unit/Floor</Label>
-          <Input
-            id="address_line_2"
-            value={value.address_line_2}
-            onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
-            placeholder="Suite 100, Unit A, etc."
-            disabled={disabled}
-            autoComplete="address-line2"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="address_line_1">Street Address</Label>
+        <Input
+          id="address_line_1"
+          ref={inputRef}
+          value={value.address_line_1}
+          onChange={(e) => handleFieldChange('address_line_1', e.target.value)}
+          placeholder="Start typing address..."
+          disabled={disabled}
+          className="bg-background"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="address_line_2">Suite / Unit / Apt (optional)</Label>
+        <Input
+          id="address_line_2"
+          value={value.address_line_2}
+          onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
+          placeholder="Suite 100"
+          disabled={disabled}
+          className="bg-background"
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
           <Label htmlFor="city">City</Label>
           <Input
             id="city"
             value={value.city}
             onChange={(e) => handleFieldChange('city', e.target.value)}
-            placeholder="Enter city"
+            placeholder="City"
             disabled={disabled}
-            autoComplete="address-level2"
+            className="bg-background"
           />
         </div>
 
-        <div>
-          <Label htmlFor="state">State</Label>
+        <div className="space-y-2">
+          <Label>State</Label>
           <Popover open={stateDropdownOpen} onOpenChange={setStateDropdownOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 role="combobox"
                 aria-expanded={stateDropdownOpen}
-                className="w-full justify-between font-normal"
+                className="w-full justify-between bg-background"
                 disabled={disabled}
               >
-                {selectedState 
-                  ? `${selectedState.name} (${selectedState.abbreviation})`
-                  : "Enter state"}
+                {selectedState ? selectedState.abbreviation : "Select..."}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[280px] p-0" align="start">
+            <PopoverContent className="w-[200px] p-0" align="start">
               <Command>
-                <CommandInput placeholder="Search states..." />
+                <CommandInput placeholder="Search state..." />
                 <CommandList>
                   <CommandEmpty>No state found.</CommandEmpty>
                   <CommandGroup>
@@ -273,7 +355,7 @@ export function StructuredAddressInput({
           </Popover>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="zip_code">ZIP Code</Label>
           <Input
             id="zip_code"
@@ -281,7 +363,7 @@ export function StructuredAddressInput({
             onChange={(e) => handleFieldChange('zip_code', e.target.value)}
             placeholder="12345"
             disabled={disabled}
-            autoComplete="postal-code"
+            className="bg-background"
           />
         </div>
       </div>
