@@ -719,38 +719,41 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap w-44">
+                  <TableCell className="px-2 py-1 text-xs overflow-hidden w-44">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
-                      if (count <= 1) {
-                        return <span className="block truncate">{display}</span>;
-                      }
                       return (
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger className="cursor-default block truncate">
-                              {display}
+                            <TooltipTrigger asChild>
+                              <span className="block truncate cursor-default">
+                                {display}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
-                              <div className="space-y-2">
-                                {costCodeBreakdown.map((cc, i) => (
-                                  <div key={i}>
-                                    <div className="font-medium text-xs">{cc.costCode}</div>
-                                    <div className="pl-2 space-y-0.5">
-                                      {cc.lots.map((lot, j) => (
-                                        <div key={j} className="flex justify-between gap-4 text-xs">
-                                          <span className="text-muted-foreground">{lot.name}:</span>
-                                          <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                      ))}
+                              {count <= 1 ? (
+                                <p>{display}</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {costCodeBreakdown.map((cc, i) => (
+                                    <div key={i}>
+                                      <div className="font-medium text-xs">{cc.costCode}</div>
+                                      <div className="pl-2 space-y-0.5">
+                                        {cc.lots.map((lot, j) => (
+                                          <div key={j} className="flex justify-between gap-4 text-xs">
+                                            <span className="text-muted-foreground">{lot.name}:</span>
+                                            <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
+                                  ))}
+                                  <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                                    <span>Total:</span>
+                                    <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </div>
-                                ))}
-                                <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
-                                  <span>Total:</span>
-                                  <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                              </div>
+                              )}
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
