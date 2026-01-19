@@ -24,8 +24,6 @@ export interface CheckData {
   company_address?: string;
   company_city_state?: string;
   bank_name?: string;
-  routing_number?: string;
-  account_number?: string;
   reconciled?: boolean;
   reconciliation_id?: string;
   reconciliation_date?: string;
@@ -162,8 +160,6 @@ export const useChecks = () => {
           company_address: checkData.company_address,
           company_city_state: checkData.company_city_state,
           bank_name: checkData.bank_name,
-          routing_number: checkData.routing_number,
-          account_number: checkData.account_number,
           status: 'posted'
         })
         .select()
