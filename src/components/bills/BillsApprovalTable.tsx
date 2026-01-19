@@ -466,7 +466,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     // Use bill.total_amount as the authoritative total to avoid rounding errors
     if (count === 0) return { display: '-', costCodeBreakdown: [], totalAmount: bill.total_amount, count: 0 };
     if (count === 1) return { display: costCodeBreakdown[0].costCode, costCodeBreakdown, totalAmount: bill.total_amount, count: 1 };
-    return { display: `${costCodeBreakdown[0].costCode} +${count - 1}`, costCodeBreakdown, totalAmount: bill.total_amount, count };
+    return { display: `+${count}`, costCodeBreakdown, totalAmount: bill.total_amount, count };
   };
 
   const getLotAllocationData = (bill: BillForApproval) => {
