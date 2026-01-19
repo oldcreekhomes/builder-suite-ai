@@ -497,9 +497,7 @@ export default function WriteChecks() {
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
-      bank_name: bankName,
-      routing_number: routingNumber,
-      account_number: accountNumber
+      bank_name: bankName
     };
 
     console.debug('Saving Check - Data:', checkData);
@@ -640,9 +638,7 @@ export default function WriteChecks() {
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
-      bank_name: bankName,
-      routing_number: routingNumber,
-      account_number: accountNumber
+      bank_name: bankName
     };
 
     console.debug('Saving Check - Data:', checkData);
@@ -774,9 +770,7 @@ export default function WriteChecks() {
       company_name: companyName,
       company_address: companyAddress,
       company_city_state: companyCityState,
-      bank_name: bankName,
-      routing_number: routingNumber,
-      account_number: accountNumber
+      bank_name: bankName
     };
 
     try {
