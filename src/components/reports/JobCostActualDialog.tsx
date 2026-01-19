@@ -181,10 +181,13 @@ export function JobCostActualDialog({
     return { balances, total: runningBalance };
   }, [journalLines]);
 
-  const formatCurrency = (value: number) => {
-    const formatted = Math.abs(Math.round(value)).toLocaleString();
-    return value < 0 ? `(${formatted})` : formatted;
-  };
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  }).format(value);
+};
 
   const getTypeLabel = (sourceType: string | undefined) => {
     switch (sourceType) {
