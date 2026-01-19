@@ -1,10 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Button } from "@/components/ui/button";
 import { Check, Lock, Pencil } from "lucide-react";
 import { useState, useMemo } from "react";
@@ -56,6 +58,7 @@ export function JobCostActualDialog({
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const { isDateLocked } = useClosedPeriodCheck(projectId);
 
   const { data: journalLines, isLoading } = useQuery({
     queryKey: ['job-cost-actual-details', projectId, costCode, asOfDate, lotId],
@@ -272,7 +275,7 @@ const formatCurrency = (value: number) => {
                         </TableCell>
                         <TableCell className="px-2 py-1">
                           <div className="flex items-center justify-center">
-                            {line.bill_id && !line.reconciled ? (
+                            {line.bill_id && !line.reconciled && !isDateLocked(line.journal_entries.entry_date) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -282,9 +285,34 @@ const formatCurrency = (value: number) => {
                               >
                                 <Pencil className="h-3 w-3" />
                               </Button>
-                            ) : line.reconciled ? (
-                              <Lock className="h-3 w-3 text-muted-foreground" />
-                            ) : null}
+                            )}
+                            {(line.reconciled || isDateLocked(line.journal_entries.entry_date)) && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span><Lock className="h-3 w-3 text-muted-foreground" /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" align="center">
+                                    {line.reconciled && isDateLocked(line.journal_entries.entry_date) ? (
+                                      <>
+                                        <p className="font-medium">Reconciled and Books Closed</p>
+                                        <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                      </>
+                                    ) : line.reconciled ? (
+                                      <>
+                                        <p className="font-medium">Reconciled</p>
+                                        <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p className="font-medium">Books Closed</p>
+                                        <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                      </>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
