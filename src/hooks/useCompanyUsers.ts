@@ -11,6 +11,8 @@ export interface User {
   phone_number?: string;
   company_name?: string;
   confirmed?: boolean;
+  is_away?: boolean;
+  away_message?: string;
 }
 
 export const useCompanyUsers = () => {
@@ -67,7 +69,9 @@ export const useCompanyUsers = () => {
             role: 'owner',
             avatar_url: currentUserProfile.avatar_url,
             email: currentUser.user.email || '',
-            phone_number: currentUserProfile.phone_number
+            phone_number: currentUserProfile.phone_number,
+            is_away: currentUserProfile.is_away,
+            away_message: currentUserProfile.away_message
           },
           ...(employees?.map(emp => ({
             id: emp.id,
@@ -76,7 +80,9 @@ export const useCompanyUsers = () => {
             role: emp.role,
             avatar_url: emp.avatar_url,
             email: emp.email,
-            phone_number: emp.phone_number
+            phone_number: emp.phone_number,
+            is_away: emp.is_away,
+            away_message: emp.away_message
           })) || [])
         ];
       } else if (currentUserProfile.home_builder_id) {
@@ -110,7 +116,9 @@ export const useCompanyUsers = () => {
             role: 'owner',
             avatar_url: owner.avatar_url,
             email: owner.email,
-            phone_number: owner.phone_number
+            phone_number: owner.phone_number,
+            is_away: owner.is_away,
+            away_message: owner.away_message
           }] : []),
           ...(employees?.map(emp => ({
             id: emp.id,
@@ -119,7 +127,9 @@ export const useCompanyUsers = () => {
             role: emp.role,
             avatar_url: emp.avatar_url,
             email: emp.email,
-            phone_number: emp.phone_number
+            phone_number: emp.phone_number,
+            is_away: emp.is_away,
+            away_message: emp.away_message
           })) || [])
         ];
       }

@@ -148,6 +148,42 @@ export type Database = {
           },
         ]
       }
+      away_message_log: {
+        Row: {
+          away_user_id: string
+          id: string
+          sender_id: string
+          sent_at: string
+        }
+        Insert: {
+          away_user_id: string
+          id?: string
+          sender_id: string
+          sent_at?: string
+        }
+        Update: {
+          away_user_id?: string
+          id?: string
+          sender_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "away_message_log_away_user_id_fkey"
+            columns: ["away_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "away_message_log_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_reconciliations: {
         Row: {
           bank_account_id: string
@@ -3323,6 +3359,7 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          away_message: string | null
           company_name: string | null
           confirmed: boolean
           created_at: string
@@ -3330,6 +3367,7 @@ export type Database = {
           first_name: string | null
           home_builder_id: string | null
           id: string
+          is_away: boolean
           last_name: string | null
           phone_number: string | null
           role: string
@@ -3337,6 +3375,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          away_message?: string | null
           company_name?: string | null
           confirmed?: boolean
           created_at?: string
@@ -3344,6 +3383,7 @@ export type Database = {
           first_name?: string | null
           home_builder_id?: string | null
           id?: string
+          is_away?: boolean
           last_name?: string | null
           phone_number?: string | null
           role?: string
@@ -3351,6 +3391,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          away_message?: string | null
           company_name?: string | null
           confirmed?: boolean
           created_at?: string
@@ -3358,6 +3399,7 @@ export type Database = {
           first_name?: string | null
           home_builder_id?: string | null
           id?: string
+          is_away?: boolean
           last_name?: string | null
           phone_number?: string | null
           role?: string
