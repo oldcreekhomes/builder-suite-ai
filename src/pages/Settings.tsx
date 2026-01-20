@@ -21,7 +21,7 @@ import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
 import { BudgetWarningsTab } from "@/components/settings/BudgetWarningsTab";
 import { DashboardSettingsTab } from "@/components/settings/DashboardSettingsTab";
-import { AwayMessageSettings } from "@/components/settings/AwayMessageSettings";
+
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
 import { useCostCodeHandlers } from "@/hooks/useCostCodeHandlers";
@@ -157,7 +157,7 @@ const Settings = () => {
                     <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Chart of Accounts</TabsTrigger>
                     <TabsTrigger value="budget" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Budget</TabsTrigger>
                     <TabsTrigger value="dashboard" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Dashboard</TabsTrigger>
-                    <TabsTrigger value="away-message" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Away Message</TabsTrigger>
+                    
                   </TabsList>
                 </div>
                 
@@ -214,9 +214,6 @@ const Settings = () => {
                     <DashboardSettingsTab />
                   </TabsContent>
 
-                  <TabsContent value="away-message" className="mt-0">
-                    <AwayMessageSettings />
-                  </TabsContent>
                 </div>
               </Tabs>
             </div>

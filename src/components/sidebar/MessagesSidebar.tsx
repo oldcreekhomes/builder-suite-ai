@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
-import { User, Moon } from "lucide-react";
+import { User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UnreadBadge } from "@/components/ui/unread-badge";
-import { Badge } from "@/components/ui/badge";
-import { SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel } from "@/components/ui/sidebar";
+import { SidebarContent, SidebarGroup, SidebarGroupContent } from "@/components/ui/sidebar";
 import { useCompanyUsers, User as CompanyUser } from "@/hooks/useCompanyUsers";
 import { UnreadCounts } from "@/hooks/useChatNotifications";
 
@@ -100,17 +98,9 @@ export function MessagesSidebar({
                   </div>
                   
                   <div className="flex-1 min-w-0 ml-2">
-                    <div className="flex items-center gap-2">
-                      <p className="text-base font-medium text-gray-900">
-                        {getDisplayName(user)}
-                      </p>
-                      {user.is_away && (
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 bg-amber-100 text-amber-700 border-amber-200">
-                          <Moon className="h-3 w-3 mr-1" />
-                          Away
-                        </Badge>
-                      )}
-                    </div>
+                    <p className="text-base font-medium text-gray-900">
+                      {getDisplayName(user)}
+                    </p>
                   </div>
                 </div>
               ))
