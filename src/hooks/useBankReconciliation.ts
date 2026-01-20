@@ -14,10 +14,17 @@ export interface AllocationBreakdown {
   total: number;
 }
 
+// For consolidated bill payments - shows the bills included in the payment
+export interface BillPaymentAllocationSummary {
+  bill_id: string;
+  reference_number: string | null;
+  amount_allocated: number;
+}
+
 interface ReconciliationTransaction {
   id: string;
   date: string;
-  type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
+  type: 'check' | 'deposit' | 'bill_payment' | 'consolidated_bill_payment' | 'journal_entry';
   payee?: string;
   source?: string;
   reference_number?: string;
@@ -31,6 +38,8 @@ interface ReconciliationTransaction {
   allocations?: AllocationBreakdown[];
   // Account allocations for deposits
   accountAllocations?: AllocationBreakdown[];
+  // For consolidated bill payments - list of bills included in this payment
+  billPaymentAllocations?: BillPaymentAllocationSummary[];
 }
 
 interface BankReconciliation {
@@ -340,7 +349,190 @@ export const useBankReconciliation = () => {
           }
         }
 
-        // ========== FETCH MANUAL JOURNAL ENTRIES ==========
+        // ========== FETCH CONSOLIDATED BILL PAYMENTS ==========
+        // Fetch from bill_payments table (new consolidated structure)
+        let consolidatedBillPaymentQuery = supabase
+          .from('bill_payments')
+          .select(`
+            id,
+            payment_date,
+            payment_account_id,
+            vendor_id,
+            total_amount,
+            check_number,
+            memo,
+            reconciled,
+            reconciliation_id,
+            reconciliation_date
+          `)
+          .eq('payment_account_id', bankAccountId);
+
+        if (projectId) {
+          consolidatedBillPaymentQuery = consolidatedBillPaymentQuery.eq('project_id', projectId);
+        } else {
+          consolidatedBillPaymentQuery = consolidatedBillPaymentQuery.is('project_id', null);
+        }
+
+        const { data: consolidatedPayments, error: consolidatedError } = await consolidatedBillPaymentQuery;
+
+        if (consolidatedError) {
+          console.error('[Reconciliation] Consolidated bill payments query failed:', consolidatedError);
+        }
+
+        let consolidatedBillPaymentTransactions: ReconciliationTransaction[] = [];
+        const billIdsInConsolidatedPayments = new Set<string>();
+
+        if (consolidatedPayments && consolidatedPayments.length > 0) {
+          // Fetch all allocations for these consolidated payments
+          const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
+          const { data: billPaymentAllocations } = await supabase
+            .from('bill_payment_allocations')
+            .select(`
+              id,
+              bill_payment_id,
+              bill_id,
+              amount_allocated,
+              bills:bill_id (reference_number)
+            `)
+            .in('bill_payment_id', consolidatedPaymentIds);
+
+          // Group allocations by payment id
+          const allocationsByPayment = new Map<string, BillPaymentAllocationSummary[]>();
+          if (billPaymentAllocations) {
+            billPaymentAllocations.forEach(alloc => {
+              const bill = alloc.bills as unknown as { reference_number: string | null } | null;
+              const summary: BillPaymentAllocationSummary = {
+                bill_id: alloc.bill_id,
+                reference_number: bill?.reference_number || null,
+                amount_allocated: Number(alloc.amount_allocated)
+              };
+              const existing = allocationsByPayment.get(alloc.bill_payment_id) || [];
+              existing.push(summary);
+              allocationsByPayment.set(alloc.bill_payment_id, existing);
+              
+              // Track bill IDs to exclude from legacy transactions
+              billIdsInConsolidatedPayments.add(alloc.bill_id);
+            });
+          }
+
+          // Get vendor names
+          const vendorIds = [...new Set(consolidatedPayments.map(cp => cp.vendor_id))];
+          const { data: vendors } = await supabase
+            .from('companies')
+            .select('id, company_name')
+            .in('id', vendorIds);
+          const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
+
+          // Build consolidated payment transactions
+          consolidatedBillPaymentTransactions = consolidatedPayments
+            .filter(cp => {
+              // Filter by reconciliation status
+              const effectivelyReconciled = cp.reconciled && cp.reconciliation_id && 
+                validReconciliationIds.has(cp.reconciliation_id);
+              if (effectivelyReconciled) return false;
+              // Apply cutoff filter
+              if (cutoffDate && cp.payment_date <= cutoffDate) return false;
+              return true;
+            })
+            .map(cp => ({
+              id: cp.id,
+              date: cp.payment_date,
+              type: 'consolidated_bill_payment' as const,
+              payee: vendorMap.get(cp.vendor_id) || 'Unknown Vendor',
+              reference_number: cp.check_number || undefined,
+              amount: Number(cp.total_amount),
+              reconciled: false, // Already filtered above
+              reconciliation_date: undefined,
+              reconciliation_id: undefined,
+              billPaymentAllocations: allocationsByPayment.get(cp.id) || [],
+            }));
+
+          // Fetch cost code allocations for consolidated bill payments
+          // Get all bill IDs from allocations
+          const allBillIdsForCostCodes = [...billIdsInConsolidatedPayments];
+          if (allBillIdsForCostCodes.length > 0) {
+            const { data: billLinesForConsolidated } = await supabase
+              .from('bill_lines')
+              .select(`
+                bill_id,
+                amount,
+                cost_code_id,
+                lot_id,
+                cost_codes:cost_code_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('bill_id', allBillIdsForCostCodes);
+
+            if (billLinesForConsolidated) {
+              // Group by bill_id first
+              const linesByBill = new Map<string, typeof billLinesForConsolidated>();
+              billLinesForConsolidated.forEach(line => {
+                const existing = linesByBill.get(line.bill_id) || [];
+                existing.push(line);
+                linesByBill.set(line.bill_id, existing);
+              });
+
+              // For each consolidated payment, aggregate allocations from all its bills
+              consolidatedBillPaymentTransactions = consolidatedBillPaymentTransactions.map(cp => {
+                const paymentAllocations = allocationsByPayment.get(cp.id) || [];
+                const allAllocations: AllocationBreakdown[] = [];
+                const byCostCode = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+
+                paymentAllocations.forEach(pa => {
+                  const linesForBill = linesByBill.get(pa.bill_id) || [];
+                  linesForBill.forEach(line => {
+                    if (!line.cost_code_id || !line.cost_codes) return;
+                    const costCode = line.cost_codes as unknown as { code: string; name: string };
+                    const key = line.cost_code_id;
+                    if (!byCostCode.has(key)) {
+                      byCostCode.set(key, { 
+                        code: costCode.code, 
+                        name: costCode.name, 
+                        lots: [] 
+                      });
+                    }
+                    const lot = line.project_lots as unknown as { lot_number: string } | null;
+                    byCostCode.get(key)!.lots.push({
+                      name: lot?.lot_number || 'No Lot',
+                      amount: Number(line.amount)
+                    });
+                  });
+                });
+
+                byCostCode.forEach((cc) => {
+                  allAllocations.push({
+                    code: cc.code,
+                    name: cc.name,
+                    lots: cc.lots,
+                    total: cc.lots.reduce((sum, l) => sum + l.amount, 0)
+                  });
+                });
+
+                return {
+                  ...cp,
+                  allocations: allAllocations
+                };
+              });
+            }
+          }
+
+          console.log('[Reconciliation] Consolidated bill payments processed:', { 
+            count: consolidatedBillPaymentTransactions.length,
+            totalConsolidated: consolidatedPayments.length,
+            billsIncluded: billIdsInConsolidatedPayments.size
+          });
+        }
+
+        // Filter legacy bill payments to exclude those in consolidated payments
+        billPaymentTransactions = billPaymentTransactions.filter(bp => 
+          !billIdsInConsolidatedPayments.has(bp.id)
+        );
+
+        console.log('[Reconciliation] Legacy bill payments after filtering:', { 
+          count: billPaymentTransactions.length 
+        });
+
+
         // Get manual journal entries that affect this bank account
         const { data: manualJournalEntries, error: mjeError } = await supabase
           .from('journal_entries')
@@ -766,10 +958,11 @@ export const useBankReconciliation = () => {
           };
         });
 
-        // Combine checks, bill payments, and journal entry credits (all are money out)
+        // Combine checks, bill payments, consolidated bill payments, and journal entry credits (all are money out)
         const allChecksAndPayments = [
           ...checkTransactions, 
           ...billPaymentTransactions,
+          ...consolidatedBillPaymentTransactions,
           ...manualJournalCredits
         ].sort((a, b) => 
           new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -865,7 +1058,7 @@ export const useBankReconciliation = () => {
       reconciliationId,
       reconciliationDate,
     }: {
-      type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
+      type: 'check' | 'deposit' | 'bill_payment' | 'consolidated_bill_payment' | 'journal_entry';
       id: string;
       reconciled: boolean;
       reconciliationId?: string;
@@ -894,6 +1087,17 @@ export const useBankReconciliation = () => {
       } else if (type === 'bill_payment') {
         const { error } = await supabase
           .from('bills')
+          .update({
+            reconciled,
+            reconciliation_id: reconciliationId || null,
+            reconciliation_date: reconciliationDate || null,
+          })
+          .eq('id', id);
+        if (error) throw error;
+      } else if (type === 'consolidated_bill_payment') {
+        // For consolidated bill payments, update the bill_payments table
+        const { error } = await supabase
+          .from('bill_payments')
           .update({
             reconciled,
             reconciliation_id: reconciliationId || null,
