@@ -67,11 +67,22 @@ const SignupForm = () => {
 
       if (error) {
         console.error("Signup error:", error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        
+        // Check for duplicate company name constraint violation
+        if (error.message.includes('unique_company_name_for_owners') || 
+            error.message.includes('Database error saving new user')) {
+          toast({
+            variant: "destructive",
+            title: "Company Already Registered",
+            description: "This company already exists in the application. Please create a unique company name, or contact the owner of the company to receive an invitation.",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
         // Send signup notification emails in the background
         try {
