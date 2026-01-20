@@ -391,6 +391,128 @@ export type Database = {
           },
         ]
       }
+      bill_payment_allocations: {
+        Row: {
+          amount_allocated: number
+          bill_id: string
+          bill_payment_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          amount_allocated: number
+          bill_id: string
+          bill_payment_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          amount_allocated?: number
+          bill_id?: string
+          bill_payment_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_payment_allocations_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_payment_allocations_bill_payment_id_fkey"
+            columns: ["bill_payment_id"]
+            isOneToOne: false
+            referencedRelation: "bill_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_payments: {
+        Row: {
+          check_number: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          memo: string | null
+          owner_id: string
+          payment_account_id: string
+          payment_date: string
+          project_id: string | null
+          reconciled: boolean | null
+          reconciliation_date: string | null
+          reconciliation_id: string | null
+          total_amount: number
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          check_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          memo?: string | null
+          owner_id: string
+          payment_account_id: string
+          payment_date: string
+          project_id?: string | null
+          reconciled?: boolean | null
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
+          total_amount: number
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          check_number?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          memo?: string | null
+          owner_id?: string
+          payment_account_id?: string
+          payment_date?: string
+          project_id?: string | null
+          reconciled?: boolean | null
+          reconciliation_date?: string | null
+          reconciliation_id?: string | null
+          total_amount?: number
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_payments_payment_account_id_fkey"
+            columns: ["payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_payments_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_payments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           amount_paid: number

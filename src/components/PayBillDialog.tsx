@@ -46,7 +46,7 @@ interface PayBillDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bills: BillForPayment | BillForPayment[] | null;
-  onConfirm: (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string, paymentAmount?: number) => void;
+  onConfirm: (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string, paymentAmount?: number, checkNumber?: string) => void;
   isLoading?: boolean;
 }
 
@@ -63,6 +63,7 @@ export function PayBillDialog({
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [memo, setMemo] = useState<string>("");
+  const [checkNumber, setCheckNumber] = useState<string>("");
   
   // For single bill, calculate remaining balance and allow partial payment
   const singleBill = !isMultiple ? billsArray[0] : null;
@@ -110,13 +111,14 @@ export function PayBillDialog({
     
     const billIds = billsArray.map(b => b.id);
     const amount = !isMultiple ? parseFloat(paymentAmount) : undefined;
-    onConfirm(billIds, paymentAccountId, format(paymentDate, 'yyyy-MM-dd'), memo || undefined, amount);
+    onConfirm(billIds, paymentAccountId, format(paymentDate, 'yyyy-MM-dd'), memo || undefined, amount, checkNumber || undefined);
   };
 
   const resetForm = () => {
     setPaymentAccountId("");
     setPaymentDate(new Date());
     setMemo("");
+    setCheckNumber("");
     setPaymentAmount("");
     setPaymentAmountError("");
   };
@@ -300,6 +302,19 @@ export function PayBillDialog({
               </Popover>
             </div>
           </div>
+
+          {/* Check Number (for multiple bills) */}
+          {isMultiple && (
+            <div className="space-y-2">
+              <Label htmlFor="check-number">Check Number</Label>
+              <Input
+                id="check-number"
+                placeholder="Enter check number (optional)"
+                value={checkNumber}
+                onChange={(e) => setCheckNumber(e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Payment Memo */}
           <div className="space-y-2">
