@@ -593,13 +593,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     hasUnsavedChangesRef.current = true;
   };
 
-  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry', field: string, value: any) => {
+  const handleUpdateTransaction = async (id: string, type: 'check' | 'deposit' | 'bill_payment' | 'consolidated_bill_payment' | 'journal_entry', field: string, value: any) => {
     try {
       if (type === 'check') {
         await updateCheckTransaction.mutateAsync({ id, field, value });
       } else if (type === 'deposit') {
         await updateDepositTransaction.mutateAsync({ id, field, value });
-      } else if (type === 'bill_payment') {
+      } else if (type === 'bill_payment' || type === 'consolidated_bill_payment') {
         await updateBillPaymentTransaction.mutateAsync({ 
           id, 
           field, 
