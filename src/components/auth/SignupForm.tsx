@@ -55,6 +55,20 @@ const SignupForm = () => {
           variant: "destructive",
         });
       } else {
+        // Send signup notification emails in the background
+        try {
+          await supabase.functions.invoke('send-signup-emails', {
+            body: {
+              email: email,
+              companyName: companyName.trim(),
+              signupTime: new Date().toISOString()
+            }
+          });
+        } catch (emailError) {
+          // Don't block signup if email fails - just log it
+          console.error("Failed to send signup emails:", emailError);
+        }
+
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",
