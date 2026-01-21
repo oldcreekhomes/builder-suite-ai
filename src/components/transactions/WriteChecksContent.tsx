@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock, Printer, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,9 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { CheckAttachmentUpload, CheckAttachment } from "@/components/checks/CheckAttachmentUpload";
 import { CheckSearchDialog } from "@/components/checks/CheckSearchDialog";
 import { useLots } from "@/hooks/useLots";
+import { CheckPrintPreview } from "@/components/checks/CheckPrintPreview";
+import { CheckPrintSettingsDialog } from "@/components/checks/CheckPrintSettingsDialog";
+import { useCheckPrintSettings } from "@/hooks/useCheckPrintSettings";
 
 interface CheckRow {
   id: string;
@@ -91,6 +94,10 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   // Search dialog state
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
 
+  // Print dialog states
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
+  const [printSettingsOpen, setPrintSettingsOpen] = useState(false);
+
   // Track initial state for unsaved changes detection
   const initialFormStateRef = useRef<string>("");
   
@@ -131,6 +138,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     settings,
     getNextCheckNumber,
   } = useProjectCheckSettings(projectId);
+  const { effectiveSettings: printSettings } = useCheckPrintSettings(projectId);
 
   const filteredChecks = useMemo(() => {
     if (!projectId) return checks;
@@ -1375,8 +1383,41 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
             
             <div className="p-3 bg-muted border rounded-lg">
               <div className="flex justify-between items-center">
-                <div className="text-base font-semibold">
-                  Total: ${getDisplayAmount()}
+                <div className="flex items-center gap-3">
+                  <span className="text-base font-semibold">
+                    Total: ${getDisplayAmount()}
+                  </span>
+                  {/* Print buttons */}
+                  <div className="flex gap-1 border-l pl-3">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-10"
+                          onClick={() => setPrintPreviewOpen(true)}
+                          disabled={!checkNumber || !payTo || parseFloat(calculateTotal()) <= 0}
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          Print
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Print this check</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 w-10 p-0"
+                          onClick={() => setPrintSettingsOpen(true)}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Print settings</TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
                 {isTransactionLocked ? (
                   <div className="flex items-center gap-2 text-amber-700">
@@ -1431,6 +1472,40 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         onDeleteCheck={async (checkId) => {
           await deleteCheck.mutateAsync(checkId);
         }}
+      />
+
+      {/* Check Print Preview Dialog */}
+      <CheckPrintPreview
+        open={printPreviewOpen}
+        onOpenChange={setPrintPreviewOpen}
+        checks={[{
+          check_number: checkNumber || '0000',
+          check_date: checkDate,
+          pay_to: payTo || 'Payee Name',
+          payee_address: companyAddress,
+          amount: parseFloat(calculateTotal()) || 0,
+          memo: '',
+        }]}
+        settings={printSettings}
+        companyInfo={{
+          name: companyName,
+          address: companyAddress,
+          city_state: companyCityState,
+        }}
+        bankInfo={{
+          name: bankName,
+        }}
+        onOpenSettings={() => {
+          setPrintPreviewOpen(false);
+          setPrintSettingsOpen(true);
+        }}
+      />
+
+      {/* Check Print Settings Dialog */}
+      <CheckPrintSettingsDialog
+        open={printSettingsOpen}
+        onOpenChange={setPrintSettingsOpen}
+        projectId={projectId}
       />
     </TooltipProvider>
   );

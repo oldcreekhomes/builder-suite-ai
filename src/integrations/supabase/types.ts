@@ -849,6 +849,134 @@ export type Database = {
           },
         ]
       }
+      check_print_settings: {
+        Row: {
+          amount_numeric_x: number | null
+          amount_numeric_y: number | null
+          amount_words_x: number | null
+          amount_words_y: number | null
+          check_height: number | null
+          check_number_x: number | null
+          check_number_y: number | null
+          company_name_x: number | null
+          company_name_y: number | null
+          created_at: string | null
+          date_x: number | null
+          date_y: number | null
+          font_family: string | null
+          font_size: number | null
+          id: string
+          name: string | null
+          owner_id: string
+          page_height: number | null
+          page_width: number | null
+          payee_x: number | null
+          payee_y: number | null
+          project_id: string | null
+          stub_amount_x: number | null
+          stub_amount_y: number | null
+          stub_bank_x: number | null
+          stub_bank_y: number | null
+          stub_company_x: number | null
+          stub_company_y: number | null
+          stub_date_check_x: number | null
+          stub_date_check_y: number | null
+          stub_invoice_date_x: number | null
+          stub_invoice_date_y: number | null
+          stub_payee_x: number | null
+          stub_payee_y: number | null
+          stub_total_x: number | null
+          stub_total_y: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount_numeric_x?: number | null
+          amount_numeric_y?: number | null
+          amount_words_x?: number | null
+          amount_words_y?: number | null
+          check_height?: number | null
+          check_number_x?: number | null
+          check_number_y?: number | null
+          company_name_x?: number | null
+          company_name_y?: number | null
+          created_at?: string | null
+          date_x?: number | null
+          date_y?: number | null
+          font_family?: string | null
+          font_size?: number | null
+          id?: string
+          name?: string | null
+          owner_id: string
+          page_height?: number | null
+          page_width?: number | null
+          payee_x?: number | null
+          payee_y?: number | null
+          project_id?: string | null
+          stub_amount_x?: number | null
+          stub_amount_y?: number | null
+          stub_bank_x?: number | null
+          stub_bank_y?: number | null
+          stub_company_x?: number | null
+          stub_company_y?: number | null
+          stub_date_check_x?: number | null
+          stub_date_check_y?: number | null
+          stub_invoice_date_x?: number | null
+          stub_invoice_date_y?: number | null
+          stub_payee_x?: number | null
+          stub_payee_y?: number | null
+          stub_total_x?: number | null
+          stub_total_y?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount_numeric_x?: number | null
+          amount_numeric_y?: number | null
+          amount_words_x?: number | null
+          amount_words_y?: number | null
+          check_height?: number | null
+          check_number_x?: number | null
+          check_number_y?: number | null
+          company_name_x?: number | null
+          company_name_y?: number | null
+          created_at?: string | null
+          date_x?: number | null
+          date_y?: number | null
+          font_family?: string | null
+          font_size?: number | null
+          id?: string
+          name?: string | null
+          owner_id?: string
+          page_height?: number | null
+          page_width?: number | null
+          payee_x?: number | null
+          payee_y?: number | null
+          project_id?: string | null
+          stub_amount_x?: number | null
+          stub_amount_y?: number | null
+          stub_bank_x?: number | null
+          stub_bank_y?: number | null
+          stub_company_x?: number | null
+          stub_company_y?: number | null
+          stub_date_check_x?: number | null
+          stub_date_check_y?: number | null
+          stub_invoice_date_x?: number | null
+          stub_invoice_date_y?: number | null
+          stub_payee_x?: number | null
+          stub_payee_y?: number | null
+          stub_total_x?: number | null
+          stub_total_y?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_print_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checks: {
         Row: {
           amount: number
