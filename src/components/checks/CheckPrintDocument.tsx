@@ -29,6 +29,11 @@ export interface CompanyInfo {
 
 export interface BankInfo {
   name: string;
+  address?: string;
+  city_state?: string;
+  routing_number?: string;
+  account_number?: string;
+  routing_fraction?: string;
 }
 
 interface CheckPrintDocumentProps {
@@ -133,24 +138,41 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
               </Text>
             )}
             
+            {/* Bank Name - Below company address */}
+            <Text style={[styles.text, { left: pt(s.bank_name_x), top: pt(s.bank_name_y), fontSize: 9 }]}>
+              {bankInfo.name}
+            </Text>
+            {bankInfo.address && (
+              <Text style={[styles.text, { left: pt(s.bank_address_x), top: pt(s.bank_address_y), fontSize: 8 }]}>
+                {bankInfo.address}
+              </Text>
+            )}
+            {bankInfo.city_state && (
+              <Text style={[styles.text, { left: pt(s.bank_city_state_x), top: pt(s.bank_city_state_y), fontSize: 8 }]}>
+                {bankInfo.city_state}
+              </Text>
+            )}
+            
+            {/* Routing Fraction - Top right area (e.g., "65-109/550") */}
+            {bankInfo.routing_fraction && (
+              <Text style={[styles.text, { left: pt(s.routing_fraction_x), top: pt(s.routing_fraction_y), fontSize: 9 }]}>
+                {bankInfo.routing_fraction}
+              </Text>
+            )}
+            
             {/* Check Number - Top Right */}
             <Text style={[styles.text, styles.bold, { left: pt(s.check_number_x), top: pt(s.check_number_y), fontSize: 11 }]}>
-              CHECK NO. {check.check_number}
+              {check.check_number}
             </Text>
             
-            {/* Date */}
+            {/* Date with Label - Center area */}
+            <Text style={[styles.text, { left: pt(s.date_label_x), top: pt(s.date_label_y), fontSize: 10 }]}>
+              {format(checkDate, 'MMMM do, yyyy')}
+            </Text>
+            
+            {/* Date - Right side */}
             <Text style={[styles.text, { left: pt(s.date_x), top: pt(s.date_y), fontSize: 10 }]}>
               {format(checkDate, 'MM/dd/yyyy')}
-            </Text>
-            
-            {/* Amount in Words with asterisk padding */}
-            <Text style={[styles.text, { left: pt(s.amount_words_x), top: pt(s.amount_words_y), fontSize: 9 }]}>
-              {formatAmountWords(check.amount)}
-            </Text>
-            
-            {/* Amount Numeric */}
-            <Text style={[styles.text, styles.bold, { left: pt(s.amount_numeric_x), top: pt(s.amount_numeric_y), fontSize: 11 }]}>
-              {formatAmountNumeric(check.amount)}
             </Text>
             
             {/* Pay To - Payee Name and Address */}
@@ -165,6 +187,37 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
             {check.payee_city_state && (
               <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y + 0.30), fontSize: 9 }]}>
                 {check.payee_city_state}
+              </Text>
+            )}
+            
+            {/* Amount Numeric */}
+            <Text style={[styles.text, styles.bold, { left: pt(s.amount_numeric_x), top: pt(s.amount_numeric_y), fontSize: 11 }]}>
+              {formatAmountNumeric(check.amount)}
+            </Text>
+            
+            {/* Amount in Words with asterisk padding */}
+            <Text style={[styles.text, { left: pt(s.amount_words_x), top: pt(s.amount_words_y), fontSize: 9 }]}>
+              {formatAmountWords(check.amount)}
+            </Text>
+            
+            {/* ===== MICR LINE (Bottom of check) ===== */}
+            
+            {/* MICR: Check Number (left) */}
+            <Text style={[styles.text, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 10 }]}>
+              {check.check_number}
+            </Text>
+            
+            {/* MICR: Routing Number (center) */}
+            {bankInfo.routing_number && (
+              <Text style={[styles.text, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 10 }]}>
+                {bankInfo.routing_number}
+              </Text>
+            )}
+            
+            {/* MICR: Account Number (right) */}
+            {bankInfo.account_number && (
+              <Text style={[styles.text, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 10 }]}>
+                {bankInfo.account_number}
               </Text>
             )}
             
@@ -222,20 +275,46 @@ export function CheckPrintTestDocument({ settings }: { settings?: Partial<CheckP
         <Text style={[styles.text, { left: pt(s.company_name_x), top: pt(s.company_name_y), fontSize: 8 }]}>
           [COMPANY NAME]
         </Text>
+        <Text style={[styles.text, { left: pt(s.bank_name_x), top: pt(s.bank_name_y), fontSize: 8 }]}>
+          [BANK NAME]
+        </Text>
+        <Text style={[styles.text, { left: pt(s.bank_address_x), top: pt(s.bank_address_y), fontSize: 8 }]}>
+          [BANK ADDRESS]
+        </Text>
+        <Text style={[styles.text, { left: pt(s.bank_city_state_x), top: pt(s.bank_city_state_y), fontSize: 8 }]}>
+          [BANK CITY/STATE]
+        </Text>
+        <Text style={[styles.text, { left: pt(s.routing_fraction_x), top: pt(s.routing_fraction_y), fontSize: 8 }]}>
+          [ROUTING FRACTION]
+        </Text>
         <Text style={[styles.text, { left: pt(s.check_number_x), top: pt(s.check_number_y), fontSize: 8 }]}>
           [CHECK #]
+        </Text>
+        <Text style={[styles.text, { left: pt(s.date_label_x), top: pt(s.date_label_y), fontSize: 8 }]}>
+          [DATE LABEL]
         </Text>
         <Text style={[styles.text, { left: pt(s.date_x), top: pt(s.date_y), fontSize: 8 }]}>
           [DATE]
         </Text>
-        <Text style={[styles.text, { left: pt(s.amount_words_x), top: pt(s.amount_words_y), fontSize: 8 }]}>
-          [AMOUNT IN WORDS]
+        <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y), fontSize: 8 }]}>
+          [PAYEE NAME]
         </Text>
         <Text style={[styles.text, { left: pt(s.amount_numeric_x), top: pt(s.amount_numeric_y), fontSize: 8 }]}>
           [$AMOUNT]
         </Text>
-        <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y), fontSize: 8 }]}>
-          [PAYEE NAME]
+        <Text style={[styles.text, { left: pt(s.amount_words_x), top: pt(s.amount_words_y), fontSize: 8 }]}>
+          [AMOUNT IN WORDS]
+        </Text>
+        
+        {/* MICR line labels */}
+        <Text style={[styles.text, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 8 }]}>
+          [MICR CHECK#]
+        </Text>
+        <Text style={[styles.text, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 8 }]}>
+          [MICR ROUTING]
+        </Text>
+        <Text style={[styles.text, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 8 }]}>
+          [MICR ACCOUNT]
         </Text>
         
         {/* Stub section labels */}

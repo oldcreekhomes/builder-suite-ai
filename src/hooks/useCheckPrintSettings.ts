@@ -17,13 +17,27 @@ export interface CheckPrintSettings {
   company_name_x: number;
   company_name_y: number;
   
+  // Bank info position (below company address)
+  bank_name_x: number;
+  bank_name_y: number;
+  bank_address_x: number;
+  bank_address_y: number;
+  bank_city_state_x: number;
+  bank_city_state_y: number;
+  
+  // Routing fraction position (e.g., "65-109/550")
+  routing_fraction_x: number;
+  routing_fraction_y: number;
+  
   // Check number position
   check_number_x: number;
   check_number_y: number;
   
-  // Date field position
+  // Date field position (with label)
   date_x: number;
   date_y: number;
+  date_label_x: number;
+  date_label_y: number;
   
   // Amount in words position
   amount_words_x: number;
@@ -36,6 +50,14 @@ export interface CheckPrintSettings {
   // Payee position
   payee_x: number;
   payee_y: number;
+  
+  // MICR line positions (bottom of check)
+  micr_check_number_x: number;
+  micr_check_number_y: number;
+  micr_routing_x: number;
+  micr_routing_y: number;
+  micr_account_x: number;
+  micr_account_y: number;
   
   // Stub positions
   stub_company_x: number;
@@ -73,11 +95,25 @@ export const DEFAULT_PRINT_SETTINGS: Omit<CheckPrintSettingsInput, 'owner_id' | 
   company_name_x: 0.25,
   company_name_y: 0.35,
   
+  // Bank info (below company address)
+  bank_name_x: 0.25,
+  bank_name_y: 0.65,
+  bank_address_x: 0.25,
+  bank_address_y: 0.80,
+  bank_city_state_x: 0.25,
+  bank_city_state_y: 0.95,
+  
+  // Routing fraction (top right, e.g., "65-109/550")
+  routing_fraction_x: 7.0,
+  routing_fraction_y: 0.65,
+  
   check_number_x: 7.0,
   check_number_y: 0.35,
   
   date_x: 7.0,
   date_y: 1.1,
+  date_label_x: 4.5,
+  date_label_y: 1.0,
   
   amount_words_x: 0.25,
   amount_words_y: 1.4,
@@ -87,6 +123,14 @@ export const DEFAULT_PRINT_SETTINGS: Omit<CheckPrintSettingsInput, 'owner_id' | 
   
   payee_x: 0.65,
   payee_y: 1.75,
+  
+  // MICR line at bottom of check
+  micr_check_number_x: 0.5,
+  micr_check_number_y: 3.2,
+  micr_routing_x: 2.5,
+  micr_routing_y: 3.2,
+  micr_account_x: 4.5,
+  micr_account_y: 3.2,
   
   stub_company_x: 0.25,
   stub_company_y: 3.7,
