@@ -459,14 +459,25 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     try {
       // For approved/posted/paid bills, use updateApprovedBill (no status change, no reversals)
       if (['approved', 'posted', 'paid'].includes(billData?.status)) {
-        // Build list of bill line updates with their database IDs
-        const lineUpdates = jobCostRows
+        // Build list of bill line updates with their database IDs (include memo)
+        const jobCostLineUpdates = jobCostRows
           .filter(row => row.dbId)
           .map(row => ({
             dbId: row.dbId!,
             cost_code_id: row.accountId || undefined,
-            lot_id: row.lotId || undefined
+            lot_id: row.lotId || undefined,
+            memo: row.memo || undefined
           }));
+
+        const expenseLineUpdates = expenseRows
+          .filter(row => row.dbId)
+          .map(row => ({
+            dbId: row.dbId!,
+            lot_id: row.lotId || undefined,
+            memo: row.memo || undefined
+          }));
+
+        const lineUpdates = [...jobCostLineUpdates, ...expenseLineUpdates];
 
         await updateApprovedBill.mutateAsync({
           billId,
