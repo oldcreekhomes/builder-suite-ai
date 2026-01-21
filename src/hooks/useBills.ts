@@ -729,7 +729,7 @@ export const useBills = () => {
     }: { 
       billId: string; 
       billData: { bill_date: string; notes?: string }; 
-      billLines: { dbId: string; cost_code_id?: string; lot_id?: string }[];
+      billLines: { dbId: string; cost_code_id?: string; lot_id?: string; memo?: string }[];
     }) => {
       if (!user) throw new Error("User not authenticated");
 
@@ -755,7 +755,7 @@ export const useBills = () => {
 
       if (updateError) throw updateError;
 
-      // Update bill lines (only cost_code_id and lot_id)
+      // Update bill lines (cost_code_id, lot_id, and memo)
       for (const line of billLines) {
         if (!line.dbId) continue;
         
@@ -764,6 +764,7 @@ export const useBills = () => {
           .update({
             cost_code_id: line.cost_code_id || null,
             lot_id: line.lot_id || null,
+            memo: line.memo || null,
             updated_at: new Date().toISOString()
           })
           .eq('id', line.dbId);
