@@ -259,7 +259,7 @@ export const useBankReconciliation = () => {
             // Step 3: Fetch bills with project filter (including orphaned ones)
             let billsQuery = supabase
               .from('bills')
-              .select('id, reference_number, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
+              .select('id, reference_number, status, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
               .in('id', billIds);
 
             if (projectId) {
@@ -277,6 +277,8 @@ export const useBankReconciliation = () => {
             // Filter bills: show unreconciled (or orphaned treated as unreconciled)
             // We need to check the JE entry_date for cutoff since that's the payment date
             const bills = (allBillsRaw || []).filter(b => {
+              // Skip reversed bills entirely - they're not real transactions anymore
+              if (b.status === 'reversed') return false;
               // Properly reconciled for THIS project - skip
               const effectivelyReconciled = b.reconciled && b.reconciliation_id && validReconciliationIds.has(b.reconciliation_id);
               if (effectivelyReconciled) return false;
