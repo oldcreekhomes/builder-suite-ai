@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Button } from "@/components/ui/button";
-import { Check, Lock, Pencil } from "lucide-react";
+import { ArrowUpDown, Check, Lock, Pencil } from "lucide-react";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 
@@ -58,6 +58,7 @@ export function JobCostActualDialog({
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
 
   const { data: journalLines, isLoading } = useQuery({
@@ -170,19 +171,35 @@ export function JobCostActualDialog({
     enabled: isOpen && !!projectId && !!costCode && !!userId,
   });
 
+  // Sort journal lines by description if sort is active
+  const sortedLines = useMemo(() => {
+    if (!journalLines || !descriptionSort) return journalLines;
+    
+    return [...journalLines].sort((a, b) => {
+      const descA = (a.memo || a.journal_entries.description || '').toLowerCase();
+      const descB = (b.memo || b.journal_entries.description || '').toLowerCase();
+      
+      if (descriptionSort === 'asc') {
+        return descA.localeCompare(descB);
+      } else {
+        return descB.localeCompare(descA);
+      }
+    });
+  }, [journalLines, descriptionSort]);
+
   // Calculate running balances
   const { balances, total } = useMemo(() => {
-    if (!journalLines) return { balances: [], total: 0 };
+    if (!sortedLines) return { balances: [], total: 0 };
     
     let runningBalance = 0;
-    const balances = journalLines.map(line => {
+    const balances = sortedLines.map(line => {
       const netAmount = line.debit - line.credit;
       runningBalance += netAmount;
       return runningBalance;
     });
     
     return { balances, total: runningBalance };
-  }, [journalLines]);
+  }, [sortedLines]);
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -237,7 +254,17 @@ const formatCurrency = (value: number) => {
                     <TableHead className="h-8 px-2 py-1">Type</TableHead>
                     <TableHead className="h-8 px-2 py-1">Date</TableHead>
                     <TableHead className="h-8 px-2 py-1">Name</TableHead>
-                    <TableHead className="h-8 px-2 py-1">Description</TableHead>
+                    <TableHead className="h-8 px-2 py-1">
+                      <button 
+                        className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
+                        onClick={() => setDescriptionSort(prev => 
+                          prev === null ? 'asc' : prev === 'asc' ? 'desc' : null
+                        )}
+                      >
+                        Description
+                        <ArrowUpDown className="h-3 w-3" />
+                      </button>
+                    </TableHead>
                     <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
                     <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
                     <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
@@ -245,7 +272,7 @@ const formatCurrency = (value: number) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {journalLines.map((line, index) => {
+                  {sortedLines?.map((line, index) => {
                     const netAmount = line.debit - line.credit;
                     
                     return (
