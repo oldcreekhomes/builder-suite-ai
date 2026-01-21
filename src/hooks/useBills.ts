@@ -800,6 +800,7 @@ export const useBills = () => {
                 .update({
                   cost_code_id: line.cost_code_id || null,
                   lot_id: line.lot_id || null,
+                  memo: line.memo || null,
                   updated_at: new Date().toISOString()
                 })
                 .eq('journal_entry_id', je.id)
@@ -821,6 +822,7 @@ export const useBills = () => {
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       queryClient.invalidateQueries({ queryKey: ['bill'] });
       queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
       toast({
         title: "Success",
         description: "Bill updated successfully",
