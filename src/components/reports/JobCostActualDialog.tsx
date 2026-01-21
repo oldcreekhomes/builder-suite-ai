@@ -360,7 +360,7 @@ const formatCurrency = (value: number) => {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span><Lock className="h-3 w-3 text-muted-foreground" /></span>
+                                    <span><Lock className="h-4 w-4 text-muted-foreground" /></span>
                                   </TooltipTrigger>
                                   <TooltipContent side="left" align="center">
                                     {line.reconciled && isDateLocked(line.journal_entries.entry_date) ? (

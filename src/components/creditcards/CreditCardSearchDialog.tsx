@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Input } from "@/components/ui/input";
-import { Check, Search } from "lucide-react";
+import { Check, Search, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -303,7 +303,7 @@ export function CreditCardSearchDialog({
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className="text-base">🔒</span>
+                                    <span><Lock className="h-4 w-4 text-muted-foreground" /></span>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>This credit card transaction is locked and cannot be deleted</p>
