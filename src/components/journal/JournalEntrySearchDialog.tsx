@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Lock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -289,7 +289,7 @@ export function JournalEntrySearchDialog({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="cursor-not-allowed text-base">🔒</span>
+                                  <span className="cursor-not-allowed"><Lock className="h-4 w-4 text-muted-foreground" /></span>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p className="text-xs">{lockReason}</p>
