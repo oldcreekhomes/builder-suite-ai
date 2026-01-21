@@ -248,7 +248,7 @@ const formatCurrency = (value: number) => {
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : journalLines && journalLines.length > 0 ? (
-              <Table className="text-xs">
+              <Table className="text-xs" containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow className="h-8">
                     <TableHead className="h-8 px-2 py-1">Type</TableHead>
