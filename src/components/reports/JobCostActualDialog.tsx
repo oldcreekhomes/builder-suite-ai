@@ -129,44 +129,87 @@ export function JobCostActualDialog({
         .map(line => line.journal_entries.source_id)
         .filter((id): id is string => id !== null);
 
+      // Enrich bill entries with vendor and reference info
+      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null }>();
       if (billSourceIds.length > 0) {
         const { data: billsData } = await supabase
           .from('bills')
           .select(`
             id,
             reference_number,
+            reconciled,
             vendor_id,
             companies!bills_vendor_id_fkey(company_name)
           `)
           .in('id', billSourceIds);
 
-        const billsMap = new Map(
+        billsMap = new Map(
           billsData?.map(bill => [
             bill.id,
             {
               reference_number: bill.reference_number,
-              vendor_name: (bill.companies as any)?.company_name
+              vendor_name: (bill.companies as any)?.company_name,
+              reconciled: bill.reconciled
             }
           ]) || []
         );
-
-        return rawLines.map(line => ({
-          ...line,
-          source_type: line.journal_entries.source_type || 'unknown',
-          bill_id: line.journal_entries.source_type === 'bill' ? line.journal_entries.source_id : undefined,
-          vendor_name: line.journal_entries.source_type === 'bill' 
-            ? billsMap.get(line.journal_entries.source_id || '')?.vendor_name 
-            : undefined,
-          reference_number: line.journal_entries.source_type === 'bill'
-            ? billsMap.get(line.journal_entries.source_id || '')?.reference_number
-            : undefined,
-        }));
       }
 
-      return rawLines.map(line => ({
-        ...line,
-        source_type: line.journal_entries.source_type || 'unknown',
-      }));
+      // Enrich check entries with payee name and reconciled status
+      const checkSourceIds = rawLines
+        .filter(line => line.journal_entries.source_type === 'check')
+        .map(line => line.journal_entries.source_id)
+        .filter((id): id is string => id !== null);
+
+      let checksMap = new Map<string, { pay_to: string; reconciled: boolean }>();
+      if (checkSourceIds.length > 0) {
+        const { data: checksData } = await supabase
+          .from('checks')
+          .select('id, pay_to, reconciled')
+          .in('id', checkSourceIds);
+
+        checksMap = new Map(
+          checksData?.map(check => [
+            check.id,
+            {
+              pay_to: check.pay_to,
+              reconciled: check.reconciled
+            }
+          ]) || []
+        );
+      }
+
+      // Map all lines with enriched data
+      return rawLines.map(line => {
+        const sourceType = line.journal_entries.source_type;
+        const sourceId = line.journal_entries.source_id || '';
+        
+        let vendor_name: string | undefined;
+        let reconciled = line.reconciled;
+        let reference_number: string | undefined;
+        let bill_id: string | undefined;
+
+        if (sourceType === 'bill') {
+          const billData = billsMap.get(sourceId);
+          vendor_name = billData?.vendor_name ?? undefined;
+          reference_number = billData?.reference_number ?? undefined;
+          reconciled = billData?.reconciled ?? line.reconciled;
+          bill_id = sourceId;
+        } else if (sourceType === 'check') {
+          const checkData = checksMap.get(sourceId);
+          vendor_name = checkData?.pay_to;
+          reconciled = checkData?.reconciled ?? line.reconciled;
+        }
+
+        return {
+          ...line,
+          source_type: sourceType || 'unknown',
+          bill_id,
+          vendor_name,
+          reference_number,
+          reconciled,
+        };
+      });
     },
     enabled: isOpen && !!projectId && !!costCode && !!userId,
   });
