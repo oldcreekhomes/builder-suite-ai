@@ -855,17 +855,31 @@ export type Database = {
           amount_numeric_y: number | null
           amount_words_x: number | null
           amount_words_y: number | null
+          bank_address_x: number | null
+          bank_address_y: number | null
+          bank_city_state_x: number | null
+          bank_city_state_y: number | null
+          bank_name_x: number | null
+          bank_name_y: number | null
           check_height: number | null
           check_number_x: number | null
           check_number_y: number | null
           company_name_x: number | null
           company_name_y: number | null
           created_at: string | null
+          date_label_x: number | null
+          date_label_y: number | null
           date_x: number | null
           date_y: number | null
           font_family: string | null
           font_size: number | null
           id: string
+          micr_account_x: number | null
+          micr_account_y: number | null
+          micr_check_number_x: number | null
+          micr_check_number_y: number | null
+          micr_routing_x: number | null
+          micr_routing_y: number | null
           name: string | null
           owner_id: string
           page_height: number | null
@@ -873,6 +887,8 @@ export type Database = {
           payee_x: number | null
           payee_y: number | null
           project_id: string | null
+          routing_fraction_x: number | null
+          routing_fraction_y: number | null
           stub_amount_x: number | null
           stub_amount_y: number | null
           stub_bank_x: number | null
@@ -894,17 +910,31 @@ export type Database = {
           amount_numeric_y?: number | null
           amount_words_x?: number | null
           amount_words_y?: number | null
+          bank_address_x?: number | null
+          bank_address_y?: number | null
+          bank_city_state_x?: number | null
+          bank_city_state_y?: number | null
+          bank_name_x?: number | null
+          bank_name_y?: number | null
           check_height?: number | null
           check_number_x?: number | null
           check_number_y?: number | null
           company_name_x?: number | null
           company_name_y?: number | null
           created_at?: string | null
+          date_label_x?: number | null
+          date_label_y?: number | null
           date_x?: number | null
           date_y?: number | null
           font_family?: string | null
           font_size?: number | null
           id?: string
+          micr_account_x?: number | null
+          micr_account_y?: number | null
+          micr_check_number_x?: number | null
+          micr_check_number_y?: number | null
+          micr_routing_x?: number | null
+          micr_routing_y?: number | null
           name?: string | null
           owner_id: string
           page_height?: number | null
@@ -912,6 +942,8 @@ export type Database = {
           payee_x?: number | null
           payee_y?: number | null
           project_id?: string | null
+          routing_fraction_x?: number | null
+          routing_fraction_y?: number | null
           stub_amount_x?: number | null
           stub_amount_y?: number | null
           stub_bank_x?: number | null
@@ -933,17 +965,31 @@ export type Database = {
           amount_numeric_y?: number | null
           amount_words_x?: number | null
           amount_words_y?: number | null
+          bank_address_x?: number | null
+          bank_address_y?: number | null
+          bank_city_state_x?: number | null
+          bank_city_state_y?: number | null
+          bank_name_x?: number | null
+          bank_name_y?: number | null
           check_height?: number | null
           check_number_x?: number | null
           check_number_y?: number | null
           company_name_x?: number | null
           company_name_y?: number | null
           created_at?: string | null
+          date_label_x?: number | null
+          date_label_y?: number | null
           date_x?: number | null
           date_y?: number | null
           font_family?: string | null
           font_size?: number | null
           id?: string
+          micr_account_x?: number | null
+          micr_account_y?: number | null
+          micr_check_number_x?: number | null
+          micr_check_number_y?: number | null
+          micr_routing_x?: number | null
+          micr_routing_y?: number | null
           name?: string | null
           owner_id?: string
           page_height?: number | null
@@ -951,6 +997,8 @@ export type Database = {
           payee_x?: number | null
           payee_y?: number | null
           project_id?: string | null
+          routing_fraction_x?: number | null
+          routing_fraction_y?: number | null
           stub_amount_x?: number | null
           stub_amount_y?: number | null
           stub_bank_x?: number | null

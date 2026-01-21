@@ -30,12 +30,34 @@ const checkFields: FieldConfig[] = [
   { key: 'check_number_y', label: 'Check Number Y' },
   { key: 'date_x', label: 'Date X' },
   { key: 'date_y', label: 'Date Y' },
+  { key: 'date_label_x', label: 'Date Label X' },
+  { key: 'date_label_y', label: 'Date Label Y' },
   { key: 'amount_words_x', label: 'Amount (Words) X' },
   { key: 'amount_words_y', label: 'Amount (Words) Y' },
   { key: 'amount_numeric_x', label: 'Amount (Numeric) X' },
   { key: 'amount_numeric_y', label: 'Amount (Numeric) Y' },
   { key: 'payee_x', label: 'Payee Name X' },
   { key: 'payee_y', label: 'Payee Name Y' },
+];
+
+const bankFields: FieldConfig[] = [
+  { key: 'bank_name_x', label: 'Bank Name X' },
+  { key: 'bank_name_y', label: 'Bank Name Y' },
+  { key: 'bank_address_x', label: 'Bank Address X' },
+  { key: 'bank_address_y', label: 'Bank Address Y' },
+  { key: 'bank_city_state_x', label: 'Bank City/State X' },
+  { key: 'bank_city_state_y', label: 'Bank City/State Y' },
+  { key: 'routing_fraction_x', label: 'Routing Fraction X' },
+  { key: 'routing_fraction_y', label: 'Routing Fraction Y' },
+];
+
+const micrFields: FieldConfig[] = [
+  { key: 'micr_check_number_x', label: 'MICR Check# X' },
+  { key: 'micr_check_number_y', label: 'MICR Check# Y' },
+  { key: 'micr_routing_x', label: 'MICR Routing X' },
+  { key: 'micr_routing_y', label: 'MICR Routing Y' },
+  { key: 'micr_account_x', label: 'MICR Account X' },
+  { key: 'micr_account_y', label: 'MICR Account Y' },
 ];
 
 const stubFields: FieldConfig[] = [
@@ -147,10 +169,11 @@ export function CheckPrintSettingsDialog({ open, onOpenChange, projectId }: Chec
         </DialogHeader>
 
         <Tabs defaultValue="check" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="check">Check Fields</TabsTrigger>
-            <TabsTrigger value="stub">Stub Fields</TabsTrigger>
-            <TabsTrigger value="page">Page Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="check">Check</TabsTrigger>
+            <TabsTrigger value="bank">Bank & MICR</TabsTrigger>
+            <TabsTrigger value="stub">Stub</TabsTrigger>
+            <TabsTrigger value="page">Page</TabsTrigger>
           </TabsList>
 
           <TabsContent value="check" className="space-y-4 mt-4">
@@ -158,6 +181,16 @@ export function CheckPrintSettingsDialog({ open, onOpenChange, projectId }: Chec
               Position of fields on the main check portion (top ~3.5 inches of page)
             </p>
             {renderFieldGroup(checkFields)}
+          </TabsContent>
+
+          <TabsContent value="bank" className="space-y-4 mt-4">
+            <p className="text-sm text-muted-foreground">
+              Bank information and MICR line positions (bottom of check)
+            </p>
+            <h4 className="font-medium text-sm mt-4">Bank Info</h4>
+            {renderFieldGroup(bankFields)}
+            <h4 className="font-medium text-sm mt-4">MICR Line</h4>
+            {renderFieldGroup(micrFields)}
           </TabsContent>
 
           <TabsContent value="stub" className="space-y-4 mt-4">
