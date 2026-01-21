@@ -13,17 +13,27 @@ export interface CheckPrintSettings {
   page_height: number;
   check_height: number;
   
-  // Company info position
+  // Company info position (4 lines)
   company_name_x: number;
   company_name_y: number;
+  company_line2_x: number;
+  company_line2_y: number;
+  company_line3_x: number;
+  company_line3_y: number;
+  company_line4_x: number;
+  company_line4_y: number;
   
-  // Bank info position (below company address)
+  // Bank info position (3 lines)
   bank_name_x: number;
   bank_name_y: number;
   bank_address_x: number;
   bank_address_y: number;
   bank_city_state_x: number;
   bank_city_state_y: number;
+  bank_line2_x: number;
+  bank_line2_y: number;
+  bank_line3_x: number;
+  bank_line3_y: number;
   
   // Routing fraction position (e.g., "65-109/550")
   routing_fraction_x: number;
@@ -39,6 +49,14 @@ export interface CheckPrintSettings {
   date_label_x: number;
   date_label_y: number;
   
+  // PAY / TO THE / ORDER OF: labels
+  pay_label_x: number;
+  pay_label_y: number;
+  to_the_label_x: number;
+  to_the_label_y: number;
+  order_of_label_x: number;
+  order_of_label_y: number;
+  
   // Amount in words position
   amount_words_x: number;
   amount_words_y: number;
@@ -47,9 +65,19 @@ export interface CheckPrintSettings {
   amount_numeric_x: number;
   amount_numeric_y: number;
   
-  // Payee position
+  // Payee position (4 lines)
   payee_x: number;
   payee_y: number;
+  payee_line2_x: number;
+  payee_line2_y: number;
+  payee_line3_x: number;
+  payee_line3_y: number;
+  payee_line4_x: number;
+  payee_label_y: number;
+  
+  // Signature label position
+  signature_label_x: number;
+  signature_label_y: number;
   
   // MICR line positions (bottom of check)
   micr_check_number_x: number;
@@ -58,6 +86,10 @@ export interface CheckPrintSettings {
   micr_routing_y: number;
   micr_account_x: number;
   micr_account_y: number;
+  
+  // MultiCHAX position (blank for now)
+  multichax_x: number;
+  multichax_y: number;
   
   // Stub positions
   stub_company_x: number;
@@ -85,53 +117,92 @@ export interface CheckPrintSettings {
 
 export type CheckPrintSettingsInput = Omit<CheckPrintSettings, 'id' | 'created_at' | 'updated_at'>;
 
-// Default settings based on the analyzed check stock
+// Default settings based on the Sandy Spring Bank check stock scan
 export const DEFAULT_PRINT_SETTINGS: Omit<CheckPrintSettingsInput, 'owner_id' | 'project_id'> = {
   name: 'Default',
   page_width: 8.5,
   page_height: 11,
   check_height: 3.5,
   
+  // Company info (4 lines - top left)
   company_name_x: 0.25,
   company_name_y: 0.35,
+  company_line2_x: 0.25,
+  company_line2_y: 0.50,
+  company_line3_x: 0.25,
+  company_line3_y: 0.65,
+  company_line4_x: 0.25,
+  company_line4_y: 0.80,
   
-  // Bank info (below company address)
+  // Bank info (3 lines - below company)
   bank_name_x: 0.25,
-  bank_name_y: 0.65,
+  bank_name_y: 0.95,
   bank_address_x: 0.25,
-  bank_address_y: 0.80,
+  bank_address_y: 1.10,
   bank_city_state_x: 0.25,
-  bank_city_state_y: 0.95,
+  bank_city_state_y: 1.25,
+  bank_line2_x: 0.25,
+  bank_line2_y: 1.10,
+  bank_line3_x: 0.25,
+  bank_line3_y: 1.25,
   
-  // Routing fraction (top right, e.g., "65-109/550")
-  routing_fraction_x: 7.0,
-  routing_fraction_y: 0.65,
-  
-  check_number_x: 7.0,
+  // Check number (top right)
+  check_number_x: 7.5,
   check_number_y: 0.35,
   
+  // Routing fraction (top right, e.g., "65-109/550")
+  routing_fraction_x: 7.5,
+  routing_fraction_y: 0.55,
+  
+  // Date with label (center area)
   date_x: 7.0,
   date_y: 1.1,
-  date_label_x: 4.5,
-  date_label_y: 1.0,
+  date_label_x: 5.5,
+  date_label_y: 1.40,
   
+  // PAY / TO THE / ORDER OF: labels (left side, stacked)
+  pay_label_x: 0.25,
+  pay_label_y: 1.65,
+  to_the_label_x: 0.25,
+  to_the_label_y: 1.80,
+  order_of_label_x: 0.25,
+  order_of_label_y: 1.95,
+  
+  // Payee (4 lines - to the right of ORDER OF:)
+  payee_x: 1.0,
+  payee_y: 1.80,
+  payee_line2_x: 1.0,
+  payee_line2_y: 1.95,
+  payee_line3_x: 1.0,
+  payee_line3_y: 2.10,
+  payee_line4_x: 1.0,
+  payee_label_y: 2.25,
+  
+  // Amount numeric (boxed area on right)
+  amount_numeric_x: 7.0,
+  amount_numeric_y: 1.80,
+  
+  // Amount in words (long line across check)
   amount_words_x: 0.25,
-  amount_words_y: 1.4,
+  amount_words_y: 2.45,
   
-  amount_numeric_x: 7.5,
-  amount_numeric_y: 1.4,
+  // Signature label
+  signature_label_x: 5.5,
+  signature_label_y: 2.95,
   
-  payee_x: 0.65,
-  payee_y: 1.75,
-  
-  // MICR line at bottom of check
+  // MICR line at bottom of check (E-13B font)
   micr_check_number_x: 0.5,
-  micr_check_number_y: 3.2,
-  micr_routing_x: 2.5,
-  micr_routing_y: 3.2,
-  micr_account_x: 4.5,
-  micr_account_y: 3.2,
+  micr_check_number_y: 3.25,
+  micr_routing_x: 1.75,
+  micr_routing_y: 3.25,
+  micr_account_x: 3.25,
+  micr_account_y: 3.25,
   
+  // MultiCHAX (blank for now)
+  multichax_x: 0.25,
+  multichax_y: 0.20,
+  
+  // Stub section
   stub_company_x: 0.25,
   stub_company_y: 3.7,
   stub_payee_x: 0.5,

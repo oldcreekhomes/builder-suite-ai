@@ -853,17 +853,29 @@ export type Database = {
         Row: {
           amount_numeric_x: number | null
           amount_numeric_y: number | null
+          amount_words_line_x: number | null
+          amount_words_line_y: number | null
           amount_words_x: number | null
           amount_words_y: number | null
           bank_address_x: number | null
           bank_address_y: number | null
           bank_city_state_x: number | null
           bank_city_state_y: number | null
+          bank_line2_x: number | null
+          bank_line2_y: number | null
+          bank_line3_x: number | null
+          bank_line3_y: number | null
           bank_name_x: number | null
           bank_name_y: number | null
           check_height: number | null
           check_number_x: number | null
           check_number_y: number | null
+          company_line2_x: number | null
+          company_line2_y: number | null
+          company_line3_x: number | null
+          company_line3_y: number | null
+          company_line4_x: number | null
+          company_line4_y: number | null
           company_name_x: number | null
           company_name_y: number | null
           created_at: string | null
@@ -880,15 +892,29 @@ export type Database = {
           micr_check_number_y: number | null
           micr_routing_x: number | null
           micr_routing_y: number | null
+          multichax_x: number | null
+          multichax_y: number | null
           name: string | null
+          order_of_label_x: number | null
+          order_of_label_y: number | null
           owner_id: string
           page_height: number | null
           page_width: number | null
+          pay_label_x: number | null
+          pay_label_y: number | null
+          payee_label_y: number | null
+          payee_line2_x: number | null
+          payee_line2_y: number | null
+          payee_line3_x: number | null
+          payee_line3_y: number | null
+          payee_line4_x: number | null
           payee_x: number | null
           payee_y: number | null
           project_id: string | null
           routing_fraction_x: number | null
           routing_fraction_y: number | null
+          signature_label_x: number | null
+          signature_label_y: number | null
           stub_amount_x: number | null
           stub_amount_y: number | null
           stub_bank_x: number | null
@@ -903,22 +929,36 @@ export type Database = {
           stub_payee_y: number | null
           stub_total_x: number | null
           stub_total_y: number | null
+          to_the_label_x: number | null
+          to_the_label_y: number | null
           updated_at: string | null
         }
         Insert: {
           amount_numeric_x?: number | null
           amount_numeric_y?: number | null
+          amount_words_line_x?: number | null
+          amount_words_line_y?: number | null
           amount_words_x?: number | null
           amount_words_y?: number | null
           bank_address_x?: number | null
           bank_address_y?: number | null
           bank_city_state_x?: number | null
           bank_city_state_y?: number | null
+          bank_line2_x?: number | null
+          bank_line2_y?: number | null
+          bank_line3_x?: number | null
+          bank_line3_y?: number | null
           bank_name_x?: number | null
           bank_name_y?: number | null
           check_height?: number | null
           check_number_x?: number | null
           check_number_y?: number | null
+          company_line2_x?: number | null
+          company_line2_y?: number | null
+          company_line3_x?: number | null
+          company_line3_y?: number | null
+          company_line4_x?: number | null
+          company_line4_y?: number | null
           company_name_x?: number | null
           company_name_y?: number | null
           created_at?: string | null
@@ -935,15 +975,29 @@ export type Database = {
           micr_check_number_y?: number | null
           micr_routing_x?: number | null
           micr_routing_y?: number | null
+          multichax_x?: number | null
+          multichax_y?: number | null
           name?: string | null
+          order_of_label_x?: number | null
+          order_of_label_y?: number | null
           owner_id: string
           page_height?: number | null
           page_width?: number | null
+          pay_label_x?: number | null
+          pay_label_y?: number | null
+          payee_label_y?: number | null
+          payee_line2_x?: number | null
+          payee_line2_y?: number | null
+          payee_line3_x?: number | null
+          payee_line3_y?: number | null
+          payee_line4_x?: number | null
           payee_x?: number | null
           payee_y?: number | null
           project_id?: string | null
           routing_fraction_x?: number | null
           routing_fraction_y?: number | null
+          signature_label_x?: number | null
+          signature_label_y?: number | null
           stub_amount_x?: number | null
           stub_amount_y?: number | null
           stub_bank_x?: number | null
@@ -958,22 +1012,36 @@ export type Database = {
           stub_payee_y?: number | null
           stub_total_x?: number | null
           stub_total_y?: number | null
+          to_the_label_x?: number | null
+          to_the_label_y?: number | null
           updated_at?: string | null
         }
         Update: {
           amount_numeric_x?: number | null
           amount_numeric_y?: number | null
+          amount_words_line_x?: number | null
+          amount_words_line_y?: number | null
           amount_words_x?: number | null
           amount_words_y?: number | null
           bank_address_x?: number | null
           bank_address_y?: number | null
           bank_city_state_x?: number | null
           bank_city_state_y?: number | null
+          bank_line2_x?: number | null
+          bank_line2_y?: number | null
+          bank_line3_x?: number | null
+          bank_line3_y?: number | null
           bank_name_x?: number | null
           bank_name_y?: number | null
           check_height?: number | null
           check_number_x?: number | null
           check_number_y?: number | null
+          company_line2_x?: number | null
+          company_line2_y?: number | null
+          company_line3_x?: number | null
+          company_line3_y?: number | null
+          company_line4_x?: number | null
+          company_line4_y?: number | null
           company_name_x?: number | null
           company_name_y?: number | null
           created_at?: string | null
@@ -990,15 +1058,29 @@ export type Database = {
           micr_check_number_y?: number | null
           micr_routing_x?: number | null
           micr_routing_y?: number | null
+          multichax_x?: number | null
+          multichax_y?: number | null
           name?: string | null
+          order_of_label_x?: number | null
+          order_of_label_y?: number | null
           owner_id?: string
           page_height?: number | null
           page_width?: number | null
+          pay_label_x?: number | null
+          pay_label_y?: number | null
+          payee_label_y?: number | null
+          payee_line2_x?: number | null
+          payee_line2_y?: number | null
+          payee_line3_x?: number | null
+          payee_line3_y?: number | null
+          payee_line4_x?: number | null
           payee_x?: number | null
           payee_y?: number | null
           project_id?: string | null
           routing_fraction_x?: number | null
           routing_fraction_y?: number | null
+          signature_label_x?: number | null
+          signature_label_y?: number | null
           stub_amount_x?: number | null
           stub_amount_y?: number | null
           stub_bank_x?: number | null
@@ -1013,6 +1095,8 @@ export type Database = {
           stub_payee_y?: number | null
           stub_total_x?: number | null
           stub_total_y?: number | null
+          to_the_label_x?: number | null
+          to_the_label_y?: number | null
           updated_at?: string | null
         }
         Relationships: [
