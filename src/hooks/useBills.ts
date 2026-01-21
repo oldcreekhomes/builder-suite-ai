@@ -1099,7 +1099,32 @@ export const useBills = () => {
 
       if (correctedLinesError) throw correctedLinesError;
 
-      // Step 9: Create journal entries for corrected bill if original was posted/paid
+      // Step 9: Transfer any existing bill_payment_allocations from reversed bill to corrected bill
+      // This ensures payments made on the original bill are correctly linked to the corrected bill
+      const { data: existingAllocations } = await supabase
+        .from('bill_payment_allocations')
+        .select('id, bill_payment_id, amount_allocated')
+        .eq('bill_id', billId);
+
+      if (existingAllocations && existingAllocations.length > 0) {
+        const { error: transferError } = await supabase
+          .from('bill_payment_allocations')
+          .update({ bill_id: correctedBill.id })
+          .eq('bill_id', billId);
+
+        if (transferError) throw transferError;
+
+        // Also update amount_paid on the corrected bill to match transferred allocations
+        const totalAllocated = existingAllocations.reduce((sum, alloc) => sum + alloc.amount_allocated, 0);
+        await supabase
+          .from('bills')
+          .update({ amount_paid: totalAllocated })
+          .eq('id', correctedBill.id);
+
+        console.log(`Transferred ${existingAllocations.length} payment allocation(s) totaling $${totalAllocated} to corrected bill`);
+      }
+
+      // Step 10: Create journal entries for corrected bill if original was posted/paid
       if (originalBill.status === 'posted' || originalBill.status === 'paid') {
         // Get accounting settings
         const { data: settings } = await supabase
