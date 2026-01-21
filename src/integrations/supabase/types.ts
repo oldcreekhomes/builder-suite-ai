@@ -886,12 +886,6 @@ export type Database = {
           font_family: string | null
           font_size: number | null
           id: string
-          micr_account_x: number | null
-          micr_account_y: number | null
-          micr_check_number_x: number | null
-          micr_check_number_y: number | null
-          micr_routing_x: number | null
-          micr_routing_y: number | null
           multichax_x: number | null
           multichax_y: number | null
           name: string | null
@@ -969,12 +963,6 @@ export type Database = {
           font_family?: string | null
           font_size?: number | null
           id?: string
-          micr_account_x?: number | null
-          micr_account_y?: number | null
-          micr_check_number_x?: number | null
-          micr_check_number_y?: number | null
-          micr_routing_x?: number | null
-          micr_routing_y?: number | null
           multichax_x?: number | null
           multichax_y?: number | null
           name?: string | null
@@ -1052,12 +1040,6 @@ export type Database = {
           font_family?: string | null
           font_size?: number | null
           id?: string
-          micr_account_x?: number | null
-          micr_account_y?: number | null
-          micr_check_number_x?: number | null
-          micr_check_number_y?: number | null
-          micr_routing_x?: number | null
-          micr_routing_y?: number | null
           multichax_x?: number | null
           multichax_y?: number | null
           name?: string | null
