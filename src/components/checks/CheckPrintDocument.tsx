@@ -1,4 +1,4 @@
-import { Document, Page, Text, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { format } from 'date-fns';
 import { CheckPrintSettings, DEFAULT_PRINT_SETTINGS } from '@/hooks/useCheckPrintSettings';
 
@@ -11,12 +11,20 @@ Font.register({
   ],
 });
 
+// Register MICR E-13B font for check bottom line
+Font.register({
+  family: 'MICR',
+  src: 'https://cdn.jsdelivr.net/gh/nicholaswmin/micr-encoding-font@main/e13b-font.woff2'
+});
+
 export interface CheckData {
   check_number: string;
   check_date: string | Date;
   pay_to: string;
   payee_address?: string;
   payee_city_state?: string;
+  payee_line3?: string;
+  payee_line4?: string;
   amount: number;
   memo?: string;
 }
@@ -25,6 +33,8 @@ export interface CompanyInfo {
   name: string;
   address?: string;
   city_state?: string;
+  line3?: string;
+  line4?: string;
 }
 
 export interface BankInfo {
@@ -95,6 +105,14 @@ const formatAmountNumeric = (amount: number): string => {
   return '**' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+// MICR special characters for E-13B font
+// Transit symbol (routing number brackets): ⑆ 
+// On-Us symbol (account): ⑈
+// Amount symbol: ⑇
+// Dash: ⑉
+const MICR_TRANSIT = '⑆';
+const MICR_ON_US = '⑈';
+
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Courier',
@@ -105,6 +123,10 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontWeight: 'bold',
+  },
+  micr: {
+    fontFamily: 'MICR',
+    position: 'absolute',
   },
 });
 
@@ -119,21 +141,35 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
           ? new Date(check.check_date) 
           : check.check_date;
         
+        // Pad check number to 6 digits for MICR
+        const micrCheckNumber = check.check_number.padStart(6, '0');
+        
         return (
           <Page key={index} size="LETTER" style={styles.page}>
             {/* ===== CHECK SECTION (Top 3.5 inches) ===== */}
             
-            {/* Company Name - Top Left */}
+            {/* Company Name Line 1 - Top Left */}
             <Text style={[styles.text, { left: pt(s.company_name_x), top: pt(s.company_name_y), fontSize: 10 }]}>
               {companyInfo.name}
             </Text>
+            
+            {/* Company Line 2 - Address */}
             {companyInfo.address && (
-              <Text style={[styles.text, { left: pt(s.company_name_x), top: pt(s.company_name_y + 0.15), fontSize: 9 }]}>
+              <Text style={[styles.text, { left: pt(s.company_line2_x), top: pt(s.company_line2_y), fontSize: 9 }]}>
                 {companyInfo.address}
               </Text>
             )}
+            
+            {/* Company Line 3 */}
+            {companyInfo.line3 && (
+              <Text style={[styles.text, { left: pt(s.company_line3_x), top: pt(s.company_line3_y), fontSize: 9 }]}>
+                {companyInfo.line3}
+              </Text>
+            )}
+            
+            {/* Company Line 4 - City/State */}
             {companyInfo.city_state && (
-              <Text style={[styles.text, { left: pt(s.company_name_x), top: pt(s.company_name_y + 0.30), fontSize: 9 }]}>
+              <Text style={[styles.text, { left: pt(s.company_line4_x), top: pt(s.company_line4_y), fontSize: 9 }]}>
                 {companyInfo.city_state}
               </Text>
             )}
@@ -142,21 +178,18 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
             <Text style={[styles.text, { left: pt(s.bank_name_x), top: pt(s.bank_name_y), fontSize: 9 }]}>
               {bankInfo.name}
             </Text>
+            
+            {/* Bank Line 2 - Address */}
             {bankInfo.address && (
-              <Text style={[styles.text, { left: pt(s.bank_address_x), top: pt(s.bank_address_y), fontSize: 8 }]}>
+              <Text style={[styles.text, { left: pt(s.bank_line2_x), top: pt(s.bank_line2_y), fontSize: 8 }]}>
                 {bankInfo.address}
               </Text>
             )}
-            {bankInfo.city_state && (
-              <Text style={[styles.text, { left: pt(s.bank_city_state_x), top: pt(s.bank_city_state_y), fontSize: 8 }]}>
-                {bankInfo.city_state}
-              </Text>
-            )}
             
-            {/* Routing Fraction - Top right area (e.g., "65-109/550") */}
-            {bankInfo.routing_fraction && (
-              <Text style={[styles.text, { left: pt(s.routing_fraction_x), top: pt(s.routing_fraction_y), fontSize: 9 }]}>
-                {bankInfo.routing_fraction}
+            {/* Bank Line 3 - City/State */}
+            {bankInfo.city_state && (
+              <Text style={[styles.text, { left: pt(s.bank_line3_x), top: pt(s.bank_line3_y), fontSize: 8 }]}>
+                {bankInfo.city_state}
               </Text>
             )}
             
@@ -165,27 +198,55 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
               {check.check_number}
             </Text>
             
-            {/* Date with Label - Center area */}
+            {/* Routing Fraction - Top right area (e.g., "65-109/550") */}
+            {bankInfo.routing_fraction && (
+              <Text style={[styles.text, { left: pt(s.routing_fraction_x), top: pt(s.routing_fraction_y), fontSize: 9 }]}>
+                {bankInfo.routing_fraction}
+              </Text>
+            )}
+            
+            {/* Date Label with value - Center area */}
             <Text style={[styles.text, { left: pt(s.date_label_x), top: pt(s.date_label_y), fontSize: 10 }]}>
-              {format(checkDate, 'MMMM do, yyyy')}
+              Date: {format(checkDate, 'MM/dd/yyyy')}
             </Text>
             
-            {/* Date - Right side */}
-            <Text style={[styles.text, { left: pt(s.date_x), top: pt(s.date_y), fontSize: 10 }]}>
-              {format(checkDate, 'MM/dd/yyyy')}
+            {/* PAY label */}
+            <Text style={[styles.text, styles.bold, { left: pt(s.pay_label_x), top: pt(s.pay_label_y), fontSize: 9 }]}>
+              PAY
             </Text>
             
-            {/* Pay To - Payee Name and Address */}
+            {/* TO THE label */}
+            <Text style={[styles.text, styles.bold, { left: pt(s.to_the_label_x), top: pt(s.to_the_label_y), fontSize: 9 }]}>
+              TO THE
+            </Text>
+            
+            {/* ORDER OF: label */}
+            <Text style={[styles.text, styles.bold, { left: pt(s.order_of_label_x), top: pt(s.order_of_label_y), fontSize: 9 }]}>
+              ORDER OF:
+            </Text>
+            
+            {/* Payee Line 1 - Name */}
             <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y), fontSize: 10 }]}>
               {check.pay_to}
             </Text>
+            
+            {/* Payee Line 2 - Address */}
             {check.payee_address && (
-              <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y + 0.15), fontSize: 9 }]}>
+              <Text style={[styles.text, { left: pt(s.payee_line2_x), top: pt(s.payee_line2_y), fontSize: 9 }]}>
                 {check.payee_address}
               </Text>
             )}
+            
+            {/* Payee Line 3 */}
+            {check.payee_line3 && (
+              <Text style={[styles.text, { left: pt(s.payee_line3_x), top: pt(s.payee_line3_y), fontSize: 9 }]}>
+                {check.payee_line3}
+              </Text>
+            )}
+            
+            {/* Payee Line 4 - City/State */}
             {check.payee_city_state && (
-              <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y + 0.30), fontSize: 9 }]}>
+              <Text style={[styles.text, { left: pt(s.payee_line4_x), top: pt(s.payee_label_y), fontSize: 9 }]}>
                 {check.payee_city_state}
               </Text>
             )}
@@ -200,24 +261,29 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
               {formatAmountWords(check.amount)}
             </Text>
             
-            {/* ===== MICR LINE (Bottom of check) ===== */}
-            
-            {/* MICR: Check Number (left) */}
-            <Text style={[styles.text, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 10 }]}>
-              {check.check_number}
+            {/* AUTHORIZED SIGNATURE label */}
+            <Text style={[styles.text, { left: pt(s.signature_label_x), top: pt(s.signature_label_y), fontSize: 8 }]}>
+              AUTHORIZED SIGNATURE
             </Text>
             
-            {/* MICR: Routing Number (center) */}
+            {/* ===== MICR LINE (Bottom of check) - Using MICR E-13B font ===== */}
+            
+            {/* MICR: Check Number (left) */}
+            <Text style={[styles.micr, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 12 }]}>
+              {MICR_ON_US}{micrCheckNumber}{MICR_ON_US}
+            </Text>
+            
+            {/* MICR: Routing Number (center) with transit symbols */}
             {bankInfo.routing_number && (
-              <Text style={[styles.text, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 10 }]}>
-                {bankInfo.routing_number}
+              <Text style={[styles.micr, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 12 }]}>
+                {MICR_TRANSIT}{bankInfo.routing_number}{MICR_TRANSIT}
               </Text>
             )}
             
-            {/* MICR: Account Number (right) */}
+            {/* MICR: Account Number (right) with on-us symbol */}
             {bankInfo.account_number && (
-              <Text style={[styles.text, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 10 }]}>
-                {bankInfo.account_number}
+              <Text style={[styles.micr, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 12 }]}>
+                {bankInfo.account_number}{MICR_ON_US}
               </Text>
             )}
             
@@ -264,80 +330,163 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
   );
 }
 
-// Test page document that prints field labels for alignment calibration
+// Test page document that prints EXACT SAMPLE DATA for alignment calibration
 export function CheckPrintTestDocument({ settings }: { settings?: Partial<CheckPrintSettings> }) {
   const s = { ...DEFAULT_PRINT_SETTINGS, ...settings };
+  
+  // Hardcoded sample data matching the Sandy Spring Bank check stock exactly
+  const SAMPLE = {
+    // Company (top left)
+    company_line1: "OCH at Oceanwatch, LLC",
+    company_line2: "228 S. Washington Street",
+    company_line3: "Suite B-30 North",
+    company_line4: "Alexandria, VA 22314",
+    
+    // Bank info (below company)
+    bank_line1: "Sandy Spring Bank",
+    bank_line2: "17801 Georgia Avenue",
+    bank_line3: "Olney, MD 20832",
+    
+    // Top right
+    routing_fraction: "65-109/550",
+    check_number: "1004",
+    
+    // Date
+    date: "01/21/2026",
+    
+    // Payee
+    payee_line1: "Old Creek Homes, LLC",
+    payee_line2: "228 S. Washington Street",
+    payee_line3: "Suite B-30 North",
+    payee_line4: "Alexandria, VA 22314",
+    
+    // Amount
+    amount: 44.64,
+    amount_numeric: "**44.64",
+    
+    // MICR line
+    micr_check_number: "001004",
+    micr_routing: "055001096",
+    micr_account: "18705498011",
+  };
   
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Check section labels */}
-        <Text style={[styles.text, { left: pt(s.company_name_x), top: pt(s.company_name_y), fontSize: 8 }]}>
-          [COMPANY NAME]
+        {/* ===== CHECK SECTION ===== */}
+        
+        {/* Company Lines */}
+        <Text style={[styles.text, { left: pt(s.company_name_x), top: pt(s.company_name_y), fontSize: 10 }]}>
+          {SAMPLE.company_line1}
         </Text>
-        <Text style={[styles.text, { left: pt(s.bank_name_x), top: pt(s.bank_name_y), fontSize: 8 }]}>
-          [BANK NAME]
+        <Text style={[styles.text, { left: pt(s.company_line2_x), top: pt(s.company_line2_y), fontSize: 9 }]}>
+          {SAMPLE.company_line2}
         </Text>
-        <Text style={[styles.text, { left: pt(s.bank_address_x), top: pt(s.bank_address_y), fontSize: 8 }]}>
-          [BANK ADDRESS]
+        <Text style={[styles.text, { left: pt(s.company_line3_x), top: pt(s.company_line3_y), fontSize: 9 }]}>
+          {SAMPLE.company_line3}
         </Text>
-        <Text style={[styles.text, { left: pt(s.bank_city_state_x), top: pt(s.bank_city_state_y), fontSize: 8 }]}>
-          [BANK CITY/STATE]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.routing_fraction_x), top: pt(s.routing_fraction_y), fontSize: 8 }]}>
-          [ROUTING FRACTION]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.check_number_x), top: pt(s.check_number_y), fontSize: 8 }]}>
-          [CHECK #]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.date_label_x), top: pt(s.date_label_y), fontSize: 8 }]}>
-          [DATE LABEL]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.date_x), top: pt(s.date_y), fontSize: 8 }]}>
-          [DATE]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y), fontSize: 8 }]}>
-          [PAYEE NAME]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.amount_numeric_x), top: pt(s.amount_numeric_y), fontSize: 8 }]}>
-          [$AMOUNT]
-        </Text>
-        <Text style={[styles.text, { left: pt(s.amount_words_x), top: pt(s.amount_words_y), fontSize: 8 }]}>
-          [AMOUNT IN WORDS]
+        <Text style={[styles.text, { left: pt(s.company_line4_x), top: pt(s.company_line4_y), fontSize: 9 }]}>
+          {SAMPLE.company_line4}
         </Text>
         
-        {/* MICR line labels */}
-        <Text style={[styles.text, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 8 }]}>
-          [MICR CHECK#]
+        {/* Bank Lines */}
+        <Text style={[styles.text, { left: pt(s.bank_name_x), top: pt(s.bank_name_y), fontSize: 9 }]}>
+          {SAMPLE.bank_line1}
         </Text>
-        <Text style={[styles.text, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 8 }]}>
-          [MICR ROUTING]
+        <Text style={[styles.text, { left: pt(s.bank_line2_x), top: pt(s.bank_line2_y), fontSize: 8 }]}>
+          {SAMPLE.bank_line2}
         </Text>
-        <Text style={[styles.text, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 8 }]}>
-          [MICR ACCOUNT]
+        <Text style={[styles.text, { left: pt(s.bank_line3_x), top: pt(s.bank_line3_y), fontSize: 8 }]}>
+          {SAMPLE.bank_line3}
         </Text>
         
-        {/* Stub section labels */}
-        <Text style={[styles.text, { left: pt(s.stub_company_x), top: pt(s.stub_company_y), fontSize: 8 }]}>
-          [STUB: COMPANY]
+        {/* Check Number - Top Right */}
+        <Text style={[styles.text, styles.bold, { left: pt(s.check_number_x), top: pt(s.check_number_y), fontSize: 11 }]}>
+          {SAMPLE.check_number}
         </Text>
-        <Text style={[styles.text, { left: pt(s.stub_payee_x), top: pt(s.stub_payee_y), fontSize: 8 }]}>
-          [STUB: PAYEE]
+        
+        {/* Routing Fraction */}
+        <Text style={[styles.text, { left: pt(s.routing_fraction_x), top: pt(s.routing_fraction_y), fontSize: 9 }]}>
+          {SAMPLE.routing_fraction}
         </Text>
-        <Text style={[styles.text, { left: pt(s.stub_date_check_x), top: pt(s.stub_date_check_y), fontSize: 8 }]}>
-          [STUB: DATE/CHECK#]
+        
+        {/* Date Label */}
+        <Text style={[styles.text, { left: pt(s.date_label_x), top: pt(s.date_label_y), fontSize: 10 }]}>
+          Date: {SAMPLE.date}
         </Text>
-        <Text style={[styles.text, { left: pt(s.stub_invoice_date_x), top: pt(s.stub_invoice_date_y), fontSize: 8 }]}>
-          [STUB: INV DATE]
+        
+        {/* PAY / TO THE / ORDER OF: labels */}
+        <Text style={[styles.text, styles.bold, { left: pt(s.pay_label_x), top: pt(s.pay_label_y), fontSize: 9 }]}>
+          PAY
         </Text>
-        <Text style={[styles.text, { left: pt(s.stub_amount_x), top: pt(s.stub_amount_y), fontSize: 8 }]}>
-          [STUB: AMT]
+        <Text style={[styles.text, styles.bold, { left: pt(s.to_the_label_x), top: pt(s.to_the_label_y), fontSize: 9 }]}>
+          TO THE
         </Text>
-        <Text style={[styles.text, { left: pt(s.stub_bank_x), top: pt(s.stub_bank_y), fontSize: 8 }]}>
-          [STUB: BANK]
+        <Text style={[styles.text, styles.bold, { left: pt(s.order_of_label_x), top: pt(s.order_of_label_y), fontSize: 9 }]}>
+          ORDER OF:
         </Text>
-        <Text style={[styles.text, { left: pt(s.stub_total_x), top: pt(s.stub_total_y), fontSize: 8 }]}>
-          [STUB: TOTAL]
+        
+        {/* Payee Lines */}
+        <Text style={[styles.text, { left: pt(s.payee_x), top: pt(s.payee_y), fontSize: 10 }]}>
+          {SAMPLE.payee_line1}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.payee_line2_x), top: pt(s.payee_line2_y), fontSize: 9 }]}>
+          {SAMPLE.payee_line2}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.payee_line3_x), top: pt(s.payee_line3_y), fontSize: 9 }]}>
+          {SAMPLE.payee_line3}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.payee_line4_x), top: pt(s.payee_label_y), fontSize: 9 }]}>
+          {SAMPLE.payee_line4}
+        </Text>
+        
+        {/* Amount Numeric */}
+        <Text style={[styles.text, styles.bold, { left: pt(s.amount_numeric_x), top: pt(s.amount_numeric_y), fontSize: 11 }]}>
+          {SAMPLE.amount_numeric}
+        </Text>
+        
+        {/* Amount in Words */}
+        <Text style={[styles.text, { left: pt(s.amount_words_x), top: pt(s.amount_words_y), fontSize: 9 }]}>
+          {formatAmountWords(SAMPLE.amount)}
+        </Text>
+        
+        {/* AUTHORIZED SIGNATURE */}
+        <Text style={[styles.text, { left: pt(s.signature_label_x), top: pt(s.signature_label_y), fontSize: 8 }]}>
+          AUTHORIZED SIGNATURE
+        </Text>
+        
+        {/* ===== MICR LINE - Using MICR E-13B font ===== */}
+        <Text style={[styles.micr, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 12 }]}>
+          {MICR_ON_US}{SAMPLE.micr_check_number}{MICR_ON_US}
+        </Text>
+        <Text style={[styles.micr, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 12 }]}>
+          {MICR_TRANSIT}{SAMPLE.micr_routing}{MICR_TRANSIT}
+        </Text>
+        <Text style={[styles.micr, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 12 }]}>
+          {SAMPLE.micr_account}{MICR_ON_US}
+        </Text>
+        
+        {/* ===== STUB SECTION ===== */}
+        <Text style={[styles.text, { left: pt(s.stub_company_x), top: pt(s.stub_company_y), fontSize: 9 }]}>
+          {SAMPLE.company_line1}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.stub_payee_x), top: pt(s.stub_payee_y), fontSize: 9 }]}>
+          {SAMPLE.payee_line1}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.stub_date_check_x), top: pt(s.stub_date_check_y), fontSize: 9 }]}>
+          Date: {SAMPLE.date}  Check #: {SAMPLE.check_number}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.stub_invoice_date_x), top: pt(s.stub_invoice_date_y), fontSize: 9 }]}>
+          {SAMPLE.date}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.stub_amount_x), top: pt(s.stub_amount_y), fontSize: 9 }]}>
+          {SAMPLE.amount.toFixed(2)}
+        </Text>
+        <Text style={[styles.text, { left: pt(s.stub_bank_x), top: pt(s.stub_bank_y), fontSize: 9 }]}>
+          {SAMPLE.bank_line1}
+        </Text>
+        <Text style={[styles.text, styles.bold, { left: pt(s.stub_total_x), top: pt(s.stub_total_y), fontSize: 9 }]}>
+          {SAMPLE.amount.toFixed(2)}
         </Text>
       </Page>
     </Document>

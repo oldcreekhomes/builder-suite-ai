@@ -23,34 +23,71 @@ interface FieldConfig {
   description?: string;
 }
 
-const checkFields: FieldConfig[] = [
-  { key: 'company_name_x', label: 'Company Name X' },
-  { key: 'company_name_y', label: 'Company Name Y' },
+// Company fields (4 lines)
+const companyFields: FieldConfig[] = [
+  { key: 'company_name_x', label: 'Company Line 1 X' },
+  { key: 'company_name_y', label: 'Company Line 1 Y' },
+  { key: 'company_line2_x', label: 'Company Line 2 X' },
+  { key: 'company_line2_y', label: 'Company Line 2 Y' },
+  { key: 'company_line3_x', label: 'Company Line 3 X' },
+  { key: 'company_line3_y', label: 'Company Line 3 Y' },
+  { key: 'company_line4_x', label: 'Company Line 4 X' },
+  { key: 'company_line4_y', label: 'Company Line 4 Y' },
+];
+
+// Check header fields
+const checkHeaderFields: FieldConfig[] = [
   { key: 'check_number_x', label: 'Check Number X' },
   { key: 'check_number_y', label: 'Check Number Y' },
-  { key: 'date_x', label: 'Date X' },
-  { key: 'date_y', label: 'Date Y' },
-  { key: 'date_label_x', label: 'Date Label X' },
-  { key: 'date_label_y', label: 'Date Label Y' },
-  { key: 'amount_words_x', label: 'Amount (Words) X' },
-  { key: 'amount_words_y', label: 'Amount (Words) Y' },
-  { key: 'amount_numeric_x', label: 'Amount (Numeric) X' },
-  { key: 'amount_numeric_y', label: 'Amount (Numeric) Y' },
-  { key: 'payee_x', label: 'Payee Name X' },
-  { key: 'payee_y', label: 'Payee Name Y' },
-];
-
-const bankFields: FieldConfig[] = [
-  { key: 'bank_name_x', label: 'Bank Name X' },
-  { key: 'bank_name_y', label: 'Bank Name Y' },
-  { key: 'bank_address_x', label: 'Bank Address X' },
-  { key: 'bank_address_y', label: 'Bank Address Y' },
-  { key: 'bank_city_state_x', label: 'Bank City/State X' },
-  { key: 'bank_city_state_y', label: 'Bank City/State Y' },
   { key: 'routing_fraction_x', label: 'Routing Fraction X' },
   { key: 'routing_fraction_y', label: 'Routing Fraction Y' },
+  { key: 'date_label_x', label: 'Date Label X' },
+  { key: 'date_label_y', label: 'Date Label Y' },
 ];
 
+// PAY TO THE ORDER OF labels
+const payLabelFields: FieldConfig[] = [
+  { key: 'pay_label_x', label: 'PAY Label X' },
+  { key: 'pay_label_y', label: 'PAY Label Y' },
+  { key: 'to_the_label_x', label: 'TO THE Label X' },
+  { key: 'to_the_label_y', label: 'TO THE Label Y' },
+  { key: 'order_of_label_x', label: 'ORDER OF: Label X' },
+  { key: 'order_of_label_y', label: 'ORDER OF: Label Y' },
+];
+
+// Payee fields (4 lines)
+const payeeFields: FieldConfig[] = [
+  { key: 'payee_x', label: 'Payee Line 1 X' },
+  { key: 'payee_y', label: 'Payee Line 1 Y' },
+  { key: 'payee_line2_x', label: 'Payee Line 2 X' },
+  { key: 'payee_line2_y', label: 'Payee Line 2 Y' },
+  { key: 'payee_line3_x', label: 'Payee Line 3 X' },
+  { key: 'payee_line3_y', label: 'Payee Line 3 Y' },
+  { key: 'payee_line4_x', label: 'Payee Line 4 X' },
+  { key: 'payee_label_y', label: 'Payee Line 4 Y' },
+];
+
+// Amount fields
+const amountFields: FieldConfig[] = [
+  { key: 'amount_numeric_x', label: 'Amount (Numeric) X' },
+  { key: 'amount_numeric_y', label: 'Amount (Numeric) Y' },
+  { key: 'amount_words_x', label: 'Amount (Words) X' },
+  { key: 'amount_words_y', label: 'Amount (Words) Y' },
+  { key: 'signature_label_x', label: 'Signature Label X' },
+  { key: 'signature_label_y', label: 'Signature Label Y' },
+];
+
+// Bank fields (3 lines)
+const bankFields: FieldConfig[] = [
+  { key: 'bank_name_x', label: 'Bank Line 1 X' },
+  { key: 'bank_name_y', label: 'Bank Line 1 Y' },
+  { key: 'bank_line2_x', label: 'Bank Line 2 X' },
+  { key: 'bank_line2_y', label: 'Bank Line 2 Y' },
+  { key: 'bank_line3_x', label: 'Bank Line 3 X' },
+  { key: 'bank_line3_y', label: 'Bank Line 3 Y' },
+];
+
+// MICR line fields
 const micrFields: FieldConfig[] = [
   { key: 'micr_check_number_x', label: 'MICR Check# X' },
   { key: 'micr_check_number_y', label: 'MICR Check# Y' },
@@ -60,6 +97,7 @@ const micrFields: FieldConfig[] = [
   { key: 'micr_account_y', label: 'MICR Account Y' },
 ];
 
+// Stub section fields
 const stubFields: FieldConfig[] = [
   { key: 'stub_company_x', label: 'Company X' },
   { key: 'stub_company_y', label: 'Company Y' },
@@ -77,6 +115,7 @@ const stubFields: FieldConfig[] = [
   { key: 'stub_total_y', label: 'Total Y' },
 ];
 
+// Page settings
 const pageFields: FieldConfig[] = [
   { key: 'page_width', label: 'Page Width', description: 'in inches' },
   { key: 'page_height', label: 'Page Height', description: 'in inches' },
@@ -168,28 +207,43 @@ export function CheckPrintSettingsDialog({ open, onOpenChange, projectId }: Chec
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="check" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs defaultValue="company" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="company">Company</TabsTrigger>
             <TabsTrigger value="check">Check</TabsTrigger>
             <TabsTrigger value="bank">Bank & MICR</TabsTrigger>
             <TabsTrigger value="stub">Stub</TabsTrigger>
             <TabsTrigger value="page">Page</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="company" className="space-y-4 mt-4">
+            <p className="text-sm text-muted-foreground">
+              Company name and address (4 lines, top left of check)
+            </p>
+            {renderFieldGroup(companyFields)}
+          </TabsContent>
+
           <TabsContent value="check" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              Position of fields on the main check portion (top ~3.5 inches of page)
+              Check header, payee, and amount positions
             </p>
-            {renderFieldGroup(checkFields)}
+            <h4 className="font-medium text-sm">Header (Check #, Routing Fraction, Date)</h4>
+            {renderFieldGroup(checkHeaderFields)}
+            <h4 className="font-medium text-sm mt-4">PAY TO THE ORDER OF Labels</h4>
+            {renderFieldGroup(payLabelFields)}
+            <h4 className="font-medium text-sm mt-4">Payee Address (4 lines)</h4>
+            {renderFieldGroup(payeeFields)}
+            <h4 className="font-medium text-sm mt-4">Amount & Signature</h4>
+            {renderFieldGroup(amountFields)}
           </TabsContent>
 
           <TabsContent value="bank" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              Bank information and MICR line positions (bottom of check)
+              Bank information (3 lines) and MICR line at bottom
             </p>
-            <h4 className="font-medium text-sm mt-4">Bank Info</h4>
+            <h4 className="font-medium text-sm">Bank Info (3 lines)</h4>
             {renderFieldGroup(bankFields)}
-            <h4 className="font-medium text-sm mt-4">MICR Line</h4>
+            <h4 className="font-medium text-sm mt-4">MICR Line (E-13B Font)</h4>
             {renderFieldGroup(micrFields)}
           </TabsContent>
 
