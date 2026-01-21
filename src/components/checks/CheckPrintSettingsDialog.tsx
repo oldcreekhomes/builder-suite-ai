@@ -87,15 +87,6 @@ const bankFields: FieldConfig[] = [
   { key: 'bank_line3_y', label: 'Bank Line 3 Y' },
 ];
 
-// MICR line fields
-const micrFields: FieldConfig[] = [
-  { key: 'micr_check_number_x', label: 'MICR Check# X' },
-  { key: 'micr_check_number_y', label: 'MICR Check# Y' },
-  { key: 'micr_routing_x', label: 'MICR Routing X' },
-  { key: 'micr_routing_y', label: 'MICR Routing Y' },
-  { key: 'micr_account_x', label: 'MICR Account X' },
-  { key: 'micr_account_y', label: 'MICR Account Y' },
-];
 
 // Stub section fields
 const stubFields: FieldConfig[] = [
@@ -239,12 +230,10 @@ export function CheckPrintSettingsDialog({ open, onOpenChange, projectId }: Chec
 
           <TabsContent value="bank" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              Bank information (3 lines) and MICR line at bottom
+              Bank information (3 lines)
             </p>
             <h4 className="font-medium text-sm">Bank Info (3 lines)</h4>
             {renderFieldGroup(bankFields)}
-            <h4 className="font-medium text-sm mt-4">MICR Line (E-13B Font)</h4>
-            {renderFieldGroup(micrFields)}
           </TabsContent>
 
           <TabsContent value="stub" className="space-y-4 mt-4">

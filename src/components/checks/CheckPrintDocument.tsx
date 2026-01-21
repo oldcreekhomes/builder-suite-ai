@@ -11,11 +11,6 @@ Font.register({
   ],
 });
 
-// Register MICR E-13B font for check bottom line
-Font.register({
-  family: 'MICR',
-  src: 'https://cdn.jsdelivr.net/gh/nicholaswmin/micr-encoding-font@main/e13b-font.woff2'
-});
 
 export interface CheckData {
   check_number: string;
@@ -105,13 +100,6 @@ const formatAmountNumeric = (amount: number): string => {
   return '**' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-// MICR special characters for E-13B font
-// Transit symbol (routing number brackets): ⑆ 
-// On-Us symbol (account): ⑈
-// Amount symbol: ⑇
-// Dash: ⑉
-const MICR_TRANSIT = '⑆';
-const MICR_ON_US = '⑈';
 
 const styles = StyleSheet.create({
   page: {
@@ -123,10 +111,6 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontWeight: 'bold',
-  },
-  micr: {
-    fontFamily: 'MICR',
-    position: 'absolute',
   },
 });
 
@@ -141,8 +125,6 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
           ? new Date(check.check_date) 
           : check.check_date;
         
-        // Pad check number to 6 digits for MICR
-        const micrCheckNumber = check.check_number.padStart(6, '0');
         
         return (
           <Page key={index} size="LETTER" style={styles.page}>
@@ -266,26 +248,6 @@ export function CheckPrintDocument({ checks, settings, companyInfo, bankInfo }: 
               AUTHORIZED SIGNATURE
             </Text>
             
-            {/* ===== MICR LINE (Bottom of check) - Using MICR E-13B font ===== */}
-            
-            {/* MICR: Check Number (left) */}
-            <Text style={[styles.micr, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 12 }]}>
-              {MICR_ON_US}{micrCheckNumber}{MICR_ON_US}
-            </Text>
-            
-            {/* MICR: Routing Number (center) with transit symbols */}
-            {bankInfo.routing_number && (
-              <Text style={[styles.micr, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 12 }]}>
-                {MICR_TRANSIT}{bankInfo.routing_number}{MICR_TRANSIT}
-              </Text>
-            )}
-            
-            {/* MICR: Account Number (right) with on-us symbol */}
-            {bankInfo.account_number && (
-              <Text style={[styles.micr, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 12 }]}>
-                {bankInfo.account_number}{MICR_ON_US}
-              </Text>
-            )}
             
             {/* ===== STUB SECTION (Below check) ===== */}
             
@@ -364,10 +326,6 @@ export function CheckPrintTestDocument({ settings }: { settings?: Partial<CheckP
     amount: 44.64,
     amount_numeric: "**44.64",
     
-    // MICR line
-    micr_check_number: "001004",
-    micr_routing: "055001096",
-    micr_account: "18705498011",
   };
   
   return (
@@ -455,16 +413,6 @@ export function CheckPrintTestDocument({ settings }: { settings?: Partial<CheckP
           AUTHORIZED SIGNATURE
         </Text>
         
-        {/* ===== MICR LINE - Using MICR E-13B font ===== */}
-        <Text style={[styles.micr, { left: pt(s.micr_check_number_x), top: pt(s.micr_check_number_y), fontSize: 12 }]}>
-          {MICR_ON_US}{SAMPLE.micr_check_number}{MICR_ON_US}
-        </Text>
-        <Text style={[styles.micr, { left: pt(s.micr_routing_x), top: pt(s.micr_routing_y), fontSize: 12 }]}>
-          {MICR_TRANSIT}{SAMPLE.micr_routing}{MICR_TRANSIT}
-        </Text>
-        <Text style={[styles.micr, { left: pt(s.micr_account_x), top: pt(s.micr_account_y), fontSize: 12 }]}>
-          {SAMPLE.micr_account}{MICR_ON_US}
-        </Text>
         
         {/* ===== STUB SECTION ===== */}
         <Text style={[styles.text, { left: pt(s.stub_company_x), top: pt(s.stub_company_y), fontSize: 9 }]}>

@@ -79,13 +79,6 @@ export interface CheckPrintSettings {
   signature_label_x: number;
   signature_label_y: number;
   
-  // MICR line positions (bottom of check)
-  micr_check_number_x: number;
-  micr_check_number_y: number;
-  micr_routing_x: number;
-  micr_routing_y: number;
-  micr_account_x: number;
-  micr_account_y: number;
   
   // MultiCHAX position (blank for now)
   multichax_x: number;
@@ -190,13 +183,6 @@ export const DEFAULT_PRINT_SETTINGS: Omit<CheckPrintSettingsInput, 'owner_id' | 
   signature_label_x: 5.5,
   signature_label_y: 2.95,
   
-  // MICR line at bottom of check (E-13B font)
-  micr_check_number_x: 0.5,
-  micr_check_number_y: 3.25,
-  micr_routing_x: 1.75,
-  micr_routing_y: 3.25,
-  micr_account_x: 3.25,
-  micr_account_y: 3.25,
   
   // MultiCHAX (blank for now)
   multichax_x: 0.25,
