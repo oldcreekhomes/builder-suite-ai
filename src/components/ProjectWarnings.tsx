@@ -109,7 +109,7 @@ export function ProjectWarnings() {
                         </Badge>
                       </div>
                       <div className="w-[50px] flex justify-center">
-                        <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
+                        <Badge variant="secondary" className="bg-red-100 text-red-600 hover:bg-red-100 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
                           {project.lateCount}
                         </Badge>
                       </div>
