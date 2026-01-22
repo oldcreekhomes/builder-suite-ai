@@ -11,6 +11,7 @@ import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { ProjectBidsCard } from "@/components/ProjectBidsCard";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 import { useProjects } from "@/hooks/useProjects";
 import { useDashboardPermissions, type DashboardView } from "@/hooks/useDashboardPermissions";
@@ -43,52 +44,54 @@ export default function Index() {
   }, [dashboardView]);
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <SidebarInset className="flex-1">
-          <CompanyDashboardHeader 
-            dashboardView={dashboardView} 
-            onDashboardViewChange={setDashboardView}
-            canAccessPMDashboard={canAccessPMDashboard}
-            canAccessOwnerDashboard={canAccessOwnerDashboard}
-            canAccessAccountantDashboard={canAccessAccountantDashboard}
-          />
-          <div className="flex flex-1 flex-col gap-6 p-6">
-            
-            {dashboardView === "project-manager" ? (
-              <>
-                <div className="grid gap-6 md:grid-cols-5">
-                  <div className="h-full">
-                    <MyProjectsCard />
-                  </div>
-                  <div className="h-full">
-                    <InsuranceAlertsCard />
-                  </div>
-                  <div className="h-full">
-                    <ProjectWarnings />
-                  </div>
-                  <div className="h-full">
-                    <ProjectBidsCard />
-                  </div>
-                  <div className="h-full">
-                    <div className="rounded-xl bg-muted/50 h-full">
-                      <RecentPhotos />
+    <UniversalFilePreviewProvider>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <CompanyDashboardHeader 
+              dashboardView={dashboardView} 
+              onDashboardViewChange={setDashboardView}
+              canAccessPMDashboard={canAccessPMDashboard}
+              canAccessOwnerDashboard={canAccessOwnerDashboard}
+              canAccessAccountantDashboard={canAccessAccountantDashboard}
+            />
+            <div className="flex flex-1 flex-col gap-6 p-6">
+              
+              {dashboardView === "project-manager" ? (
+                <>
+                  <div className="grid gap-6 md:grid-cols-5">
+                    <div className="h-full">
+                      <MyProjectsCard />
+                    </div>
+                    <div className="h-full">
+                      <InsuranceAlertsCard />
+                    </div>
+                    <div className="h-full">
+                      <ProjectWarnings />
+                    </div>
+                    <div className="h-full">
+                      <ProjectBidsCard />
+                    </div>
+                    <div className="h-full">
+                      <div className="rounded-xl bg-muted/50 h-full">
+                        <RecentPhotos />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="rounded-xl bg-muted/50">
-                  <WeatherForecast address={primaryProjectAddress} />
-                </div>
-              </>
-            ) : dashboardView === "owner" ? (
-              <ActiveJobsTable />
-            ) : (
-              <AccountantJobsTable />
-            )}
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+                  <div className="rounded-xl bg-muted/50">
+                    <WeatherForecast address={primaryProjectAddress} />
+                  </div>
+                </>
+              ) : dashboardView === "owner" ? (
+                <ActiveJobsTable />
+              ) : (
+                <AccountantJobsTable />
+              )}
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    </UniversalFilePreviewProvider>
   );
 }
