@@ -1,4 +1,15 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,6 +35,10 @@ export function ProjectBidsDialog({
   const { data } = usePMBidNotifications();
   const dismissMutation = useDismissBidNotification();
   const { openProposalFile } = useUniversalFilePreviewContext();
+  const [pendingDismiss, setPendingDismiss] = useState<{
+    bidId: string;
+    type: "will_bid" | "submitted";
+  } | null>(null);
 
   const notifications = data?.notifications || [];
 
@@ -39,8 +54,15 @@ export function ProjectBidsDialog({
     (n) => n.bidStatus === "submitted"
   );
 
-  const handleDismiss = (bidId: string, type: "will_bid" | "submitted") => {
-    dismissMutation.mutate({ bidId, type });
+  const handleDismissClick = (bidId: string, type: "will_bid" | "submitted") => {
+    setPendingDismiss({ bidId, type });
+  };
+
+  const handleConfirmDismiss = () => {
+    if (pendingDismiss) {
+      dismissMutation.mutate(pendingDismiss);
+      setPendingDismiss(null);
+    }
   };
 
   const handleViewProposal = (proposals: string[] | null) => {
@@ -98,7 +120,7 @@ export function ProjectBidsDialog({
                       key={notification.bidId}
                       notification={notification}
                       onDismiss={() =>
-                        handleDismiss(notification.bidId, "will_bid")
+                        handleDismissClick(notification.bidId, "will_bid")
                       }
                       isDismissing={dismissMutation.isPending}
                     />
@@ -130,7 +152,7 @@ export function ProjectBidsDialog({
                       key={notification.bidId}
                       notification={notification}
                       onDismiss={() =>
-                        handleDismiss(notification.bidId, "submitted")
+                        handleDismissClick(notification.bidId, "submitted")
                       }
                       onViewProposal={() =>
                         handleViewProposal(notification.proposals)
@@ -145,6 +167,23 @@ export function ProjectBidsDialog({
           </div>
         </ScrollArea>
       </DialogContent>
+
+      <AlertDialog open={!!pendingDismiss} onOpenChange={(open) => !open && setPendingDismiss(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Notification</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete the record permanently, and you will have to go to the project in the future to review.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDismiss} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
@@ -176,10 +215,11 @@ function NotificationRow({
           variant="ghost"
           size="icon"
           className="h-6 w-6"
+          tabIndex={-1}
           onClick={onDismiss}
           disabled={isDismissing}
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4 text-red-600" />
         </Button>
       </div>
     </div>
@@ -231,10 +271,11 @@ function SubmittedBidRow({
           variant="ghost"
           size="icon"
           className="h-6 w-6"
+          tabIndex={-1}
           onClick={onDismiss}
           disabled={isDismissing}
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4 text-red-600" />
         </Button>
       </div>
     </div>
