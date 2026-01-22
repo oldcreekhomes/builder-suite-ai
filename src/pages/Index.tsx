@@ -60,18 +60,18 @@ export default function Index() {
               
               {dashboardView === "project-manager" ? (
                 <>
-                <div className="grid gap-6 md:grid-cols-4">
+                <div className="grid gap-6 md:grid-cols-4" style={{ height: 'calc(100vh - 220px)' }}>
                   <div className="h-full">
                     <MyProjectsCard />
                   </div>
                   <div className="h-full">
                     <InsuranceAlertsCard />
                   </div>
-                  <div className="flex flex-col gap-6" style={{ height: '400px' }}>
-                    <div className="h-[calc(50%-12px)] overflow-hidden">
+                  <div className="h-full flex flex-col gap-6">
+                    <div className="flex-1 min-h-0">
                       <ProjectWarnings />
                     </div>
-                    <div className="h-[calc(50%-12px)] overflow-hidden">
+                    <div className="flex-1 min-h-0">
                       <ProjectBidsCard />
                     </div>
                   </div>
