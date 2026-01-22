@@ -83,16 +83,16 @@ export function ProjectBidsCard() {
             <ScrollArea className="h-full">
               <div className="px-4 py-2">
                 {/* Column headers */}
-                <div className="flex items-center justify-end mb-1 pr-1">
+                <div className="flex items-center justify-end mb-1 pr-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground text-center min-w-[24px]">Will Bid</span>
-                    <span className="text-[10px] text-muted-foreground text-center min-w-[24px]">Bid</span>
+                    <span className="text-[10px] text-muted-foreground text-center w-[50px]">Will Bid</span>
+                    <span className="text-[10px] text-muted-foreground text-center w-[50px]">Bids</span>
                   </div>
                 </div>
                 {projectCounts.map((project) => (
                   <div
                     key={project.projectId}
-                    className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center rounded"
+                    className="py-1 px-2 pr-3 cursor-pointer hover:bg-muted/50 transition-colors flex items-center rounded"
                     onClick={() => handleProjectClick(project.projectId, project.projectAddress)}
                   >
                     <div className="flex-1 min-w-0 overflow-hidden mr-2">
@@ -111,12 +111,16 @@ export function ProjectBidsCard() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 min-w-[24px] justify-center">
-                        {project.willBidCount}
-                      </Badge>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 min-w-[24px] justify-center">
-                        {project.bidCount}
-                      </Badge>
+                      <div className="w-[50px] flex justify-center">
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
+                          {project.willBidCount}
+                        </Badge>
+                      </div>
+                      <div className="w-[50px] flex justify-center">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
+                          {project.bidCount}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -104,12 +104,12 @@ export function ProjectWarnings() {
                     
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="w-[50px] flex justify-center">
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 min-w-[24px] justify-center">
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
                           {project.currentCount}
                         </Badge>
                       </div>
                       <div className="w-[50px] flex justify-center">
-                        <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600 min-w-[24px] justify-center">
+                        <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
                           {project.lateCount}
                         </Badge>
                       </div>
