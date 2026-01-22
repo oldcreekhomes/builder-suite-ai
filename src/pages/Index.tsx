@@ -65,14 +65,14 @@ export default function Index() {
                     <MyProjectsCard />
                   </div>
                   <div className="h-full">
-                    <InsuranceAlertsCard />
+                    <ProjectBidsCard />
                   </div>
                   <div className="h-full flex flex-col gap-6">
                     <div className="flex-1 min-h-0">
                       <ProjectWarnings />
                     </div>
                     <div className="flex-1 min-h-0">
-                      <ProjectBidsCard />
+                      <InsuranceAlertsCard />
                     </div>
                   </div>
                   <div className="h-full">
