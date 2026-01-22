@@ -119,7 +119,11 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       console.log('Updating bid price:', { bidId, price });
       
       // When a price is entered, also update status to submitted so PM sees it on dashboard
-      const updateData: { price: number | null; bid_status?: string } = { price };
+      // Reset bid_acknowledged_by so PM is notified of the update
+      const updateData: { price: number | null; bid_status?: string; bid_acknowledged_by?: null } = { 
+        price,
+        bid_acknowledged_by: null // Reset acknowledgment so PM sees the update
+      };
       if (price !== null && price > 0) {
         updateData.bid_status = 'submitted';
       }
@@ -184,9 +188,13 @@ export const useBiddingCompanyMutations = (projectId: string) => {
       const currentProposals = currentData?.proposals || [];
       const updatedProposals = [...currentProposals, ...uploadedFileNames];
       
+      // Reset bid_acknowledged_by so PM is notified of new proposals
       const { error } = await supabase
         .from('project_bids')
-        .update({ proposals: updatedProposals })
+        .update({ 
+          proposals: updatedProposals,
+          bid_acknowledged_by: null 
+        })
         .eq('id', bidId);
 
       if (error) throw error;
