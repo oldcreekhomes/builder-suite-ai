@@ -22,11 +22,11 @@ const getStreetAddress = (address: string) => {
 };
 
 const statusGroups = [
-  { status: "In Design", color: "bg-yellow-100 text-yellow-800" },
-  { status: "Permitting", color: "bg-blue-100 text-blue-800" },
-  { status: "Under Construction", color: "bg-orange-100 text-orange-800" },
-  { status: "Completed", color: "bg-green-100 text-green-800" },
-  { status: "Template", color: "bg-purple-100 text-purple-800" },
+  { status: "In Design", color: "bg-yellow-200 text-yellow-800" },
+  { status: "Permitting", color: "bg-blue-200 text-blue-800" },
+  { status: "Under Construction", color: "bg-orange-200 text-orange-800" },
+  { status: "Completed", color: "bg-green-200 text-green-800" },
+  { status: "Template", color: "bg-purple-200 text-purple-800" },
 ];
 
 export function MyProjectsCard() {
@@ -74,9 +74,9 @@ export function MyProjectsCard() {
             <h3 className="text-lg font-semibold text-black">My Projects</h3>
           </div>
           {activeProjects.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
+            <span className="bg-gray-800 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
               {activeProjects.length}
-            </Badge>
+            </span>
           )}
         </div>
       </div>
@@ -92,8 +92,11 @@ export function MyProjectsCard() {
             <div className="space-y-3 p-6">
               {projectsByStatus.map((group) => (
                 <div key={group.status}>
-                  <div className={`text-xs font-medium px-2 py-1 rounded mb-1 ${group.color}`}>
-                    {group.status} ({group.projects.length})
+                  <div className="flex items-center gap-1.5 mb-1 px-2">
+                    <span className="text-xs font-medium text-foreground">{group.status}</span>
+                    <span className={`rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ${group.color}`}>
+                      {group.projects.length}
+                    </span>
                   </div>
                   <div className="space-y-0.5">
                     {group.projects.map((project) => (
