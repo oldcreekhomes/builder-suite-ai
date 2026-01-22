@@ -118,9 +118,15 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     mutationFn: async ({ bidId, price }: { bidId: string; price: number | null }) => {
       console.log('Updating bid price:', { bidId, price });
       
+      // When a price is entered, also update status to submitted so PM sees it on dashboard
+      const updateData: { price: number | null; bid_status?: string } = { price };
+      if (price !== null && price > 0) {
+        updateData.bid_status = 'submitted';
+      }
+      
       const { error } = await supabase
         .from('project_bids')
-        .update({ price })
+        .update(updateData)
         .eq('id', bidId);
 
       if (error) {
@@ -131,6 +137,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['pm-bid-notifications'] });
       toast({
         title: "Success",
         description: "Bid price updated successfully",
