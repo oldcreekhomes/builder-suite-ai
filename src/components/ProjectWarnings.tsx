@@ -87,11 +87,11 @@ export function ProjectWarnings() {
                     className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between rounded"
                     onClick={() => navigate(`/project/${project.projectId}`)}
                   >
-                    <div className="flex items-center min-w-0 flex-1 mr-4">
+                    <div className="flex items-center min-w-0 flex-1 mr-2">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm truncate">
+                            <span className="text-sm truncate block max-w-full">
                               {getStreetAddress(project.projectAddress)}
                             </span>
                           </TooltipTrigger>
