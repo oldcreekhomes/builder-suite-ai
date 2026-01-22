@@ -73,25 +73,25 @@ export function ProjectWarnings() {
         ) : (
           <ScrollArea className="h-full">
             <div className="px-4 py-2">
-              {/* Column headers - shown once */}
+              {/* Column headers */}
               <div className="flex items-center justify-end mb-1 pr-1">
-              <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground w-[32px] text-center">Current</span>
-                  <span className="text-[10px] text-muted-foreground w-[32px] text-center">Late</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground text-center min-w-[24px]">Current</span>
+                  <span className="text-[10px] text-muted-foreground text-center min-w-[24px]">Late</span>
                 </div>
               </div>
               {projectsWithCounts.map((project) => (
                 project.totalCount > 0 && (
                   <div
                     key={project.projectId}
-                    className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between rounded"
+                    className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center rounded"
                     onClick={() => navigate(`/project/${project.projectId}`)}
                   >
-                    <div className="flex items-center min-w-0 flex-1 mr-2">
+                    <div className="flex-1 min-w-0 overflow-hidden mr-2">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm truncate block max-w-full">
+                            <span className="text-sm block truncate">
                               {getStreetAddress(project.projectAddress)}
                             </span>
                           </TooltipTrigger>
@@ -102,18 +102,13 @@ export function ProjectWarnings() {
                       </TooltipProvider>
                     </div>
                     
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="w-[32px] flex justify-center">
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
-                          {project.currentCount}
-                        </Badge>
-                      </div>
-                      
-                      <div className="w-[32px] flex justify-center">
-                        <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
-                          {project.lateCount}
-                        </Badge>
-                      </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 min-w-[24px] justify-center">
+                        {project.currentCount}
+                      </Badge>
+                      <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600 min-w-[24px] justify-center">
+                        {project.lateCount}
+                      </Badge>
                     </div>
                   </div>
                 )
