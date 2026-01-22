@@ -2712,6 +2712,7 @@ export type Database = {
       }
       project_bids: {
         Row: {
+          bid_acknowledged_by: string | null
           bid_package_id: string
           bid_status: string | null
           company_id: string
@@ -2723,8 +2724,10 @@ export type Database = {
           reminder_date: string | null
           reminder_sent_at: string | null
           updated_at: string
+          will_bid_acknowledged_by: string | null
         }
         Insert: {
+          bid_acknowledged_by?: string | null
           bid_package_id: string
           bid_status?: string | null
           company_id: string
@@ -2736,8 +2739,10 @@ export type Database = {
           reminder_date?: string | null
           reminder_sent_at?: string | null
           updated_at?: string
+          will_bid_acknowledged_by?: string | null
         }
         Update: {
+          bid_acknowledged_by?: string | null
           bid_package_id?: string
           bid_status?: string | null
           company_id?: string
@@ -2749,6 +2754,7 @@ export type Database = {
           reminder_date?: string | null
           reminder_sent_at?: string | null
           updated_at?: string
+          will_bid_acknowledged_by?: string | null
         }
         Relationships: [
           {
