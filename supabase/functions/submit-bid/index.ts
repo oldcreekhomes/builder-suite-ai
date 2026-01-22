@@ -144,6 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     let updateData: any = {
       price: price,
+      bid_status: 'submitted',
       updated_at: new Date().toISOString()
     };
 
