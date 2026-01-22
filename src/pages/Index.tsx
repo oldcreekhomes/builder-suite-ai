@@ -8,6 +8,7 @@ import { InsuranceAlertsCard } from "@/components/InsuranceAlertsCard";
 import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
+import { ProjectBidsCard } from "@/components/ProjectBidsCard";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
 
@@ -57,7 +58,7 @@ export default function Index() {
             
             {dashboardView === "project-manager" ? (
               <>
-                <div className="grid gap-6 md:grid-cols-4">
+                <div className="grid gap-6 md:grid-cols-5">
                   <div className="h-full">
                     <MyProjectsCard />
                   </div>
@@ -66,6 +67,9 @@ export default function Index() {
                   </div>
                   <div className="h-full">
                     <ProjectWarnings />
+                  </div>
+                  <div className="h-full">
+                    <ProjectBidsCard />
                   </div>
                   <div className="h-full">
                     <div className="rounded-xl bg-muted/50 h-full">
