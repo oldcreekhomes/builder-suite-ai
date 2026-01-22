@@ -26,31 +26,31 @@ const statusGroups = [
     status: "In Design", 
     stripBg: "bg-yellow-100",
     textColor: "text-yellow-800",
-    badgeColor: "bg-yellow-300 text-yellow-800"
+    badgeBorder: "border border-yellow-400"
   },
   { 
     status: "Permitting", 
     stripBg: "bg-blue-100",
     textColor: "text-blue-800",
-    badgeColor: "bg-blue-300 text-blue-800"
+    badgeBorder: "border border-blue-400"
   },
   { 
     status: "Under Construction", 
     stripBg: "bg-orange-100",
     textColor: "text-orange-800",
-    badgeColor: "bg-orange-300 text-orange-800"
+    badgeBorder: "border border-orange-400"
   },
   { 
     status: "Completed", 
     stripBg: "bg-green-100",
     textColor: "text-green-800",
-    badgeColor: "bg-green-300 text-green-800"
+    badgeBorder: "border border-green-400"
   },
   { 
     status: "Template", 
     stripBg: "bg-purple-100",
     textColor: "text-purple-800",
-    badgeColor: "bg-purple-300 text-purple-800"
+    badgeBorder: "border border-purple-400"
   },
 ];
 
@@ -119,7 +119,7 @@ export function MyProjectsCard() {
                 <div key={group.status}>
                   <div className={`flex items-center gap-1.5 mb-1 px-2 py-1 rounded ${group.stripBg}`}>
                     <span className={`text-xs font-medium ${group.textColor}`}>{group.status}</span>
-                    <span className={`rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ${group.badgeColor}`}>
+                    <span className={`rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ${group.stripBg} ${group.badgeBorder} ${group.textColor}`}>
                       {group.projects.length}
                     </span>
                   </div>
