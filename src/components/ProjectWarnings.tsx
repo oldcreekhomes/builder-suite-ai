@@ -75,9 +75,9 @@ export function ProjectWarnings() {
             <div className="px-4 py-2">
               {/* Column headers - shown once */}
               <div className="flex items-center justify-end mb-1 pr-1">
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] text-muted-foreground w-[40px] text-center">Current</span>
-                  <span className="text-[10px] text-muted-foreground w-[40px] text-center">Late</span>
+              <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground w-[32px] text-center">Current</span>
+                  <span className="text-[10px] text-muted-foreground w-[32px] text-center">Late</span>
                 </div>
               </div>
               {projectsWithCounts.map((project) => (
@@ -102,14 +102,14 @@ export function ProjectWarnings() {
                       </TooltipProvider>
                     </div>
                     
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="w-[40px] flex justify-center">
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-[32px] flex justify-center">
                         <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
                           {project.currentCount}
                         </Badge>
                       </div>
                       
-                      <div className="w-[40px] flex justify-center">
+                      <div className="w-[32px] flex justify-center">
                         <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
                           {project.lateCount}
                         </Badge>
