@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Shield, AlertCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useInsuranceAlerts } from "@/hooks/useInsuranceAlerts";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,11 @@ export const InsuranceAlertsCard = () => {
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-lg font-semibold">
-          <div className="flex items-center gap-2">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
             <Shield className="h-5 w-5 text-primary" />
-            Insurance Alerts
+            <h3 className="text-lg font-semibold text-black">Insurance Alerts</h3>
           </div>
           {!isLoading && (errorCount > 0 || warningCount > 0) && (
             <div className="flex items-center gap-1.5">
@@ -30,13 +30,13 @@ export const InsuranceAlertsCard = () => {
               )}
             </div>
           )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
+        </div>
+      </div>
+      <CardContent className="flex-1 overflow-hidden p-0">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading alerts...</p>
         ) : alerts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-6">
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
             <CheckCircle2 className="h-8 w-8 text-green-500 mb-2" />
             <p className="text-sm font-medium text-foreground">All Clear</p>
             <p className="text-xs text-muted-foreground">
@@ -44,8 +44,8 @@ export const InsuranceAlertsCard = () => {
             </p>
           </div>
         ) : (
-          <ScrollArea className="h-full flex-1 pr-3">
-            <div className="space-y-1">
+          <ScrollArea className="h-full flex-1">
+            <div className="space-y-1 p-6">
               {alerts.map((alert, index) => (
                 <div
                   key={`${alert.companyId}-${alert.insuranceType || index}`}
