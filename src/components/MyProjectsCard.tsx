@@ -92,8 +92,8 @@ export function MyProjectsCard() {
             <div className="space-y-3 p-6">
               {projectsByStatus.map((group) => (
                 <div key={group.status}>
-                  <div className="flex items-center gap-1.5 mb-1 px-2">
-                    <span className="text-xs font-medium text-foreground">{group.status}</span>
+                  <div className={`flex items-center gap-1.5 mb-1 px-2 py-1 rounded ${group.color.split(' ')[0]}`}>
+                    <span className={`text-xs font-medium ${group.color.split(' ')[1]}`}>{group.status}</span>
                     <span className={`rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ${group.color}`}>
                       {group.projects.length}
                     </span>
