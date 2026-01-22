@@ -22,11 +22,36 @@ const getStreetAddress = (address: string) => {
 };
 
 const statusGroups = [
-  { status: "In Design", color: "bg-yellow-200 text-yellow-800" },
-  { status: "Permitting", color: "bg-blue-200 text-blue-800" },
-  { status: "Under Construction", color: "bg-orange-200 text-orange-800" },
-  { status: "Completed", color: "bg-green-200 text-green-800" },
-  { status: "Template", color: "bg-purple-200 text-purple-800" },
+  { 
+    status: "In Design", 
+    stripBg: "bg-yellow-100",
+    textColor: "text-yellow-800",
+    badgeColor: "bg-yellow-300 text-yellow-800"
+  },
+  { 
+    status: "Permitting", 
+    stripBg: "bg-blue-100",
+    textColor: "text-blue-800",
+    badgeColor: "bg-blue-300 text-blue-800"
+  },
+  { 
+    status: "Under Construction", 
+    stripBg: "bg-orange-100",
+    textColor: "text-orange-800",
+    badgeColor: "bg-orange-300 text-orange-800"
+  },
+  { 
+    status: "Completed", 
+    stripBg: "bg-green-100",
+    textColor: "text-green-800",
+    badgeColor: "bg-green-300 text-green-800"
+  },
+  { 
+    status: "Template", 
+    stripBg: "bg-purple-100",
+    textColor: "text-purple-800",
+    badgeColor: "bg-purple-300 text-purple-800"
+  },
 ];
 
 export function MyProjectsCard() {
@@ -92,9 +117,9 @@ export function MyProjectsCard() {
             <div className="space-y-3 p-6">
               {projectsByStatus.map((group) => (
                 <div key={group.status}>
-                  <div className={`flex items-center gap-1.5 mb-1 px-2 py-1 rounded ${group.color.split(' ')[0]}`}>
-                    <span className={`text-xs font-medium ${group.color.split(' ')[1]}`}>{group.status}</span>
-                    <span className={`rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ${group.color}`}>
+                  <div className={`flex items-center gap-1.5 mb-1 px-2 py-1 rounded ${group.stripBg}`}>
+                    <span className={`text-xs font-medium ${group.textColor}`}>{group.status}</span>
+                    <span className={`rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium ${group.badgeColor}`}>
                       {group.projects.length}
                     </span>
                   </div>
