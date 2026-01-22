@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { FolderOpen } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -67,20 +67,20 @@ export function MyProjectsCard() {
 
   return (
     <Card className="h-full">
-      <CardHeader className="pb-3">
+      <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <div className="flex items-center space-x-2">
             <FolderOpen className="h-5 w-5 text-primary" />
-            My Projects
-          </CardTitle>
+            <h3 className="text-lg font-semibold text-black">My Projects</h3>
+          </div>
           {activeProjects.length > 0 && (
             <Badge variant="secondary" className="text-xs">
               {activeProjects.length}
             </Badge>
           )}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+      </div>
+      <CardContent className="p-0">
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Loading projects...</div>
         ) : activeProjects.length === 0 ? (
@@ -89,7 +89,7 @@ export function MyProjectsCard() {
           </div>
         ) : (
           <ScrollArea className="h-full flex-1">
-            <div className="space-y-3 pr-4">
+            <div className="space-y-3 p-6">
               {projectsByStatus.map((group) => (
                 <div key={group.status}>
                   <div className={`text-xs font-medium px-2 py-1 rounded mb-1 ${group.color}`}>
