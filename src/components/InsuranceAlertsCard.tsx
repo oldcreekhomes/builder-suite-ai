@@ -19,14 +19,14 @@ export const InsuranceAlertsCard = () => {
           {!isLoading && (errorCount > 0 || warningCount > 0) && (
             <div className="flex items-center gap-1.5">
               {errorCount > 0 && (
-                <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                <span className="bg-destructive text-destructive-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
                   {errorCount}
-                </Badge>
+                </span>
               )}
               {warningCount > 0 && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                <span className="bg-amber-200 text-amber-800 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
                   {warningCount}
-                </Badge>
+                </span>
               )}
             </div>
           )}

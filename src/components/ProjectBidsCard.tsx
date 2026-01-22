@@ -112,14 +112,14 @@ export function ProjectBidsCard() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="w-[50px] flex justify-center">
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
+                        <span className="bg-green-100 text-green-700 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
                           {project.willBidCount}
-                        </Badge>
+                        </span>
                       </div>
                       <div className="w-[50px] flex justify-center">
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100 w-7 h-7 rounded-full p-0 flex items-center justify-center text-xs">
+                        <span className="bg-blue-100 text-blue-700 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
                           {project.bidCount}
-                        </Badge>
+                        </span>
                       </div>
                     </div>
                   </div>
