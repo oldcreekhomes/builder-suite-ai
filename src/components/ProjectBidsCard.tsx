@@ -83,27 +83,27 @@ export function ProjectBidsCard() {
             <ScrollArea className="h-full">
               <div className="px-4 py-2">
                 {/* Column headers */}
-                <div className="flex items-center justify-end mb-1 pr-1">
-                  <div className="flex items-center gap-4">
-                    <span className="text-[10px] text-muted-foreground w-[40px] text-center">
-                      Will Bid
-                    </span>
-                    <span className="text-[10px] text-muted-foreground w-[40px] text-center">
-                      Bid
-                    </span>
-                  </div>
-                </div>
+                    <div className="flex items-center justify-end mb-1 pr-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground w-[32px] text-center">
+                          Will Bid
+                        </span>
+                        <span className="text-[10px] text-muted-foreground w-[32px] text-center">
+                          Bid
+                        </span>
+                      </div>
+                    </div>
                 {projectCounts.map((project) => (
                   <div
                     key={project.projectId}
                     className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between rounded"
                     onClick={() => handleProjectClick(project.projectId, project.projectAddress)}
                   >
-                    <div className="flex items-center min-w-0 flex-1 mr-4">
+                    <div className="flex items-center min-w-0 flex-1 mr-2">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm truncate">
+                            <span className="text-sm truncate block max-w-full">
                               {getStreetAddress(project.projectAddress)}
                             </span>
                           </TooltipTrigger>
@@ -114,8 +114,8 @@ export function ProjectBidsCard() {
                       </TooltipProvider>
                     </div>
 
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="w-[40px] flex justify-center">
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-[32px] flex justify-center">
                         <Badge
                           variant="secondary"
                           className="bg-green-100 text-green-700 hover:bg-green-100"
@@ -124,7 +124,7 @@ export function ProjectBidsCard() {
                         </Badge>
                       </div>
 
-                      <div className="w-[40px] flex justify-center">
+                      <div className="w-[32px] flex justify-center">
                         <Badge
                           variant="secondary"
                           className="bg-blue-100 text-blue-700 hover:bg-blue-100"
