@@ -60,25 +60,27 @@ export default function Index() {
               
               {dashboardView === "project-manager" ? (
                 <>
-                  <div className="grid gap-6 md:grid-cols-5">
-                    <div className="h-full">
-                      <MyProjectsCard />
-                    </div>
-                    <div className="h-full">
-                      <InsuranceAlertsCard />
-                    </div>
-                    <div className="h-full">
+                <div className="grid gap-6 md:grid-cols-4">
+                  <div className="h-full">
+                    <MyProjectsCard />
+                  </div>
+                  <div className="h-full">
+                    <InsuranceAlertsCard />
+                  </div>
+                  <div className="h-full flex flex-col gap-6">
+                    <div className="flex-1 min-h-0">
                       <ProjectWarnings />
                     </div>
-                    <div className="h-full">
+                    <div className="flex-1 min-h-0">
                       <ProjectBidsCard />
                     </div>
-                    <div className="h-full">
-                      <div className="rounded-xl bg-muted/50 h-full">
-                        <RecentPhotos />
-                      </div>
+                  </div>
+                  <div className="h-full">
+                    <div className="rounded-xl bg-muted/50 h-full">
+                      <RecentPhotos />
                     </div>
                   </div>
+                </div>
                   <div className="rounded-xl bg-muted/50">
                     <WeatherForecast address={primaryProjectAddress} />
                   </div>
