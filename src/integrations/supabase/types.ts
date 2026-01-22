@@ -2725,6 +2725,7 @@ export type Database = {
           reminder_sent_at: string | null
           updated_at: string
           will_bid_acknowledged_by: string | null
+          will_bid_at: string | null
         }
         Insert: {
           bid_acknowledged_by?: string | null
@@ -2740,6 +2741,7 @@ export type Database = {
           reminder_sent_at?: string | null
           updated_at?: string
           will_bid_acknowledged_by?: string | null
+          will_bid_at?: string | null
         }
         Update: {
           bid_acknowledged_by?: string | null
@@ -2755,6 +2757,7 @@ export type Database = {
           reminder_sent_at?: string | null
           updated_at?: string
           will_bid_acknowledged_by?: string | null
+          will_bid_at?: string | null
         }
         Relationships: [
           {

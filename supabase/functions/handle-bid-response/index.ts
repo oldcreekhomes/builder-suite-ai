@@ -57,12 +57,25 @@ const handler = async (req: Request): Promise<Response> => {
     // Update the bid status in the database
     console.log('Attempting to update bid status:', { bidPackageId, companyId, response });
     
+    // Build update data - when will_bid, also set will_bid_at and reset acknowledgment
+    const updatePayload: { 
+      bid_status: string; 
+      updated_at: string; 
+      will_bid_at?: string; 
+      will_bid_acknowledged_by?: null;
+    } = { 
+      bid_status: response,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (response === 'will_bid') {
+      updatePayload.will_bid_at = new Date().toISOString();
+      updatePayload.will_bid_acknowledged_by = null; // Reset so PM sees this notification
+    }
+    
     const { data: updateData, error: updateError, count } = await supabase
       .from('project_bids')
-      .update({ 
-        bid_status: response,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('bid_package_id', bidPackageId)
       .eq('company_id', companyId)
       .select();
