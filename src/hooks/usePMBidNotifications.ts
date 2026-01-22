@@ -23,6 +23,9 @@ export interface BidNotification {
   price: number | null;
   proposals: string[] | null;
   updatedAt: string;
+  willBidAt: string | null;
+  willBidAcknowledged: boolean;
+  bidAcknowledged: boolean;
 }
 
 export function usePMBidNotifications() {
@@ -73,7 +76,9 @@ export function usePMBidNotifications() {
         ])
       );
 
-      // Get bids that need notifications (unacknowledged will_bid or submitted)
+      // Get bids that need notifications:
+      // - Will Bid notification: has will_bid_at AND will_bid_acknowledged_by IS NULL
+      // - Submitted notification: bid_status = 'submitted' AND bid_acknowledged_by IS NULL
       const { data: bids, error: bidsError } = await supabase
         .from("project_bids")
         .select(`
@@ -83,6 +88,7 @@ export function usePMBidNotifications() {
           bid_status,
           price,
           proposals,
+          will_bid_at,
           will_bid_acknowledged_by,
           bid_acknowledged_by,
           updated_at,
@@ -90,7 +96,7 @@ export function usePMBidNotifications() {
         `)
         .in("bid_package_id", packageIds)
         .or(
-          `and(bid_status.eq.will_bid,will_bid_acknowledged_by.is.null),and(bid_status.eq.submitted,bid_acknowledged_by.is.null)`
+          `and(will_bid_at.not.is.null,will_bid_acknowledged_by.is.null),and(bid_status.eq.submitted,bid_acknowledged_by.is.null)`
         );
 
       if (bidsError) throw bidsError;
@@ -115,6 +121,9 @@ export function usePMBidNotifications() {
           price: bid.price,
           proposals: bid.proposals as string[] | null,
           updatedAt: bid.updated_at,
+          willBidAt: bid.will_bid_at,
+          willBidAcknowledged: bid.will_bid_acknowledged_by !== null,
+          bidAcknowledged: bid.bid_acknowledged_by !== null,
         };
       });
 
@@ -134,9 +143,12 @@ export function usePMBidNotifications() {
       for (const notification of notifications) {
         const counts = projectCountsMap.get(notification.projectId);
         if (counts) {
-          if (notification.bidStatus === "will_bid") {
+          // Will Bid notification: has will_bid_at and NOT acknowledged
+          if (notification.willBidAt && !notification.willBidAcknowledged) {
             counts.willBidCount++;
-          } else if (notification.bidStatus === "submitted") {
+          }
+          // Submitted notification: status is submitted and NOT acknowledged
+          if (notification.bidStatus === "submitted" && !notification.bidAcknowledged) {
             counts.bidCount++;
           }
           counts.totalCount = counts.willBidCount + counts.bidCount;

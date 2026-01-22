@@ -47,11 +47,13 @@ export function ProjectBidsDialog({
     (n) => n.projectId === projectId
   );
 
+  // Will Bid notifications: has will_bid_at and NOT acknowledged (regardless of current status)
   const willBidNotifications = projectNotifications.filter(
-    (n) => n.bidStatus === "will_bid"
+    (n) => n.willBidAt && !n.willBidAcknowledged
   );
+  // Submitted notifications: bid_status is submitted and NOT acknowledged
   const submittedNotifications = projectNotifications.filter(
-    (n) => n.bidStatus === "submitted"
+    (n) => n.bidStatus === "submitted" && !n.bidAcknowledged
   );
 
   const handleDismissClick = (bidId: string, type: "will_bid" | "submitted") => {

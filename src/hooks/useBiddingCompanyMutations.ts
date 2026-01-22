@@ -85,9 +85,19 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     mutationFn: async ({ bidId, status }: { bidId: string; status: string | null }) => {
       console.log('Updating bid status:', { bidId, status });
       
+      // Build update data - when setting to will_bid, also set will_bid_at and reset acknowledgment
+      const updateData: { bid_status: string | null; will_bid_at?: string; will_bid_acknowledged_by?: null } = { 
+        bid_status: status 
+      };
+      
+      if (status === 'will_bid') {
+        updateData.will_bid_at = new Date().toISOString();
+        updateData.will_bid_acknowledged_by = null; // Reset so PM sees it again
+      }
+      
       const { error } = await supabase
         .from('project_bids')
-        .update({ bid_status: status })
+        .update(updateData)
         .eq('id', bidId);
 
       if (error) {
@@ -98,6 +108,7 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['pm-bid-notifications'] });
       toast({
         title: "Success",
         description: "Bid status updated successfully",
