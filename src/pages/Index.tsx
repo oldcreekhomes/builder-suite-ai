@@ -67,11 +67,11 @@ export default function Index() {
                   <div className="h-full">
                     <InsuranceAlertsCard />
                   </div>
-                  <div className="h-full flex flex-col gap-6">
-                    <div className="flex-1 min-h-0">
+                  <div className="flex flex-col gap-6" style={{ height: '400px' }}>
+                    <div className="h-[calc(50%-12px)] overflow-hidden">
                       <ProjectWarnings />
                     </div>
-                    <div className="flex-1 min-h-0">
+                    <div className="h-[calc(50%-12px)] overflow-hidden">
                       <ProjectBidsCard />
                     </div>
                   </div>
