@@ -83,7 +83,7 @@ export function ProjectBidsCard() {
             <ScrollArea className="h-full">
               <div className="px-4 py-2">
                 {/* Column headers */}
-                <div className="flex items-center justify-end mb-1 pr-3">
+                <div className="flex items-center justify-end mb-1 pr-1">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground text-center w-[50px]">Will Bid</span>
                     <span className="text-[10px] text-muted-foreground text-center w-[50px]">Bids</span>
@@ -92,7 +92,7 @@ export function ProjectBidsCard() {
                 {projectCounts.map((project) => (
                   <div
                     key={project.projectId}
-                    className="py-1 px-2 pr-3 cursor-pointer hover:bg-muted/50 transition-colors flex items-center rounded"
+                    className="py-1 px-2 pr-1 cursor-pointer hover:bg-muted/50 transition-colors flex items-center rounded"
                     onClick={() => handleProjectClick(project.projectId, project.projectAddress)}
                   >
                     <div className="flex-1 min-w-0 overflow-hidden mr-2">
