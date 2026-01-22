@@ -26,13 +26,13 @@ const statusGroups = [
     status: "In Design", 
     stripBg: "bg-yellow-100",
     textColor: "text-yellow-800",
-    badgeBorder: "border border-yellow-400"
+    badgeBorder: "border border-yellow-800"
   },
   { 
     status: "Permitting", 
     stripBg: "bg-blue-100",
     textColor: "text-blue-800",
-    badgeBorder: "border border-blue-400"
+    badgeBorder: "border border-blue-800"
   },
   { 
     status: "Under Construction", 
@@ -44,7 +44,7 @@ const statusGroups = [
     status: "Completed", 
     stripBg: "bg-green-100",
     textColor: "text-green-800",
-    badgeBorder: "border border-green-400"
+    badgeBorder: "border border-green-800"
   },
   { 
     status: "Template", 
