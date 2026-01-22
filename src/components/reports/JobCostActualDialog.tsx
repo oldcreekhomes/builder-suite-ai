@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Check, Lock, Pencil } from "lucide-react";
+import { ArrowUpDown, Check, Pencil } from "lucide-react";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 
@@ -360,7 +360,7 @@ const formatCurrency = (value: number) => {
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span><Lock className="h-4 w-4 text-muted-foreground" /></span>
+                                    <span className="text-base">🔒</span>
                                   </TooltipTrigger>
                                   <TooltipContent side="left" align="center">
                                     {line.reconciled && isDateLocked(line.journal_entries.entry_date) ? (
