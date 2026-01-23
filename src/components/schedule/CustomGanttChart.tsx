@@ -3,7 +3,7 @@ import { useProjectTasks } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
 
-import { useOptimizedRealtime } from "@/hooks/useOptimizedRealtime";
+// Removed useOptimizedRealtime - simplified real-time now in useProjectTasks
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { getTasksWithDependency, validateStartDateAgainstPredecessors } from "@/utils/predecessorValidation";
-import { addPendingUpdate } from "@/hooks/useProjectTasks";
+// Removed addPendingUpdate import - no longer needed
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useScheduleUndo } from "@/hooks/useScheduleUndo";
 import { useTaskDelete } from "@/hooks/useTaskDelete";
@@ -65,8 +65,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
 
-  // Use optimized realtime hook for performance
-  useOptimizedRealtime(projectId);
+  // Real-time updates now handled in useProjectTasks (simplified)
 
 
   // Helper function to calculate end date from start date + duration
@@ -244,8 +243,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         predecessorUpdates: result.predecessorUpdates.length
       });
       
-      // Add affected task ids to pending set to ignore realtime echoes
-      result.hierarchyUpdates.forEach(update => addPendingUpdate(update.id));
+      // Simplified - no more echo prevention needed
       
       // Apply optimistic update to cache first for instant UI feedback
       const optimisticTasks = originalTasks.map(t => {
@@ -434,8 +432,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     // Apply optimistic update immediately
     queryClient.setQueryData(['project-tasks', projectId, user?.id], optimisticTasks);
     
-    // Add to pending updates to ignore real-time echoes (longer TTL for cascades)
-    addPendingUpdate(taskId, 6000); // 6s TTL to cover cascade processing
+    // Simplified - no more echo prevention needed
     
     // Visual flash feedback - add task to recently saved set
     setRecentlySavedTasks(prev => new Set(prev).add(taskId));
