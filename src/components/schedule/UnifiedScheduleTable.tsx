@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { useScheduleRowHeight } from "@/hooks/useScheduleRowHeight";
 import { canIndent } from "@/utils/hierarchyUtils";
@@ -382,12 +382,22 @@ export function UnifiedScheduleTable({
     }
   };
 
-  // Generate dependencies
-  const generateDependencyConnections = () => {
-    const connections: {
+  // Generate dependencies with memoization and stable index lookup
+  const connections = useMemo(() => {
+    const result: {
+      fromTaskId: string;
+      toTaskId: string;
       from: { x: number; y: number };
       to: { x: number; y: number };
     }[] = [];
+
+    // Build index map ONCE for O(1) lookup
+    const taskIndexMap = new Map<string, number>();
+    visibleTasks.forEach((task, index) => {
+      if (task.hierarchy_number) {
+        taskIndexMap.set(task.hierarchy_number, index);
+      }
+    });
 
     visibleTasks.forEach((task, taskIndex) => {
       let predecessorList: string[] = [];
@@ -414,26 +424,29 @@ export function UnifiedScheduleTable({
       parsedPreds.forEach(pred => {
         if (!pred.isValid) return;
 
-        const predTask = visibleTasks.find(t => t.hierarchy_number === pred.taskId);
+        // Use the index map for O(1) lookup instead of find+indexOf
+        const predIndex = taskIndexMap.get(pred.taskId);
+        if (predIndex === undefined) return;
+
+        const predTask = visibleTasks[predIndex];
         if (!predTask) return;
 
-        const predIndex = visibleTasks.indexOf(predTask);
         const predPosition = getTaskPosition(predTask);
         
         const fromY = predIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
         const fromX = predPosition.left + predPosition.width;
 
-        connections.push({
+        result.push({
+          fromTaskId: predTask.id,
+          toTaskId: task.id,
           from: { x: fromX, y: fromY },
           to: { x: toX, y: toY }
         });
       });
     });
 
-    return connections;
-  };
-
-  const connections = generateDependencyConnections();
+    return result;
+  }, [visibleTasks, tasks, startDate, dayWidth, ROW_HEIGHT]);
 
   // Generate month blocks for weekly view calculations
   const months: { name: string; width: number; left: number }[] = [];
@@ -949,8 +962,8 @@ export function UnifiedScheduleTable({
                   height: visibleTasks.length * ROW_HEIGHT 
                 }}
               >
-                {connections.map((connection, connIndex) => {
-                  const { from, to } = connection;
+                {connections.map((connection) => {
+                  const { from, to, fromTaskId, toTaskId } = connection;
                   
                   // 5-segment path matching BuildTools pattern:
                   // 1. Exit RIGHT from predecessor bar end
@@ -970,8 +983,9 @@ export function UnifiedScheduleTable({
                                    L ${verticalX} ${to.y}
                                    L ${to.x - 8} ${to.y}`;
 
+                  // Use stable key from task IDs instead of array index
                   return (
-                    <g key={connIndex}>
+                    <g key={`${fromTaskId}-${toTaskId}`}>
                       <path
                         d={pathData}
                         stroke="black"

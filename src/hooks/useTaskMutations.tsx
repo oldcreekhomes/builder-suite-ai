@@ -4,6 +4,9 @@ import { useAuth } from "./useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ProjectTask } from "./useProjectTasks";
 import { useCallback } from "react";
+import { calculateTaskDatesFromPredecessors } from "@/utils/taskCalculations";
+import { safeParsePredecessors, parsePredecessorString } from "@/utils/predecessorValidation";
+import { normalizeToYMD } from "@/utils/dateOnly";
 
 interface CreateTaskParams {
   project_id: string;
@@ -37,7 +40,7 @@ export const useTaskMutations = (projectId: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // SIMPLIFIED parent recalculation - single pass MIN/MAX, no recursion
+  // IMPROVED parent recalculation - uses ALL descendants, not just direct children
   const updateParentDates = useCallback(async (childHierarchy: string) => {
     if (!childHierarchy || !childHierarchy.includes('.')) return;
     
@@ -53,31 +56,33 @@ export const useTaskMutations = (projectId: string) => {
       
       if (!parentTask) break;
       
-      // Get direct children only (not all descendants)
-      const children = tasks.filter(t => {
+      // Get ALL descendants (not just direct children) for accurate min/max
+      const descendants = tasks.filter(t => {
         if (!t.hierarchy_number) return false;
-        const isChild = t.hierarchy_number.startsWith(parentHierarchy + '.');
-        const depth = t.hierarchy_number.split('.').length;
-        const parentDepth = parentHierarchy.split('.').length;
-        return isChild && depth === parentDepth + 1;
+        return t.hierarchy_number.startsWith(parentHierarchy + '.') && 
+               t.hierarchy_number !== parentHierarchy;
       });
       
-      if (children.length === 0) break;
+      if (descendants.length === 0) break;
       
-      // Calculate MIN start and MAX end from children
-      const startDate = children.reduce((min, t) => {
+      // Calculate MIN start and MAX end from ALL descendants
+      const startDate = descendants.reduce((min, t) => {
         const date = t.start_date.split('T')[0];
         return date < min ? date : min;
-      }, children[0].start_date.split('T')[0]);
+      }, descendants[0].start_date.split('T')[0]);
       
-      const endDate = children.reduce((max, t) => {
+      const endDate = descendants.reduce((max, t) => {
         const date = t.end_date.split('T')[0];
         return date > max ? date : max;
-      }, children[0].end_date.split('T')[0]);
+      }, descendants[0].end_date.split('T')[0]);
       
-      // Calculate average progress
-      const totalProgress = children.reduce((sum, t) => sum + (t.progress || 0), 0);
-      const avgProgress = Math.round(totalProgress / children.length);
+      // Calculate weighted average progress based on duration
+      const totalDuration = descendants.reduce((sum, t) => sum + t.duration, 0);
+      const completedDuration = descendants.reduce((sum, t) => {
+        const taskProgress = (t.progress || 0) / 100;
+        return sum + (t.duration * taskProgress);
+      }, 0);
+      const avgProgress = totalDuration > 0 ? Math.round((completedDuration / totalDuration) * 100) : 0;
       
       // Calculate duration
       const startMs = new Date(startDate).getTime();
@@ -89,7 +94,7 @@ export const useTaskMutations = (projectId: string) => {
       const currentEnd = parentTask.end_date.split('T')[0];
       
       if (currentStart !== startDate || currentEnd !== endDate || parentTask.progress !== avgProgress) {
-        console.log(`📊 Updating parent ${parentHierarchy}: ${startDate} to ${endDate}`);
+        console.log(`📊 Updating parent ${parentHierarchy}: ${startDate} to ${endDate} (from ${descendants.length} descendants)`);
         
         // Optimistic update
         const updatedTasks = tasks.map(t => 
@@ -114,6 +119,91 @@ export const useTaskMutations = (projectId: string) => {
       currentHierarchy = parentHierarchy;
     }
   }, [queryClient, projectId, user?.id]);
+
+  // CASCADE to dependent tasks when dates change
+  const cascadeToDependents = useCallback(async (
+    changedTaskHierarchy: string,
+    originalStartDate: string,
+    originalEndDate: string
+  ) => {
+    const tasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+    if (tasks.length === 0) return;
+
+    // Find all tasks that depend on this task
+    const findDependentTasks = (hierarchy: string): ProjectTask[] => {
+      return tasks.filter(t => {
+        if (!t.predecessor) return false;
+        const preds = safeParsePredecessors(t.predecessor);
+        return preds.some(p => {
+          const parsed = parsePredecessorString(p);
+          return parsed?.taskId === hierarchy;
+        });
+      });
+    };
+
+    // Process dependents recursively but only if they actually violate constraints
+    const processedIds = new Set<string>();
+    
+    const processDependents = async (hierarchy: string) => {
+      const dependents = findDependentTasks(hierarchy);
+      
+      for (const dependent of dependents) {
+        if (processedIds.has(dependent.id)) continue;
+        processedIds.add(dependent.id);
+        
+        // Get fresh task data from cache
+        const freshTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+        const freshDependent = freshTasks.find(t => t.id === dependent.id);
+        if (!freshDependent) continue;
+
+        // Calculate what the dates SHOULD be based on predecessor
+        const calculatedDates = calculateTaskDatesFromPredecessors(freshDependent, freshTasks);
+        
+        if (!calculatedDates) continue;
+        
+        const currentStart = normalizeToYMD(freshDependent.start_date);
+        const requiredStart = calculatedDates.startDate;
+        
+        // ONLY fix violations - if current start is BEFORE required, push it
+        if (currentStart < requiredStart) {
+          console.log(`🔗 Cascading to ${freshDependent.hierarchy_number}: ${currentStart} → ${requiredStart} (violation fix)`);
+          
+          const newStartDate = calculatedDates.startDate + 'T00:00:00';
+          const newEndDate = calculatedDates.endDate + 'T00:00:00';
+          
+          // Optimistic update
+          const updatedTasks = freshTasks.map(t => 
+            t.id === freshDependent.id 
+              ? { ...t, start_date: newStartDate, end_date: newEndDate, duration: calculatedDates.duration }
+              : t
+          );
+          queryClient.setQueryData(['project-tasks', projectId, user?.id], updatedTasks);
+          
+          // Database update
+          await supabase
+            .from('project_schedule_tasks')
+            .update({ 
+              start_date: newStartDate, 
+              end_date: newEndDate, 
+              duration: calculatedDates.duration 
+            })
+            .eq('id', freshDependent.id);
+          
+          // Update parent of this dependent if it's a child task
+          if (freshDependent.hierarchy_number?.includes('.')) {
+            await updateParentDates(freshDependent.hierarchy_number);
+          }
+          
+          // Recursively cascade to this task's dependents
+          if (freshDependent.hierarchy_number) {
+            await processDependents(freshDependent.hierarchy_number);
+          }
+        }
+      }
+    };
+
+    await processDependents(changedTaskHierarchy);
+  }, [queryClient, projectId, user?.id, updateParentDates]);
 
   const createTask = useMutation({
     mutationFn: async (params: CreateTaskParams) => {
@@ -171,6 +261,10 @@ export const useTaskMutations = (projectId: string) => {
       if (!user) throw new Error('User not authenticated');
 
       console.log('🔧 UpdateTask mutation called with params:', params);
+
+      // Get original task data for cascade comparison
+      const currentCache = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
+      const originalTask = currentCache.find(t => t.id === params.id);
 
       // Check for duplicate hierarchy number before updating
       if (params.hierarchy_number !== undefined) {
@@ -231,9 +325,10 @@ export const useTaskMutations = (projectId: string) => {
       }
 
       console.log('🔧 Database update successful:', data);
-      return data;
+      return { data, originalTask, skipCascade: params.skipCascade };
     },
-    onSuccess: async (data, variables) => {
+    onSuccess: async (result, variables) => {
+      const { data, originalTask, skipCascade } = result;
       console.log('🔧 Task update success');
       
       // Immediately update cache
@@ -246,6 +341,19 @@ export const useTaskMutations = (projectId: string) => {
       // Update parent dates if this is a child task
       if (data.hierarchy_number?.includes('.')) {
         await updateParentDates(data.hierarchy_number);
+      }
+      
+      // Cascade to dependents if dates changed and not skipped
+      if (!skipCascade && originalTask && data.hierarchy_number) {
+        const originalStart = normalizeToYMD(originalTask.start_date);
+        const originalEnd = normalizeToYMD(originalTask.end_date);
+        const newStart = normalizeToYMD(data.start_date);
+        const newEnd = normalizeToYMD(data.end_date);
+        
+        if (originalStart !== newStart || originalEnd !== newEnd) {
+          console.log(`🔗 Dates changed for ${data.hierarchy_number}, cascading to dependents...`);
+          await cascadeToDependents(data.hierarchy_number, originalStart, originalEnd);
+        }
       }
       
       // Invalidate to sync with server
