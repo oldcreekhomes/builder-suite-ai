@@ -33,6 +33,9 @@ interface UpdateTaskParams {
   notes?: string;
   suppressInvalidate?: boolean;
   skipCascade?: boolean;
+  // Original dates captured BEFORE optimistic update - used for cascade detection
+  _originalStartDate?: string;
+  _originalEndDate?: string;
 }
 
 export const useTaskMutations = (projectId: string) => {
@@ -262,9 +265,10 @@ export const useTaskMutations = (projectId: string) => {
 
       console.log('🔧 UpdateTask mutation called with params:', params);
 
-      // Get original task data for cascade comparison
-      const currentCache = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
-      const originalTask = currentCache.find(t => t.id === params.id);
+      // Use passed-in original dates (captured BEFORE optimistic update) for cascade comparison
+      // This is critical because the cache has already been updated optimistically
+      const originalStartDate = params._originalStartDate;
+      const originalEndDate = params._originalEndDate;
 
       // Check for duplicate hierarchy number before updating
       if (params.hierarchy_number !== undefined) {
@@ -325,10 +329,10 @@ export const useTaskMutations = (projectId: string) => {
       }
 
       console.log('🔧 Database update successful:', data);
-      return { data, originalTask, skipCascade: params.skipCascade };
+      return { data, originalStartDate, originalEndDate, skipCascade: params.skipCascade };
     },
     onSuccess: async (result, variables) => {
-      const { data, originalTask, skipCascade } = result;
+      const { data, originalStartDate, originalEndDate, skipCascade } = result;
       console.log('🔧 Task update success');
       
       // Immediately update cache
@@ -344,14 +348,15 @@ export const useTaskMutations = (projectId: string) => {
       }
       
       // Cascade to dependents if dates changed and not skipped
-      if (!skipCascade && originalTask && data.hierarchy_number) {
-        const originalStart = normalizeToYMD(originalTask.start_date);
-        const originalEnd = normalizeToYMD(originalTask.end_date);
+      // Use original dates passed from caller (captured BEFORE optimistic update)
+      if (!skipCascade && originalStartDate && originalEndDate && data.hierarchy_number) {
+        const originalStart = normalizeToYMD(originalStartDate);
+        const originalEnd = normalizeToYMD(originalEndDate);
         const newStart = normalizeToYMD(data.start_date);
         const newEnd = normalizeToYMD(data.end_date);
         
         if (originalStart !== newStart || originalEnd !== newEnd) {
-          console.log(`🔗 Dates changed for ${data.hierarchy_number}, cascading to dependents...`);
+          console.log(`🔗 Dates changed for ${data.hierarchy_number}: ${originalStart}→${newStart}, cascading to dependents...`);
           await cascadeToDependents(data.hierarchy_number, originalStart, originalEnd);
         }
       }
