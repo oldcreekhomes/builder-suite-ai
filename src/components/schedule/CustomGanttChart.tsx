@@ -305,6 +305,11 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     // OPTIMISTIC UPDATE: Immediately update cache for instant UI feedback
     const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user?.id]) || [];
     
+    // CRITICAL: Capture original task dates BEFORE optimistic update for cascade detection
+    const originalTask = currentTasks.find(t => t.id === taskId);
+    const originalStartDate = originalTask?.start_date?.split('T')[0];
+    const originalEndDate = originalTask?.end_date?.split('T')[0];
+    
     // Capture state for undo before making changes
     captureState(currentTasks);
     
@@ -326,9 +331,12 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
     
     // Build mutation data with computed end_date
+    // Include original dates for cascade comparison (these won't be overwritten by optimistic update)
     const mutationData: any = {
       id: taskId,
-      suppressInvalidate: true
+      suppressInvalidate: true,
+      _originalStartDate: originalStartDate,
+      _originalEndDate: originalEndDate
     };
     
     let computedEndDate: string | null = null;
