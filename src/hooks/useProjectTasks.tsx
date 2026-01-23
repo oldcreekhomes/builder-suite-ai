@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,43 +23,12 @@ export interface ProjectTask {
 // Global subscription manager to prevent duplicate subscriptions
 const subscriptionManager = new Map<string, any>();
 
-// Global pending local updates manager (TTL-based to ignore realtime echoes)
-declare global {
-  interface Window {
-    __pendingLocalUpdates?: Map<string, number>;
-  }
-}
-
-const getPendingUpdates = () => {
-  if (!window.__pendingLocalUpdates) {
-    window.__pendingLocalUpdates = new Map();
-  }
-  return window.__pendingLocalUpdates;
-};
-
-export const addPendingUpdate = (taskId: string, ttlMs = 2000) => {
-  const pending = getPendingUpdates();
-  pending.set(taskId, Date.now() + ttlMs);
-};
-
-const isPendingUpdate = (taskId: string) => {
-  const pending = getPendingUpdates();
-  const expireTime = pending.get(taskId);
-  if (!expireTime) return false;
-  
-  if (Date.now() > expireTime) {
-    pending.delete(taskId);
-    return false;
-  }
-  return true;
-};
-
 export const useProjectTasks = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const subscriptionRef = useRef<any>(null);
 
-  // Set up real-time subscription for task updates
+  // Set up real-time subscription for task updates - SIMPLIFIED
   useEffect(() => {
     if (!projectId || !user?.id) return;
 
@@ -72,9 +40,7 @@ export const useProjectTasks = (projectId: string) => {
       return;
     }
 
-    console.log('🔥 useProjectTasks: Setting up real-time subscription for project tasks:', projectId);
-    console.log('🔥 useProjectTasks: User ID:', user.id);
-    console.log('🔥 useProjectTasks: Subscription key:', subscriptionKey);
+    console.log('🔥 useProjectTasks: Setting up simplified real-time subscription:', subscriptionKey);
 
     const channel = supabase
       .channel(subscriptionKey)
@@ -87,31 +53,11 @@ export const useProjectTasks = (projectId: string) => {
           filter: `project_id=eq.${projectId}`
         },
         (payload) => {
-          console.log('Real-time task update received:', payload);
+          console.log('📨 Real-time task update received:', payload.eventType);
           
-          // Check if this is our own write (ignore local echoes)
-          const recordId = (payload.new as any)?.id || (payload.old as any)?.id;
-          if (recordId && isPendingUpdate(recordId)) {
-            console.log('🚫 Realtime payload ignored (local write) for id:', recordId);
-            return;
-          }
-          
-          // Check for user edit cooldown to prevent stomping optimistic updates
-          const userEditCooldownUntil = (window as any).__userEditCooldownUntil;
-          if (userEditCooldownUntil && Date.now() < userEditCooldownUntil) {
-            console.log('🚫 Realtime payload ignored (user edit cooldown active)');
-            return;
-          }
-          
-          // Check if batch operation is in progress - if so, skip real-time updates
-          const isBatchOperationInProgress = (window as any).__batchOperationInProgress;
-          if (isBatchOperationInProgress) {
-            console.log('🚫 Skipping real-time update - Batch operation in progress');
-            return;
-          }
-          
-          // Skip realtime updates - handled by optimized realtime hook
-          console.log('🚫 Skipping legacy realtime update - using optimized system');
+          // Simple: just invalidate queries on any change
+          // No more echo prevention, TTL, or cooldowns
+          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
         }
       )
       .subscribe((status) => {
@@ -123,7 +69,7 @@ export const useProjectTasks = (projectId: string) => {
     subscriptionRef.current = channel;
 
     return () => {
-      console.log('🔥 useProjectTasks: Cleaning up project tasks subscription for key:', subscriptionKey);
+      console.log('🔥 useProjectTasks: Cleaning up subscription for key:', subscriptionKey);
       
       // Remove from subscription manager
       if (subscriptionManager.has(subscriptionKey)) {
@@ -156,7 +102,7 @@ export const useProjectTasks = (projectId: string) => {
       return (data || []) as ProjectTask[];
     },
     enabled: !!user && !!projectId,
-    staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: true, // Don't refetch on window focus
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
   });
 };

@@ -178,9 +178,7 @@ export const useTaskBulkMutations = (projectId: string) => {
       }
     },
     onSuccess: async (data, variables) => {
-      // Add all updated tasks to pending set to ignore realtime echoes  
-      const { addPendingUpdate } = await import('@/hooks/useProjectTasks');
-      variables.updates.forEach(update => addPendingUpdate(update.id));
+      // Simplified - no more echo prevention needed
       
       if (!variables.options?.suppressInvalidate) {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });

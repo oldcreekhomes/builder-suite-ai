@@ -3,7 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { useTaskMutations } from "@/hooks/useTaskMutations";
 import { useTaskBulkMutations } from "@/hooks/useTaskBulkMutations";
-import { addPendingUpdate } from "@/hooks/useProjectTasks";
+// Removed addPendingUpdate - no longer needed with simplified real-time
 import { calculateParentTaskValues, shouldUpdateParentTask } from "@/utils/taskCalculations";
 import { User } from "@supabase/supabase-js";
 
@@ -123,8 +123,7 @@ export function useTaskHierarchy({
     }
     
     try {
-      // Add affected task ids to pending set to ignore realtime echoes
-      updates.forEach(update => addPendingUpdate(update.id));
+      // Simplified - no more echo prevention needed
       
       // Apply optimistic update to cache first for instant UI feedback
       const currentTasks = queryClient.getQueryData<ProjectTask[]>(['project-tasks', projectId, user.id]) || [];
