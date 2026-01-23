@@ -125,15 +125,15 @@ export function ScheduleToolbar({
         <span>Publish</span>
       </Button>
 
-      {hasCorruptedTasks && onRepairSchedule && (
+      {onRepairSchedule && (
         <Button
           onClick={onRepairSchedule}
           size="sm"
-          variant="destructive"
+          variant="outline"
           disabled={isRepairing}
         >
           <Wrench className="h-4 w-4" />
-          <span>{isRepairing ? 'Repairing...' : 'Repair Schedule'}</span>
+          <span>{isRepairing ? 'Repairing...' : 'Repair'}</span>
         </Button>
       )}
 
