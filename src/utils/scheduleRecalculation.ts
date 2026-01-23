@@ -101,7 +101,8 @@ function isParentTask(task: ProjectTask, allTasks: ProjectTask[]): boolean {
 }
 
 /**
- * Recalculate all task dates in a project based on predecessors
+ * Recalculate all task dates in a project based on predecessors.
+ * Fixes pre-existing violations where tasks start before their predecessors end.
  */
 export async function recalculateAllTaskDates(
   projectId: string,
@@ -128,6 +129,7 @@ export async function recalculateAllTaskDates(
     sortedTasks.slice(0, 10).map(t => t.hierarchy_number).join(', ') + '...');
   
   // First pass: Update leaf tasks (non-parent tasks with predecessors)
+  // FIX VIOLATIONS: Push tasks forward if they start before their predecessors end
   const updates: { id: string; start_date: string; end_date: string; duration: number }[] = [];
   
   for (const task of sortedTasks) {
@@ -139,21 +141,28 @@ export async function recalculateAllTaskDates(
     // Get the current state of this task (may have been updated by a previous iteration)
     const currentTask = updatedTasks.get(task.id)!;
     
+    // Skip tasks without predecessors - nothing to validate
+    if (!currentTask.predecessor) {
+      continue;
+    }
+    
     // Build a snapshot of all tasks with current values for predecessor lookup
     const taskSnapshot = Array.from(updatedTasks.values());
     
-    // Calculate new dates based on predecessors
+    // Calculate what the dates SHOULD be based on predecessors
     const dateUpdate = calculateTaskDatesFromPredecessors(currentTask, taskSnapshot);
     
     if (dateUpdate) {
-      const newStartDate = dateUpdate.startDate + 'T00:00:00';
-      const newEndDate = dateUpdate.endDate + 'T00:00:00';
+      const currentStartYmd = currentTask.start_date.split('T')[0];
+      const requiredStartYmd = dateUpdate.startDate;
       
-      // Check if dates actually changed
-      if (currentTask.start_date.split('T')[0] !== dateUpdate.startDate ||
-          currentTask.end_date.split('T')[0] !== dateUpdate.endDate) {
+      // ONLY FIX VIOLATIONS: If current start is BEFORE required start, push it forward
+      // This preserves intentional gaps where tasks are scheduled later than minimum
+      if (currentStartYmd < requiredStartYmd) {
+        const newStartDate = dateUpdate.startDate + 'T00:00:00';
+        const newEndDate = dateUpdate.endDate + 'T00:00:00';
         
-        console.log(`📅 Task ${currentTask.hierarchy_number}: ${currentTask.start_date.split('T')[0]} → ${dateUpdate.startDate}, ${currentTask.end_date.split('T')[0]} → ${dateUpdate.endDate}`);
+        console.log(`📅 FIXING VIOLATION - Task ${currentTask.hierarchy_number} "${currentTask.task_name}": ${currentStartYmd} → ${requiredStartYmd} (was before predecessor end)`);
         
         // Update our tracking map
         updatedTasks.set(task.id, {

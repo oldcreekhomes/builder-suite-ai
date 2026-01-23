@@ -25,6 +25,7 @@ import { useTaskDelete } from "@/hooks/useTaskDelete";
 import { useTaskAdd } from "@/hooks/useTaskAdd";
 import { useTaskHierarchy } from "@/hooks/useTaskHierarchy";
 import { usePublishSchedule } from "@/hooks/usePublishSchedule";
+import { recalculateAllTaskDates } from "@/utils/scheduleRecalculation";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -607,6 +608,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
       let hierarchyRepairs = 0;
       let deleted = 0;
       let predecessorFixes = 0;
+      let dateViolationsFixes = 0;
 
       // Step 1: Fix __TEMP__ hierarchy issues
       const hasHierarchyCorruption = tasks.some(t => t.hierarchy_number?.startsWith('__TEMP_'));
@@ -630,10 +632,21 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
         predecessorFixes = data.fixed || 0;
       }
       
+      // Step 3: Recalculate all task dates to fix predecessor constraint violations
+      // This is the main fix for tasks like 9.60/9.61 that have 2026 dates but 2027 predecessors
+      console.log('🔄 Starting full schedule date recalculation...');
+      const recalcResult = await recalculateAllTaskDates(projectId, tasks);
+      dateViolationsFixes = recalcResult.updatedCount;
+      
+      if (recalcResult.errors.length > 0) {
+        console.error('Recalculation errors:', recalcResult.errors);
+      }
+      
       const messages = [];
       if (hierarchyRepairs > 0) messages.push(`Repaired ${hierarchyRepairs} hierarchy issues`);
       if (deleted > 0) messages.push(`Deleted ${deleted} orphans`);
       if (predecessorFixes > 0) messages.push(`Fixed ${predecessorFixes} self-referencing predecessors`);
+      if (dateViolationsFixes > 0) messages.push(`Fixed ${dateViolationsFixes} date violations`);
       
       toast({ 
         title: "Schedule Repaired", 
