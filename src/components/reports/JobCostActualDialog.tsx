@@ -66,16 +66,25 @@ export function JobCostActualDialog({
     queryFn: async () => {
       if (!userId) throw new Error("User not authenticated");
 
-      // Get effective owner ID (home_builder_id for employees, user_id for owners)
-      const { data: userData } = await supabase
-        .from('users')
-        .select('role, home_builder_id')
-        .eq('id', userId)
-        .single();
-
-      const effectiveOwnerId = (userData?.role === 'employee' && userData?.home_builder_id)
-        ? userData.home_builder_id
-        : userId;
+      // Get effective owner ID from session metadata first (fastest)
+      // For employees (user_type=employee), use their home_builder_id
+      const meta = session?.user?.user_metadata;
+      let effectiveOwnerId = userId;
+      
+      if (meta?.user_type === 'employee' && meta?.home_builder_id) {
+        effectiveOwnerId = meta.home_builder_id;
+      } else {
+        // Fallback: query users table if metadata incomplete
+        const { data: userData } = await supabase
+          .from('users')
+          .select('home_builder_id')
+          .eq('id', userId)
+          .single();
+        
+        if (userData?.home_builder_id) {
+          effectiveOwnerId = userData.home_builder_id;
+        }
+      }
 
       // First get WIP account ID
       const { data: settings, error: settingsError } = await supabase
