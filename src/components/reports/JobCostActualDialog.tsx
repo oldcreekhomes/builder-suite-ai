@@ -66,11 +66,22 @@ export function JobCostActualDialog({
     queryFn: async () => {
       if (!userId) throw new Error("User not authenticated");
 
+      // Get effective owner ID (home_builder_id for employees, user_id for owners)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', userId)
+        .single();
+
+      const effectiveOwnerId = (userData?.role === 'employee' && userData?.home_builder_id)
+        ? userData.home_builder_id
+        : userId;
+
       // First get WIP account ID
       const { data: settings, error: settingsError } = await supabase
         .from('accounting_settings')
         .select('wip_account_id')
-        .eq('owner_id', userId)
+        .eq('owner_id', effectiveOwnerId)
         .single();
 
       if (settingsError) throw settingsError;
@@ -81,7 +92,7 @@ export function JobCostActualDialog({
         .from('cost_codes')
         .select('id')
         .eq('code', costCode)
-        .eq('owner_id', userId)
+        .eq('owner_id', effectiveOwnerId)
         .single();
 
       if (costCodeError) throw costCodeError;
