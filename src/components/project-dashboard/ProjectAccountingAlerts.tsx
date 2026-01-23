@@ -82,7 +82,7 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
             </div>
             <div
               className="py-1 px-2 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between rounded"
-              onClick={() => navigate(`/project/${projectId}/accounting/bills/approve`)}
+              onClick={() => navigate(`/project/${projectId}/accounting/bills/approve?tab=review`)}
             >
               <div className="flex items-center min-w-0 flex-1 mr-4">
                 <TooltipProvider>
