@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,7 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Archive } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { AlertTriangle } from "lucide-react";
 
 interface ArchiveCompanyDialogProps {
   open: boolean;
@@ -29,39 +31,71 @@ export function ArchiveCompanyDialog({
   onConfirm,
   isPending,
 }: ArchiveCompanyDialogProps) {
+  const [confirmationText, setConfirmationText] = useState("");
+  
+  const isConfirmEnabled = confirmationText === companyName;
+
+  // Reset confirmation text when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setConfirmationText("");
+    }
+  }, [open]);
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <Archive className="h-5 w-5 text-muted-foreground" />
-            Archive Company
-          </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3">
-            <p>
-              Are you sure you want to archive <strong>{companyName}</strong>?
-            </p>
-            <div className="rounded-md bg-muted p-3 text-sm">
-              <p className="font-medium mb-2">This company has:</p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li>{representativesCount} representative(s)</li>
-                <li>{costCodesCount} cost code(s) linked</li>
-              </ul>
+          <AlertDialogTitle className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
             </div>
-            <p className="text-sm">
-              The company and all related data will be archived, not permanently deleted. 
-              You can restore it later if needed.
-            </p>
+            <span>Warning: Archive Company</span>
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4 pt-2">
+              <p className="text-sm">
+                You are about to archive:
+              </p>
+              <p className="text-base font-semibold text-foreground">
+                "{companyName}"
+              </p>
+              
+              <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
+                <p className="font-medium text-amber-800 mb-2">This will affect:</p>
+                <ul className="list-disc list-inside space-y-1 text-amber-700 text-sm">
+                  <li><span className="font-semibold">{representativesCount}</span> representative(s)</li>
+                  <li><span className="font-semibold">{costCodesCount}</span> linked cost code(s)</li>
+                </ul>
+              </div>
+              
+              <p className="text-sm text-muted-foreground">
+                This action will hide the company from all active views. It can be restored later if needed.
+              </p>
+              
+              <div className="pt-2">
+                <p className="text-sm font-medium mb-2">
+                  To confirm, type <span className="font-bold text-foreground">"{companyName}"</span>:
+                </p>
+                <Input
+                  value={confirmationText}
+                  onChange={(e) => setConfirmationText(e.target.value)}
+                  placeholder="Enter company name to confirm"
+                  className="w-full"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        <AlertDialogFooter className="pt-4">
           <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            disabled={isPending}
-            className="bg-orange-600 hover:bg-orange-700"
+            disabled={!isConfirmEnabled || isPending}
+            className="bg-orange-600 hover:bg-orange-700 disabled:bg-muted disabled:text-muted-foreground"
           >
-            {isPending ? "Archiving..." : "Archive Company"}
+            {isPending ? "Archiving..." : "Yes, Archive Company"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
