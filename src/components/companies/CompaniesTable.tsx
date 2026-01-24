@@ -62,7 +62,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const [archivingCompany, setArchivingCompany] = useState<Company | null>(null);
 
   // Fetch companies with counts and cost codes
-  const { data: companies = [], isLoading } = useQuery({
+  const { data: companies = [], isLoading, isFetching } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
       console.log('Fetching companies...');
@@ -106,6 +106,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       return companiesWithData as Company[];
     },
     staleTime: 0,
+    gcTime: 0,
     refetchOnWindowFocus: true,
   });
 
@@ -159,7 +160,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isFetching) {
     return <div className="p-4 text-xs">Loading companies...</div>;
   }
 
