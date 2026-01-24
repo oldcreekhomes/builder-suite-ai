@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+
 export interface JournalEntryAttachment {
   id?: string;
   file_name: string;
@@ -20,19 +21,24 @@ interface JournalEntryAttachmentUploadProps {
   onAttachmentsChange: (attachments: JournalEntryAttachment[]) => void;
   journalEntryId?: string;
   disabled?: boolean;
+  // New props for hook-based upload
+  onFilesSelected?: (files: File[]) => Promise<void>;
+  onFileDelete?: (attachmentId: string) => Promise<void>;
 }
 
 export function JournalEntryAttachmentUpload({ 
   attachments, 
   onAttachmentsChange, 
   journalEntryId,
-  disabled = false 
+  disabled = false,
+  onFilesSelected,
+  onFileDelete,
 }: JournalEntryAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const { openJournalEntryAttachment } = useUniversalFilePreviewContext();
 
   const handleFilePreview = (attachment: JournalEntryAttachment) => {
-    if (!attachment.file_path || attachment.file_path.startsWith('temp_')) return;
+    if (!attachment.file_path || attachment.file_path.startsWith('temp_') || attachment.file_path.includes('/draft-')) return;
     openJournalEntryAttachment(attachment.file_path, attachment.file_name);
   };
 
@@ -42,6 +48,19 @@ export function JournalEntryAttachmentUpload({
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
+    // If using the hook-based upload (new pattern)
+    if (onFilesSelected) {
+      setIsUploading(true);
+      try {
+        await onFilesSelected(files);
+      } finally {
+        setIsUploading(false);
+        event.target.value = '';
+      }
+      return;
+    }
+
+    // Legacy upload logic (for backwards compatibility)
     setIsUploading(true);
     const newAttachments: JournalEntryAttachment[] = [];
 
@@ -146,13 +165,20 @@ export function JournalEntryAttachmentUpload({
     setIsUploading(false);
     // Reset the input
     event.target.value = '';
-  }, [attachments, onAttachmentsChange, journalEntryId, disabled]);
+  }, [attachments, onAttachmentsChange, journalEntryId, disabled, onFilesSelected]);
 
   const handleRemoveAttachment = async (index: number) => {
     if (disabled) return;
 
     const attachment = attachments[index];
     
+    // If using the hook-based delete (new pattern)
+    if (onFileDelete && attachment.id) {
+      await onFileDelete(attachment.id);
+      return;
+    }
+
+    // Legacy delete logic (for backwards compatibility)
     // If attachment has an ID, it's saved in the database
     if (attachment.id && journalEntryId) {
       try {
