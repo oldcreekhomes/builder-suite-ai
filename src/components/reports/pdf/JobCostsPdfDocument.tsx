@@ -144,6 +144,7 @@ interface JobCostRow {
 
 interface JobCostsPdfDocumentProps {
   projectAddress?: string;
+  lotName?: string;
   asOfDate: string;
   groupedCostCodes: Record<string, JobCostRow[]>;
   totalBudget: number;
@@ -153,6 +154,7 @@ interface JobCostsPdfDocumentProps {
 
 export const JobCostsPdfDocument: React.FC<JobCostsPdfDocumentProps> = ({
   projectAddress,
+  lotName,
   asOfDate,
   groupedCostCodes,
   totalBudget,
@@ -184,6 +186,7 @@ export const JobCostsPdfDocument: React.FC<JobCostsPdfDocumentProps> = ({
         <View style={styles.header}>
           <Text style={styles.title}>Job Costs Report</Text>
           {projectAddress && <Text style={styles.subtitle}>{projectAddress}</Text>}
+          {lotName && <Text style={styles.subtitle}>{lotName}</Text>}
           <Text style={styles.asOfDate}>As of {formatAsOfDate(asOfDate)}</Text>
         </View>
 
