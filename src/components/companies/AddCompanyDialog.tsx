@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,10 +34,9 @@ import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection";
 import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
-import { InlineRepresentativeForm, PendingRepresentative, InlineRepresentativeData } from "@/components/companies/InlineRepresentativeForm";
-import { PendingRepresentativesList } from "@/components/companies/PendingRepresentativesList";
+import { InlineRepresentativeForm, InlineRepresentativeFormRef } from "@/components/companies/InlineRepresentativeForm";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
 // Helper function to parse address components from Google Places
@@ -76,12 +75,12 @@ const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressCo
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
-  address_line_1: z.string().optional(),
+  address_line_1: z.string().min(1, "Street address is required"),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   zip_code: z.string().optional(),
-  phone_number: z.string().min(1, "Phone number is required"),
+  phone_number: z.string().optional(),
   website: z.string().optional(),
 });
 
@@ -118,9 +117,8 @@ export function AddCompanyDialog({
   const [pendingInsuranceFilePath, setPendingInsuranceFilePath] = useState<string | null>(null);
   
   // Representative state
-  const [pendingRepresentatives, setPendingRepresentatives] = useState<PendingRepresentative[]>([]);
-  const [showRepForm, setShowRepForm] = useState(true); // Show form by default since at least 1 is required
   const [representativeError, setRepresentativeError] = useState<string>("");
+  const representativeFormRef = useRef<InlineRepresentativeFormRef>(null);
 
   // Get current user's home builder ID for insurance upload
   const { data: currentUser } = useQuery({
@@ -319,27 +317,8 @@ export function AddCompanyDialog({
         }
       }
 
-      // Insert pending representatives
-      if (pendingRepresentatives.length > 0) {
-        const repsToInsert = pendingRepresentatives.map(rep => ({
-          first_name: rep.first_name,
-          last_name: rep.last_name || null,
-          email: rep.email,
-          phone_number: rep.phone_number || null,
-          title: rep.title,
-          receive_bid_notifications: rep.receive_bid_notifications,
-          receive_schedule_notifications: rep.receive_schedule_notifications,
-          receive_po_notifications: rep.receive_po_notifications,
-          company_id: company.id,
-          home_builder_id: homeBuilderIdToUse,
-        }));
-
-        const { error: repError } = await supabase
-          .from('company_representatives')
-          .insert(repsToInsert);
-
-        if (repError) throw repError;
-      }
+      // Insert representative from form (passed as parameter)
+      return company;
 
       // Create pending upload record with the new company_id (for audit trail)
       if (pendingInsuranceFilePath && extractedInsuranceData) {
@@ -365,7 +344,7 @@ export function AddCompanyDialog({
       queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
       toast({
         title: "Success",
-        description: `Company created with ${pendingRepresentatives.length} representative(s)`,
+        description: "Company created successfully",
       });
       
       // Call the callback if provided (for bill linking)
@@ -378,8 +357,7 @@ export function AddCompanyDialog({
       setSelectedCostCodes([]);
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
-      setPendingRepresentatives([]);
-      setShowRepForm(true);
+      representativeFormRef.current?.reset();
       setRepresentativeError("");
       onOpenChange(false);
       
@@ -398,7 +376,8 @@ export function AddCompanyDialog({
     },
   });
 
-  const onSubmit = (data: CompanyFormData) => {
+  const onSubmit = async (data: CompanyFormData) => {
+    // Validate cost codes
     if (selectedCostCodes.length === 0) {
       setCostCodeError("Associated cost codes are required");
       toast({
@@ -409,20 +388,81 @@ export function AddCompanyDialog({
       return;
     }
     
-    // Validate at least one representative
-    if (pendingRepresentatives.length === 0) {
-      setRepresentativeError("At least one representative is required");
+    // Validate representative form
+    if (representativeFormRef.current) {
+      const isValid = await representativeFormRef.current.validate();
+      if (!isValid) {
+        setRepresentativeError("Please fill in all required representative fields");
+        toast({
+          title: "Representative Required",
+          description: "Please fill in First Name, Email, and Title for the representative.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Get representative data
+      const repData = representativeFormRef.current.getValues();
+      
+      // Get user info for creating representative
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
+      
+      // Create company first, then add representative
+      setCostCodeError("");
+      setRepresentativeError("");
+      
+      createCompanyMutation.mutate(data, {
+        onSuccess: async (company) => {
+          // Insert the representative after company is created
+          const { error: repError } = await supabase
+            .from('company_representatives')
+            .insert({
+              first_name: repData.first_name,
+              last_name: repData.last_name || null,
+              email: repData.email,
+              phone_number: repData.phone_number || null,
+              title: repData.title,
+              receive_bid_notifications: repData.receive_bid_notifications,
+              receive_schedule_notifications: repData.receive_schedule_notifications,
+              receive_po_notifications: repData.receive_po_notifications,
+              company_id: company.id,
+              home_builder_id: homeBuilderIdToUse,
+            });
+
+          if (repError) {
+            console.error('Error creating representative:', repError);
+            toast({
+              title: "Warning",
+              description: "Company created but representative could not be added",
+              variant: "destructive",
+            });
+          }
+        }
+      });
+    } else {
+      setRepresentativeError("Please fill in the representative information");
       toast({
         title: "Representative Required",
-        description: "Please add at least one representative before creating the company.",
+        description: "Please fill in the representative information.",
         variant: "destructive",
       });
-      return;
     }
-    
-    setCostCodeError("");
-    setRepresentativeError("");
-    createCompanyMutation.mutate(data);
   };
 
   // Reset state when dialog closes
@@ -434,8 +474,7 @@ export function AddCompanyDialog({
       setCostCodeError("");
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
-      setPendingRepresentatives([]);
-      setShowRepForm(true);
+      representativeFormRef.current?.reset();
       setRepresentativeError("");
     }
     onOpenChange(newOpen);
@@ -599,51 +638,15 @@ export function AddCompanyDialog({
                 
                 <TabsContent value="representatives" className="space-y-6 mt-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        At least one representative is required to create a company.
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Fill in the representative information below. Required fields: First Name, Email, and Title.
+                    </p>
 
                     {representativeError && (
                       <p className="text-sm font-medium text-destructive">{representativeError}</p>
                     )}
 
-                    <PendingRepresentativesList
-                      representatives={pendingRepresentatives}
-                      onRemove={(id) => {
-                        setPendingRepresentatives(prev => prev.filter(r => r.id !== id));
-                      }}
-                    />
-
-                    {showRepForm ? (
-                      <InlineRepresentativeForm
-                        onAdd={(data) => {
-                          const newRep: PendingRepresentative = {
-                            ...data,
-                            id: crypto.randomUUID(),
-                          };
-                          setPendingRepresentatives(prev => [...prev, newRep]);
-                          setRepresentativeError("");
-                          setShowRepForm(false);
-                        }}
-                        onCancel={() => {
-                          if (pendingRepresentatives.length > 0) {
-                            setShowRepForm(false);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setShowRepForm(true)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Another Representative
-                      </Button>
-                    )}
+                    <InlineRepresentativeForm ref={representativeFormRef} />
                   </div>
                 </TabsContent>
                 
