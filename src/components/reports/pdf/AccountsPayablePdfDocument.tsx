@@ -87,15 +87,15 @@ const styles = StyleSheet.create({
     fontSize: 9,
   },
   colName: {
-    width: '32%',
+    width: '36%',
     fontSize: 9,
   },
   colDueDate: {
-    width: '12%',
+    width: '10%',
     fontSize: 9,
   },
   colAging: {
-    width: '8%',
+    width: '6%',
     textAlign: 'right',
     fontSize: 9,
   },
