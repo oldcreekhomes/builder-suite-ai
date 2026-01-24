@@ -78,6 +78,22 @@ export function JobCostsContent({ projectId }: JobCostsContentProps) {
     enabled: !!projectId,
   });
 
+  // Fetch lot data for PDF export
+  const { data: lotData } = useQuery({
+    queryKey: ['lot-data', selectedLotId],
+    queryFn: async () => {
+      if (!selectedLotId) return null;
+      const { data, error } = await supabase
+        .from('project_lots')
+        .select('lot_name, lot_number')
+        .eq('id', selectedLotId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedLotId,
+  });
+
   const { isLocked, canLockBudgets, lockBudget, unlockBudget, isLocking, isUnlocking } = useBudgetLockStatus(projectId || '');
 
   const handleLockToggle = () => {
@@ -427,9 +443,15 @@ return parentRows;
         }));
       });
 
+      // Prepare lot name for PDF
+      const lotName = lotData 
+        ? (lotData.lot_name || `Lot ${lotData.lot_number}`) 
+        : undefined;
+
       const blob = await pdf(
         <JobCostsPdfDocument
           projectAddress={projectData?.address}
+          lotName={lotName}
           asOfDate={asOfDate.toISOString().split('T')[0]}
           groupedCostCodes={groupedForPdf}
           totalBudget={totalBudget}
