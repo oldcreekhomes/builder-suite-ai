@@ -1195,6 +1195,8 @@ export type Database = {
           address: string | null
           address_line_1: string | null
           address_line_2: string | null
+          archived_at: string | null
+          archived_by: string | null
           city: string | null
           company_name: string
           company_type: string
@@ -1213,6 +1215,8 @@ export type Database = {
           address?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           city?: string | null
           company_name: string
           company_type: string
@@ -1231,6 +1235,8 @@ export type Database = {
           address?: string | null
           address_line_1?: string | null
           address_line_2?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           city?: string | null
           company_name?: string
           company_type?: string
