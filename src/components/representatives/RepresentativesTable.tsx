@@ -46,7 +46,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
   const [editingRepresentative, setEditingRepresentative] = useState<Representative | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // Fetch representatives
+  // Fetch representatives - filter out those from archived companies
   const { data: representatives = [], isLoading } = useQuery({
     queryKey: ['representatives'],
     queryFn: async () => {
@@ -66,20 +66,28 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
           created_at,
           updated_at,
           companies!company_representatives_company_id_fkey (
-            company_name
+            company_name,
+            archived_at
           )
         `)
         .order('first_name');
       
       if (error) throw error;
       
-      // Handle the data safely, in case the join fails
-      return (data || []).map(item => ({
-        ...item,
-        companies: (item.companies && typeof item.companies === 'object' && 'company_name' in item.companies) 
-          ? { company_name: item.companies.company_name } 
-          : null
-      })) as Representative[];
+      // Filter out representatives from archived companies and handle data safely
+      return (data || [])
+        .filter(item => {
+          // Only include if the company exists and is not archived
+          if (!item.companies || typeof item.companies !== 'object') return false;
+          const company = item.companies as { company_name: string; archived_at: string | null };
+          return company.archived_at === null;
+        })
+        .map(item => ({
+          ...item,
+          companies: (item.companies && typeof item.companies === 'object' && 'company_name' in item.companies) 
+            ? { company_name: (item.companies as { company_name: string }).company_name } 
+            : null
+        })) as Representative[];
     },
   });
 

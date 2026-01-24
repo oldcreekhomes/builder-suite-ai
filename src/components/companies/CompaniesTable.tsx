@@ -62,7 +62,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const [archivingCompany, setArchivingCompany] = useState<Company | null>(null);
 
   // Fetch companies with counts and cost codes - optimized batch fetching
-  const { data: companies = [], isLoading } = useQuery({
+  const { data: companies = [], isLoading, isFetching } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
       console.log('Fetching companies...');
@@ -130,18 +130,22 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const archiveCompanyMutation = useMutation({
     mutationFn: async (companyId: string) => {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
       const { error } = await supabase
         .from('companies')
         .update({ 
           archived_at: new Date().toISOString(),
-          archived_by: user?.id 
+          archived_by: user.id
         })
         .eq('id', companyId);
       
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    onSuccess: async () => {
+      // Force immediate refetch instead of just invalidating
+      await queryClient.refetchQueries({ queryKey: ['companies'] });
+      await queryClient.refetchQueries({ queryKey: ['representatives'] });
       setArchivingCompany(null);
       toast({
         title: "Success",
@@ -193,7 +197,12 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
   return (
     <>      
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden relative">
+        {isFetching && !isLoading && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-primary/20 z-10">
+            <div className="h-full w-1/3 bg-primary animate-pulse" />
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow className="h-8">
