@@ -24,6 +24,7 @@ import { JournalEntrySearchDialog } from "@/components/journal/JournalEntrySearc
 import { supabase } from "@/integrations/supabase/client";
 import { useLots } from "@/hooks/useLots";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useJournalEntryAttachments } from "@/hooks/useJournalEntryAttachments";
 
 interface JournalLine {
   id: string;
@@ -63,8 +64,18 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   const [currentJournalEntryId, setCurrentJournalEntryId] = useState<string | null>(null);
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   
-  // Attachments - local state management like Bills
-  const [attachments, setAttachments] = useState<JournalEntryAttachment[]>([]);
+  // Draft ID for new entries - persists until entry is saved or form is reset
+  const [draftId, setDraftId] = useState<string>(() => crypto.randomUUID());
+  
+  // Use the centralized attachment hook for reliable upload handling
+  const {
+    attachments,
+    isLoading: attachmentsLoading,
+    isUploading,
+    uploadFiles,
+    deleteFile,
+    finalizePendingAttachments,
+  } = useJournalEntryAttachments(currentJournalEntryId, draftId);
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
@@ -307,32 +318,15 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     ));
   };
 
-  // Load attachments for a journal entry
-  const loadAttachments = async (entryId: string) => {
-    const { data, error } = await supabase
-      .from('journal_entry_attachments')
-      .select('*')
-      .eq('journal_entry_id', entryId);
-    
-    if (!error && data) {
-      setAttachments(data.map(att => ({
-        id: att.id,
-        file_name: att.file_name,
-        file_path: att.file_path,
-        file_size: att.file_size,
-        content_type: att.content_type || ''
-      })));
-    } else {
-      setAttachments([]);
-    }
-  };
+  // Attachments are now loaded automatically by the useJournalEntryAttachments hook
+  // when currentJournalEntryId changes
 
   // Load a journal entry into the form
   const loadJournalEntry = (entry: any) => {
     setCurrentJournalEntryId(entry.id);
     setEntryDate(toDateLocal(entry.entry_date));
     setDescription(entry.description || "");
-    loadAttachments(entry.id);
+    // Attachments are now loaded automatically by the useJournalEntryAttachments hook
     
     const expLines: JournalLine[] = [];
     const jobLines: JournalLine[] = [];
@@ -400,7 +394,8 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     setIsViewingMode(false);
     setEntryDate(new Date());
     setDescription("");
-    setAttachments([]);
+    // Generate new draft ID for fresh attachment uploads
+    setDraftId(crypto.randomUUID());
     setExpenseLines([{ id: crypto.randomUUID(), line_type: 'expense', account_id: "", account_display: "", debit: "", credit: "", memo: "" }]);
     setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
   };
@@ -493,54 +488,9 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         project_id: projectId,
       });
 
-      // Upload temp attachments if any
+      // Finalize pending attachments (link draft uploads to the new entry)
       if (newEntry?.id) {
-        const tempAttachments = attachments.filter(att => !att.id && att.file);
-        for (const tempAtt of tempAttachments) {
-          if (tempAtt.file) {
-            const timestamp = Date.now();
-            const sanitizedName = tempAtt.file.name
-              .replace(/\s+/g, '_')
-              .replace(/[^\w.-]/g, '_')
-              .replace(/_+/g, '_');
-            const fileName = `${timestamp}_${sanitizedName}`;
-            const filePath = `journal-entry-attachments/${newEntry.id}/${fileName}`;
-
-            // Upload file and check for errors before creating DB record
-            const { error: uploadError } = await supabase.storage
-              .from('project-files')
-              .upload(filePath, tempAtt.file);
-
-            if (uploadError) {
-              console.error('Journal entry attachment upload failed:', {
-                filePath,
-                fileName: tempAtt.file.name,
-                error: uploadError
-              });
-              // Don't create orphan DB record - skip this attachment
-              continue;
-            }
-
-            // Only insert DB record after confirmed successful upload
-            const { error: dbError } = await supabase.from('journal_entry_attachments').insert({
-              journal_entry_id: newEntry.id,
-              file_name: tempAtt.file.name,
-              file_path: filePath,
-              file_size: tempAtt.file.size,
-              content_type: tempAtt.content_type,
-              uploaded_by: (await supabase.auth.getUser()).data.user?.id
-            });
-
-            if (dbError) {
-              console.error('Journal entry attachment DB insert failed:', {
-                filePath,
-                error: dbError
-              });
-              // Clean up uploaded file since DB insert failed
-              await supabase.storage.from('project-files').remove([filePath]);
-            }
-          }
-        }
+        await finalizePendingAttachments(newEntry.id);
       }
       // After save, clear form and prepare for next entry
       createNewEntry();
@@ -693,8 +643,21 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
           <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
             <Label>Attachments</Label>
             <JournalEntryAttachmentUpload
-              attachments={attachments}
-              onAttachmentsChange={setAttachments}
+              attachments={attachments.map(a => ({
+                id: a.id,
+                file_name: a.file_name,
+                file_path: a.file_path,
+                file_size: a.file_size,
+                content_type: a.content_type || '',
+              }))}
+              onAttachmentsChange={(newAttachments) => {
+                // Handle file uploads through the hook
+                // This is called when files are selected in the component
+              }}
+              journalEntryId={currentJournalEntryId || undefined}
+              disabled={isTransactionLocked || isUploading}
+              onFilesSelected={uploadFiles}
+              onFileDelete={deleteFile}
             />
           </div>
         </div>
