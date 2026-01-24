@@ -400,8 +400,8 @@ export function StructuredAddressInput({
   return (
     <div className="space-y-4">
       {/* Street Address and Suite on same row */}
-      <div className="grid grid-cols-[1fr_120px] gap-4">
-        <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2 col-span-2">
           <Label htmlFor="address_line_1">Street Address</Label>
           <Input
             id="address_line_1"
@@ -415,7 +415,7 @@ export function StructuredAddressInput({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="address_line_2" className="text-xs">Suite/Apt</Label>
+          <Label htmlFor="address_line_2">Suite/Apt</Label>
           <Input
             id="address_line_2"
             value={localAddressLine2}
@@ -484,7 +484,7 @@ export function StructuredAddressInput({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="zip_code">ZIP Code</Label>
+          <Label htmlFor="zip_code">Zip Code</Label>
           <Input
             id="zip_code"
             value={localZipCode}
