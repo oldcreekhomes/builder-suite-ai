@@ -43,7 +43,14 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
   };
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('PDF load error:', error);
+    const errorMessage = error?.message || String(error);
+    console.error('PDF load error:', errorMessage);
+    
+    // Check for version mismatch specifically
+    if (errorMessage.includes('does not match the Worker version')) {
+      console.error('PDF.js version mismatch detected. Try hard-refreshing (Ctrl+Shift+R).');
+    }
+    
     setHasError(true);
     setIsLoading(false);
   };
