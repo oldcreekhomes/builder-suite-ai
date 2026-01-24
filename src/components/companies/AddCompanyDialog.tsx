@@ -34,8 +34,10 @@ import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection";
 import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
+import { InlineRepresentativeForm, PendingRepresentative, InlineRepresentativeData } from "@/components/companies/InlineRepresentativeForm";
+import { PendingRepresentativesList } from "@/components/companies/PendingRepresentativesList";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search, Users } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
 // Helper function to parse address components from Google Places
@@ -114,6 +116,11 @@ export function AddCompanyDialog({
   const [costCodeError, setCostCodeError] = useState<string>("");
   const [extractedInsuranceData, setExtractedInsuranceData] = useState<ExtractedInsuranceData | null>(null);
   const [pendingInsuranceFilePath, setPendingInsuranceFilePath] = useState<string | null>(null);
+  
+  // Representative state
+  const [pendingRepresentatives, setPendingRepresentatives] = useState<PendingRepresentative[]>([]);
+  const [showRepForm, setShowRepForm] = useState(true); // Show form by default since at least 1 is required
+  const [representativeError, setRepresentativeError] = useState<string>("");
 
   // Get current user's home builder ID for insurance upload
   const { data: currentUser } = useQuery({
@@ -312,6 +319,28 @@ export function AddCompanyDialog({
         }
       }
 
+      // Insert pending representatives
+      if (pendingRepresentatives.length > 0) {
+        const repsToInsert = pendingRepresentatives.map(rep => ({
+          first_name: rep.first_name,
+          last_name: rep.last_name || null,
+          email: rep.email,
+          phone_number: rep.phone_number || null,
+          title: rep.title,
+          receive_bid_notifications: rep.receive_bid_notifications,
+          receive_schedule_notifications: rep.receive_schedule_notifications,
+          receive_po_notifications: rep.receive_po_notifications,
+          company_id: company.id,
+          home_builder_id: homeBuilderIdToUse,
+        }));
+
+        const { error: repError } = await supabase
+          .from('company_representatives')
+          .insert(repsToInsert);
+
+        if (repError) throw repError;
+      }
+
       // Create pending upload record with the new company_id (for audit trail)
       if (pendingInsuranceFilePath && extractedInsuranceData) {
         const { data: { user: currentAuthUser } } = await supabase.auth.getUser();
@@ -332,9 +361,11 @@ export function AddCompanyDialog({
     },
     onSuccess: (company) => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['representatives'] });
+      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
       toast({
         title: "Success",
-        description: "Company created successfully",
+        description: `Company created with ${pendingRepresentatives.length} representative(s)`,
       });
       
       // Call the callback if provided (for bill linking)
@@ -347,6 +378,9 @@ export function AddCompanyDialog({
       setSelectedCostCodes([]);
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
+      setPendingRepresentatives([]);
+      setShowRepForm(true);
+      setRepresentativeError("");
       onOpenChange(false);
       
       // Only refresh if not in callback mode (to preserve bill data)
@@ -374,7 +408,20 @@ export function AddCompanyDialog({
       });
       return;
     }
+    
+    // Validate at least one representative
+    if (pendingRepresentatives.length === 0) {
+      setRepresentativeError("At least one representative is required");
+      toast({
+        title: "Representative Required",
+        description: "Please add at least one representative before creating the company.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCostCodeError("");
+    setRepresentativeError("");
     createCompanyMutation.mutate(data);
   };
 
@@ -387,6 +434,9 @@ export function AddCompanyDialog({
       setCostCodeError("");
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
+      setPendingRepresentatives([]);
+      setShowRepForm(true);
+      setRepresentativeError("");
     }
     onOpenChange(newOpen);
   }, [onOpenChange, form]);
@@ -398,13 +448,21 @@ export function AddCompanyDialog({
           <DialogTitle>Add New Company</DialogTitle>
         </DialogHeader>
         
+        <p className="text-sm text-muted-foreground">
+          <span className="text-destructive">*</span> Company Information and Representatives are required
+        </p>
+        
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
               <Tabs defaultValue="company-info" className="w-full">
                 <TabsList className="w-full grid grid-cols-3">
-                  <TabsTrigger value="company-info">Company Information</TabsTrigger>
-                  <TabsTrigger value="representatives">Representatives</TabsTrigger>
+                  <TabsTrigger value="company-info">
+                    Company Information <span className="text-destructive ml-1">*</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="representatives">
+                    Representatives <span className="text-destructive ml-1">*</span>
+                  </TabsTrigger>
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
                 </TabsList>
                 
@@ -540,13 +598,52 @@ export function AddCompanyDialog({
                 </TabsContent>
                 
                 <TabsContent value="representatives" className="space-y-6 mt-6">
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Add Representatives After Creating Company</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      You can add company representatives after the company has been created. 
-                      Click on the representatives icon in the companies table to manage them.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        At least one representative is required to create a company.
+                      </p>
+                    </div>
+
+                    {representativeError && (
+                      <p className="text-sm font-medium text-destructive">{representativeError}</p>
+                    )}
+
+                    <PendingRepresentativesList
+                      representatives={pendingRepresentatives}
+                      onRemove={(id) => {
+                        setPendingRepresentatives(prev => prev.filter(r => r.id !== id));
+                      }}
+                    />
+
+                    {showRepForm ? (
+                      <InlineRepresentativeForm
+                        onAdd={(data) => {
+                          const newRep: PendingRepresentative = {
+                            ...data,
+                            id: crypto.randomUUID(),
+                          };
+                          setPendingRepresentatives(prev => [...prev, newRep]);
+                          setRepresentativeError("");
+                          setShowRepForm(false);
+                        }}
+                        onCancel={() => {
+                          if (pendingRepresentatives.length > 0) {
+                            setShowRepForm(false);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setShowRepForm(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Another Representative
+                      </Button>
+                    )}
                   </div>
                 </TabsContent>
                 
