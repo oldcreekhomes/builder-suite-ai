@@ -794,11 +794,13 @@ export function UnifiedScheduleTable({
 
       {/* CUSTOM DRAGGABLE DIVIDER - pixel-based control */}
       <div 
-        className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
-          isDraggingDivider ? 'bg-blue-500' : 'bg-gray-300 hover:bg-blue-400'
+        className={`w-3 cursor-col-resize transition-colors flex-shrink-0 flex items-center justify-center ${
+          isDraggingDivider ? 'bg-blue-500' : 'bg-gray-200 hover:bg-blue-400'
         }`}
         onMouseDown={handleDividerMouseDown}
-      />
+      >
+        <GripVertical className="h-5 w-5 text-gray-400" />
+      </div>
 
       {/* RIGHT PANEL - Timeline (always flush against divider, no gap) */}
       <div 

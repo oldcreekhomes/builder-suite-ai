@@ -98,7 +98,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
               className={cn("cursor-text hover:bg-muted rounded px-1 py-0.5 text-[length:var(--schedule-font-size)] flex items-center gap-1 whitespace-nowrap", className)}
               onClick={handleStartEdit}
             >
-              <span className="truncate max-w-[100px]">{selectedResources[0]}</span>
+              <span className="truncate max-w-[140px]">{selectedResources[0]}</span>
               {additionalCount > 0 && (
                 <span className="bg-muted text-muted-foreground px-1 rounded text-[10px] flex-shrink-0 font-medium">
                   +{additionalCount}
