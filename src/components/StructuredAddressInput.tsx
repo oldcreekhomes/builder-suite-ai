@@ -399,29 +399,32 @@ export function StructuredAddressInput({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="address_line_1">Street Address</Label>
-        <Input
-          id="address_line_1"
-          ref={streetInputRef}
-          defaultValue={value.address_line_1}
-          onChange={handleStreetChange}
-          placeholder="Start typing address..."
-          disabled={disabled}
-          className="bg-background"
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="address_line_2">Suite / Unit / Apt (optional)</Label>
-        <Input
-          id="address_line_2"
-          value={localAddressLine2}
-          onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
-          placeholder="Suite 100"
-          disabled={disabled}
-          className="bg-background"
-        />
+      {/* Street Address and Suite on same row */}
+      <div className="grid grid-cols-[1fr_120px] gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="address_line_1">Street Address</Label>
+          <Input
+            id="address_line_1"
+            ref={streetInputRef}
+            defaultValue={value.address_line_1}
+            onChange={handleStreetChange}
+            placeholder="Start typing address..."
+            disabled={disabled}
+            className="bg-background"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="address_line_2" className="text-xs">Suite/Apt</Label>
+          <Input
+            id="address_line_2"
+            value={localAddressLine2}
+            onChange={(e) => handleFieldChange('address_line_2', e.target.value)}
+            placeholder="Suite 100"
+            disabled={disabled}
+            className="bg-background"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
