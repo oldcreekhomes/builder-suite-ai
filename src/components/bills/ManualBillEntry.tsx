@@ -224,7 +224,7 @@ export function ManualBillEntry() {
     return "";
   };
 
-  const handleSave = async (saveAndNew: boolean) => {
+  const handleSave = async (mode: 'close' | 'new' | 'stay') => {
     if (isSubmitting) {
       console.log('Already submitting, ignoring duplicate request');
       return;
@@ -465,11 +465,12 @@ export function ManualBillEntry() {
         description: "Bill has been saved as draft",
       });
       
-      if (saveAndNew) {
+      if (mode === 'new') {
         handleClear();
-      } else {
+      } else if (mode === 'close') {
         navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
       }
+      // 'stay' mode: just show success toast, don't navigate or clear
     } catch (error) {
       console.error('Error saving bill:', error);
       toast({
@@ -871,24 +872,46 @@ export function ManualBillEntry() {
           </Tabs>
         </div>
 
-        <div className="flex gap-2 pt-4">
-          <Button 
-            type="button" 
-            className="flex-1"
-            onClick={() => handleSave(false)}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Saving..." : "Save & Close"}
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="flex-1"
-            onClick={() => handleSave(true)}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Saving..." : "Save & New"}
-          </Button>
+        <div className="p-3 bg-muted border rounded-lg">
+          <div className="flex justify-between items-center">
+            <div className="text-base font-semibold">
+              Total: ${[...jobCostRows, ...expenseRows].reduce((sum, row) => {
+                const amount = parseFloat(row.amount) || 0;
+                const qty = parseFloat(row.quantity) || 1;
+                return sum + (amount * qty);
+              }, 0).toFixed(2)}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                Clear
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10"
+                onClick={() => handleSave('new')}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save & New"}
+              </Button>
+              <Button
+                size="sm"
+                className="h-10"
+                onClick={() => handleSave('close')}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save & Close"}
+              </Button>
+              <Button
+                size="sm"
+                className="h-10"
+                onClick={() => handleSave('stay')}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Entry"}
+              </Button>
+            </div>
+          </div>
         </div>
       </CardContent>
 
