@@ -9,13 +9,14 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Users, Hash } from "lucide-react";
+import { Edit, Archive, Users, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { ViewCompanyDialog } from "./ViewCompanyDialog";
 import { CompanyRepresentativesModal } from "./CompanyRepresentativesModal";
 import { CompanyCostCodesModal } from "./CompanyCostCodesModal";
+import { ArchiveCompanyDialog } from "./ArchiveCompanyDialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
@@ -44,6 +45,7 @@ interface Company {
   cost_codes_count?: number;
   cost_codes?: CostCode[];
   insurance_required?: boolean;
+  archived_at?: string | null;
 }
 
 interface CompaniesTableProps {
@@ -57,6 +59,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const [viewingCompany, setViewingCompany] = useState<Company | null>(null);
   const [showingReps, setShowingReps] = useState<Company | null>(null);
   const [showingCostCodes, setShowingCostCodes] = useState<Company | null>(null);
+  const [archivingCompany, setArchivingCompany] = useState<Company | null>(null);
 
   // Fetch companies with counts and cost codes
   const { data: companies = [], isLoading } = useQuery({
@@ -66,6 +69,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
+        .is('archived_at', null)
         .order('company_name');
       
       console.log('Companies fetch result:', { companiesData, error: companiesError });
@@ -105,27 +109,32 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     refetchOnWindowFocus: true,
   });
 
-  // Delete company mutation
-  const deleteCompanyMutation = useMutation({
+  // Archive company mutation
+  const archiveCompanyMutation = useMutation({
     mutationFn: async (companyId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('companies')
-        .delete()
+        .update({ 
+          archived_at: new Date().toISOString(),
+          archived_by: user?.id 
+        })
         .eq('id', companyId);
       
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      setArchivingCompany(null);
       toast({
         title: "Success",
-        description: "Company deleted successfully",
+        description: "Company archived successfully",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to delete company",
+        description: "Failed to archive company",
         variant: "destructive",
       });
     },
@@ -274,15 +283,15 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteCompanyMutation.mutate(company.id)}
-                          disabled={deleteCompanyMutation.isPending}
-                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          onClick={() => setArchivingCompany(company)}
+                          disabled={archiveCompanyMutation.isPending}
+                          className="h-6 w-6 p-0 text-orange-600 hover:text-orange-700"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Archive className="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Delete company</p>
+                        <p>Archive company</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -331,6 +340,16 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         company={showingCostCodes}
         open={!!showingCostCodes}
         onOpenChange={(open) => !open && setShowingCostCodes(null)}
+      />
+
+      <ArchiveCompanyDialog
+        open={!!archivingCompany}
+        onOpenChange={(open) => !open && setArchivingCompany(null)}
+        companyName={archivingCompany?.company_name || ""}
+        representativesCount={archivingCompany?.representatives_count || 0}
+        costCodesCount={archivingCompany?.cost_codes_count || 0}
+        onConfirm={() => archivingCompany && archiveCompanyMutation.mutate(archivingCompany.id)}
+        isPending={archiveCompanyMutation.isPending}
       />
     </>
   );
