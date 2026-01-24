@@ -402,7 +402,7 @@ export function StructuredAddressInput({
       {/* Street Address and Suite on same row */}
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-2 col-span-2">
-          <Label htmlFor="address_line_1">Street Address</Label>
+          <Label htmlFor="address_line_1">Street Address <span className="text-destructive">*</span></Label>
           <Input
             id="address_line_1"
             ref={streetInputRef}
