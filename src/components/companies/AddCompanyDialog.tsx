@@ -363,10 +363,12 @@ export function AddCompanyDialog({
 
       return company;
     },
-    onSuccess: (company) => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-      queryClient.invalidateQueries({ queryKey: ['representatives'] });
-      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
+    onSuccess: async (company) => {
+      // Force immediate refetch to ensure all data displays correctly
+      await queryClient.refetchQueries({ queryKey: ['companies'] });
+      await queryClient.refetchQueries({ queryKey: ['representatives'] });
+      await queryClient.refetchQueries({ queryKey: ['company-representatives'] });
+      
       toast({
         title: "Success",
         description: "Company created successfully",
@@ -385,7 +387,6 @@ export function AddCompanyDialog({
       representativeFormRef.current?.reset();
       setRepresentativeError("");
       onOpenChange(false);
-      
     },
     onError: (error: Error) => {
       console.error('Error creating company:', error);
