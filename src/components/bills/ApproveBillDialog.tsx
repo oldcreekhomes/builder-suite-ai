@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExtractedData {
@@ -43,6 +44,7 @@ export const ApproveBillDialog = ({
 }: ApproveBillDialogProps) => {
   const { approveBill } = usePendingBills();
   const { toast } = useToast();
+  const { checkDuplicate } = useReferenceNumberValidation();
   const [vendorId, setVendorId] = useState("");
   const [projectId, setProjectId] = useState(initialProjectId || "");
   const [billDate, setBillDate] = useState<Date>(new Date());
@@ -52,6 +54,7 @@ export const ApproveBillDialog = ({
   const [notes, setNotes] = useState("");
   const [reviewNotes, setReviewNotes] = useState("");
   const [extractedVendorName, setExtractedVendorName] = useState<string | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
 
   // Update projectId when initialProjectId changes
   useEffect(() => {
@@ -138,17 +141,33 @@ export const ApproveBillDialog = ({
     fetchVendorTerms();
   }, [vendorId]);
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!vendorId) {
-      alert('Please select a vendor');
+      toast({ title: "Validation Error", description: "Please select a vendor", variant: "destructive" });
       return;
     }
 
     if (!projectId) {
-      alert('Please select a project');
+      toast({ title: "Validation Error", description: "Please select a project", variant: "destructive" });
       return;
     }
 
+    // Check for duplicate reference number before approving
+    if (referenceNumber.trim()) {
+      setIsApproving(true);
+      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+      if (isDuplicate && existingBill) {
+        toast({
+          title: "Duplicate Invoice Number",
+          description: `Invoice #${referenceNumber} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          variant: "destructive",
+        });
+        setIsApproving(false);
+        return;
+      }
+    }
+
+    setIsApproving(true);
     approveBill.mutate(
       {
         pendingUploadId,
@@ -172,6 +191,10 @@ export const ApproveBillDialog = ({
           setTerms("");
           setNotes("");
           setReviewNotes("");
+          setIsApproving(false);
+        },
+        onError: () => {
+          setIsApproving(false);
         },
       }
     );

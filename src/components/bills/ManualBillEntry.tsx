@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
+import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -77,6 +78,7 @@ export function ManualBillEntry() {
   const { createBill } = useBills();
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
+  const { checkDuplicate } = useReferenceNumberValidation();
 
   const { data: companies } = useQuery({
     queryKey: ['companies'],
@@ -249,6 +251,21 @@ export function ManualBillEntry() {
     }
 
     setIsSubmitting(true);
+
+    // Check for duplicate reference number
+    const referenceNumber = (document.getElementById('refNo') as HTMLInputElement)?.value || "";
+    if (referenceNumber.trim()) {
+      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+      if (isDuplicate && existingBill) {
+        toast({
+          title: "Duplicate Invoice Number",
+          description: `Invoice #${referenceNumber} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     const { data: allCostCodes } = await supabase
       .from('cost_codes')

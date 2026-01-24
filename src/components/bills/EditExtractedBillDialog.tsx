@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
+import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -101,6 +102,7 @@ export function EditExtractedBillDialog({
   const [activeTab, setActiveTab] = useState<string>("job-cost");
   const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
   const { openBillAttachment } = useUniversalFilePreviewContext();
+  const { checkDuplicate } = useReferenceNumberValidation();
 
   // Load bill data
   useEffect(() => {
@@ -438,6 +440,19 @@ export function EditExtractedBillDialog({
         variant: "destructive",
       });
       return;
+    }
+
+    // Check for duplicate reference number
+    if (refNo.trim()) {
+      const { isDuplicate, existingBill } = await checkDuplicate(refNo);
+      if (isDuplicate && existingBill) {
+        toast({
+          title: "Duplicate Invoice Number",
+          description: `Invoice #${refNo} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Get current bill to check if vendor changed
