@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ interface JournalEntryFormProps {
 }
 
 export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: JournalEntryFormProps) => {
+  const navigate = useNavigate();
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const { lots } = useLots(projectId);
@@ -444,7 +446,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     createNewEntry();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (mode: 'close' | 'new' | 'stay' = 'new') => {
     // Check for missing selections before submitting (safety check, button should be disabled)
     if (totals.missingSelections > 0) {
       console.warn('Cannot submit: Missing selections for lines with amounts');
@@ -477,8 +479,6 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         lines: journalLines,
         project_id: projectId,
       });
-      // After save, clear form and prepare for next entry
-      createNewEntry();
     } else {
       // Creating new entry
       const newEntry = await createManualJournalEntry.mutateAsync({
@@ -492,9 +492,15 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       if (newEntry?.id) {
         await finalizePendingAttachments(newEntry.id);
       }
-      // After save, clear form and prepare for next entry
-      createNewEntry();
     }
+
+    // Handle navigation based on mode
+    if (mode === 'new') {
+      createNewEntry();
+    } else if (mode === 'close') {
+      navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+    }
+    // 'stay' mode: just show success toast, don't navigate or clear
   };
 
   const isValid = totals.isBalanced && totals.missingSelections === 0;
@@ -910,74 +916,78 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             </TabsContent>
           </Tabs>
 
-          {/* Combined Totals */}
-          <div className="border rounded-lg overflow-hidden">
-            <table className="w-full">
-              <tfoot className="border-t-2 bg-muted/50">
-                <tr>
-                  <td className="p-3 font-semibold" style={{ width: '400px' }}>Totals</td>
-                  <td className="p-3 text-left font-semibold" style={{ width: '120px' }}>
-                    ${formatNumber(totals.totalDebits)}
-                  </td>
-                  <td className="p-3 text-left font-semibold" style={{ width: '120px' }}>
-                    ${formatNumber(totals.totalCredits)}
-                  </td>
-                  <td className="p-3"></td>
-                  <td className="w-12"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          {/* Balance Indicator */}
-          <div className="flex items-center gap-2 p-4 rounded-lg border">
-            {totals.isBalanced && totals.missingSelections === 0 ? (
-              <>
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <span className="text-green-600 font-medium">Entry is balanced and ready to save</span>
-              </>
-            ) : totals.missingSelections > 0 ? (
-              <>
-                <AlertCircle className="h-5 w-5 text-orange-600" />
-                <span className="text-orange-600 font-medium">
-                  Please select {activeTab === 'job_cost' ? 'cost code' : 'account'}{totals.missingSelections > 1 ? 's' : ''} for {totals.missingSelections} line{totals.missingSelections > 1 ? 's' : ''} with amounts
-                </span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="h-5 w-5 text-destructive" />
-                <span className="text-destructive font-medium">
-                  Entry must balance. Difference: ${formatNumber(Math.abs(totals.difference))}
-                  {totals.difference > 0 ? " (Debits exceed Credits)" : " (Credits exceed Debits)"}
-                </span>
-              </>
-            )}
+          {/* Consolidated Footer - Totals and Action Buttons */}
+          <div className="p-3 bg-muted border rounded-lg">
+            <div className="flex justify-between items-center">
+              {/* Left side: Totals with balance indicator */}
+              <div className="flex items-center gap-4">
+                <div className="text-base font-semibold">
+                  Debits: ${formatNumber(totals.totalDebits)} | Credits: ${formatNumber(totals.totalCredits)}
+                </div>
+                {totals.isBalanced && totals.missingSelections === 0 ? (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Balanced</span>
+                  </div>
+                ) : totals.missingSelections > 0 ? (
+                  <div className="flex items-center gap-1 text-orange-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Missing {totals.missingSelections} selection{totals.missingSelections > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Diff: ${formatNumber(Math.abs(totals.difference))}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Right side: Action buttons (or locked message) */}
+              {isTransactionLocked ? (
+                <div className="flex items-center gap-2 text-amber-700">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm font-medium">This entry cannot be edited</span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={createNewEntry} size="sm" className="h-10">
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSubmit('new')}
+                    disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
+                  >
+                    {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save & New"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSubmit('close')}
+                    disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
+                  >
+                    {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save & Close"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-10"
+                    onClick={() => handleSubmit('stay')}
+                    disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
+                  >
+                    {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save Entry"}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
-
-        {/* Action Buttons */}
-        {isTransactionLocked ? (
-          <div className="flex justify-end items-center gap-2 text-amber-700">
-            <Lock className="h-4 w-4" />
-            <span className="text-sm font-medium">This entry cannot be edited</span>
-          </div>
-        ) : (
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={createNewEntry}
-            >
-              Clear
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!isValid || createManualJournalEntry.isPending || updateManualJournalEntry.isPending}
-            >
-              {createManualJournalEntry.isPending || updateManualJournalEntry.isPending ? "Saving..." : "Save Entry"}
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
 
