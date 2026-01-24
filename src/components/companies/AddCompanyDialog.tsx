@@ -34,7 +34,7 @@ import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
 import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection";
 import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
-import { InlineRepresentativeForm, InlineRepresentativeFormRef } from "@/components/companies/InlineRepresentativeForm";
+import { InlineRepresentativeForm, InlineRepresentativeFormRef, InlineRepresentativeData } from "@/components/companies/InlineRepresentativeForm";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
 import { Search } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
@@ -223,7 +223,12 @@ export function AddCompanyDialog({
   }, []);
 
   const createCompanyMutation = useMutation({
-    mutationFn: async (data: CompanyFormData) => {
+    mutationFn: async (payload: CompanyFormData & { 
+      repData?: InlineRepresentativeData;
+      homeBuilderIdToUse?: string;
+    }) => {
+      const { repData, homeBuilderIdToUse: passedHomeBuilderId, ...data } = payload;
+      
       console.log('Creating company with data:', data);
       const { data: { user } } = await supabase.auth.getUser();
       console.log('Current user:', user);
@@ -236,8 +241,8 @@ export function AddCompanyDialog({
         .eq('id', user.id)
         .single();
 
-      // Use home_builder_id if user is internal (has home_builder_id), otherwise use user.id (for owner)
-      const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
+      // Use passed homeBuilderIdToUse, or calculate it
+      const homeBuilderIdToUse = passedHomeBuilderId || userDetails?.home_builder_id || user.id;
 
       // Check for duplicate company name (case-insensitive)
       const { data: existingCompany } = await supabase
@@ -317,8 +322,28 @@ export function AddCompanyDialog({
         }
       }
 
-      // Insert representative from form (passed as parameter)
-      return company;
+      // Insert representative (passed via mutation payload) BEFORE returning
+      if (repData) {
+        const { error: repError } = await supabase
+          .from('company_representatives')
+          .insert({
+            first_name: repData.first_name,
+            last_name: repData.last_name || null,
+            email: repData.email,
+            phone_number: repData.phone_number || null,
+            title: repData.title,
+            receive_bid_notifications: repData.receive_bid_notifications,
+            receive_schedule_notifications: repData.receive_schedule_notifications,
+            receive_po_notifications: repData.receive_po_notifications,
+            company_id: company.id,
+            home_builder_id: homeBuilderIdToUse,
+          });
+
+        if (repError) {
+          console.error('Error creating representative:', repError);
+          throw new Error('Company created but failed to add representative');
+        }
+      }
 
       // Create pending upload record with the new company_id (for audit trail)
       if (pendingInsuranceFilePath && extractedInsuranceData) {
@@ -389,80 +414,59 @@ export function AddCompanyDialog({
     }
     
     // Validate representative form
-    if (representativeFormRef.current) {
-      const isValid = await representativeFormRef.current.validate();
-      if (!isValid) {
-        setRepresentativeError("Please fill in all required representative fields");
-        toast({
-          title: "Representative Required",
-          description: "Please fill in First Name, Email, and Title for the representative.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Get representative data
-      const repData = representativeFormRef.current.getValues();
-      
-      // Get user info for creating representative
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "User not authenticated",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data: userDetails } = await supabase
-        .from('users')
-        .select('role, home_builder_id')
-        .eq('id', user.id)
-        .single();
-
-      const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
-      
-      // Create company first, then add representative
-      setCostCodeError("");
-      setRepresentativeError("");
-      
-      createCompanyMutation.mutate(data, {
-        onSuccess: async (company) => {
-          // Insert the representative after company is created
-          const { error: repError } = await supabase
-            .from('company_representatives')
-            .insert({
-              first_name: repData.first_name,
-              last_name: repData.last_name || null,
-              email: repData.email,
-              phone_number: repData.phone_number || null,
-              title: repData.title,
-              receive_bid_notifications: repData.receive_bid_notifications,
-              receive_schedule_notifications: repData.receive_schedule_notifications,
-              receive_po_notifications: repData.receive_po_notifications,
-              company_id: company.id,
-              home_builder_id: homeBuilderIdToUse,
-            });
-
-          if (repError) {
-            console.error('Error creating representative:', repError);
-            toast({
-              title: "Warning",
-              description: "Company created but representative could not be added",
-              variant: "destructive",
-            });
-          }
-        }
-      });
-    } else {
+    if (!representativeFormRef.current) {
       setRepresentativeError("Please fill in the representative information");
       toast({
         title: "Representative Required",
         description: "Please fill in the representative information.",
         variant: "destructive",
       });
+      return;
     }
+    
+    const isValid = await representativeFormRef.current.validate();
+    if (!isValid) {
+      setRepresentativeError("Please fill in all required representative fields");
+      toast({
+        title: "Representative Required",
+        description: "Please fill in First Name, Email, and Title for the representative.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Get representative data
+    const repData = representativeFormRef.current.getValues();
+    
+    // Get user info for determining home_builder_id
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: userDetails } = await supabase
+      .from('users')
+      .select('role, home_builder_id')
+      .eq('id', user.id)
+      .single();
+
+    const homeBuilderIdToUse = userDetails?.home_builder_id || user.id;
+    
+    // Clear errors and submit with representative data included
+    setCostCodeError("");
+    setRepresentativeError("");
+    
+    // Pass representative data directly to the mutation
+    createCompanyMutation.mutate({
+      ...data,
+      repData,
+      homeBuilderIdToUse,
+    });
   };
 
   // Reset state when dialog closes
