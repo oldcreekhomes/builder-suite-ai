@@ -24,6 +24,7 @@ import { useLots } from "@/hooks/useLots";
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 import { BillNotesDialog } from "./BillNotesDialog";
+import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,6 +96,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   
   const { updateBill, updateApprovedBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
+  const { checkDuplicate } = useReferenceNumberValidation();
 
   // Load bill data
   const { data: billData, isLoading } = useQuery({
@@ -326,6 +328,19 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         variant: "destructive",
       });
       return;
+    }
+
+    // Check for duplicate reference number (exclude current bill)
+    if (referenceNumber.trim()) {
+      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, billId);
+      if (isDuplicate && existingBill) {
+        toast({
+          title: "Duplicate Invoice Number",
+          description: `Invoice #${referenceNumber} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const invalidJobCostRows = jobCostRows.filter(row => 
