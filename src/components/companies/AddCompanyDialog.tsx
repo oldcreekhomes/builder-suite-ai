@@ -386,10 +386,6 @@ export function AddCompanyDialog({
       setRepresentativeError("");
       onOpenChange(false);
       
-      // Only refresh if not in callback mode (to preserve bill data)
-      if (!onCompanyCreated) {
-        window.location.reload();
-      }
     },
     onError: (error: Error) => {
       console.error('Error creating company:', error);
