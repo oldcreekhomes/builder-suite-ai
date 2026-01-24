@@ -163,62 +163,77 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
                 {isLoading ? "Loading..." : "No resources found."}
               </CommandEmpty>
               
-              {/* Internal Users */}
+              {/* Selected Resources - shown at top for easy removal */}
+              {selectedResources.length > 0 && (
+                <>
+                  <CommandGroup heading={`Selected (${selectedResources.length})`}>
+                    {selectedResources.map((resourceName) => {
+                      const resource = resources.find(r => r.resourceName === resourceName);
+                      const Icon = resource?.resourceGroup === 'External' ? Building2 : Users;
+                      
+                      return (
+                        <CommandItem
+                          key={`selected-${resourceName}`}
+                          value={`selected-${resourceName}`}
+                          onSelect={() => handleSelect(resourceName)}
+                        >
+                          <div className="flex items-center space-x-2 flex-1">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <div className="font-medium">{resourceName}</div>
+                            <Check className="ml-auto h-4 w-4 opacity-100" />
+                          </div>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                  <div className="border-b border-border my-1" />
+                </>
+              )}
+              
+              {/* Internal Users - exclude already selected */}
               <CommandGroup heading="Internal Users">
                 {resources
-                  .filter(resource => resource.resourceGroup === 'Internal')
-                  .map((resource) => {
-                    const isSelected = selectedResources.includes(resource.resourceName);
-                    
-                    return (
-                      <CommandItem
-                        key={`user-${resource.resourceId}`}
-                        value={resource.resourceName}
-                        onSelect={() => handleSelect(resource.resourceName)}
-                      >
-                        <div className="flex items-center space-x-2 flex-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <div className="font-medium">{resource.resourceName}</div>
-                          <Check
-                            className={cn(
-                              "ml-auto h-4 w-4",
-                              isSelected ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                        </div>
-                      </CommandItem>
-                    );
-                  })}
+                  .filter(resource => 
+                    resource.resourceGroup === 'Internal' && 
+                    !selectedResources.includes(resource.resourceName)
+                  )
+                  .map((resource) => (
+                    <CommandItem
+                      key={`user-${resource.resourceId}`}
+                      value={resource.resourceName}
+                      onSelect={() => handleSelect(resource.resourceName)}
+                    >
+                      <div className="flex items-center space-x-2 flex-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <div className="font-medium">{resource.resourceName}</div>
+                        <Check className="ml-auto h-4 w-4 opacity-0" />
+                      </div>
+                    </CommandItem>
+                  ))}
               </CommandGroup>
 
-              {/* Company Representatives */}
+              {/* Company Representatives - exclude already selected */}
               <CommandGroup heading="Company Representatives">
                 {resources
-                  .filter(resource => resource.resourceGroup === 'External')
-                  .map((resource) => {
-                    const isSelected = selectedResources.includes(resource.resourceName);
-                    
-                    return (
-                      <CommandItem
-                        key={`rep-${resource.resourceId}`}
-                        value={resource.resourceName}
-                        onSelect={() => handleSelect(resource.resourceName)}
-                      >
-                        <div className="flex items-center space-x-2 flex-1 min-w-0">
-                          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="font-medium truncate">
-                            <span>{resource.resourceName}</span>
-                          </div>
-                          <Check
-                            className={cn(
-                              "ml-auto h-4 w-4 flex-shrink-0",
-                              isSelected ? "opacity-100" : "opacity-0"
-                            )}
-                          />
+                  .filter(resource => 
+                    resource.resourceGroup === 'External' && 
+                    !selectedResources.includes(resource.resourceName)
+                  )
+                  .map((resource) => (
+                    <CommandItem
+                      key={`rep-${resource.resourceId}`}
+                      value={resource.resourceName}
+                      onSelect={() => handleSelect(resource.resourceName)}
+                    >
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="font-medium truncate">
+                          <span>{resource.resourceName}</span>
                         </div>
-                      </CommandItem>
-                    );
-                  })}
+                        <Check className="ml-auto h-4 w-4 flex-shrink-0 opacity-0" />
+                      </div>
+                    </CommandItem>
+                  ))}
               </CommandGroup>
             </CommandList>
           </Command>
