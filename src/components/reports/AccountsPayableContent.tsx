@@ -215,7 +215,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         <AccountsPayablePdfDocument
           projectAddress={projectData?.address}
           lotName={lotName}
-          asOfDate={asOfDate.toISOString().split('T')[0]}
+          asOfDate={format(asOfDate, 'yyyy-MM-dd')}
           agingBuckets={agingBuckets}
           grandTotal={grandTotal}
         />
