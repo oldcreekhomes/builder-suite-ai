@@ -512,7 +512,7 @@ export function AddCompanyDialog({
                       name="company_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Company Name</FormLabel>
+                          <FormLabel>Company Name <span className="text-destructive">*</span></FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -539,7 +539,7 @@ export function AddCompanyDialog({
                       name="company_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Company Type</FormLabel>
+                          <FormLabel>Company Type <span className="text-destructive">*</span></FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -624,7 +624,7 @@ export function AddCompanyDialog({
 
                   <div className="space-y-2">
                     <FormLabel className={costCodeError ? "text-destructive" : ""}>
-                      Associated Cost Codes
+                      Associated Cost Codes <span className="text-destructive">*</span>
                     </FormLabel>
                     <CostCodeSelector 
                       selectedCostCodes={selectedCostCodes}
