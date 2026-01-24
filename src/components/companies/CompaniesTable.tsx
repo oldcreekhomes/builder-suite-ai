@@ -61,11 +61,13 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const [showingCostCodes, setShowingCostCodes] = useState<Company | null>(null);
   const [archivingCompany, setArchivingCompany] = useState<Company | null>(null);
 
-  // Fetch companies with counts and cost codes
-  const { data: companies = [], isLoading, isFetching } = useQuery({
+  // Fetch companies with counts and cost codes - optimized batch fetching
+  const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
       console.log('Fetching companies...');
+      
+      // 1. Fetch all companies
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
@@ -74,34 +76,48 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       
       console.log('Companies fetch result:', { companiesData, error: companiesError });
       if (companiesError) throw companiesError;
+      if (!companiesData || companiesData.length === 0) return [];
 
-      // Get counts and cost codes for each company
-      const companiesWithData = await Promise.all(
-        companiesData.map(async (company) => {
-          const [repsResult, costCodesResult] = await Promise.all([
-            supabase
-              .from('company_representatives')
-              .select('id', { count: 'exact' })
-              .eq('company_id', company.id),
-            supabase
-              .from('company_cost_codes')
-              .select(`
-                cost_code_id,
-                cost_codes(*)
-              `)
-              .eq('company_id', company.id)
-          ]);
+      const companyIds = companiesData.map(c => c.id);
 
-          const costCodes = costCodesResult.data?.map(item => item.cost_codes).filter(Boolean) || [];
+      // 2. Fetch ALL representative counts in ONE query
+      const { data: repsData } = await supabase
+        .from('company_representatives')
+        .select('company_id')
+        .in('company_id', companyIds);
 
-          return {
-            ...company,
-            representatives_count: repsResult.count || 0,
-            cost_codes_count: costCodes.length,
-            cost_codes: costCodes as CostCode[]
-          };
-        })
-      );
+      // 3. Fetch ALL cost codes in ONE query
+      const { data: costCodeData } = await supabase
+        .from('company_cost_codes')
+        .select(`
+          company_id,
+          cost_codes(id, code, name)
+        `)
+        .in('company_id', companyIds);
+
+      // 4. Aggregate counts in JavaScript (instant, no DB calls)
+      const repCountMap: Record<string, number> = {};
+      repsData?.forEach(rep => {
+        repCountMap[rep.company_id] = (repCountMap[rep.company_id] || 0) + 1;
+      });
+
+      const costCodeMap: Record<string, CostCode[]> = {};
+      costCodeData?.forEach(item => {
+        if (!costCodeMap[item.company_id]) {
+          costCodeMap[item.company_id] = [];
+        }
+        if (item.cost_codes) {
+          costCodeMap[item.company_id].push(item.cost_codes as CostCode);
+        }
+      });
+
+      // 5. Combine all data
+      const companiesWithData = companiesData.map(company => ({
+        ...company,
+        representatives_count: repCountMap[company.id] || 0,
+        cost_codes_count: costCodeMap[company.id]?.length || 0,
+        cost_codes: costCodeMap[company.id] || []
+      }));
 
       return companiesWithData as Company[];
     },
@@ -160,7 +176,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     }
   };
 
-  if (isLoading || isFetching) {
+  if (isLoading) {
     return <div className="p-4 text-xs">Loading companies...</div>;
   }
 
