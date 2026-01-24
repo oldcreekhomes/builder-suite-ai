@@ -18,6 +18,7 @@ interface ReportRequest {
     balanceSheet: boolean;
     incomeStatement: boolean;
     jobCosts: boolean;
+    accountsPayable: boolean;
     bankStatementIds: string[];
   };
   asOfDate: string;
@@ -25,6 +26,7 @@ interface ReportRequest {
     balanceSheet?: string;
     incomeStatement?: string;
     jobCosts?: string;
+    accountsPayable?: string;
   };
   customMessage?: string;
 }
@@ -96,6 +98,16 @@ const handler = async (req: Request): Promise<Response> => {
       pdfFiles.push({
         name: `Job_Costs_as_of_${asOfDate}.pdf`,
         data: jobCostsPdf,
+      });
+    }
+
+    // Accounts Payable
+    if (reports.accountsPayable && generatedPdfs?.accountsPayable) {
+      console.log("Using pre-generated Accounts Payable PDF...");
+      const accountsPayablePdf = Uint8Array.from(atob(generatedPdfs.accountsPayable), c => c.charCodeAt(0));
+      pdfFiles.push({
+        name: `AP_Aging_Detail_as_of_${asOfDate}.pdf`,
+        data: accountsPayablePdf,
       });
     }
 
@@ -209,6 +221,7 @@ function generateEmailTemplate(projectName: string, asOfDate: string, reports: a
   if (reports.balanceSheet) selectedReports.push("Balance Sheet");
   if (reports.incomeStatement) selectedReports.push("Income Statement");
   if (reports.jobCosts) selectedReports.push("Job Costs Report");
+  if (reports.accountsPayable) selectedReports.push("Accounts Payable Aging");
   if (reports.bankStatementIds && reports.bankStatementIds.length > 0) {
     selectedReports.push(`Bank Statements (${reports.bankStatementIds.length})`);
   }

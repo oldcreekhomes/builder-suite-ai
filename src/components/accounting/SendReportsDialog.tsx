@@ -20,6 +20,7 @@ import { pdf } from '@react-pdf/renderer';
 import { BalanceSheetPdfDocument } from '@/components/reports/pdf/BalanceSheetPdfDocument';
 import { IncomeStatementPdfDocument } from '@/components/reports/pdf/IncomeStatementPdfDocument';
 import { JobCostsPdfDocument } from '@/components/reports/pdf/JobCostsPdfDocument';
+import { AccountsPayablePdfDocument, APAgingBill } from '@/components/reports/pdf/AccountsPayablePdfDocument';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 
 interface SendReportsDialogProps {
@@ -40,6 +41,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
     balanceSheet: true,
     incomeStatement: true,
     jobCosts: true,
+    accountsPayable: false,
   });
   
   const [selectedBankStatements, setSelectedBankStatements] = useState<string[]>([]);
@@ -573,6 +575,95 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         generatedPdfs.jobCosts = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       }
 
+      // Generate Accounts Payable PDF if selected
+      if (reports.accountsPayable && projectId) {
+        console.log('📊 Generating Accounts Payable PDF for project:', projectId);
+
+        const { data: bills, error: billsError } = await supabase
+          .from('bills')
+          .select(`
+            id,
+            bill_date,
+            reference_number,
+            due_date,
+            total_amount,
+            amount_paid,
+            vendor:companies!vendor_id(company_name)
+          `)
+          .eq('project_id', projectId)
+          .in('status', ['posted', 'paid'])
+          .eq('is_reversal', false)
+          .is('reversed_by_id', null);
+
+        if (billsError) {
+          console.error('📊 A/P PDF: Bills query failed:', billsError);
+          throw billsError;
+        }
+
+        // Filter to only open bills (amount_paid < total_amount)
+        const openBills = bills?.filter(bill => {
+          const openBalance = bill.total_amount - bill.amount_paid;
+          return openBalance > 0.01;
+        }) || [];
+
+        console.log(`📊 A/P PDF: Found ${openBills.length} open bills`);
+
+        // Calculate aging buckets
+        const agingBuckets: {
+          '1-30': APAgingBill[];
+          '31-60': APAgingBill[];
+          '61-90': APAgingBill[];
+          '>90': APAgingBill[];
+        } = {
+          '1-30': [],
+          '31-60': [],
+          '61-90': [],
+          '>90': [],
+        };
+
+        openBills.forEach(bill => {
+          const billDate = new Date(bill.bill_date);
+          const agingDays = Math.floor((asOfDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
+          const openBalance = bill.total_amount - bill.amount_paid;
+
+          const agingBill: APAgingBill = {
+            id: bill.id,
+            billDate: bill.bill_date,
+            referenceNumber: bill.reference_number,
+            vendorName: (bill.vendor as any)?.company_name || 'Unknown Vendor',
+            dueDate: bill.due_date,
+            aging: agingDays,
+            openBalance,
+          };
+
+          if (agingDays <= 30) {
+            agingBuckets['1-30'].push(agingBill);
+          } else if (agingDays <= 60) {
+            agingBuckets['31-60'].push(agingBill);
+          } else if (agingDays <= 90) {
+            agingBuckets['61-90'].push(agingBill);
+          } else {
+            agingBuckets['>90'].push(agingBill);
+          }
+        });
+
+        const grandTotal = openBills.reduce((sum, bill) => sum + (bill.total_amount - bill.amount_paid), 0);
+
+        console.log('📊 A/P PDF: Grand total:', grandTotal);
+
+        const blob = await pdf(
+          <AccountsPayablePdfDocument
+            projectAddress={projectData.address}
+            asOfDate={asOfDateStr}
+            agingBuckets={agingBuckets}
+            grandTotal={grandTotal}
+          />
+        ).toBlob();
+
+        const arrayBuffer = await blob.arrayBuffer();
+        generatedPdfs.accountsPayable = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+
       const { data, error } = await supabase.functions.invoke('send-accounting-reports', {
         body: {
           recipientEmail: email,
@@ -708,6 +799,19 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
                 />
                 <Label htmlFor="job-costs" className="font-normal cursor-pointer">
                   Job Costs Report
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="accounts-payable"
+                  checked={reports.accountsPayable}
+                  onCheckedChange={(checked) =>
+                    setReports({ ...reports, accountsPayable: checked as boolean })
+                  }
+                />
+                <Label htmlFor="accounts-payable" className="font-normal cursor-pointer">
+                  Accounts Payable Aging
                 </Label>
               </div>
 
