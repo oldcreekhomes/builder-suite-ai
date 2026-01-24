@@ -79,28 +79,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   colDate: {
-    width: '14%',
-    fontSize: 9,
-  },
-  colNum: {
     width: '12%',
     fontSize: 9,
   },
+  colNum: {
+    width: '18%',
+    fontSize: 9,
+  },
   colName: {
-    width: '28%',
+    width: '32%',
     fontSize: 9,
   },
   colDueDate: {
-    width: '14%',
+    width: '12%',
     fontSize: 9,
   },
   colAging: {
-    width: '10%',
+    width: '8%',
     textAlign: 'right',
     fontSize: 9,
   },
   colBalance: {
-    width: '22%',
+    width: '18%',
     textAlign: 'right',
     fontSize: 9,
   },
@@ -240,8 +240,8 @@ export const AccountsPayablePdfDocument: React.FC<AccountsPayablePdfDocumentProp
 
                 {/* Bucket Subtotal */}
                 <View style={styles.subtotalRow}>
-                  <Text style={{ width: '78%', fontSize: 9 }}>Subtotal - {bucketLabels[bucketKey]}</Text>
-                  <Text style={{ width: '22%', textAlign: 'right', fontSize: 9 }}>
+                  <Text style={{ width: '82%', fontSize: 9 }}>Subtotal - {bucketLabels[bucketKey]}</Text>
+                  <Text style={{ width: '18%', textAlign: 'right', fontSize: 9 }}>
                     {formatCurrency(bucketTotal)}
                   </Text>
                 </View>
@@ -252,8 +252,8 @@ export const AccountsPayablePdfDocument: React.FC<AccountsPayablePdfDocumentProp
 
         {/* Grand Total */}
         <View style={styles.totalRow}>
-          <Text style={{ width: '78%' }}>Total Outstanding</Text>
-          <Text style={{ width: '22%', textAlign: 'right' }}>
+          <Text style={{ width: '82%' }}>Total Outstanding</Text>
+          <Text style={{ width: '18%', textAlign: 'right' }}>
             {formatCurrency(grandTotal)}
           </Text>
         </View>
