@@ -25,7 +25,7 @@ interface ReportRequest {
   generatedPdfs?: {
     balanceSheet?: string;
     incomeStatement?: string;
-    jobCosts?: string;
+    jobCosts?: Array<{ lotName: string | null; pdfBase64: string }>;
     accountsPayable?: string;
   };
   customMessage?: string;
@@ -91,14 +91,21 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Job Costs
-    if (reports.jobCosts && generatedPdfs?.jobCosts) {
-      console.log("Using pre-generated Job Costs PDF...");
-      const jobCostsPdf = Uint8Array.from(atob(generatedPdfs.jobCosts), c => c.charCodeAt(0));
-      pdfFiles.push({
-        name: `Job_Costs_as_of_${asOfDate}.pdf`,
-        data: jobCostsPdf,
-      });
+    // Job Costs - handle array of lot-specific PDFs
+    if (reports.jobCosts && generatedPdfs?.jobCosts && Array.isArray(generatedPdfs.jobCosts)) {
+      console.log(`Using ${generatedPdfs.jobCosts.length} pre-generated Job Costs PDFs...`);
+      
+      for (const lotPdf of generatedPdfs.jobCosts) {
+        const pdfData = Uint8Array.from(atob(lotPdf.pdfBase64), c => c.charCodeAt(0));
+        const filename = lotPdf.lotName 
+          ? `Job_Costs_${lotPdf.lotName.replace(/\s+/g, '_')}_as_of_${asOfDate}.pdf`
+          : `Job_Costs_as_of_${asOfDate}.pdf`;
+        
+        pdfFiles.push({
+          name: filename,
+          data: pdfData,
+        });
+      }
     }
 
     // Accounts Payable
