@@ -18,6 +18,7 @@ import { AddMarketplaceRepresentativeDialog } from "@/components/marketplace/Add
 
 
 export default function Companies() {
+  const [activeTab, setActiveTab] = useState("companies");
   const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
   const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
@@ -39,7 +40,7 @@ export default function Companies() {
               </div>
             </div>
 
-            <Tabs defaultValue="companies" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="companies">Companies</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
@@ -63,7 +64,10 @@ export default function Companies() {
                     Add Company
                   </Button>
                 </div>
-                <CompaniesTable searchQuery={companySearchQuery} />
+                <CompaniesTable 
+                  key={activeTab === "companies" ? "companies-active" : "companies-hidden"}
+                  searchQuery={companySearchQuery} 
+                />
               </TabsContent>
               
               <TabsContent value="representatives" className="space-y-4">
