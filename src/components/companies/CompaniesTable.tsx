@@ -62,7 +62,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   const [archivingCompany, setArchivingCompany] = useState<Company | null>(null);
 
   // Fetch companies with counts and cost codes - optimized batch fetching
-  const { data: companies = [], isLoading, isFetching } = useQuery({
+  const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
     queryFn: async () => {
       console.log('Fetching companies...');
@@ -121,9 +121,6 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
       return companiesWithData as Company[];
     },
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
   });
 
   // Archive company mutation
@@ -202,12 +199,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
   return (
     <>      
-      <div className="border rounded-lg overflow-hidden relative">
-        {isFetching && !isLoading && (
-          <div className="absolute top-0 left-0 right-0 h-1 bg-primary/20 z-10">
-            <div className="h-full w-1/3 bg-primary animate-pulse" />
-          </div>
-        )}
+      <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
