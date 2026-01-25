@@ -80,8 +80,9 @@ export function ManualBillEntry() {
   const showAddressColumn = lots.length > 1;
   const { checkDuplicate } = useReferenceNumberValidation();
 
+  // Use separate cache key to avoid collision with full table data
   const { data: companies } = useQuery({
-    queryKey: ['companies'],
+    queryKey: ['companies-dropdown'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')

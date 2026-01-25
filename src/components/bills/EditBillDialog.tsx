@@ -128,9 +128,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   // Determine if bill is in read-only mode (approved, posted, or paid)
   const isApprovedBill = ['approved', 'posted', 'paid'].includes(billData?.status || '');
 
-  // Fetch companies for the notes dialog
+  // Fetch companies for the notes dialog - use separate cache key to avoid collision with full table data
   const { data: companies } = useQuery({
-    queryKey: ['companies'],
+    queryKey: ['companies-dropdown'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
