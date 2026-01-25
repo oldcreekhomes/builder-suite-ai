@@ -26,6 +26,7 @@ export function useCompanySearch(companyTypes?: string[]) {
       let query = supabase
         .from('companies')
         .select('id, company_name, company_type, address')
+        .is('archived_at', null)
         .order('company_name');
 
       // Filter by company types if provided

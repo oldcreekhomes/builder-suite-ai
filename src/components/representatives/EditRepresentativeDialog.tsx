@@ -128,6 +128,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       const { data, error } = await supabase
         .from('companies')
         .select('id, company_name')
+        .is('archived_at', null)
         .order('company_name');
       
       if (error) throw error;

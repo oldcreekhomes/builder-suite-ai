@@ -134,7 +134,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('id, company_name');
+        .select('id, company_name')
+        .is('archived_at', null);
       if (error) throw error;
       return data;
     }
