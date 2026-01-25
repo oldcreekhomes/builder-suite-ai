@@ -121,6 +121,10 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
       return companiesWithData as Company[];
     },
+    staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes - prevents refetch on tab switch
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchOnMount: false, // Don't auto-refetch when component remounts during tab switch
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   // Archive company mutation
