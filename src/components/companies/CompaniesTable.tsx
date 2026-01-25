@@ -67,11 +67,10 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
     queryFn: async () => {
       console.log('Fetching companies...');
       
-      // 1. Fetch all companies
+      // 1. Fetch ALL companies (we filter archived in JavaScript like Representatives does)
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
-        .is('archived_at', null)
         .order('company_name');
       
       console.log('Companies fetch result:', { companiesData, error: companiesError });
@@ -119,12 +118,13 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         cost_codes: costCodeMap[company.id] || []
       }));
 
-      return companiesWithData as Company[];
+      // 6. Filter out archived companies in JavaScript (like Representatives does)
+      const activeCompanies = companiesWithData.filter(company => 
+        company.archived_at === null
+      );
+
+      return activeCompanies as Company[];
     },
-    staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes - prevents refetch on tab switch
-    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
-    refetchOnMount: false, // Don't auto-refetch when component remounts during tab switch
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
   });
 
   // Archive company mutation
