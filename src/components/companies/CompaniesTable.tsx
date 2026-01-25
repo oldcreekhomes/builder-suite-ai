@@ -188,7 +188,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   };
 
   if (isLoading) {
-    return <div className="p-4 text-xs">Loading companies...</div>;
+    return <div className="text-center py-2 text-sm">Loading companies...</div>;
   }
 
   const filteredCompanies = companies.filter(company => {
