@@ -121,9 +121,9 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
     }
   }, [representative, form]);
 
-  // Fetch companies for selection
+  // Fetch companies for selection - use separate cache key to avoid collision with full table data
   const { data: companies = [] } = useQuery({
-    queryKey: ['companies'],
+    queryKey: ['companies-dropdown'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')

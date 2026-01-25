@@ -15,10 +15,10 @@ interface Company {
  *                       If not provided, all companies are returned.
  */
 export function useCompanySearch(companyTypes?: string[]) {
-  // Create a stable query key based on company types
+  // Create a stable query key - use 'companies-search' to avoid collision with full table data
   const queryKey = companyTypes 
-    ? ['companies', ...companyTypes.sort()]
-    : ['companies'];
+    ? ['companies-search', ...companyTypes.sort()]
+    : ['companies-search'];
 
   const { data: companies = [], isLoading: loading } = useQuery({
     queryKey,
