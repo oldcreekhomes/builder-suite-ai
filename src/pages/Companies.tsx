@@ -1,5 +1,5 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -25,6 +25,14 @@ export default function Companies() {
   const [addMarketplaceRepresentativeOpen, setAddMarketplaceRepresentativeOpen] = useState(false);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
   const [representativeSearchQuery, setRepresentativeSearchQuery] = useState("");
+  const queryClient = useQueryClient();
+
+  // Force fresh fetch when switching to Companies tab - clears cache so loading state shows
+  useEffect(() => {
+    if (activeTab === "companies") {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    }
+  }, [activeTab, queryClient]);
 
   return (
     <SidebarProvider>
