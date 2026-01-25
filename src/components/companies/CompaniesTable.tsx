@@ -70,8 +70,25 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       // 1. Fetch ALL companies (we filter archived in JavaScript like Representatives does)
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
-        .select('*')
-        .is('archived_at', null)  // Filter archived at database level - never enters cache
+        .select(`
+          id,
+          company_name,
+          company_type,
+          address,
+          address_line_1,
+          address_line_2,
+          city,
+          state,
+          zip_code,
+          phone_number,
+          website,
+          home_builder_id,
+          created_at,
+          updated_at,
+          insurance_required,
+          archived_at
+        `)
+        .is('archived_at', null)
         .order('company_name');
       
       console.log('Companies fetch result:', { companiesData, error: companiesError });
