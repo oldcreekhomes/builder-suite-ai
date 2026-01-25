@@ -143,6 +143,11 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       if (error) throw error;
     },
     onSuccess: async () => {
+      // Optimistically remove the archived company from cache immediately
+      queryClient.setQueryData(['companies'], (old: Company[] | undefined) => 
+        old?.filter(c => c.id !== archivingCompany?.id) ?? []
+      );
+      
       // Force immediate refetch instead of just invalidating
       await queryClient.refetchQueries({ queryKey: ['companies'] });
       await queryClient.refetchQueries({ queryKey: ['representatives'] });
