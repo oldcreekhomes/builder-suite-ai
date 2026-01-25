@@ -71,6 +71,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       const { data: companiesData, error: companiesError } = await supabase
         .from('companies')
         .select('*')
+        .is('archived_at', null)  // Filter archived at database level - never enters cache
         .order('company_name');
       
       console.log('Companies fetch result:', { companiesData, error: companiesError });
@@ -110,20 +111,13 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
         }
       });
 
-      // 5. Combine all data
-      const companiesWithData = companiesData.map(company => ({
+      // 5. Combine all data - archived already filtered at database level
+      return companiesData.map(company => ({
         ...company,
         representatives_count: repCountMap[company.id] || 0,
         cost_codes_count: costCodeMap[company.id]?.length || 0,
         cost_codes: costCodeMap[company.id] || []
-      }));
-
-      // 6. Filter out archived companies in JavaScript (like Representatives does)
-      const activeCompanies = companiesWithData.filter(company => 
-        company.archived_at === null
-      );
-
-      return activeCompanies as Company[];
+      })) as Company[];
     },
   });
 
