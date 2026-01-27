@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
+import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
 import { BasicCompanyInfo } from "./BasicCompanyInfo";
 import { ArrayFieldManager } from "./ArrayFieldManager";
 import { RatingAndVerification } from "./RatingAndVerification";
+import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 import { createFormDataFromPlace, addToArray, removeFromArray } from "@/utils/marketplaceCompanyUtils";
 
 interface AddMarketplaceCompanyDialogProps {
@@ -91,6 +93,11 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
 
   const { companyNameRef, isGoogleLoaded, isLoadingGoogleData } = useGooglePlaces(open, handlePlaceSelected);
 
+  // Duplicate detection for marketplace companies
+  const { potentialDuplicates, isChecking: isCheckingDuplicates } = useDuplicateCompanyDetection(
+    companyName,
+    { table: 'marketplace_companies' }
+  );
   const handleAddSpecialty = () => {
     const updatedSpecialties = addToArray(specialties, newSpecialty);
     if (updatedSpecialties !== specialties) {
@@ -246,6 +253,11 @@ export function AddMarketplaceCompanyDialog({ open, onOpenChange }: AddMarketpla
             companyNameRef={companyNameRef}
             isGoogleLoaded={isGoogleLoaded}
             isLoadingGoogleData={isLoadingGoogleData}
+          />
+
+          <DuplicateCompanyWarning 
+            potentialDuplicates={potentialDuplicates} 
+            isChecking={isCheckingDuplicates} 
           />
 
           <ArrayFieldManager
