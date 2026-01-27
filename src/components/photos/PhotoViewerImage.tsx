@@ -69,7 +69,7 @@ export function PhotoViewerImage({ photo, zoom, panEnabled, onPanToggle }: Photo
   return (
     <div 
       ref={containerRef}
-      className="flex-1 flex items-center justify-center p-4 bg-gray-50 overflow-hidden"
+      className="flex-1 min-h-0 flex items-center justify-center p-4 bg-gray-50 overflow-hidden"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -90,7 +90,7 @@ export function PhotoViewerImage({ photo, zoom, panEnabled, onPanToggle }: Photo
         onError={handleImageError}
         style={{ 
           display: imageLoading || imageError ? 'none' : 'block',
-          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+          transform: zoom === 1 && pan.x === 0 && pan.y === 0 ? 'none' : `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
           transition: isDragging ? 'none' : 'transform 0.2s ease',
           pointerEvents: panEnabled ? 'none' : 'auto'
         }}
