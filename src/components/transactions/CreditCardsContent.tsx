@@ -26,8 +26,6 @@ import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
 import { CreditCardSearchDialog } from "@/components/creditcards/CreditCardSearchDialog";
 import { useLots } from "@/hooks/useLots";
-import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
-import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 
 interface CreditCardRow {
   id: string;
@@ -78,12 +76,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   // Active tab state for controlled Tabs
   const [activeTab, setActiveTab] = useState<string>("expense");
-
-  // Duplicate company detection
-  const { potentialDuplicates, isChecking: isCheckingDuplicates } = useDuplicateCompanyDetection(
-    vendor,
-    { table: 'companies' }
-  );
 
   // Attachments
   const {
@@ -670,12 +662,6 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                   }}
                   placeholder="Enter vendor name"
                 />
-                {!isViewingMode && (
-                  <DuplicateCompanyWarning
-                    potentialDuplicates={potentialDuplicates}
-                    isChecking={isCheckingDuplicates}
-                  />
-                )}
               </div>
 
               <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
