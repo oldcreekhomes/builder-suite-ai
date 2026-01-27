@@ -3,7 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCompanySearch } from "@/hooks/useCompanySearch";
+import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
 import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
+import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 import { Plus } from "lucide-react";
 
 interface VendorSearchInputProps {
@@ -29,9 +31,16 @@ export function VendorSearchInput({
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isUserTyping, setIsUserTyping] = useState(false);
   // Include all company types so any company can receive a check
   const { companies, loading } = useCompanySearch();
   const skipNextValueUpdate = useRef(false);
+  
+  // Duplicate detection - only check when user is actively typing
+  const { potentialDuplicates, isChecking } = useDuplicateCompanyDetection(
+    isUserTyping ? searchQuery : '',
+    { table: 'companies' }
+  );
 
   useEffect(() => {
     // Skip this effect if we just set the value from onCompanyCreated
@@ -77,6 +86,7 @@ export function VendorSearchInput({
     const newValue = e.target.value;
     setSearchQuery(newValue);
     setShowResults(true);
+    setIsUserTyping(true);
   };
 
   const handleInputFocus = () => {
@@ -95,6 +105,7 @@ export function VendorSearchInput({
     setSearchQuery(company.company_name);
     onChange(company.id); // Pass company UUID for database operations
     setShowResults(false);
+    setIsUserTyping(false); // User selected, stop showing duplicate warning
     
     // Call the onCompanySelect callback with company details including address
     if (onCompanySelect) {
@@ -104,6 +115,9 @@ export function VendorSearchInput({
       });
     }
   };
+
+  // Determine if we should show duplicate warning
+  const showDuplicateWarning = isUserTyping && !showResults && potentialDuplicates.length > 0;
 
   return (
     <div className="relative">
@@ -163,6 +177,15 @@ export function VendorSearchInput({
         </div>
       )}
       
+      {showDuplicateWarning && (
+        <div className="mt-2">
+          <DuplicateCompanyWarning 
+            potentialDuplicates={potentialDuplicates}
+            isChecking={isChecking}
+          />
+        </div>
+      )}
+      
       <AddCompanyDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
@@ -174,6 +197,7 @@ export function VendorSearchInput({
           setSearchQuery(companyName);
           onChange(companyId);
           setShowAddDialog(false);
+          setIsUserTyping(false); // Company created, stop showing duplicate warning
           
           // Call the parent callback if provided
           if (onCompanySelect) {
