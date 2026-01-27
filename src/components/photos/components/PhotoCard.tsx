@@ -120,14 +120,23 @@ export function PhotoCard({
                     </div>
                   </div>
                 ) : (
-                <div 
-                    className="w-full h-full bg-gray-100 cursor-pointer"
+                  <div 
+                    className="w-full h-full relative overflow-hidden bg-gray-100 cursor-pointer"
                     onClick={() => onPhotoSelect(photo)}
                   >
+                    {/* Background blur fill layer */}
+                    <img
+                      src={getThumbnailUrl(photo.url, 512)}
+                      alt=""
+                      aria-hidden="true"
+                      draggable={false}
+                      className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60 pointer-events-none"
+                    />
+                    {/* Foreground image (full, no crop) */}
                     <img
                       src={getThumbnailUrl(photo.url, 512)}
                       alt={getPhotoDisplayName(photo)}
-                      className={`w-full h-full object-contain transition-opacity duration-300 ${
+                      className={`relative z-0 w-full h-full object-contain transition-opacity duration-300 ${
                         isImageLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                       loading="lazy"
@@ -141,7 +150,7 @@ export function PhotoCard({
                 )}
               </>
             )}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" size="icon" className="h-8 w-8">
