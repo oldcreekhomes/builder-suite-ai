@@ -32,6 +32,8 @@ import { useLots } from "@/hooks/useLots";
 import { CheckPrintPreview } from "@/components/checks/CheckPrintPreview";
 import { CheckPrintSettingsDialog } from "@/components/checks/CheckPrintSettingsDialog";
 import { useCheckPrintSettings } from "@/hooks/useCheckPrintSettings";
+import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
+import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 
 interface CheckRow {
   id: string;
@@ -84,6 +86,12 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(-1);
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentCheckId, setCurrentCheckId] = useState<string | null>(null);
+
+  // Duplicate company detection
+  const { potentialDuplicates, isChecking: isCheckingDuplicates } = useDuplicateCompanyDetection(
+    payToName || payTo,
+    { table: 'companies' }
+  );
 
   // Attachments
   const [attachments, setAttachments] = useState<CheckAttachment[]>([]);
@@ -1129,6 +1137,12 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                   placeholder="Search or add vendor"
                   className="h-10"
                 />
+                {!isViewingMode && (
+                  <DuplicateCompanyWarning
+                    potentialDuplicates={potentialDuplicates}
+                    isChecking={isCheckingDuplicates}
+                  />
+                )}
               </div>
 
               <div className="col-span-2">

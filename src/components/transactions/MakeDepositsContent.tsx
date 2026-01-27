@@ -30,6 +30,8 @@ import { DepositAttachmentUpload, DepositAttachment } from "@/components/deposit
 import { DepositSearchDialog } from "@/components/deposits/DepositSearchDialog";
 import { useLots } from "@/hooks/useLots";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
+import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 
 interface DepositRow {
   id: string;
@@ -64,6 +66,12 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const [isViewingMode, setIsViewingMode] = useState(false);
   const [currentDepositId, setCurrentDepositId] = useState<string | null>(null);
   const hasInitiallyLoaded = useRef(false);
+
+  // Duplicate company detection
+  const { potentialDuplicates, isChecking: isCheckingDuplicates } = useDuplicateCompanyDetection(
+    depositSourceName,
+    { table: 'companies' }
+  );
   
   // Attachments state
   const [attachments, setAttachments] = useState<DepositAttachment[]>([]);
@@ -903,6 +911,12 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 }}
                 placeholder="Search subcontractors or vendors"
               />
+              {!isViewingMode && (
+                <DuplicateCompanyWarning
+                  potentialDuplicates={potentialDuplicates}
+                  isChecking={isCheckingDuplicates}
+                />
+              )}
             </div>
 
             <div className="col-span-2">
