@@ -123,7 +123,7 @@ export function PhotoCard({
                   <img
                     src={getThumbnailUrl(photo.url, 512)}
                     alt={getPhotoDisplayName(photo)}
-                    className={`w-full h-full object-cover cursor-pointer transition-opacity duration-300 ${
+                    className={`w-full h-full object-contain bg-gray-100 cursor-pointer transition-opacity duration-300 ${
                       isImageLoaded ? 'opacity-100' : 'opacity-0'
                     }`}
                     loading="lazy"
