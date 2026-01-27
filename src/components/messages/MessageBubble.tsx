@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MoreHorizontal, Edit2, Trash2, Check, X, Reply } from "lucide-react";
+import { linkifyText } from "@/lib/linkify";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,7 +143,7 @@ export function MessageBubble({ message, isCurrentUser, onEdit, onDelete, onRepl
                 </div>
               </div>
             ) : (
-              <p className="text-sm">{message.message_text}</p>
+              <p className="text-sm whitespace-pre-wrap break-words">{linkifyText(message.message_text)}</p>
             )}
           </div>
         )}

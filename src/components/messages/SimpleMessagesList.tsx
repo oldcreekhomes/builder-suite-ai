@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ChatMessage } from "@/hooks/useSimpleChat";
 import { FileText, File, FileSpreadsheet, FileImage, FileVideo, FileAudio, FileCode } from "lucide-react";
 import { getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
+import { linkifyText } from "@/lib/linkify";
 
 interface SimpleMessagesListProps {
   messages: ChatMessage[];
@@ -192,7 +193,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
                   {/* Text content */}
                   {message.message_text && (
                     <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.message_text}
+                      {linkifyText(message.message_text)}
                     </p>
                   )}
 
