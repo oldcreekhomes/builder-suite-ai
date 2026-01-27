@@ -121,22 +121,13 @@ export function PhotoCard({
                   </div>
                 ) : (
                   <div 
-                    className="w-full h-full relative overflow-hidden bg-gray-100 cursor-pointer"
+                    className="w-full h-full bg-gray-100 cursor-pointer"
                     onClick={() => onPhotoSelect(photo)}
                   >
-                    {/* Background blur fill layer */}
-                    <img
-                      src={getThumbnailUrl(photo.url, 512)}
-                      alt=""
-                      aria-hidden="true"
-                      draggable={false}
-                      className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-60 pointer-events-none"
-                    />
-                    {/* Foreground image (full, no crop) */}
                     <img
                       src={getThumbnailUrl(photo.url, 512)}
                       alt={getPhotoDisplayName(photo)}
-                      className={`relative z-0 w-full h-full object-contain transition-opacity duration-300 ${
+                      className={`w-full h-full object-cover transition-opacity duration-300 ${
                         isImageLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                       loading="lazy"
