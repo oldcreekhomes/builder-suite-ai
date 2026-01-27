@@ -1,56 +1,71 @@
 
-# Plan: Fix Photo Thumbnails to Show 100% of Image
+
+# Plan: Fix Photo Thumbnails to Show Full Image in Square Cards
 
 ## Problem
-The thumbnails on the Photos page are showing the images incorrectly - they appear small and positioned to one side rather than being scaled to fill the container while maintaining aspect ratio. From your screenshot, the images look like they're rendering at their natural size and positioned incorrectly, rather than being scaled to fit within the square container.
+The thumbnails on the Photos page are displaying very small and not filling the square container. From your screenshot, the images appear tiny and positioned to one side rather than scaling to fill the available space while maintaining aspect ratio.
 
 ## Root Cause
-The `object-contain` CSS property requires the image to have proper dimensions from its parent container. While the current code has `w-full h-full`, the image needs to be in a flex container with centering to ensure proper positioning and scaling within the `aspect-square` container.
+The current CSS approach uses `max-w-full max-h-full` on the `<img>` element, which only constrains the maximum size but doesn't force the image to scale up to fill the container. Combined with the flex centering, small images remain at their natural size.
 
 ## Solution
-Wrap the image in a flex container that:
-1. Takes up the full width and height of the aspect-square container
-2. Centers the image both horizontally and vertically
-3. Has the gray background (moved from image to container)
-4. Allows the image with `object-contain` to scale properly
+Change the image styling to use `w-full h-full object-contain`. This combination will:
+1. Make the image take up the full width and height of its container
+2. Use `object-contain` to scale the image proportionally without cropping
+3. Center the image automatically (object-contain centers by default)
+
+Since you want "Fit (no crop)" with "Keep square cards", this approach shows the entire photo centered within the square, with gray background filling any empty space.
 
 ## Technical Changes
 
 ### File: `src/components/photos/components/PhotoCard.tsx`
 
-**Current structure (lines 122-137):**
+**Current code (lines 123-140):**
 ```tsx
-<img
-  src={getThumbnailUrl(photo.url, 512)}
-  alt={getPhotoDisplayName(photo)}
-  className={`w-full h-full object-contain bg-gray-100 cursor-pointer ...`}
-  ...
-/>
+<div 
+    className="w-full h-full flex items-center justify-center bg-gray-100 cursor-pointer"
+    onClick={() => onPhotoSelect(photo)}
+  >
+    <img
+      src={getThumbnailUrl(photo.url, 512)}
+      alt={getPhotoDisplayName(photo)}
+      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+        isImageLoaded ? 'opacity-100' : 'opacity-0'
+      }`}
+      ...
+    />
+  </div>
 ```
 
-**New structure:**
+**Updated code:**
 ```tsx
-<div className="w-full h-full flex items-center justify-center bg-gray-100">
-  <img
-    src={getThumbnailUrl(photo.url, 512)}
-    alt={getPhotoDisplayName(photo)}
-    className={`max-w-full max-h-full object-contain cursor-pointer ...`}
-    ...
-  />
-</div>
+<div 
+    className="w-full h-full bg-gray-100 cursor-pointer"
+    onClick={() => onPhotoSelect(photo)}
+  >
+    <img
+      src={getThumbnailUrl(photo.url, 512)}
+      alt={getPhotoDisplayName(photo)}
+      className={`w-full h-full object-contain transition-opacity duration-300 ${
+        isImageLoaded ? 'opacity-100' : 'opacity-0'
+      }`}
+      ...
+    />
+  </div>
 ```
 
-### Key Differences:
-1. **Flex wrapper** - Centers the image in both directions
-2. **Background moved to wrapper** - The gray background is on the container, not the image
-3. **`max-w-full max-h-full` instead of `w-full h-full`** - This allows the image to scale down while respecting its aspect ratio and the container boundaries
-4. **`object-contain`** - Ensures the full image is visible without distortion
+### Key Changes:
+1. **Remove flex centering from wrapper** - Not needed because `object-contain` handles centering automatically
+2. **Change `max-w-full max-h-full` to `w-full h-full`** - Forces the image element to fill the container
+3. **Keep `object-contain`** - Scales the image proportionally to fit within the container without cropping, centering it automatically
 
 ## Visual Result
-- Portrait photos will be vertically centered with gray bars on left/right
-- Landscape photos will be horizontally centered with gray bars on top/bottom  
-- Square photos will fill the container completely
-- All photos will show 100% of the image content
+- The image element will fill the entire square container
+- `object-contain` will scale the photo to fit, maintaining aspect ratio
+- Portrait photos will have gray bars on left/right
+- Landscape photos will have gray bars on top/bottom
+- The checkbox (top-left) and three-dots menu (top-right) remain unaffected as they are absolutely positioned with z-index
 
 ## File to Modify
-- `src/components/photos/components/PhotoCard.tsx`
+- `src/components/photos/components/PhotoCard.tsx` (lines 123-140)
+
