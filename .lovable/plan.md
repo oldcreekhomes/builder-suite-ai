@@ -1,114 +1,101 @@
 
-# Duplicate Company Detection Warning
+# Duplicate Company Warning for Transaction Pages
 
 ## Summary
-Add real-time duplicate detection when creating a new company. As the user types a company name, the system will check for similar existing companies and display a warning with potential matches, allowing the user to either proceed or select an existing company.
+Add the same duplicate company detection warning system to the Write Checks, Make Deposits, and Credit Cards transaction forms. When users type a vendor/company name, the system will check for similar existing companies and display a warning, helping prevent duplicate company entries.
 
-## How It Works
-When a user types in the company name field, the system will:
-1. Wait for a brief pause in typing (debounce of 300ms to avoid excessive queries)
-2. Search existing companies for potential matches using:
-   - Exact match (case-insensitive)
-   - Partial word matching (e.g., "Anchor" matches "Anchor Loans")
-   - Common abbreviation handling (e.g., "LP", "LLC", "Inc")
-3. Display a yellow warning alert below the company name field showing potential duplicates
-4. Allow the user to dismiss the warning and proceed, or recognize they're creating a duplicate
+## Current State
+The duplicate company detection is already implemented and working in:
+- AddCompanyDialog.tsx (Companies tab)
+- AddMarketplaceCompanyDialog.tsx (Marketplace)
 
-## User Experience
+The same components will be reused:
+- `useDuplicateCompanyDetection` hook (already exists)
+- `DuplicateCompanyWarning` component (already exists)
 
-When typing "Anchor Loans":
+## Implementation Details
+
+### File Changes
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/transactions/CreditCardsContent.tsx` | Modify | Add duplicate detection for Vendor field |
+| `src/components/transactions/WriteChecksContent.tsx` | Modify | Add duplicate detection for Pay To field |
+| `src/components/transactions/MakeDepositsContent.tsx` | Modify | Add duplicate detection for Received From field |
+
+### Changes Per Component
+
+#### 1. CreditCardsContent.tsx (Credit Cards)
+- Import `useDuplicateCompanyDetection` hook and `DuplicateCompanyWarning` component
+- Add the hook using the `vendor` state value (the typed company name)
+- Display warning below the Vendor input when:
+  - Not in viewing mode (creating new transaction)
+  - Similar companies are found
+- The vendor field uses `vendor` state which contains the company name text
+
+#### 2. WriteChecksContent.tsx (Write Checks)
+- Import `useDuplicateCompanyDetection` hook and `DuplicateCompanyWarning` component
+- Add the hook using the `payToName` state value (the typed payee name)
+- Display warning below the Pay To input when:
+  - Not in viewing mode (creating new transaction)
+  - Similar companies are found
+- The Pay To field stores the name in `payToName` state
+
+#### 3. MakeDepositsContent.tsx (Make Deposits)
+- Import `useDuplicateCompanyDetection` hook and `DuplicateCompanyWarning` component
+- Add the hook using the `depositSourceName` state value
+- Display warning below the Received From input when:
+  - Not in viewing mode (creating new transaction)
+  - Similar companies are found
+- The Received From field stores the name in `depositSourceName` state
+
+### User Experience
+When typing a vendor name in any of these forms:
+
 ```
 +--------------------------------------------------+
-| Company Name *                                   |
+| Vendor / Pay To / Received From                  |
 | [Anchor Loans_________________________]          |
 |                                                  |
+| (Warning box appears below when similar found)   |
 | ⚠️ Similar companies already exist:              |
 |   • Anchor Loans LP                              |
-|   • Anchor Home Loans                            |
 | You may be creating a duplicate.                 |
 +--------------------------------------------------+
 ```
 
-The warning will appear only when similar companies are found and will not block form submission - it's informational only.
+### Technical Notes
+- The warning only appears when NOT in viewing mode (new transactions only)
+- Uses the same 300ms debounce as the company creation dialogs
+- Queries the `companies` table (same as existing implementation)
+- Warning is informational only - does not block form submission
+- The hook is already configured to filter out archived companies
 
-## Technical Implementation
-
-### Step 1: Create a Custom Hook for Duplicate Detection
-Create `src/hooks/useDuplicateCompanyDetection.ts`:
-- Accept the company name as input
-- Debounce the search (300ms delay)
-- Query companies table for similar names
-- Return list of potential matches
-
-The matching algorithm will:
-1. Normalize names (lowercase, remove common suffixes like LLC, Inc, LP)
-2. Check if any existing company name contains the search term
-3. Check if the search term contains any existing company name
-4. Use word-based matching for partial matches
-
-### Step 2: Create a Warning Component
-Create `src/components/companies/DuplicateCompanyWarning.tsx`:
-- Display an Alert with yellow/warning styling
-- List potential duplicate company names
-- Include a helpful message
-
-### Step 3: Integrate into AddCompanyDialog
-Modify `src/components/companies/AddCompanyDialog.tsx`:
-- Import and use the new hook with `form.watch("company_name")`
-- Display the warning component below the company name field
-- Warning only shows when there are potential matches
-
-### Step 4: Apply Same Pattern to Marketplace
-Modify `src/components/marketplace/AddMarketplaceCompanyDialog.tsx`:
-- Add the same duplicate detection for marketplace companies
-- Query `marketplace_companies` table instead
-
-## Files to Create/Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/hooks/useDuplicateCompanyDetection.ts` | Create | Custom hook for fuzzy company name matching |
-| `src/components/companies/DuplicateCompanyWarning.tsx` | Create | Reusable warning alert component |
-| `src/components/companies/AddCompanyDialog.tsx` | Modify | Add duplicate detection integration |
-| `src/components/marketplace/AddMarketplaceCompanyDialog.tsx` | Modify | Add duplicate detection for marketplace |
-
-## Matching Algorithm Details
-
-The similarity check will use the following logic:
+### Code Pattern (same for all three components)
 
 ```typescript
-function findSimilarCompanies(searchName: string, existingCompanies: Company[]): Company[] {
-  const normalized = normalizeCompanyName(searchName);
-  
-  return existingCompanies.filter(company => {
-    const existingNormalized = normalizeCompanyName(company.company_name);
-    
-    // Check if either contains the other
-    if (existingNormalized.includes(normalized) || normalized.includes(existingNormalized)) {
-      return true;
-    }
-    
-    // Check word overlap (at least 2 matching words)
-    const searchWords = normalized.split(' ').filter(w => w.length > 2);
-    const existingWords = existingNormalized.split(' ').filter(w => w.length > 2);
-    const matchingWords = searchWords.filter(w => existingWords.includes(w));
-    
-    return matchingWords.length >= 1 && searchWords.length >= 1;
-  });
-}
+// Import at top
+import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
+import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 
-function normalizeCompanyName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\b(llc|inc|corp|ltd|lp|llp|co|company|incorporated)\b/gi, '')
-    .replace(/[.,\-']/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+// Inside component (after state declarations)
+const { potentialDuplicates, isChecking } = useDuplicateCompanyDetection(
+  vendorNameState, // vendor, payToName, or depositSourceName
+  { table: 'companies' }
+);
+
+// In JSX, below the VendorSearchInput
+{!isViewingMode && (
+  <DuplicateCompanyWarning
+    potentialDuplicates={potentialDuplicates}
+    isChecking={isChecking}
+  />
+)}
 ```
 
-## Edge Cases Handled
-- Empty or very short names (less than 3 characters) won't trigger search
-- The current exact-match duplicate check at submission time remains unchanged
-- Warning is dismissable and doesn't block form submission
-- Debouncing prevents excessive database queries while typing
+## Why This Approach
+- Reuses existing, tested duplicate detection logic
+- Consistent UI/UX across the application
+- No new database queries or tables needed
+- Minimal code changes (add ~10 lines per component)
+- Only shows during new transaction creation, not when viewing existing data
