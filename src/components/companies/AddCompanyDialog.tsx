@@ -36,6 +36,8 @@ import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection
 import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
 import { InlineRepresentativeForm, InlineRepresentativeFormRef, InlineRepresentativeData } from "@/components/companies/InlineRepresentativeForm";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
+import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
+import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 import { Search } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -191,7 +193,12 @@ export function AddCompanyDialog({
   // Initialize Google Places autocomplete on the company name field
   const { companyNameRef, isGoogleLoaded } = useGooglePlaces(open, handlePlaceSelected);
 
-
+  // Watch company name for duplicate detection
+  const watchedCompanyName = form.watch("company_name");
+  const { potentialDuplicates, isChecking: isCheckingDuplicates } = useDuplicateCompanyDetection(
+    watchedCompanyName,
+    { table: 'companies' }
+  );
   // Update form values when initialCompanyName or initialData changes
   useEffect(() => {
     if (initialCompanyName) {
@@ -531,6 +538,10 @@ export function AddCompanyDialog({
                           </FormControl>
                           
                           <FormMessage />
+                          <DuplicateCompanyWarning 
+                            potentialDuplicates={potentialDuplicates} 
+                            isChecking={isCheckingDuplicates} 
+                          />
                         </FormItem>
                       )}
                     />
