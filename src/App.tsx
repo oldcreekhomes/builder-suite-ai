@@ -52,6 +52,7 @@ import CloseBooks from "./pages/accounting/CloseBooks";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
+  console.log("[APP] AppContent rendering");
 
   // Note: Global chat notifications are now handled by FloatingChatManager using the master hook
   // to prevent duplicate Supabase subscriptions
