@@ -16,7 +16,7 @@ export function linkifyText(text: string): React.ReactNode {
           key={index}
           href={href}
           target="_blank"
-          rel="noopener noreferrer"
+          rel="noopener"
           className="underline hover:opacity-80"
           onClick={(e) => e.stopPropagation()}
         >
