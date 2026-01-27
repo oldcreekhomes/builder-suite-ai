@@ -1,114 +1,84 @@
 
-# Duplicate Company Detection Warning
+Goal: Restore the Preview (currently blank white screen on both `/` and `/auth`) by identifying whether the app is failing to mount (runtime/import error) or mounting but rendering “nothing” due to auth loading never resolving, and then implementing robust safeguards so this cannot silently “white-screen” again.
 
-## Summary
-Add real-time duplicate detection when creating a new company. As the user types a company name, the system will check for similar existing companies and display a warning with potential matches, allowing the user to either proceed or select an existing company.
+What we know from exploration
+- The Preview is a blank white page (no spinner, no text), even on `/auth`.
+- The only captured console message is a Tailwind CDN warning; none of the expected app logs appear (e.g., “🔗 Initializing Supabase client…”, “PDF.js configured…”, “🔑 AuthProvider initializing…”).
+- This strongly suggests React is not mounting at all (script/module load failure or early runtime crash) OR it mounts but immediately renders an empty div (e.g., RootRoute spinner div with no Tailwind styles + no text).
+- Current code (as read) shows:
+  - `index.html` has `#root` and loads `/src/main.tsx`.
+  - `main.tsx` renders `<ImpersonationProvider><AuthProvider><App/></AuthProvider></ImpersonationProvider>`.
+  - `App.tsx` error boundary is inside `AppContent`, so it will NOT catch errors that occur in `ImpersonationProvider` / `AuthProvider` / the `pdfConfig` import, etc.
+  - `RootRoute` loading UI is spinner-only (no text). If Tailwind isn’t applying, it can look like a blank page.
+  - `ProtectedRoute` returns `null` while loading, which can also yield blank UI if you land on protected routes (though user reports `/auth` also blank).
 
-## How It Works
-When a user types in the company name field, the system will:
-1. Wait for a brief pause in typing (debounce of 300ms to avoid excessive queries)
-2. Search existing companies for potential matches using:
-   - Exact match (case-insensitive)
-   - Partial word matching (e.g., "Anchor" matches "Anchor Loans")
-   - Common abbreviation handling (e.g., "LP", "LLC", "Inc")
-3. Display a yellow warning alert below the company name field showing potential duplicates
-4. Allow the user to dismiss the warning and proceed, or recognize they're creating a duplicate
+Most likely root causes (ranked)
+1) Early crash before React mounts (import-time error), which would yield a blank screen and prevent all our logging from appearing.
+   - Because `ErrorBoundary` is not wrapping `main.tsx` providers, any error in providers or top-level imports can “white-screen” the app.
+2) Auth loading never resolves AND the only “loading UI” is a Tailwind-dependent spinner with no text, causing a blank-looking screen.
+   - Would also explain why `/auth` seems blank if routing never gets rendered or is behind higher-level blank.
+3) A build/module load issue (e.g., Vite runtime failing to serve the module, or a missing asset import) causing `main.tsx` never to execute.
+   - This typically produces a console error, but the current log snapshot is incomplete, so we need better capture.
 
-## User Experience
+Implementation approach (what I will change in Default mode)
+A) Make failures visible immediately (stop silent white-screens)
+1. Move/duplicate an ErrorBoundary to the earliest possible place:
+   - Wrap the entire app in an ErrorBoundary at `main.tsx` level so errors in providers and early imports are caught and displayed.
+2. Add an always-visible “boot” fallback that does not depend on Tailwind:
+   - Add a minimal inline loading message (plain HTML/text) so even if Tailwind fails, the user sees something.
+   - Example: “Loading BuilderSuite AI…” as plain text plus a basic CSS spinner or no spinner.
+3. Add a global error logger (development-only):
+   - Add `window.onerror` and `window.onunhandledrejection` handlers in `main.tsx` (or a small bootstrap file) to `console.error` the actual crash reason.
+   - This ensures Lovable console capture will include the real error next message.
 
-When typing "Anchor Loans":
-```
-+--------------------------------------------------+
-| Company Name *                                   |
-| [Anchor Loans_________________________]          |
-|                                                  |
-| ⚠️ Similar companies already exist:              |
-|   • Anchor Loans LP                              |
-|   • Anchor Home Loans                            |
-| You may be creating a duplicate.                 |
-+--------------------------------------------------+
-```
+B) Fix the “auth loading can hang forever” class of problems
+4. Make `AuthProvider` loading state resilient:
+   - Add a “max wait” timeout (e.g., 6–10 seconds). If `getSession()` hasn’t returned, set `loading=false` and store an error state like `authInitError`.
+   - Display a friendly “Auth is taking longer than expected” message with a “Retry” button that re-runs `getSession()`.
+   - This prevents permanent blank/spinner states.
+5. Make loading UI non-empty everywhere:
+   - `RootRoute`: include a text label under spinner so it’s not invisible without Tailwind.
+   - `ProtectedRoute`: return a small loading layout (text + spinner) rather than `null`.
 
-The warning will appear only when similar companies are found and will not block form submission - it's informational only.
+C) Verify module execution path with minimal instrumentation
+6. Add a single unmistakable “boot log” at the very top of `main.tsx`:
+   - e.g., `console.log("[BOOT] main.tsx loaded")`
+7. Add a single “App mounted” log inside `App` render:
+   - Confirms React is actually rendering.
+8. If still blank, the logs will tell us if the JS bundle isn’t loading at all (no [BOOT]) vs. crashing after boot.
 
-## Technical Implementation
+D) Quick verification steps after changes (in Preview)
+9. Load `/`:
+   - Expect to see at least the plain “Loading…” text immediately.
+   - If auth works: Landing or Index should render.
+10. Load `/auth`:
+   - Should always render, regardless of auth state.
+11. If it still fails:
+   - Use the now-captured `[BOOT]` log and global error handlers to pinpoint the exact module/error.
 
-### Step 1: Create a Custom Hook for Duplicate Detection
-Create `src/hooks/useDuplicateCompanyDetection.ts`:
-- Accept the company name as input
-- Debounce the search (300ms delay)
-- Query companies table for similar names
-- Return list of potential matches
+Files I expect to modify (Default mode)
+- `src/main.tsx`
+  - Add early ErrorBoundary wrapper
+  - Add `[BOOT]` log + global error handlers
+- `src/components/RootRoute.tsx`
+  - Add non-Tailwind-dependent text while loading
+- `src/components/ProtectedRoute.tsx`
+  - Replace `return null` with a minimal loading UI
+- `src/hooks/useAuth.tsx`
+  - Add auth init timeout + optional `authInitError` state exposed in context
+  - Ensure `loading` always eventually becomes false
+- (Optional) `src/components/ErrorBoundary.tsx`
+  - Ensure it can be used at top-level without relying on app theme classes, or add a simple fallback prop usage in `main.tsx`
 
-The matching algorithm will:
-1. Normalize names (lowercase, remove common suffixes like LLC, Inc, LP)
-2. Check if any existing company name contains the search term
-3. Check if the search term contains any existing company name
-4. Use word-based matching for partial matches
+User-visible result
+- The Preview will never be completely blank again:
+  - If something breaks, you’ll see an ErrorBoundary panel with details.
+  - If auth is slow/hung, you’ll see a clear message and a retry option.
+- We’ll get definitive console output to diagnose any remaining issue in one iteration.
 
-### Step 2: Create a Warning Component
-Create `src/components/companies/DuplicateCompanyWarning.tsx`:
-- Display an Alert with yellow/warning styling
-- List potential duplicate company names
-- Include a helpful message
+Risks / tradeoffs
+- Adding timeouts can mask intermittent network problems; we’ll pair it with a visible error message and a retry action rather than silently proceeding.
+- Global error handlers will be noisy in production if left on; we’ll keep them development-only (Preview) or guard them to avoid leaking sensitive info.
 
-### Step 3: Integrate into AddCompanyDialog
-Modify `src/components/companies/AddCompanyDialog.tsx`:
-- Import and use the new hook with `form.watch("company_name")`
-- Display the warning component below the company name field
-- Warning only shows when there are potential matches
-
-### Step 4: Apply Same Pattern to Marketplace
-Modify `src/components/marketplace/AddMarketplaceCompanyDialog.tsx`:
-- Add the same duplicate detection for marketplace companies
-- Query `marketplace_companies` table instead
-
-## Files to Create/Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/hooks/useDuplicateCompanyDetection.ts` | Create | Custom hook for fuzzy company name matching |
-| `src/components/companies/DuplicateCompanyWarning.tsx` | Create | Reusable warning alert component |
-| `src/components/companies/AddCompanyDialog.tsx` | Modify | Add duplicate detection integration |
-| `src/components/marketplace/AddMarketplaceCompanyDialog.tsx` | Modify | Add duplicate detection for marketplace |
-
-## Matching Algorithm Details
-
-The similarity check will use the following logic:
-
-```typescript
-function findSimilarCompanies(searchName: string, existingCompanies: Company[]): Company[] {
-  const normalized = normalizeCompanyName(searchName);
-  
-  return existingCompanies.filter(company => {
-    const existingNormalized = normalizeCompanyName(company.company_name);
-    
-    // Check if either contains the other
-    if (existingNormalized.includes(normalized) || normalized.includes(existingNormalized)) {
-      return true;
-    }
-    
-    // Check word overlap (at least 2 matching words)
-    const searchWords = normalized.split(' ').filter(w => w.length > 2);
-    const existingWords = existingNormalized.split(' ').filter(w => w.length > 2);
-    const matchingWords = searchWords.filter(w => existingWords.includes(w));
-    
-    return matchingWords.length >= 1 && searchWords.length >= 1;
-  });
-}
-
-function normalizeCompanyName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\b(llc|inc|corp|ltd|lp|llp|co|company|incorporated)\b/gi, '')
-    .replace(/[.,\-']/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-```
-
-## Edge Cases Handled
-- Empty or very short names (less than 3 characters) won't trigger search
-- The current exact-match duplicate check at submission time remains unchanged
-- Warning is dismissable and doesn't block form submission
-- Debouncing prevents excessive database queries while typing
+Immediate next step
+- Switch me to Default mode so I can implement the boot-level ErrorBoundary + visible loading fallback + auth timeout safeguards, then we’ll re-check the Preview and the newly captured console errors (if any).
