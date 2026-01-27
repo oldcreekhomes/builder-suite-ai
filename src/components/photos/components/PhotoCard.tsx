@@ -121,13 +121,13 @@ export function PhotoCard({
                   </div>
                 ) : (
                 <div 
-                    className="w-full h-full flex items-center justify-center bg-gray-100 cursor-pointer"
+                    className="w-full h-full bg-gray-100 cursor-pointer"
                     onClick={() => onPhotoSelect(photo)}
                   >
                     <img
                       src={getThumbnailUrl(photo.url, 512)}
                       alt={getPhotoDisplayName(photo)}
-                      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+                      className={`w-full h-full object-contain transition-opacity duration-300 ${
                         isImageLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                       loading="lazy"
