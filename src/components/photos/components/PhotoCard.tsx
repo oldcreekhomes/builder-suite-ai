@@ -120,20 +120,24 @@ export function PhotoCard({
                     </div>
                   </div>
                 ) : (
-                  <img
-                    src={getThumbnailUrl(photo.url, 512)}
-                    alt={getPhotoDisplayName(photo)}
-                    className={`w-full h-full object-contain bg-gray-100 cursor-pointer transition-opacity duration-300 ${
-                      isImageLoaded ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                <div 
+                    className="w-full h-full flex items-center justify-center bg-gray-100 cursor-pointer"
                     onClick={() => onPhotoSelect(photo)}
-                    onLoad={() => setIsImageLoaded(true)}
-                    onError={() => setIsImageLoaded(true)}
-                  />
+                  >
+                    <img
+                      src={getThumbnailUrl(photo.url, 512)}
+                      alt={getPhotoDisplayName(photo)}
+                      className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
+                        isImageLoaded ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      onLoad={() => setIsImageLoaded(true)}
+                      onError={() => setIsImageLoaded(true)}
+                    />
+                  </div>
                 )}
               </>
             )}
