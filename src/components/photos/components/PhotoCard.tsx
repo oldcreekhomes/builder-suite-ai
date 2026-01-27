@@ -124,9 +124,9 @@ export function PhotoCard({
                     className="w-full h-full bg-gray-100 cursor-pointer"
                     onClick={() => onPhotoSelect(photo)}
                   >
-                    <img
-                      src={getThumbnailUrl(photo.url, 512)}
-                      alt={getPhotoDisplayName(photo)}
+                  <img
+                    src={photo.url}
+                    alt={getPhotoDisplayName(photo)}
                       className={`w-full h-full object-cover transition-opacity duration-300 ${
                         isImageLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
