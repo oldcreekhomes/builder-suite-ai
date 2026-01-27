@@ -202,7 +202,7 @@ export function CompanyPhotoViewer({ photos, currentPhoto, isOpen, onClose, onPh
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-full max-h-[95vh] p-0 flex flex-col border-0">
+      <DialogContent className="max-w-5xl w-full h-[95vh] p-0 flex flex-col border-0 overflow-hidden">
         <DialogTitle className="sr-only">
           {photo.description || 'Company Photo'}
         </DialogTitle>
@@ -210,7 +210,7 @@ export function CompanyPhotoViewer({ photos, currentPhoto, isOpen, onClose, onPh
           Photo viewer showing {currentIndex + 1} of {photos.length} company photos
         </DialogDescription>
         
-        <div className="relative w-full h-full flex flex-col bg-white rounded-lg overflow-hidden">
+        <div className="relative w-full h-full min-h-0 flex flex-col bg-white rounded-lg overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-white">
             <div className="flex-1">
@@ -293,7 +293,7 @@ export function CompanyPhotoViewer({ photos, currentPhoto, isOpen, onClose, onPh
 
           {/* Photo */}
           <div 
-            className="flex-1 flex items-center justify-center p-4 bg-gray-50 overflow-hidden"
+            className="flex-1 min-h-0 flex items-center justify-center p-4 bg-gray-50 overflow-hidden"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -314,7 +314,7 @@ export function CompanyPhotoViewer({ photos, currentPhoto, isOpen, onClose, onPh
               onError={handleImageError}
               style={{ 
                 display: imageLoading || imageError ? 'none' : 'block',
-                transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                transform: zoom === 1 && pan.x === 0 && pan.y === 0 ? 'none' : `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
                 transition: isDragging ? 'none' : 'transform 0.2s ease',
                 pointerEvents: panEnabled ? 'none' : 'auto'
               }}

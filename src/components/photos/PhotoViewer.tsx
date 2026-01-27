@@ -59,7 +59,7 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-full max-h-[95vh] p-0 flex flex-col border-0">
+      <DialogContent className="max-w-5xl w-full h-[95vh] p-0 flex flex-col border-0 overflow-hidden">
         <DialogTitle className="sr-only">
           {photo.description || 'Project Photo'}
         </DialogTitle>
@@ -67,7 +67,7 @@ export function PhotoViewer({ photos, currentPhoto, isOpen, onClose, onPhotoDele
           Photo viewer showing {currentIndex + 1} of {photos.length} photos
         </DialogDescription>
         
-        <div className="relative w-full h-full flex flex-col bg-white rounded-lg overflow-hidden">
+        <div className="relative w-full h-full min-h-0 flex flex-col bg-white rounded-lg overflow-hidden">
           <PhotoViewerHeader
             photo={photo}
             currentIndex={currentIndex}
