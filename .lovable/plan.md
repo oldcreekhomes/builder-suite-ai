@@ -1,46 +1,42 @@
 
-# Plan: Add Duplicate Company Detection to Transaction Forms
+# Plan: Display Full Image Without Scrolling
 
-## Summary
-Add real-time duplicate company warning to the "Pay To", "Received From", and "Vendor" fields in Write Checks, Make Deposits, and Credit Cards transaction forms. The warning will appear when users type a company name that matches or closely resembles an existing company in the system.
+## Problem
+When viewing photos in the photo viewer, tall images are being cropped because the image is not properly constrained to fit within the visible container. The user wants to see the entire photo on page load without needing to scroll.
 
-## Approach
-Rather than modifying each transaction form individually, I will enhance the shared `VendorSearchInput` component to include duplicate detection. This ensures:
-- Consistent behavior across all transaction entry points
-- Single point of maintenance
-- Automatic coverage for any future forms that use this component
+## Solution
+Use CSS to ensure the image always scales down to fit within the available container space, showing the full image without cropping or scrolling. The image will be displayed at the largest possible size that still fits entirely within the viewer.
 
-## Implementation Details
+## Technical Approach
 
-### File: `src/components/VendorSearchInput.tsx`
+### Key Changes to `PhotoViewerImage.tsx`:
 
-**Changes:**
-1. Import the `useDuplicateCompanyDetection` hook and `DuplicateCompanyWarning` component
-2. Add duplicate detection logic that monitors the `searchQuery` state
-3. Display the warning alert below the input when potential duplicates are found
-4. Only show the warning when the user is actively typing (not when they've selected a company from the dropdown)
+1. **Revert container to `overflow-hidden`** - No scrolling needed since the entire image will be visible
+2. **Add `max-h-full` back to the image** - This constrains the image height to the container
+3. **Remove the conditional `maxHeight` style** - The `max-h-full` class handles this consistently
+4. **Keep `object-contain`** - This ensures the image scales proportionally without distortion
 
-**Technical Notes:**
-- The duplicate detection will use the existing `useDuplicateCompanyDetection` hook with `table: 'companies'`
-- The warning only appears when:
-  - User is typing (not after selecting an existing company)
-  - The input has at least 3 characters
-  - Similar companies are found
-- The warning uses the existing `DuplicateCompanyWarning` component for UI consistency
-- The warning is informational only (does not block submission)
+### How It Works
+- The container uses `flex-1` to fill available vertical space within the dialog
+- The image uses `max-w-full max-h-full object-contain` which tells the browser:
+  - Never exceed the container's width
+  - Never exceed the container's height
+  - Scale proportionally (maintain aspect ratio)
+  - Center the image within the container
 
-### Visual Behavior
-When a user types "anchor gras" (as shown in the screenshot), if similar companies like "Anchor Loans" or "Anchor Grass LLC" exist, a yellow warning box will appear below the input showing:
-- "Similar companies already exist:"
-- List of matching company names
-- "You may be creating a duplicate."
+### Result
+- Tall portrait images will scale down to fit the available height
+- Wide landscape images will scale down to fit the available width
+- The entire image is always visible on page load
+- No scrolling required
+- Users can still zoom in and pan to see details
 
 ## Files to Modify
-- `src/components/VendorSearchInput.tsx` (add duplicate detection and warning display)
+- `src/components/photos/PhotoViewerImage.tsx`
 
-## No Changes Required
-- `WriteChecksContent.tsx` - Uses VendorSearchInput (automatic coverage)
-- `MakeDepositsContent.tsx` - Uses VendorSearchInput (automatic coverage)  
-- `CreditCardsContent.tsx` - Uses VendorSearchInput (automatic coverage)
-- `useDuplicateCompanyDetection.ts` - Already exists and works correctly
-- `DuplicateCompanyWarning.tsx` - Already exists and works correctly
+## Visual Behavior
+When opening a tall photo like the one from 126 Longview:
+- The full image (including the trees at the bottom) will be visible
+- The image will be scaled down proportionally to fit within the viewer
+- Users can zoom in using the zoom controls to see full-resolution details
+- Pan mode becomes available when zoomed in to explore different areas
