@@ -12,16 +12,25 @@ export function linkifyText(text: string): React.ReactNode {
     if (part.match(urlRegex)) {
       const href = part.startsWith('www.') ? `https://${part}` : part;
       return (
-        <a 
+        <span
           key={index}
-          href={href}
-          target="_blank"
-          rel="noopener"
-          className="underline hover:opacity-80"
-          onClick={(e) => e.stopPropagation()}
+          role="link"
+          tabIndex={0}
+          className="underline hover:opacity-80 cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            window.open(href, '_blank', 'noopener,noreferrer');
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              window.open(href, '_blank', 'noopener,noreferrer');
+            }
+          }}
         >
           {part}
-        </a>
+        </span>
       );
     }
     return part;
