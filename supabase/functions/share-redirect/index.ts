@@ -63,7 +63,7 @@ serve(async (req) => {
     }
 
     // Determine target origin
-    const targetOrigin = originParam || "https://buildersuite.com"; // fallback to brand domain
+    const targetOrigin = originParam || "https://builder-suite-ai.lovable.app"; // fallback to published app
 
     // Choose path - our app handles both files/photos via /s/f/:id
     const path = type === "p" ? `/s/p/${shareId}` : `/s/f/${shareId}`;
