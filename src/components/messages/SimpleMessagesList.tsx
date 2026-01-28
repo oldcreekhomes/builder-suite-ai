@@ -5,6 +5,7 @@ import { ChatMessage } from "@/hooks/useSimpleChat";
 import { FileText, File, FileSpreadsheet, FileImage, FileVideo, FileAudio, FileCode } from "lucide-react";
 import { getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
 import { linkifyText } from "@/lib/linkify";
+import { openExternal } from "@/lib/openExternal";
 
 interface SimpleMessagesListProps {
   messages: ChatMessage[];
@@ -107,7 +108,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
             src={url}
             alt="Attached image"
             className="max-w-xs max-h-64 rounded-lg cursor-pointer"
-            onClick={() => window.open(url, '_blank')}
+            onClick={() => openExternal(url)}
           />
         </div>
       );
@@ -117,7 +118,7 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
           <div
             title={getCleanFileName(fileName)}
             className="inline-flex items-center p-2 rounded-lg cursor-pointer hover:opacity-80"
-            onClick={() => window.open(url, '_blank')}
+            onClick={() => openExternal(url)}
           >
             {getFileIcon(fileName)}
           </div>
