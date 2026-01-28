@@ -37,6 +37,7 @@ interface POEmailRequest {
   costCode?: any;
   testEmail?: string;
   files?: any[];
+  isCancellation?: boolean;
 }
 
 const generateFileDownloadLinks = (files: any[]) => {
@@ -94,6 +95,13 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const fileLinks = generateFileDownloadLinks(files);
   const customMessage = data.customMessage;
   const contractFiles = data.contractFiles || [];
+  const isCancellation = data.isCancellation || false;
+  
+  // Email title changes based on cancellation status
+  const emailTitle = isCancellation ? 'CANCELED - Purchase Order' : 'Purchase Order';
+  const awardMessage = isCancellation 
+    ? 'This purchase order has been canceled:' 
+    : 'You have been awarded this purchase order:';
 
   // Helper function to extract simple filename from technical filename
   const getSimpleFilename = (filename: string) => {
@@ -138,7 +146,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Purchase Order</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${emailTitle}</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</p>
                         </td>
                     </tr>
@@ -151,7 +159,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; margin: 0 0 30px 0; border-collapse: collapse;">
                                 <tr>
                                     <td style="background-color: #000000; color: #ffffff; padding: 15px 20px; font-size: 16px; font-weight: 600; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                        You have been awarded this purchase order:
+                                        ${awardMessage}
                                     </td>
                                 </tr>
                                 <tr>
@@ -584,6 +592,13 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('👤 Project manager data being passed to template:', projectManager);
 
     // Generate email HTML with confirmation buttons (including for test emails)
+    const isCancellation = requestData.isCancellation || false;
+    
+    // Generate email subject based on cancellation status
+    const emailSubject = isCancellation 
+      ? `CANCELED - Purchase Order - ${finalProjectAddress || 'Project'}`
+      : `Purchase Order - ${finalProjectAddress || 'Project'}`;
+
     const emailHTML = generatePOEmailHTML({
       projectAddress: finalProjectAddress,
       companyName: fetchedCompanyName || 'Unknown Company',
@@ -596,7 +611,8 @@ const handler = async (req: Request): Promise<Response> => {
       projectId: projectDetails?.id,
       customMessage,
       contractFiles: [], // Clear contract files since we're using proposal files as approved files
-      poNumber: poNumber || requestData.poNumber // Use DB value first, fallback to request
+      poNumber: poNumber || requestData.poNumber, // Use DB value first, fallback to request
+      isCancellation
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
@@ -606,7 +622,7 @@ const handler = async (req: Request): Promise<Response> => {
       return await resend.emails.send({
         from: `${senderCompanyName || 'Builder Suite AI'} <noreply@transactional.buildersuiteai.com>`,
         to: [rep.email],
-        subject: `Purchase Order - ${finalProjectAddress || 'Project'}`,
+        subject: emailSubject,
         html: emailHTML,
       });
     });

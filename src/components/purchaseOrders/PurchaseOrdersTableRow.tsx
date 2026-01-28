@@ -6,7 +6,7 @@ import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
 interface PurchaseOrdersTableRowProps {
   item: PurchaseOrder;
-  onDelete: (itemId: string) => void;
+  onDelete: (item: PurchaseOrder) => void;
   onUpdateNotes: (itemId: string, notes: string) => void;
   isSelected: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;

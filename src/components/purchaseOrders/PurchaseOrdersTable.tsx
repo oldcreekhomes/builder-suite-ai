@@ -8,7 +8,7 @@ import { PurchaseOrdersTableHeader } from './PurchaseOrdersTableHeader';
 import { PurchaseOrdersGroupHeader } from './PurchaseOrdersGroupHeader';
 import { PurchaseOrdersTableRow } from './PurchaseOrdersTableRow';
 import { PurchaseOrdersTableFooter } from './PurchaseOrdersTableFooter';
-import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { usePurchaseOrders, type PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { usePurchaseOrderMutations } from '@/hooks/usePurchaseOrderMutations';
 import { useLotManagement } from '@/hooks/useLotManagement';
@@ -68,7 +68,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
   const { 
     deletingGroups, 
     deletingItems, 
-    handleDeleteItem, 
+    handleCancelAndDeleteItem, 
     handleDeleteGroup, 
     handleUpdateStatus, 
     handleUpdateNotes 
@@ -93,12 +93,12 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
     removeGroupFromExpanded(group);
   };
 
-  const onDeleteItem = (itemId: string) => {
-    handleDeleteItem(itemId);
+  const onDeleteItem = (item: PurchaseOrder) => {
+    handleCancelAndDeleteItem(item);
     
     // Clean up UI state after deletion
     const newSelectedItems = new Set(selectedItems);
-    newSelectedItems.delete(itemId);
+    newSelectedItems.delete(item.id);
   };
 
   const onGroupCheckboxChange = (group: string, checked: boolean) => {

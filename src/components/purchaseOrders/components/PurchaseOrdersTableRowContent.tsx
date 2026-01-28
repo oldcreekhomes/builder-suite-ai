@@ -12,7 +12,7 @@ interface PurchaseOrdersTableRowContentProps {
   isDeleting: boolean;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   onUpdateNotes: (itemId: string, notes: string) => void;
-  onDelete: (itemId: string) => void;
+  onDelete: (item: PurchaseOrder) => void;
   onSendClick: () => void;
   onTestEmailClick: () => void;
   onEditClick: () => void;
