@@ -42,6 +42,7 @@ export const CreatePurchaseOrderDialog = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customMessage, setCustomMessage] = useState("");
   // Pre-populate form when editing
   useEffect(() => {
     if (editOrder && open) {
@@ -58,6 +59,7 @@ export const CreatePurchaseOrderDialog = ({
       setAmount(editOrder.total_amount?.toString() || "");
       setNotes(editOrder.notes || "");
       setUploadedFiles(editOrder.files || []);
+      setCustomMessage("");
     } else if (!editOrder && open) {
       // Reset form for new order
       setSelectedCompany(null);
@@ -66,6 +68,7 @@ export const CreatePurchaseOrderDialog = ({
       setAmount("");
       setNotes("");
       setUploadedFiles([]);
+      setCustomMessage("");
     }
   }, [editOrder, open]);
 
@@ -250,7 +253,9 @@ export const CreatePurchaseOrderDialog = ({
             companyId: selectedCompany.id,
             projectAddress: projectData.data?.address || 'N/A',
             companyName: selectedCompany.name,
+            customMessage: customMessage.trim() || undefined,
             totalAmount: amount ? parseFloat(amount) : 0,
+            costCode: { code: selectedCostCode.code, name: selectedCostCode.name },
             senderCompanyName: senderData?.company_name || 'Builder Suite AI'
           }
         });
@@ -277,6 +282,7 @@ export const CreatePurchaseOrderDialog = ({
       setAmount("");
       setNotes("");
       setUploadedFiles([]);
+      setCustomMessage("");
       
       onSuccess();
       onOpenChange(false);
@@ -372,6 +378,19 @@ export const CreatePurchaseOrderDialog = ({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Enter any additional notes..."
               rows={3}
+            />
+          </div>
+
+          {/* Custom Message for Email */}
+          <div className="space-y-2">
+            <Label htmlFor="custom-message">Custom Message (Optional)</Label>
+            <Textarea
+              id="custom-message"
+              placeholder="Add a custom message to include in the email..."
+              className="w-full resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
+              rows={3}
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
             />
           </div>
 
