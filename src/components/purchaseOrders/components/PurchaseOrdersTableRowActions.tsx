@@ -8,7 +8,7 @@ import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 interface PurchaseOrdersTableRowActionsProps {
   item: PurchaseOrder;
   costCode: any;
-  onDelete: (itemId: string) => void;
+  onDelete: (item: PurchaseOrder) => void;
   onSendClick: () => void;
   onTestEmailClick: () => void;
   onEditClick: () => void;
@@ -55,9 +55,9 @@ export function PurchaseOrdersTableRowActions({
           <Edit className="h-4 w-4 text-foreground" />
         </Button>
         <DeleteButton
-          onDelete={() => onDelete(item.id)}
-          title="Delete Purchase Order"
-          description={`Are you sure you want to delete the purchase order "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`}
+          onDelete={() => onDelete(item)}
+          title="Cancel Purchase Order"
+          description={`Are you sure you want to cancel PO "${item.po_number}"? A cancellation email will be sent to all company representatives who receive PO notifications.`}
           size="sm"
           variant="ghost"
           isLoading={isDeleting}
