@@ -1,135 +1,131 @@
 
-## What’s happening (why the “test email” works but the vendor email doesn’t)
 
-Right now, the PO number shown in the email is coming from **one specific field**: `requestData.poNumber`.
+## Cancel Purchase Order with Email Notification
 
-- Your **test email** flow (and the “Send PO Email” modal on the PO page) **does include** `poNumber` in the payload:
-  - `src/components/purchaseOrders/SendPOTestEmailModal.tsx` → sends `poNumber: purchaseOrder.po_number`
-  - `src/components/purchaseOrders/SendPOEmailModal.tsx` → sends `poNumber: purchaseOrder.po_number`
+### Summary
+When a user deletes a purchase order, we will:
+1. Show a confirmation dialog explaining that a cancellation email will be sent
+2. Send a "CANCELED - Purchase Order" email (same template, just with "CANCELED" prefix)
+3. Then delete the PO from the database
 
-- But the two workflows that you’re focused on:
-  1) **Bid closeout** (bidding → sends PO)
-  2) **Manual creation of a PO** (CreatePurchaseOrderDialog)
-  
-  …**do NOT include** `poNumber` in the payload today:
-  - `src/hooks/usePOMutations.ts` → does not send `poNumber`
-  - `src/components/CreatePurchaseOrderDialog.tsx` → does not send `poNumber`
+### Technical Implementation
 
-Inside the edge function, the email template uses:
-- `const poNumberDisplay = data.poNumber || 'Purchase Order';`
+#### 1. Modify the Edge Function to Support Cancellation Mode
 
-So when `poNumber` is missing, the email literally falls back to showing **“Purchase Order”** (which is exactly what you’re seeing as “PO number: Purchase Order”).
-
-Also important: the edge function *already fetches the PO from the database* (and that record contains `po_number`), but it **never uses** `poData.po_number` when building the template. It only uses `requestData.poNumber`.
-
-That’s why the “test email” can look right while the real vendor emails do not: they are not “EXACT SAME” yet for `poNumber`.
-
----
-
-## Goal
-
-Make **every PO email** identical at every level (including `customMessage` and `poNumber`) regardless of whether it’s sent from:
-- bidding closeout,
-- manual PO creation,
-- resend,
-- or test.
-
-And ensure the email always displays the real PO number from the database.
-
----
-
-## Implementation plan
-
-### Step 1 — Fix the edge function so it ALWAYS uses the PO number from the database
 **File:** `supabase/functions/send-po-email/index.ts`
 
-**Change:**
-- When `purchaseOrderId` is provided, we already fetch:
-  ```ts
-  const { data: poData } = await supabase.from('project_purchase_orders').select('*').eq('id', purchaseOrderId).single();
+Add a new `isCancellation` boolean parameter to the request interface and modify the email template to conditionally show "CANCELED - Purchase Order" in the header instead of "Purchase Order".
+
+Changes:
+- Add `isCancellation?: boolean` to the `POEmailRequest` interface
+- Update the email template to use conditional title:
+  ```typescript
+  const emailTitle = data.isCancellation ? 'CANCELED - Purchase Order' : 'Purchase Order';
   ```
-- We will extract `poData.po_number` and use it as the primary source for the template:
-  - Add a `let poNumber: string | null = null;`
-  - After fetching `poData`, set `poNumber = poData.po_number ?? null`
-  - When generating HTML, pass:
-    ```ts
-    poNumber: poNumber || requestData.poNumber
-    ```
+- Update the body text from "You have been awarded this purchase order:" to "This purchase order has been canceled:" when `isCancellation` is true
+- Update email subject line accordingly
 
-**Why this matters:**
-- Even if the frontend forgets to send `poNumber`, the email still shows the correct PO number.
-- This is the most reliable source of truth.
+#### 2. Create a New Mutation for Cancel + Delete
 
----
+**File:** `src/hooks/usePurchaseOrderMutations.ts`
 
-### Step 2 — Make BOTH “bidding closeout” and “manual create” pass `poNumber` explicitly (so payloads are identical)
-Even though Step 1 guarantees correctness, we still want the payloads to be identical and explicit.
+Add a new mutation `cancelAndDeletePurchaseOrder` that:
+1. Fetches the full PO data (including company, cost code, project address, files)
+2. Calls `send-po-email` with `isCancellation: true`
+3. Deletes the PO from the database
 
-#### 2A) Manual creation flow
-**File:** `src/components/CreatePurchaseOrderDialog.tsx`
-
-You already query:
-```ts
-.select('*, po_number')
+```typescript
+const cancelAndDeletePurchaseOrder = useMutation({
+  mutationFn: async (purchaseOrder: PurchaseOrder) => {
+    // Step 1: Fetch all necessary data for the email
+    const [projectData, costCodeData, senderData] = await Promise.all([...]);
+    
+    // Step 2: Send cancellation email
+    await supabase.functions.invoke('send-po-email', {
+      body: {
+        purchaseOrderId: purchaseOrder.id,
+        companyId: purchaseOrder.company_id,
+        poNumber: purchaseOrder.po_number,
+        isCancellation: true, // NEW FLAG
+        // ... same fields as regular PO email
+      }
+    });
+    
+    // Step 3: Delete the PO
+    const { error } = await supabase
+      .from('project_purchase_orders')
+      .delete()
+      .eq('id', purchaseOrder.id);
+    
+    if (error) throw error;
+  }
+});
 ```
 
-**Change:**
-- Add `poNumber: purchaseOrder.po_number` to the `send-po-email` body payload so it matches test/send flows.
+#### 3. Update the Delete Confirmation Dialog Message
 
-#### 2B) Bidding closeout flow
-**File:** `src/hooks/usePOMutations.ts`
+**File:** `src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx`
 
-After inserting the PO, we currently call `send-po-email` without `poNumber`.
+Update the `DeleteButton` description to inform users about the cancellation email:
 
-**Change:**
-- Include `poNumber: purchaseOrder.po_number` in the `send-po-email` payload.
-
----
-
-### Step 3 — Fix resend flow to include `poNumber` too
-Right now resend looks up the PO like this:
-```ts
-.select('id, total_amount, files, bid_package_id')
+```typescript
+<DeleteButton
+  onDelete={() => onDelete(item)}  // Pass full item instead of just ID
+  title="Cancel Purchase Order"
+  description={`Are you sure you want to cancel PO "${item.po_number}"? A cancellation email will be sent to all company representatives who receive PO notifications.`}
+  // ...
+/>
 ```
-So it doesn’t even have `po_number` available to send.
 
-**File:** `src/hooks/usePOMutations.ts`
+#### 4. Update Component Chain to Pass Full PO Object
 
-**Change:**
-- Update the resend PO lookup select to include `po_number`.
-- Then include `poNumber: existingPO.po_number` in the resend invoke payload.
+Currently, `onDelete` only receives `itemId`. We need to pass the full PO object so we have all the data needed for the cancellation email without refetching.
 
----
+**Files to update:**
+- `PurchaseOrdersTableRowActions.tsx` - Change `onDelete(item.id)` to `onDelete(item)`
+- `PurchaseOrdersTableRowContent.tsx` - Update `onDelete` prop type
+- `PurchaseOrdersTableRow.tsx` - Update `onDelete` prop type
+- `PurchaseOrdersTable.tsx` - Update handler
 
-### Step 4 — Verify with logging (temporary) and an end-to-end test sequence
-After implementing:
-1) Send PO via **bidding closeout** → confirm email shows the real `po_number`
-2) Create PO via **manual Create Purchase Order dialog** → confirm email shows the real `po_number`
-3) Use **Resend PO** → confirm email shows the real `po_number`
-4) Use **Send Test Email** → confirm still correct
+### Flow Diagram
 
-If needed, we’ll add one or two extra edge-function logs like:
-- “✅ Using PO number from DB: {poNumber}”
-so we can confirm the runtime behavior in Supabase logs.
+```text
+User clicks Delete
+       ↓
+Confirmation Dialog appears:
+"Are you sure you want to cancel PO 2026-7659W-0003?
+A cancellation email will be sent to all company
+representatives who receive PO notifications."
+       ↓
+User clicks "Delete" (or "Cancel PO")
+       ↓
+cancelAndDeletePurchaseOrder mutation runs:
+  1. Send cancellation email (isCancellation: true)
+  2. Delete PO from database
+       ↓
+Success toast: "Purchase order canceled and notification sent"
+```
 
----
+### Email Changes
 
-## Files that will be changed
+The cancellation email will look identical to the regular PO email except:
+- **Header**: "CANCELED - Purchase Order" (instead of "Purchase Order")
+- **Body message**: "This purchase order has been canceled:" (instead of "You have been awarded this purchase order:")
+- **Email subject**: "CANCELED - Purchase Order for [address]"
 
-1) `supabase/functions/send-po-email/index.ts`
-   - Use `poData.po_number` (DB source of truth) as the primary value for the template
+### Files to Modify
 
-2) `src/components/CreatePurchaseOrderDialog.tsx`
-   - Send `poNumber: purchaseOrder.po_number` in the email payload
+| File | Change |
+|------|--------|
+| `supabase/functions/send-po-email/index.ts` | Add `isCancellation` parameter, update template |
+| `src/hooks/usePurchaseOrderMutations.ts` | Add `cancelAndDeletePurchaseOrder` mutation |
+| `src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx` | Update dialog message, pass full item |
+| `src/components/purchaseOrders/components/PurchaseOrdersTableRowContent.tsx` | Update prop types |
+| `src/components/purchaseOrders/PurchaseOrdersTableRow.tsx` | Update prop types |
+| `src/components/purchaseOrders/PurchaseOrdersTable.tsx` | Update handler to use new mutation |
 
-3) `src/hooks/usePOMutations.ts`
-   - Send `poNumber: purchaseOrder.po_number` for bidding closeout
-   - Update resend lookup to fetch `po_number` and pass it
+### Notes
+- Uses the same `receive_po_notifications` flag - if they receive PO emails, they receive cancellation emails
+- The cancellation email is sent BEFORE deletion, so we still have access to all the PO data
+- If the email fails to send, the PO will NOT be deleted (user will see an error)
 
----
-
-## Expected result
-
-- The “PO Number” line in the email will always show the real value like `2026-7659W-0003`.
-- The test email and vendor emails will be identical (same payload keys, same template behavior).
-- Even if a future UI change accidentally stops passing `poNumber`, the edge function will still render it correctly from the database.
