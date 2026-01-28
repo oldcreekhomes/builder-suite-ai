@@ -309,6 +309,7 @@ const handler = async (req: Request): Promise<Response> => {
     let projectDetails: any = null;
     let costCodeInfo: any = null;
     let projectManager: any = null;
+    let poNumber: string | null = null; // Store PO number from database
 
     // Always fetch project details and cost code if purchaseOrderId is provided
     if (purchaseOrderId) {
@@ -325,6 +326,12 @@ const handler = async (req: Request): Promise<Response> => {
         console.error('❌ Error fetching purchase order details:', poError);
       } else {
         console.log('✅ Found purchase order data:', poData);
+        
+        // Extract PO number from database (primary source of truth)
+        if (poData.po_number) {
+          poNumber = poData.po_number;
+          console.log('✅ Using PO number from DB:', poNumber);
+        }
         
         // Use PO's total amount if not provided in request
         if (!totalAmount && poData.total_amount) {
@@ -589,7 +596,7 @@ const handler = async (req: Request): Promise<Response> => {
       projectId: projectDetails?.id,
       customMessage,
       contractFiles: [], // Clear contract files since we're using proposal files as approved files
-      poNumber: requestData.poNumber // Pass the PO number from the request
+      poNumber: poNumber || requestData.poNumber // Use DB value first, fallback to request
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients

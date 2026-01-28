@@ -110,6 +110,7 @@ export const usePOMutations = (projectId: string) => {
         body: {
           purchaseOrderId: purchaseOrder.id,
           companyId: companyId,
+          poNumber: purchaseOrder.po_number, // Include PO number for consistent emails
           projectAddress: projectData.data?.address || 'N/A',
           companyName: biddingCompany.companies.company_name || 'N/A',
           customMessage: customMessage,
@@ -208,7 +209,7 @@ export const usePOMutations = (projectId: string) => {
       // Look up the latest existing PO for this project, cost code, and company
       const { data: existingPO, error: lookupError } = await supabase
         .from('project_purchase_orders')
-        .select('id, total_amount, files, bid_package_id')
+        .select('id, total_amount, files, bid_package_id, po_number')
         .eq('project_id', projectId)
         .eq('cost_code_id', costCodeId)
         .eq('company_id', companyId)
@@ -257,6 +258,7 @@ export const usePOMutations = (projectId: string) => {
           body: {
             purchaseOrderId: existingPO.id,
             companyId: companyId,
+            poNumber: existingPO.po_number, // Include PO number for consistent emails
             projectAddress: projectData.data?.address || 'N/A',
             companyName: biddingCompany.companies.company_name || 'N/A',
             customMessage: customMessage,

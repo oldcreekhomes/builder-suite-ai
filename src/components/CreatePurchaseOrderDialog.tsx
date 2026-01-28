@@ -251,6 +251,7 @@ export const CreatePurchaseOrderDialog = ({
           body: {
             purchaseOrderId: purchaseOrder.id,
             companyId: selectedCompany.id,
+            poNumber: purchaseOrder.po_number, // Include PO number for consistent emails
             projectAddress: projectData.data?.address || 'N/A',
             companyName: selectedCompany.name,
             customMessage: customMessage.trim() || undefined,
