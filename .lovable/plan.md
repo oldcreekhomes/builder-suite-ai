@@ -1,131 +1,149 @@
 
-
-## Cancel Purchase Order with Email Notification
+## Add "UPDATED - Purchase Order" Email Notification
 
 ### Summary
-When a user deletes a purchase order, we will:
-1. Show a confirmation dialog explaining that a cancellation email will be sent
-2. Send a "CANCELED - Purchase Order" email (same template, just with "CANCELED" prefix)
-3. Then delete the PO from the database
+When a user edits and saves a purchase order, we will send an "UPDATED - Purchase Order" email to the same representatives who received the original PO email. This follows the same pattern as the cancellation email we just implemented.
+
+### Current Behavior
+- **Creating a new PO**: Email is sent automatically ✅
+- **Updating an existing PO**: No email is sent (just updates database and shows toast)
+- **Canceling a PO**: Cancellation email is sent ✅
+
+### New Behavior
+- **Updating an existing PO**: "UPDATED - Purchase Order" email will be sent
+
+---
 
 ### Technical Implementation
 
-#### 1. Modify the Edge Function to Support Cancellation Mode
+#### 1. Modify the Edge Function to Support Update Mode
 
 **File:** `supabase/functions/send-po-email/index.ts`
 
-Add a new `isCancellation` boolean parameter to the request interface and modify the email template to conditionally show "CANCELED - Purchase Order" in the header instead of "Purchase Order".
+Add a new `isUpdate` boolean parameter and update the email template logic:
 
-Changes:
-- Add `isCancellation?: boolean` to the `POEmailRequest` interface
-- Update the email template to use conditional title:
-  ```typescript
-  const emailTitle = data.isCancellation ? 'CANCELED - Purchase Order' : 'Purchase Order';
-  ```
-- Update the body text from "You have been awarded this purchase order:" to "This purchase order has been canceled:" when `isCancellation` is true
-- Update email subject line accordingly
+**Changes to interface (line 26-41):**
+```typescript
+interface POEmailRequest {
+  // ... existing fields ...
+  isCancellation?: boolean;
+  isUpdate?: boolean;  // NEW
+}
+```
 
-#### 2. Create a New Mutation for Cancel + Delete
+**Changes to template logic (around line 100-104):**
+```typescript
+// Email title changes based on status
+let emailTitle = 'Purchase Order';
+let awardMessage = 'You have been awarded this purchase order:';
 
-**File:** `src/hooks/usePurchaseOrderMutations.ts`
+if (isCancellation) {
+  emailTitle = 'CANCELED - Purchase Order';
+  awardMessage = 'This purchase order has been canceled:';
+} else if (isUpdate) {
+  emailTitle = 'UPDATED - Purchase Order';
+  awardMessage = 'This purchase order has been updated:';
+}
+```
 
-Add a new mutation `cancelAndDeletePurchaseOrder` that:
-1. Fetches the full PO data (including company, cost code, project address, files)
-2. Calls `send-po-email` with `isCancellation: true`
-3. Deletes the PO from the database
+**Changes to email subject (in the send logic):**
+```typescript
+const emailSubject = isCancellation 
+  ? `CANCELED - Purchase Order - ${finalProjectAddress}`
+  : isUpdate 
+    ? `UPDATED - Purchase Order - ${finalProjectAddress}`
+    : `Purchase Order - ${finalProjectAddress}`;
+```
+
+---
+
+#### 2. Update the Edit Flow to Send Update Email
+
+**File:** `src/components/CreatePurchaseOrderDialog.tsx`
+
+After successfully updating a purchase order (around line 188-209), add the email send logic:
 
 ```typescript
-const cancelAndDeletePurchaseOrder = useMutation({
-  mutationFn: async (purchaseOrder: PurchaseOrder) => {
-    // Step 1: Fetch all necessary data for the email
-    const [projectData, costCodeData, senderData] = await Promise.all([...]);
-    
-    // Step 2: Send cancellation email
-    await supabase.functions.invoke('send-po-email', {
-      body: {
-        purchaseOrderId: purchaseOrder.id,
-        companyId: purchaseOrder.company_id,
-        poNumber: purchaseOrder.po_number,
-        isCancellation: true, // NEW FLAG
-        // ... same fields as regular PO email
+if (editOrder) {
+  // Update existing purchase order
+  const { data, error } = await supabase
+    .from('project_purchase_orders')
+    .update({...})
+    .eq('id', editOrder.id)
+    .select('*, po_number')  // Include po_number in response
+    .single();
+
+  if (error) throw error;
+
+  // Send the update notification email
+  const [projectData, senderData] = await Promise.all([
+    supabase.from('projects').select('address').eq('id', projectId).single(),
+    supabase.auth.getUser().then(async (userResult) => {
+      if (userResult.data.user) {
+        const { data } = await supabase.from('users')
+          .select('company_name').eq('id', userResult.data.user.id).single();
+        return data;
       }
-    });
-    
-    // Step 3: Delete the PO
-    const { error } = await supabase
-      .from('project_purchase_orders')
-      .delete()
-      .eq('id', purchaseOrder.id);
-    
-    if (error) throw error;
-  }
-});
+      return null;
+    })
+  ]);
+
+  const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
+    body: {
+      purchaseOrderId: data.id,
+      companyId: selectedCompany.id,
+      poNumber: data.po_number,
+      projectAddress: projectData.data?.address || 'N/A',
+      companyName: selectedCompany.name,
+      customMessage: customMessage.trim() || undefined,
+      totalAmount: amount ? parseFloat(amount) : 0,
+      costCode: { code: selectedCostCode.code, name: selectedCostCode.name },
+      senderCompanyName: senderData?.company_name || 'Builder Suite AI',
+      isUpdate: true  // NEW FLAG
+    }
+  });
+
+  // Handle email result with toast
+}
 ```
 
-#### 3. Update the Delete Confirmation Dialog Message
-
-**File:** `src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx`
-
-Update the `DeleteButton` description to inform users about the cancellation email:
-
-```typescript
-<DeleteButton
-  onDelete={() => onDelete(item)}  // Pass full item instead of just ID
-  title="Cancel Purchase Order"
-  description={`Are you sure you want to cancel PO "${item.po_number}"? A cancellation email will be sent to all company representatives who receive PO notifications.`}
-  // ...
-/>
-```
-
-#### 4. Update Component Chain to Pass Full PO Object
-
-Currently, `onDelete` only receives `itemId`. We need to pass the full PO object so we have all the data needed for the cancellation email without refetching.
-
-**Files to update:**
-- `PurchaseOrdersTableRowActions.tsx` - Change `onDelete(item.id)` to `onDelete(item)`
-- `PurchaseOrdersTableRowContent.tsx` - Update `onDelete` prop type
-- `PurchaseOrdersTableRow.tsx` - Update `onDelete` prop type
-- `PurchaseOrdersTable.tsx` - Update handler
-
-### Flow Diagram
-
-```text
-User clicks Delete
-       ↓
-Confirmation Dialog appears:
-"Are you sure you want to cancel PO 2026-7659W-0003?
-A cancellation email will be sent to all company
-representatives who receive PO notifications."
-       ↓
-User clicks "Delete" (or "Cancel PO")
-       ↓
-cancelAndDeletePurchaseOrder mutation runs:
-  1. Send cancellation email (isCancellation: true)
-  2. Delete PO from database
-       ↓
-Success toast: "Purchase order canceled and notification sent"
-```
-
-### Email Changes
-
-The cancellation email will look identical to the regular PO email except:
-- **Header**: "CANCELED - Purchase Order" (instead of "Purchase Order")
-- **Body message**: "This purchase order has been canceled:" (instead of "You have been awarded this purchase order:")
-- **Email subject**: "CANCELED - Purchase Order for [address]"
+---
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/send-po-email/index.ts` | Add `isCancellation` parameter, update template |
-| `src/hooks/usePurchaseOrderMutations.ts` | Add `cancelAndDeletePurchaseOrder` mutation |
-| `src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx` | Update dialog message, pass full item |
-| `src/components/purchaseOrders/components/PurchaseOrdersTableRowContent.tsx` | Update prop types |
-| `src/components/purchaseOrders/PurchaseOrdersTableRow.tsx` | Update prop types |
-| `src/components/purchaseOrders/PurchaseOrdersTable.tsx` | Update handler to use new mutation |
+| `supabase/functions/send-po-email/index.ts` | Add `isUpdate` parameter, update email title/subject logic |
+| `src/components/CreatePurchaseOrderDialog.tsx` | Send update email after saving edits |
+
+---
+
+### Email Changes
+
+The update email will look identical to the regular PO email except:
+- **Header**: "UPDATED - Purchase Order" (instead of "Purchase Order")
+- **Body message**: "This purchase order has been updated:" (instead of "You have been awarded this purchase order:")
+- **Email subject**: "UPDATED - Purchase Order - [address]"
+
+---
+
+### Flow Diagram
+
+```text
+User edits PO and clicks "Update Purchase Order"
+       ↓
+Database is updated with new values
+       ↓
+send-po-email invoked with isUpdate: true
+       ↓
+Email sent to all representatives with receive_po_notifications = true
+       ↓
+Success toast: "Purchase order updated and notification sent to X recipients"
+```
+
+---
 
 ### Notes
-- Uses the same `receive_po_notifications` flag - if they receive PO emails, they receive cancellation emails
-- The cancellation email is sent BEFORE deletion, so we still have access to all the PO data
-- If the email fails to send, the PO will NOT be deleted (user will see an error)
-
+- Uses the same `receive_po_notifications` flag - same people who get PO emails get update emails
+- The update email contains all the current PO information (not a diff of what changed)
+- If the email fails to send, the PO update still succeeds but user sees a warning toast
