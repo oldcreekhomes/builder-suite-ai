@@ -1,5 +1,6 @@
 import { Download, FileText, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { openExternal } from "@/lib/openExternal";
 
 interface FileAttachmentProps {
   fileUrl: string;
@@ -18,7 +19,7 @@ export function FileAttachment({ fileUrl, index }: FileAttachmentProps) {
             src={fileUrl} 
             alt={fileName}
             className="max-w-full h-auto rounded cursor-pointer"
-            onClick={() => window.open(fileUrl, '_blank')}
+            onClick={() => openExternal(fileUrl)}
           />
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center space-x-1">
@@ -29,7 +30,7 @@ export function FileAttachment({ fileUrl, index }: FileAttachmentProps) {
               size="sm"
               variant="ghost"
               className="h-6 w-6 p-0"
-              onClick={() => window.open(fileUrl, '_blank')}
+              onClick={() => openExternal(fileUrl)}
             >
               <Download className="h-3 w-3" />
             </Button>
@@ -45,7 +46,7 @@ export function FileAttachment({ fileUrl, index }: FileAttachmentProps) {
             size="sm"
             variant="ghost"
             className="h-6 w-6 p-0"
-            onClick={() => window.open(fileUrl, '_blank')}
+            onClick={() => openExternal(fileUrl)}
           >
             <Download className="h-3 w-3" />
           </Button>

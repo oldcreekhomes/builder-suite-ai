@@ -48,6 +48,7 @@ import BidSubmissionConfirmation from "./pages/BidSubmissionConfirmation";
 import BidDeclined from "./pages/BidDeclined";
 import SubmitBid from "./pages/SubmitBid";
 import CloseBooks from "./pages/accounting/CloseBooks";
+import OutboundRedirect from "./pages/OutboundRedirect";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,9 @@ const AppContent = () => {
           
           {/* Password Reset route - MUST be accessible without authentication */}
           <Route path="/reset-password" element={<PasswordReset />} />
+          
+          {/* Outbound redirect - no authentication required */}
+          <Route path="/out" element={<OutboundRedirect />} />
           
           {/* Shared routes - no authentication required */}
           <Route path="/s/p/:shareId" element={<SharedPhoto />} />
