@@ -198,15 +198,59 @@ export const CreatePurchaseOrderDialog = ({
             files: JSON.parse(JSON.stringify(uploadedFiles)),
           })
           .eq('id', editOrder.id)
-          .select()
+          .select('*, po_number')
           .single();
 
         if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Purchase order updated successfully",
+        // Send update notification email
+        const [projectData, senderData] = await Promise.all([
+          supabase
+            .from('projects')
+            .select('address')
+            .eq('id', projectId)
+            .single(),
+          supabase.auth.getUser().then(async (userResult) => {
+            if (userResult.data.user) {
+              const { data } = await supabase
+                .from('users')
+                .select('company_name')
+                .eq('id', userResult.data.user.id)
+                .single();
+              return data;
+            }
+            return null;
+          })
+        ]);
+
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
+          body: {
+            purchaseOrderId: data.id,
+            companyId: selectedCompany.id,
+            poNumber: data.po_number,
+            projectAddress: projectData.data?.address || 'N/A',
+            companyName: selectedCompany.name,
+            customMessage: customMessage.trim() || undefined,
+            totalAmount: amount ? parseFloat(amount) : 0,
+            costCode: { code: selectedCostCode.code, name: selectedCostCode.name },
+            senderCompanyName: senderData?.company_name || 'Builder Suite AI',
+            isUpdate: true
+          }
         });
+
+        if (emailError) {
+          console.error('Error sending update email:', emailError);
+          toast({
+            title: "Warning",
+            description: "Purchase order updated but notification email failed to send",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: `Purchase order updated and notification sent to ${emailData.emailsSent} recipients`,
+          });
+        }
       } else {
         // Create new purchase order with pending status
         const { data: purchaseOrder, error } = await supabase

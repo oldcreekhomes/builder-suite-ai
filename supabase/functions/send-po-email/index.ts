@@ -38,6 +38,7 @@ interface POEmailRequest {
   testEmail?: string;
   files?: any[];
   isCancellation?: boolean;
+  isUpdate?: boolean;
 }
 
 const generateFileDownloadLinks = (files: any[]) => {
@@ -96,12 +97,19 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const customMessage = data.customMessage;
   const contractFiles = data.contractFiles || [];
   const isCancellation = data.isCancellation || false;
+  const isUpdate = data.isUpdate || false;
   
-  // Email title changes based on cancellation status
-  const emailTitle = isCancellation ? 'CANCELED - Purchase Order' : 'Purchase Order';
-  const awardMessage = isCancellation 
-    ? 'This purchase order has been canceled:' 
-    : 'You have been awarded this purchase order:';
+  // Email title changes based on status
+  let emailTitle = 'Purchase Order';
+  let awardMessage = 'You have been awarded this purchase order:';
+  
+  if (isCancellation) {
+    emailTitle = 'CANCELED - Purchase Order';
+    awardMessage = 'This purchase order has been canceled:';
+  } else if (isUpdate) {
+    emailTitle = 'UPDATED - Purchase Order';
+    awardMessage = 'This purchase order has been updated:';
+  }
 
   // Helper function to extract simple filename from technical filename
   const getSimpleFilename = (filename: string) => {
@@ -593,11 +601,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate email HTML with confirmation buttons (including for test emails)
     const isCancellation = requestData.isCancellation || false;
+    const isUpdate = requestData.isUpdate || false;
     
-    // Generate email subject based on cancellation status
-    const emailSubject = isCancellation 
-      ? `CANCELED - Purchase Order - ${finalProjectAddress || 'Project'}`
-      : `Purchase Order - ${finalProjectAddress || 'Project'}`;
+    // Generate email subject based on status
+    let emailSubject = `Purchase Order - ${finalProjectAddress || 'Project'}`;
+    if (isCancellation) {
+      emailSubject = `CANCELED - Purchase Order - ${finalProjectAddress || 'Project'}`;
+    } else if (isUpdate) {
+      emailSubject = `UPDATED - Purchase Order - ${finalProjectAddress || 'Project'}`;
+    }
 
     const emailHTML = generatePOEmailHTML({
       projectAddress: finalProjectAddress,
@@ -612,7 +624,8 @@ const handler = async (req: Request): Promise<Response> => {
       customMessage,
       contractFiles: [], // Clear contract files since we're using proposal files as approved files
       poNumber: poNumber || requestData.poNumber, // Use DB value first, fallback to request
-      isCancellation
+      isCancellation,
+      isUpdate
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients
