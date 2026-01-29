@@ -34,6 +34,7 @@ interface IncludedBillPayment {
   bill_id: string;
   reference_number: string | null;
   amount_allocated: number;
+  accountDisplay: string | null;
 }
 
 interface Transaction {
@@ -406,14 +407,15 @@ export function AccountDetailDialog({
           `)
           .in('bill_payment_id', consolidatedPaymentIds);
 
-        // Group allocations by payment id
+        // Group allocations by payment id (accountDisplay will be populated after costCodesMap/accountsDisplayMap are ready)
         if (billPaymentAllocations) {
           billPaymentAllocations.forEach(alloc => {
             const bill = alloc.bills as unknown as { reference_number: string | null } | null;
             const summary: IncludedBillPayment = {
               bill_id: alloc.bill_id,
               reference_number: bill?.reference_number || null,
-              amount_allocated: Number(alloc.amount_allocated)
+              amount_allocated: Number(alloc.amount_allocated),
+              accountDisplay: null // Will be populated after maps are ready
             };
             const existing = allocationsByPaymentId.get(alloc.bill_payment_id) || [];
             existing.push(summary);
@@ -530,6 +532,20 @@ export function AccountDetailDialog({
           accountsDisplayMap.set(acc.id, `${acc.code} - ${acc.name}`);
         });
       }
+
+      // Populate accountDisplay for consolidated bill payment allocations now that maps are ready
+      allocationsByPaymentId.forEach((allocations) => {
+        allocations.forEach(alloc => {
+          const firstLine = firstLineByBillForConsolidated.get(alloc.bill_id);
+          if (firstLine) {
+            if (firstLine.cost_code_id && costCodesMap.has(firstLine.cost_code_id)) {
+              alloc.accountDisplay = costCodesMap.get(firstLine.cost_code_id) || null;
+            } else if (firstLine.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+              alloc.accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
+            }
+          }
+        });
+      });
 
       const transactions: Transaction[] = filteredData.map((line: any) => {
         let memo = line.memo;
@@ -1150,10 +1166,10 @@ export function AccountDetailDialog({
                               <div className="space-y-1">
                                 <p className="font-medium text-xs mb-2">Included Bills:</p>
                                 {(txn.includedBillPayments || [])
-                                  .sort((a, b) => (a.reference_number || '').localeCompare(b.reference_number || ''))
-                                  .map((bp, i) => (
+                                  .sort((a, b) => (a.accountDisplay || '').localeCompare(b.accountDisplay || ''))
+                                  .map((bp) => (
                                   <div key={bp.bill_id} className="flex justify-between gap-4 text-xs">
-                                    <span>{bp.reference_number || '(No ref)'}</span>
+                                    <span className="truncate max-w-[150px]">{bp.accountDisplay || 'Unknown Account'}</span>
                                     <span>{formatTooltipCurrency(bp.amount_allocated)}</span>
                                   </div>
                                 ))}
