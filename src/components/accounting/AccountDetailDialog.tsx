@@ -1093,15 +1093,15 @@ export function AccountDetailDialog({
             <Table className="text-xs">
               <TableHeader>
                 <TableRow className="h-8">
-                  <TableHead className="h-8 px-2 py-1">Type</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Name</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Account</TableHead>
-                  <TableHead className="h-8 px-2 py-1">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-28">Type</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-24">Date</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-32">Name</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-36">Account</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-40">Description</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-24 text-right">Amount</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-24 text-right">Balance</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-16 text-center">Cleared</TableHead>
+                  <TableHead className="h-8 px-2 py-1 w-16 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1146,19 +1146,26 @@ export function AccountDetailDialog({
                           readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
                         />
                       </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <AccountTransactionInlineEditor
-                          value={txn.reference || '-'}
-                          field="reference"
-                          onSave={(value) => handleUpdate(txn, "reference", value)}
-                          readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type) || isConsolidated}
-                        />
+                      <TableCell className="px-2 py-1 max-w-[120px]">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="truncate">
+                              <AccountTransactionInlineEditor
+                                value={txn.reference || '-'}
+                                field="reference"
+                                onSave={(value) => handleUpdate(txn, "reference", value)}
+                                readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type) || isConsolidated}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>{txn.reference || '-'}</TooltipContent>
+                        </Tooltip>
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 max-w-[140px]">
                         {isConsolidated && extraCount > 0 ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-xs cursor-help">
+                              <span className="text-xs cursor-help truncate block">
                                 {txn.accountDisplay || '-'} <span className="text-muted-foreground">+{extraCount}</span>
                               </span>
                             </TooltipTrigger>
@@ -1181,16 +1188,28 @@ export function AccountDetailDialog({
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <span className="text-xs">{txn.accountDisplay || '-'}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs truncate block">{txn.accountDisplay || '-'}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>{txn.accountDisplay || '-'}</TooltipContent>
+                          </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="px-2 py-1">
-                        <AccountTransactionInlineEditor
-                          value={txn.description || '-'}
-                          field="description"
-                          onSave={(value) => handleUpdate(txn, "description", value)}
-                          readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
-                        />
+                      <TableCell className="px-2 py-1 max-w-[160px]">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="truncate">
+                              <AccountTransactionInlineEditor
+                                value={txn.description || '-'}
+                                field="description"
+                                onSave={(value) => handleUpdate(txn, "description", value)}
+                                readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">{txn.description || '-'}</TooltipContent>
+                        </Tooltip>
                       </TableCell>
               <TableCell className="px-2 py-1 text-right">
                 <span className="text-xs">{formatTransactionAmount(txn, accountType)}</span>
