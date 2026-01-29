@@ -1,98 +1,114 @@
 
-## Single-Line Bank Register Rows with Truncation and Tooltips
+
+## Fix Schedule Auto-Scheduling to Eliminate Gaps on Refresh
 
 ### Problem
-The bank register table has rows spanning multiple lines because the Name, Account, and Description columns allow text to wrap. This looks messy and makes the table hard to scan.
+When you refresh the Schedule page, tasks with predecessors can have incorrect gaps. For example:
+- Task 7.15 ends on 03-11
+- Task 7.16 (predecessor: 7.15) starts on 03-23 instead of 03-12
+
+The current `recalculateAllTaskDates` function only fixes **violations** (tasks starting BEFORE their predecessor ends) but NOT **gaps** (tasks starting AFTER the minimum required date).
 
 ### Solution
-Add fixed column widths with text truncation (`truncate` class) and tooltips on hover to show full text. All rows will be exactly one line tall.
+Two key changes:
+1. **Fix `scheduleRecalculation.ts`** - Change from "fix violations only" to "fix all date mismatches"
+2. **Run recalculation on page load** - Auto-fix dates when the Schedule page loads, not just on manual Repair
 
-### Changes to AccountDetailDialog.tsx
+---
 
-**1. Update Table Headers (lines 1096-1104)**
-Add fixed widths to control column sizing:
+### Technical Changes
 
-| Column | Width | Reason |
-|--------|-------|--------|
-| Type | w-28 | Fixed for "Bill Pmt - Check" |
-| Date | w-24 | Fixed for date format |
-| Name | w-32 | Truncate with tooltip |
-| Account | w-36 | Truncate with tooltip |
-| Description | w-40 | Truncate with tooltip |
-| Amount | w-24 | Right-aligned numbers |
-| Balance | w-24 | Right-aligned numbers |
-| Cleared | w-16 | Centered checkmark |
-| Actions | w-16 | Centered icons |
+#### 1. Update `recalculateAllTaskDates` logic (`src/utils/scheduleRecalculation.ts`)
 
-**2. Name Column (lines 1149-1156)**
-Wrap the `AccountTransactionInlineEditor` in a truncating container with tooltip:
-
-```tsx
-<TableCell className="px-2 py-1 max-w-[120px]">
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <div className="truncate">
-        <AccountTransactionInlineEditor
-          value={txn.reference || '-'}
-          field="reference"
-          ...
-        />
-      </div>
-    </TooltipTrigger>
-    <TooltipContent>{txn.reference || '-'}</TooltipContent>
-  </Tooltip>
-</TableCell>
+**Current behavior (line 159-161):**
+```typescript
+// ONLY FIX VIOLATIONS: If current start is BEFORE required start, push it forward
+// This preserves intentional gaps where tasks are scheduled later than minimum
+if (currentStartYmd < requiredStartYmd) {
 ```
 
-**3. Account Column (lines 1157-1185)**
-Add truncation to both consolidated and regular displays:
-
-```tsx
-<TableCell className="px-2 py-1 max-w-[140px]">
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <span className="text-xs truncate block">
-        {txn.accountDisplay || '-'}
-      </span>
-    </TooltipTrigger>
-    <TooltipContent>{txn.accountDisplay || '-'}</TooltipContent>
-  </Tooltip>
-</TableCell>
+**New behavior:**
+```typescript
+// FIX ALL DATE MISMATCHES: Ensure tasks start on the exact date required by predecessors
+// No gaps allowed - tasks should always start at the earliest valid date
+if (currentStartYmd !== requiredStartYmd) {
 ```
 
-**4. Description Column (lines 1187-1194)**
-Wrap the `AccountTransactionInlineEditor` with truncation and tooltip:
+This single change ensures both violations AND gaps are fixed.
 
-```tsx
-<TableCell className="px-2 py-1 max-w-[160px]">
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <div className="truncate">
-        <AccountTransactionInlineEditor
-          value={txn.description || '-'}
-          field="description"
-          ...
-        />
-      </div>
-    </TooltipTrigger>
-    <TooltipContent className="max-w-xs">
-      {txn.description || '-'}
-    </TooltipContent>
-  </Tooltip>
-</TableCell>
+#### 2. Update cascade logic (`src/hooks/useTaskMutations.tsx`)
+
+Apply the same change to `cascadeToDependents` (lines 170-171):
+
+**Current:**
+```typescript
+// ONLY fix violations - if current start is BEFORE required, push it
+if (currentStart < requiredStart) {
 ```
 
-**5. Ensure single-line row height**
-Add `whitespace-nowrap` to TableRow and ensure all text uses truncation
+**New:**
+```typescript
+// Fix all date mismatches - no gaps allowed
+if (currentStart !== requiredStart) {
+```
+
+#### 3. Add auto-fix on Schedule page load (`src/components/schedule/CustomGanttChart.tsx`)
+
+Add a `useEffect` that runs `recalculateAllTaskDates` when tasks first load:
+
+```typescript
+// Auto-fix schedule on load - ensures no gaps or violations exist
+const hasRunAutoFix = useRef(false);
+
+useEffect(() => {
+  if (!isLoading && tasks.length > 0 && user && !hasRunAutoFix.current) {
+    hasRunAutoFix.current = true;
+    
+    // Run recalculation silently on load
+    (async () => {
+      console.log('🔄 Auto-fixing schedule on page load...');
+      const result = await recalculateAllTaskDates(projectId, tasks);
+      if (result.updatedCount > 0) {
+        console.log(`✅ Auto-fixed ${result.updatedCount} tasks on load`);
+        queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
+      }
+    })();
+  }
+}, [isLoading, tasks.length, user, projectId, queryClient]);
+```
+
+#### 4. Reset auto-fix ref when project changes
+
+```typescript
+useEffect(() => {
+  hasRunAutoFix.current = false;
+}, [projectId]);
+```
+
+---
 
 ### Files to Modify
+
 | File | Change |
 |------|--------|
-| `src/components/accounting/AccountDetailDialog.tsx` | Add column widths, truncation, and tooltips |
+| `src/utils/scheduleRecalculation.ts` | Change `<` to `!==` on line 161 to fix gaps as well as violations |
+| `src/hooks/useTaskMutations.tsx` | Change `<` to `!==` on line 171 in cascade logic |
+| `src/components/schedule/CustomGanttChart.tsx` | Add useEffect to run auto-fix on page load |
 
-### Result After Implementation
-- All rows display on exactly one line
-- "Old Creek Homes, LLC" shows as "Old Creek Ho..." with full name on hover
-- "2440 - Land Carrying Costs" shows as "2440 - Land Ca..." with full text on hover
-- "Backfilled consolidated payment - 2 bills" shows truncated with full text on hover
-- Clean, scannable table that matches professional accounting software
+---
+
+### Expected Behavior After Fix
+
+1. **On page load/refresh**: All tasks with predecessors are automatically adjusted to start on the correct date (no gaps, no violations)
+2. **On any task date change**: Dependent tasks cascade immediately to maintain tight scheduling
+3. **Repair button**: Still works as before, but will find fewer issues since auto-fix runs on load
+
+### Example Fix
+Before:
+- 7.15: ends 03-11
+- 7.16: starts 03-23 (12-day gap - WRONG)
+
+After:
+- 7.15: ends 03-11
+- 7.16: starts 03-12 (next business day - CORRECT)
+
