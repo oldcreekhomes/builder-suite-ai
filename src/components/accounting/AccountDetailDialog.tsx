@@ -30,6 +30,12 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
+interface IncludedBillPayment {
+  bill_id: string;
+  reference_number: string | null;
+  amount_allocated: number;
+}
+
 interface Transaction {
   source_id: string;
   line_id: string;
@@ -46,6 +52,9 @@ interface Transaction {
   reconciled: boolean;
   reconciliation_date?: string | null;
   isPaid?: boolean;
+  // For consolidated bill payments
+  includedBillPayments?: IncludedBillPayment[];
+  consolidatedTotalAmount?: number;
 }
 
 interface AccountDetailDialogProps {
@@ -341,20 +350,128 @@ export function AccountDetailDialog({
         });
       }
 
+      // Collect all unique cost_code_ids and account_ids for lookup (declared early for consolidated payments)
+      const allCostCodeIds = new Set<string>();
+      const allAccountIds = new Set<string>();
+
+      // ========== FETCH CONSOLIDATED BILL PAYMENTS ==========
+      // Fetch from bill_payments table to detect multi-bill payments
+      let consolidatedPaymentsQuery = supabase
+        .from('bill_payments')
+        .select(`
+          id,
+          payment_date,
+          payment_account_id,
+          vendor_id,
+          total_amount,
+          check_number,
+          memo,
+          reconciled,
+          reconciliation_id,
+          reconciliation_date,
+          created_at
+        `)
+        .eq('payment_account_id', accountId);
+
+      if (projectId) {
+        consolidatedPaymentsQuery = consolidatedPaymentsQuery.eq('project_id', projectId);
+      } else {
+        consolidatedPaymentsQuery = consolidatedPaymentsQuery.is('project_id', null);
+      }
+
+      if (asOfDate) {
+        consolidatedPaymentsQuery = consolidatedPaymentsQuery.lte('payment_date', asOfDate.toISOString().split('T')[0]);
+      }
+
+      const { data: consolidatedPayments } = await consolidatedPaymentsQuery;
+
+      // Build allocation maps for consolidated payments
+      const allocationsByPaymentId = new Map<string, IncludedBillPayment[]>();
+      const billIdsInConsolidatedPayments = new Set<string>();
+      let vendorNamesForConsolidated = new Map<string, string>();
+      const firstLineByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null }>();
+
+      if (consolidatedPayments && consolidatedPayments.length > 0) {
+        const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
+        
+        // Fetch allocations
+        const { data: billPaymentAllocations } = await supabase
+          .from('bill_payment_allocations')
+          .select(`
+            id,
+            bill_payment_id,
+            bill_id,
+            amount_allocated,
+            bills:bill_id (reference_number)
+          `)
+          .in('bill_payment_id', consolidatedPaymentIds);
+
+        // Group allocations by payment id
+        if (billPaymentAllocations) {
+          billPaymentAllocations.forEach(alloc => {
+            const bill = alloc.bills as unknown as { reference_number: string | null } | null;
+            const summary: IncludedBillPayment = {
+              bill_id: alloc.bill_id,
+              reference_number: bill?.reference_number || null,
+              amount_allocated: Number(alloc.amount_allocated)
+            };
+            const existing = allocationsByPaymentId.get(alloc.bill_payment_id) || [];
+            existing.push(summary);
+            allocationsByPaymentId.set(alloc.bill_payment_id, existing);
+            billIdsInConsolidatedPayments.add(alloc.bill_id);
+          });
+        }
+
+        // Fetch vendor names for consolidated payments
+        const vendorIds = [...new Set(consolidatedPayments.map(cp => cp.vendor_id))];
+        if (vendorIds.length > 0) {
+          const { data: vendorData } = await supabase
+            .from('companies')
+            .select('id, company_name')
+            .in('id', vendorIds);
+          vendorData?.forEach(v => vendorNamesForConsolidated.set(v.id, v.company_name));
+        }
+
+        // Fetch primary account/cost code for display (from first bill's first line)
+        const allBillIdsInPayments = [...billIdsInConsolidatedPayments];
+        if (allBillIdsInPayments.length > 0) {
+          const { data: billLinesData } = await supabase
+            .from('bill_lines')
+            .select('bill_id, line_number, cost_code_id, account_id')
+            .in('bill_id', allBillIdsInPayments)
+            .order('line_number', { ascending: true });
+
+          // Group by bill_id, get first line
+          (billLinesData || []).forEach(bl => {
+            if (!firstLineByBillForConsolidated.has(bl.bill_id)) {
+              firstLineByBillForConsolidated.set(bl.bill_id, { cost_code_id: bl.cost_code_id, account_id: bl.account_id });
+            }
+          });
+
+          // Collect cost code/account IDs for lookup
+          firstLineByBillForConsolidated.forEach(fl => {
+            if (fl.cost_code_id) allCostCodeIds.add(fl.cost_code_id);
+            if (fl.account_id) allAccountIds.add(fl.account_id);
+          });
+        }
+      }
+
       // Client-side defensive filter: only show journal lines whose source records exist in the filtered maps
+      // AND exclude bill_payment lines that belong to consolidated payments
       const filteredData = (data || []).filter((line: any) => {
         const st = line.journal_entries.source_type;
         const sid = line.journal_entries.source_id;
         if (st === 'deposit') return depositsMap.has(sid);
         if (st === 'check') return checksMap.has(sid);
         if (st === 'credit_card') return creditCardsMap.has(sid);
-        if (st === 'bill' || st === 'bill_payment') return billsMap.has(sid);
+        if (st === 'bill') return billsMap.has(sid);
+        // Suppress bill_payment lines if the bill is part of a consolidated payment
+        if (st === 'bill_payment') {
+          if (billIdsInConsolidatedPayments.has(sid)) return false;
+          return billsMap.has(sid);
+        }
         return true; // keep manual types
       });
-
-      // Collect all unique cost_code_ids and account_ids for lookup
-      const allCostCodeIds = new Set<string>();
-      const allAccountIds = new Set<string>();
 
       // From journal entry lines
       filteredData.forEach((line: any) => {
@@ -532,6 +649,50 @@ export function AccountDetailDialog({
           isPaid: isPaid,
         };
       });
+
+      // ========== CREATE SYNTHETIC CONSOLIDATED BILL PAYMENT ROWS ==========
+      if (consolidatedPayments && consolidatedPayments.length > 0) {
+        consolidatedPayments.forEach(cp => {
+          const allocations = allocationsByPaymentId.get(cp.id) || [];
+          const vendorName = vendorNamesForConsolidated.get(cp.vendor_id) || 'Unknown Vendor';
+          
+          // Get primary account display from first bill's first line
+          let accountDisplay: string | null = null;
+          if (allocations.length > 0) {
+            const firstBillId = allocations[0].bill_id;
+            const firstLine = firstLineByBillForConsolidated.get(firstBillId);
+            if (firstLine) {
+              if (firstLine.cost_code_id && costCodesMap.has(firstLine.cost_code_id)) {
+                accountDisplay = costCodesMap.get(firstLine.cost_code_id) || null;
+              } else if (firstLine.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+                accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
+              }
+            }
+          }
+
+          const syntheticRow: Transaction = {
+            source_id: cp.id,
+            line_id: `consolidated:${cp.id}`,
+            journal_entry_id: `consolidated:${cp.id}`,
+            date: cp.payment_date,
+            memo: cp.memo,
+            description: cp.check_number || cp.memo || null,
+            reference: vendorName,
+            accountDisplay: accountDisplay,
+            source_type: 'consolidated_bill_payment',
+            debit: 0,
+            credit: Number(cp.total_amount),
+            created_at: cp.created_at || new Date().toISOString(),
+            reconciled: cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date,
+            reconciliation_date: cp.reconciliation_date,
+            isPaid: true,
+            includedBillPayments: allocations,
+            consolidatedTotalAmount: Number(cp.total_amount),
+          };
+          
+          transactions.push(syntheticRow);
+        });
+      }
 
       // Fully deterministic sort: date, then created_at, then journal_entry_id, then line_id
       transactions.sort((a, b) => {
@@ -934,12 +1095,26 @@ export function AccountDetailDialog({
                     switch (sourceType) {
                       case 'bill': return 'Bill';
                       case 'bill_payment': return 'Bill Pmt - Check';
+                      case 'consolidated_bill_payment': return 'Bill Pmt - Check';
                       case 'check': return 'Check';
                       case 'deposit': return 'Deposit';
                       case 'credit_card': return 'Credit Card';
                       case 'manual': return 'Journal Entry';
                       default: return sourceType;
                     }
+                  };
+
+                  // Check if this is a consolidated payment with multiple bills
+                  const isConsolidated = txn.source_type === 'consolidated_bill_payment';
+                  const extraCount = isConsolidated && txn.includedBillPayments ? txn.includedBillPayments.length - 1 : 0;
+                  
+                  // Format currency for tooltip
+                  const formatTooltipCurrency = (amount: number) => {
+                    return new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                      minimumFractionDigits: 2,
+                    }).format(amount);
                   };
 
                   return (
@@ -952,7 +1127,7 @@ export function AccountDetailDialog({
                           value={toLocalDate(txn.date)}
                           field="date"
                           onSave={(value) => handleUpdate(txn, "date", value)}
-                          readOnly={!canDeleteBills || txn.reconciled}
+                          readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
                         />
                       </TableCell>
                       <TableCell className="px-2 py-1">
@@ -960,18 +1135,45 @@ export function AccountDetailDialog({
                           value={txn.reference || '-'}
                           field="reference"
                           onSave={(value) => handleUpdate(txn, "reference", value)}
-                          readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type)}
+                          readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type) || isConsolidated}
                         />
                       </TableCell>
                       <TableCell className="px-2 py-1">
-                        <span className="text-xs">{txn.accountDisplay || '-'}</span>
+                        {isConsolidated && extraCount > 0 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs cursor-help">
+                                {txn.accountDisplay || '-'} <span className="text-muted-foreground">+{extraCount}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" align="start" className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-medium text-xs mb-2">Included Bills:</p>
+                                {(txn.includedBillPayments || [])
+                                  .sort((a, b) => (a.reference_number || '').localeCompare(b.reference_number || ''))
+                                  .map((bp, i) => (
+                                  <div key={bp.bill_id} className="flex justify-between gap-4 text-xs">
+                                    <span>{bp.reference_number || '(No ref)'}</span>
+                                    <span>{formatTooltipCurrency(bp.amount_allocated)}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-1 mt-1 flex justify-between gap-4 text-xs font-medium">
+                                  <span>Total</span>
+                                  <span>{formatTooltipCurrency(txn.consolidatedTotalAmount || 0)}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-xs">{txn.accountDisplay || '-'}</span>
+                        )}
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <AccountTransactionInlineEditor
                           value={txn.description || '-'}
                           field="description"
                           onSave={(value) => handleUpdate(txn, "description", value)}
-                          readOnly={!canDeleteBills || txn.reconciled}
+                          readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
                         />
                       </TableCell>
               <TableCell className="px-2 py-1 text-right">
@@ -987,7 +1189,7 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && (
+                          {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && !isConsolidated && (
                             <DeleteButton
                               onDelete={() => handleDelete(txn)}
                               title="Delete Transaction"
