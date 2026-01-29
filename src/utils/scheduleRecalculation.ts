@@ -156,13 +156,13 @@ export async function recalculateAllTaskDates(
       const currentStartYmd = currentTask.start_date.split('T')[0];
       const requiredStartYmd = dateUpdate.startDate;
       
-      // ONLY FIX VIOLATIONS: If current start is BEFORE required start, push it forward
-      // This preserves intentional gaps where tasks are scheduled later than minimum
-      if (currentStartYmd < requiredStartYmd) {
+      // FIX ALL DATE MISMATCHES: Ensure tasks start on the exact date required by predecessors
+      // No gaps allowed - tasks should always start at the earliest valid date
+      if (currentStartYmd !== requiredStartYmd) {
         const newStartDate = dateUpdate.startDate + 'T00:00:00';
         const newEndDate = dateUpdate.endDate + 'T00:00:00';
         
-        console.log(`📅 FIXING VIOLATION - Task ${currentTask.hierarchy_number} "${currentTask.task_name}": ${currentStartYmd} → ${requiredStartYmd} (was before predecessor end)`);
+        console.log(`📅 FIXING DATE MISMATCH - Task ${currentTask.hierarchy_number} "${currentTask.task_name}": ${currentStartYmd} → ${requiredStartYmd}`);
         
         // Update our tracking map
         updatedTasks.set(task.id, {

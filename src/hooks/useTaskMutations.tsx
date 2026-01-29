@@ -167,9 +167,9 @@ export const useTaskMutations = (projectId: string) => {
         const currentStart = normalizeToYMD(freshDependent.start_date);
         const requiredStart = calculatedDates.startDate;
         
-        // ONLY fix violations - if current start is BEFORE required, push it
-        if (currentStart < requiredStart) {
-          console.log(`🔗 Cascading to ${freshDependent.hierarchy_number}: ${currentStart} → ${requiredStart} (violation fix)`);
+        // Fix all date mismatches - no gaps allowed
+        if (currentStart !== requiredStart) {
+          console.log(`🔗 Cascading to ${freshDependent.hierarchy_number}: ${currentStart} → ${requiredStart}`);
           
           const newStartDate = calculatedDates.startDate + 'T00:00:00';
           const newEndDate = calculatedDates.endDate + 'T00:00:00';
