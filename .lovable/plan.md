@@ -1,83 +1,99 @@
 
-## Fix: Consolidated Bill Payments Not Showing as Single Row
+## Change Consolidated Payment Tooltip to Show Cost Codes Instead of Reference Numbers
 
-### Problem Summary
-When you pay multiple bills together (3 checks totaling $5,826.49), the bank register shows 3 separate "Bill Pmt - Check" rows instead of a single consolidated row with a "+2" tooltip. This happens because the payment flow does NOT create the `bill_payments` record that the display logic needs.
+### Overview
+You want the consolidated payment tooltip in the bank register to show the **chart of account or cost code** for each included bill rather than the reference number. This makes more sense for understanding what expenses were paid.
 
-### Root Cause
-The `PayBillsTable` component uses `payMultipleBills` from `useBills.ts`, which:
-- Creates individual journal entries for each bill
-- Updates each bill's status to 'paid'
-- **Never creates the `bill_payments` or `bill_payment_allocations` records**
+### Current Behavior (Screenshot)
+The tooltip shows:
+- `(No ref)    $4,950.00`
+- `06252025    $100.00`
+- `07142025    $776.00`
 
-The `AccountDetailDialog` consolidation logic (that I just implemented) looks for `bill_payments` records to group payments. Since none exist, there's nothing to consolidate.
+### Desired Behavior
+The tooltip should show:
+- `2120 - Permit Fees    $4,950.00`
+- `2440 - Land Carrying    $100.00`
+- `2065 - Architectural    $776.00`
 
-### Solution
-Modify `payMultipleBills` in `src/hooks/useBills.ts` to also create the consolidated payment records when paying multiple bills from the same vendor:
+---
 
-| Step | What Happens |
-|------|--------------|
-| 1 | Group bills by vendor_id |
-| 2 | For each vendor group, create a `bill_payments` record with the total amount |
-| 3 | Create `bill_payment_allocations` linking each bill to the payment |
-| 4 | Continue creating journal entries as before (for ledger accuracy) |
+### Technical Changes
 
-### Technical Details
-
-**File:** `src/hooks/useBills.ts` (lines 373-520)
-
-**Changes to `payMultipleBills` mutation:**
-
-1. After processing all bills successfully, group them by `vendor_id` and `project_id`
-
-2. For each vendor/project group, create a consolidated `bill_payments` record:
+#### 1. Extend the `IncludedBillPayment` interface (line 33-37)
+Add a field for the account/cost code display:
 ```typescript
-const { data: billPayment } = await supabase
-  .from('bill_payments')
-  .insert({
-    owner_id: ownerId,
-    payment_date: paymentDate,
-    payment_account_id: paymentAccountId,
-    vendor_id: vendorId,
-    project_id: projectId,
-    total_amount: groupTotalAmount,
-    memo: memo || null,
-    created_by: user.id
-  })
-  .select()
-  .single();
+interface IncludedBillPayment {
+  bill_id: string;
+  reference_number: string | null;  // Keep for potential future use
+  amount_allocated: number;
+  accountDisplay: string | null;    // NEW: "2120 - Permit Fees"
+}
 ```
 
-3. Create `bill_payment_allocations` for each bill in the group:
-```typescript
-const allocations = billsInGroup.map(bill => ({
-  bill_payment_id: billPayment.id,
-  bill_id: bill.id,
-  amount_allocated: bill.remainingBalance
-}));
+#### 2. Populate `accountDisplay` when building allocations (lines 409-423)
+After fetching `firstLineByBillForConsolidated` and the cost codes/accounts maps, update the allocation building logic to look up the display name:
 
-await supabase
-  .from('bill_payment_allocations')
-  .insert(allocations);
+```typescript
+billPaymentAllocations.forEach(alloc => {
+  const bill = alloc.bills as unknown as { reference_number: string | null } | null;
+  
+  // Look up cost code or account for this bill
+  const firstLine = firstLineByBillForConsolidated.get(alloc.bill_id);
+  let accountDisplay: string | null = null;
+  if (firstLine) {
+    if (firstLine.cost_code_id && costCodesMap.has(firstLine.cost_code_id)) {
+      accountDisplay = costCodesMap.get(firstLine.cost_code_id) || null;
+    } else if (firstLine.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+      accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
+    }
+  }
+  
+  const summary: IncludedBillPayment = {
+    bill_id: alloc.bill_id,
+    reference_number: bill?.reference_number || null,
+    amount_allocated: Number(alloc.amount_allocated),
+    accountDisplay: accountDisplay,  // NEW
+  };
+  // ... rest of the code
+});
 ```
 
-4. Invalidate relevant query caches after success
+**Note**: This requires reordering the code slightly - the `costCodesMap` and `accountsDisplayMap` must be populated **before** we build the allocations. Currently, cost codes and accounts are fetched after the consolidated payment processing block.
 
-### Backfill for Existing Data
-The 01/28/2026 payment you just made needs a backfill. I'll create a `bill_payments` record for the 3 Old Creek Homes bills paid together, along with their allocations. This is a one-time data fix.
+#### 3. Reorder code to ensure lookup maps are ready
+Move the cost code and account fetching logic (lines 510-532) to happen **before** building the `IncludedBillPayment` objects. This ensures `costCodesMap` and `accountsDisplayMap` are available when we need them.
 
-**Data to create:**
-| Table | Data |
-|-------|------|
-| `bill_payments` | vendor: Old Creek Homes, date: 2026-01-28, amount: $5,826.00, account: Sandy Spring Bank |
-| `bill_payment_allocations` | 3 rows linking to bills: $100 + $776 + $4,950 |
+#### 4. Update tooltip rendering (lines 1152-1159)
+Change from displaying `reference_number` to displaying `accountDisplay`:
+
+**Before**:
+```tsx
+<span>{bp.reference_number || '(No ref)'}</span>
+```
+
+**After**:
+```tsx
+<span>{bp.accountDisplay || 'Unknown Account'}</span>
+```
+
+---
 
 ### Files to Modify
-1. `src/hooks/useBills.ts` - Add consolidated payment creation to `payMultipleBills`
-2. Database - One-time backfill for the 01/28/2026 payment
+| File | Change |
+|------|--------|
+| `src/components/accounting/AccountDetailDialog.tsx` | Update interface, reorder fetches, and change tooltip display |
 
-### Result After Fix
-- Future multi-bill payments will automatically create consolidated records
-- Bank register will show single "Bill Pmt - Check" row with "+N" tooltip
-- Reconciliation will match bank statement (one cleared amount)
-- Existing 01/28/2026 payment will be backfilled and display correctly
+---
+
+### Result After Implementation
+The consolidated payment tooltip will show:
+
+| Account | Amount |
+|---------|--------|
+| 2120 - Permit Fees | $4,950.00 |
+| 2440 - Land Carrying Costs | $100.00 |
+| 2065 - Architectural | $776.00 |
+| **Total** | **$5,826.00** |
+
+This matches what the user expects and provides meaningful context about what expenses were included in the combined payment.
