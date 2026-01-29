@@ -497,7 +497,14 @@ export const useBills = () => {
 
           if (updateError) throw updateError;
 
-          results.push({ billId, success: true });
+          results.push({ 
+            billId, 
+            success: true,
+            vendorId: bill.vendor_id,
+            projectId: bill.project_id,
+            ownerId: bill.owner_id,
+            amountPaid: remainingBalance
+          });
         } catch (error) {
           console.error(`Error paying bill ${billId}:`, error);
           errors.push({ billId, error });
@@ -508,6 +515,68 @@ export const useBills = () => {
         throw new Error(`Failed to pay ${errors.length} of ${billIds.length} bills`);
       }
 
+      // === CREATE CONSOLIDATED BILL PAYMENTS ===
+      // Group results by vendor_id + project_id to create consolidated bill_payments records
+      type PaymentResult = { 
+        billId: string; 
+        success: boolean; 
+        vendorId: string; 
+        projectId: string | null; 
+        ownerId: string; 
+        amountPaid: number 
+      };
+      const typedResults = results as PaymentResult[];
+      
+      const groupKey = (r: PaymentResult) => `${r.vendorId}|${r.projectId || 'null'}`;
+      const grouped = typedResults.reduce((acc, r) => {
+        const key = groupKey(r);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(r);
+        return acc;
+      }, {} as Record<string, PaymentResult[]>);
+
+      // For each vendor/project group, create a consolidated bill_payments record
+      for (const [, billsInGroup] of Object.entries(grouped)) {
+        const firstBill = billsInGroup[0];
+        const totalAmount = billsInGroup.reduce((sum, b) => sum + Number(b.amountPaid), 0);
+        
+        // Create the consolidated bill_payments record
+        const { data: billPayment, error: bpError } = await supabase
+          .from('bill_payments')
+          .insert({
+            owner_id: firstBill.ownerId,
+            payment_date: paymentDate,
+            payment_account_id: paymentAccountId,
+            vendor_id: firstBill.vendorId,
+            project_id: firstBill.projectId || null,
+            total_amount: totalAmount,
+            memo: memo || null,
+            created_by: user.id
+          })
+          .select()
+          .single();
+
+        if (bpError) {
+          console.error('Error creating bill_payments record:', bpError);
+          // Continue even if this fails - the journal entries are already created
+        } else if (billPayment) {
+          // Create bill_payment_allocations for each bill in the group
+          const allocations = billsInGroup.map(b => ({
+            bill_payment_id: billPayment.id,
+            bill_id: b.billId,
+            amount_allocated: Number(b.amountPaid)
+          }));
+
+          const { error: allocError } = await supabase
+            .from('bill_payment_allocations')
+            .insert(allocations);
+
+          if (allocError) {
+            console.error('Error creating bill_payment_allocations:', allocError);
+          }
+        }
+      }
+
       return results;
     },
     onSuccess: (data, variables) => {
@@ -515,6 +584,8 @@ export const useBills = () => {
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       toast({
         title: "Success",
         description: `${variables.billIds.length} bill${variables.billIds.length > 1 ? 's' : ''} paid successfully and posted to General Ledger`,
