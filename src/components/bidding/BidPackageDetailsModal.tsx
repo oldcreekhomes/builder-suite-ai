@@ -213,7 +213,6 @@ export function BidPackageDetailsModal({
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="sent">Sent</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
                   </td>
