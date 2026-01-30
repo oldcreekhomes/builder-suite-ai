@@ -41,11 +41,11 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
       case 'no_po':
       default:
         return {
-          icon: Minus,
+          icon: null,
           label: 'No PO',
           tooltip: 'No matching purchase order found',
           bgClass: 'bg-muted hover:bg-muted/80 text-muted-foreground border-muted',
-          iconClass: 'text-muted-foreground',
+          iconClass: '',
         };
     }
   };
@@ -66,7 +66,7 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
             )}
             onClick={onClick}
           >
-            <Icon className={cn("h-3 w-3", config.iconClass)} />
+            {Icon && <Icon className={cn("h-3 w-3", config.iconClass)} />}
             <span>{config.label}</span>
           </Badge>
         </TooltipTrigger>
