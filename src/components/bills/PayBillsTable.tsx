@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/table";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { format } from "date-fns";
+import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
+import { POStatusBadge } from "./POStatusBadge";
+import { POComparisonDialog } from "./POComparisonDialog";
 
 interface BillAttachment {
   id: string;
@@ -109,7 +112,15 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     initialNotes: '',
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
-
+  const [poDialogState, setPoDialogState] = useState<{
+    open: boolean;
+    poMatch: POMatch | null;
+    bill: BillForPayment | null;
+  }>({
+    open: false,
+    poMatch: null,
+    bill: null,
+  });
   const updateNotesMutation = useMutation({
     mutationFn: async ({ billId, newNote, existingNotes }: { billId: string; newNote: string; existingNotes: string }) => {
       // Get user profile for attribution
@@ -496,6 +507,23 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     return filtered;
   }, [sortedBills, searchQuery, dueDateFilter, filterDate]);
 
+  // PO matching for bills
+  const billsForMatching = useMemo(() => {
+    return bills.map(b => ({
+      id: b.id,
+      vendor_id: b.vendor_id,
+      project_id: b.project_id,
+      total_amount: b.total_amount,
+      bill_lines: b.bill_lines?.map(l => ({
+        cost_code_id: l.cost_code_id,
+        amount: l.amount,
+        cost_codes: l.cost_codes
+      }))
+    }));
+  }, [bills]);
+
+  const { data: poMatchingData } = useBillPOMatching(billsForMatching);
+
   // Helper functions for selection
   const getVendorForBill = (billId: string) => {
     const bill = bills.find(b => b.id === billId);
@@ -858,13 +886,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">PO Status</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={12 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
@@ -1029,6 +1058,29 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
+                  {/* PO Status column */}
+                  <TableCell className="px-2 py-1 w-20 text-center">
+                    {(() => {
+                      const matchResult = poMatchingData?.get(bill.id);
+                      const status = matchResult?.overall_status || 'no_po';
+                      const firstMatch = matchResult?.matches?.[0] || null;
+                      
+                      return (
+                        <POStatusBadge
+                          status={status}
+                          onClick={() => {
+                            if (firstMatch) {
+                              setPoDialogState({
+                                open: true,
+                                poMatch: firstMatch,
+                                bill: bill
+                              });
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="px-2 py-1 text-xs">
                     <div className="flex items-center gap-2">
                       {showEditButton && (
@@ -1107,6 +1159,20 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
         open={editingBillId !== null}
         onOpenChange={(open) => !open && setEditingBillId(null)}
         billId={editingBillId || ''}
+      />
+
+      <POComparisonDialog
+        open={poDialogState.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPoDialogState({ open: false, poMatch: null, bill: null });
+          }
+        }}
+        poMatch={poDialogState.poMatch}
+        projectId={poDialogState.bill?.project_id || null}
+        vendorId={poDialogState.bill?.vendor_id || null}
+        currentBillAmount={poDialogState.bill?.total_amount}
+        currentBillReference={poDialogState.bill?.reference_number || undefined}
       />
     </>
   );
