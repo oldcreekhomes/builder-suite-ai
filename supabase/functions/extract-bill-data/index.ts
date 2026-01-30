@@ -1040,7 +1040,31 @@ Return ONLY the JSON object, no additional text.`;
         console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal})`);
         console.log(`→ Creating single line item with Amount Due: ${extractedTotal}`);
         
-        // Replace line items with a single line matching the total
+        // Look up vendor's default cost code to include in the single line
+        let defaultCostCodeName: string | null = null;
+        if (extractedData.vendor_id) {
+          try {
+            const { data: vendorCostCodes } = await supabase
+              .from('company_cost_codes')
+              .select(`
+                cost_code_id,
+                cost_codes (id, code, name)
+              `)
+              .eq('company_id', extractedData.vendor_id);
+            
+            if (vendorCostCodes && vendorCostCodes.length === 1) {
+              const cc = (vendorCostCodes[0] as any).cost_codes;
+              if (cc) {
+                defaultCostCodeName = `${cc.code}: ${cc.name}`;
+                console.log(`→ Using vendor default cost code for Amount Due line: ${defaultCostCodeName}`);
+              }
+            }
+          } catch (costCodeErr) {
+            console.warn('Could not fetch vendor cost code:', costCodeErr);
+          }
+        }
+        
+        // Replace line items with a single line matching the total (with cost code if found)
         extractedData.line_items = [{
           description: extractedData.vendor_name ? `${extractedData.vendor_name} - Invoice` : 'Invoice Total',
           quantity: 1,
@@ -1048,7 +1072,7 @@ Return ONLY the JSON object, no additional text.`;
           amount: extractedTotal,
           memo: null,
           account_name: null,
-          cost_code_name: null,
+          cost_code_name: defaultCostCodeName,
           line_type: 'job_cost'
         }];
       }
