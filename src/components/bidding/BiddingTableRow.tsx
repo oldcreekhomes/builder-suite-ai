@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BidPackageDetailsModal } from './BidPackageDetailsModal';
 import { SendBidPackageModal } from './SendBidPackageModal';
@@ -6,9 +5,24 @@ import { SendSingleCompanyEmailModal } from './SendSingleCompanyEmailModal';
 import { SendTestEmailModal } from './SendTestEmailModal';
 import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
+import { SelectCompanyForPODialog } from './components/SelectCompanyForPODialog';
+import { ConfirmPODialog } from './ConfirmPODialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
+
+interface BiddingCompany {
+  id: string;
+  company_id: string;
+  bid_status: 'will_bid' | 'will_not_bid' | 'submitted' | null;
+  price: number | null;
+  proposals: string[] | null;
+  companies: {
+    id: string;
+    company_name: string;
+    company_type: string;
+  };
+}
 
 interface BiddingTableRowProps {
   item: any; // Project bidding item with cost_codes relation and companies
@@ -79,6 +93,9 @@ export function BiddingTableRow({
   const [showAddCompaniesModal, setShowAddCompaniesModal] = useState(false);
   const [showBidPackageModal, setShowBidPackageModal] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [showSelectCompanyForPO, setShowSelectCompanyForPO] = useState(false);
+  const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
+  const [selectedBiddingCompany, setSelectedBiddingCompany] = useState<BiddingCompany | null>(null);
   const costCode = item.cost_codes as CostCode;
 
   const handleSendEmailToCompany = (biddingItemId: string, companyId: string) => {
@@ -86,11 +103,19 @@ export function BiddingTableRow({
     setShowSingleCompanyModal(true);
   };
 
-
   const handleCloseWithPO = () => {
-    setShowSendModal(true);
+    setShowSelectCompanyForPO(true);
   };
 
+  const handleSelectCompanyForPO = (company: BiddingCompany) => {
+    setSelectedBiddingCompany(company);
+    setShowConfirmPODialog(true);
+  };
+
+  const handlePOConfirmed = () => {
+    // PO was created and email sent - close the bid package
+    onUpdateStatus(item.id, 'closed');
+  };
   return (
     <>
       <BiddingTableRowContent
@@ -178,6 +203,25 @@ export function BiddingTableRow({
         costCodeId={item.cost_code_id}
         projectId={item.project_id}
         existingCompanyIds={(item.project_bids || []).map((bid: any) => bid.company_id)}
+      />
+
+      <SelectCompanyForPODialog
+        open={showSelectCompanyForPO}
+        onOpenChange={setShowSelectCompanyForPO}
+        companies={item.project_bids || []}
+        costCodeName={`${costCode?.code} - ${costCode?.name}`}
+        onSelectCompany={handleSelectCompanyForPO}
+      />
+
+      <ConfirmPODialog
+        isOpen={showConfirmPODialog}
+        onClose={() => setShowConfirmPODialog(false)}
+        biddingCompany={selectedBiddingCompany}
+        onConfirm={handlePOConfirmed}
+        bidPackageId={item.id}
+        projectAddress={projectAddress || ''}
+        projectId={item.project_id}
+        costCodeId={item.cost_code_id}
       />
     </>
   );
