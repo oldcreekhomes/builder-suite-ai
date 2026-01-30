@@ -263,7 +263,7 @@ export const CreatePurchaseOrderDialog = ({
             total_amount: amount ? parseFloat(amount) : null,
             notes: notes.trim() || null,
             files: JSON.parse(JSON.stringify(uploadedFiles)),
-            status: 'pending',
+            status: 'approved',
           }])
           .select('*, po_number')
           .single();

@@ -64,7 +64,7 @@ export const usePOMutations = (projectId: string) => {
         company_id: companyId,
         cost_code_id: costCodeId,
         total_amount: totalAmount || 0,
-        status: 'draft',
+        status: 'approved',
         notes: `PO created from bid package for ${biddingCompany.companies.company_name}`,
         files: []
       };
