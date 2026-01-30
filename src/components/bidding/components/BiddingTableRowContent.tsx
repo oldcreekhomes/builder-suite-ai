@@ -8,6 +8,7 @@ import { BiddingDatePicker } from './BiddingDatePicker';
 import { BiddingTableRowSpecs } from './BiddingTableRowSpecs';
 import { BiddingTableRowFiles } from './BiddingTableRowFiles';
 import { BiddingTableRowActions } from './BiddingTableRowActions';
+import { CloseBidPackageDialog } from './CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -30,6 +31,7 @@ interface BiddingTableRowContentProps {
   onAddCompaniesClick?: () => void;
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
+  onCloseWithPO?: () => void;
 }
 
 export function BiddingTableRowContent({
@@ -49,8 +51,26 @@ export function BiddingTableRowContent({
   onTestEmailClick,
   onAddCompaniesClick,
   onFileUpload,
-  onDeleteIndividualFile
+  onDeleteIndividualFile,
+  onCloseWithPO
 }: BiddingTableRowContentProps) {
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
+
+  const handleStatusChange = (value: string) => {
+    if (value === 'closed') {
+      setShowCloseDialog(true);
+    } else {
+      onUpdateStatus(item.id, value);
+    }
+  };
+
+  const handleJustClose = () => {
+    onUpdateStatus(item.id, 'closed');
+  };
+
+  const handleCreatePO = () => {
+    onCloseWithPO?.();
+  };
   return (
     <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell className="w-12 py-1">
@@ -80,7 +100,7 @@ export function BiddingTableRowContent({
       <TableCell className="py-1">
         <Select 
           value={item.status || 'draft'} 
-          onValueChange={(value) => onUpdateStatus(item.id, value)}
+          onValueChange={handleStatusChange}
           disabled={isReadOnly}
         >
           <SelectTrigger className="w-20 h-8 text-sm">
@@ -89,9 +109,18 @@ export function BiddingTableRowContent({
           <SelectContent className="bg-white border shadow-md z-50">
             <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
       </TableCell>
+
+      <CloseBidPackageDialog
+        open={showCloseDialog}
+        onOpenChange={setShowCloseDialog}
+        costCodeName={`${costCode?.code} - ${costCode?.name}`}
+        onJustClose={handleJustClose}
+        onCreatePO={handleCreatePO}
+      />
       <TableCell className="py-1 w-32">
         <BiddingDatePicker
           value={item.due_date}
