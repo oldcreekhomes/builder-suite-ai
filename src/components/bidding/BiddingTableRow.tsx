@@ -87,6 +87,10 @@ export function BiddingTableRow({
   };
 
 
+  const handleCloseWithPO = () => {
+    setShowSendModal(true);
+  };
+
   return (
     <>
       <BiddingTableRowContent
@@ -107,6 +111,7 @@ export function BiddingTableRow({
         onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
+        onCloseWithPO={handleCloseWithPO}
       />
       
       <SendBidPackageModal
@@ -144,6 +149,7 @@ export function BiddingTableRow({
         onDeleteIndividualFile={onDeleteIndividualFile}
         onSendClick={() => setShowSendModal(true)}
         onTestEmailClick={() => setShowTestEmailModal(true)}
+        onCloseWithPO={handleCloseWithPO}
         onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
         // Company operations
         onToggleBidStatus={onToggleBidStatus}

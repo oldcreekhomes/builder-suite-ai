@@ -16,6 +16,7 @@ import { X, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useDistanceFilter } from '@/hooks/useDistanceFilter';
 import { DistanceFilterBar } from './components/DistanceFilterBar';
+import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -36,6 +37,7 @@ interface BidPackageDetailsModalProps {
   onSendClick?: () => void;
   onTestEmailClick?: () => void;
   onAddCompaniesClick?: () => void;
+  onCloseWithPO?: () => void;
   // Company operations
   onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
@@ -72,6 +74,7 @@ export function BidPackageDetailsModal({
   onSendClick,
   onTestEmailClick,
   onAddCompaniesClick,
+  onCloseWithPO,
   // Company operations
   onToggleBidStatus,
   onUpdatePrice,
@@ -91,8 +94,25 @@ export function BidPackageDetailsModal({
   cancelUpload,
   removeUpload
 }: BidPackageDetailsModalProps) {
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(true);
   const [distanceRadius, setDistanceRadius] = useState(50);
+
+  const handleStatusChange = (value: string) => {
+    if (value === 'closed') {
+      setShowCloseDialog(true);
+    } else {
+      onUpdateStatus?.(item.id, value);
+    }
+  };
+
+  const handleJustClose = () => {
+    onUpdateStatus?.(item.id, 'closed');
+  };
+
+  const handleCreatePO = () => {
+    onCloseWithPO?.();
+  };
 
   const distanceFilter = useDistanceFilter({
     enabled: distanceFilterEnabled,
@@ -204,7 +224,7 @@ export function BidPackageDetailsModal({
                   <td className="p-3">
                     <Select
                       value={item.status || 'draft'}
-                      onValueChange={(value) => onUpdateStatus?.(item.id, value)}
+                      onValueChange={handleStatusChange}
                       disabled={isReadOnly}
                     >
                       <SelectTrigger className="h-8 text-xs">
@@ -213,6 +233,7 @@ export function BidPackageDetailsModal({
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="sent">Sent</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
                   </td>
@@ -314,6 +335,14 @@ export function BidPackageDetailsModal({
             </table>
           </div>
         </div>
+
+        <CloseBidPackageDialog
+          open={showCloseDialog}
+          onOpenChange={setShowCloseDialog}
+          costCodeName={`${costCode?.code} - ${costCode?.name}`}
+          onJustClose={handleJustClose}
+          onCreatePO={handleCreatePO}
+        />
       </DialogContent>
     </Dialog>
   );
