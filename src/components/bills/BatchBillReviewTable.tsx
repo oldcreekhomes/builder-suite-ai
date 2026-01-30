@@ -31,6 +31,32 @@ const formatTerms = (terms: string | null | undefined): string => {
   return terms;
 };
 
+// Normalize terms from any format to standardized dropdown values (matches EditExtractedBillDialog)
+function normalizeTermsForUI(terms: string | null | undefined): string {
+  if (!terms) return 'net-30';
+  if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+    return terms;
+  }
+  const normalized = terms.toLowerCase().trim();
+  if (normalized.includes('15')) return 'net-15';
+  if (normalized.includes('60')) return 'net-60';
+  if (normalized.includes('receipt') || normalized.includes('cod')) return 'due-on-receipt';
+  return 'net-30';
+}
+
+// Compute due date from bill date and terms (matches EditExtractedBillDialog)
+function computeDueDate(billDate: Date, terms: string): Date {
+  const result = new Date(billDate);
+  switch (terms) {
+    case 'net-15': result.setDate(result.getDate() + 15); break;
+    case 'net-30': result.setDate(result.getDate() + 30); break;
+    case 'net-60': result.setDate(result.getDate() + 60); break;
+    case 'due-on-receipt': break; // same day
+    default: result.setDate(result.getDate() + 30);
+  }
+  return result;
+}
+
 interface PendingBillLine {
   line_number: number;
   line_type: string;
@@ -604,10 +630,28 @@ export function BatchBillReviewTable({
                     <span className="text-xs">{billDate ? formatDisplayFromAny(billDate as string) : '-'}</span>
                   </TableCell>
                   <TableCell className="px-3 py-1">
-                    <span className="text-xs">{formatTerms(getExtractedValue(bill, 'terms', 'terms') as string)}</span>
+                    {(() => {
+                      const rawTerms = getExtractedValue(bill, 'terms', 'terms') as string | null;
+                      const displayTerms = rawTerms ? formatTerms(rawTerms) : formatTerms(normalizeTermsForUI(null));
+                      return <span className="text-xs">{displayTerms}</span>;
+                    })()}
                   </TableCell>
                   <TableCell className="px-3 py-1">
-                    <span className="text-xs">{dueDate ? formatDisplayFromAny(dueDate as string) : '-'}</span>
+                    {(() => {
+                      const rawDueDate = getExtractedValue(bill, 'due_date', 'dueDate') as string | null;
+                      if (rawDueDate) {
+                        return <span className="text-xs">{formatDisplayFromAny(rawDueDate)}</span>;
+                      }
+                      // Compute due date from bill date and terms (default Net 30)
+                      if (billDate) {
+                        const rawTerms = getExtractedValue(bill, 'terms', 'terms') as string | null;
+                        const computedTerms = normalizeTermsForUI(rawTerms);
+                        const billDateObj = new Date(billDate as string);
+                        const computedDueDate = computeDueDate(billDateObj, computedTerms);
+                        return <span className="text-xs">{formatDisplayFromAny(computedDueDate.toISOString().split('T')[0])}</span>;
+                      }
+                      return <span className="text-xs">-</span>;
+                    })()}
                   </TableCell>
                   <TableCell className="px-3 py-1">
                     {accountDisplay === null ? (

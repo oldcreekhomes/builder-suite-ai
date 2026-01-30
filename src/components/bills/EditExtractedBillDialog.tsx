@@ -239,6 +239,36 @@ export function EditExtractedBillDialog({
                   memo: line.memo || "",
                 });
               }
+          }
+          }
+
+          // NORMALIZE LINE AMOUNTS: If extracted total exists and differs from line sum, adjust proportionally
+          const allLines = [...jobCost, ...expense];
+          if (allLines.length > 0 && extractedTotal > 0) {
+            const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
+            
+            if (Math.abs(lineSum - extractedTotal) > 0.01) {
+              console.log(`Normalizing line amounts: sum=${lineSum}, extractedTotal=${extractedTotal}`);
+              const ratio = extractedTotal / lineSum;
+              
+              // Apply proportional adjustment to all lines
+              jobCost.forEach(line => {
+                line.amount = Math.round(line.amount * ratio * 100) / 100;
+                line.unit_cost = line.quantity > 0 ? Math.round((line.amount / line.quantity) * 100) / 100 : line.amount;
+              });
+              expense.forEach(line => {
+                line.amount = Math.round(line.amount * ratio * 100) / 100;
+                line.unit_cost = line.quantity > 0 ? Math.round((line.amount / line.quantity) * 100) / 100 : line.amount;
+              });
+              
+              // Adjust last line to absorb rounding difference
+              const newSum = [...jobCost, ...expense].reduce((sum, line) => sum + line.amount, 0);
+              const roundingDiff = extractedTotal - newSum;
+              if (Math.abs(roundingDiff) > 0.001) {
+                const lastLine = jobCost.length > 0 ? jobCost[jobCost.length - 1] : expense[expense.length - 1];
+                lastLine.amount = Math.round((lastLine.amount + roundingDiff) * 100) / 100;
+                lastLine.unit_cost = lastLine.quantity > 0 ? Math.round((lastLine.amount / lastLine.quantity) * 100) / 100 : lastLine.amount;
+              }
             }
           }
 
