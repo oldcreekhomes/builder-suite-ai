@@ -1027,6 +1027,31 @@ Return ONLY the JSON object, no additional text.`;
 
     // Insert line items into pending_bill_lines table
     if (extractedData.line_items && Array.isArray(extractedData.line_items) && extractedData.line_items.length > 0) {
+      // IMPORTANT: Validate line items sum against extracted total_amount
+      // If they don't match, the "Amount Due" is authoritative - use a single line
+      const lineSum = extractedData.line_items.reduce((sum: number, item: any) => {
+        const amount = item.amount || ((item.quantity || 1) * (item.unit_cost || 0));
+        return sum + amount;
+      }, 0);
+      
+      const extractedTotal = Number(extractedData.total_amount) || 0;
+      
+      if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
+        console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal})`);
+        console.log(`→ Creating single line item with Amount Due: ${extractedTotal}`);
+        
+        // Replace line items with a single line matching the total
+        extractedData.line_items = [{
+          description: extractedData.vendor_name ? `${extractedData.vendor_name} - Invoice` : 'Invoice Total',
+          quantity: 1,
+          unit_cost: extractedTotal,
+          amount: extractedTotal,
+          memo: null,
+          account_name: null,
+          cost_code_name: null,
+          line_type: 'job_cost'
+        }];
+      }
       console.log(`Inserting ${extractedData.line_items.length} line items into pending_bill_lines...`);
       
       try {

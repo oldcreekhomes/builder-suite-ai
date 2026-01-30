@@ -163,8 +163,8 @@ export function EditExtractedBillDialog({
           const isSingleLine = data.length === 1;
           
           // Build job cost and expense arrays, promoting expense lines to job_cost when a single default cost code exists
-          const jobCost: LineItem[] = [];
-          const expense: LineItem[] = [];
+          let jobCost: LineItem[] = [];
+          let expense: LineItem[] = [];
 
           for (const line of data) {
             const qty = Number(line.quantity) || 1;
@@ -242,35 +242,37 @@ export function EditExtractedBillDialog({
           }
           }
 
-          // NORMALIZE LINE AMOUNTS: If extracted total exists and differs from line sum, adjust proportionally
+          // NORMALIZE LINE AMOUNTS: If extracted total exists and differs from line sum,
+          // replace ALL lines with a single line matching the "Amount Due"
+          // This ensures the AI-extracted total is always authoritative
           const allLines = [...jobCost, ...expense];
-          if (allLines.length > 0 && extractedTotal > 0) {
-            const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
+          const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
+          
+          if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
+            console.log(`Line sum (${lineSum}) doesn't match extracted total (${extractedTotal})`);
+            console.log(`→ Replacing with single line for Amount Due`);
             
-            if (Math.abs(lineSum - extractedTotal) > 0.01) {
-              console.log(`Normalizing line amounts: sum=${lineSum}, extractedTotal=${extractedTotal}`);
-              const ratio = extractedTotal / lineSum;
-              
-              // Apply proportional adjustment to all lines
-              jobCost.forEach(line => {
-                line.amount = Math.round(line.amount * ratio * 100) / 100;
-                line.unit_cost = line.quantity > 0 ? Math.round((line.amount / line.quantity) * 100) / 100 : line.amount;
-              });
-              expense.forEach(line => {
-                line.amount = Math.round(line.amount * ratio * 100) / 100;
-                line.unit_cost = line.quantity > 0 ? Math.round((line.amount / line.quantity) * 100) / 100 : line.amount;
-              });
-              
-              // Adjust last line to absorb rounding difference
-              const newSum = [...jobCost, ...expense].reduce((sum, line) => sum + line.amount, 0);
-              const roundingDiff = extractedTotal - newSum;
-              if (Math.abs(roundingDiff) > 0.001) {
-                const lastLine = jobCost.length > 0 ? jobCost[jobCost.length - 1] : expense[expense.length - 1];
-                lastLine.amount = Math.round((lastLine.amount + roundingDiff) * 100) / 100;
-                lastLine.unit_cost = lastLine.quantity > 0 ? Math.round((lastLine.amount / lastLine.quantity) * 100) / 100 : lastLine.amount;
-              }
-            }
+            // Get vendor name from extracted data for the description
+            const extractedVendorName = extractedData.vendor_name || extractedData.vendorName || '';
+            
+            // Create single line with the correct Amount Due
+            const singleLine: LineItem = {
+              id: crypto.randomUUID(),
+              line_type: 'job_cost',
+              cost_code_id: defaultCostCode || undefined,
+              quantity: 1,
+              unit_cost: extractedTotal,
+              amount: extractedTotal,
+              memo: extractedVendorName ? `${extractedVendorName} - Invoice` : 'Invoice Total',
+            };
+            
+            jobCost = [singleLine];
+            expense = [];
           }
+          
+          // Filter out any $0 lines - they serve no accounting purpose
+          jobCost = jobCost.filter(line => line.amount > 0);
+          expense = expense.filter(line => line.amount > 0);
 
           setJobCostLines(jobCost);
           setExpenseLines(expense);
