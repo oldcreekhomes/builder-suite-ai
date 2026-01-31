@@ -8,6 +8,13 @@ import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
 import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 import { Plus } from "lucide-react";
 
+// Helper to detect if a string is a valid UUID
+function isUuid(value: string | undefined | null): boolean {
+  if (!value) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
+
 interface VendorSearchInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -103,7 +110,8 @@ export function VendorSearchInput({
       
       // Auto-select if typed text exactly matches a company name
       // This ensures the vendor ID is set even if user typed and clicked away
-      if (searchQuery && !value) {
+      // Also triggers when value is not a UUID (e.g., contains vendor name text)
+      if (searchQuery && (!value || !isUuid(value))) {
         const matchingCompany = companies.find(
           c => c.company_name.toLowerCase() === searchQuery.toLowerCase()
         );

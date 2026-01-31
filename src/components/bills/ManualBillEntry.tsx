@@ -63,7 +63,9 @@ export function ManualBillEntry() {
   const navigate = useNavigate();
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
-  const [vendor, setVendor] = useState<string>("");
+  // Split vendor into UUID (for queries/saving) and display name (for UI)
+  const [vendorId, setVendorId] = useState<string>("");
+  const [vendorName, setVendorName] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }
@@ -81,7 +83,8 @@ export function ManualBillEntry() {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
   const { checkDuplicate } = useReferenceNumberValidation();
-  const showPOSelection = useShouldShowPOSelection(projectId, vendor);
+  // Use vendorId (UUID) for PO selection logic
+  const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
 
   // Use separate cache key to avoid collision with full table data
   const { data: companies } = useQuery({
@@ -129,12 +132,12 @@ export function ManualBillEntry() {
   // Auto-populate terms when vendor is selected
   useEffect(() => {
     const fetchVendorTerms = async () => {
-      if (!vendor) return;
+      if (!vendorId) return;
       
       const { data: company } = await supabase
         .from('companies')
         .select('terms')
-        .eq('id', vendor)
+        .eq('id', vendorId)
         .single();
       
       if (company?.terms) {
@@ -143,7 +146,7 @@ export function ManualBillEntry() {
     };
     
     fetchVendorTerms();
-  }, [vendor]);
+  }, [vendorId]);
 
   const addJobCostRow = () => {
     const newRow: ExpenseRow = {
@@ -235,7 +238,7 @@ export function ManualBillEntry() {
       return;
     }
 
-    if (!vendor) {
+    if (!vendorId) {
       toast({
         title: "Validation Error",
         description: "Please select a vendor",
@@ -408,7 +411,7 @@ export function ManualBillEntry() {
     }
 
     const billData: BillData = {
-      vendor_id: vendor,
+      vendor_id: vendorId,
       project_id: derivedProjectId,
       bill_date: billDate.toISOString().split('T')[0],
       due_date: billDueDate?.toISOString().split('T')[0],
@@ -421,11 +424,11 @@ export function ManualBillEntry() {
       const bill = await createBill.mutateAsync({ billData, billLines });
       setSavedBillId(bill.id);
 
-      if (vendor && terms) {
+      if (vendorId && terms) {
         await supabase
           .from('companies')
           .update({ terms })
-          .eq('id', vendor);
+          .eq('id', vendorId);
       }
 
       if (attachments.length > 0) {
@@ -492,7 +495,8 @@ export function ManualBillEntry() {
   const handleClear = () => {
     setBillDate(new Date());
     setBillDueDate(undefined);
-    setVendor("");
+    setVendorId("");
+    setVendorName("");
     setTerms("net-30");
     setJobCostRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }]);
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }]);
@@ -512,8 +516,12 @@ export function ManualBillEntry() {
           <div className="space-y-2">
             <Label htmlFor="vendor">Vendor</Label>
             <VendorSearchInput
-              value={vendor}
-              onChange={setVendor}
+              value={vendorId}
+              displayValue={vendorName}
+              onChange={setVendorId}
+              onCompanySelect={(company) => {
+                setVendorName(company.company_name);
+              }}
               placeholder="Search vendors..."
               className="w-full h-10"
             />
@@ -742,7 +750,7 @@ export function ManualBillEntry() {
                       <div className="col-span-4">
                         <POSelectionDropdown
                           projectId={projectId}
-                          vendorId={vendor}
+                          vendorId={vendorId}
                           value={row.purchaseOrderId}
                           onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
                           costCodeId={row.accountId}
@@ -957,7 +965,7 @@ export function ManualBillEntry() {
         open={notesDialogOpen}
         onOpenChange={setNotesDialogOpen}
         billInfo={{
-          vendor: vendor ? companies?.find(c => c.id === vendor)?.company_name || 'New Bill' : 'New Bill',
+          vendor: vendorName || 'New Bill',
           amount: [...jobCostRows, ...expenseRows].reduce((sum, row) => {
             const amount = parseFloat(row.amount) || 0;
             const qty = parseFloat(row.quantity) || 1;
