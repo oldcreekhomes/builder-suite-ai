@@ -294,16 +294,21 @@ async function findMatchingVendor(vendorName: string, supabase: any, ownerId: st
 }
 
 /**
- * Auto-assign cost code if vendor has exactly one associated cost code
+ * Auto-assign cost code using intelligent inference:
+ * 1. If vendor has exactly one cost code → force-assign it
+ * 2. If vendor has multiple codes but one is used 70%+ historically → auto-assign it
+ * 3. Otherwise, let AI decide
  */
-async function autoAssignSingleCostCode(
+async function autoAssignCostCode(
   vendorId: string,
+  vendorName: string,
   lineItems: any[],
-  supabase: any
+  supabase: any,
+  ownerId: string
 ): Promise<any[]> {
   try {
-    // Check if vendor has exactly one cost code
-    const { data: costCodes, error } = await supabase
+    // Step 1: Check if vendor has cost codes assigned
+    const { data: vendorCostCodes, error } = await supabase
       .from('company_cost_codes')
       .select(`
         cost_code_id,
@@ -320,36 +325,82 @@ async function autoAssignSingleCostCode(
       return lineItems;
     }
     
-    if (!costCodes || costCodes.length !== 1) {
-      // Vendor has 0 or multiple cost codes - no auto-assignment
-      if (costCodes && costCodes.length > 1) {
-        console.log(`  Vendor has ${costCodes.length} cost codes - no auto-assignment`);
+    // Case 1: Vendor has exactly one cost code → force-assign it
+    if (vendorCostCodes?.length === 1) {
+      const costCode = vendorCostCodes[0].cost_codes;
+      if (!costCode) {
+        console.log('  Cost code data missing');
+        return lineItems;
       }
-      return lineItems;
+      
+      console.log(`✅ Vendor has exactly 1 cost code: ${costCode.code}: ${costCode.name}`);
+      
+      const updatedItems = lineItems.map((item: any) => {
+        console.log(`  → Forcing single vendor cost code on line ${item.line_number}: "${item.description || item.memo}"`);
+        return {
+          ...item,
+          cost_code_name: `${costCode.code}: ${costCode.name}`
+        };
+      });
+      
+      console.log(`✅ Forced single cost code on ${updatedItems.length} line item(s)`);
+      return updatedItems;
     }
     
-    const costCode = costCodes[0].cost_codes;
-    if (!costCode) {
-      console.log('  Cost code data missing');
-      return lineItems;
+    // Case 2: Vendor has multiple cost codes → check historical usage patterns
+    if (vendorCostCodes && vendorCostCodes.length > 1) {
+      console.log(`  Vendor has ${vendorCostCodes.length} cost codes - checking historical patterns...`);
+      
+      // Query historical usage from bill_categorization_examples
+      const { data: examples } = await supabase
+        .from('bill_categorization_examples')
+        .select('cost_code_name')
+        .eq('owner_id', ownerId)
+        .ilike('vendor_name', vendorName);
+      
+      if (examples && examples.length >= 3) {
+        // Count occurrences of each cost code
+        const counts: Record<string, number> = {};
+        examples.forEach((ex: any) => {
+          if (ex.cost_code_name) {
+            counts[ex.cost_code_name] = (counts[ex.cost_code_name] || 0) + 1;
+          }
+        });
+        
+        // Find dominant code (70%+ usage)
+        const total = examples.length;
+        for (const [code, count] of Object.entries(counts)) {
+          const percentage = (count / total) * 100;
+          if (percentage >= 70) {
+            console.log(`✅ Historical dominance: "${code}" used ${percentage.toFixed(0)}% of time (${count}/${total} invoices)`);
+            
+            const updatedItems = lineItems.map((item: any) => {
+              console.log(`  → Auto-assigning dominant cost code to line ${item.line_number}: "${item.description || item.memo}"`);
+              return {
+                ...item,
+                cost_code_name: code
+              };
+            });
+            
+            console.log(`✅ Auto-assigned dominant cost code to ${updatedItems.length} line item(s)`);
+            return updatedItems;
+          }
+        }
+        
+        // Log what was found for debugging
+        const sortedCodes = Object.entries(counts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([code, count]) => `${code}: ${((count / total) * 100).toFixed(0)}%`);
+        console.log(`  No dominant cost code (need 70%+). Distribution: ${sortedCodes.join(', ')}`);
+      } else {
+        console.log(`  Only ${examples?.length || 0} historical examples (need 3+ for pattern analysis)`);
+      }
     }
     
-    console.log(`✅ Vendor has exactly 1 cost code: ${costCode.code}: ${costCode.name}`);
-    
-    // Force-assign to ALL lines (no choice when vendor has exactly one cost code)
-    const updatedItems = lineItems.map((item: any) => {
-      console.log(`  → Forcing single vendor cost code on line ${item.line_number}: "${item.description || item.memo}"`);
-      return {
-        ...item,
-        cost_code_name: `${costCode.code}: ${costCode.name}`
-      };
-    });
-    
-    console.log(`✅ Forced single cost code on ${updatedItems.length} line item(s)`);
-    
-    return updatedItems;
+    // Case 3: No auto-assignment possible
+    return lineItems;
   } catch (e) {
-    console.error('Error in autoAssignSingleCostCode:', e);
+    console.error('Error in autoAssignCostCode:', e);
     return lineItems;
   }
 }
@@ -458,15 +509,16 @@ serve(async (req) => {
       vendorPatterns.get(vendor)!.push(example);
     });
 
-    // Build vendor learning summary with cost codes AND description patterns
+    // Build vendor learning summary with statistical confidence
     let vendorLearningSummary = '';
     if (vendorPatterns.size > 0) {
       vendorLearningSummary = '\n\n🎯 VENDOR-SPECIFIC PATTERNS (learned from past approvals):\n';
       for (const [vendor, examples] of vendorPatterns.entries()) {
         if (examples.length >= 2) { // Only show patterns with 2+ examples
-          vendorLearningSummary += `\n${vendor.toUpperCase()}:\n`;
+          const totalInvoices = examples.length;
+          vendorLearningSummary += `\n${vendor.toUpperCase()} (${totalInvoices} past invoices):\n`;
           
-          // Show most common cost codes for this vendor
+          // Calculate cost code statistics
           const costCodeCounts = new Map<string, number>();
           examples.forEach(ex => {
             if (ex.cost_code_name) {
@@ -475,12 +527,24 @@ serve(async (req) => {
           });
           const sortedCodes = Array.from(costCodeCounts.entries())
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 3);
+            .slice(0, 4);
           
-          vendorLearningSummary += `  Cost Codes:\n`;
-          sortedCodes.forEach(([code, count]) => {
-            vendorLearningSummary += `    • ${code} (used ${count}x)\n`;
-          });
+          if (sortedCodes.length > 0) {
+            vendorLearningSummary += `  Cost Codes:\n`;
+            sortedCodes.forEach(([code, count], idx) => {
+              const percentage = ((count / totalInvoices) * 100).toFixed(0);
+              const indicator = idx === 0 ? ' ← most common' : '';
+              vendorLearningSummary += `    • ${code} - ${percentage}% (${count}/${totalInvoices} invoices)${indicator}\n`;
+            });
+            
+            // Add decision guidance
+            const topPercentage = (sortedCodes[0][1] / totalInvoices) * 100;
+            if (topPercentage >= 70) {
+              vendorLearningSummary += `  ✅ DECISION: Strong pattern (${topPercentage.toFixed(0)}%+). Use "${sortedCodes[0][0]}" unless description clearly indicates otherwise.\n`;
+            } else {
+              vendorLearningSummary += `  ⚖️ DECISION: No dominant pattern (need 70%+). Analyze line item descriptions to choose.\n`;
+            }
+          }
           
           // Show common description keywords
           const allKeywords = new Set<string>();
@@ -917,13 +981,15 @@ Return ONLY the JSON object, no additional text.`;
         extractedData.vendor_id = matchedVendorId;
         console.log('Automatically matched vendor to existing company');
         
-        // Auto-assign cost code if vendor has exactly one
+        // Auto-assign cost code using intelligent inference
         if (extractedData.line_items && Array.isArray(extractedData.line_items)) {
-          console.log('Checking for single cost code auto-assignment...');
-          extractedData.line_items = await autoAssignSingleCostCode(
+          console.log('Checking for intelligent cost code auto-assignment...');
+          extractedData.line_items = await autoAssignCostCode(
             matchedVendorId,
+            extractedData.vendor_name,
             extractedData.line_items,
-            supabase
+            supabase,
+            effectiveOwnerId
           );
         }
       }
