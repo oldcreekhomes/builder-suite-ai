@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
+import { VendorPOInfo } from "./VendorPOInfo";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -525,11 +526,7 @@ export function ManualBillEntry() {
               placeholder="Search vendors..."
               className="w-full h-10"
             />
-            {showPOSelection && (
-              <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 px-2 py-1 rounded">
-                This vendor has multiple POs — select in Job Cost rows below
-              </p>
-            )}
+            <VendorPOInfo projectId={projectId} vendorId={vendorId} />
           </div>
 
           <div className="space-y-2">
