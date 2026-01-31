@@ -92,30 +92,28 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
         <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 ml-auto" />
         <span className="text-xs text-muted-foreground">Vendor linked</span>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         {purchaseOrders.map((po) => (
           <div 
             key={po.id} 
-            className="flex items-center justify-between text-xs bg-white dark:bg-background/50 rounded px-2 py-1.5 border border-blue-100 dark:border-blue-900"
+            className="grid grid-cols-[120px_1fr_140px] gap-2 items-center text-xs bg-white dark:bg-background/50 rounded px-2 py-1 border border-blue-100 dark:border-blue-900"
           >
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs font-mono">
-                {po.po_number}
-              </Badge>
-              {po.cost_code && (
-                <span className="text-muted-foreground">
-                  {po.cost_code.code} - {po.cost_code.name}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">
-                {formatCurrency(po.remaining)} remaining
+            <Badge variant="outline" className="text-xs font-mono whitespace-nowrap w-fit">
+              {po.po_number}
+            </Badge>
+            {po.cost_code ? (
+              <span 
+                className="text-muted-foreground truncate"
+                title={`${po.cost_code.code} - ${po.cost_code.name}`}
+              >
+                {po.cost_code.code} - {po.cost_code.name}
               </span>
-              <span className="text-muted-foreground/60">
-                of {formatCurrency(po.total_amount)}
-              </span>
-            </div>
+            ) : (
+              <span className="text-muted-foreground/50">—</span>
+            )}
+            <span className="text-right whitespace-nowrap text-muted-foreground">
+              {formatCurrency(po.remaining)} / {formatCurrency(po.total_amount)}
+            </span>
           </div>
         ))}
       </div>
