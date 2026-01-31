@@ -98,7 +98,27 @@ export function VendorSearchInput({
 
   const handleInputBlur = () => {
     // Delay hiding results to allow for selection
-    setTimeout(() => setShowResults(false), 200);
+    setTimeout(() => {
+      setShowResults(false);
+      
+      // Auto-select if typed text exactly matches a company name
+      // This ensures the vendor ID is set even if user typed and clicked away
+      if (searchQuery && !value) {
+        const matchingCompany = companies.find(
+          c => c.company_name.toLowerCase() === searchQuery.toLowerCase()
+        );
+        if (matchingCompany) {
+          onChange(matchingCompany.id);
+          setIsUserTyping(false);
+          if (onCompanySelect) {
+            onCompanySelect({
+              company_name: matchingCompany.company_name,
+              address: matchingCompany.address
+            });
+          }
+        }
+      }
+    }, 200);
   };
 
   const handleSelectCompany = (company: { id: string; company_name: string; company_type?: string; address?: string }) => {

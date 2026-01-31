@@ -517,6 +517,11 @@ export function ManualBillEntry() {
               placeholder="Search vendors..."
               className="w-full h-10"
             />
+            {showPOSelection && (
+              <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 px-2 py-1 rounded">
+                This vendor has multiple POs — select in Job Cost rows below
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
