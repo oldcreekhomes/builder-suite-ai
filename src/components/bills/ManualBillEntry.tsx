@@ -149,6 +149,26 @@ export function ManualBillEntry() {
     fetchVendorTerms();
   }, [vendorId]);
 
+  // Fallback: fetch vendor name when vendorId is set but vendorName is empty
+  // This ensures the Vendor field and PO panel stay consistent even on odd selection flows
+  useEffect(() => {
+    const fetchVendorName = async () => {
+      if (!vendorId || vendorName) return; // Only fetch if vendorId exists and name is missing
+      
+      const { data: company } = await supabase
+        .from('companies')
+        .select('company_name')
+        .eq('id', vendorId)
+        .single();
+      
+      if (company?.company_name) {
+        setVendorName(company.company_name);
+      }
+    };
+    
+    fetchVendorName();
+  }, [vendorId, vendorName]);
+
   const addJobCostRow = () => {
     const newRow: ExpenseRow = {
       id: Date.now().toString(),
