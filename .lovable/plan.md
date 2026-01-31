@@ -1,242 +1,261 @@
 
+# Implementation Plan: PO Selection for Vendors with Multiple Purchase Orders
 
-# Plan: Enhanced AI Bill Extraction Intelligence System
+## Problem Summary
 
-## Current State Summary
+When a vendor (like ABC Building Supply) has multiple Purchase Orders on a single project, the current automatic matching system cannot determine which specific PO an invoice should be tracked against. Users need an explicit way to select the correct PO at bill entry time.
 
-The system already has foundational intelligence in place:
+## Current State
 
-### What's Working Well
-1. **Vendor Matching Pipeline**
-   - Vendor aliases for exact name normalization
-   - Acronym matching (e.g., "JZSE" → "JZ Structural Engineering")
-   - Fuzzy matching with 80%+ similarity threshold
+**Database Schema:**
+- `bill_lines`: Has `cost_code_id` but no `purchase_order_id` column
+- `pending_bill_lines`: Has `cost_code_id` but no `purchase_order_id` column
+- `project_purchase_orders`: Contains `id`, `project_id`, `company_id`, `cost_code_id`, `po_number`, `total_amount`
 
-2. **Single Cost Code Auto-Assignment**
-   - When a vendor has **exactly one** cost code in `company_cost_codes`, it's automatically applied to all line items
-   - Example: Wire Gill → Legal - Land Use (2240) is auto-assigned every time
-
-3. **Learning Examples Table**
-   - `bill_categorization_examples` stores every approved line item with its vendor, description, account, and cost code
-   - Currently has 24 examples across 10 vendors
-   - Fed to AI as "few-shot learning" examples
-
-4. **AI Prompt Enhancement**
-   - Learning examples are grouped by vendor and shown to AI
-   - Vendor patterns with 2+ examples get a summary showing most common cost codes
-   - Example: "FOUR SEASONS CONSTRUCTION: 4370: Framing Labor (used 4x), 4395: Window & Door Install (used 3x)"
-
-### Intelligence Gaps
-
-1. **Multi-Code Vendors Get No Auto-Assignment**
-   - Carter Lumber has 14 cost codes → AI must guess every time
-   - Four Seasons has 8 cost codes but historically uses only 2 → no preference applied
-
-2. **No Statistical Confidence Threshold**
-   - Even if 90% of a vendor's bills use one cost code, it's not auto-assigned
-   - The AI sees patterns but doesn't have authority to force assignment
-
-3. **No Keyword-Based Learning**
-   - Invoice description "trusses" should map to `4350: Roof Trusses`
-   - Currently relies only on AI inference, not learned rules
-
-4. **No Project-Based Patterns**
-   - Some cost codes might be more common for certain project types
-   - No tracking of project context in learning
-
-## Proposed Enhancement: Smart Cost Code Inference
-
-### Approach
-
-Create a lightweight enhancement that uses the **existing data** more intelligently, without requiring new tables.
-
-### Part 1: Historical Dominance Auto-Assignment
-
-When a vendor has multiple cost codes but one is used 70%+ of the time in approved bills, auto-assign it.
-
-**Logic Flow:**
-```text
-1. Vendor matched (e.g., "Four Seasons Construction")
-2. Check company_cost_codes → 8 codes assigned
-3. Since >1 code, query bill_categorization_examples for this vendor
-4. Calculate: Framing Labor = 57%, Window Install = 43%
-5. No single code dominates (>70%), so let AI decide
+**Current Matching Logic:**
+The `useBillPOMatching.ts` hook matches bills to POs using a composite key:
+```
+project_id + vendor_id + cost_code_id → PO
 ```
 
-But for a vendor like Wire Gill (100% Legal - Land Use), or a vendor with 80%+ on one code, auto-assign it.
-
-**Changes to `extract-bill-data/index.ts`:**
-
-Update `autoAssignSingleCostCode()` to become `autoAssignCostCode()`:
-
-```typescript
-async function autoAssignCostCode(
-  vendorId: string,
-  vendorName: string,
-  lineItems: any[],
-  supabase: any,
-  ownerId: string
-): Promise<any[]> {
-  // Step 1: Check company_cost_codes for single code (existing logic)
-  const { data: vendorCostCodes } = await supabase
-    .from('company_cost_codes')
-    .select('cost_code_id, cost_codes(id, code, name)')
-    .eq('company_id', vendorId);
-    
-  if (vendorCostCodes?.length === 1) {
-    // Existing: Force assign single vendor cost code
-    const cc = vendorCostCodes[0].cost_codes;
-    return lineItems.map(item => ({
-      ...item,
-      cost_code_name: `${cc.code}: ${cc.name}`
-    }));
-  }
-  
-  // Step 2: Check historical usage patterns
-  if (vendorCostCodes?.length > 1) {
-    const { data: examples } = await supabase
-      .from('bill_categorization_examples')
-      .select('cost_code_name')
-      .eq('owner_id', ownerId)
-      .ilike('vendor_name', vendorName);
-    
-    if (examples && examples.length >= 3) {
-      // Count occurrences
-      const counts = {};
-      examples.forEach(ex => {
-        if (ex.cost_code_name) {
-          counts[ex.cost_code_name] = (counts[ex.cost_code_name] || 0) + 1;
-        }
-      });
-      
-      // Find dominant code (70%+ usage)
-      const total = examples.length;
-      for (const [code, count] of Object.entries(counts)) {
-        const percentage = (count / total) * 100;
-        if (percentage >= 70) {
-          console.log(`✅ Historical dominance: ${code} used ${percentage.toFixed(0)}% of time`);
-          return lineItems.map(item => ({
-            ...item,
-            cost_code_name: code
-          }));
-        }
-      }
-      console.log(`No dominant cost code (70%+ threshold) for vendor`);
-    }
-  }
-  
-  return lineItems; // No auto-assignment
-}
-```
-
-### Part 2: Improved Learning Summary for AI
-
-Enhance the vendor learning summary to show statistical confidence:
-
-**Current:**
-```
-FOUR SEASONS CONSTRUCTION:
-  Cost Codes:
-    • 4370: Framing Labor (used 4x)
-    • 4395: Window & Door Install (used 3x)
-```
-
-**Enhanced:**
-```
-FOUR SEASONS CONSTRUCTION (7 past invoices):
-  Cost Codes:
-    • 4370: Framing Labor - 57% (4/7 invoices) ← most common
-    • 4395: Window & Door Install - 43% (3/7 invoices)
-  Decision: No dominant pattern (need 70%+). Analyze line descriptions to choose.
-```
-
-This gives the AI better context for making decisions.
-
-### Part 3: Keyword Pattern Tracking (Future Enhancement)
-
-**Optional New Table:** `vendor_description_patterns`
-
-```sql
-CREATE TABLE vendor_description_patterns (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id uuid NOT NULL REFERENCES users(id),
-  vendor_name text NOT NULL,
-  keyword text NOT NULL,  -- extracted keyword like "trusses", "labor", "trim"
-  cost_code_id uuid REFERENCES cost_codes(id),
-  cost_code_name text,
-  match_count integer DEFAULT 1,
-  last_used_at timestamptz DEFAULT now(),
-  created_at timestamptz DEFAULT now()
-);
-
-CREATE UNIQUE INDEX ON vendor_description_patterns(owner_id, vendor_name, keyword, cost_code_name);
-```
-
-This would learn:
-- "Carter Lumber" + "trusses" → "4350: Roof Trusses"
-- "Carter Lumber" + "siding" → "4610: Exterior Trim"
-- "Carter Lumber" + "framing" → "4320: Framing Materials"
-
-However, this is a more complex enhancement that requires:
-1. Keyword extraction during approval
-2. Pattern matching during extraction
-3. UI for reviewing/managing patterns
-
-**Recommendation:** Implement Part 1 and Part 2 first, as they use existing data and provide immediate value. Part 3 can be a future phase.
+This works when cost codes are unique per vendor/project, but fails when:
+- Multiple POs exist for the same cost code (rare but possible)
+- Users want explicit control over which PO to track billing against
 
 ## Implementation Plan
 
-### Phase 1: Enhanced Auto-Assignment (Immediate)
+### Phase 1: Database Schema Updates
 
-**Files to Modify:**
+**Migration: Add `purchase_order_id` columns**
 
-1. **`supabase/functions/extract-bill-data/index.ts`**
-   - Rename `autoAssignSingleCostCode()` → `autoAssignCostCode()`
-   - Add historical dominance check (70% threshold)
-   - Add `vendorName` and `ownerId` parameters
-   - Update the call site to pass vendor name
+```sql
+-- Add to bill_lines for finalized bills
+ALTER TABLE bill_lines 
+ADD COLUMN purchase_order_id uuid REFERENCES project_purchase_orders(id);
 
-2. **Same file - Vendor Learning Summary**
-   - Update the vendor pattern summary to show percentages
-   - Add decision guidance for the AI
+CREATE INDEX idx_bill_lines_purchase_order_id ON bill_lines(purchase_order_id);
 
-### Phase 2: Keyword Learning (Future)
+-- Add to pending_bill_lines for AI-extracted bills in review
+ALTER TABLE pending_bill_lines 
+ADD COLUMN purchase_order_id uuid REFERENCES project_purchase_orders(id);
+```
 
-1. Create new migration for `vendor_description_patterns` table
-2. Update `approve_pending_bill` function to extract and store keywords
-3. Update extraction to query keyword patterns
-4. Add admin UI to view/manage learned patterns
+### Phase 2: Create Reusable Hook
 
-## Expected Results
+**New File: `src/hooks/useVendorPurchaseOrders.ts`**
 
-After Phase 1:
+```typescript
+export function useVendorPurchaseOrders(projectId: string | null, vendorId: string | null) {
+  return useQuery({
+    queryKey: ['vendor-pos', projectId, vendorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_purchase_orders')
+        .select(`
+          id,
+          po_number,
+          total_amount,
+          cost_code_id,
+          cost_codes (id, code, name)
+        `)
+        .eq('project_id', projectId)
+        .eq('company_id', vendorId)
+        .eq('status', 'approved');
+      
+      if (error) throw error;
+      
+      // Calculate remaining balance for each PO
+      // (would need to join with bill_lines to get billed amounts)
+      return data;
+    },
+    enabled: !!projectId && !!vendorId,
+  });
+}
+```
 
-| Vendor | Current Behavior | New Behavior |
-|--------|------------------|--------------|
-| Wire Gill (1 code) | Auto-assign Legal | Same (no change) |
-| Oceanwatch HOA (1 code) | Auto-assign HOA Fees | Same (no change) |
-| Four Seasons (8 codes, 57% framing) | AI guesses | AI guesses (below 70%) |
-| Hypothetical vendor (90% one code) | AI guesses | **Auto-assign dominant code** |
+### Phase 3: Create PO Selection Component
 
-The system becomes smarter over time as more bills are approved, building statistical confidence for auto-assignment.
+**New File: `src/components/bills/POSelectionDropdown.tsx`**
 
-## Technical Details
+A reusable dropdown component that:
+- Fetches available POs for the vendor + project combination
+- Shows each PO with: PO Number, Cost Code, Total Amount, and optionally Remaining Balance
+- Highlights POs whose cost code matches the bill line's cost code
+- Allows optional selection (defaults to "Auto-match by cost code")
 
-### Threshold Justification: 70%
+```
+UI Layout:
+┌─────────────────────────────────────────────────────┐
+│ Purchase Order (Optional)                           │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ ▼ Auto-match by cost code                       │ │
+│ └─────────────────────────────────────────────────┘ │
+│                                                     │
+│ Dropdown Options:                                   │
+│ ○ Auto-match by cost code                          │
+│ ○ 2025-115E-0027 | 4430: Roofing | $28,244.92      │
+│ ○ 2026-115E-0029 | 4610: Ext Trim | $4,134.28      │
+│ ○ 2026-115E-0030 | 4600: Siding | $13,798.09       │
+└─────────────────────────────────────────────────────┘
+```
 
-- 70% means at least 7 out of 10 invoices used this code
-- Conservative enough to avoid wrong auto-assignments
-- Could be configurable in the future
+### Phase 4: Integrate into Manual Bill Entry
 
-### Minimum Sample Size: 3 Examples
+**Modify: `src/components/bills/ManualBillEntry.tsx`**
 
-- Require at least 3 approved examples before considering historical patterns
-- Prevents over-fitting on limited data
-- Allows quick learning for frequent vendors
+1. **Add state for PO selections per line:**
+   ```typescript
+   // Inside ExpenseRow interface
+   interface ExpenseRow {
+     // ...existing fields
+     purchaseOrderId?: string;
+   }
+   ```
 
-### Backward Compatibility
+2. **Add the hook to fetch POs:**
+   ```typescript
+   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendor);
+   const hasMultiplePOs = (vendorPOs?.length || 0) >= 2;
+   ```
 
-- Existing `bill_categorization_examples` data is immediately usable
-- No data migration required
-- Edge function update deploys automatically
+3. **Add PO dropdown column to job cost rows (only when vendor has 2+ POs):**
+   - Show conditionally: only when `hasMultiplePOs` is true
+   - Pre-select PO that matches the row's cost code (smart default)
+   - Allow user to override
 
+4. **Update `handleSave` to include `purchase_order_id` in bill lines:**
+   ```typescript
+   const billLines: BillLineData[] = [
+     ...resolvedJobRows
+       .filter(row => row.accountId || row.amount)
+       .map(row => ({
+         // ...existing fields
+         purchase_order_id: row.purchaseOrderId || undefined,  // NEW
+       })),
+   ];
+   ```
+
+5. **Update `useBills.ts` `BillLineData` interface:**
+   ```typescript
+   export interface BillLineData {
+     // ...existing fields
+     purchase_order_id?: string;  // NEW
+   }
+   ```
+
+### Phase 5: Integrate into AI Extraction Edit Dialog
+
+**Modify: `src/components/bills/EditExtractedBillDialog.tsx`**
+
+1. **Add state and fetch POs after vendor is set:**
+   ```typescript
+   const [projectId, setProjectId] = useState<string | null>(null);
+   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
+   ```
+
+2. **Fetch project_id from the extracted data or context:**
+   - The dialog needs to know which project this bill is for
+   - Can be extracted from URL params or pending bill metadata
+
+3. **Add PO selection UI to line items (only when 2+ POs exist):**
+   - Show PO dropdown per line item
+   - Allow user to select which PO before approving
+
+4. **Update LineItem interface:**
+   ```typescript
+   interface LineItem {
+     // ...existing fields
+     purchase_order_id?: string;  // NEW
+   }
+   ```
+
+5. **Store selection in `pending_bill_lines` when saving:**
+   ```typescript
+   await updateLine.mutateAsync({
+     lineId: line.id,
+     updates: {
+       // ...existing fields
+       purchase_order_id: line.purchase_order_id,  // NEW
+     },
+   });
+   ```
+
+### Phase 6: Update PO Matching Hook
+
+**Modify: `src/hooks/useBillPOMatching.ts`**
+
+Update the matching priority:
+1. **Primary**: If `bill_line.purchase_order_id` is set → use that PO directly
+2. **Fallback**: Match by composite key (project_id + vendor_id + cost_code_id)
+
+```typescript
+// In the query that builds matches
+if (line.purchase_order_id) {
+  // Direct PO link exists - use it
+  const po = posById.get(line.purchase_order_id);
+  if (po) matches.push(po);
+} else if (line.cost_code_id) {
+  // Fall back to cost code matching
+  const key = `${bill.project_id}|${bill.vendor_id}|${line.cost_code_id}`;
+  const po = poLookup.get(key);
+  if (po) matches.push(po);
+}
+```
+
+### Phase 7: Update usePendingBills Hook
+
+**Modify: `src/hooks/usePendingBills.ts`**
+
+Update the `updateLine` mutation to accept `purchase_order_id`:
+
+```typescript
+// In updateLine mutation
+const { error } = await supabase
+  .from("pending_bill_lines")
+  .update({
+    // ...existing fields
+    purchase_order_id: updates.purchase_order_id,  // NEW
+  })
+  .eq("id", lineId);
+```
+
+Also update the `addLine` mutation similarly.
+
+### Phase 8: Update approve_pending_bill Function
+
+**Modify: `supabase/functions` or database function**
+
+Ensure that when a pending bill is approved, the `purchase_order_id` from `pending_bill_lines` is copied to the final `bill_lines` table.
+
+## Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| Database Migration | CREATE | Add `purchase_order_id` to `bill_lines` and `pending_bill_lines` |
+| `src/hooks/useVendorPurchaseOrders.ts` | CREATE | New hook to fetch POs for vendor+project |
+| `src/components/bills/POSelectionDropdown.tsx` | CREATE | Reusable PO selection UI component |
+| `src/components/bills/ManualBillEntry.tsx` | MODIFY | Add PO selection per line item |
+| `src/components/bills/EditExtractedBillDialog.tsx` | MODIFY | Add PO selection for AI-extracted bills |
+| `src/hooks/useBills.ts` | MODIFY | Add `purchase_order_id` to `BillLineData` interface |
+| `src/hooks/usePendingBills.ts` | MODIFY | Support `purchase_order_id` in mutations |
+| `src/hooks/useBillPOMatching.ts` | MODIFY | Check explicit PO first, fallback to cost code |
+
+## UX Behavior Summary
+
+| Scenario | PO Selection UI | Behavior |
+|----------|----------------|----------|
+| Vendor has 0-1 POs | Hidden | No selection needed, automatic |
+| Vendor has 2+ POs | Shown per line | User can select specific PO |
+| User doesn't select | Dropdown shows "Auto-match" | Falls back to cost code matching |
+| User selects PO | Dropdown shows PO number | Direct link stored in bill line |
+
+## Expected Result
+
+After implementation:
+1. User enters a bill for ABC Building Supply on 115 E Socialink Ct
+2. System detects 3 POs exist for this vendor+project
+3. PO selection dropdown appears on each line item
+4. User selects "2025-115E-0027 | 4430: Roofing" for this invoice
+5. Bill is saved with explicit `purchase_order_id` link
+6. All downstream reports and matching use this explicit link
+7. No ambiguity - the bill is definitively attached to the correct PO
