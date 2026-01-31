@@ -1,6 +1,6 @@
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
+import { FileText, Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 interface VendorPOInfoProps {
   projectId: string | null | undefined;
@@ -9,18 +9,13 @@ interface VendorPOInfoProps {
 
 /**
  * Displays Purchase Order information directly below the Vendor field.
- * Shows all POs for the selected vendor on this project (if any exist).
+ * Always shows status when a vendor is selected - loading, error, empty, or PO list.
  */
 export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
-  const { data: purchaseOrders, isLoading } = useVendorPurchaseOrders(projectId, vendorId);
+  const { data: purchaseOrders, isLoading, error } = useVendorPurchaseOrders(projectId, vendorId);
 
-  // Don't render anything if no vendor selected or still loading
-  if (!vendorId || isLoading) {
-    return null;
-  }
-
-  // No POs for this vendor on this project
-  if (!purchaseOrders || purchaseOrders.length === 0) {
+  // Don't render anything if no vendor selected
+  if (!vendorId) {
     return null;
   }
 
@@ -33,6 +28,58 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
     }).format(amount);
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="mt-2 p-3 rounded-lg border bg-muted/30 border-border">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Checking purchase orders…</span>
+        </div>
+        <div className="text-xs text-muted-foreground/60 mt-1">
+          Vendor linked: …{vendorId.slice(-6)}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    console.error('VendorPOInfo query error:', error);
+    return (
+      <div className="mt-2 p-3 rounded-lg border bg-destructive/10 border-destructive/30">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <span className="text-sm text-destructive font-medium">Couldn't load purchase orders</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Try refreshing the page. If the problem persists, contact support.
+        </p>
+        <div className="text-xs text-muted-foreground/60 mt-1">
+          Vendor linked: …{vendorId.slice(-6)}
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state (no POs found)
+  if (!purchaseOrders || purchaseOrders.length === 0) {
+    return (
+      <div className="mt-2 p-3 rounded-lg border bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+        <div className="flex items-center gap-2">
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <span className="text-sm text-amber-800 dark:text-amber-200">
+            No approved purchase orders found for this vendor on this project.
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground/60 mt-1">
+          Vendor linked: …{vendorId.slice(-6)}
+        </div>
+      </div>
+    );
+  }
+
+  // Show PO list
   return (
     <div className="mt-2 p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
       <div className="flex items-center gap-2 mb-2">
@@ -42,6 +89,8 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
             ? "1 Purchase Order" 
             : `${purchaseOrders.length} Purchase Orders`}
         </span>
+        <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 ml-auto" />
+        <span className="text-xs text-muted-foreground">Vendor linked</span>
       </div>
       <div className="space-y-1.5">
         {purchaseOrders.map((po) => (
@@ -70,6 +119,11 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
           </div>
         ))}
       </div>
+      {purchaseOrders.length === 1 && (
+        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+          This bill will be linked to PO {purchaseOrders[0].po_number} by default (unless you override per line item).
+        </p>
+      )}
       {purchaseOrders.length > 1 && (
         <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
           Select specific PO in Job Cost rows below, or let it auto-match by cost code.
