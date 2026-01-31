@@ -24,6 +24,7 @@ import { BillNotesDialog } from "./BillNotesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
+import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -51,6 +52,7 @@ interface ExpenseRow {
   project: string;
   projectId?: string;
   lotId?: string;
+  purchaseOrderId?: string;
   quantity: string;
   amount: string;
   memo: string;
@@ -79,6 +81,7 @@ export function ManualBillEntry() {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
   const { checkDuplicate } = useReferenceNumberValidation();
+  const showPOSelection = useShouldShowPOSelection(projectId, vendor);
 
   // Use separate cache key to avoid collision with full table data
   const { data: companies } = useQuery({
@@ -357,6 +360,7 @@ export function ManualBillEntry() {
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           lot_id: row.lotId || undefined,
+          purchase_order_id: row.purchaseOrderId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -639,18 +643,29 @@ export function ManualBillEntry() {
               </div>
 
                 <div className="border rounded-lg overflow-hidden w-full">
-                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                  <div className={cn(
+                    "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
+                    showAddressColumn && showPOSelection ? "grid-cols-28" : 
+                    showAddressColumn ? "grid-cols-24" : 
+                    showPOSelection ? "grid-cols-24" : "grid-cols-20"
+                  )}>
                   <div className="col-span-4">Cost Code</div>
-                  <div className="col-span-7">Memo</div>
+                  <div className={showPOSelection ? "col-span-5" : "col-span-7"}>Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
-                  {showAddressColumn && <div className="col-span-6">Address</div>}
+                  {showAddressColumn && <div className="col-span-4">Address</div>}
+                  {showPOSelection && <div className="col-span-4">Purchase Order</div>}
                   <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {jobCostRows.map((row) => (
-                  <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                  <div key={row.id} className={cn(
+                    "grid gap-2 p-3 border-t w-full", 
+                    showAddressColumn && showPOSelection ? "grid-cols-28" : 
+                    showAddressColumn ? "grid-cols-24" : 
+                    showPOSelection ? "grid-cols-24" : "grid-cols-20"
+                  )}>
                     <div className="col-span-4">
                       <CostCodeSearchInput
                         value={row.account}
@@ -663,7 +678,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className="col-span-7">
+                    <div className={showPOSelection ? "col-span-5" : "col-span-7"}>
                       <Input
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -700,7 +715,7 @@ export function ManualBillEntry() {
                       </div>
                     </div>
                     {showAddressColumn && (
-                      <div className="col-span-6">
+                      <div className="col-span-4">
                         <Select
                           value={row.lotId || ''}
                           onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
@@ -718,6 +733,17 @@ export function ManualBillEntry() {
                         </Select>
                       </div>
                     )}
+                    {showPOSelection && (
+                      <div className="col-span-4">
+                        <POSelectionDropdown
+                          projectId={projectId}
+                          vendorId={vendor}
+                          value={row.purchaseOrderId}
+                          onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
+                          costCodeId={row.accountId}
+                        />
+                      </div>
+                    )}
                     <div className="col-span-1 flex items-center justify-end">
                       <Button
                         onClick={() => removeJobCostRow(row.id)}
@@ -733,7 +759,12 @@ export function ManualBillEntry() {
                 ))}
 
                 <div className="p-3 bg-muted border-t">
-                  <div className={cn("grid gap-2 w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                  <div className={cn(
+                    "grid gap-2 w-full", 
+                    showAddressColumn && showPOSelection ? "grid-cols-28" : 
+                    showAddressColumn ? "grid-cols-24" : 
+                    showPOSelection ? "grid-cols-24" : "grid-cols-20"
+                  )}>
                     <div className="col-span-8 font-medium">
                       {jobCostRows.reduce((total, row) => {
                         const q = parseFloat(row.quantity) || 0;

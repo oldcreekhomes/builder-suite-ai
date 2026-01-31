@@ -20,6 +20,7 @@ export interface BillLineData {
   project_id?: string;
   cost_code_id?: string;
   lot_id?: string;
+  purchase_order_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
