@@ -28,15 +28,14 @@ export function useVendorPurchaseOrders(
     queryFn: async (): Promise<VendorPurchaseOrder[]> => {
       if (!projectId || !vendorId) return [];
 
-      // Fetch all approved POs for this vendor + project
+      // Fetch all approved POs for this vendor + project (without embedded join)
       const { data: pos, error: poError } = await supabase
         .from('project_purchase_orders')
         .select(`
           id,
           po_number,
           total_amount,
-          cost_code_id,
-          cost_codes (id, code, name)
+          cost_code_id
         `)
         .eq('project_id', projectId)
         .eq('company_id', vendorId)
@@ -45,10 +44,23 @@ export function useVendorPurchaseOrders(
       if (poError) throw poError;
       if (!pos || pos.length === 0) return [];
 
+      // Collect unique cost_code_ids and fetch cost codes separately
+      const costCodeIds = [...new Set(pos.map(po => po.cost_code_id).filter(Boolean))] as string[];
+      
+      let costCodeMap = new Map<string, { id: string; code: string; name: string }>();
+      if (costCodeIds.length > 0) {
+        const { data: costCodes } = await supabase
+          .from('cost_codes')
+          .select('id, code, name')
+          .in('id', costCodeIds);
+        
+        if (costCodes) {
+          costCodeMap = new Map(costCodes.map(cc => [cc.id, cc]));
+        }
+      }
+
       // Fetch bill lines linked to these POs (by explicit purchase_order_id)
-      // or by matching project+vendor+cost_code (fallback)
       const poIds = pos.map(po => po.id);
-      const costCodeIds = pos.map(po => po.cost_code_id).filter(Boolean) as string[];
 
       // Get billed amounts from bill_lines that have explicit purchase_order_id
       const { data: explicitBilled } = await supabase
@@ -102,9 +114,8 @@ export function useVendorPurchaseOrders(
 
       // Build result with remaining balances
       return pos.map(po => {
-        // cost_codes is an array from the join, take the first element
-        const costCodesArray = po.cost_codes as { id: string; code: string; name: string }[] | null;
-        const costCodeData = costCodesArray && costCodesArray.length > 0 ? costCodesArray[0] : null;
+        // Look up cost code from the map
+        const costCodeData = po.cost_code_id ? costCodeMap.get(po.cost_code_id) : null;
         
         // Total billed = explicit PO links + implicit cost code matching
         let totalBilled = billedByPoId.get(po.id) || 0;
