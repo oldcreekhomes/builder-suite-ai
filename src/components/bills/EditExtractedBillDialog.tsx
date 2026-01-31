@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
+import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -77,6 +79,7 @@ interface LineItem {
   account_display?: string;
   cost_code_id?: string;
   cost_code_display?: string;
+  purchase_order_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -88,6 +91,7 @@ export function EditExtractedBillDialog({
   onOpenChange,
   pendingUploadId,
 }: EditExtractedBillDialogProps) {
+  const { projectId } = useParams();
   const { pendingBills, updateLine, addLine, deleteLine } = usePendingBills();
   const [vendorId, setVendorId] = useState<string>("");
   const [billDate, setBillDate] = useState<Date>(new Date());
@@ -103,6 +107,7 @@ export function EditExtractedBillDialog({
   const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
+  const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
 
   // Load bill data
   useEffect(() => {
@@ -561,6 +566,7 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
+            purchase_order_id: line.purchase_order_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
             amount: lineAmount,
@@ -577,6 +583,7 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
+            purchase_order_id: line.purchase_order_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
             amount: lineAmount,
@@ -802,6 +809,7 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[100px]">Quantity</TableHead>
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[120px]">Total</TableHead>
+                      {showPOSelection && <TableHead className="w-[200px]">Purchase Order</TableHead>}
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -850,6 +858,25 @@ export function EditExtractedBillDialog({
                       <TableCell>
                         <span className="font-medium">${line.amount.toFixed(2)}</span>
                       </TableCell>
+                      {showPOSelection && (
+                        <TableCell>
+                          <POSelectionDropdown
+                            projectId={projectId}
+                            vendorId={vendorId}
+                            value={line.purchase_order_id}
+                            onChange={(poId) => {
+                              setJobCostLines(lines =>
+                                lines.map(l => 
+                                  l.id === line.id 
+                                    ? { ...l, purchase_order_id: poId }
+                                    : l
+                                )
+                              );
+                            }}
+                            costCodeId={line.cost_code_id}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell>
                         <Button
                           variant="ghost"

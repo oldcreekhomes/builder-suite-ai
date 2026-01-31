@@ -29,6 +29,7 @@ export interface PendingBillLine {
   account_id?: string;
   cost_code_id?: string;
   project_id?: string;
+  purchase_order_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -146,6 +147,7 @@ export const usePendingBills = () => {
           account_id: lineData.account_id,
           cost_code_id: lineData.cost_code_id,
           project_id: lineData.project_id,
+          purchase_order_id: lineData.purchase_order_id,
           memo: lineData.memo,
         },
       ]);
