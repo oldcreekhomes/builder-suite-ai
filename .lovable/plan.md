@@ -1,73 +1,107 @@
 
-## Problem Summary
+## Summary
 
-The "Enter with AI" tab displays fallback/computed values for Terms and Due Date when the AI extraction doesn't capture them, but when submitting bills, the actual NULL values from the extraction are sent to the database - causing the Review tab to show dashes.
+Two issues to address:
 
-**Evidence from database:**
-- Bill in Review tab: `terms: NULL`, `due_date: NULL`
-- BatchBillReviewTable displays: "Net 30" and "01/31/26" (computed from bill_date + 30 days)
-
-This creates a confusing UX where users see data in "Enter with AI" but it disappears in "Review".
+1. **Duplicate invoice reference numbers** are being allowed when submitting bills through "Enter with AI" - the validation that exists in "Enter Manually" is missing from the batch submission flow
+2. **Remove Terms column** from the Review, Rejected, Approved, and Paid tabs UI (keep in database)
 
 ---
 
-## Solution
+## Issue 1: Duplicate Reference Number Validation Missing
 
-Synchronize the submission logic with the display logic so that if the UI shows a value, that same value gets saved to the database.
+### Root Cause
 
-### Changes to BillsApprovalTabs.tsx
+The `useReferenceNumberValidation` hook is used in:
+- ManualBillEntry.tsx (Enter Manually)
+- EditExtractedBillDialog.tsx (editing individual AI bills)
+- EditBillDialog.tsx (editing existing bills)
+- ApproveBillDialog.tsx (approving individual bills)
 
-In the `handleSubmitAllBills` function (around lines 186-224), apply the same fallback/computation logic that `BatchBillReviewTable.tsx` uses for display:
+But it is **NOT** used in `BillsApprovalTabs.tsx` in the `handleSubmitAllBills` function - the batch submission for AI-extracted bills.
 
-**Add helper functions** (reuse from BatchBillReviewTable):
+### Solution
 
-```typescript
-// Normalize terms from any format to standardized dropdown values
-function normalizeTermsForSubmit(terms: string | null | undefined): string {
-  if (!terms) return 'net-30';
-  if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
-    return terms;
+Add duplicate reference number validation to `handleSubmitAllBills` before calling `batchApproveBills`:
+
+1. Import `useReferenceNumberValidation` hook
+2. Before approving each bill, check if its reference number already exists
+3. Filter out duplicates and show a toast listing which bills were skipped due to duplicate reference numbers
+4. Only submit bills that pass validation
+
+### Technical Implementation
+
+In `BillsApprovalTabs.tsx`:
+
+```tsx
+// Add import
+import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
+
+// Add hook in component
+const { checkDuplicate } = useReferenceNumberValidation();
+
+// In handleSubmitAllBills, before batchApproveBills:
+const validatedBills = [];
+const duplicateBills = [];
+
+for (const bill of selectedBills) {
+  const referenceNumber = bill.extracted_data?.reference_number || 
+                          bill.extracted_data?.referenceNumber || 
+                          bill.reference_number;
+  
+  if (referenceNumber?.trim()) {
+    const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+    if (isDuplicate && existingBill) {
+      duplicateBills.push({
+        bill,
+        existingVendor: existingBill.vendorName,
+        existingProject: existingBill.projectName
+      });
+      continue;
+    }
   }
-  const normalized = terms.toLowerCase().trim();
-  if (normalized.includes('15')) return 'net-15';
-  if (normalized.includes('60')) return 'net-60';
-  if (normalized.includes('receipt') || normalized.includes('cod')) return 'due-on-receipt';
-  return 'net-30';
+  validatedBills.push(bill);
 }
 
-// Compute due date from bill date and terms
-function computeDueDateFromBillDate(billDate: string, terms: string): string {
-  const date = new Date(billDate);
-  switch (terms) {
-    case 'net-15': date.setDate(date.getDate() + 15); break;
-    case 'net-30': date.setDate(date.getDate() + 30); break;
-    case 'net-60': date.setDate(date.getDate() + 60); break;
-    case 'due-on-receipt': break; // same day
-    default: date.setDate(date.getDate() + 30);
-  }
-  return date.toISOString().split('T')[0];
+// Show warning for duplicates
+if (duplicateBills.length > 0) {
+  toast({
+    title: "Duplicate Invoices Skipped",
+    description: `${duplicateBills.length} bill(s) skipped due to duplicate reference numbers`,
+    variant: "destructive",
+  });
+}
+
+// Only proceed with validated bills
+if (validatedBills.length === 0) {
+  setIsSubmitting(false);
+  return;
 }
 ```
 
-**Update bill mapping** to apply these functions:
+---
 
-Current:
-```typescript
-const dueDate = bill.extracted_data?.due_date || bill.extracted_data?.dueDate || bill.due_date;
-const terms = bill.extracted_data?.terms;
-```
+## Issue 2: Remove Terms Column from UI
 
-Change to:
-```typescript
-// Apply same fallback logic as BatchBillReviewTable display
-const rawTerms = bill.extracted_data?.terms;
-const terms = normalizeTermsForSubmit(rawTerms);
+### Files to Modify
 
-let dueDate = bill.extracted_data?.due_date || bill.extracted_data?.dueDate || bill.due_date;
-if (!dueDate && billDate) {
-  dueDate = computeDueDateFromBillDate(billDate, terms);
-}
-```
+| File | Location | Change |
+|------|----------|--------|
+| `BillsApprovalTable.tsx` | Line 693 | Remove Terms header |
+| `BillsApprovalTable.tsx` | Line 884-886 | Remove Terms cell |
+| `BillsApprovalTable.tsx` | Line 581-587 | Update column count calculation |
+| `BillsApprovalTable.tsx` | Line 440-452 | Can keep formatTerms function (used elsewhere potentially) or remove if not needed |
+| `PayBillsTable.tsx` | Line 886 | Remove Terms header |
+| `PayBillsTable.tsx` | Line 1026 | Remove Terms cell |
+| `PayBillsTable.tsx` | Line 665-677 | Can keep formatTerms function or remove if not needed |
+
+### Technical Details
+
+The Terms column currently shows values like "Net 30", "On Receipt", etc. Since Bill Date and Due Date are already shown, the terms are implied:
+- Bill Date: 01/01/26, Due Date: 01/31/26 = Net 30
+- Bill Date: 12/22/25, Due Date: 12/22/25 = On Receipt
+
+Removing this column will save horizontal space in the table.
 
 ---
 
@@ -75,25 +109,14 @@ if (!dueDate && billDate) {
 
 | File | Changes |
 |------|---------|
-| `src/components/bills/BillsApprovalTabs.tsx` | Add `normalizeTermsForSubmit` and `computeDueDateFromBillDate` helpers; Update `handleSubmitAllBills` to apply fallback logic for terms and due_date |
+| `src/components/bills/BillsApprovalTabs.tsx` | Add duplicate reference number validation before batch submission |
+| `src/components/bills/BillsApprovalTable.tsx` | Remove Terms column header and cell from table |
+| `src/components/bills/PayBillsTable.tsx` | Remove Terms column header and cell from table |
 
 ---
 
-## Technical Details
+## Expected Behavior After Fix
 
-The synchronization ensures:
-1. If `terms` is null/undefined in extracted_data, default to `"net-30"` (same as display)
-2. If `due_date` is null/undefined but `bill_date` exists, compute it using `bill_date + terms` (same as display)
-3. The Review tab will show the exact same Terms and Due Date values that were visible in the "Enter with AI" tab
-
-This matches the existing pattern already documented in the memory for AI bill extraction logic synchronization.
-
----
-
-## Expected Result
-
-After this fix:
-- Bills submitted from "Enter with AI" will have Terms defaulted to "Net 30" when not extracted
-- Bills will have Due Date computed from Bill Date + Terms when not extracted  
-- The Review tab will display the same values shown in "Enter with AI"
-- Manual entry and AI entry will produce consistent data in the database
+1. **Duplicate validation**: When submitting bills from "Enter with AI", any bill with a reference number that already exists (company-wide) will be skipped with a warning toast
+2. **Terms column removed**: The Review, Rejected, Approved, and Paid tabs will no longer show the Terms column, saving horizontal space while keeping Bill Date and Due Date visible
+3. **Database unchanged**: The `terms` field will continue to be stored in the database, just not displayed in these tabs
