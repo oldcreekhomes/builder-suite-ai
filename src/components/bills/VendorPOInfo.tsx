@@ -1,17 +1,20 @@
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Loader2, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface VendorPOInfoProps {
   projectId: string | null | undefined;
   vendorId: string | null | undefined;
+  selectedPOId?: string;
+  onSelectPO?: (poId: string | undefined) => void;
 }
 
 /**
  * Displays Purchase Order information directly below the Vendor field.
  * Always shows status when a vendor is selected - loading, error, empty, or PO list.
  */
-export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
+export function VendorPOInfo({ projectId, vendorId, selectedPOId, onSelectPO }: VendorPOInfoProps) {
   const { data: purchaseOrders, isLoading, error } = useVendorPurchaseOrders(projectId, vendorId);
 
   // Don't render anything if no vendor selected
@@ -26,6 +29,12 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const handleRowClick = (poId: string) => {
+    if (!onSelectPO) return;
+    // Toggle: if already selected, deselect; otherwise select
+    onSelectPO(selectedPOId === poId ? undefined : poId);
   };
 
   // Show loading state
@@ -93,29 +102,39 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
         <span className="text-xs text-muted-foreground">Vendor linked</span>
       </div>
       <div className="space-y-1">
-        {purchaseOrders.map((po) => (
-          <div 
-            key={po.id} 
-            className="grid grid-cols-[120px_1fr_140px] gap-2 items-center text-xs bg-white dark:bg-background/50 rounded px-2 py-1 border border-blue-100 dark:border-blue-900"
-          >
-            <Badge variant="outline" className="text-xs font-mono whitespace-nowrap w-fit">
-              {po.po_number}
-            </Badge>
-            {po.cost_code ? (
-              <span 
-                className="text-muted-foreground truncate"
-                title={`${po.cost_code.code} - ${po.cost_code.name}`}
-              >
-                {po.cost_code.code} - {po.cost_code.name}
+        {purchaseOrders.map((po) => {
+          const isSelected = selectedPOId === po.id;
+          return (
+            <div 
+              key={po.id} 
+              onClick={() => handleRowClick(po.id)}
+              className={cn(
+                "grid grid-cols-[140px_1fr_160px] gap-3 items-center text-xs rounded px-2 py-1.5 border transition-all",
+                onSelectPO && "cursor-pointer",
+                isSelected 
+                  ? "ring-2 ring-primary bg-primary/10 border-primary/50" 
+                  : "bg-white dark:bg-background/50 border-blue-100 dark:border-blue-900 hover:bg-blue-100/50 dark:hover:bg-blue-900/30"
+              )}
+            >
+              <Badge variant="outline" className="text-xs font-mono whitespace-nowrap w-fit">
+                {po.po_number}
+              </Badge>
+              {po.cost_code ? (
+                <span 
+                  className="text-muted-foreground truncate"
+                  title={`${po.cost_code.code} - ${po.cost_code.name}`}
+                >
+                  {po.cost_code.code} - {po.cost_code.name}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/50">—</span>
+              )}
+              <span className="text-right whitespace-nowrap text-muted-foreground">
+                {formatCurrency(po.remaining)} / {formatCurrency(po.total_amount)}
               </span>
-            ) : (
-              <span className="text-muted-foreground/50">—</span>
-            )}
-            <span className="text-right whitespace-nowrap text-muted-foreground">
-              {formatCurrency(po.remaining)} / {formatCurrency(po.total_amount)}
-            </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
       {purchaseOrders.length === 1 && (
         <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
@@ -124,7 +143,7 @@ export function VendorPOInfo({ projectId, vendorId }: VendorPOInfoProps) {
       )}
       {purchaseOrders.length > 1 && (
         <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-          Select specific PO in Job Cost rows below, or let it auto-match by cost code.
+          Click to select a PO, or let it auto-match by cost code.
         </p>
       )}
     </div>

@@ -67,6 +67,7 @@ export function ManualBillEntry() {
   // Split vendor into UUID (for queries/saving) and display name (for UI)
   const [vendorId, setVendorId] = useState<string>("");
   const [vendorName, setVendorName] = useState<string>("");
+  const [selectedPOId, setSelectedPOId] = useState<string | undefined>();
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }
@@ -539,14 +540,17 @@ export function ManualBillEntry() {
             <VendorSearchInput
               value={vendorId}
               displayValue={vendorName}
-              onChange={setVendorId}
+              onChange={(newVendorId) => {
+                setVendorId(newVendorId);
+                // Reset PO selection when vendor changes
+                setSelectedPOId(undefined);
+              }}
               onCompanySelect={(company) => {
                 setVendorName(company.company_name);
               }}
               placeholder="Search vendors..."
               className="w-full h-10"
             />
-            <VendorPOInfo projectId={projectId} vendorId={vendorId} />
           </div>
 
           <div className="space-y-2">
@@ -581,6 +585,14 @@ export function ManualBillEntry() {
             <Input id="refNo" placeholder="Enter reference number" />
           </div>
         </div>
+
+        {/* PO Info - full width below the header grid */}
+        <VendorPOInfo 
+          projectId={projectId} 
+          vendorId={vendorId}
+          selectedPOId={selectedPOId}
+          onSelectPO={setSelectedPOId}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 space-y-2">
