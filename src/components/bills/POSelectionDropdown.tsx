@@ -18,8 +18,8 @@ interface POSelectionDropdownProps {
 
 /**
  * Dropdown to select a specific Purchase Order for a bill line.
- * Only renders when the vendor has 2+ POs for the project.
- * Shows PO number, cost code name, and remaining/total balance.
+ * Always renders with "No Purchase Order" as the default option.
+ * Shows PO number, cost code name, and remaining/total balance when POs exist.
  */
 export function POSelectionDropdown({
   projectId,
@@ -34,10 +34,8 @@ export function POSelectionDropdown({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPOForDialog, setSelectedPOForDialog] = useState<VendorPurchaseOrder | null>(null);
 
-  // Don't render if no POs or only 1 PO (auto-match handles it)
-  if (!purchaseOrders || purchaseOrders.length < 2) {
-    return null;
-  }
+  const hasPurchaseOrders = purchaseOrders && purchaseOrders.length > 0;
+  const hasMultiplePOs = purchaseOrders && purchaseOrders.length >= 2;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -57,7 +55,9 @@ export function POSelectionDropdown({
   };
 
   const handleChange = (val: string) => {
-    if (val === '__auto__') {
+    if (val === '__none__') {
+      onChange(undefined);
+    } else if (val === '__auto__') {
       onChange(undefined);
     } else {
       onChange(val);
@@ -79,18 +79,23 @@ export function POSelectionDropdown({
   return (
     <div className="flex items-center gap-1">
       <Select
-        value={value || '__auto__'}
+        value={value || '__none__'}
         onValueChange={handleChange}
         disabled={disabled || isLoading}
       >
         <SelectTrigger className={cn("h-8 flex-1", className)}>
-          <SelectValue placeholder="Auto-match" />
+          <SelectValue placeholder="No Purchase Order" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__auto__" className="text-muted-foreground">
-            Auto-match by cost code
+          <SelectItem value="__none__" className="text-muted-foreground">
+            No Purchase Order
           </SelectItem>
-          {purchaseOrders.map((po) => {
+          {hasMultiplePOs && (
+            <SelectItem value="__auto__" className="text-muted-foreground">
+              Auto-match by cost code
+            </SelectItem>
+          )}
+          {hasPurchaseOrders && purchaseOrders.map((po) => {
             const isMatchingCostCode = costCodeId && po.cost_code_id === costCodeId;
             return (
               <SelectItem 
@@ -107,16 +112,18 @@ export function POSelectionDropdown({
         </SelectContent>
       </Select>
       
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0"
-        onClick={handleInfoClick}
-        disabled={disabled}
-      >
-        <Info className="h-4 w-4 text-muted-foreground" />
-      </Button>
+      {hasPurchaseOrders && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={handleInfoClick}
+          disabled={disabled}
+        >
+          <Info className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      )}
 
       <PODetailsDialog
         open={dialogOpen}
@@ -131,11 +138,12 @@ export function POSelectionDropdown({
 
 /**
  * Hook variant that just returns whether PO selection UI should be shown
+ * Now always returns true since we always show the dropdown
  */
 export function useShouldShowPOSelection(
   projectId: string | null | undefined,
   vendorId: string | null | undefined
 ): boolean {
-  const { data: purchaseOrders } = useVendorPurchaseOrders(projectId, vendorId);
-  return (purchaseOrders?.length || 0) >= 2;
+  // Always show the PO selection column
+  return true;
 }
