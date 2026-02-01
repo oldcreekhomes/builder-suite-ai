@@ -25,7 +25,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
-import { VendorPOInfo } from "./VendorPOInfo";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -67,7 +66,6 @@ export function ManualBillEntry() {
   // Split vendor into UUID (for queries/saving) and display name (for UI)
   const [vendorId, setVendorId] = useState<string>("");
   const [vendorName, setVendorName] = useState<string>("");
-  const [selectedPOId, setSelectedPOId] = useState<string | undefined>();
   const [terms, setTerms] = useState<string>("net-30");
   const [jobCostRows, setJobCostRows] = useState<ExpenseRow[]>([
     { id: "1", account: "", accountId: "", project: "", projectId: projectId || "", quantity: "", amount: "", memo: "" }
@@ -542,8 +540,6 @@ export function ManualBillEntry() {
               displayValue={vendorName}
               onChange={(newVendorId) => {
                 setVendorId(newVendorId);
-                // Reset PO selection when vendor changes
-                setSelectedPOId(undefined);
               }}
               onCompanySelect={(company) => {
                 setVendorName(company.company_name);
@@ -586,13 +582,6 @@ export function ManualBillEntry() {
           </div>
         </div>
 
-        {/* PO Info - full width below the header grid */}
-        <VendorPOInfo 
-          projectId={projectId} 
-          vendorId={vendorId}
-          selectedPOId={selectedPOId}
-          onSelectPO={setSelectedPOId}
-        />
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-4 space-y-2">
