@@ -68,18 +68,22 @@ export function POSelectionDropdown({
     e.stopPropagation();
     // Find the currently selected PO, or show the first one if auto-match
     const poToShow = value 
-      ? purchaseOrders.find(po => po.id === value) 
-      : purchaseOrders[0];
+      ? purchaseOrders?.find(po => po.id === value) 
+      : purchaseOrders?.[0];
     if (poToShow) {
       setSelectedPOForDialog(poToShow);
       setDialogOpen(true);
     }
   };
 
+  // Determine the default/current value for the select
+  // If vendor has POs and no explicit selection, default to auto-match
+  const selectValue = value || (hasPurchaseOrders ? '__auto__' : '__none__');
+
   return (
     <div className="flex items-center gap-1">
       <Select
-        value={value || '__none__'}
+        value={selectValue}
         onValueChange={handleChange}
         disabled={disabled || isLoading}
       >
@@ -87,10 +91,14 @@ export function POSelectionDropdown({
           <SelectValue placeholder="No Purchase Order" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__none__" className="text-muted-foreground">
-            No Purchase Order
-          </SelectItem>
-          {hasMultiplePOs && (
+          {/* Only show "No Purchase Order" when vendor has no POs */}
+          {!hasPurchaseOrders && (
+            <SelectItem value="__none__" className="text-muted-foreground">
+              No Purchase Order
+            </SelectItem>
+          )}
+          {/* When vendor has POs, start with auto-match */}
+          {hasPurchaseOrders && (
             <SelectItem value="__auto__" className="text-muted-foreground">
               Auto-match by cost code
             </SelectItem>
