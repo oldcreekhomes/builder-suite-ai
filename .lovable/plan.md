@@ -2,83 +2,112 @@
 
 ## Goal
 
-Make each Purchase Order row fit on a single line with a clean 3-column layout that's easy to scan.
+1. **Expand the PO panel horizontally** to span across all 3 columns (Vendor, Date, Reference No.), aligning with the right edge of the form
+2. **Make PO rows clickable/selectable** with visual feedback - clicking highlights the row, clicking again deselects
 
 ---
 
-## Current Problem
+## Problem Analysis
 
-The PO rows are using flexbox with `justify-between`, but:
-- No fixed column widths
-- Text wraps freely (e.g., "Lumber & Framing Material" breaks to two lines)
-- "remaining" and "of $X" display as separate chunks that wrap
+### Width Issue
+Currently `VendorPOInfo` is nested inside the first `<div>` of the 3-column grid:
+```
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div className="space-y-2">          <!-- Column 1 only -->
+    <Label>Vendor</Label>
+    <VendorSearchInput ... />
+    <VendorPOInfo ... />               <!-- Constrained to column 1 width -->
+  </div>
+  <div>Date</div>                      <!-- Column 2 -->
+  <div>Reference No.</div>             <!-- Column 3 -->
+</div>
+```
+
+### Selection Issue
+The PO rows are currently display-only `<div>` elements with no click handlers or state tracking.
 
 ---
 
 ## Solution
 
-Restructure each PO row into a **3-column grid** with:
+### A) Expand width (ManualBillEntry.tsx)
 
-| Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
-| PO Number | Cost Code | Remaining / Total |
-| `2025-115E-0008` | `4330 - Lumber & Framing` | `$21,542 / $21,542` |
+Move `VendorPOInfo` **outside** the 3-column grid so it can span full width:
 
-### Layout approach:
-- Use CSS Grid: `grid grid-cols-3`
-- Column 1 (PO#): Fixed width, `whitespace-nowrap`
-- Column 2 (Cost Code): Truncate long names with `truncate` + tooltip
-- Column 3 (Amounts): Right-aligned, compact format `$X / $Y`
+```
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div className="space-y-2">
+    <Label>Vendor</Label>
+    <VendorSearchInput ... />
+  </div>
+  <div>Date</div>
+  <div>Reference No.</div>
+</div>
 
-### Text changes:
-- Instead of: `$21,542 remaining of $21,542`
-- Use: `$21,542 / $21,542` (shorter, fits on one line)
-- Or: `$21,542 left` if they've billed against it
+{/* Now outside the grid - full width */}
+<VendorPOInfo 
+  projectId={projectId} 
+  vendorId={vendorId}
+  selectedPOId={selectedPOId}
+  onSelectPO={setSelectedPOId}
+/>
+```
+
+### B) Add selection behavior (VendorPOInfo.tsx)
+
+1. Add new props: `selectedPOId?: string` and `onSelectPO?: (poId: string | undefined) => void`
+2. Add click handler to each PO row that toggles selection
+3. Add visual feedback for selected state (border highlight, background change)
+4. Make rows look clickable with `cursor-pointer` and hover states
+
+### C) State management (ManualBillEntry.tsx)
+
+Add state for tracking the selected PO:
+```typescript
+const [selectedPOId, setSelectedPOId] = useState<string | undefined>();
+```
 
 ---
 
-## Implementation
+## Implementation Details
 
-### File: `src/components/bills/VendorPOInfo.tsx`
+### File 1: `src/components/bills/VendorPOInfo.tsx`
 
-1. Change the PO row container from `flex justify-between` to `grid grid-cols-[auto_1fr_auto]`
-2. Add `whitespace-nowrap` to PO number badge
-3. Add `truncate` to cost code name with title tooltip for full text
-4. Compact the amount display: `$X / $Y` format
-5. Reduce vertical padding slightly for a tighter look
+**Changes:**
+- Add `selectedPOId` and `onSelectPO` props to interface
+- Update PO row styling:
+  - Add `cursor-pointer` 
+  - Add hover effect: `hover:bg-blue-100 dark:hover:bg-blue-900/50`
+  - Selected state: `ring-2 ring-primary bg-primary/10`
+- Add onClick handler that calls `onSelectPO(po.id)` or `onSelectPO(undefined)` to toggle
 
-### Updated row structure:
-```
-<div className="grid grid-cols-[120px_1fr_140px] gap-2 items-center text-xs ...">
-  <Badge>{po_number}</Badge>
-  <span className="truncate" title="4330 - Lumber & Framing Material">
-    4330 - Lumber & Framing Material
-  </span>
-  <span className="text-right whitespace-nowrap">
-    $21,542 / $21,542
-  </span>
-</div>
-```
+**Visual states:**
+- Default: light border, white background
+- Hover: slightly blue background
+- Selected: primary color ring, light primary background
+
+### File 2: `src/components/bills/ManualBillEntry.tsx`
+
+**Changes:**
+- Move `<VendorPOInfo />` outside the 3-column grid, placing it in its own full-width row
+- Add `selectedPOId` state
+- Pass `selectedPOId` and `onSelectPO` props to VendorPOInfo
+- Clear `selectedPOId` when vendor changes (reset selection)
 
 ---
 
 ## Expected Result
 
-Each PO displays on exactly one line:
-
-```
-[2025-115E-0008]  4330 - Lumber & Framing...   $21,542 / $21,542
-[2025-115E-0007]  4350 - Roof Trusses          $7,007 / $7,007
-[2025-115E-0001]  4340 - Floor Joists          $14,899 / $14,899
-```
-
-- PO numbers stay intact (no wrapping)
-- Cost code names truncate with "..." if too long (full text on hover)
-- Amounts are compact and right-aligned
+1. The PO panel will stretch from Vendor to Reference No. (full form width)
+2. Cost code names will be fully readable (no truncation needed with more space)
+3. Clicking a PO row highlights it (blue ring/border)
+4. Clicking the same row again deselects it
+5. Selected PO can later be used to auto-fill line items
 
 ---
 
 ## Files to modify
 
-- `src/components/bills/VendorPOInfo.tsx`
+- `src/components/bills/VendorPOInfo.tsx` (add selection props, click handler, visual states)
+- `src/components/bills/ManualBillEntry.tsx` (move VendorPOInfo outside grid, add selection state)
 
