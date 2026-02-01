@@ -183,6 +183,32 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }
   }, [batchBills]);
 
+  // Normalize terms from any format to standardized dropdown values
+  const normalizeTermsForSubmit = (terms: string | null | undefined): string => {
+    if (!terms) return 'net-30';
+    if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+      return terms;
+    }
+    const normalized = terms.toLowerCase().trim();
+    if (normalized.includes('15')) return 'net-15';
+    if (normalized.includes('60')) return 'net-60';
+    if (normalized.includes('receipt') || normalized.includes('cod')) return 'due-on-receipt';
+    return 'net-30';
+  };
+
+  // Compute due date from bill date and terms
+  const computeDueDateFromBillDate = (billDate: string, terms: string): string => {
+    const date = new Date(billDate);
+    switch (terms) {
+      case 'net-15': date.setDate(date.getDate() + 15); break;
+      case 'net-30': date.setDate(date.getDate() + 30); break;
+      case 'net-60': date.setDate(date.getDate() + 60); break;
+      case 'due-on-receipt': break; // same day
+      default: date.setDate(date.getDate() + 30);
+    }
+    return date.toISOString().split('T')[0];
+  };
+
   const handleSubmitAllBills = useCallback(async () => {
     if (selectedBillIds.size === 0) return;
     
@@ -195,9 +221,17 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         // Extract data from extracted_data with fallbacks to root properties
         const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         const billDate = bill.extracted_data?.bill_date || bill.extracted_data?.billDate || bill.bill_date;
-        const dueDate = bill.extracted_data?.due_date || bill.extracted_data?.dueDate || bill.due_date;
         const referenceNumber = bill.extracted_data?.reference_number || bill.extracted_data?.referenceNumber || bill.reference_number;
-        const terms = bill.extracted_data?.terms;
+        
+        // Apply same fallback logic as BatchBillReviewTable display
+        const rawTerms = bill.extracted_data?.terms;
+        const terms = normalizeTermsForSubmit(rawTerms);
+        
+        // Compute due date if missing (same logic as display)
+        let dueDate = bill.extracted_data?.due_date || bill.extracted_data?.dueDate || bill.due_date;
+        if (!dueDate && billDate) {
+          dueDate = computeDueDateFromBillDate(billDate, terms);
+        }
         
         // Determine project ID: use provided projectId, or first line's project_id if available
         const determinedProjectId = effectiveProjectId || bill.lines?.[0]?.project_id || '';
