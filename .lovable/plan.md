@@ -1,123 +1,50 @@
 
 ## Goal
 
-Three UI improvements for ManualBillEntry:
+Two improvements to Purchase Order selection behavior:
 
-1. **Always show Purchase Order dropdown** - Display it in every row with "No Purchase Order" as the default option (instead of hiding it when vendor has no POs)
-2. **Fix Job Cost tab column widths** - Expand Cost Code and Memo columns to fill the full width (no white space on the right)
-3. **Make Expense tab match Job Cost tab** - Same layout, same columns, including the Purchase Order column
+1. **Smart auto-select**: When user picks a Cost Code (e.g., "4430 - Roofing"), automatically select the matching PO if one exists for that cost code. User can still change it if needed.
+
+2. **Reorder dropdown options**: 
+   - First: "Auto-match by cost code"
+   - Next: All applicable POs for this vendor
+   - Last: "No purchase order" (always shown as an escape hatch)
 
 ---
 
-## Problem Analysis
+## Current Behavior
 
-### Issue 1: Conditional PO Dropdown
-In `POSelectionDropdown.tsx` lines 37-40:
-```tsx
-if (!purchaseOrders || purchaseOrders.length < 2) {
-  return null;  // <-- Hides the dropdown entirely
-}
-```
+When user selects a cost code like "4430 - Roofing":
+- The Cost Code field updates to "4430 - Roofing"
+- The PO dropdown stays on "Auto-match by cost code" (doesn't proactively select the matching PO)
 
-The component also requires 2+ POs to show. User wants:
-- Always show the dropdown
-- First option: "No Purchase Order" 
-- If vendor has POs: also show "Auto-match by cost code" and the PO list
-- If vendor has no POs: just show "No Purchase Order"
-
-### Issue 2: Job Cost Column Widths
-Current layout (lines 677-691):
-```
-Cost Code: col-span-4
-Memo: col-span-5 or 7
-Quantity: col-span-2
-Cost: col-span-2
-Total: col-span-2
-Address: col-span-4 (conditional)
-PO: col-span-4 (conditional)
-Action: col-span-1
-```
-
-The grid uses 20-28 columns dynamically, but the widths don't expand to fill available space.
-
-### Issue 3: Expense Tab Mismatch
-Current Expense tab (lines 857-864) uses completely different structure:
-- Uses `grid-cols-10` (fixed)
-- Has: Account, Memo, Quantity, Cost, Total, Action
-- **Missing**: Address column, Purchase Order column
-- Different proportions
+Current dropdown order (when POs exist):
+1. Auto-match by cost code
+2. PO options...
+3. *(No Purchase Order is hidden)*
 
 ---
 
 ## Solution
 
-### A) POSelectionDropdown - Always Visible
+### A) Auto-Select Matching PO on Cost Code Change
 
-**Changes:**
-1. Remove the early return that hides the component
-2. Add "No Purchase Order" as the first (default) option with value `__none__`
-3. Only show "Auto-match by cost code" when vendor has 2+ POs
-4. Always render the Select, but conditionally show PO options
-5. Update `useShouldShowPOSelection` hook to always return true (or remove it)
+When the user selects a cost code in the Job Cost or Expense tab:
+1. Look up the vendor's POs for this project
+2. Find a PO with matching `cost_code_id`
+3. If found, automatically set `purchaseOrderId` to that PO's ID
+4. User can still manually change the selection
 
-**New dropdown behavior:**
-- No POs: Shows "No Purchase Order" (selected by default)
-- 1 PO: Shows "No Purchase Order", "Auto-match by cost code", and the single PO
-- 2+ POs: Shows "No Purchase Order", "Auto-match by cost code", and all POs
+**Implementation:**
+- Pass the `purchaseOrders` data (or a callback) to the cost code selection handler
+- In `onCostCodeSelect`, after setting the cost code, also find and set the matching PO
 
-### B) Job Cost Tab - Full Width Grid
+### B) Reorder Dropdown Options
 
-**Changes to header and rows:**
-1. Use a consistent column structure that fills the entire width
-2. Increase Cost Code from col-span-4 to col-span-5
-3. Increase Memo to use remaining space (col-span-6 or flexible)
-4. Always include PO column (now that it's always visible)
-5. Adjust grid-cols total to ensure full width coverage
-
-**Proposed column allocation (always 24 cols, no dynamic switching):**
-```
-Cost Code: col-span-5
-Memo: col-span-6
-Quantity: col-span-2
-Cost: col-span-2
-Total: col-span-2
-Address: col-span-3 (when applicable)
-Purchase Order: col-span-3
-Action: col-span-1
-Total = 24 columns
-```
-
-For cases without address column:
-```
-Cost Code: col-span-5
-Memo: col-span-8  (absorbs address space)
-Quantity: col-span-2
-Cost: col-span-2
-Total: col-span-2
-Purchase Order: col-span-4
-Action: col-span-1
-Total = 24 columns
-```
-
-### C) Expense Tab - Match Job Cost
-
-**Transform the Expense grid to mirror Job Cost:**
-1. Change from `grid-cols-10` to `grid-cols-24`
-2. Add Address column (conditional, same as Job Cost)
-3. Add Purchase Order column (always visible)
-4. Use same column proportions as Job Cost
-
-**Proposed Expense columns:**
-```
-Account: col-span-5 (same as Cost Code)
-Memo: col-span-8 or 6 (matches Job Cost)
-Quantity: col-span-2
-Cost: col-span-2
-Total: col-span-2
-Address: col-span-3 (conditional)
-Purchase Order: col-span-4 or 3
-Action: col-span-1
-```
+New order for when vendor has POs:
+1. **Auto-match by cost code** (first, as the "smart" default)
+2. **All vendor POs** (e.g., "2026-115E-0030 | 4470 - Siding | $1,836 / $13,799")
+3. **No purchase order** (last, as an explicit opt-out)
 
 ---
 
@@ -125,50 +52,97 @@ Action: col-span-1
 
 ### File 1: `src/components/bills/POSelectionDropdown.tsx`
 
-1. Remove the early `return null` check (lines 37-40)
-2. Add `__none__` value as "No Purchase Order" option
-3. Conditionally render "Auto-match by cost code" only when 2+ POs exist
-4. Always render the dropdown with at least "No Purchase Order"
-5. Update `handleChange` to handle `__none__` value
-6. Update `useShouldShowPOSelection` to return `true` always (or remove entirely)
+**Changes:**
+1. Move "No purchase order" (`__none__`) to the bottom of the dropdown (after all PO options)
+2. Keep "Auto-match by cost code" (`__auto__`) at the top when POs exist
+3. PO options in the middle
+4. Add export of `findMatchingPO()` helper function that can be used by parent to auto-select
+
+```tsx
+// New export helper for parent component to find matching PO
+export function findMatchingPOForCostCode(
+  purchaseOrders: VendorPurchaseOrder[] | undefined,
+  costCodeId: string
+): string | undefined {
+  if (!purchaseOrders || !costCodeId) return undefined;
+  const match = purchaseOrders.find(po => po.cost_code_id === costCodeId);
+  return match?.id;
+}
+```
+
+**Updated dropdown order:**
+```tsx
+<SelectContent>
+  {/* 1. Auto-match (when POs exist) */}
+  {hasPurchaseOrders && (
+    <SelectItem value="__auto__">Auto-match by cost code</SelectItem>
+  )}
+  
+  {/* 2. All vendor POs */}
+  {hasPurchaseOrders && purchaseOrders.map((po) => (
+    <SelectItem key={po.id} value={po.id}>{getPOLabel(po)}</SelectItem>
+  ))}
+  
+  {/* 3. No purchase order (always last) */}
+  <SelectItem value="__none__">No purchase order</SelectItem>
+</SelectContent>
+```
 
 ### File 2: `src/components/bills/ManualBillEntry.tsx`
 
-**Job Cost tab (lines 676-792):**
-1. Remove conditional `showPOSelection` logic from grid-cols calculation
-2. Use fixed `grid-cols-24` (or `grid-cols-21` without address)
-3. Adjust column spans:
-   - Cost Code: 5
-   - Memo: 6 (with PO) or 8 (with both address+PO)
-   - Quantity: 2
-   - Cost: 2
-   - Total: 2
-   - Address: 3 (conditional)
-   - PO: 4 (always)
-   - Action: 1
-4. Always render POSelectionDropdown (remove the `showPOSelection &&` condition)
+**Changes:**
+1. Import `useVendorPurchaseOrders` hook to get PO data at form level
+2. Import the new `findMatchingPOForCostCode` helper
+3. Update `onCostCodeSelect` callback for Job Cost rows to auto-set matching PO
+4. Update Account (Expense) tab similarly if expense accounts should also match
 
-**Expense tab (lines 856-930):**
-1. Change from `grid-cols-10` to match Job Cost structure (`grid-cols-24`)
-2. Add Address column (conditional)
-3. Add POSelectionDropdown column (always)
-4. Update column spans to match Job Cost proportions
+**Job Cost callback update (around line 700):**
+```tsx
+onCostCodeSelect={(costCode) => {
+  updateJobCostRow(row.id, 'accountId', costCode.id);
+  updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
+  
+  // Auto-select matching PO if one exists
+  const matchingPO = findMatchingPOForCostCode(vendorPOs, costCode.id);
+  if (matchingPO) {
+    updateJobCostRow(row.id, 'purchaseOrderId', matchingPO);
+  }
+}}
+```
 
 ---
 
-## Summary of Changes
+## Expected Behavior
+
+**When user selects "4430 - Roofing" cost code:**
+1. Cost Code field shows "4430 - Roofing" 
+2. Purchase Order dropdown automatically changes to the Roofing PO (e.g., "2025-115E-0027 | 4430 - Roofing | $27,509 / $28,245")
+3. User can still change the PO selection if needed
+
+**Dropdown options (when vendor has POs):**
+1. Auto-match by cost code
+2. 2026-115E-0030 | 4470 - Siding | $1,836 / $13,799
+3. 2025-115E-0027 | 4430 - Roofing | $27,509 / $28,245
+4. 2026-115E-0029 | 4400 - Exterior Trim | -$2,073 / $4,135
+5. No purchase order *(at the bottom)*
+
+**Dropdown options (when vendor has NO POs):**
+1. No purchase order *(only option)*
+
+---
+
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `POSelectionDropdown.tsx` | Remove conditional hiding, add "No Purchase Order" option, show auto-match only when 2+ POs |
-| `ManualBillEntry.tsx` | Fix Job Cost widths (expand Cost Code + Memo), add PO column to Expense tab, align both tabs |
+| `src/components/bills/POSelectionDropdown.tsx` | Reorder dropdown (auto-match, POs, then no-PO last); add `findMatchingPOForCostCode` helper export |
+| `src/components/bills/ManualBillEntry.tsx` | Import vendor POs hook; auto-select matching PO when cost code is selected |
 
 ---
 
-## Expected Result
+## Edge Cases Handled
 
-1. Purchase Order dropdown always visible in both tabs
-2. Default option "No Purchase Order" when no POs exist
-3. Job Cost columns fill the full width (no right-side white space)
-4. Expense tab layout matches Job Cost exactly
-5. Consistent user experience across both tabs
+1. **Vendor has no POs**: Dropdown shows only "No purchase order"
+2. **Cost code has no matching PO**: PO selection stays on "Auto-match by cost code" (doesn't force a selection)
+3. **User manually changes PO after auto-select**: Their manual selection is preserved
+4. **Vendor changes**: PO data refreshes, existing row selections reset appropriately
