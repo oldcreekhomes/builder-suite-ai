@@ -2,109 +2,121 @@
 
 ## Goal
 
-Consolidate the two-row footer in ManualBillEntry into a single-row footer that matches the JournalEntryForm layout. This saves vertical space to accommodate the new PO selection panel.
+1. **Remove the blue VendorPOInfo panel** from the middle of the form - it takes too much vertical space
+2. **Keep PO selection only in the line item detail row** (the "Purchase Order" column dropdown)
+3. **Replace the dropdown's basic tooltip** with a richer dialog showing complete information (cost code name, remaining AND total amounts)
 
 ---
 
-## Current Structure (ManualBillEntry)
+## Current State
 
-```text
-+-----------------------------------------------+
-| Job Cost Total:              $0.00            |  <-- Row 1: inside table border-t
-+-----------------------------------------------+
+The bill entry screen has two redundant PO selection UI elements:
+1. **Blue VendorPOInfo panel** (lines 589-595 in ManualBillEntry.tsx) - large, space-consuming panel
+2. **POSelectionDropdown** in the line item row - compact dropdown in the "Purchase Order" column
 
-+-----------------------------------------------+
-| Total: $0.00   [Clear][Save & New]...         |  <-- Row 2: separate footer
-+-----------------------------------------------+
-```
-
-Two separate footers take up unnecessary vertical space.
+The dropdown currently shows limited info like `2026-115E-0030 | 4470 | $1,836 remaining` without:
+- The cost code **name** (e.g., "Siding")
+- The total PO amount (only shows remaining)
 
 ---
 
-## Target Structure (matches JournalEntryForm)
+## Solution
 
-```text
-+-----------------------------------------------+
-| Job Cost Total: $0.00    [Clear][Save & New]...|  <-- Single row
-+-----------------------------------------------+
-```
+### A) Remove VendorPOInfo component usage
 
-All information consolidated into one row, saving an entire line of vertical space.
+Delete the `<VendorPOInfo />` component from ManualBillEntry.tsx and remove related state/imports.
 
----
+### B) Enhance POSelectionDropdown with info icon + dialog
 
-## Implementation
+1. Add a small info icon button next to the dropdown
+2. Clicking the icon opens a **PO Details Dialog** showing:
+   - PO Number
+   - Cost Code (code + name)
+   - Total PO Amount
+   - Billed to Date
+   - Remaining Balance
+   - Related bills (similar to existing POComparisonDialog)
 
-### File: `src/components/bills/ManualBillEntry.tsx`
+### C) Improve dropdown labels
 
-#### 1. Remove the standalone "Total" footer (lines 950-990)
-Delete the entire second footer container that has "Total: $X" and the buttons.
+Update the dropdown text to be more informative:
+- Current: `2026-115E-0030 | 4470 | $1,836 remaining`
+- New: `2026-115E-0030 | 4470 - Siding | $1,836 / $13,799`
 
-#### 2. Update the Job Cost tab footer (lines 803-833)
-Transform the existing "Job Cost Total" row to include the buttons:
-- Keep the total display on the left
-- Add the button group (Clear, Save & New, Save & Close, Save Entry) on the right
-- Use `flex justify-between items-center` layout
-
-#### 3. Update the Expense tab footer (lines 919-944)
-Same treatment - add buttons to the existing total row.
-
-#### 4. Adjust styling
-- Change from `p-3 bg-muted border-t` to `p-3 bg-muted border rounded-lg mt-4` (to match the detached style of JournalEntryForm)
-- Move this footer **outside** the table `border rounded-lg overflow-hidden` container so it stands alone
+This shows the cost code name and the format `remaining / total`.
 
 ---
 
-## Technical Details
+## Implementation Details
 
-### New footer structure:
-```jsx
-<div className="p-3 bg-muted border rounded-lg">
-  <div className="flex justify-between items-center">
-    <div className="text-base font-semibold">
-      Job Cost Total: ${total.toFixed(2)}
-    </div>
-    <div className="flex gap-2">
-      <Button variant="outline" onClick={handleClear}>Clear</Button>
-      <Button variant="outline" onClick={() => handleSave('new')}>Save & New</Button>
-      <Button onClick={() => handleSave('close')}>Save & Close</Button>
-      <Button onClick={() => handleSave('stay')}>Save Entry</Button>
-    </div>
-  </div>
-</div>
-```
+### File 1: `src/components/bills/ManualBillEntry.tsx`
 
-### Key changes:
-1. Move footer outside the table container (so it's not inside `overflow-hidden`)
-2. Combine total + buttons into single flex row
-3. Remove the redundant second "Total" footer entirely
-4. Apply to both Job Cost and Expense tabs
+**Changes:**
+- Remove import of `VendorPOInfo`
+- Remove `selectedPOId` state (no longer needed at bill-header level)
+- Delete the `<VendorPOInfo ... />` JSX block
+- Keep `showPOSelection` hook (still needed for column visibility)
+- Keep `POSelectionDropdown` in the line item rows
+
+### File 2: `src/components/bills/POSelectionDropdown.tsx`
+
+**Changes:**
+- Update `getPOLabel()` to include cost code name and show `remaining / total` format
+- Add an info icon (`Info` from lucide-react) button next to the dropdown
+- Add state for dialog open/close
+- Add state for which PO to show details for
+- Import and render a new `PODetailsDialog` component
+
+### File 3: `src/components/bills/PODetailsDialog.tsx` (NEW)
+
+Create a new dialog component (similar to POComparisonDialog) that shows:
+- PO Number as title
+- Cost Code: code + name
+- Summary cards: PO Amount | Billed to Date | Remaining
+- Over budget warning if applicable
+- List of related bills
+
+**Props:**
+- `open: boolean`
+- `onOpenChange: (open: boolean) => void`
+- `purchaseOrder: VendorPurchaseOrder | null`
+- `projectId: string | null`
+- `vendorId: string | null`
 
 ---
 
-## Expected Result
+## Visual Change
 
-Before:
-```text
-[Table with rows]
-Job Cost Total: $0.00          <- inside table
----------------------------------
-Total: $0.00    [Clear] [Save...]   <- separate footer
+**Before (current):**
+```
+[Vendor field] [Date field] [Reference field]
++----------------------------------------------------+
+| 3 Purchase Orders                     Vendor linked|
+| [2026-115E-0030]  4470 - Siding      $1,836/$13,799|
+| [2025-115E-0027]  4430 - Roofing    $27,509/$28,245|
+| [2026-115E-0029]  4400 - Ext. Trim  -$2,073/$4,135 |
++----------------------------------------------------+
+[Due Date] [Terms] [Attachments] [Notes]
+
+[Cost Code] [Memo] [Qty] [Cost] [Total] [PO dropdown ▼]
 ```
 
-After:
-```text
-[Table with rows]
----------------------------------
-Job Cost Total: $0.00    [Clear] [Save...]   <- single consolidated footer
+**After (proposed):**
+```
+[Vendor field] [Date field] [Reference field]
+[Due Date] [Terms] [Attachments] [Notes]
+
+[Cost Code] [Memo] [Qty] [Cost] [Total] [PO dropdown ▼ ⓘ]
 ```
 
-This saves approximately 60px of vertical space, giving room for the PO selection panel.
+- Clicking the dropdown shows: `Auto-match by cost code`, `2026-115E-0030 | 4470 - Siding | $1,836 / $13,799`, etc.
+- Clicking the info icon opens a detailed dialog with full PO information
 
 ---
 
 ## Files to modify
 
-- `src/components/bills/ManualBillEntry.tsx`
+1. `src/components/bills/ManualBillEntry.tsx` - Remove VendorPOInfo usage
+2. `src/components/bills/POSelectionDropdown.tsx` - Enhance labels + add info button/dialog
+3. `src/components/bills/PODetailsDialog.tsx` - Create new dialog component
 
