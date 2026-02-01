@@ -17,6 +17,7 @@ import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
 import { ManualBillEntry } from "./ManualBillEntry";
 import { usePendingBills, type PendingBill, type PendingBillLine } from "@/hooks/usePendingBills";
+import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { useBillCounts } from "@/hooks/useBillCounts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +46,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { checkDuplicate } = useReferenceNumberValidation();
   const effectiveProjectId = projectId || (projectIds && projectIds.length === 1 ? projectIds[0] : undefined);
   
   const { data: counts, isLoading: countsLoading } = useBillCounts(effectiveProjectId, projectIds);
@@ -216,8 +218,46 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     try {
       const selectedBills = batchBills.filter(bill => selectedBillIds.has(bill.id));
       
-      // Map selected bills to the format expected by batchApproveBills
-      const billsToApprove = selectedBills.map(bill => {
+      // Validate for duplicate reference numbers before submitting
+      const validatedBills: typeof selectedBills = [];
+      const duplicateBills: { bill: typeof selectedBills[0]; existingVendor: string; existingProject: string }[] = [];
+      
+      for (const bill of selectedBills) {
+        const referenceNumber = bill.extracted_data?.reference_number || 
+                                bill.extracted_data?.referenceNumber || 
+                                bill.reference_number;
+        
+        if (referenceNumber?.trim()) {
+          const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+          if (isDuplicate && existingBill) {
+            duplicateBills.push({
+              bill,
+              existingVendor: existingBill.vendorName,
+              existingProject: existingBill.projectName
+            });
+            continue;
+          }
+        }
+        validatedBills.push(bill);
+      }
+      
+      // Show warning for duplicates
+      if (duplicateBills.length > 0) {
+        toast({
+          title: "Duplicate Invoices Skipped",
+          description: `${duplicateBills.length} bill(s) skipped due to duplicate reference numbers already existing in the system`,
+          variant: "destructive",
+        });
+      }
+      
+      // Only proceed with validated bills
+      if (validatedBills.length === 0) {
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Map validated bills to the format expected by batchApproveBills
+      const billsToApprove = validatedBills.map(bill => {
         // Extract data from extracted_data with fallbacks to root properties
         const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         const billDate = bill.extracted_data?.bill_date || bill.extracted_data?.billDate || bill.bill_date;
@@ -302,7 +342,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     } finally {
       setIsSubmitting(false);
     }
-  }, [batchBills, selectedBillIds, effectiveProjectId, batchApproveBills, toast, refetchPendingBills, queryClient]);
+  }, [batchBills, selectedBillIds, effectiveProjectId, batchApproveBills, toast, refetchPendingBills, queryClient, checkDuplicate]);
 
   const getTabLabel = (status: string, count: number | undefined) => {
     if (countsLoading) {

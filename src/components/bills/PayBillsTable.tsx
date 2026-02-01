@@ -883,7 +883,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Terms</TableHead>
+              
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">PO Status</TableHead>
@@ -1023,7 +1023,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">{formatTerms(bill.terms)}</TableCell>
+                  
                   <TableCell className="px-2 py-1 text-xs">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
