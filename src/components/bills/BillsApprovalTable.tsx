@@ -690,7 +690,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium w-32">Reference</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium w-12 text-center">Memo</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-20">Terms</TableHead>
+                  
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium w-14 text-center">Files</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs font-medium w-14 text-center">Notes</TableHead>
                   {showPOStatusColumn && (
@@ -880,9 +880,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         </TooltipProvider>
                       );
                     })()}
-                  </TableCell>
-                  <TableCell className="px-2 py-1 text-xs w-20">
-                    {formatTerms(bill.terms)}
                   </TableCell>
                   <TableCell className="px-2 py-1 w-14 text-center">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
