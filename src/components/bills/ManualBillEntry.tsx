@@ -800,35 +800,57 @@ export function ManualBillEntry() {
                   </div>
                 ))}
 
-                <div className="p-3 bg-muted border-t">
+              </div>
+              
+              <div className="p-3 bg-muted border rounded-lg mt-4">
+                <div className="flex justify-between items-center">
                   <div className={cn(
-                    "grid gap-2 w-full", 
-                    showAddressColumn && showPOSelection ? "grid-cols-28" : 
-                    showAddressColumn ? "grid-cols-24" : 
-                    showPOSelection ? "grid-cols-24" : "grid-cols-20"
+                    "text-base font-semibold",
+                    jobCostRows.reduce((total, row) => {
+                      const q = parseFloat(row.quantity) || 0;
+                      const c = parseFloat(row.amount) || 0;
+                      return total + q * c;
+                    }, 0) < 0 && "text-green-600"
                   )}>
-                    <div className="col-span-8 font-medium">
-                      {jobCostRows.reduce((total, row) => {
-                        const q = parseFloat(row.quantity) || 0;
-                        const c = parseFloat(row.amount) || 0;
-                        return total + q * c;
-                      }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
-                    </div>
-                    <div className={cn(
-                      "col-span-1 font-medium",
-                      jobCostRows.reduce((total, row) => {
-                        const q = parseFloat(row.quantity) || 0;
-                        const c = parseFloat(row.amount) || 0;
-                        return total + q * c;
-                      }, 0) < 0 && "text-green-600"
-                    )}>
-                      ${jobCostRows.reduce((total, row) => {
-                        const q = parseFloat(row.quantity) || 0;
-                        const c = parseFloat(row.amount) || 0;
-                        return total + q * c;
-                      }, 0).toFixed(2)}
-                    </div>
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-3"}></div>
+                    {jobCostRows.reduce((total, row) => {
+                      const q = parseFloat(row.quantity) || 0;
+                      const c = parseFloat(row.amount) || 0;
+                      return total + q * c;
+                    }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'} ${jobCostRows.reduce((total, row) => {
+                      const q = parseFloat(row.quantity) || 0;
+                      const c = parseFloat(row.amount) || 0;
+                      return total + q * c;
+                    }, 0).toFixed(2)}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                      Clear
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10"
+                      onClick={() => handleSave('new')}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save & New"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-10"
+                      onClick={() => handleSave('close')}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save & Close"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-10"
+                      onClick={() => handleSave('stay')}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save Entry"}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -916,30 +938,57 @@ export function ManualBillEntry() {
                   </div>
                 ))}
 
-                <div className="p-3 bg-muted border-t">
-                  <div className="grid grid-cols-10 gap-2">
-                    <div className="col-span-6 font-medium">
-                      {expenseRows.reduce((total, row) => {
-                        const q = parseFloat(row.quantity) || 0;
-                        const c = parseFloat(row.amount) || 0;
-                        return total + q * c;
-                      }, 0) < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
-                    </div>
-                    <div className={cn(
-                      "col-span-1 font-medium",
-                      expenseRows.reduce((total, row) => {
-                        const q = parseFloat(row.quantity) || 0;
-                        const c = parseFloat(row.amount) || 0;
-                        return total + q * c;
-                      }, 0) < 0 && "text-green-600"
-                    )}>
-                      ${expenseRows.reduce((total, row) => {
-                        const q = parseFloat(row.quantity) || 0;
-                        const c = parseFloat(row.amount) || 0;
-                        return total + q * c;
-                      }, 0).toFixed(2)}
-                    </div>
-                    <div className={showAddressColumn ? "col-span-3" : "col-span-4"}></div>
+              </div>
+              
+              <div className="p-3 bg-muted border rounded-lg mt-4">
+                <div className="flex justify-between items-center">
+                  <div className={cn(
+                    "text-base font-semibold",
+                    expenseRows.reduce((total, row) => {
+                      const q = parseFloat(row.quantity) || 0;
+                      const c = parseFloat(row.amount) || 0;
+                      return total + q * c;
+                    }, 0) < 0 && "text-green-600"
+                  )}>
+                    {expenseRows.reduce((total, row) => {
+                      const q = parseFloat(row.quantity) || 0;
+                      const c = parseFloat(row.amount) || 0;
+                      return total + q * c;
+                    }, 0) < 0 ? 'Bill Credit Total:' : 'Expense Total:'} ${expenseRows.reduce((total, row) => {
+                      const q = parseFloat(row.quantity) || 0;
+                      const c = parseFloat(row.amount) || 0;
+                      return total + q * c;
+                    }, 0).toFixed(2)}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
+                      Clear
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-10"
+                      onClick={() => handleSave('new')}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save & New"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-10"
+                      onClick={() => handleSave('close')}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save & Close"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-10"
+                      onClick={() => handleSave('stay')}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? "Saving..." : "Save Entry"}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -947,47 +996,6 @@ export function ManualBillEntry() {
           </Tabs>
         </div>
 
-        <div className="p-3 bg-muted border rounded-lg">
-          <div className="flex justify-between items-center">
-            <div className="text-base font-semibold">
-              Total: ${[...jobCostRows, ...expenseRows].reduce((sum, row) => {
-                const amount = parseFloat(row.amount) || 0;
-                const qty = parseFloat(row.quantity) || 1;
-                return sum + (amount * qty);
-              }, 0).toFixed(2)}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
-                Clear
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10"
-                onClick={() => handleSave('new')}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save & New"}
-              </Button>
-              <Button
-                size="sm"
-                className="h-10"
-                onClick={() => handleSave('close')}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save & Close"}
-              </Button>
-              <Button
-                size="sm"
-                className="h-10"
-                onClick={() => handleSave('stay')}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save Entry"}
-              </Button>
-            </div>
-          </div>
-        </div>
       </CardContent>
 
       <BillNotesDialog
