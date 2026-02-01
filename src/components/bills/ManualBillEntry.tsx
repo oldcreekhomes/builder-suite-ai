@@ -676,26 +676,22 @@ export function ManualBillEntry() {
                 <div className="border rounded-lg overflow-hidden w-full">
                   <div className={cn(
                     "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
-                    showAddressColumn && showPOSelection ? "grid-cols-28" : 
-                    showAddressColumn ? "grid-cols-24" : 
-                    showPOSelection ? "grid-cols-24" : "grid-cols-20"
+                    showAddressColumn ? "grid-cols-24" : "grid-cols-20"
                   )}>
                   <div className="col-span-4">Cost Code</div>
-                  <div className={showPOSelection ? "col-span-5" : "col-span-7"}>Memo</div>
+                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
-                  {showAddressColumn && <div className="col-span-4">Address</div>}
-                  {showPOSelection && <div className="col-span-4">Purchase Order</div>}
+                  {showAddressColumn && <div className="col-span-3">Address</div>}
+                  <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>Purchase Order</div>
                   <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {jobCostRows.map((row) => (
                   <div key={row.id} className={cn(
                     "grid gap-2 p-3 border-t w-full", 
-                    showAddressColumn && showPOSelection ? "grid-cols-28" : 
-                    showAddressColumn ? "grid-cols-24" : 
-                    showPOSelection ? "grid-cols-24" : "grid-cols-20"
+                    showAddressColumn ? "grid-cols-24" : "grid-cols-20"
                   )}>
                     <div className="col-span-4">
                       <CostCodeSearchInput
@@ -709,7 +705,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showPOSelection ? "col-span-5" : "col-span-7"}>
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
                       <Input
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -746,7 +742,7 @@ export function ManualBillEntry() {
                       </div>
                     </div>
                     {showAddressColumn && (
-                      <div className="col-span-4">
+                      <div className="col-span-3">
                         <Select
                           value={row.lotId || ''}
                           onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
@@ -764,17 +760,15 @@ export function ManualBillEntry() {
                         </Select>
                       </div>
                     )}
-                    {showPOSelection && (
-                      <div className="col-span-4">
-                        <POSelectionDropdown
-                          projectId={projectId}
-                          vendorId={vendorId}
-                          value={row.purchaseOrderId}
-                          onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
-                          costCodeId={row.accountId}
-                        />
-                      </div>
-                    )}
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>
+                      <POSelectionDropdown
+                        projectId={projectId}
+                        vendorId={vendorId}
+                        value={row.purchaseOrderId}
+                        onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
+                        costCodeId={row.accountId}
+                      />
+                    </div>
                     <div className="col-span-1 flex items-center justify-end">
                       <Button
                         onClick={() => removeJobCostRow(row.id)}
@@ -853,31 +847,39 @@ export function ManualBillEntry() {
                 </Button>
               </div>
 
-              <div className="border rounded-lg overflow-hidden">
-                <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
-                  <div className="col-span-2">Account</div>
-                  <div className="col-span-4">Memo</div>
-                  <div className="col-span-1">Quantity</div>
-                  <div className="col-span-1">Cost</div>
-                  <div className="col-span-1">Total</div>
-                  <div className="col-span-1 text-center">Action</div>
+              <div className="border rounded-lg overflow-hidden w-full">
+                <div className={cn(
+                  "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
+                  showAddressColumn ? "grid-cols-24" : "grid-cols-20"
+                )}>
+                  <div className="col-span-4">Account</div>
+                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
+                  <div className="col-span-2">Quantity</div>
+                  <div className="col-span-2">Cost</div>
+                  <div className="col-span-2">Total</div>
+                  {showAddressColumn && <div className="col-span-3">Address</div>}
+                  <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>Purchase Order</div>
+                  <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {expenseRows.map((row) => (
-                  <div key={row.id} className="grid grid-cols-10 gap-2 p-3 border-t">
-                    <div className="col-span-2">
-                          <AccountSearchInput
-                            value={row.account || ""}
-                            onChange={(value) => updateExpenseRow(row.id, 'account', value)}
-                            onAccountSelect={(account) => {
-                              updateExpenseRow(row.id, 'accountId', account.id);
-                              updateExpenseRow(row.id, 'account', `${account.code} - ${account.name}`);
-                            }}
-                            placeholder="Select account"
-                            className="h-8"
-                          />
-                    </div>
+                  <div key={row.id} className={cn(
+                    "grid gap-2 p-3 border-t w-full", 
+                    showAddressColumn ? "grid-cols-24" : "grid-cols-20"
+                  )}>
                     <div className="col-span-4">
+                      <AccountSearchInput
+                        value={row.account || ""}
+                        onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+                        onAccountSelect={(account) => {
+                          updateExpenseRow(row.id, 'accountId', account.id);
+                          updateExpenseRow(row.id, 'account', `${account.code} - ${account.name}`);
+                        }}
+                        placeholder="Select account"
+                        className="h-8"
+                      />
+                    </div>
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
                       <Input 
                         placeholder="Expense memo"
                         value={row.memo}
@@ -885,7 +887,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <Input 
                         type="number"
                         step="0.01"
@@ -895,7 +897,7 @@ export function ManualBillEntry() {
                         className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                         <Input 
@@ -908,12 +910,39 @@ export function ManualBillEntry() {
                         />
                       </div>
                     </div>
-                    <div className="col-span-1 flex items-center">
-                      <span className="text-sm font-medium">
+                    <div className="col-span-2 flex items-center">
+                      <div className="h-8 w-full flex items-center px-2 border rounded-md bg-muted text-sm font-medium">
                         ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
-                      </span>
+                      </div>
                     </div>
-                    <div className="col-span-1 flex justify-center items-center">
+                    {showAddressColumn && (
+                      <div className="col-span-3">
+                        <Select
+                          value={row.lotId || ''}
+                          onValueChange={(value) => updateExpenseRow(row.id, 'lotId', value)}
+                        >
+                          <SelectTrigger className="h-8 w-full">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lots.map((lot) => (
+                              <SelectItem key={lot.id} value={lot.id}>
+                                {lot.lot_name || `Lot ${lot.lot_number}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>
+                      <POSelectionDropdown
+                        projectId={projectId}
+                        vendorId={vendorId}
+                        value={row.purchaseOrderId}
+                        onChange={(poId) => updateExpenseRow(row.id, 'purchaseOrderId', poId || '')}
+                      />
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end">
                       <Button
                         onClick={() => removeExpenseRow(row.id)}
                         size="sm"
