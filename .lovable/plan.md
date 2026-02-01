@@ -2,112 +2,109 @@
 
 ## Goal
 
-1. **Expand the PO panel horizontally** to span across all 3 columns (Vendor, Date, Reference No.), aligning with the right edge of the form
-2. **Make PO rows clickable/selectable** with visual feedback - clicking highlights the row, clicking again deselects
+Consolidate the two-row footer in ManualBillEntry into a single-row footer that matches the JournalEntryForm layout. This saves vertical space to accommodate the new PO selection panel.
 
 ---
 
-## Problem Analysis
+## Current Structure (ManualBillEntry)
 
-### Width Issue
-Currently `VendorPOInfo` is nested inside the first `<div>` of the 3-column grid:
+```text
++-----------------------------------------------+
+| Job Cost Total:              $0.00            |  <-- Row 1: inside table border-t
++-----------------------------------------------+
+
++-----------------------------------------------+
+| Total: $0.00   [Clear][Save & New]...         |  <-- Row 2: separate footer
++-----------------------------------------------+
 ```
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  <div className="space-y-2">          <!-- Column 1 only -->
-    <Label>Vendor</Label>
-    <VendorSearchInput ... />
-    <VendorPOInfo ... />               <!-- Constrained to column 1 width -->
+
+Two separate footers take up unnecessary vertical space.
+
+---
+
+## Target Structure (matches JournalEntryForm)
+
+```text
++-----------------------------------------------+
+| Job Cost Total: $0.00    [Clear][Save & New]...|  <-- Single row
++-----------------------------------------------+
+```
+
+All information consolidated into one row, saving an entire line of vertical space.
+
+---
+
+## Implementation
+
+### File: `src/components/bills/ManualBillEntry.tsx`
+
+#### 1. Remove the standalone "Total" footer (lines 950-990)
+Delete the entire second footer container that has "Total: $X" and the buttons.
+
+#### 2. Update the Job Cost tab footer (lines 803-833)
+Transform the existing "Job Cost Total" row to include the buttons:
+- Keep the total display on the left
+- Add the button group (Clear, Save & New, Save & Close, Save Entry) on the right
+- Use `flex justify-between items-center` layout
+
+#### 3. Update the Expense tab footer (lines 919-944)
+Same treatment - add buttons to the existing total row.
+
+#### 4. Adjust styling
+- Change from `p-3 bg-muted border-t` to `p-3 bg-muted border rounded-lg mt-4` (to match the detached style of JournalEntryForm)
+- Move this footer **outside** the table `border rounded-lg overflow-hidden` container so it stands alone
+
+---
+
+## Technical Details
+
+### New footer structure:
+```jsx
+<div className="p-3 bg-muted border rounded-lg">
+  <div className="flex justify-between items-center">
+    <div className="text-base font-semibold">
+      Job Cost Total: ${total.toFixed(2)}
+    </div>
+    <div className="flex gap-2">
+      <Button variant="outline" onClick={handleClear}>Clear</Button>
+      <Button variant="outline" onClick={() => handleSave('new')}>Save & New</Button>
+      <Button onClick={() => handleSave('close')}>Save & Close</Button>
+      <Button onClick={() => handleSave('stay')}>Save Entry</Button>
+    </div>
   </div>
-  <div>Date</div>                      <!-- Column 2 -->
-  <div>Reference No.</div>             <!-- Column 3 -->
 </div>
 ```
 
-### Selection Issue
-The PO rows are currently display-only `<div>` elements with no click handlers or state tracking.
-
----
-
-## Solution
-
-### A) Expand width (ManualBillEntry.tsx)
-
-Move `VendorPOInfo` **outside** the 3-column grid so it can span full width:
-
-```
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  <div className="space-y-2">
-    <Label>Vendor</Label>
-    <VendorSearchInput ... />
-  </div>
-  <div>Date</div>
-  <div>Reference No.</div>
-</div>
-
-{/* Now outside the grid - full width */}
-<VendorPOInfo 
-  projectId={projectId} 
-  vendorId={vendorId}
-  selectedPOId={selectedPOId}
-  onSelectPO={setSelectedPOId}
-/>
-```
-
-### B) Add selection behavior (VendorPOInfo.tsx)
-
-1. Add new props: `selectedPOId?: string` and `onSelectPO?: (poId: string | undefined) => void`
-2. Add click handler to each PO row that toggles selection
-3. Add visual feedback for selected state (border highlight, background change)
-4. Make rows look clickable with `cursor-pointer` and hover states
-
-### C) State management (ManualBillEntry.tsx)
-
-Add state for tracking the selected PO:
-```typescript
-const [selectedPOId, setSelectedPOId] = useState<string | undefined>();
-```
-
----
-
-## Implementation Details
-
-### File 1: `src/components/bills/VendorPOInfo.tsx`
-
-**Changes:**
-- Add `selectedPOId` and `onSelectPO` props to interface
-- Update PO row styling:
-  - Add `cursor-pointer` 
-  - Add hover effect: `hover:bg-blue-100 dark:hover:bg-blue-900/50`
-  - Selected state: `ring-2 ring-primary bg-primary/10`
-- Add onClick handler that calls `onSelectPO(po.id)` or `onSelectPO(undefined)` to toggle
-
-**Visual states:**
-- Default: light border, white background
-- Hover: slightly blue background
-- Selected: primary color ring, light primary background
-
-### File 2: `src/components/bills/ManualBillEntry.tsx`
-
-**Changes:**
-- Move `<VendorPOInfo />` outside the 3-column grid, placing it in its own full-width row
-- Add `selectedPOId` state
-- Pass `selectedPOId` and `onSelectPO` props to VendorPOInfo
-- Clear `selectedPOId` when vendor changes (reset selection)
+### Key changes:
+1. Move footer outside the table container (so it's not inside `overflow-hidden`)
+2. Combine total + buttons into single flex row
+3. Remove the redundant second "Total" footer entirely
+4. Apply to both Job Cost and Expense tabs
 
 ---
 
 ## Expected Result
 
-1. The PO panel will stretch from Vendor to Reference No. (full form width)
-2. Cost code names will be fully readable (no truncation needed with more space)
-3. Clicking a PO row highlights it (blue ring/border)
-4. Clicking the same row again deselects it
-5. Selected PO can later be used to auto-fill line items
+Before:
+```text
+[Table with rows]
+Job Cost Total: $0.00          <- inside table
+---------------------------------
+Total: $0.00    [Clear] [Save...]   <- separate footer
+```
+
+After:
+```text
+[Table with rows]
+---------------------------------
+Job Cost Total: $0.00    [Clear] [Save...]   <- single consolidated footer
+```
+
+This saves approximately 60px of vertical space, giving room for the PO selection panel.
 
 ---
 
 ## Files to modify
 
-- `src/components/bills/VendorPOInfo.tsx` (add selection props, click handler, visual states)
-- `src/components/bills/ManualBillEntry.tsx` (move VendorPOInfo outside grid, add selection state)
+- `src/components/bills/ManualBillEntry.tsx`
 
