@@ -6,6 +6,19 @@ import { PODetailsDialog } from "./PODetailsDialog";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Helper function to find a matching PO for a given cost code.
+ * Used by parent components to auto-select PO when cost code changes.
+ */
+export function findMatchingPOForCostCode(
+  purchaseOrders: VendorPurchaseOrder[] | undefined,
+  costCodeId: string | undefined
+): string | undefined {
+  if (!purchaseOrders || !costCodeId) return undefined;
+  const match = purchaseOrders.find(po => po.cost_code_id === costCodeId);
+  return match?.id;
+}
+
 interface POSelectionDropdownProps {
   projectId: string | null | undefined;
   vendorId: string | null | undefined;
@@ -91,18 +104,14 @@ export function POSelectionDropdown({
           <SelectValue placeholder="No Purchase Order" />
         </SelectTrigger>
         <SelectContent>
-          {/* Only show "No Purchase Order" when vendor has no POs */}
-          {!hasPurchaseOrders && (
-            <SelectItem value="__none__" className="text-muted-foreground">
-              No Purchase Order
-            </SelectItem>
-          )}
-          {/* When vendor has POs, start with auto-match */}
+          {/* 1. Auto-match by cost code (when POs exist) */}
           {hasPurchaseOrders && (
             <SelectItem value="__auto__" className="text-muted-foreground">
               Auto-match by cost code
             </SelectItem>
           )}
+          
+          {/* 2. All vendor POs */}
           {hasPurchaseOrders && purchaseOrders.map((po) => {
             const isMatchingCostCode = costCodeId && po.cost_code_id === costCodeId;
             return (
@@ -117,6 +126,11 @@ export function POSelectionDropdown({
               </SelectItem>
             );
           })}
+          
+          {/* 3. No purchase order (always last as escape hatch) */}
+          <SelectItem value="__none__" className="text-muted-foreground">
+            No purchase order
+          </SelectItem>
         </SelectContent>
       </Select>
       
