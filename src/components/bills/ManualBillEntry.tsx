@@ -24,7 +24,8 @@ import { BillNotesDialog } from "./BillNotesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
-import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
+import { POSelectionDropdown, useShouldShowPOSelection, findMatchingPOForCostCode } from "./POSelectionDropdown";
+import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -85,6 +86,9 @@ export function ManualBillEntry() {
   const { checkDuplicate } = useReferenceNumberValidation();
   // Use vendorId (UUID) for PO selection logic
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
+  
+  // Fetch vendor POs for auto-selection when cost code changes
+  const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
 
   // Use separate cache key to avoid collision with full table data
   const { data: companies } = useQuery({
@@ -700,6 +704,12 @@ export function ManualBillEntry() {
                         onCostCodeSelect={(costCode) => {
                           updateJobCostRow(row.id, 'accountId', costCode.id);
                           updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
+                          
+                          // Auto-select matching PO if one exists for this cost code
+                          const matchingPO = findMatchingPOForCostCode(vendorPOs, costCode.id);
+                          if (matchingPO) {
+                            updateJobCostRow(row.id, 'purchaseOrderId', matchingPO);
+                          }
                         }}
                         placeholder="Cost Code"
                         className="h-8"
