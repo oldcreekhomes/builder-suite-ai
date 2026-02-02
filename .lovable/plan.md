@@ -1,80 +1,214 @@
 
+# Vendor Payments Report (1099-Style) for Builder Suite Projects
 
-## Cleanup Plan: Delete 120 Fake Purchase Orders
+## Overview
 
-### What Happened
-
-A flawed database migration (`20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql`) ran on January 30, 2026 and incorrectly created Purchase Orders for ALL vendors who submitted bids on closed packages - not just the winning vendor.
-
-**Good news**: No emails were sent to vendors because the migration inserted records directly into the database, bypassing the application code that triggers the `send-po-email` edge function.
+Create a new report that shows all vendor payments broken out by project and then by vendor, similar to QuickBooks' 1099 report format. This report will only display projects that use Builder Suite for accounting (`accounting_software = 'builder_suite'`).
 
 ---
 
-### Scope of Cleanup
+## Report Format
 
-| Project | Fake POs to Delete |
-|---------|-------------------|
-| 859 N Lexington | 33 |
-| 5701 9th Street | 24 |
-| 5707 9th St N | 20 |
-| 923 17th St South | 17 |
-| 115 E. Oceanwatch Ct | 16 |
-| 126 Longview Drive | 7 |
-| 103 E Oxford Ave | 2 |
-| 7659 Waterloo Farm Rd | 1 |
-| **TOTAL** | **120** |
+Based on the QuickBooks example provided, the report will display:
 
----
+```
++------------------------------------------------------------+
+|              Vendor Payments Report (1099-Style)            |
+|                    Old Creek Homes, LLC                     |
+|                     As of 02/02/2026                        |
++------------------------------------------------------------+
 
-### Implementation Steps
+PROJECT: 115 E. Oceanwatch Ct. Nags Head, NC 27959
++----------------------------------------------------------+
+|                     ELG Consulting, LLC                   |
++----------------------------------------------------------+
+| Type      | Date       | Num      | Memo        | Amount |
+|-----------|------------|----------|-------------|--------|
+| Bill      | 09/23/2024 |          | Design...   |$1,250  |
+| Bill      | 09/29/2024 |          | Permits     |  $600  |
+| Bill Pmt  | 01/09/2026 |          | Payment     |$4,958  |
+|----------------------------------------------------------|
+| Total - ELG Consulting, LLC               |     $21,772  |
++----------------------------------------------------------+
 
-**Step 1: Create Edge Function `delete-fake-pos`**
++----------------------------------------------------------+
+|                     Carter Lumber                         |
++----------------------------------------------------------+
+| Type      | Date       | Num      | Memo        | Amount |
+|-----------|------------|----------|-------------|--------|
+| Bill      | 10/15/2025 | 12345    | Lumber      |$5,000  |
+| Bill Pmt  | 11/18/2025 |          | Payment     |$17,673 |
+|----------------------------------------------------------|
+| Total - Carter Lumber                     |     $74,554  |
++----------------------------------------------------------+
 
-Create a new edge function that:
-1. Authenticates the caller (owner role required)
-2. Finds all POs matching the migration criteria:
-   - `notes = 'Auto-generated PO for previously closed bid'`
-   - `created_at` between `2026-01-30 19:36:52` and `2026-01-30 19:36:53`
-3. Sets `purchase_order_id = NULL` on any `bill_lines` or `pending_bill_lines` referencing these POs (to avoid foreign key violations)
-4. Deletes the 120 fake POs
-5. Returns a detailed report of what was deleted
+PROJECT TOTAL: 115 E. Oceanwatch Ct.         |   $XXX,XXX  |
 
-**Step 2: Deploy and Execute**
+(Repeat for each Builder Suite project...)
 
-Deploy the edge function and call it immediately to remove the fake POs.
-
-**Step 3: Delete the Bad Migration File**
-
-Remove `supabase/migrations/20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql` to prevent it from running on any future environments.
-
----
-
-### Safety Measures
-
-| Safety Check | Implementation |
-|--------------|----------------|
-| Authentication | Caller must be authenticated owner |
-| Precise targeting | Only deletes POs with EXACT note text AND timestamp window |
-| Foreign key safety | Clears `purchase_order_id` references before deletion |
-| Real POs protected | Normal workflow POs never have this specific note |
-| No email impact | Vendors already unaware of fake POs |
+============================================================
+GRAND TOTAL (All Builder Suite Projects)    |  $X,XXX,XXX |
+============================================================
+```
 
 ---
 
-### Files to Create/Delete
+## Implementation Steps
 
-| File | Action |
-|------|--------|
-| `supabase/functions/delete-fake-pos/index.ts` | **CREATE** - Edge function to delete fake POs |
-| `supabase/migrations/20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql` | **DELETE** - Remove bad migration |
+### Step 1: Create New Report Tab Component
+
+**File:** `src/components/reports/VendorPaymentsContent.tsx`
+
+This component will:
+1. Fetch all projects with `accounting_software = 'builder_suite'`
+2. For each project, fetch:
+   - Bills (posted/paid, non-reversal)
+   - Bill Payments
+   - Checks (direct payments)
+3. Group data by project → vendor
+4. Display in a collapsible, expandable table format
+5. Calculate running totals per vendor and per project
+6. Support date range filtering (optional "As of Date")
+7. Support PDF export
+
+**Key Features:**
+- Collapsible project sections
+- Collapsible vendor sections within each project
+- Summary totals at vendor, project, and grand total levels
+- Transaction types: Bill, Bill Pmt, Check
+
+### Step 2: Create Data Hook
+
+**File:** `src/hooks/useVendorPaymentsReport.ts`
+
+Query logic:
+```typescript
+// 1. Fetch Builder Suite projects
+const builderSuiteProjects = projects.filter(
+  p => p.accounting_software === 'builder_suite' 
+    && p.status !== 'Template'
+    && p.status !== 'Permanently Closed'
+);
+
+// 2. For each project, fetch transactions
+// - Bills: from 'bills' table where status in ('posted', 'paid')
+// - Bill Payments: from 'bill_payments' table
+// - Checks: from 'checks' table
+
+// 3. Combine and sort by vendor, then by date
+```
+
+### Step 3: Add Tab to ReportsTabs
+
+**File:** `src/components/reports/ReportsTabs.tsx`
+
+Add a new "Vendor Payments" tab alongside existing tabs:
+- Balance Sheet
+- Income Statement  
+- Job Costs
+- Accounts Payable
+- **Vendor Payments** (new)
+
+### Step 4: Create PDF Export Component
+
+**File:** `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx`
+
+Similar to existing PDF documents, this will generate a downloadable PDF with:
+- Company header
+- Project sections
+- Vendor subsections
+- Transaction line items
+- Totals at each level
 
 ---
 
-### Expected Result
+## Technical Details
 
-After execution:
-- 120 fake POs will be deleted
-- 315 legitimate POs remain untouched
-- Bad migration file removed
-- No vendor communication affected
+### Data Sources
 
+| Transaction Type | Source Table | Key Fields |
+|-----------------|--------------|------------|
+| Bill | `bills` | bill_date, reference_number, notes, total_amount, vendor_id |
+| Bill Pmt | `bill_payments` | payment_date, check_number, memo, total_amount, vendor_id |
+| Check | `checks` | check_date, check_number, memo, amount, pay_to |
+
+### Filter Criteria
+
+- **Bills:** `status IN ('posted', 'paid')`, `is_reversal = false`, `reversed_by_id IS NULL`
+- **Bill Payments:** All (they represent actual payments)
+- **Checks:** `is_reversal = false OR is_reversal IS NULL`
+- **Projects:** `accounting_software = 'builder_suite'`, excluding templates and permanently closed
+
+### UI Components Used
+
+- `Collapsible` from Radix for expandable sections
+- `Table` components for transaction display
+- `Card` for project groupings
+- Date picker for "As of Date" filter
+- PDF export button using `@react-pdf/renderer`
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/hooks/useVendorPaymentsReport.ts` | **CREATE** | Data fetching hook for vendor payments |
+| `src/components/reports/VendorPaymentsContent.tsx` | **CREATE** | Main report UI component |
+| `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx` | **CREATE** | PDF export template |
+| `src/components/reports/ReportsTabs.tsx` | **MODIFY** | Add new tab for Vendor Payments |
+
+---
+
+## Sample Data Structure
+
+```typescript
+interface VendorPaymentsData {
+  projects: {
+    id: string;
+    address: string;
+    vendors: {
+      id: string;
+      name: string;
+      transactions: {
+        type: 'Bill' | 'Bill Pmt' | 'Check';
+        date: string;
+        num: string | null;
+        memo: string | null;
+        amount: number;
+      }[];
+      total: number;
+    }[];
+    projectTotal: number;
+  }[];
+  grandTotal: number;
+}
+```
+
+---
+
+## Builder Suite Projects (9 total)
+
+Based on current data, these projects will appear in the report:
+1. 103 E Oxford Ave, Alexandria, VA 22301
+2. 115 E. Oceanwatch Ct. Nags Head, NC 27959
+3. 126 Longview Drive, Alexandria, VA, 22314
+4. 1416 N Longfellow Street, Arlington, VA 22205
+5. 214 N Granada, Arlington, VA
+6. 412 E Nelson, Alexandria, Virginia 22301
+7. 413 E Nelson Ave, Alexandria, Virginia 22301
+8. 6119 11th Street N, Arlington, VA 22205
+9. 923 17th St. South Arlington, VA 22202
+
+---
+
+## Estimated Effort
+
+| Task | Time |
+|------|------|
+| Data hook creation | 30 mins |
+| Report UI component | 45 mins |
+| PDF export component | 30 mins |
+| Tab integration | 10 mins |
+| Testing & refinement | 20 mins |
+| **Total** | ~2.5 hours |
