@@ -147,14 +147,16 @@ const styles = StyleSheet.create({
 
 interface VendorPaymentsPdfDocumentProps {
   companyName: string;
-  asOfDate: string;
+  startDate: string;
+  endDate: string;
   projects: ProjectVendorData[];
   grandTotal: number;
 }
 
 export const VendorPaymentsPdfDocument: React.FC<VendorPaymentsPdfDocumentProps> = ({
   companyName,
-  asOfDate,
+  startDate,
+  endDate,
   projects,
   grandTotal,
 }) => {
@@ -172,9 +174,13 @@ export const VendorPaymentsPdfDocument: React.FC<VendorPaymentsPdfDocumentProps>
     return `${month}/${day}/${year}`;
   };
 
-  const formatAsOfDate = (dateString: string): string => {
-    const [year, month, day] = dateString.split('-');
-    return `${month}/${day}/${year}`;
+  const formatDateRange = (start: string, end: string): string => {
+    const formatSingle = (dateString: string): string => {
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+    return `${formatSingle(start)} - ${formatSingle(end)}`;
   };
 
   return (
@@ -184,7 +190,7 @@ export const VendorPaymentsPdfDocument: React.FC<VendorPaymentsPdfDocumentProps>
         <View style={styles.header}>
           <Text style={styles.title}>Vendor Payments Report (1099-Style)</Text>
           <Text style={styles.companyName}>{companyName}</Text>
-          <Text style={styles.asOfDate}>As of {formatAsOfDate(asOfDate)}</Text>
+          <Text style={styles.asOfDate}>{formatDateRange(startDate, endDate)}</Text>
         </View>
 
         {/* Projects */}
