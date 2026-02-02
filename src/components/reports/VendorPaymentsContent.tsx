@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight, FileText, Loader2 } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -23,12 +30,60 @@ interface VendorPaymentsContentProps {
 }
 
 export function VendorPaymentsContent({ projectId }: VendorPaymentsContentProps) {
-  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
+  const currentYear = new Date().getFullYear();
+  const [startDate, setStartDate] = useState<Date>(new Date(currentYear, 0, 1));
+  const [endDate, setEndDate] = useState<Date>(new Date(currentYear, 11, 31));
+  const [selectedYear, setSelectedYear] = useState<number | 'custom'>(currentYear);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
   
-  const { data, isLoading, error } = useVendorPaymentsReport(asOfDate);
+  const { data, isLoading, error } = useVendorPaymentsReport(startDate, endDate);
   const { session } = useAuth();
+
+  // Generate year options (2020 to current year + 1)
+  const yearOptions = useMemo(() => {
+    const years: number[] = [];
+    for (let y = 2020; y <= currentYear + 1; y++) {
+      years.push(y);
+    }
+    return years;
+  }, [currentYear]);
+
+  // Check if current dates match a full year
+  const checkIfFullYear = (start: Date, end: Date): number | 'custom' => {
+    const startMonth = start.getMonth();
+    const startDay = start.getDate();
+    const endMonth = end.getMonth();
+    const endDay = end.getDate();
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    
+    if (startMonth === 0 && startDay === 1 && endMonth === 11 && endDay === 31 && startYear === endYear) {
+      return startYear;
+    }
+    return 'custom';
+  };
+
+  const handleYearChange = (value: string) => {
+    if (value === 'custom') {
+      setSelectedYear('custom');
+    } else {
+      const year = parseInt(value, 10);
+      setSelectedYear(year);
+      setStartDate(new Date(year, 0, 1));
+      setEndDate(new Date(year, 11, 31));
+    }
+  };
+
+  const handleStartDateChange = (date: Date) => {
+    setStartDate(date);
+    setSelectedYear(checkIfFullYear(date, endDate));
+  };
+
+  const handleEndDateChange = (date: Date) => {
+    setEndDate(date);
+    setSelectedYear(checkIfFullYear(startDate, date));
+  };
   
   // Get company name from session
   const companyName = session?.user?.user_metadata?.company_name || 'Company';
@@ -110,14 +165,44 @@ export function VendorPaymentsContent({ projectId }: VendorPaymentsContentProps)
     <div className="space-y-4">
       {/* Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Year Selector */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">As of:</span>
+            <span className="text-sm font-medium">Year:</span>
+            <Select
+              value={String(selectedYear)}
+              onValueChange={handleYearChange}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Date Range */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">From:</span>
             <DateInputPicker
-              date={asOfDate}
-              onDateChange={setAsOfDate}
+              date={startDate}
+              onDateChange={handleStartDateChange}
             />
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">To:</span>
+            <DateInputPicker
+              date={endDate}
+              onDateChange={handleEndDateChange}
+            />
+          </div>
+          
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={expandAll}>
               Expand All
@@ -133,12 +218,13 @@ export function VendorPaymentsContent({ projectId }: VendorPaymentsContentProps)
             document={
               <VendorPaymentsPdfDocument
                 companyName={companyName}
-                asOfDate={format(asOfDate, 'yyyy-MM-dd')}
+                startDate={format(startDate, 'yyyy-MM-dd')}
+                endDate={format(endDate, 'yyyy-MM-dd')}
                 projects={data.projects}
                 grandTotal={data.grandTotal}
               />
             }
-            fileName={`vendor-payments-${format(asOfDate, 'yyyy-MM-dd')}.pdf`}
+            fileName={`vendor-payments-${format(startDate, 'yyyy-MM-dd')}-to-${format(endDate, 'yyyy-MM-dd')}.pdf`}
           >
             {({ loading }) => (
               <Button variant="outline" disabled={loading}>

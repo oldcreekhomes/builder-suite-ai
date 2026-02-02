@@ -29,7 +29,7 @@ export interface VendorPaymentsReportData {
   grandTotal: number;
 }
 
-export function useVendorPaymentsReport(asOfDate?: Date) {
+export function useVendorPaymentsReport(startDate?: Date, endDate?: Date) {
   const { user, session } = useAuth();
 
   // Get effective owner ID (for employees, use home_builder_id)
@@ -38,13 +38,14 @@ export function useVendorPaymentsReport(asOfDate?: Date) {
     : user?.id;
 
   return useQuery({
-    queryKey: ['vendor-payments-report', effectiveOwnerId, asOfDate?.toISOString()],
+    queryKey: ['vendor-payments-report', effectiveOwnerId, startDate?.toISOString(), endDate?.toISOString()],
     queryFn: async (): Promise<VendorPaymentsReportData> => {
       if (!effectiveOwnerId) {
         return { projects: [], grandTotal: 0 };
       }
 
-      const dateFilter = asOfDate ? asOfDate.toISOString().split('T')[0] : null;
+      const startDateFilter = startDate ? startDate.toISOString().split('T')[0] : null;
+      const endDateFilter = endDate ? endDate.toISOString().split('T')[0] : null;
 
       // 1. Fetch Builder Suite projects
       const { data: projects, error: projectsError } = await supabase
@@ -88,8 +89,11 @@ export function useVendorPaymentsReport(asOfDate?: Date) {
         .eq('is_reversal', false)
         .is('reversed_by_id', null);
 
-      if (dateFilter) {
-        billsQuery = billsQuery.lte('bill_date', dateFilter);
+      if (startDateFilter) {
+        billsQuery = billsQuery.gte('bill_date', startDateFilter);
+      }
+      if (endDateFilter) {
+        billsQuery = billsQuery.lte('bill_date', endDateFilter);
       }
 
       const { data: bills, error: billsError } = await billsQuery;
@@ -116,8 +120,11 @@ export function useVendorPaymentsReport(asOfDate?: Date) {
         `)
         .in('project_id', projectIds);
 
-      if (dateFilter) {
-        paymentsQuery = paymentsQuery.lte('payment_date', dateFilter);
+      if (startDateFilter) {
+        paymentsQuery = paymentsQuery.gte('payment_date', startDateFilter);
+      }
+      if (endDateFilter) {
+        paymentsQuery = paymentsQuery.lte('payment_date', endDateFilter);
       }
 
       const { data: billPayments, error: paymentsError } = await paymentsQuery;
@@ -144,8 +151,11 @@ export function useVendorPaymentsReport(asOfDate?: Date) {
         .or('is_reversal.is.null,is_reversal.eq.false')
         .is('reversed_by_id', null);
 
-      if (dateFilter) {
-        checksQuery = checksQuery.lte('check_date', dateFilter);
+      if (startDateFilter) {
+        checksQuery = checksQuery.gte('check_date', startDateFilter);
+      }
+      if (endDateFilter) {
+        checksQuery = checksQuery.lte('check_date', endDateFilter);
       }
 
       const { data: checks, error: checksError } = await checksQuery;
