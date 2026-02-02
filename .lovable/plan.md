@@ -1,85 +1,80 @@
 
 
-## Cleanup Plan: Delete Fake Migration-Created Purchase Orders
+## Cleanup Plan: Delete 120 Fake Purchase Orders
 
-### Good News First
-**No vendors received emails** from the bad migration. The SQL migration inserted records directly into the database, completely bypassing the application code that sends `send-po-email` notifications. Vendors are unaware of these fake POs.
+### What Happened
 
----
+A flawed database migration (`20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql`) ran on January 30, 2026 and incorrectly created Purchase Orders for ALL vendors who submitted bids on closed packages - not just the winning vendor.
 
-## Scope of Cleanup
-
-| Project | Fake POs to Delete | Real POs to Keep |
-|---------|-------------------|------------------|
-| 115 E. Oceanwatch Ct | 16 | 27 |
-| 126 Longview Drive | 7 | 45 |
-| 5701 9th Street | 24 | 73 |
-| 5707 9th St N | 20 | 63 |
-| 7659 Waterloo Farm Rd | 1 | 6 |
-| 859 N Lexington | 33 | 46 |
-| 923 17th St South | 17 | 51 |
-| 103 E Oxford Ave | 2 | 4 |
-| **TOTAL** | **120** | **315** |
+**Good news**: No emails were sent to vendors because the migration inserted records directly into the database, bypassing the application code that triggers the `send-po-email` edge function.
 
 ---
 
-## Implementation Steps
+### Scope of Cleanup
 
-### Step 1: Delete Fake POs from Database
-
-Execute a single SQL DELETE that targets only POs created by the bad migration. These are identifiable by:
-- The exact note text: `'Auto-generated PO for previously closed bid'`
-- Created timestamp within the migration execution window
-
-```sql
-DELETE FROM project_purchase_orders 
-WHERE notes = 'Auto-generated PO for previously closed bid'
-  AND created_at >= '2026-01-30 19:36:52'
-  AND created_at < '2026-01-30 19:36:53';
-```
-
-### Step 2: Delete the Bad Migration File
-
-Remove the migration file to prevent it from running on any new environments:
-
-**File to delete:** `supabase/migrations/20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql`
+| Project | Fake POs to Delete |
+|---------|-------------------|
+| 859 N Lexington | 33 |
+| 5701 9th Street | 24 |
+| 5707 9th St N | 20 |
+| 923 17th St South | 17 |
+| 115 E. Oceanwatch Ct | 16 |
+| 126 Longview Drive | 7 |
+| 103 E Oxford Ave | 2 |
+| 7659 Waterloo Farm Rd | 1 |
+| **TOTAL** | **120** |
 
 ---
 
-## Technical Details
+### Implementation Steps
 
-### Why This Is Safe
+**Step 1: Create Edge Function `delete-fake-pos`**
 
-1. **Precise targeting**: The DELETE query uses TWO criteria that only match migration-created POs:
-   - Exact note text that was only used by this migration
-   - Timestamp within a 1-second window when the migration ran
+Create a new edge function that:
+1. Authenticates the caller (owner role required)
+2. Finds all POs matching the migration criteria:
+   - `notes = 'Auto-generated PO for previously closed bid'`
+   - `created_at` between `2026-01-30 19:36:52` and `2026-01-30 19:36:53`
+3. Sets `purchase_order_id = NULL` on any `bill_lines` or `pending_bill_lines` referencing these POs (to avoid foreign key violations)
+4. Deletes the 120 fake POs
+5. Returns a detailed report of what was deleted
 
-2. **No cascade effects**: The `project_purchase_orders` table doesn't have dependent records that would be orphaned
+**Step 2: Deploy and Execute**
 
-3. **Real POs protected**: Any PO created through normal application workflow (UI, bid closeout) will NOT have this specific note text
+Deploy the edge function and call it immediately to remove the fake POs.
 
-### Verification Query (will run after cleanup)
+**Step 3: Delete the Bad Migration File**
 
-```sql
--- Confirm all fake POs are gone and real ones remain
-SELECT 
-  p.address,
-  COUNT(*) as remaining_pos
-FROM project_purchase_orders ppo
-JOIN projects p ON p.id = ppo.project_id
-WHERE ppo.notes = 'Auto-generated PO for previously closed bid'
-GROUP BY p.id, p.address;
--- Should return 0 rows
-```
+Remove `supabase/migrations/20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql` to prevent it from running on any future environments.
 
 ---
 
-## Summary
+### Safety Measures
 
-| Action | Details |
-|--------|---------|
-| Delete 120 fake POs | SQL DELETE targeting migration-specific note and timestamp |
-| Keep 315 real POs | All legitimate POs remain untouched |
-| Delete migration file | Prevents future occurrences |
-| Email impact | None - vendors never received notifications |
+| Safety Check | Implementation |
+|--------------|----------------|
+| Authentication | Caller must be authenticated owner |
+| Precise targeting | Only deletes POs with EXACT note text AND timestamp window |
+| Foreign key safety | Clears `purchase_order_id` references before deletion |
+| Real POs protected | Normal workflow POs never have this specific note |
+| No email impact | Vendors already unaware of fake POs |
+
+---
+
+### Files to Create/Delete
+
+| File | Action |
+|------|--------|
+| `supabase/functions/delete-fake-pos/index.ts` | **CREATE** - Edge function to delete fake POs |
+| `supabase/migrations/20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql` | **DELETE** - Remove bad migration |
+
+---
+
+### Expected Result
+
+After execution:
+- 120 fake POs will be deleted
+- 315 legitimate POs remain untouched
+- Bad migration file removed
+- No vendor communication affected
 
