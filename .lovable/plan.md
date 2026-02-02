@@ -1,122 +1,85 @@
 
-## Summary
 
-Two issues to address:
+## Cleanup Plan: Delete Fake Migration-Created Purchase Orders
 
-1. **Duplicate invoice reference numbers** are being allowed when submitting bills through "Enter with AI" - the validation that exists in "Enter Manually" is missing from the batch submission flow
-2. **Remove Terms column** from the Review, Rejected, Approved, and Paid tabs UI (keep in database)
+### Good News First
+**No vendors received emails** from the bad migration. The SQL migration inserted records directly into the database, completely bypassing the application code that sends `send-po-email` notifications. Vendors are unaware of these fake POs.
 
 ---
 
-## Issue 1: Duplicate Reference Number Validation Missing
+## Scope of Cleanup
 
-### Root Cause
+| Project | Fake POs to Delete | Real POs to Keep |
+|---------|-------------------|------------------|
+| 115 E. Oceanwatch Ct | 16 | 27 |
+| 126 Longview Drive | 7 | 45 |
+| 5701 9th Street | 24 | 73 |
+| 5707 9th St N | 20 | 63 |
+| 7659 Waterloo Farm Rd | 1 | 6 |
+| 859 N Lexington | 33 | 46 |
+| 923 17th St South | 17 | 51 |
+| 103 E Oxford Ave | 2 | 4 |
+| **TOTAL** | **120** | **315** |
 
-The `useReferenceNumberValidation` hook is used in:
-- ManualBillEntry.tsx (Enter Manually)
-- EditExtractedBillDialog.tsx (editing individual AI bills)
-- EditBillDialog.tsx (editing existing bills)
-- ApproveBillDialog.tsx (approving individual bills)
+---
 
-But it is **NOT** used in `BillsApprovalTabs.tsx` in the `handleSubmitAllBills` function - the batch submission for AI-extracted bills.
+## Implementation Steps
 
-### Solution
+### Step 1: Delete Fake POs from Database
 
-Add duplicate reference number validation to `handleSubmitAllBills` before calling `batchApproveBills`:
+Execute a single SQL DELETE that targets only POs created by the bad migration. These are identifiable by:
+- The exact note text: `'Auto-generated PO for previously closed bid'`
+- Created timestamp within the migration execution window
 
-1. Import `useReferenceNumberValidation` hook
-2. Before approving each bill, check if its reference number already exists
-3. Filter out duplicates and show a toast listing which bills were skipped due to duplicate reference numbers
-4. Only submit bills that pass validation
+```sql
+DELETE FROM project_purchase_orders 
+WHERE notes = 'Auto-generated PO for previously closed bid'
+  AND created_at >= '2026-01-30 19:36:52'
+  AND created_at < '2026-01-30 19:36:53';
+```
 
-### Technical Implementation
+### Step 2: Delete the Bad Migration File
 
-In `BillsApprovalTabs.tsx`:
+Remove the migration file to prevent it from running on any new environments:
 
-```tsx
-// Add import
-import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
+**File to delete:** `supabase/migrations/20260130193653_4de6975f-8bac-4ecd-8554-d7ab25a8e061.sql`
 
-// Add hook in component
-const { checkDuplicate } = useReferenceNumberValidation();
+---
 
-// In handleSubmitAllBills, before batchApproveBills:
-const validatedBills = [];
-const duplicateBills = [];
+## Technical Details
 
-for (const bill of selectedBills) {
-  const referenceNumber = bill.extracted_data?.reference_number || 
-                          bill.extracted_data?.referenceNumber || 
-                          bill.reference_number;
-  
-  if (referenceNumber?.trim()) {
-    const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
-    if (isDuplicate && existingBill) {
-      duplicateBills.push({
-        bill,
-        existingVendor: existingBill.vendorName,
-        existingProject: existingBill.projectName
-      });
-      continue;
-    }
-  }
-  validatedBills.push(bill);
-}
+### Why This Is Safe
 
-// Show warning for duplicates
-if (duplicateBills.length > 0) {
-  toast({
-    title: "Duplicate Invoices Skipped",
-    description: `${duplicateBills.length} bill(s) skipped due to duplicate reference numbers`,
-    variant: "destructive",
-  });
-}
+1. **Precise targeting**: The DELETE query uses TWO criteria that only match migration-created POs:
+   - Exact note text that was only used by this migration
+   - Timestamp within a 1-second window when the migration ran
 
-// Only proceed with validated bills
-if (validatedBills.length === 0) {
-  setIsSubmitting(false);
-  return;
-}
+2. **No cascade effects**: The `project_purchase_orders` table doesn't have dependent records that would be orphaned
+
+3. **Real POs protected**: Any PO created through normal application workflow (UI, bid closeout) will NOT have this specific note text
+
+### Verification Query (will run after cleanup)
+
+```sql
+-- Confirm all fake POs are gone and real ones remain
+SELECT 
+  p.address,
+  COUNT(*) as remaining_pos
+FROM project_purchase_orders ppo
+JOIN projects p ON p.id = ppo.project_id
+WHERE ppo.notes = 'Auto-generated PO for previously closed bid'
+GROUP BY p.id, p.address;
+-- Should return 0 rows
 ```
 
 ---
 
-## Issue 2: Remove Terms Column from UI
+## Summary
 
-### Files to Modify
+| Action | Details |
+|--------|---------|
+| Delete 120 fake POs | SQL DELETE targeting migration-specific note and timestamp |
+| Keep 315 real POs | All legitimate POs remain untouched |
+| Delete migration file | Prevents future occurrences |
+| Email impact | None - vendors never received notifications |
 
-| File | Location | Change |
-|------|----------|--------|
-| `BillsApprovalTable.tsx` | Line 693 | Remove Terms header |
-| `BillsApprovalTable.tsx` | Line 884-886 | Remove Terms cell |
-| `BillsApprovalTable.tsx` | Line 581-587 | Update column count calculation |
-| `BillsApprovalTable.tsx` | Line 440-452 | Can keep formatTerms function (used elsewhere potentially) or remove if not needed |
-| `PayBillsTable.tsx` | Line 886 | Remove Terms header |
-| `PayBillsTable.tsx` | Line 1026 | Remove Terms cell |
-| `PayBillsTable.tsx` | Line 665-677 | Can keep formatTerms function or remove if not needed |
-
-### Technical Details
-
-The Terms column currently shows values like "Net 30", "On Receipt", etc. Since Bill Date and Due Date are already shown, the terms are implied:
-- Bill Date: 01/01/26, Due Date: 01/31/26 = Net 30
-- Bill Date: 12/22/25, Due Date: 12/22/25 = On Receipt
-
-Removing this column will save horizontal space in the table.
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/bills/BillsApprovalTabs.tsx` | Add duplicate reference number validation before batch submission |
-| `src/components/bills/BillsApprovalTable.tsx` | Remove Terms column header and cell from table |
-| `src/components/bills/PayBillsTable.tsx` | Remove Terms column header and cell from table |
-
----
-
-## Expected Behavior After Fix
-
-1. **Duplicate validation**: When submitting bills from "Enter with AI", any bill with a reference number that already exists (company-wide) will be skipped with a warning toast
-2. **Terms column removed**: The Review, Rejected, Approved, and Paid tabs will no longer show the Terms column, saving horizontal space while keeping Bill Date and Due Date visible
-3. **Database unchanged**: The `terms` field will continue to be stored in the database, just not displayed in these tabs
