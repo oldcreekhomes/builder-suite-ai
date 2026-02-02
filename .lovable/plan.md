@@ -1,214 +1,134 @@
 
-# Vendor Payments Report (1099-Style) for Builder Suite Projects
+
+# Add Date Range Filter to Vendor Payments Report
 
 ## Overview
 
-Create a new report that shows all vendor payments broken out by project and then by vendor, similar to QuickBooks' 1099 report format. This report will only display projects that use Builder Suite for accounting (`accounting_software = 'builder_suite'`).
+Replace the current single "As of" date picker with a more flexible date range filter that supports:
+1. **Custom Date Range**: Start date and End date pickers
+2. **Year Preset**: Quick select for full calendar years (January 1 - December 31)
+
+This will allow filtering transactions within a specific date range rather than just "as of" a certain date.
 
 ---
 
-## Report Format
+## UI Design
 
-Based on the QuickBooks example provided, the report will display:
+The filter section will look like this:
 
 ```
-+------------------------------------------------------------+
-|              Vendor Payments Report (1099-Style)            |
-|                    Old Creek Homes, LLC                     |
-|                     As of 02/02/2026                        |
-+------------------------------------------------------------+
-
-PROJECT: 115 E. Oceanwatch Ct. Nags Head, NC 27959
-+----------------------------------------------------------+
-|                     ELG Consulting, LLC                   |
-+----------------------------------------------------------+
-| Type      | Date       | Num      | Memo        | Amount |
-|-----------|------------|----------|-------------|--------|
-| Bill      | 09/23/2024 |          | Design...   |$1,250  |
-| Bill      | 09/29/2024 |          | Permits     |  $600  |
-| Bill Pmt  | 01/09/2026 |          | Payment     |$4,958  |
-|----------------------------------------------------------|
-| Total - ELG Consulting, LLC               |     $21,772  |
-+----------------------------------------------------------+
-
-+----------------------------------------------------------+
-|                     Carter Lumber                         |
-+----------------------------------------------------------+
-| Type      | Date       | Num      | Memo        | Amount |
-|-----------|------------|----------|-------------|--------|
-| Bill      | 10/15/2025 | 12345    | Lumber      |$5,000  |
-| Bill Pmt  | 11/18/2025 |          | Payment     |$17,673 |
-|----------------------------------------------------------|
-| Total - Carter Lumber                     |     $74,554  |
-+----------------------------------------------------------+
-
-PROJECT TOTAL: 115 E. Oceanwatch Ct.         |   $XXX,XXX  |
-
-(Repeat for each Builder Suite project...)
-
-============================================================
-GRAND TOTAL (All Builder Suite Projects)    |  $X,XXX,XXX |
-============================================================
++------------------------------------------------------------------+
+|  Year: [2026 ▼]   From: [01/01/2026]  To: [12/31/2026]           |
+|  [Expand All]  [Collapse All]                      [Export PDF]   |
++------------------------------------------------------------------+
 ```
+
+**Behavior:**
+- Selecting a year from the dropdown auto-sets From = Jan 1 and To = Dec 31 of that year
+- Users can manually adjust the From/To dates for custom ranges
+- When custom dates are entered, the year dropdown shows the matching year (or "Custom" if it doesn't match a full year)
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Create New Report Tab Component
+### Step 1: Update `VendorPaymentsContent.tsx`
 
-**File:** `src/components/reports/VendorPaymentsContent.tsx`
+**Changes:**
+- Replace single `asOfDate` state with `startDate` and `endDate`
+- Add year selector dropdown (showing years 2020 - current year + 1)
+- Add "From" and "To" date pickers
+- Default to current full year (Jan 1 - Dec 31, current year)
+- Update PDF export to reflect the date range
 
-This component will:
-1. Fetch all projects with `accounting_software = 'builder_suite'`
-2. For each project, fetch:
-   - Bills (posted/paid, non-reversal)
-   - Bill Payments
-   - Checks (direct payments)
-3. Group data by project → vendor
-4. Display in a collapsible, expandable table format
-5. Calculate running totals per vendor and per project
-6. Support date range filtering (optional "As of Date")
-7. Support PDF export
-
-**Key Features:**
-- Collapsible project sections
-- Collapsible vendor sections within each project
-- Summary totals at vendor, project, and grand total levels
-- Transaction types: Bill, Bill Pmt, Check
-
-### Step 2: Create Data Hook
-
-**File:** `src/hooks/useVendorPaymentsReport.ts`
-
-Query logic:
+**New State:**
 ```typescript
-// 1. Fetch Builder Suite projects
-const builderSuiteProjects = projects.filter(
-  p => p.accounting_software === 'builder_suite' 
-    && p.status !== 'Template'
-    && p.status !== 'Permanently Closed'
-);
-
-// 2. For each project, fetch transactions
-// - Bills: from 'bills' table where status in ('posted', 'paid')
-// - Bill Payments: from 'bill_payments' table
-// - Checks: from 'checks' table
-
-// 3. Combine and sort by vendor, then by date
+const currentYear = new Date().getFullYear();
+const [startDate, setStartDate] = useState<Date>(new Date(currentYear, 0, 1));
+const [endDate, setEndDate] = useState<Date>(new Date(currentYear, 11, 31));
+const [selectedYear, setSelectedYear] = useState<number | 'custom'>(currentYear);
 ```
 
-### Step 3: Add Tab to ReportsTabs
+**Year Options:**
+- 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027 (dynamic based on current year)
 
-**File:** `src/components/reports/ReportsTabs.tsx`
+### Step 2: Update `useVendorPaymentsReport.ts`
 
-Add a new "Vendor Payments" tab alongside existing tabs:
-- Balance Sheet
-- Income Statement  
-- Job Costs
-- Accounts Payable
-- **Vendor Payments** (new)
+**Changes:**
+- Accept `startDate` and `endDate` parameters instead of single `asOfDate`
+- Apply date range filters (>= startDate AND <= endDate) to all queries:
+  - Bills: filter by `bill_date`
+  - Bill Payments: filter by `payment_date`  
+  - Checks: filter by `check_date`
 
-### Step 4: Create PDF Export Component
+**Updated Query Key:**
+```typescript
+queryKey: ['vendor-payments-report', effectiveOwnerId, startDate?.toISOString(), endDate?.toISOString()]
+```
 
-**File:** `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx`
+### Step 3: Update `VendorPaymentsPdfDocument.tsx`
 
-Similar to existing PDF documents, this will generate a downloadable PDF with:
-- Company header
-- Project sections
-- Vendor subsections
-- Transaction line items
-- Totals at each level
+**Changes:**
+- Update props to accept `startDate` and `endDate` strings
+- Update header to show "January 1, 2026 - December 31, 2026" format
+- Update filename to include date range
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/reports/VendorPaymentsContent.tsx` | Add year dropdown, replace single date with start/end pickers |
+| `src/hooks/useVendorPaymentsReport.ts` | Change parameter from `asOfDate` to `startDate`/`endDate`, apply range filters |
+| `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx` | Update header to show date range |
 
 ---
 
 ## Technical Details
 
-### Data Sources
-
-| Transaction Type | Source Table | Key Fields |
-|-----------------|--------------|------------|
-| Bill | `bills` | bill_date, reference_number, notes, total_amount, vendor_id |
-| Bill Pmt | `bill_payments` | payment_date, check_number, memo, total_amount, vendor_id |
-| Check | `checks` | check_date, check_number, memo, amount, pay_to |
-
-### Filter Criteria
-
-- **Bills:** `status IN ('posted', 'paid')`, `is_reversal = false`, `reversed_by_id IS NULL`
-- **Bill Payments:** All (they represent actual payments)
-- **Checks:** `is_reversal = false OR is_reversal IS NULL`
-- **Projects:** `accounting_software = 'builder_suite'`, excluding templates and permanently closed
-
-### UI Components Used
-
-- `Collapsible` from Radix for expandable sections
-- `Table` components for transaction display
-- `Card` for project groupings
-- Date picker for "As of Date" filter
-- PDF export button using `@react-pdf/renderer`
-
----
-
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/hooks/useVendorPaymentsReport.ts` | **CREATE** | Data fetching hook for vendor payments |
-| `src/components/reports/VendorPaymentsContent.tsx` | **CREATE** | Main report UI component |
-| `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx` | **CREATE** | PDF export template |
-| `src/components/reports/ReportsTabs.tsx` | **MODIFY** | Add new tab for Vendor Payments |
-
----
-
-## Sample Data Structure
+### Year Dropdown Logic
 
 ```typescript
-interface VendorPaymentsData {
-  projects: {
-    id: string;
-    address: string;
-    vendors: {
-      id: string;
-      name: string;
-      transactions: {
-        type: 'Bill' | 'Bill Pmt' | 'Check';
-        date: string;
-        num: string | null;
-        memo: string | null;
-        amount: number;
-      }[];
-      total: number;
-    }[];
-    projectTotal: number;
-  }[];
-  grandTotal: number;
+// When year is selected:
+const handleYearChange = (year: number) => {
+  setSelectedYear(year);
+  setStartDate(new Date(year, 0, 1));  // Jan 1
+  setEndDate(new Date(year, 11, 31));  // Dec 31
+};
+
+// When custom dates are entered:
+const handleStartDateChange = (date: Date) => {
+  setStartDate(date);
+  // Check if dates now match a full year
+  updateSelectedYearIfFullYear(date, endDate);
+};
+```
+
+### Query Filter Changes
+
+**Current (single date):**
+```typescript
+billsQuery = billsQuery.lte('bill_date', dateFilter);
+```
+
+**New (date range):**
+```typescript
+if (startDateFilter) {
+  billsQuery = billsQuery.gte('bill_date', startDateFilter);
+}
+if (endDateFilter) {
+  billsQuery = billsQuery.lte('bill_date', endDateFilter);
 }
 ```
 
 ---
 
-## Builder Suite Projects (9 total)
+## Default Behavior
 
-Based on current data, these projects will appear in the report:
-1. 103 E Oxford Ave, Alexandria, VA 22301
-2. 115 E. Oceanwatch Ct. Nags Head, NC 27959
-3. 126 Longview Drive, Alexandria, VA, 22314
-4. 1416 N Longfellow Street, Arlington, VA 22205
-5. 214 N Granada, Arlington, VA
-6. 412 E Nelson, Alexandria, Virginia 22301
-7. 413 E Nelson Ave, Alexandria, Virginia 22301
-8. 6119 11th Street N, Arlington, VA 22205
-9. 923 17th St. South Arlington, VA 22202
+On page load:
+- Year dropdown shows current year (2026)
+- Start date: January 1, 2026
+- End date: December 31, 2026
+- All transactions within that range are displayed
 
----
-
-## Estimated Effort
-
-| Task | Time |
-|------|------|
-| Data hook creation | 30 mins |
-| Report UI component | 45 mins |
-| PDF export component | 30 mins |
-| Tab integration | 10 mins |
-| Testing & refinement | 20 mins |
-| **Total** | ~2.5 hours |
