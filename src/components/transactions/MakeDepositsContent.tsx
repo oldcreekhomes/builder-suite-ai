@@ -429,7 +429,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   };
 
   const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
-    setRevenueRows(revenueRows.map(row => 
+    setRevenueRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
   };
@@ -455,7 +455,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   };
 
   const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
-    setOtherRows(otherRows.map(row => 
+    setOtherRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
   };
