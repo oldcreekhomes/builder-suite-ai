@@ -18,23 +18,25 @@ export interface DuplicateCheckResult {
  */
 export function useReferenceNumberValidation() {
   /**
-   * Check if a reference number already exists for this company.
+   * Check if a reference number already exists for this vendor.
    * @param referenceNumber - The invoice/reference number to check
+   * @param vendorId - The vendor ID to check against (per-vendor uniqueness)
    * @param excludeBillId - Optional bill ID to exclude (for editing existing bills)
    * @returns Promise with duplicate check result
    */
   const checkDuplicate = async (
     referenceNumber: string,
+    vendorId: string,
     excludeBillId?: string
   ): Promise<DuplicateCheckResult> => {
-    // Skip validation for empty/null reference numbers
+    // Skip validation for empty/null reference numbers or missing vendorId
     const trimmed = referenceNumber?.trim();
-    if (!trimmed) {
+    if (!trimmed || !vendorId) {
       return { isDuplicate: false };
     }
 
     try {
-      // Query for existing bills with this reference number
+      // Query for existing bills with this reference number from the same vendor
       let query = supabase
         .from("bills")
         .select(`
@@ -47,6 +49,7 @@ export function useReferenceNumberValidation() {
           companies!bills_vendor_id_fkey (company_name),
           projects!bills_project_id_fkey (address)
         `)
+        .eq("vendor_id", vendorId)
         .neq("status", "void")
         .not("reference_number", "is", null);
 
@@ -72,14 +75,13 @@ export function useReferenceNumberValidation() {
 
       if (match) {
         // Type assertion for the joined data
-        const vendor = match.companies as { company_name: string } | null;
         const project = match.projects as { address: string } | null;
 
         return {
           isDuplicate: true,
           existingBill: {
             billId: match.id,
-            vendorName: vendor?.company_name || "Unknown Vendor",
+            vendorName: "this vendor",
             projectName: project?.address || "Unknown Project",
             billDate: match.bill_date,
           },

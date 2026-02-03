@@ -152,14 +152,14 @@ export const ApproveBillDialog = ({
       return;
     }
 
-    // Check for duplicate reference number before approving
+    // Check for duplicate reference number before approving (per-vendor uniqueness)
     if (referenceNumber.trim()) {
       setIsApproving(true);
-      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
       if (isDuplicate && existingBill) {
         toast({
           title: "Duplicate Invoice Number",
-          description: `Invoice #${referenceNumber} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          description: `Invoice #${referenceNumber} already exists for this vendor on project ${existingBill.projectName} (dated ${existingBill.billDate}).`,
           variant: "destructive",
         });
         setIsApproving(false);
