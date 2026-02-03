@@ -1,101 +1,9 @@
 
-# Fix: Bill Upload Owner ID for All Employees
+# Update: Per-Vendor Invoice Number Uniqueness
 
-## Problem Summary
+## Summary
 
-When employees/accountants upload bills via "Enter with AI", the `owner_id` is incorrectly set to their personal user ID instead of the company's `home_builder_id`. This causes bill approval to fail because the data becomes orphaned from the company's data scope.
-
----
-
-## Solution
-
-**Two code changes that apply to ALL employees** (accountant, project manager, construction manager, etc.):
-
-### File 1: `src/components/bills/SimplifiedAIBillExtraction.tsx`
-
-**Location**: Lines 166-222 (inside `handleFileUpload`)
-
-**Current Code** (Line 172-173, 213):
-```typescript
-console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id);
-...
-owner_id: user.id,  // BUG: Always uses current user's ID
-```
-
-**Fixed Code** (adds user role check before insert):
-```typescript
-// Determine effective owner_id for employees/accountants
-const { data: userData } = await supabase
-  .from('users')
-  .select('role, home_builder_id')
-  .eq('id', user.id)
-  .single();
-
-const effectiveOwnerId = (userData?.role !== 'owner' && userData?.home_builder_id)
-  ? userData.home_builder_id
-  : user.id;
-
-console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id, 'effectiveOwner:', effectiveOwnerId);
-...
-owner_id: effectiveOwnerId,  // FIXED: Use company owner, not individual user
-uploaded_by: user.id,        // Keep track of who actually uploaded
-```
-
----
-
-### File 2: `supabase/functions/extract-bill-data/index.ts`
-
-**Location**: Lines 445-456
-
-**Current Code** (Line 452):
-```typescript
-const effectiveOwnerId = (uploaderUser?.role === 'employee' && uploaderUser?.home_builder_id) 
-  ? uploaderUser.home_builder_id 
-  : pendingUpload.owner_id;
-```
-
-**Fixed Code** (covers ALL non-owner roles):
-```typescript
-// Include ALL non-owner roles: employee, accountant, construction_manager, project_manager, etc.
-const effectiveOwnerId = (uploaderUser?.role !== 'owner' && uploaderUser?.home_builder_id) 
-  ? uploaderUser.home_builder_id 
-  : pendingUpload.owner_id;
-```
-
----
-
-## Why This Fixes ALL Employees
-
-The key logic is:
-```typescript
-userData?.role !== 'owner' && userData?.home_builder_id
-```
-
-This catches:
-- `employee`
-- `accountant`
-- `construction_manager`
-- `project_manager`
-- Any future roles
-
-If they have a `home_builder_id`, their uploads use the company's ID.
-
----
-
-## Data Remediation for Jole's Stuck Upload
-
-After the code fix is deployed, run this SQL to fix her current stuck record:
-
-```sql
--- Fix Jole's pending upload owner_id
-UPDATE pending_bill_uploads 
-SET owner_id = '2653aba8-d154-4301-99bf-77d559492e19'
-WHERE id = '62fa71ad-2373-4761-858f-70d36c03354b';
-
-UPDATE pending_bill_lines 
-SET owner_id = '2653aba8-d154-4301-99bf-77d559492e19'
-WHERE pending_upload_id = '62fa71ad-2373-4761-858f-70d36c03354b';
-```
+Change the duplicate invoice validation from **company-wide** to **per-vendor** uniqueness. The same invoice number will be allowed from different vendors, but not from the same vendor.
 
 ---
 
@@ -103,6 +11,169 @@ WHERE pending_upload_id = '62fa71ad-2373-4761-858f-70d36c03354b';
 
 | File | Change |
 |------|--------|
-| `src/components/bills/SimplifiedAIBillExtraction.tsx` | Add user role check, use `effectiveOwnerId` for insert |
-| `supabase/functions/extract-bill-data/index.ts` | Change `=== 'employee'` to `!== 'owner'` |
+| `src/hooks/useReferenceNumberValidation.ts` | Add `vendorId` parameter to `checkDuplicate` function |
+| `src/components/bills/ManualBillEntry.tsx` | Pass `vendorId` to `checkDuplicate` |
+| `src/components/bills/ApproveBillDialog.tsx` | Pass `vendorId` to `checkDuplicate` |
+| `src/components/bills/EditBillDialog.tsx` | Pass `vendorId` to `checkDuplicate` |
+| `src/components/bills/EditExtractedBillDialog.tsx` | Pass `vendorId` to `checkDuplicate` |
+| `src/components/bills/BillsApprovalTabs.tsx` | Pass `vendorId` to `checkDuplicate` in batch validation |
+| `supabase/functions/recreate-bill/index.ts` | Add `.eq('vendor_id', vendorId)` to duplicate check query |
 
+---
+
+## Technical Changes
+
+### 1. Core Hook: `useReferenceNumberValidation.ts`
+
+**Before:**
+```typescript
+const checkDuplicate = async (
+  referenceNumber: string,
+  excludeBillId?: string
+): Promise<DuplicateCheckResult>
+```
+
+**After:**
+```typescript
+const checkDuplicate = async (
+  referenceNumber: string,
+  vendorId: string,  // NEW - required
+  excludeBillId?: string
+): Promise<DuplicateCheckResult>
+```
+
+**Query Change:**
+```typescript
+// Add vendor filter to query
+let query = supabase
+  .from("bills")
+  .select(...)
+  .eq("vendor_id", vendorId)  // NEW - filter by vendor
+  .neq("status", "void")
+  .not("reference_number", "is", null);
+```
+
+---
+
+### 2. ManualBillEntry.tsx
+
+**Location:** Line ~290
+
+```typescript
+// Before
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+
+// After
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
+```
+
+---
+
+### 3. ApproveBillDialog.tsx
+
+**Location:** Line ~158
+
+```typescript
+// Before
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+
+// After
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
+```
+
+---
+
+### 4. EditBillDialog.tsx
+
+**Location:** Line ~336
+
+```typescript
+// Before
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, billId);
+
+// After
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId, billId);
+```
+
+---
+
+### 5. EditExtractedBillDialog.tsx
+
+**Location:** Line ~484
+
+```typescript
+// Before
+const { isDuplicate, existingBill } = await checkDuplicate(refNo);
+
+// After
+const { isDuplicate, existingBill } = await checkDuplicate(refNo, vendorId);
+```
+
+---
+
+### 6. BillsApprovalTabs.tsx (Batch Approval)
+
+**Location:** Lines ~225-240
+
+```typescript
+// Before
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+
+// After
+const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+if (!vendorId) {
+  // Skip duplicate check if no vendor - will fail later in approval anyway
+  validatedBills.push(bill);
+  continue;
+}
+const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
+```
+
+---
+
+### 7. Edge Function: `recreate-bill/index.ts`
+
+**Location:** Lines ~39-66
+
+```typescript
+// Before
+const { data: existingBill, error: checkError } = await supabaseClient
+  .from('bills')
+  .select(...)
+  .eq('owner_id', ownerId)
+  .neq('status', 'void')
+  .ilike('reference_number', referenceNumber.trim())
+  ...
+
+// After
+const { data: existingBill, error: checkError } = await supabaseClient
+  .from('bills')
+  .select(...)
+  .eq('owner_id', ownerId)
+  .eq('vendor_id', vendorId)  // NEW - filter by vendor
+  .neq('status', 'void')
+  .ilike('reference_number', referenceNumber.trim())
+  ...
+```
+
+---
+
+## Updated Error Messages
+
+Messages will be updated to clarify per-vendor uniqueness:
+
+**Before:**
+> Invoice #12345 already exists for vendor "ABC Company" on project "123 Main St"
+
+**After:**
+> Invoice #12345 already exists for this vendor on project "123 Main St" (dated 2024-01-15)
+
+---
+
+## Behavior After Change
+
+| Scenario | Result |
+|----------|--------|
+| Same invoice # from same vendor | **BLOCKED** - Duplicate error |
+| Same invoice # from different vendors | **ALLOWED** - Each vendor has their own numbering |
+| Same invoice # from same vendor on different projects | **BLOCKED** - Still a duplicate from that vendor |
