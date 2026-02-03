@@ -10,6 +10,7 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { compareCostCodes } from "@/lib/costCodeSort";
 
 interface AccountBalance {
   id: string;
@@ -168,6 +169,13 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
           balance: netIncome
         });
       }
+
+      // Sort all account arrays by account code
+      assets.current.sort(compareCostCodes);
+      assets.fixed.sort(compareCostCodes);
+      liabilities.current.sort(compareCostCodes);
+      liabilities.longTerm.sort(compareCostCodes);
+      equity.sort(compareCostCodes);
 
       const totalAssets = [...assets.current, ...assets.fixed].reduce((sum, acc) => sum + acc.balance, 0);
       const totalLiabilities = [...liabilities.current, ...liabilities.longTerm].reduce((sum, acc) => sum + acc.balance, 0);
