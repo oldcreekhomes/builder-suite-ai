@@ -1,98 +1,92 @@
 
+# Fix: Deposit Account Selection Not Persisting
 
-# Fix: Allow All Company Users to Upload Attachments (Including Accountants)
+## Problem
+
+When editing a deposit and changing the Account column (e.g., from "2530 - Land Loan" to "2540 - Anchor Loan Refinance"), the change shows "Success" but does NOT actually save to the database. Upon returning to the deposit, the old account is displayed.
 
 ## Root Cause
 
-The `project-files` storage bucket has RLS policies that only allow:
-- `role = 'owner'`
-- `role = 'employee' AND confirmed = true`
+**Stale closure bug in state update functions.**
 
-The `accountant` role is **explicitly excluded** from the INSERT/UPDATE/DELETE policies. This causes Joanne (an accountant) to get "Upload failed" errors when trying to add journal entry attachments.
+When a user selects an account from the dropdown, TWO state updates are triggered in rapid succession:
+1. `updateOtherRow(id, "account", "2540 - Anchor Loan...")` - updates display text
+2. `updateOtherRow(id, "accountId", "00d06552...")` - updates the actual account ID
 
-Your access control design is correct: the `TransactionsGuard` component already checks `can_access_transactions` permission before allowing users to access the Journal Entry page. The storage-level RLS should NOT be doing additional role-based filtering - it should simply allow all confirmed company members.
+The `updateOtherRow` function currently uses the closure variable `otherRows` directly:
+
+```typescript
+const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
+  setOtherRows(otherRows.map(row =>  // <-- BUG: stale closure
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
+```
+
+When both calls happen in the same event cycle, they both reference the SAME stale `otherRows`. React batches these updates, and the second call **overwrites** the first rather than building upon it.
+
+**Result**: The `accountId` gets lost, so when the deposit is saved, it uses the OLD account ID from the original row data.
 
 ---
 
 ## Solution
 
-Update the storage policies to allow **any confirmed company user** (owner, employee, OR accountant) to upload, update, and delete files in the `project-files` bucket. This follows your architectural pattern where access control is managed at the application level via the Access area permissions, not through RLS role checks.
+Change `updateOtherRow` and `updateRevenueRow` to use React's **functional update pattern**, which ensures each update builds on the previous state:
+
+```typescript
+const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
+  setOtherRows(prev => prev.map(row => 
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
+
+const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
+  setRevenueRows(prev => prev.map(row => 
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
+```
 
 ---
 
-## Database Changes Required
+## Files to Modify
 
-### 1. Drop the existing role-restrictive policies
+| File | Change |
+|------|--------|
+| `src/components/transactions/MakeDepositsContent.tsx` | Fix `updateOtherRow` and `updateRevenueRow` functions |
 
-```sql
-DROP POLICY IF EXISTS "Owners and employees can upload project files" ON storage.objects;
-DROP POLICY IF EXISTS "Owners and employees can update project files" ON storage.objects;
-DROP POLICY IF EXISTS "Owners and employees can delete project files" ON storage.objects;
-DROP POLICY IF EXISTS "Owners and employees can view project files" ON storage.objects;
+---
+
+## Technical Details
+
+### Before (Buggy)
+```typescript
+const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
+  setOtherRows(otherRows.map(row => 
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
+
+const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
+  setRevenueRows(revenueRows.map(row => 
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
 ```
 
-### 2. Create new policies that include all confirmed company users
+### After (Fixed)
+```typescript
+const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
+  setOtherRows(prev => prev.map(row => 
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
 
-```sql
--- INSERT: Allow all confirmed company users to upload
-CREATE POLICY "Company users can upload to project-files"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'project-files' AND
-  EXISTS (
-    SELECT 1 FROM users u
-    WHERE u.id = auth.uid()
-    AND (
-      u.role = 'owner' OR 
-      (u.confirmed = true AND u.role IN ('employee', 'accountant'))
-    )
-  )
-);
-
--- UPDATE: Allow all confirmed company users to update
-CREATE POLICY "Company users can update in project-files"
-ON storage.objects FOR UPDATE
-USING (
-  bucket_id = 'project-files' AND
-  EXISTS (
-    SELECT 1 FROM users u
-    WHERE u.id = auth.uid()
-    AND (
-      u.role = 'owner' OR 
-      (u.confirmed = true AND u.role IN ('employee', 'accountant'))
-    )
-  )
-);
-
--- DELETE: Allow all confirmed company users to delete
-CREATE POLICY "Company users can delete from project-files"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'project-files' AND
-  EXISTS (
-    SELECT 1 FROM users u
-    WHERE u.id = auth.uid()
-    AND (
-      u.role = 'owner' OR 
-      (u.confirmed = true AND u.role IN ('employee', 'accountant'))
-    )
-  )
-);
-
--- SELECT: Allow all confirmed company users to view
-CREATE POLICY "Company users can view project-files"
-ON storage.objects FOR SELECT
-USING (
-  bucket_id = 'project-files' AND
-  EXISTS (
-    SELECT 1 FROM users u
-    WHERE u.id = auth.uid()
-    AND (
-      u.role = 'owner' OR 
-      (u.confirmed = true AND u.role IN ('employee', 'accountant'))
-    )
-  )
-);
+const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
+  setRevenueRows(prev => prev.map(row => 
+    row.id === id ? { ...row, [field]: value } : row
+  ));
+};
 ```
 
 ---
@@ -101,15 +95,19 @@ USING (
 
 | Before | After |
 |--------|-------|
-| Storage policy checks `role = 'owner' OR role = 'employee'` | Storage policy checks `role IN ('owner', 'employee', 'accountant')` |
-| Accountants blocked at storage level | Accountants can upload like everyone else |
-| Access control duplicated (RLS + app guards) | Access control centralized in Access area permissions |
-
-The `TransactionsGuard` already prevents unauthorized users from accessing the Journal Entry page. Once they're on the page (meaning they have `can_access_transactions` permission), they should be able to upload files without the storage layer blocking them based on role.
+| Both state updates use the same stale `otherRows` reference | Each update receives the latest state via `prev` parameter |
+| Second update overwrites first update | Updates are properly chained - second builds on first |
+| `accountId` gets lost during rapid updates | Both `account` and `accountId` are preserved |
+| Database saves old account | Database saves correct new account |
 
 ---
 
-## No Code Changes Required
+## Verification
 
-The application code in `useJournalEntryAttachments.ts` and `JournalEntryAttachmentUpload.tsx` is already correct. The only issue is the storage-level RLS policy excluding accountants.
-
+After the fix:
+1. Navigate to Make Deposits
+2. Open an existing deposit  
+3. Change the Account column to a different account
+4. Click "Save Entry"
+5. Navigate away and return to the deposit
+6. The new account should persist correctly
