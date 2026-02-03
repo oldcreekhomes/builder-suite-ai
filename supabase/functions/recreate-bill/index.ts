@@ -35,16 +35,16 @@ serve(async (req) => {
       memo
     } = await req.json();
 
-    // Check for duplicate reference number before creating the bill
-    if (referenceNumber && referenceNumber.trim()) {
+    // Check for duplicate reference number before creating the bill (per-vendor uniqueness)
+    if (referenceNumber && referenceNumber.trim() && vendorId) {
       const { data: existingBill, error: checkError } = await supabaseClient
         .from('bills')
         .select(`
           id,
-          companies!bills_vendor_id_fkey (company_name),
           projects!bills_project_id_fkey (address)
         `)
         .eq('owner_id', ownerId)
+        .eq('vendor_id', vendorId)
         .neq('status', 'void')
         .ilike('reference_number', referenceNumber.trim())
         .limit(1)
@@ -55,11 +55,10 @@ serve(async (req) => {
       }
 
       if (existingBill) {
-        const vendorName = (existingBill.companies as any)?.company_name || 'Unknown Vendor';
         const projectName = (existingBill.projects as any)?.address || 'Unknown Project';
         return new Response(
           JSON.stringify({ 
-            error: `Duplicate invoice number: ${referenceNumber} already exists for vendor "${vendorName}" on project "${projectName}".` 
+            error: `Duplicate invoice number: ${referenceNumber} already exists for this vendor on project "${projectName}".` 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );

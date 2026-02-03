@@ -331,13 +331,13 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
-    // Check for duplicate reference number (exclude current bill)
+    // Check for duplicate reference number (per-vendor uniqueness, exclude current bill)
     if (referenceNumber.trim()) {
-      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, billId);
+      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendor, billId);
       if (isDuplicate && existingBill) {
         toast({
           title: "Duplicate Invoice Number",
-          description: `Invoice #${referenceNumber} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          description: `Invoice #${referenceNumber} already exists for this vendor on project ${existingBill.projectName} (dated ${existingBill.billDate}).`,
           variant: "destructive",
         });
         return;

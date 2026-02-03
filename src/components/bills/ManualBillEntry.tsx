@@ -284,14 +284,14 @@ export function ManualBillEntry() {
 
     setIsSubmitting(true);
 
-    // Check for duplicate reference number
+    // Check for duplicate reference number (per-vendor uniqueness)
     const referenceNumber = (document.getElementById('refNo') as HTMLInputElement)?.value || "";
     if (referenceNumber.trim()) {
-      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+      const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
       if (isDuplicate && existingBill) {
         toast({
           title: "Duplicate Invoice Number",
-          description: `Invoice #${referenceNumber} already exists. It was previously entered for ${existingBill.vendorName} on project ${existingBill.projectName}.`,
+          description: `Invoice #${referenceNumber} already exists for this vendor on project ${existingBill.projectName} (dated ${existingBill.billDate}).`,
           variant: "destructive",
         });
         setIsSubmitting(false);

@@ -226,9 +226,11 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         const referenceNumber = bill.extracted_data?.reference_number || 
                                 bill.extracted_data?.referenceNumber || 
                                 bill.reference_number;
+        const billVendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         
-        if (referenceNumber?.trim()) {
-          const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
+        // Check for duplicate reference number (per-vendor uniqueness)
+        if (referenceNumber?.trim() && billVendorId) {
+          const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, billVendorId);
           if (isDuplicate && existingBill) {
             duplicateBills.push({
               bill,
