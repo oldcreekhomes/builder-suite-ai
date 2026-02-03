@@ -57,15 +57,16 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
     
     switch (extension) {
       case 'pdf':
-        return <File className="w-4 h-4 text-white" />;
+        return <File className="w-5 h-5 text-red-600" />;
       case 'doc':
       case 'docx':
+        return <FileText className="w-5 h-5 text-blue-600" />;
       case 'txt':
-        return <FileText className="w-4 h-4 text-white" />;
+        return <FileText className="w-5 h-5 text-gray-600" />;
       case 'xls':
       case 'xlsx':
       case 'csv':
-        return <FileSpreadsheet className="w-4 h-4 text-white" />;
+        return <FileSpreadsheet className="w-5 h-5 text-green-600" />;
       case 'jpg':
       case 'jpeg':
       case 'png':
@@ -73,16 +74,16 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
       case 'webp':
       case 'heic':
       case 'heif':
-        return <FileImage className="w-4 h-4 text-white" />;
+        return <FileImage className="w-5 h-5 text-purple-600" />;
       case 'mp4':
       case 'avi':
       case 'mov':
       case 'wmv':
-        return <FileVideo className="w-4 h-4 text-white" />;
+        return <FileVideo className="w-5 h-5 text-orange-600" />;
       case 'mp3':
       case 'wav':
       case 'flac':
-        return <FileAudio className="w-4 h-4 text-white" />;
+        return <FileAudio className="w-5 h-5 text-pink-600" />;
       case 'js':
       case 'ts':
       case 'jsx':
@@ -91,9 +92,9 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
       case 'css':
       case 'py':
       case 'java':
-        return <FileCode className="w-4 h-4 text-white" />;
+        return <FileCode className="w-5 h-5 text-yellow-600" />;
       default:
-        return <File className="w-4 h-4 text-white" />;
+        return <File className="w-5 h-5 text-gray-600" />;
     }
   };
 
@@ -117,10 +118,13 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
         <div key={index} className="mt-2">
           <div
             title={getCleanFileName(fileName)}
-            className="inline-flex items-center p-2 rounded-lg cursor-pointer hover:opacity-80"
+            className="inline-flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm"
             onClick={() => openExternal(url)}
           >
             {getFileIcon(fileName)}
+            <span className="text-sm text-gray-700 truncate max-w-[150px]">
+              {getCleanFileName(fileName)}
+            </span>
           </div>
         </div>
       );
