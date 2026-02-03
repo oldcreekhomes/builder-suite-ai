@@ -22,6 +22,7 @@ import { IncomeStatementPdfDocument } from '@/components/reports/pdf/IncomeState
 import { JobCostsPdfDocument } from '@/components/reports/pdf/JobCostsPdfDocument';
 import { AccountsPayablePdfDocument, APAgingBill } from '@/components/reports/pdf/AccountsPayablePdfDocument';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
+import { compareCostCodes } from "@/lib/costCodeSort";
 
 interface SendReportsDialogProps {
   projectId: string;
@@ -224,6 +225,13 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             balance: netIncome
           });
         }
+
+        // Sort all account arrays by account code
+        assets.current.sort(compareCostCodes);
+        assets.fixed.sort(compareCostCodes);
+        liabilities.current.sort(compareCostCodes);
+        liabilities.longTerm.sort(compareCostCodes);
+        equity.sort(compareCostCodes);
 
         const totalAssets = [...assets.current, ...assets.fixed].reduce((sum, a) => sum + a.balance, 0);
         const totalLiabilities = [...liabilities.current, ...liabilities.longTerm].reduce((sum, a) => sum + a.balance, 0);
