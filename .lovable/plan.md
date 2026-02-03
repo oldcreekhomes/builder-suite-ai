@@ -1,112 +1,108 @@
 
-# Fix Balance Sheet Account Sorting Order
+# Fix: Bill Upload Owner ID for All Employees
 
-## Problem
+## Problem Summary
 
-Accounts on the Balance Sheet are displayed in an unsorted order. Looking at the screenshot:
-
-**Assets (Current):**
-- 1030, 1020, 1320, 1430, 1670, 9150, 1050, 1040, 1060, 1010
-
-**Should be:**
-- 1010, 1020, 1030, 1040, 1050, 1060, 1320, 1430, 1670, 9150
-
-**Liabilities (Current):**
-- 2010, 2530, 2150, 2540
-
-**Should be:**
-- 2010, 2150, 2530, 2540
-
-**Equity:**
-- 2905, 32000
-
-**Should be:**
-- 2905, 32000 (correct)
+When employees/accountants upload bills via "Enter with AI", the `owner_id` is incorrectly set to their personal user ID instead of the company's `home_builder_id`. This causes bill approval to fail because the data becomes orphaned from the company's data scope.
 
 ---
 
 ## Solution
 
-Use the existing `compareCostCodes` utility from `src/lib/costCodeSort.ts` to sort all account arrays numerically by their account code. This utility handles numeric sorting properly (e.g., 1010 < 1020 < 1030).
+**Two code changes that apply to ALL employees** (accountant, project manager, construction manager, etc.):
+
+### File 1: `src/components/bills/SimplifiedAIBillExtraction.tsx`
+
+**Location**: Lines 166-222 (inside `handleFileUpload`)
+
+**Current Code** (Line 172-173, 213):
+```typescript
+console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id);
+...
+owner_id: user.id,  // BUG: Always uses current user's ID
+```
+
+**Fixed Code** (adds user role check before insert):
+```typescript
+// Determine effective owner_id for employees/accountants
+const { data: userData } = await supabase
+  .from('users')
+  .select('role, home_builder_id')
+  .eq('id', user.id)
+  .single();
+
+const effectiveOwnerId = (userData?.role !== 'owner' && userData?.home_builder_id)
+  ? userData.home_builder_id
+  : user.id;
+
+console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id, 'effectiveOwner:', effectiveOwnerId);
+...
+owner_id: effectiveOwnerId,  // FIXED: Use company owner, not individual user
+uploaded_by: user.id,        // Keep track of who actually uploaded
+```
+
+---
+
+### File 2: `supabase/functions/extract-bill-data/index.ts`
+
+**Location**: Lines 445-456
+
+**Current Code** (Line 452):
+```typescript
+const effectiveOwnerId = (uploaderUser?.role === 'employee' && uploaderUser?.home_builder_id) 
+  ? uploaderUser.home_builder_id 
+  : pendingUpload.owner_id;
+```
+
+**Fixed Code** (covers ALL non-owner roles):
+```typescript
+// Include ALL non-owner roles: employee, accountant, construction_manager, project_manager, etc.
+const effectiveOwnerId = (uploaderUser?.role !== 'owner' && uploaderUser?.home_builder_id) 
+  ? uploaderUser.home_builder_id 
+  : pendingUpload.owner_id;
+```
+
+---
+
+## Why This Fixes ALL Employees
+
+The key logic is:
+```typescript
+userData?.role !== 'owner' && userData?.home_builder_id
+```
+
+This catches:
+- `employee`
+- `accountant`
+- `construction_manager`
+- `project_manager`
+- Any future roles
+
+If they have a `home_builder_id`, their uploads use the company's ID.
+
+---
+
+## Data Remediation for Jole's Stuck Upload
+
+After the code fix is deployed, run this SQL to fix her current stuck record:
+
+```sql
+-- Fix Jole's pending upload owner_id
+UPDATE pending_bill_uploads 
+SET owner_id = '2653aba8-d154-4301-99bf-77d559492e19'
+WHERE id = '62fa71ad-2373-4761-858f-70d36c03354b';
+
+UPDATE pending_bill_lines 
+SET owner_id = '2653aba8-d154-4301-99bf-77d559492e19'
+WHERE pending_upload_id = '62fa71ad-2373-4761-858f-70d36c03354b';
+```
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/components/reports/BalanceSheetContent.tsx` | Sort assets, liabilities, and equity arrays after populating them |
-| `src/components/accounting/SendReportsDialog.tsx` | Sort arrays before passing to PDF document |
+| File | Change |
+|------|--------|
+| `src/components/bills/SimplifiedAIBillExtraction.tsx` | Add user role check, use `effectiveOwnerId` for insert |
+| `supabase/functions/extract-bill-data/index.ts` | Change `=== 'employee'` to `!== 'owner'` |
 
----
-
-## Implementation Details
-
-### Step 1: Update BalanceSheetContent.tsx
-
-Import the sorting utility and sort each category after the accounts are categorized:
-
-```typescript
-import { compareCostCodes } from "@/lib/costCodeSort";
-
-// After the accounts?.forEach loop (around line 159):
-assets.current.sort(compareCostCodes);
-assets.fixed.sort(compareCostCodes);
-liabilities.current.sort(compareCostCodes);
-liabilities.longTerm.sort(compareCostCodes);
-equity.sort(compareCostCodes);
-```
-
-### Step 2: Update SendReportsDialog.tsx
-
-Import and apply the same sorting in the balance sheet PDF generation section:
-
-```typescript
-import { compareCostCodes } from "@/lib/costCodeSort";
-
-// After the accounts?.forEach loop (around line 215):
-assets.current.sort(compareCostCodes);
-assets.fixed.sort(compareCostCodes);
-liabilities.current.sort(compareCostCodes);
-liabilities.longTerm.sort(compareCostCodes);
-equity.sort(compareCostCodes);
-```
-
----
-
-## Technical Notes
-
-- The `compareCostCodes` function already handles:
-  - Numeric sorting (1010 comes before 1020)
-  - Mixed alphanumeric codes (e.g., "RE-CY" for Current Year Earnings)
-  - Codes with dots/segments (e.g., "1000.1" < "1000.2")
-- The PDF document (`BalanceSheetPdfDocument.tsx`) doesn't need changes since it receives already-sorted arrays
-- This fix applies across all projects since the sorting is done in the shared components
-
----
-
-## Expected Result
-
-After implementation, the Balance Sheet will display accounts in ascending numerical order:
-
-**Assets:**
-- 1010: Atlantic Union Bank
-- 1020: Deposits
-- 1030: Clearing
-- 1040: Loan to OCH at N. Potomac, LLC
-- 1050: Loan to OCH at Lexington
-- 1060: Loan to OCH at Chesterbrook, LLC
-- 1320: Land - Held For Development
-- 1430: WIP - Direct Construction Costs
-- 1670: Deposits - Bonds
-- 9150: Ask Owner
-
-**Liabilities:**
-- 2010: Accounts Payable
-- 2150: AMEX
-- 2530: Loan - Land
-- 2540: Anchor Loan - Refinance
-
-**Equity:**
-- 2905: Equity
-- 32000: Retained Earnings
