@@ -60,18 +60,22 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
 
       console.time('⏱️ Balance Sheet: Journal lines query');
       
+      // Format date for query - used for both entry_date filter and as-of-aware reversal filtering
+      const formattedAsOfDate = asOfDate.toISOString().split('T')[0];
+      
       let journalLinesQuery = supabase
         .from('journal_entry_lines')
         .select(`
           account_id,
           debit,
           credit,
-          journal_entries!inner(entry_date)
+          journal_entries!inner(entry_date, reversed_at)
         `)
-        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0])
+        .lte('journal_entries.entry_date', formattedAsOfDate)
         .eq('journal_entries.is_reversal', false)
-        .is('journal_entries.reversed_at', null)
-        .is('journal_entries.reversed_by_id', null);
+        // As-of-aware reversal filtering: include entries that either haven't been reversed,
+        // or were reversed AFTER the as-of date (so they were still valid on the as-of date)
+        .or(`reversed_at.is.null,reversed_at.gt.${formattedAsOfDate}`, { referencedTable: 'journal_entries' });
       
       if (projectId) {
         // For project-specific reports, only include lines explicitly assigned to this project
