@@ -118,13 +118,10 @@ export function SimpleMessagesList({ messages, currentUserId, isLoadingMessages 
         <div key={index} className="mt-2">
           <div
             title={getCleanFileName(fileName)}
-            className="inline-flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm"
+            className="inline-flex items-center p-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 shadow-sm"
             onClick={() => openExternal(url)}
           >
             {getFileIcon(fileName)}
-            <span className="text-sm text-gray-700 truncate max-w-[150px]">
-              {getCleanFileName(fileName)}
-            </span>
           </div>
         </div>
       );
