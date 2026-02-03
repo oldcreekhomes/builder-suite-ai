@@ -1,77 +1,33 @@
 
+# Fix Balance Sheet Account Sorting Order
 
-# Add Date Range Filter to Vendor Payments Report
+## Problem
 
-## Overview
+Accounts on the Balance Sheet are displayed in an unsorted order. Looking at the screenshot:
 
-Replace the current single "As of" date picker with a more flexible date range filter that supports:
-1. **Custom Date Range**: Start date and End date pickers
-2. **Year Preset**: Quick select for full calendar years (January 1 - December 31)
+**Assets (Current):**
+- 1030, 1020, 1320, 1430, 1670, 9150, 1050, 1040, 1060, 1010
 
-This will allow filtering transactions within a specific date range rather than just "as of" a certain date.
+**Should be:**
+- 1010, 1020, 1030, 1040, 1050, 1060, 1320, 1430, 1670, 9150
 
----
+**Liabilities (Current):**
+- 2010, 2530, 2150, 2540
 
-## UI Design
+**Should be:**
+- 2010, 2150, 2530, 2540
 
-The filter section will look like this:
+**Equity:**
+- 2905, 32000
 
-```
-+------------------------------------------------------------------+
-|  Year: [2026 ▼]   From: [01/01/2026]  To: [12/31/2026]           |
-|  [Expand All]  [Collapse All]                      [Export PDF]   |
-+------------------------------------------------------------------+
-```
-
-**Behavior:**
-- Selecting a year from the dropdown auto-sets From = Jan 1 and To = Dec 31 of that year
-- Users can manually adjust the From/To dates for custom ranges
-- When custom dates are entered, the year dropdown shows the matching year (or "Custom" if it doesn't match a full year)
+**Should be:**
+- 2905, 32000 (correct)
 
 ---
 
-## Implementation Steps
+## Solution
 
-### Step 1: Update `VendorPaymentsContent.tsx`
-
-**Changes:**
-- Replace single `asOfDate` state with `startDate` and `endDate`
-- Add year selector dropdown (showing years 2020 - current year + 1)
-- Add "From" and "To" date pickers
-- Default to current full year (Jan 1 - Dec 31, current year)
-- Update PDF export to reflect the date range
-
-**New State:**
-```typescript
-const currentYear = new Date().getFullYear();
-const [startDate, setStartDate] = useState<Date>(new Date(currentYear, 0, 1));
-const [endDate, setEndDate] = useState<Date>(new Date(currentYear, 11, 31));
-const [selectedYear, setSelectedYear] = useState<number | 'custom'>(currentYear);
-```
-
-**Year Options:**
-- 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027 (dynamic based on current year)
-
-### Step 2: Update `useVendorPaymentsReport.ts`
-
-**Changes:**
-- Accept `startDate` and `endDate` parameters instead of single `asOfDate`
-- Apply date range filters (>= startDate AND <= endDate) to all queries:
-  - Bills: filter by `bill_date`
-  - Bill Payments: filter by `payment_date`  
-  - Checks: filter by `check_date`
-
-**Updated Query Key:**
-```typescript
-queryKey: ['vendor-payments-report', effectiveOwnerId, startDate?.toISOString(), endDate?.toISOString()]
-```
-
-### Step 3: Update `VendorPaymentsPdfDocument.tsx`
-
-**Changes:**
-- Update props to accept `startDate` and `endDate` strings
-- Update header to show "January 1, 2026 - December 31, 2026" format
-- Update filename to include date range
+Use the existing `compareCostCodes` utility from `src/lib/costCodeSort.ts` to sort all account arrays numerically by their account code. This utility handles numeric sorting properly (e.g., 1010 < 1020 < 1030).
 
 ---
 
@@ -79,56 +35,78 @@ queryKey: ['vendor-payments-report', effectiveOwnerId, startDate?.toISOString(),
 
 | File | Changes |
 |------|---------|
-| `src/components/reports/VendorPaymentsContent.tsx` | Add year dropdown, replace single date with start/end pickers |
-| `src/hooks/useVendorPaymentsReport.ts` | Change parameter from `asOfDate` to `startDate`/`endDate`, apply range filters |
-| `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx` | Update header to show date range |
+| `src/components/reports/BalanceSheetContent.tsx` | Sort assets, liabilities, and equity arrays after populating them |
+| `src/components/accounting/SendReportsDialog.tsx` | Sort arrays before passing to PDF document |
 
 ---
 
-## Technical Details
+## Implementation Details
 
-### Year Dropdown Logic
+### Step 1: Update BalanceSheetContent.tsx
+
+Import the sorting utility and sort each category after the accounts are categorized:
 
 ```typescript
-// When year is selected:
-const handleYearChange = (year: number) => {
-  setSelectedYear(year);
-  setStartDate(new Date(year, 0, 1));  // Jan 1
-  setEndDate(new Date(year, 11, 31));  // Dec 31
-};
+import { compareCostCodes } from "@/lib/costCodeSort";
 
-// When custom dates are entered:
-const handleStartDateChange = (date: Date) => {
-  setStartDate(date);
-  // Check if dates now match a full year
-  updateSelectedYearIfFullYear(date, endDate);
-};
+// After the accounts?.forEach loop (around line 159):
+assets.current.sort(compareCostCodes);
+assets.fixed.sort(compareCostCodes);
+liabilities.current.sort(compareCostCodes);
+liabilities.longTerm.sort(compareCostCodes);
+equity.sort(compareCostCodes);
 ```
 
-### Query Filter Changes
+### Step 2: Update SendReportsDialog.tsx
 
-**Current (single date):**
-```typescript
-billsQuery = billsQuery.lte('bill_date', dateFilter);
-```
+Import and apply the same sorting in the balance sheet PDF generation section:
 
-**New (date range):**
 ```typescript
-if (startDateFilter) {
-  billsQuery = billsQuery.gte('bill_date', startDateFilter);
-}
-if (endDateFilter) {
-  billsQuery = billsQuery.lte('bill_date', endDateFilter);
-}
+import { compareCostCodes } from "@/lib/costCodeSort";
+
+// After the accounts?.forEach loop (around line 215):
+assets.current.sort(compareCostCodes);
+assets.fixed.sort(compareCostCodes);
+liabilities.current.sort(compareCostCodes);
+liabilities.longTerm.sort(compareCostCodes);
+equity.sort(compareCostCodes);
 ```
 
 ---
 
-## Default Behavior
+## Technical Notes
 
-On page load:
-- Year dropdown shows current year (2026)
-- Start date: January 1, 2026
-- End date: December 31, 2026
-- All transactions within that range are displayed
+- The `compareCostCodes` function already handles:
+  - Numeric sorting (1010 comes before 1020)
+  - Mixed alphanumeric codes (e.g., "RE-CY" for Current Year Earnings)
+  - Codes with dots/segments (e.g., "1000.1" < "1000.2")
+- The PDF document (`BalanceSheetPdfDocument.tsx`) doesn't need changes since it receives already-sorted arrays
+- This fix applies across all projects since the sorting is done in the shared components
 
+---
+
+## Expected Result
+
+After implementation, the Balance Sheet will display accounts in ascending numerical order:
+
+**Assets:**
+- 1010: Atlantic Union Bank
+- 1020: Deposits
+- 1030: Clearing
+- 1040: Loan to OCH at N. Potomac, LLC
+- 1050: Loan to OCH at Lexington
+- 1060: Loan to OCH at Chesterbrook, LLC
+- 1320: Land - Held For Development
+- 1430: WIP - Direct Construction Costs
+- 1670: Deposits - Bonds
+- 9150: Ask Owner
+
+**Liabilities:**
+- 2010: Accounts Payable
+- 2150: AMEX
+- 2530: Loan - Land
+- 2540: Anchor Loan - Refinance
+
+**Equity:**
+- 2905: Equity
+- 32000: Retained Earnings
