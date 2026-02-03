@@ -1,9 +1,19 @@
 
-# Update: Per-Vendor Invoice Number Uniqueness
+# Remove Vendor Payments Report Tab
 
 ## Summary
 
-Change the duplicate invoice validation from **company-wide** to **per-vendor** uniqueness. The same invoice number will be allowed from different vendors, but not from the same vendor.
+Delete the temporary Vendor Payments report from the Reports section of the UI.
+
+---
+
+## Files to Delete
+
+| File | Description |
+|------|-------------|
+| `src/components/reports/VendorPaymentsContent.tsx` | Main content component for the report |
+| `src/components/reports/pdf/VendorPaymentsPdfDocument.tsx` | PDF export component |
+| `src/hooks/useVendorPaymentsReport.ts` | Data fetching hook |
 
 ---
 
@@ -11,169 +21,42 @@ Change the duplicate invoice validation from **company-wide** to **per-vendor** 
 
 | File | Change |
 |------|--------|
-| `src/hooks/useReferenceNumberValidation.ts` | Add `vendorId` parameter to `checkDuplicate` function |
-| `src/components/bills/ManualBillEntry.tsx` | Pass `vendorId` to `checkDuplicate` |
-| `src/components/bills/ApproveBillDialog.tsx` | Pass `vendorId` to `checkDuplicate` |
-| `src/components/bills/EditBillDialog.tsx` | Pass `vendorId` to `checkDuplicate` |
-| `src/components/bills/EditExtractedBillDialog.tsx` | Pass `vendorId` to `checkDuplicate` |
-| `src/components/bills/BillsApprovalTabs.tsx` | Pass `vendorId` to `checkDuplicate` in batch validation |
-| `supabase/functions/recreate-bill/index.ts` | Add `.eq('vendor_id', vendorId)` to duplicate check query |
+| `src/components/reports/ReportsTabs.tsx` | Remove the Vendor Payments tab and import |
 
 ---
 
-## Technical Changes
+## Changes to ReportsTabs.tsx
 
-### 1. Core Hook: `useReferenceNumberValidation.ts`
-
-**Before:**
+**Remove import (line 6):**
 ```typescript
-const checkDuplicate = async (
-  referenceNumber: string,
-  excludeBillId?: string
-): Promise<DuplicateCheckResult>
+import { VendorPaymentsContent } from "./VendorPaymentsContent";
 ```
 
-**After:**
-```typescript
-const checkDuplicate = async (
-  referenceNumber: string,
-  vendorId: string,  // NEW - required
-  excludeBillId?: string
-): Promise<DuplicateCheckResult>
-```
-
-**Query Change:**
-```typescript
-// Add vendor filter to query
-let query = supabase
-  .from("bills")
-  .select(...)
-  .eq("vendor_id", vendorId)  // NEW - filter by vendor
-  .neq("status", "void")
-  .not("reference_number", "is", null);
-```
-
----
-
-### 2. ManualBillEntry.tsx
-
-**Location:** Line ~290
-
+**Remove tab trigger (change grid-cols-5 to grid-cols-4):**
 ```typescript
 // Before
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
-
-// After
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
-```
-
----
-
-### 3. ApproveBillDialog.tsx
-
-**Location:** Line ~158
-
-```typescript
-// Before
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
-
-// After
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
-```
-
----
-
-### 4. EditBillDialog.tsx
-
-**Location:** Line ~336
-
-```typescript
-// Before
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, billId);
-
-// After
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId, billId);
-```
-
----
-
-### 5. EditExtractedBillDialog.tsx
-
-**Location:** Line ~484
-
-```typescript
-// Before
-const { isDuplicate, existingBill } = await checkDuplicate(refNo);
-
-// After
-const { isDuplicate, existingBill } = await checkDuplicate(refNo, vendorId);
-```
-
----
-
-### 6. BillsApprovalTabs.tsx (Batch Approval)
-
-**Location:** Lines ~225-240
-
-```typescript
-// Before
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber);
-
-// After
-const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
-if (!vendorId) {
-  // Skip duplicate check if no vendor - will fail later in approval anyway
-  validatedBills.push(bill);
-  continue;
-}
-const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, vendorId);
-```
-
----
-
-### 7. Edge Function: `recreate-bill/index.ts`
-
-**Location:** Lines ~39-66
-
-```typescript
-// Before
-const { data: existingBill, error: checkError } = await supabaseClient
-  .from('bills')
-  .select(...)
-  .eq('owner_id', ownerId)
-  .neq('status', 'void')
-  .ilike('reference_number', referenceNumber.trim())
+<TabsList className="grid w-full max-w-4xl grid-cols-5">
   ...
+  <TabsTrigger value="vendor-payments">Vendor Payments</TabsTrigger>
 
 // After
-const { data: existingBill, error: checkError } = await supabaseClient
-  .from('bills')
-  .select(...)
-  .eq('owner_id', ownerId)
-  .eq('vendor_id', vendorId)  // NEW - filter by vendor
-  .neq('status', 'void')
-  .ilike('reference_number', referenceNumber.trim())
-  ...
+<TabsList className="grid w-full max-w-4xl grid-cols-4">
+  // No vendor-payments trigger
+```
+
+**Remove tab content (lines 38-41):**
+```typescript
+<TabsContent value="vendor-payments" className="mt-6">
+  <VendorPaymentsContent projectId={projectId} />
+</TabsContent>
 ```
 
 ---
 
-## Updated Error Messages
+## Result
 
-Messages will be updated to clarify per-vendor uniqueness:
-
-**Before:**
-> Invoice #12345 already exists for vendor "ABC Company" on project "123 Main St"
-
-**After:**
-> Invoice #12345 already exists for this vendor on project "123 Main St" (dated 2024-01-15)
-
----
-
-## Behavior After Change
-
-| Scenario | Result |
-|----------|--------|
-| Same invoice # from same vendor | **BLOCKED** - Duplicate error |
-| Same invoice # from different vendors | **ALLOWED** - Each vendor has their own numbering |
-| Same invoice # from same vendor on different projects | **BLOCKED** - Still a duplicate from that vendor |
+The Reports tab will have 4 tabs remaining:
+1. Balance Sheet
+2. Income Statement
+3. Job Costs
+4. Accounts Payable
