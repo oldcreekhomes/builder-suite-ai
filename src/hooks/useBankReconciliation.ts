@@ -1396,7 +1396,19 @@ export const useBankReconciliation = () => {
       
       if (jelError) throw jelError;
 
-      // 5. Delete the reconciliation record
+      // 5. Update bill_payments: clear reconciliation data for consolidated payments
+      const { error: billPaymentsError } = await supabase
+        .from('bill_payments')
+        .update({ 
+          reconciled: false, 
+          reconciliation_id: null, 
+          reconciliation_date: null 
+        })
+        .eq('reconciliation_id', reconciliationId);
+      
+      if (billPaymentsError) throw billPaymentsError;
+
+      // 6. Delete the reconciliation record
       const { error: deleteError } = await supabase
         .from('bank_reconciliations')
         .delete()
