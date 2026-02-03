@@ -169,7 +169,19 @@ export default function SimplifiedAIBillExtraction({
         throw new Error('Not authenticated');
       }
 
-      console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id);
+      // Determine effective owner_id for employees/accountants
+      // Non-owners should use their company's home_builder_id
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .single();
+
+      const effectiveOwnerId = (userData?.role !== 'owner' && userData?.home_builder_id)
+        ? userData.home_builder_id
+        : user.id;
+
+      console.log('[Upload] Starting upload for', files.length, 'file(s), user:', user.id, 'effectiveOwner:', effectiveOwnerId);
       const uploadedIds: string[] = [];
 
       for (const file of Array.from(files)) {
@@ -210,7 +222,7 @@ export default function SimplifiedAIBillExtraction({
         const { data: uploadData, error: insertError } = await supabase
           .from('pending_bill_uploads')
           .insert({
-            owner_id: user.id,
+            owner_id: effectiveOwnerId,
             uploaded_by: user.id,
             file_path: filePath,
             file_name: file.name,

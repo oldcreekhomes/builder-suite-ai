@@ -442,14 +442,15 @@ serve(async (req) => {
       throw new Error('Pending upload not found');
     }
 
-    // Determine effectiveOwnerId (use home_builder_id if uploader is employee)
+    // Determine effectiveOwnerId (use home_builder_id if uploader is NOT owner)
+    // This covers ALL non-owner roles: employee, accountant, construction_manager, project_manager, etc.
     const { data: uploaderUser } = await supabase
       .from('users')
       .select('role, home_builder_id')
       .eq('id', pendingUpload.owner_id)
       .single();
     
-    const effectiveOwnerId = (uploaderUser?.role === 'employee' && uploaderUser?.home_builder_id) 
+    const effectiveOwnerId = (uploaderUser?.role !== 'owner' && uploaderUser?.home_builder_id) 
       ? uploaderUser.home_builder_id 
       : pendingUpload.owner_id;
     
