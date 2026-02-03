@@ -1,113 +1,125 @@
 
-# Fix: Deposit Account Selection Not Persisting
+# Fix Balance Sheet Discrepancy: $7,007.20 Missing from Bank Account
 
-## Problem
+## Summary
 
-When editing a deposit and changing the Account column (e.g., from "2530 - Land Loan" to "2540 - Anchor Loan Refinance"), the change shows "Success" but does NOT actually save to the database. Upon returning to the deposit, the old account is displayed.
+The Balance Sheet for "115 E. Ocean Watch Court" shows **$62,494.37** for Atlantic Union Bank, but the reconciled bank statement shows **$55,487.17**. The difference of exactly **$7,007.20** is caused by an orphaned journal entry that was marked as reversed but never properly cleaned up.
 
-## Root Cause
+---
 
-**Stale closure bug in state update functions.**
+## Root Cause Analysis
 
-When a user selects an account from the dropdown, TWO state updates are triggered in rapid succession:
-1. `updateOtherRow(id, "account", "2540 - Anchor Loan...")` - updates display text
-2. `updateOtherRow(id, "accountId", "00d06552...")` - updates the actual account ID
+### What Happened
 
-The `updateOtherRow` function currently uses the closure variable `otherRows` directly:
+A bill payment for $7,007.20 (Ref: 53500053280 to Ocean Sands Beach Boutique Inn for "4350 - Roof Trusses") was deleted or voided on January 21, 2026. When this happened:
 
-```typescript
-const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
-  setOtherRows(otherRows.map(row =>  // <-- BUG: stale closure
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
-```
+1. The `reversed_at` timestamp was set on the journal entry
+2. But the `reversed_by_id` was NOT set (no reversal entry was created)
+3. The source bill_payment record was deleted from the database
 
-When both calls happen in the same event cycle, they both reference the SAME stale `otherRows`. React batches these updates, and the second call **overwrites** the first rather than building upon it.
+This left the journal entry in an inconsistent "zombie" state - marked as reversed but with no actual reversal to offset it.
 
-**Result**: The `accountId` gets lost, so when the deposit is saved, it uses the OLD account ID from the original row data.
+### Why the Balance Sheet is Wrong
+
+The Balance Sheet code queries `journal_entry_lines` directly without joining to `journal_entries`, so it cannot filter out entries that have `reversed_at` set. It sums ALL journal entry lines for the project, including this orphaned entry.
+
+| Entry | Debit | Credit | Status | Effect |
+|-------|-------|--------|--------|--------|
+| Bill Payment 12/15/2025 | - | $7,007.20 | `reversed_at` set, but `reversed_by_id` is NULL | Should NOT count, but IS counting |
 
 ---
 
 ## Solution
 
-Change `updateOtherRow` and `updateRevenueRow` to use React's **functional update pattern**, which ensures each update builds on the previous state:
+There are two ways to fix this, and I recommend doing BOTH:
 
-```typescript
-const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
-  setOtherRows(prev => prev.map(row => 
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
+### Part 1: Data Fix (Immediate)
 
-const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
-  setRevenueRows(prev => prev.map(row => 
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
+Delete the orphaned journal entry and its lines since the source bill_payment no longer exists and the entry was marked as reversed:
+
+```sql
+-- Delete the orphaned journal entry lines first (due to foreign key)
+DELETE FROM journal_entry_lines 
+WHERE journal_entry_id = '21f636fc-072a-4d60-aa83-9a9a8106c1d6';
+
+-- Delete the orphaned journal entry
+DELETE FROM journal_entries 
+WHERE id = '21f636fc-072a-4d60-aa83-9a9a8106c1d6';
 ```
 
----
+After this fix, the balance sheet will show **$55,487.17** which matches the bank statement.
 
-## Files to Modify
+### Part 2: Code Fix (Preventive)
 
-| File | Change |
-|------|--------|
-| `src/components/transactions/MakeDepositsContent.tsx` | Fix `updateOtherRow` and `updateRevenueRow` functions |
+Update the Balance Sheet query to exclude reversed entries by joining with `journal_entries` and filtering out entries where `reversed_at IS NOT NULL` or `is_reversal = true`.
 
----
+**File to modify**: `src/pages/BalanceSheet.tsx`
 
-## Technical Details
-
-### Before (Buggy)
+**Current query** (lines 63-73):
 ```typescript
-const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
-  setOtherRows(otherRows.map(row => 
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
+let journalLinesQuery = supabase
+  .from('journal_entry_lines')
+  .select('account_id, debit, credit');
 
-const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
-  setRevenueRows(revenueRows.map(row => 
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
+if (projectId) {
+  journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
+} else {
+  journalLinesQuery = journalLinesQuery.is('project_id', null);
+}
+
+const { data: journalLines, error: journalError } = await journalLinesQuery;
 ```
 
-### After (Fixed)
+**Updated query**:
 ```typescript
-const updateOtherRow = (id: string, field: keyof DepositRow, value: string) => {
-  setOtherRows(prev => prev.map(row => 
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
+// Query journal_entry_lines with journal_entries join to filter out reversed entries
+let journalLinesQuery = supabase
+  .from('journal_entry_lines')
+  .select(`
+    account_id, 
+    debit, 
+    credit,
+    journal_entries!inner (
+      reversed_at,
+      reversed_by_id,
+      is_reversal
+    )
+  `)
+  .is('journal_entries.reversed_at', null)
+  .is('journal_entries.reversed_by_id', null)
+  .or('journal_entries.is_reversal.is.null,journal_entries.is_reversal.eq.false');
 
-const updateRevenueRow = (id: string, field: keyof DepositRow, value: string) => {
-  setRevenueRows(prev => prev.map(row => 
-    row.id === id ? { ...row, [field]: value } : row
-  ));
-};
+if (projectId) {
+  journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
+} else {
+  journalLinesQuery = journalLinesQuery.is('project_id', null);
+}
+
+const { data: journalLines, error: journalError } = await journalLinesQuery;
 ```
 
----
-
-## Why This Works
-
-| Before | After |
-|--------|-------|
-| Both state updates use the same stale `otherRows` reference | Each update receives the latest state via `prev` parameter |
-| Second update overwrites first update | Updates are properly chained - second builds on first |
-| `accountId` gets lost during rapid updates | Both `account` and `accountId` are preserved |
-| Database saves old account | Database saves correct new account |
+This ensures the balance sheet correctly excludes:
+- Entries that have been reversed (`reversed_at IS NOT NULL`)
+- Entries that have a reversal reference (`reversed_by_id IS NOT NULL`)
+- Reversal entries themselves (`is_reversal = true`)
 
 ---
 
 ## Verification
 
-After the fix:
-1. Navigate to Make Deposits
-2. Open an existing deposit  
-3. Change the Account column to a different account
-4. Click "Save Entry"
-5. Navigate away and return to the deposit
-6. The new account should persist correctly
+After applying both fixes:
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Balance Sheet (1010) | $62,494.37 | $55,487.17 |
+| Bank Statement | $55,487.17 | $55,487.17 |
+| Difference | $7,007.20 | $0.00 |
+
+---
+
+## Technical Notes
+
+- The orphaned entry is journal entry `21f636fc-072a-4d60-aa83-9a9a8106c1d6`
+- It references bill_payment `d31e8ccf-c574-43f5-a9c0-93166f11cf5e` which no longer exists
+- Entry date was 12/15/2025, marked as reversed on 01/21/2026
+- The code fix aligns with the existing pattern documented in `memory/architecture/journal-entry-lines-reversal-filtering-pattern`
