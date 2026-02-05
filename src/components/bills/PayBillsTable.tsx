@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
 import { POComparisonDialog } from "./POComparisonDialog";
+import { CreditUsageHistoryDialog } from "./CreditUsageHistoryDialog";
 
 interface BillAttachment {
   id: string;
@@ -121,6 +122,10 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     poMatch: null,
     bill: null,
   });
+  const [creditHistoryDialog, setCreditHistoryDialog] = useState<{
+    open: boolean;
+    bill: BillForPayment | null;
+  }>({ open: false, bill: null });
   const updateNotesMutation = useMutation({
     mutationFn: async ({ billId, newNote, existingNotes }: { billId: string; newNote: string; existingNotes: string }) => {
       // Get user profile for attribution
@@ -974,16 +979,27 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs font-medium">
                     <div className="flex items-center gap-2">
-                      {formatCurrency(bill.total_amount - (bill.amount_paid || 0))}
+                      {formatCurrency(
+                        bill.total_amount < 0
+                          ? bill.total_amount + (bill.amount_paid || 0)
+                          : bill.total_amount - (bill.amount_paid || 0)
+                      )}
                       {bill.total_amount < 0 && (
                         <Badge variant="outline" className="text-green-600 border-green-600">
                           Credit
                         </Badge>
                       )}
                       {bill.total_amount < 0 && (bill.amount_paid || 0) > 0 && (
-                        <span className="text-xs text-muted-foreground">
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:underline cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCreditHistoryDialog({ open: true, bill });
+                          }}
+                        >
                           (${Math.abs(bill.amount_paid || 0).toFixed(2)} used)
-                        </span>
+                        </button>
                       )}
                     </div>
                   </TableCell>
@@ -1178,6 +1194,16 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
         vendorId={poDialogState.bill?.vendor_id || null}
         currentBillAmount={poDialogState.bill?.total_amount}
         currentBillReference={poDialogState.bill?.reference_number || undefined}
+      />
+
+      <CreditUsageHistoryDialog
+        open={creditHistoryDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreditHistoryDialog({ open: false, bill: null });
+          }
+        }}
+        credit={creditHistoryDialog.bill}
       />
     </>
   );
