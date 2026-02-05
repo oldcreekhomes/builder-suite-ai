@@ -1,51 +1,45 @@
 
+# Fix: Add `confirmed` to handleTaskUpdate in CustomGanttChart
 
-# Fix: Add `confirmed` Field to Task Update Mutation
+## Problem Identified
 
-## Problem Confirmed
+The database shows `confirmed: null` for task 9.3 - the save is NOT happening. The console logs show `Update data being sent to database: {}` (empty object).
 
-I queried the database and task 9.3 "Add MLA" currently shows:
-- `confirmed: null` (Blue/default)
+**Root Cause:** The `handleTaskUpdate` function in `CustomGanttChart.tsx` builds `mutationData` by explicitly checking each field, but `confirmed` is missing from this list (lines 378-425).
 
-The update is NOT saving because the `confirmed` field is not included in the mutation logic. The previous fix was approved but the implementation was canceled before completion.
+When you click "Red" in the context menu:
+1. It calls `onTaskUpdate(task.id, { confirmed: false })` (correct)
+2. `handleTaskUpdate` receives `updates = { confirmed: false }` (correct)
+3. But `mutationData` never gets `confirmed` added to it (BUG)
+4. Mutation is called with empty object
+5. Database returns error "0 rows" because nothing to update
 
-## What Needs to Change
+## Fix Required
 
-### File: `src/hooks/useTaskMutations.tsx`
+### File: `src/components/schedule/CustomGanttChart.tsx`
 
-**Change 1** - Add `confirmed` to the UpdateTaskParams interface (line 33):
+Add `confirmed` handling after the `notes` check (around line 425):
 
 ```typescript
-interface UpdateTaskParams {
-  id: string;
-  task_name?: string;
-  start_date?: string;
-  end_date?: string;
-  duration?: number;
-  progress?: number;
-  predecessor?: string[] | string;
-  resources?: string;
-  hierarchy_number?: string;
-  notes?: string;
-  confirmed?: boolean | null;  // ADD THIS
-  suppressInvalidate?: boolean;
-  skipCascade?: boolean;
-  _originalStartDate?: string;
-  _originalEndDate?: string;
+if (updates.notes !== undefined) {
+  optimisticTask.notes = updates.notes;
+  mutationData.notes = updates.notes;
+}
+// ADD THIS BLOCK:
+if (updates.confirmed !== undefined) {
+  optimisticTask.confirmed = updates.confirmed;
+  mutationData.confirmed = updates.confirmed;
 }
 ```
 
-**Change 2** - Add `confirmed` to the updateData builder (after line 312):
+## What This Fixes
 
-```typescript
-if (params.notes !== undefined) updateData.notes = params.notes;
-if (params.confirmed !== undefined) updateData.confirmed = params.confirmed;  // ADD THIS
-```
+1. Right-clicking a task bar and selecting a color will now properly save to database
+2. The `confirmed` field will be included in the mutation payload
+3. The bar color will immediately update (optimistic) and persist after refresh
 
-## Result
+## Summary
 
-After this fix:
-- Right-clicking a Gantt bar and selecting Green will set `confirmed = true` in the database
-- The bar will immediately display as green
-- Same for Red (`confirmed = false`) and Blue (`confirmed = null`)
-
+Two changes were needed but only one was made:
+1. `useTaskMutations.tsx` - Add `confirmed` to interface and updateData builder (DONE in last edit)
+2. `CustomGanttChart.tsx` - Add `confirmed` to mutationData builder (MISSING - needs to be added)
