@@ -423,6 +423,10 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           optimisticTask.notes = updates.notes;
           mutationData.notes = updates.notes;
         }
+        if (updates.confirmed !== undefined) {
+          optimisticTask.confirmed = updates.confirmed;
+          mutationData.confirmed = updates.confirmed;
+        }
         
         // Always keep start/end/duration in sync for instant UI feedback
         
