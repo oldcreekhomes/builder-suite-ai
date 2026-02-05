@@ -5,6 +5,7 @@ import { canIndent } from "@/utils/hierarchyUtils";
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
 import { parsePredecessors } from "@/utils/predecessorValidation";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
 
 import { InlineEditCell } from "./InlineEditCell";
 import { ProgressSelector } from "./ProgressSelector";
@@ -918,25 +919,40 @@ export function UnifiedScheduleTable({
                   className="absolute"
                   style={{ top: index * ROW_HEIGHT + (ROW_HEIGHT - 24) / 2 }}
                 >
-                  {/* The bar itself */}
-                  <div
-                    className="absolute h-6 rounded cursor-move border"
-                    style={{
-                      left: position.left,
-                      width: position.width,
-                      backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
-                      borderColor: `hsl(var(--timeline-${barColorClass}))`
-                    }}
-                  >
-                    {/* Progress fill */}
-                    <div
-                      className="h-full rounded-l opacity-80"
-                      style={{
-                        width: progressWidth,
-                        backgroundColor: `hsl(var(--timeline-progress))`
-                      }}
-                    />
-                  </div>
+                  {/* The bar itself - with right-click color picker */}
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className="absolute h-6 rounded cursor-move border"
+                        style={{
+                          left: position.left,
+                          width: position.width,
+                          backgroundColor: `hsl(var(--timeline-${barColorClass}) / 0.25)`,
+                          borderColor: `hsl(var(--timeline-${barColorClass}))`
+                        }}
+                      >
+                        {/* Progress fill */}
+                        <div
+                          className="h-full rounded-l opacity-80"
+                          style={{
+                            width: progressWidth,
+                            backgroundColor: `hsl(var(--timeline-progress))`
+                          }}
+                        />
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-32">
+                      <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: null })}>
+                        <div className="w-3 h-3 rounded bg-blue-500 mr-2" /> Blue
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: true })}>
+                        <div className="w-3 h-3 rounded bg-green-500 mr-2" /> Green
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: false })}>
+                        <div className="w-3 h-3 rounded bg-red-500 mr-2" /> Red
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
                   
                   {/* Task name - always displayed outside the bar to the right */}
                   <div
