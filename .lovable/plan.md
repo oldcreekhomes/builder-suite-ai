@@ -1,80 +1,172 @@
 
-## Goal
-Fix the Balance Sheet so that when you run it **“As of Dec 31, 2025”** for **115 E. Oceanwatch Ct**, the **1010: Atlantic Union Bank** balance matches the bank statement ending balance (**$55,487.17**) and the overall Balance Sheet totals remain correct.
+# Partial Credit Application: Preserve Remaining Credit Balance
 
-## What I found (why it’s still off by exactly $7,007.20)
-There is a real journal entry dated **12/15/2025** for **$7,007.20**:
+## Problem Summary
 
-- **JE**: `21f636fc-072a-4d60-aa83-9a9a8106c1d6`
-- Lines:
-  - **2010 Accounts Payable**: **Debit $7,007.20**
-  - **1010 Atlantic Union Bank**: **Credit $7,007.20**
-- It was later marked “reversed” on **01/21/2026** via `reversed_at`, but **no actual reversal entry exists** (`reversed_by_id` is NULL).
+When you applied a **$500 credit** to a **$350 bill**, the system:
+1. Correctly computed the net payment as **-$150** (credit exceeded bill)
+2. Correctly created the `bill_payment` record with the allocation showing $500 credit and $350 bill
+3. **Incorrectly** marked the credit's `amount_paid = 500` (the full credit amount)
+4. **Incorrectly** changed the credit status to `'paid'`
 
-### The key bug in reporting logic
-The Balance Sheet currently excludes any journal entry that has `reversed_at` set (or similar reversal flags), **even if the reversal happened after the report “as-of” date**.
+The result: The remaining $150 of the credit is no longer visible or usable in the Approved tab because the credit bill has status `'paid'` and `amount_paid` equals the full credit amount.
 
-That means:
-- For **12/31/2025**, the $7,007.20 payment *should be included* (it happened in 2025).
-- But because it was “reversed” in 2026, the current report logic excludes it, causing the Balance Sheet cash to be **too high by $7,007.20**.
+---
 
-This exactly matches your symptom:
-- Report shows **$62,494.37**
-- Bank statement shows **$55,487.17**
-- Difference: **$7,007.20**
+## Root Cause
 
-## Fix approach (code)
-Update the Balance Sheet journal line query to be **as-of aware**:
-- Keep filtering by `entry_date <= asOfDate`
-- Change reversal filtering so entries are only excluded if they were reversed **on or before** the `asOfDate`
-- Ensure we still protect against “zombie” reversed entries (like this one) for dates *after* 01/21/2026
+In `src/hooks/useBills.ts`, the `payMultipleBills` mutation processes each bill independently and:
+- For credits (negative `total_amount`), it computes `remainingBalance = total_amount - amount_paid`
+- It then sets `newAmountPaid = amount_paid + |remainingBalance|` (the full remaining credit)
+- It marks the bill as `'paid'` when `newAmountPaid >= total_amount`
 
-### Desired behavior
-- **As-of 2025-12-31**: include JE `21f...` → bank matches statement
-- **As-of 2026-12-31**: exclude JE `21f...` (because it was reversed on 01/21/2026, and there is no reversal JE to offset it) → prevents phantom cash differences in later periods
+The logic doesn't account for **cross-application** scenarios where a credit only partially offsets a bill.
 
-## Implementation steps
-1. **Locate the Balance Sheet query**
-   - File: `src/components/reports/BalanceSheetContent.tsx`
-   - Find the `journalLinesQuery` builder and current reversal filters (currently using conditions like `reversed_at is null`, `reversed_by_id is null`, and `is_reversal = false`).
+---
 
-2. **Adjust reversal logic to be time-aware**
-   - Replace the unconditional exclusion (`reversed_at IS NULL`) with logic equivalent to:
-     - Include if `reversed_at IS NULL` OR `reversed_at > asOfDate`
-     - Additionally, handle records with `reversed_by_id` depending on your reversal model (see next point)
+## Solution Approach
 
-3. **Decide how to treat `reversed_by_id` entries in Balance Sheet**
-   - Recommended for Balance Sheet correctness “as-of”:
-     - Do **not** blanket-exclude entries just because they were later corrected (`reversed_by_id` set), because that breaks historical as-of reports.
-     - Instead, rely on:
-       - `entry_date <= asOfDate`
-       - and inclusion of reversal entries where applicable (if they exist and have entry dates <= asOfDate)
-   - In other words: Balance Sheet should be “what was true as-of that date”, not “current corrected view”.
+### Part 1: Fix the Payment Logic (Core Fix)
 
-4. **Update the PostgREST/Supabase filter expressions**
-   - Implement the “as-of” reversal filter using Supabase `.or()` with the formatted date string.
-   - Keep the project filter behavior as-is:
-     - If `projectId` provided: `.eq('project_id', projectId)`
-     - Else: `.is('project_id', null)`
+When paying multiple bills together (bills + credits), we need to:
 
-5. **Verification checklist (in the UI)**
-   - Open: Project → Accounting → Reports → Balance Sheet
-   - Set date to **Dec 31, 2025**
-   - Confirm:
-     - **1010 Atlantic Union Bank = $55,487.17**
-     - Balance Sheet still balances (Assets = Liabilities + Equity)
-   - Also test:
-     - “As of” a date **after 01/21/2026** to ensure that the zombie reversed entry does not reintroduce phantom differences.
+1. **Calculate the net payment first** - sum all selected bills and credits to determine the actual net amount
+2. **Apply credits proportionally or up to the bill amounts** - only "consume" as much credit as is needed to pay the bills
+3. **Track remaining credit balance** - update the credit's `amount_paid` only by the amount actually applied
 
-## Optional (data hygiene, not required to fix the report)
-That zombie JE (`21f...`) is a data integrity issue. After the report logic is corrected, we can optionally:
-- Create a real reversal entry, or
-- Remove/repair the orphaned entry in a controlled way,
-so future reports and audit trails remain clean.
+**Key change in `src/hooks/useBills.ts` (`payMultipleBills` mutation):**
 
-## Risks / edge cases
-- If your system sometimes uses `reversed_by_id` without creating true reversal lines (or marks “reversed” without a corresponding reversal entry), then Balance Sheet needs special handling for those zombie cases (we will keep that protection in place using `reversed_at` compared to `asOfDate`).
-- Job Costs reports may still want “current corrected” behavior (exclude reversed originals), but Balance Sheet generally must be “as-of accurate”. We’ll keep this change limited to Balance Sheet reporting logic.
+```text
+Current Logic:
+- Process each bill independently
+- For credits: amount_paid += |full_remaining_credit|
+- Mark as paid if fully consumed
 
-## Deliverables
-- Code update in `src/components/reports/BalanceSheetContent.tsx` to make reversal filtering **as-of date aware**, fixing the $7,007.20 discrepancy for 12/31/2025.
+New Logic:
+- Group bills and credits together
+- Calculate net: sum(bill_amounts) + sum(credit_amounts)  
+- For credits: only consume what's needed to offset bills
+- Remaining credit stays with status='posted' and reduced amount_paid
+```
+
+### Part 2: UI Enhancement (Visibility)
+
+Add an "Available Credits" indicator in the Bill Payment view that:
+1. Shows credits with remaining balance (`total_amount < 0` AND `status = 'posted'`)
+2. Displays the remaining credit amount: `|total_amount| - amount_paid`
+3. Allows users to select credits along with bills for consolidated payment
+
+**Files to modify:**
+- `src/components/bills/PayBillsTable.tsx` - Add section showing available credits
+- `src/components/PayBillDialog.tsx` - Show credit breakdown when credits are included
+
+---
+
+## Implementation Steps
+
+### Step 1: Update `payMultipleBills` in `src/hooks/useBills.ts`
+
+Modify the mutation to handle credit application intelligently:
+
+```typescript
+// Calculate totals
+const regularBillTotal = results
+  .filter(r => r.amountPaid > 0)
+  .reduce((sum, r) => sum + r.amountPaid, 0);
+
+const creditTotal = results
+  .filter(r => r.amountPaid < 0)
+  .reduce((sum, r) => sum + Math.abs(r.amountPaid), 0);
+
+// For credits, only apply up to the bill total
+const creditToApply = Math.min(creditTotal, regularBillTotal);
+const remainingCredit = creditTotal - creditToApply;
+
+// Update credit bills with partial application
+for (const result of results.filter(r => r.amountPaid < 0)) {
+  // Calculate proportional credit usage
+  const creditAmount = Math.abs(result.amountPaid);
+  const proportionalUsage = creditToApply * (creditAmount / creditTotal);
+  
+  // Update the credit bill with actual amount used
+  await supabase
+    .from('bills')
+    .update({
+      amount_paid: (bill.amount_paid || 0) + proportionalUsage,
+      status: (proportionalUsage >= creditAmount) ? 'paid' : 'posted'
+    })
+    .eq('id', result.billId);
+}
+```
+
+### Step 2: Enhance PayBillsTable Query
+
+Update the query in `src/components/bills/PayBillsTable.tsx` to include credits with remaining balance:
+
+```typescript
+// Current: only fetches status='posted' with positive balance
+// New: also fetch credits (negative total_amount) with remaining balance
+
+// After fetching posted bills, also get available credits
+const creditsQuery = supabase
+  .from('bills')
+  .select(/* same fields */)
+  .eq('status', 'posted')
+  .eq('is_reversal', false)
+  .lt('total_amount', 0);  // Credits only
+
+// Combine and distinguish in UI
+```
+
+### Step 3: Add Credit Balance Display
+
+In `PayBillsTable.tsx`, add visual distinction for credits:
+- Show credits in a separate section or with a "CR" badge
+- Display "Remaining: $X" for credits that have been partially used
+- Allow selection together with bills for consolidated payment
+
+### Step 4: Update PayBillDialog for Credit Visibility
+
+When credits are part of the selected bills:
+- Show breakdown: "Bills: $350, Credits Applied: -$350, Net: $0"
+- If credit exceeds bills: "Remaining credit: $150 will stay available"
+
+---
+
+## Data Fix (For Existing Transactions)
+
+For the specific transaction you mentioned (JZ Structural - $500 credit, $350 bill):
+
+The credit bill `6b518b88-f4c7-4718-98d2-a77ed1f5a5b5` should be corrected:
+
+```sql
+-- Fix the credit to show $150 remaining ($500 - $350 used)
+UPDATE bills 
+SET 
+  amount_paid = 350,  -- Only $350 was actually applied
+  status = 'posted'   -- Still has remaining balance
+WHERE id = '6b518b88-f4c7-4718-98d2-a77ed1f5a5b5';
+```
+
+After this fix, the credit will appear in the Approved tab with $150 remaining to apply.
+
+---
+
+## Affected Files
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useBills.ts` | Update `payMultipleBills` to handle partial credit application |
+| `src/components/bills/PayBillsTable.tsx` | Include credits with remaining balance in query; add visual distinction |
+| `src/components/PayBillDialog.tsx` | Show credit application breakdown and remaining balance preview |
+
+---
+
+## Testing Checklist
+
+After implementation:
+1. ☐ Apply a $500 credit to a $350 bill → Credit should show $150 remaining
+2. ☐ Remaining credit appears in Approved tab with status "posted"
+3. ☐ Apply remaining $150 credit to another bill → Credit status changes to "paid"
+4. ☐ Net payment journal entry shows correct $-150 (or $0 depending on workflow)
+5. ☐ Existing bills/credits with no remaining balance still work correctly
