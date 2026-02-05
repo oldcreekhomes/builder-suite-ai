@@ -31,6 +31,7 @@ interface UpdateTaskParams {
   resources?: string;
   hierarchy_number?: string;
   notes?: string;
+  confirmed?: boolean | null;
   suppressInvalidate?: boolean;
   skipCascade?: boolean;
   // Original dates captured BEFORE optimistic update - used for cascade detection
@@ -310,6 +311,7 @@ export const useTaskMutations = (projectId: string) => {
       if (params.resources !== undefined) updateData.resources = params.resources;
       if (params.hierarchy_number !== undefined) updateData.hierarchy_number = params.hierarchy_number;
       if (params.notes !== undefined) updateData.notes = params.notes;
+      if (params.confirmed !== undefined) updateData.confirmed = params.confirmed;
 
       console.log('🔧 Update data being sent to database:', updateData);
 
