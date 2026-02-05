@@ -1,71 +1,58 @@
 
 
-# Add Right-Click Color Picker to Gantt Bars
+# Fix: Add `confirmed` Field to Task Update Mutation
 
-## Overview
+## Problem
 
-Add a simple right-click context menu directly on the Gantt timeline bars that lets users pick from 3 colors: Blue, Green, or Red.
+The right-click color picker calls `onTaskUpdate(task.id, { confirmed: true })`, but the mutation in `useTaskMutations.tsx` doesn't include `confirmed` in its update logic. The console logs show:
 
-## How It Works
-
-Right-clicking on any task bar (the colored bar on the timeline side) opens a small menu with 3 color options. Selecting a color immediately updates the bar.
-
-## Technical Approach
-
-### File: `src/components/schedule/UnifiedScheduleTable.tsx`
-
-**Change 1** - Wrap the task bar with a ContextMenu (around line 922):
-
-```tsx
-// Before:
-<div
-  className="absolute h-6 rounded cursor-move border"
-  style={{...}}
->
-
-// After:
-<ContextMenu>
-  <ContextMenuTrigger asChild>
-    <div
-      className="absolute h-6 rounded cursor-move border"
-      style={{...}}
-    >
-      ...
-    </div>
-  </ContextMenuTrigger>
-  <ContextMenuContent className="w-32">
-    <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: null })}>
-      <div className="w-3 h-3 rounded bg-blue-500 mr-2" /> Blue
-    </ContextMenuItem>
-    <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: true })}>
-      <div className="w-3 h-3 rounded bg-green-500 mr-2" /> Green
-    </ContextMenuItem>
-    <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: false })}>
-      <div className="w-3 h-3 rounded bg-red-500 mr-2" /> Red
-    </ContextMenuItem>
-  </ContextMenuContent>
-</ContextMenu>
+```
+📤 Sending mutation with data: { "id": "...", "suppressInvalidate": true, ... }
+🔧 Update data being sent to database: {}  ← Empty! "confirmed" is ignored
 ```
 
-**Change 2** - Add imports at top of file:
+## Root Cause
 
-```tsx
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
+In `useTaskMutations.tsx` lines 301-312, the code builds `updateData` by explicitly checking for each allowed field. The `confirmed` field is missing from both:
+1. The `UpdateTaskParams` interface (line 37-48)
+2. The `updateData` builder logic (line 301-312)
+
+## Fix
+
+### File: `src/hooks/useTaskMutations.tsx`
+
+**Change 1** - Add `confirmed` to the `UpdateTaskParams` interface (around line 37):
+
+```typescript
+interface UpdateTaskParams {
+  id: string;
+  task_name?: string;
+  start_date?: string;
+  end_date?: string;
+  duration?: number;
+  progress?: number;
+  predecessor?: string[] | string;
+  resources?: string;
+  hierarchy_number?: string;
+  notes?: string;
+  confirmed?: boolean | null;  // ADD THIS LINE
+  suppressInvalidate?: boolean;
+  skipCascade?: boolean;
+  _originalStartDate?: string;
+  _originalEndDate?: string;
+}
+```
+
+**Change 2** - Add `confirmed` to the updateData builder (around line 312):
+
+```typescript
+if (params.notes !== undefined) updateData.notes = params.notes;
+if (params.confirmed !== undefined) updateData.confirmed = params.confirmed;  // ADD THIS LINE
 ```
 
 ## Result
 
-- Users right-click on any Gantt bar → see 3 color swatches (Blue, Green, Red)
-- Click a color → bar instantly changes
-- No new database columns needed (uses existing `confirmed` field)
-- Approximately 15-20 lines of code added
-
-## Trade-off Note
-
-This reuses the `confirmed` field for color, meaning:
-- Blue = not yet confirmed (null)
-- Green = confirmed (true)
-- Red = unconfirmed/declined (false)
-
-This keeps things simple while giving users direct color control.
+- Right-clicking a Gantt bar and selecting a color will now properly update the `confirmed` field in the database
+- The bar color will immediately change to reflect the selected color (Blue/Green/Red)
+- No other changes needed - the existing color logic already uses `confirmed` to determine bar colors
 
