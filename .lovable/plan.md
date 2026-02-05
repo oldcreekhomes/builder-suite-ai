@@ -1,65 +1,71 @@
 
-# Simplify Credit UI - Make Credit Badge Clickable
 
-## Change Summary
+# Add Right-Click Color Picker to Gantt Bars
 
-Remove the separate "($350.00 used)" text and instead make the green "Credit" badge itself the trigger for opening the credit usage history dialog.
+## Overview
 
-## Current Behavior
-- Amount column shows: `($150.00)` + `Credit` badge + `($350.00 used)` link
-- Two separate clickable elements
+Add a simple right-click context menu directly on the Gantt timeline bars that lets users pick from 3 colors: Blue, Green, or Red.
 
-## New Behavior
-- Amount column shows: `($150.00)` + clickable `Credit` badge only
-- Clicking the Credit badge opens the usage history dialog
-- Cleaner, simpler UI
+## How It Works
 
-## Technical Changes
+Right-clicking on any task bar (the colored bar on the timeline side) opens a small menu with 3 color options. Selecting a color immediately updates the bar.
 
-### File: `src/components/bills/PayBillsTable.tsx`
+## Technical Approach
 
-**Lines 987-1003** - Simplify to single clickable badge:
+### File: `src/components/schedule/UnifiedScheduleTable.tsx`
 
-```typescript
+**Change 1** - Wrap the task bar with a ContextMenu (around line 922):
+
+```tsx
 // Before:
-{bill.total_amount < 0 && (
-  <Badge variant="outline" className="text-green-600 border-green-600">
-    Credit
-  </Badge>
-)}
-{bill.total_amount < 0 && (bill.amount_paid || 0) > 0 && (
-  <button
-    type="button"
-    className="text-xs text-muted-foreground hover:underline cursor-pointer"
-    onClick={(e) => {
-      e.stopPropagation();
-      setCreditHistoryDialog({ open: true, bill });
-    }}
-  >
-    (${Math.abs(bill.amount_paid || 0).toFixed(2)} used)
-  </button>
-)}
+<div
+  className="absolute h-6 rounded cursor-move border"
+  style={{...}}
+>
 
 // After:
-{bill.total_amount < 0 && (
-  <Badge 
-    variant="outline" 
-    className="text-green-600 border-green-600 cursor-pointer hover:bg-green-50"
-    onClick={(e) => {
-      e.stopPropagation();
-      setCreditHistoryDialog({ open: true, bill });
-    }}
-  >
-    Credit
-  </Badge>
-)}
+<ContextMenu>
+  <ContextMenuTrigger asChild>
+    <div
+      className="absolute h-6 rounded cursor-move border"
+      style={{...}}
+    >
+      ...
+    </div>
+  </ContextMenuTrigger>
+  <ContextMenuContent className="w-32">
+    <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: null })}>
+      <div className="w-3 h-3 rounded bg-blue-500 mr-2" /> Blue
+    </ContextMenuItem>
+    <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: true })}>
+      <div className="w-3 h-3 rounded bg-green-500 mr-2" /> Green
+    </ContextMenuItem>
+    <ContextMenuItem onClick={() => onTaskUpdate(task.id, { confirmed: false })}>
+      <div className="w-3 h-3 rounded bg-red-500 mr-2" /> Red
+    </ContextMenuItem>
+  </ContextMenuContent>
+</ContextMenu>
+```
+
+**Change 2** - Add imports at top of file:
+
+```tsx
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
 ```
 
 ## Result
 
-- Single clickable "Credit" badge in the Amount column
-- Clicking it opens the Credit Usage History dialog showing:
-  - Original credit amount
-  - Amount used
-  - Remaining balance
-  - Payment history table
+- Users right-click on any Gantt bar → see 3 color swatches (Blue, Green, Red)
+- Click a color → bar instantly changes
+- No new database columns needed (uses existing `confirmed` field)
+- Approximately 15-20 lines of code added
+
+## Trade-off Note
+
+This reuses the `confirmed` field for color, meaning:
+- Blue = not yet confirmed (null)
+- Green = confirmed (true)
+- Red = unconfirmed/declined (false)
+
+This keeps things simple while giving users direct color control.
+
