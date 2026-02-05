@@ -2,26 +2,18 @@
 
 # Fix: Add `confirmed` Field to Task Update Mutation
 
-## Problem
+## Problem Confirmed
 
-The right-click color picker calls `onTaskUpdate(task.id, { confirmed: true })`, but the mutation in `useTaskMutations.tsx` doesn't include `confirmed` in its update logic. The console logs show:
+I queried the database and task 9.3 "Add MLA" currently shows:
+- `confirmed: null` (Blue/default)
 
-```
-📤 Sending mutation with data: { "id": "...", "suppressInvalidate": true, ... }
-🔧 Update data being sent to database: {}  ← Empty! "confirmed" is ignored
-```
+The update is NOT saving because the `confirmed` field is not included in the mutation logic. The previous fix was approved but the implementation was canceled before completion.
 
-## Root Cause
-
-In `useTaskMutations.tsx` lines 301-312, the code builds `updateData` by explicitly checking for each allowed field. The `confirmed` field is missing from both:
-1. The `UpdateTaskParams` interface (line 37-48)
-2. The `updateData` builder logic (line 301-312)
-
-## Fix
+## What Needs to Change
 
 ### File: `src/hooks/useTaskMutations.tsx`
 
-**Change 1** - Add `confirmed` to the `UpdateTaskParams` interface (around line 37):
+**Change 1** - Add `confirmed` to the UpdateTaskParams interface (line 33):
 
 ```typescript
 interface UpdateTaskParams {
@@ -35,7 +27,7 @@ interface UpdateTaskParams {
   resources?: string;
   hierarchy_number?: string;
   notes?: string;
-  confirmed?: boolean | null;  // ADD THIS LINE
+  confirmed?: boolean | null;  // ADD THIS
   suppressInvalidate?: boolean;
   skipCascade?: boolean;
   _originalStartDate?: string;
@@ -43,16 +35,17 @@ interface UpdateTaskParams {
 }
 ```
 
-**Change 2** - Add `confirmed` to the updateData builder (around line 312):
+**Change 2** - Add `confirmed` to the updateData builder (after line 312):
 
 ```typescript
 if (params.notes !== undefined) updateData.notes = params.notes;
-if (params.confirmed !== undefined) updateData.confirmed = params.confirmed;  // ADD THIS LINE
+if (params.confirmed !== undefined) updateData.confirmed = params.confirmed;  // ADD THIS
 ```
 
 ## Result
 
-- Right-clicking a Gantt bar and selecting a color will now properly update the `confirmed` field in the database
-- The bar color will immediately change to reflect the selected color (Blue/Green/Red)
-- No other changes needed - the existing color logic already uses `confirmed` to determine bar colors
+After this fix:
+- Right-clicking a Gantt bar and selecting Green will set `confirmed = true` in the database
+- The bar will immediately display as green
+- Same for Red (`confirmed = false`) and Blue (`confirmed = null`)
 
