@@ -985,21 +985,16 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                           : bill.total_amount - (bill.amount_paid || 0)
                       )}
                       {bill.total_amount < 0 && (
-                        <Badge variant="outline" className="text-green-600 border-green-600">
-                          Credit
-                        </Badge>
-                      )}
-                      {bill.total_amount < 0 && (bill.amount_paid || 0) > 0 && (
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground hover:underline cursor-pointer"
+                        <Badge 
+                          variant="outline" 
+                          className="text-green-600 border-green-600 cursor-pointer hover:bg-green-50"
                           onClick={(e) => {
                             e.stopPropagation();
                             setCreditHistoryDialog({ open: true, bill });
                           }}
                         >
-                          (${Math.abs(bill.amount_paid || 0).toFixed(2)} used)
-                        </button>
+                          Credit
+                        </Badge>
                       )}
                     </div>
                   </TableCell>
