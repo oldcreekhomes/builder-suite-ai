@@ -385,33 +385,86 @@ export const useBills = () => {
     }) => {
       if (!user) throw new Error("User not authenticated");
 
+      // === PHASE 1: Fetch all bills and calculate totals ===
+      const billsData: Array<{
+        id: string;
+        vendor_id: string;
+        project_id: string | null;
+        owner_id: string;
+        total_amount: number;
+        amount_paid: number;
+        reference_number: string | null;
+        notes: string | null;
+        remainingBalance: number;
+      }> = [];
+
+      for (const billId of billIds) {
+        const { data: bill, error: billError } = await supabase
+          .from('bills')
+          .select('*')
+          .eq('id', billId)
+          .single();
+
+        if (billError) throw billError;
+
+        const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+        billsData.push({
+          id: bill.id,
+          vendor_id: bill.vendor_id,
+          project_id: bill.project_id,
+          owner_id: bill.owner_id,
+          total_amount: bill.total_amount,
+          amount_paid: bill.amount_paid || 0,
+          reference_number: bill.reference_number,
+          notes: bill.notes,
+          remainingBalance
+        });
+      }
+
+      // Separate bills (positive) and credits (negative remaining balance)
+      const regularBills = billsData.filter(b => b.remainingBalance > 0);
+      const creditBills = billsData.filter(b => b.remainingBalance < 0);
+
+      // Calculate totals
+      const totalBillAmount = regularBills.reduce((sum, b) => sum + b.remainingBalance, 0);
+      const totalCreditAmount = creditBills.reduce((sum, b) => sum + Math.abs(b.remainingBalance), 0);
+
+      // Determine how much credit to apply (can't apply more credit than bills owed)
+      const creditToApply = Math.min(totalCreditAmount, totalBillAmount);
+
+      // === PHASE 2: Process each bill/credit with correct amounts ===
       const results = [];
       const errors = [];
 
-      for (const billId of billIds) {
+      // Get accounting settings once
+      const firstBill = billsData[0];
+      const { data: settings } = await supabase
+        .from('accounting_settings')
+        .select('ap_account_id')
+        .eq('owner_id', firstBill.owner_id)
+        .single();
+
+      if (!settings?.ap_account_id) {
+        throw new Error("Accounts Payable account not configured in Accounting Settings");
+      }
+
+      // Get current user for attribution
+      const { data: payerData } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+      
+      const payerName = payerData 
+        ? `${payerData.first_name || ''} ${payerData.last_name || ''}`.trim() 
+        : 'Unknown User';
+
+      const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+
+      // Process regular bills (full remaining balance)
+      for (const bill of regularBills) {
         try {
-          // Get bill details for journal entry
-          const { data: bill, error: billError } = await supabase
-            .from('bills')
-            .select('*')
-            .eq('id', billId)
-            .single();
-
-          if (billError) throw billError;
-
-          // For multiple bills, always pay full remaining balance
-          const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
-
-          // Get accounting settings for AP account
-          const { data: settings } = await supabase
-            .from('accounting_settings')
-            .select('ap_account_id')
-            .eq('owner_id', bill.owner_id)
-            .single();
-
-          if (!settings?.ap_account_id) {
-            throw new Error("Accounts Payable account not configured in Accounting Settings");
-          }
+          const paymentAmount = bill.remainingBalance;
 
           // Create journal entry for payment
           const { data: journalEntry, error: jeError } = await supabase
@@ -428,29 +481,23 @@ export const useBills = () => {
 
           if (jeError) throw jeError;
 
-          // Create journal entry lines for payment amount
-          const paymentAmount = Math.abs(remainingBalance);
-          const isBillCredit = remainingBalance < 0;
-          
           const journalLines = [
-            // Debit AP (normal bills) or Credit AP (for credits)
             {
               journal_entry_id: journalEntry.id,
               line_number: 1,
               account_id: settings.ap_account_id,
-              debit: isBillCredit ? 0 : paymentAmount,
-              credit: isBillCredit ? paymentAmount : 0,
-              memo: `Payment - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
+              debit: paymentAmount,
+              credit: 0,
+              memo: `Payment - ${bill.reference_number || 'Bill'}`,
               owner_id: bill.owner_id,
               project_id: bill.project_id || null,
             },
-            // Credit payment account (normal bills) or Debit payment account (for credits)
             {
               journal_entry_id: journalEntry.id,
               line_number: 2,
               account_id: paymentAccountId,
-              debit: isBillCredit ? paymentAmount : 0,
-              credit: isBillCredit ? 0 : paymentAmount,
+              debit: 0,
+              credit: paymentAmount,
               memo: memo || `Payment for bill ${bill.reference_number || ''}`,
               owner_id: bill.owner_id,
               project_id: bill.project_id || null,
@@ -463,26 +510,9 @@ export const useBills = () => {
 
           if (linesError) throw linesError;
 
-          // Update bill with new amount paid and status
-          const newAmountPaid = (bill.amount_paid || 0) + paymentAmount;
-          const isFullyPaid = newAmountPaid >= bill.total_amount;
-
-          // Get current user for attribution
-          const { data: payerData } = await supabase
-            .from('users')
-            .select('first_name, last_name')
-            .eq('id', user.id)
-            .single();
-          
-          const payerName = payerData 
-            ? `${payerData.first_name || ''} ${payerData.last_name || ''}`.trim() 
-            : 'Unknown User';
-          
-          // Format payment note with attribution and append to existing
-          const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
-          const paymentNoteContent = memo 
-            ? `${isFullyPaid ? 'Paid' : 'Partial payment'} - ${memo}` 
-            : (isFullyPaid ? 'Paid' : 'Partial payment');
+          // Update bill - fully paid
+          const newAmountPaid = bill.amount_paid + paymentAmount;
+          const paymentNoteContent = memo ? `Paid - ${memo}` : 'Paid';
           const formattedPaymentNote = formatBillNote(payerName, paymentNoteContent);
           const updatedNotes = appendBillNote(bill.notes, formattedPaymentNote);
 
@@ -490,25 +520,124 @@ export const useBills = () => {
             .from('bills')
             .update({ 
               amount_paid: newAmountPaid,
-              status: isFullyPaid ? 'paid' as any : 'posted' as any,
+              status: 'paid' as any,
               notes: updatedNotes,
               updated_at: new Date().toISOString()
             })
-            .eq('id', billId);
+            .eq('id', bill.id);
 
           if (updateError) throw updateError;
 
           results.push({ 
-            billId, 
+            billId: bill.id, 
             success: true,
             vendorId: bill.vendor_id,
             projectId: bill.project_id,
             ownerId: bill.owner_id,
-            amountPaid: remainingBalance
+            amountPaid: paymentAmount
           });
         } catch (error) {
-          console.error(`Error paying bill ${billId}:`, error);
-          errors.push({ billId, error });
+          console.error(`Error paying bill ${bill.id}:`, error);
+          errors.push({ billId: bill.id, error });
+        }
+      }
+
+      // Process credit bills (proportionally based on creditToApply)
+      for (const credit of creditBills) {
+        try {
+          const creditFullAmount = Math.abs(credit.remainingBalance);
+          
+          // Calculate proportional credit usage
+          // If creditToApply < totalCreditAmount, we only use part of this credit
+          const proportionalUsage = totalCreditAmount > 0 
+            ? creditToApply * (creditFullAmount / totalCreditAmount)
+            : 0;
+          
+          // Round to 2 decimal places
+          const creditAmountToApply = Math.round(proportionalUsage * 100) / 100;
+
+          if (creditAmountToApply > 0) {
+            // Create journal entry for credit application
+            const { data: journalEntry, error: jeError } = await supabase
+              .from('journal_entries')
+              .insert({
+                owner_id: credit.owner_id,
+                source_type: 'bill_payment',
+                source_id: credit.id,
+                entry_date: paymentDate,
+                description: `Credit applied - Ref: ${credit.reference_number || 'N/A'}${memo ? ` - ${memo}` : ''}`
+              })
+              .select()
+              .single();
+
+            if (jeError) throw jeError;
+
+            const journalLines = [
+              // Credit AP (applying credit reduces our credit balance)
+              {
+                journal_entry_id: journalEntry.id,
+                line_number: 1,
+                account_id: settings.ap_account_id,
+                debit: 0,
+                credit: creditAmountToApply,
+                memo: `Credit applied - ${credit.reference_number || 'Credit'}`,
+                owner_id: credit.owner_id,
+                project_id: credit.project_id || null,
+              },
+              // Debit payment account (we're "receiving" value from the credit)
+              {
+                journal_entry_id: journalEntry.id,
+                line_number: 2,
+                account_id: paymentAccountId,
+                debit: creditAmountToApply,
+                credit: 0,
+                memo: memo || `Credit applied ${credit.reference_number || ''}`,
+                owner_id: credit.owner_id,
+                project_id: credit.project_id || null,
+              }
+            ];
+
+            const { error: linesError } = await supabase
+              .from('journal_entry_lines')
+              .insert(journalLines);
+
+            if (linesError) throw linesError;
+          }
+
+          // Update credit bill - only increment amount_paid by the amount actually applied
+          const newAmountPaid = credit.amount_paid + creditAmountToApply;
+          const creditRemainingAfter = Math.abs(credit.total_amount) - newAmountPaid;
+          const isFullyApplied = creditRemainingAfter <= 0.01; // Account for rounding
+
+          const noteContent = isFullyApplied 
+            ? (memo ? `Credit fully applied - ${memo}` : 'Credit fully applied')
+            : (memo ? `Credit partially applied ($${creditAmountToApply.toFixed(2)}) - ${memo}` : `Credit partially applied ($${creditAmountToApply.toFixed(2)})`);
+          const formattedNote = formatBillNote(payerName, noteContent);
+          const updatedNotes = appendBillNote(credit.notes, formattedNote);
+
+          const { error: updateError } = await supabase
+            .from('bills')
+            .update({ 
+              amount_paid: newAmountPaid,
+              status: isFullyApplied ? 'paid' as any : 'posted' as any,
+              notes: updatedNotes,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', credit.id);
+
+          if (updateError) throw updateError;
+
+          results.push({ 
+            billId: credit.id, 
+            success: true,
+            vendorId: credit.vendor_id,
+            projectId: credit.project_id,
+            ownerId: credit.owner_id,
+            amountPaid: -creditAmountToApply // Negative to indicate credit
+          });
+        } catch (error) {
+          console.error(`Error applying credit ${credit.id}:`, error);
+          errors.push({ billId: credit.id, error });
         }
       }
 

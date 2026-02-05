@@ -153,6 +153,20 @@ export function PayBillDialog({
     }).format(amount);
   };
 
+  // Calculate credit/bill breakdown for multiple bills
+  const regularBillsTotal = billsArray
+    .filter(b => (b.total_amount - (b.amount_paid || 0)) > 0)
+    .reduce((sum, b) => sum + (b.total_amount - (b.amount_paid || 0)), 0);
+  
+  const creditsTotal = billsArray
+    .filter(b => (b.total_amount - (b.amount_paid || 0)) < 0)
+    .reduce((sum, b) => sum + Math.abs(b.total_amount - (b.amount_paid || 0)), 0);
+  
+  const netPayment = regularBillsTotal - creditsTotal;
+  const hasCredits = creditsTotal > 0;
+  const creditExceedsBills = creditsTotal > regularBillsTotal;
+  const remainingCreditAfter = creditExceedsBills ? creditsTotal - regularBillsTotal : 0;
+
   const totalAmount = billsArray.reduce((sum, bill) => sum + bill.total_amount, 0);
   const vendorName = billsArray[0]?.companies?.company_name || 'Unknown Vendor';
 
@@ -173,20 +187,48 @@ export function PayBillDialog({
             {isMultiple ? (
               <>
                 <div className="flex justify-between font-semibold">
-                  <span>Total Amount ({billsArray.length} bills):</span>
+                  <span>Total Amount ({billsArray.length} items):</span>
                   <span>{formatCurrency(totalAmount)}</span>
                 </div>
-                <div className="mt-2 pt-2 border-t">
-                  <div className="text-sm font-medium mb-1">Bills:</div>
-                  <div className="max-h-32 overflow-y-auto space-y-1">
-                    {billsArray.map((bill) => (
-                      <div key={bill.id} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {bill.reference_number || 'No ref'}
-                        </span>
-                        <span>{formatCurrency(bill.total_amount)}</span>
+                {hasCredits && (
+                  <div className="mt-2 pt-2 border-t space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span>Bills:</span>
+                      <span>{formatCurrency(regularBillsTotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Credits Applied:</span>
+                      <span>-{formatCurrency(Math.min(creditsTotal, regularBillsTotal))}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold pt-1 border-t">
+                      <span>Net Payment:</span>
+                      <span>{formatCurrency(Math.max(0, netPayment))}</span>
+                    </div>
+                    {creditExceedsBills && (
+                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 rounded text-sm text-green-700 dark:text-green-400">
+                        <strong>Note:</strong> {formatCurrency(remainingCreditAfter)} credit will remain available after this transaction.
                       </div>
-                    ))}
+                    )}
+                  </div>
+                )}
+                <div className="mt-2 pt-2 border-t">
+                  <div className="text-sm font-medium mb-1">Items:</div>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {billsArray.map((bill) => {
+                      const remaining = bill.total_amount - (bill.amount_paid || 0);
+                      const isCredit = remaining < 0;
+                      return (
+                        <div key={bill.id} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {bill.reference_number || 'No ref'}
+                            {isCredit && <span className="ml-1 text-green-600">(Credit)</span>}
+                          </span>
+                          <span className={isCredit ? 'text-green-600' : ''}>
+                            {isCredit ? '-' : ''}{formatCurrency(Math.abs(remaining))}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </>

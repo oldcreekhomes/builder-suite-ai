@@ -980,6 +980,11 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                           Credit
                         </Badge>
                       )}
+                      {bill.total_amount < 0 && (bill.amount_paid || 0) > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          (${Math.abs(bill.amount_paid || 0).toFixed(2)} used)
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
