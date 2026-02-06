@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, FileText, Loader2, Plus, CheckCircle2, XCircle } from "lucide-react";
+import { Trash2, Edit, FileText, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
@@ -13,7 +13,8 @@ import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
+import { POStatusBadge } from "./POStatusBadge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
 const formatTerms = (terms: string | null | undefined): string => {
   if (!terms) return '-';
@@ -71,6 +72,8 @@ interface PendingBillLine {
   amount: number;
   memo?: string;
   description?: string;
+  lot_id?: string;
+  lot_name?: string;
 }
 
 interface PendingBill {
@@ -428,6 +431,39 @@ export function BatchBillReviewTable({
   const allSelected = bills.length > 0 && bills.every(bill => selectedBillIds.has(bill.id));
   const someSelected = bills.some(bill => selectedBillIds.has(bill.id)) && !allSelected;
 
+  // Helper to get memo summary from pending bill lines
+  const getMemoSummary = (bill: PendingBill): string | null => {
+    if (!bill.lines || bill.lines.length === 0) return null;
+    
+    const memos = bill.lines
+      .map(line => line.memo?.trim() || line.description?.trim())
+      .filter((memo): memo is string => !!memo);
+    
+    if (memos.length === 0) return null;
+    
+    const uniqueMemos = [...new Set(memos)];
+    return uniqueMemos.join(' • ');
+  };
+
+  // Helper to get lot/address display from pending bill lines
+  const getLotDisplay = (bill: PendingBill): string => {
+    if (!bill.lines || bill.lines.length === 0) return '-';
+    
+    const lotNames = bill.lines
+      .filter(line => line.lot_id && line.lot_name)
+      .map(line => line.lot_name);
+    
+    if (lotNames.length === 0) return '-';
+    
+    const uniqueLots = [...new Set(lotNames)];
+    if (uniqueLots.length === 1) return uniqueLots[0]!;
+    return `+${uniqueLots.length}`;
+  };
+
+  // Column count for empty state: Checkbox(1) + Vendor(1) + CostCode(1) + BillDate(1) + DueDate(1) + Amount(1) + Reference(1) + Memo(1) + Address(1) + Files(1) + POStatus(1) + Actions(1) = 12
+  // + Project(1) if shown = 13
+  const emptyStateColSpan = 12 + (showProjectColumn ? 1 : 0);
+
   if (bills.length === 0) {
     return (
       <div className="rounded-md border">
@@ -438,23 +474,24 @@ export function BatchBillReviewTable({
                 <Checkbox disabled aria-label="Select all bills" />
               </TableHead>
               {showProjectColumn && (
-                <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+                <TableHead className="px-2 py-0 text-xs font-medium w-44">Project</TableHead>
               )}
-              <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Terms</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Cost Code</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Total</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Issues</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Actions</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-36">Vendor</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-44">Cost Code</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Bill Date</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Due Date</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Amount</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-32">Reference</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-12 text-center">Memo</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Address</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-14 text-center">Files</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">PO Status</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-20">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)} className="h-32 text-center">
+              <TableCell colSpan={emptyStateColSpan} className="h-32 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <FileText className="h-12 w-12 mb-3 text-muted-foreground/50" />
                   <p className="text-sm font-medium">No bills uploaded yet</p>
@@ -488,18 +525,19 @@ export function BatchBillReviewTable({
                 />
               </TableHead>
               {showProjectColumn && (
-                <TableHead className="px-3 py-0 text-xs font-medium">Project</TableHead>
+                <TableHead className="px-2 py-0 text-xs font-medium w-44">Project</TableHead>
               )}
-              <TableHead className="px-3 py-0 text-xs font-medium">Vendor</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Reference #</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Bill Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Terms</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Due Date</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Cost Code</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Total</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">File</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Issues</TableHead>
-              <TableHead className="px-3 py-0 text-xs font-medium">Actions</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-36">Vendor</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-44">Cost Code</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Bill Date</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Due Date</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Amount</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-32">Reference</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-12 text-center">Memo</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-24">Address</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-14 text-center">Files</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">PO Status</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-20">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -511,13 +549,13 @@ export function BatchBillReviewTable({
                     <TableCell className="px-2 py-1">
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell className="px-3 py-1" colSpan={9 + (showProjectColumn ? 1 : 0)}>
+                    <TableCell className="px-2 py-1" colSpan={10 + (showProjectColumn ? 1 : 0)}>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-1">
+                    <TableCell className="px-2 py-1">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -531,8 +569,6 @@ export function BatchBillReviewTable({
                   </TableRow>
                 );
               }
-              
-              const issues = validateBill(bill);
               
               // Get total from extracted data or calculate from line amounts
               const extractedTotal = getExtractedValue(bill, 'total_amount', 'totalAmount');
@@ -575,30 +611,64 @@ export function BatchBillReviewTable({
               const vendorId = bill.vendor_id || getExtractedValue(bill, 'vendor_id', 'vendorId');
               const referenceNumber = getExtractedValue(bill, 'reference_number', 'referenceNumber');
               const billDate = getExtractedValue(bill, 'bill_date', 'billDate');
-              const dueDate = getExtractedValue(bill, 'due_date', 'dueDate');
+              const memoSummary = getMemoSummary(bill);
+              const lotDisplay = getLotDisplay(bill);
+              
+              // Compute due date display
+              const getDueDateDisplay = () => {
+                const rawDueDate = getExtractedValue(bill, 'due_date', 'dueDate') as string | null;
+                if (rawDueDate) {
+                  return formatDisplayFromAny(rawDueDate);
+                }
+                // Compute due date from bill date and terms (default Net 30)
+                if (billDate) {
+                  const rawTerms = getExtractedValue(bill, 'terms', 'terms') as string | null;
+                  const computedTerms = normalizeTermsForUI(rawTerms);
+                  const billDateObj = new Date(billDate as string);
+                  const computedDueDate = computeDueDate(billDateObj, computedTerms);
+                  return formatDisplayFromAny(computedDueDate.toISOString().split('T')[0]);
+                }
+                return '-';
+              };
               
               return (
-                <TableRow key={bill.id} className="h-10 bg-gray-50 hover:bg-gray-50">
-                  <TableCell className="px-2 py-1">
+                <TableRow key={bill.id} className="h-10 bg-muted/30 hover:bg-muted/50">
+                  {/* Checkbox */}
+                  <TableCell className="px-2 py-1 w-12">
                     <Checkbox
                       checked={selectedBillIds.has(bill.id)}
                       onCheckedChange={() => onBillSelect(bill.id)}
                       aria-label={`Select bill from ${vendorName}`}
                     />
                   </TableCell>
+                  
+                  {/* Project */}
                   {showProjectColumn && (
-                    <TableCell className="px-3 py-1 text-xs">
-                      {bill.lines?.[0]?.project_name || '-'}
+                    <TableCell className="px-2 py-1 text-xs w-44">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="block truncate">
+                              {bill.lines?.[0]?.project_name || '-'}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{bill.lines?.[0]?.project_name || '-'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                   )}
-                  <TableCell className="px-3 py-1">
+                  
+                  {/* Vendor */}
+                  <TableCell className="px-2 py-1 w-36">
                     {!vendorId && vendorName ? (
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-red-600 font-medium">{vendorName}</span>
+                        <span className="text-xs text-destructive font-medium truncate max-w-20">{vendorName}</span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 px-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="h-5 px-1.5 text-xs font-normal text-primary hover:text-primary hover:bg-primary/10"
                           onClick={() => handleRematchVendor(bill.id)}
                           disabled={rematchingBillId === bill.id}
                           title="Try to match vendor again"
@@ -612,7 +682,7 @@ export function BatchBillReviewTable({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 px-1.5 text-xs font-normal text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="h-5 px-1.5 text-xs font-normal text-primary hover:text-primary hover:bg-primary/10"
                           onClick={() => handleAddVendor(bill.id, vendorName as string)}
                           title="Add vendor to database"
                         >
@@ -620,54 +690,86 @@ export function BatchBillReviewTable({
                         </Button>
                       </div>
                     ) : (
-                      <span className="text-xs">{vendorName || '-'}</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-xs block truncate">{vendorName || '-'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{vendorName || '-'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs">{referenceNumber || '-'}</span>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <span className="text-xs">{billDate ? formatDisplayFromAny(billDate as string) : '-'}</span>
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                    {(() => {
-                      const rawTerms = getExtractedValue(bill, 'terms', 'terms') as string | null;
-                      const displayTerms = rawTerms ? formatTerms(rawTerms) : formatTerms(normalizeTermsForUI(null));
-                      return <span className="text-xs">{displayTerms}</span>;
-                    })()}
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
-                    {(() => {
-                      const rawDueDate = getExtractedValue(bill, 'due_date', 'dueDate') as string | null;
-                      if (rawDueDate) {
-                        return <span className="text-xs">{formatDisplayFromAny(rawDueDate)}</span>;
-                      }
-                      // Compute due date from bill date and terms (default Net 30)
-                      if (billDate) {
-                        const rawTerms = getExtractedValue(bill, 'terms', 'terms') as string | null;
-                        const computedTerms = normalizeTermsForUI(rawTerms);
-                        const billDateObj = new Date(billDate as string);
-                        const computedDueDate = computeDueDate(billDateObj, computedTerms);
-                        return <span className="text-xs">{formatDisplayFromAny(computedDueDate.toISOString().split('T')[0])}</span>;
-                      }
-                      return <span className="text-xs">-</span>;
-                    })()}
-                  </TableCell>
-                  <TableCell className="px-3 py-1">
+                  
+                  {/* Cost Code */}
+                  <TableCell className="px-2 py-1 w-44">
                     {accountDisplay === null ? (
-                      <span className="text-xs text-red-600 font-medium">NONE</span>
+                      <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
                     ) : (
-                      <span className="text-xs">{accountDisplay}</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-xs block truncate cursor-default">{accountDisplay}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{accountDisplay}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
+                  
+                  {/* Bill Date */}
+                  <TableCell className="px-2 py-1 text-xs w-24">
+                    {billDate ? formatDisplayFromAny(billDate as string) : '-'}
+                  </TableCell>
+                  
+                  {/* Due Date */}
+                  <TableCell className="px-2 py-1 text-xs w-24">
+                    {getDueDateDisplay()}
+                  </TableCell>
+                  
+                  {/* Amount */}
+                  <TableCell className="px-2 py-1 w-24">
                     {totalAmount > 0 ? (
                       <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
                     ) : (
                       <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="px-3 py-1">
+                  
+                  {/* Reference */}
+                  <TableCell className="px-2 py-1 w-32">
+                    <span className="text-xs block truncate">{referenceNumber || '-'}</span>
+                  </TableCell>
+                  
+                  {/* Memo */}
+                  <TableCell className="px-2 py-1 w-12 text-center">
+                    {memoSummary ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="whitespace-pre-wrap">{memoSummary}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* Address */}
+                  <TableCell className="px-2 py-1 text-xs w-24">
+                    {lotDisplay}
+                  </TableCell>
+                  
+                  {/* Files */}
+                  <TableCell className="px-2 py-1 w-14 text-center">
                     <div className="relative group inline-block">
                       <button
                         onClick={() => {
@@ -688,7 +790,7 @@ export function BatchBillReviewTable({
                           e.stopPropagation();
                           onBillDelete(bill.id);
                         }}
-                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
                         title="Delete file"
                         type="button"
                       >
@@ -696,16 +798,14 @@ export function BatchBillReviewTable({
                       </button>
                     </div>
                   </TableCell>
-                  <TableCell className="px-3 py-1">
-                    <div className="flex flex-col gap-1">
-                      {issues.length > 0 ? (
-                        <span className="text-xs text-red-600">{issues.length}</span>
-                      ) : (
-                        <span className="text-xs text-green-600">Ready</span>
-                      )}
-                    </div>
+                  
+                  {/* PO Status */}
+                  <TableCell className="px-2 py-1 w-20 text-center">
+                    <POStatusBadge status="no_po" />
                   </TableCell>
-                  <TableCell className="px-3 py-1">
+                  
+                  {/* Actions */}
+                  <TableCell className="px-2 py-1 w-20">
                     <div className="flex items-center gap-1">
                       <Button
                         variant="ghost"
