@@ -1,22 +1,21 @@
 
 
-# Fix: Sync Database Category Values with UI Labels
+# Fix: Update Database Category Values
 
 ## Problem
 
-The sidebar shows **7 issues** but the Issues page shows only **5**. The mismatch is caused by:
-- 2 issues in the database have `category = "Orders"`
-- The UI expects `category = "Purchase Orders"`
+The database still contains `category = "Orders"` for 2 issues, but the UI expects `category = "Purchase Orders"`:
 
-You want the database values to match exactly what the UI displays.
+| Current DB Category | Count | UI Expects |
+|---------------------|-------|------------|
+| Accounting | 1 | Accounting |
+| Bidding | 4 | Bidding |
+| **Orders** | **2** | **Purchase Orders** |
+| **Total** | **7** | (but only 5 match) |
 
 ## Solution
 
-Two changes are needed:
-
-### 1. Database Update (One-Time Fix)
-
-Update the 2 existing issues to use "Purchase Orders" as the category:
+Run this SQL command to update the database:
 
 ```sql
 UPDATE company_issues 
@@ -24,36 +23,28 @@ SET category = 'Purchase Orders'
 WHERE category = 'Orders';
 ```
 
-This will change:
-- "Create a printable PDF PO..." → category: "Purchase Orders"
-- "Discuss the ability to edit a PO..." → category: "Purchase Orders"
+## How to Apply
 
-### 2. Code Fix - AddIssueRow.tsx (Prevents Future Issues)
+You need to run this SQL in your Supabase dashboard:
 
-The location dropdown in `AddIssueRow.tsx` uses lowercase values like `"orders"`. While this is for the `location` field (not category), it should be consistent with the category naming. Update the Select items to use proper capitalized values matching the category names:
+1. Go to **Cloud View** (bottom of preview panel)
+2. Select **Run SQL** 
+3. Make sure **Test** environment is selected
+4. Paste and run the SQL above
+5. Refresh the Issues page
 
-**File:** `src/components/issues/AddIssueRow.tsx` (lines 184-195)
+## Result After Fix
 
-Change from:
-```typescript
-<SelectItem value="accounting">Accounting</SelectItem>
-<SelectItem value="orders">Purchase Orders</SelectItem>
-// ... etc
-```
+| Category | Count |
+|----------|-------|
+| Accounting | 1 |
+| Bidding | 4 |
+| **Purchase Orders** | **2** |
+| **Total** | **7** |
 
-To:
-```typescript
-<SelectItem value="Accounting">Accounting</SelectItem>
-<SelectItem value="Purchase Orders">Purchase Orders</SelectItem>
-// ... etc
-```
+Both the sidebar (7) and Issues page categories (1 + 4 + 2 = 7) will match.
 
-## Result
+## Why This Happened
 
-After these changes:
-- Database will have `category = "Purchase Orders"` for all PO-related issues
-- Sidebar will show **7** issues
-- Issues page will show **7** issues (Accounting: 1, Bidding: 4, Purchase Orders: 2)
-- All new issues will use consistent capitalized category/location values
-- No more mismatches between code labels and database values
+The code fix I made earlier updated `AddIssueRow.tsx` to use "Purchase Orders" for **new** issues, but the 2 **existing** issues in the database still had the old "Orders" value. The database needs to be updated to match the UI labels.
 
