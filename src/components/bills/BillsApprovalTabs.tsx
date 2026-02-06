@@ -76,7 +76,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     bills: BatchBill[];
     totalAmount: number;
   } | null>(null);
-  // Fetch and sync pending bills with their lines, auto-populate lot if only one exists
+  // Fetch and sync pending bills with their lines, auto-split across lots immediately
   useEffect(() => {
     if (!pendingBills || pendingBills.length === 0) {
       setBatchBills([]);
@@ -88,13 +88,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     let cancelled = false;
     
     const fetchAllLines = async () => {
+      // First fetch all lines with lot info
       const billsWithLines = await Promise.all(
         pendingBills.map(async (bill) => {
           if (cancelled) return { ...bill, lines: [] };
           
           const { data: lines, error } = await supabase
             .from('pending_bill_lines')
-            .select('*')
+            .select('*, project_lots(id, lot_number, lot_name)')
             .eq('pending_upload_id', bill.id)
             .order('line_number');
 
@@ -103,33 +104,90 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             return { ...bill, lines: [] };
           }
 
-          let processedLines = (lines || []) as PendingBillLine[];
-          
-          // Auto-populate lot_id if exactly one lot exists and line doesn't have lot assigned
-          if (lots.length === 1) {
-            const singleLot = lots[0];
-            const linesToUpdate = processedLines.filter(l => !l.lot_id);
-            
-            // Update lines in database if they don't have lot_id
-            if (linesToUpdate.length > 0 && !cancelled) {
-              const lineIds = linesToUpdate.map(l => l.id);
-              await supabase
-                .from('pending_bill_lines')
-                .update({ lot_id: singleLot.id })
-                .in('id', lineIds);
-            }
-            
-            // Update local lines with lot info
-            processedLines = processedLines.map(line => ({
-              ...line,
-              lot_id: line.lot_id || singleLot.id,
-              lot_name: (line as any).lot_name || singleLot.lot_name || `Lot ${singleLot.lot_number}`,
-            }));
-          }
+          // Map lot_name from joined data
+          const processedLines = (lines || []).map((line: any) => ({
+            ...line,
+            lot_name: line.project_lots?.lot_name || 
+                      (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
+          })) as PendingBillLine[];
 
           return { ...bill, lines: processedLines };
         })
       );
+
+      if (cancelled) return;
+
+      // Check if we need to auto-split (1 lot = assign to that lot, 2+ lots = split evenly)
+      if (lots.length >= 1 && effectiveProjectId) {
+        const billsNeedingLotAssignment = billsWithLines.filter(bill =>
+          bill.lines?.some((line: any) => !line.lot_id)
+        );
+
+        if (billsNeedingLotAssignment.length > 0) {
+          if (lots.length === 1) {
+            // Single lot: assign directly in DB
+            const singleLot = lots[0];
+            const allLineIds = billsNeedingLotAssignment.flatMap(bill =>
+              bill.lines?.filter((l: any) => !l.lot_id).map((l: any) => l.id) || []
+            );
+            
+            if (allLineIds.length > 0) {
+              await supabase
+                .from('pending_bill_lines')
+                .update({ lot_id: singleLot.id })
+                .in('id', allLineIds);
+              
+              // Update local state with lot info
+              billsWithLines.forEach(bill => {
+                bill.lines = bill.lines?.map((line: any) => ({
+                  ...line,
+                  lot_id: line.lot_id || singleLot.id,
+                  lot_name: line.lot_name || singleLot.lot_name || `Lot ${singleLot.lot_number}`,
+                })) || [];
+              });
+            }
+          } else {
+            // Multiple lots: call edge function to split evenly
+            const { error } = await supabase.functions.invoke('split-pending-bill-lines', {
+              body: {
+                pendingUploadIds: billsNeedingLotAssignment.map(b => b.id),
+                projectId: effectiveProjectId
+              }
+            });
+            
+            if (error) {
+              console.error('Failed to auto-split bills:', error);
+            } else {
+              // Refetch to get the split lines with lot assignments
+              const refetchedBills = await Promise.all(
+                billsWithLines.map(async (bill) => {
+                  if (cancelled) return bill;
+                  
+                  const { data: lines } = await supabase
+                    .from('pending_bill_lines')
+                    .select('*, project_lots(id, lot_number, lot_name)')
+                    .eq('pending_upload_id', bill.id)
+                    .order('line_number');
+
+                  const processedLines = (lines || []).map((line: any) => ({
+                    ...line,
+                    lot_name: line.project_lots?.lot_name || 
+                              (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
+                  })) as PendingBillLine[];
+
+                  return { ...bill, lines: processedLines };
+                })
+              );
+              
+              if (!cancelled) {
+                setBatchBills(refetchedBills);
+                setSelectedBillIds(new Set(refetchedBills.map(b => b.id)));
+                return;
+              }
+            }
+          }
+        }
+      }
 
       // Only update state if not cancelled
       if (!cancelled) {
@@ -144,7 +202,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     return () => {
       cancelled = true;
     };
-  }, [pendingBills, lots]);
+  }, [pendingBills, lots, effectiveProjectId]);
 
   const handleExtractionStart = useCallback(() => {
     setIsExtracting(true);
@@ -335,40 +393,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         return;
       }
 
-      // Auto-split across lots if needed (2+ lots and some lines missing lot_id)
-      if (lots.length >= 2) {
-        const billsWithMissingLots = validatedBills.filter(bill =>
-          bill.lines?.some(line => !line.lot_id)
-        );
-        
-        if (billsWithMissingLots.length > 0) {
-          // Call edge function to split evenly across all lots (fast, server-side)
-          const { data, error } = await supabase.functions.invoke('split-pending-bill-lines', {
-            body: {
-              pendingUploadIds: billsWithMissingLots.map(b => b.id),
-              projectId: effectiveProjectId
-            }
-          });
-          
-          if (error) {
-            toast({
-              title: "Error",
-              description: error.message || "Failed to allocate bills across addresses",
-              variant: "destructive",
-            });
-            setIsSubmitting(false);
-            return;
-          }
-          
-          toast({
-            title: "Auto-Allocated",
-            description: `Bills split evenly across ${lots.length} addresses`,
-          });
-          
-          // Refetch to get updated lines with lot assignments, then continue
-          await refetchPendingBills();
-        }
-      }
+      // Lot splitting is now handled on load (useEffect), no need to split here
       // Map validated bills to the format expected by batchApproveBills
       const billsToApprove = validatedBills.map(bill => {
         // Extract data from extracted_data with fallbacks to root properties
