@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Folder, Loader2, CheckSquare, Square } from 'lucide-react';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
@@ -256,7 +255,7 @@ export function SelectProjectFilesModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-2xl h-[80vh] max-h-[80vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Select Project Files</DialogTitle>
           <DialogDescription>
@@ -264,7 +263,7 @@ export function SelectProjectFilesModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+        <div className="min-h-0 space-y-4 flex-1 overflow-hidden flex flex-col">
           {/* Breadcrumb */}
           <div className="flex items-center justify-between">
             <SimpleBreadcrumb 
@@ -279,7 +278,7 @@ export function SelectProjectFilesModal({
           </div>
 
           {/* File List */}
-          <ScrollArea className="flex-1 border rounded-md max-h-[400px]">
+          <div className="min-h-0 flex-1 overflow-y-auto border rounded-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -371,7 +370,7 @@ export function SelectProjectFilesModal({
                 })}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
 
         <DialogFooter>
