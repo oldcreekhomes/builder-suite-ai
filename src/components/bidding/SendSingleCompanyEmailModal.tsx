@@ -194,6 +194,21 @@ export function SendSingleCompanyEmailModal({
         throw new Error('Email was not sent successfully');
       }
 
+      // Update sent_on if not already set (preserve first send date)
+      if (!bidPackage.sent_on) {
+        const { error: updateError } = await supabase
+          .from('project_bid_packages')
+          .update({ sent_on: new Date().toISOString() })
+          .eq('id', bidPackage.id);
+
+        if (updateError) {
+          console.error('Error updating sent_on date:', updateError);
+        }
+        
+        // Invalidate queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: ['project-bidding'] });
+      }
+
       toast({
         title: "Email Sent",
         description: `Bid package sent successfully to ${companyData.companies.company_name}.`,

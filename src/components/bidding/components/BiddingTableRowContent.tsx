@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
+import { format } from 'date-fns';
 import { BiddingDatePicker } from './BiddingDatePicker';
 import { BiddingTableRowSpecs } from './BiddingTableRowSpecs';
 import { BiddingTableRowFiles } from './BiddingTableRowFiles';
@@ -121,6 +122,9 @@ export function BiddingTableRowContent({
         onJustClose={handleJustClose}
         onCreatePO={handleCreatePO}
       />
+      <TableCell className="py-1 w-32 text-sm text-muted-foreground">
+        {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
+      </TableCell>
       <TableCell className="py-1 w-32">
         <BiddingDatePicker
           value={item.due_date}

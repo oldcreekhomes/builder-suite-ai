@@ -31,6 +31,7 @@ export interface BiddingPackage {
   status: string;
   due_date: string | null;
   reminder_date: string | null;
+  sent_on: string | null;
   files: string[];
   specifications: string | null;
   created_at: string;
