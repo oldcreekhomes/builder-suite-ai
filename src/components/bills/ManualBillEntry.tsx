@@ -13,7 +13,8 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, StickyNote, Divide } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillData, BillLineData } from "@/hooks/useBills";
@@ -222,6 +223,54 @@ export function ManualBillEntry() {
     setExpenseRows(expenseRows.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
+  };
+
+  // Split a row evenly across all project lots
+  const splitRowEvenly = (rowId: string, rowType: 'job_cost' | 'expense') => {
+    const rows = rowType === 'job_cost' ? jobCostRows : expenseRows;
+    const setRows = rowType === 'job_cost' ? setJobCostRows : setExpenseRows;
+    
+    const rowToSplit = rows.find(r => r.id === rowId);
+    if (!rowToSplit || lots.length < 2) return;
+    
+    const originalAmount = parseFloat(rowToSplit.amount) || 0;
+    const originalQty = parseFloat(rowToSplit.quantity) || 1;
+    const totalValue = originalAmount * originalQty;
+    
+    // Calculate per-lot amount (penny-precise with remainder on last)
+    const perLotAmount = Math.floor((totalValue / lots.length) * 100) / 100;
+    const remainder = Math.round((totalValue - (perLotAmount * (lots.length - 1))) * 100) / 100;
+    
+    // Create new rows for each lot
+    const newRows: ExpenseRow[] = lots.map((lot, index) => ({
+      id: `${rowId}_split_${lot.id}`,
+      account: rowToSplit.account,
+      accountId: rowToSplit.accountId,
+      project: rowToSplit.project,
+      projectId: rowToSplit.projectId,
+      lotId: lot.id,
+      purchaseOrderId: rowToSplit.purchaseOrderId,
+      quantity: '1',
+      amount: index === lots.length - 1 
+        ? remainder.toFixed(2) 
+        : perLotAmount.toFixed(2),
+      memo: rowToSplit.memo
+    }));
+    
+    // Replace original row with split rows
+    const rowIndex = rows.findIndex(r => r.id === rowId);
+    const updatedRows = [
+      ...rows.slice(0, rowIndex),
+      ...newRows,
+      ...rows.slice(rowIndex + 1)
+    ];
+    
+    setRows(updatedRows);
+    
+    toast({
+      title: "Row Split",
+      description: `Split $${totalValue.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
   };
 
   const resolveCostCodeIdFromText = (
@@ -680,22 +729,36 @@ export function ManualBillEntry() {
                 <div className="border rounded-lg overflow-hidden w-full">
                   <div className={cn(
                     "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
-                    showAddressColumn ? "grid-cols-24" : "grid-cols-20"
+                    showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
                   <div className="col-span-4">Cost Code</div>
-                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
+                  <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
                   {showAddressColumn && <div className="col-span-3">Address</div>}
-                  <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>Purchase Order</div>
+                  <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>Purchase Order</div>
+                  {showAddressColumn && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="col-span-1 flex items-center justify-center">
+                            <Divide className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Split evenly across addresses</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {jobCostRows.map((row) => (
                   <div key={row.id} className={cn(
                     "grid gap-2 p-3 border-t w-full", 
-                    showAddressColumn ? "grid-cols-24" : "grid-cols-20"
+                    showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
                     <div className="col-span-4">
                       <CostCodeSearchInput
@@ -715,7 +778,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>
                       <Input
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -770,7 +833,7 @@ export function ManualBillEntry() {
                         </Select>
                       </div>
                     )}
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>
                       <POSelectionDropdown
                         projectId={projectId}
                         vendorId={vendorId}
@@ -779,6 +842,31 @@ export function ManualBillEntry() {
                         costCodeId={row.accountId}
                       />
                     </div>
+                    {showAddressColumn && (
+                      <div className="col-span-1 flex items-center justify-center">
+                        {!row.lotId && (parseFloat(row.amount) || 0) > 0 ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => splitRowEvenly(row.id, 'job_cost')}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Divide className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Split evenly across all addresses</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    )}
                     <div className="col-span-1 flex items-center justify-end">
                       <Button
                         onClick={() => removeJobCostRow(row.id)}
@@ -860,22 +948,36 @@ export function ManualBillEntry() {
               <div className="border rounded-lg overflow-hidden w-full">
                 <div className={cn(
                   "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
-                  showAddressColumn ? "grid-cols-24" : "grid-cols-20"
+                  showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                 )}>
                   <div className="col-span-4">Account</div>
-                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
+                  <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
                   {showAddressColumn && <div className="col-span-3">Address</div>}
-                  <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>Purchase Order</div>
+                  <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>Purchase Order</div>
+                  {showAddressColumn && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="col-span-1 flex items-center justify-center">
+                            <Divide className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Split evenly across addresses</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {expenseRows.map((row) => (
                   <div key={row.id} className={cn(
                     "grid gap-2 p-3 border-t w-full", 
-                    showAddressColumn ? "grid-cols-24" : "grid-cols-20"
+                    showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
                     <div className="col-span-4">
                       <AccountSearchInput
@@ -889,7 +991,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>
                       <Input 
                         placeholder="Expense memo"
                         value={row.memo}
@@ -944,7 +1046,7 @@ export function ManualBillEntry() {
                         </Select>
                       </div>
                     )}
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-3"}>
+                    <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>
                       <POSelectionDropdown
                         projectId={projectId}
                         vendorId={vendorId}
@@ -952,6 +1054,31 @@ export function ManualBillEntry() {
                         onChange={(poId) => updateExpenseRow(row.id, 'purchaseOrderId', poId || '')}
                       />
                     </div>
+                    {showAddressColumn && (
+                      <div className="col-span-1 flex items-center justify-center">
+                        {!row.lotId && (parseFloat(row.amount) || 0) > 0 ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => splitRowEvenly(row.id, 'expense')}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Divide className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Split evenly across all addresses</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    )}
                     <div className="col-span-1 flex items-center justify-end">
                       <Button
                         onClick={() => removeExpenseRow(row.id)}
