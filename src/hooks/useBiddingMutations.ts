@@ -567,6 +567,52 @@ export const useBiddingMutations = (projectId: string) => {
     addCompaniesToBidPackage.mutate({ bidPackageId, companyIds });
   };
 
+  // Link existing project files to bidding package (no upload, just reference)
+  const linkProjectFiles = useMutation({
+    mutationFn: async ({ itemId, storagePaths }: { itemId: string; storagePaths: string[] }) => {
+      // Get current files array
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_bid_packages')
+        .select('files')
+        .eq('id', itemId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      const currentFiles = currentData?.files || [];
+      // Append new storage paths (these are full paths like "projectId/uuid_filename")
+      const updatedFiles = [...currentFiles, ...storagePaths];
+      
+      const { error } = await supabase
+        .from('project_bid_packages')
+        .update({ files: updatedFiles })
+        .eq('id', itemId);
+
+      if (error) throw error;
+      
+      return storagePaths.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      toast({
+        title: "Success",
+        description: `${count} file${count > 1 ? 's' : ''} linked successfully`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error linking project files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to link project files",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLinkProjectFiles = (itemId: string, storagePaths: string[]) => {
+    linkProjectFiles.mutate({ itemId, storagePaths });
+  };
+
   return {
     deletingGroups,
     deletingItems,
@@ -579,6 +625,7 @@ export const useBiddingMutations = (projectId: string) => {
     handleUpdateSpecifications,
     handleFileUpload,
     handleDeleteIndividualFile,
+    handleLinkProjectFiles,
     cancelUpload,
     removeUpload,
     handleAddCompaniesToBidPackage,

@@ -26,6 +26,7 @@ interface BiddingCompany {
 
 interface BiddingTableRowProps {
   item: any; // Project bidding item with cost_codes relation and companies
+  projectId?: string;
   onDelete: (itemId: string) => void;
   onUpdateStatus: (itemId: string, status: string) => void;
   onUpdateDueDate: (itemId: string, dueDate: string | null) => void;
@@ -46,6 +47,7 @@ interface BiddingTableRowProps {
   projectAddress?: string;
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
+  onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
   selectedCompanies?: Set<string>;
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
@@ -58,6 +60,7 @@ interface BiddingTableRowProps {
 
 export function BiddingTableRow({
   item,
+  projectId,
   onDelete,
   onUpdateStatus,
   onUpdateDueDate,
@@ -78,6 +81,7 @@ export function BiddingTableRow({
   projectAddress,
   onFileUpload,
   onDeleteIndividualFile,
+  onLinkProjectFiles,
   selectedCompanies,
   onCompanyCheckboxChange,
   onSelectAllCompanies,
@@ -124,6 +128,7 @@ export function BiddingTableRow({
         isSelected={isSelected}
         isDeleting={isDeleting}
         isReadOnly={isReadOnly}
+        projectId={projectId}
         onRowClick={() => setShowBidPackageModal(true)}
         onCheckboxChange={onCheckboxChange}
         onUpdateStatus={onUpdateStatus}
@@ -136,6 +141,7 @@ export function BiddingTableRow({
         onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
+        onLinkProjectFiles={onLinkProjectFiles}
         onCloseWithPO={handleCloseWithPO}
       />
       

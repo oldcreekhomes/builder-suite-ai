@@ -21,6 +21,7 @@ interface BiddingTableRowContentProps {
   isSelected: boolean;
   isDeleting?: boolean;
   isReadOnly?: boolean;
+  projectId?: string;
   onRowClick: () => void;
   onCheckboxChange: (itemId: string, checked: boolean) => void;
   onUpdateStatus: (itemId: string, status: string) => void;
@@ -33,6 +34,7 @@ interface BiddingTableRowContentProps {
   onAddCompaniesClick?: () => void;
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
+  onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
   onCloseWithPO?: () => void;
 }
 
@@ -42,6 +44,7 @@ export function BiddingTableRowContent({
   isSelected,
   isDeleting = false,
   isReadOnly = false,
+  projectId,
   onRowClick,
   onCheckboxChange,
   onUpdateStatus,
@@ -54,6 +57,7 @@ export function BiddingTableRowContent({
   onAddCompaniesClick,
   onFileUpload,
   onDeleteIndividualFile,
+  onLinkProjectFiles,
   onCloseWithPO
 }: BiddingTableRowContentProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -158,8 +162,10 @@ export function BiddingTableRowContent({
       <BiddingTableRowFiles
         item={item}
         isReadOnly={isReadOnly}
+        projectId={projectId}
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
+        onLinkProjectFiles={onLinkProjectFiles}
       />
       <BiddingTableRowActions
         item={item}
