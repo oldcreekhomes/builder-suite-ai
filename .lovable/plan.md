@@ -1,58 +1,76 @@
 
-# Fix Grid Layout for Single-Lot Projects (Delete Button on Same Row)
 
-## Issues Identified
+# Fix: PDF.js Version Mismatch Causing Upload Failures
 
-### 1. Delete Button on Wrong Row
-The current grid layout for single-lot projects has incorrect column spans that exceed the grid size, causing the delete button to wrap to a new line.
+## The Problem
 
-**Current single-lot layout (grid-cols-20):**
-| Column | Span | Running Total |
-|--------|------|---------------|
-| Cost Code | 5 | 5 |
-| Memo | 6 | 11 |
-| Quantity | 2 | 13 |
-| Cost | 2 | 15 |
-| Total | 2 | 17 |
-| Purchase Order | 3 | 20 |
-| Action | 1 | **21** |
+When you try to upload a PDF on the Estimate page, you see "Failed to upload sheets" because there's a version mismatch between the PDF.js API and Worker:
 
-**Problem:** Total spans = 21, but grid only has 20 columns. The Action column wraps to a new row.
+```
+The API version "5.4.530" does not match the Worker version "5.4.296"
+```
 
-### 2. Data Confirmation
-Your single-lot data IS being saved correctly with the lot ID. The fix we just implemented automatically assigns the single lot's ID when saving, even though the Address column isn't visible. This happens in the background during save.
+**What's happening:**
+- `react-pdf` library includes its own `pdfjs-dist@5.4.296`
+- Your project also has a separate `pdfjs-dist@^5.3.93` which resolved to `5.4.530`
+- The upload dialog imports from the standalone `pdfjs-dist` (v5.4.530)
+- But the worker is configured using `react-pdf`'s version (v5.4.296)
 
-## The Fix
+This mismatch causes the PDF parsing to fail completely.
 
-Reduce the Memo column from `col-span-6` to `col-span-5` for single-lot projects so columns fit exactly in 20:
+## The Solution
 
-**Fixed single-lot layout (grid-cols-20):**
-| Column | Old Span | New Span | Running Total |
-|--------|----------|----------|---------------|
-| Cost Code | 5 | 5 | 5 |
-| Memo | 6 | **5** | 10 |
-| Quantity | 2 | 2 | 12 |
-| Cost | 2 | 2 | 14 |
-| Total | 2 | 2 | 16 |
-| Purchase Order | 3 | 3 | 19 |
-| Action | 1 | 1 | **20** |
+Modify `UploadSheetDialog.tsx` to import `pdfjs` from the centralized config (which uses `react-pdf`'s version) instead of importing directly from `pdfjs-dist`.
 
 ## Files to Change
 
-**File:** `src/components/bills/ManualBillEntry.tsx`
+**File:** `src/components/estimate/UploadSheetDialog.tsx`
 
-### Job Cost Tab - Header (line 739)
-Change Memo from `col-span-6` to `col-span-5` when addresses hidden
+### Change 1: Update the import (line 17)
 
-### Job Cost Tab - Rows (line 772)
-Change Memo input container from `col-span-6` to `col-span-5` when addresses hidden
+Replace:
+```typescript
+import * as pdfjsLib from "pdfjs-dist";
+```
 
-### Expense Tab - Header
-Same change for Memo column in expense header
+With:
+```typescript
+import { pdfjs } from "@/lib/pdfConfig";
+```
 
-### Expense Tab - Rows
-Same change for Memo input container in expense rows
+### Change 2: Update usage (line 107)
 
-## Result
+Replace:
+```typescript
+const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+```
 
-The delete button will appear on the same row as all other columns for both single-lot and multi-lot projects.
+With:
+```typescript
+const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+```
+
+## Why This Works
+
+The `pdfConfig.ts` file:
+1. Gets `pdfjs` from `react-pdf` (which uses version 5.4.296)
+2. Configures the worker to match that exact version
+3. Exports the `pdfjs` object for use throughout the app
+
+By using this centralized config, all PDF operations use the same version, eliminating the mismatch.
+
+## Alternative Approach (Not Recommended)
+
+We could also fix this by pinning `pdfjs-dist` in package.json to exactly `5.4.296` to match react-pdf, but this is fragile because:
+- It would break again if react-pdf updates
+- It requires manual version tracking
+- The centralized import approach is cleaner and self-maintaining
+
+## Technical Details
+
+| Component | Current Version | After Fix |
+|-----------|-----------------|-----------|
+| UploadSheetDialog import | pdfjs-dist 5.4.530 | react-pdf's pdfjs 5.4.296 |
+| Worker version | 5.4.296 | 5.4.296 |
+| **Result** | Mismatch Error | Matching versions |
+
