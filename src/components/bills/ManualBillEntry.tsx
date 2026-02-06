@@ -738,20 +738,7 @@ export function ManualBillEntry() {
                   <div className="col-span-2">Total</div>
                   {showAddressColumn && <div className="col-span-3">Address</div>}
                   <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>Purchase Order</div>
-                  {showAddressColumn && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="col-span-1 flex items-center justify-center">
-                            <Divide className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Split evenly across addresses</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  {showAddressColumn && <div className="col-span-1"></div>}
                   <div className="col-span-1 text-right">Action</div>
                 </div>
 
@@ -844,27 +831,24 @@ export function ManualBillEntry() {
                     </div>
                     {showAddressColumn && (
                       <div className="col-span-1 flex items-center justify-center">
-                        {!row.lotId && (parseFloat(row.amount) || 0) > 0 ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => splitRowEvenly(row.id, 'job_cost')}
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Divide className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Split evenly across all addresses</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => splitRowEvenly(row.id, 'job_cost')}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                disabled={!!row.lotId || (parseFloat(row.amount) || 0) <= 0}
+                              >
+                                <Divide className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Split evenly across all addresses</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     )}
                     <div className="col-span-1 flex items-center justify-end">
@@ -957,20 +941,7 @@ export function ManualBillEntry() {
                   <div className="col-span-2">Total</div>
                   {showAddressColumn && <div className="col-span-3">Address</div>}
                   <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>Purchase Order</div>
-                  {showAddressColumn && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="col-span-1 flex items-center justify-center">
-                            <Divide className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Split evenly across addresses</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  {showAddressColumn && <div className="col-span-1"></div>}
                   <div className="col-span-1 text-right">Action</div>
                 </div>
 
@@ -1056,27 +1027,24 @@ export function ManualBillEntry() {
                     </div>
                     {showAddressColumn && (
                       <div className="col-span-1 flex items-center justify-center">
-                        {!row.lotId && (parseFloat(row.amount) || 0) > 0 ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => splitRowEvenly(row.id, 'expense')}
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Divide className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Split evenly across all addresses</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => splitRowEvenly(row.id, 'expense')}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                disabled={!!row.lotId || (parseFloat(row.amount) || 0) <= 0}
+                              >
+                                <Divide className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Split evenly across all addresses</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     )}
                     <div className="col-span-1 flex items-center justify-end">
