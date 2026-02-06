@@ -1,79 +1,58 @@
 
-# Fix: Auto-Assign Lot ID for Single-Lot Projects in Manual Bill Entry
+# Fix Grid Layout for Single-Lot Projects (Delete Button on Same Row)
 
-## The Problem You Found
+## Issues Identified
 
-You're correct - for single-lot projects like Ocean Watch, bill lines are being saved **without** a `lot_id` in the database. This creates an inconsistency:
+### 1. Delete Button on Wrong Row
+The current grid layout for single-lot projects has incorrect column spans that exceed the grid size, causing the delete button to wrap to a new line.
 
-| Entry Method | Single-Lot Project Behavior |
-|--------------|----------------------------|
-| Enter with AI | Automatically assigns the single lot's ID to all lines |
-| Enter Manually | Saves with `lot_id = NULL` because Address column is hidden |
+**Current single-lot layout (grid-cols-20):**
+| Column | Span | Running Total |
+|--------|------|---------------|
+| Cost Code | 5 | 5 |
+| Memo | 6 | 11 |
+| Quantity | 2 | 13 |
+| Cost | 2 | 15 |
+| Total | 2 | 17 |
+| Purchase Order | 3 | 20 |
+| Action | 1 | **21** |
 
-**Database evidence:** All bill_lines from single-lot projects have `lot_id = NULL`, even though those projects have a valid "Lot 1" record in `project_lots`.
+**Problem:** Total spans = 21, but grid only has 20 columns. The Action column wraps to a new row.
 
-## Why This Matters
-
-- **Job Costs Report**: Uses `lot_id` to filter costs by lot - NULL values may be excluded
-- **Data Consistency**: Multi-lot projects have proper lot assignments, but single-lot projects don't
-- **Future Reporting**: Any lot-based filtering or aggregation will miss these records
+### 2. Data Confirmation
+Your single-lot data IS being saved correctly with the lot ID. The fix we just implemented automatically assigns the single lot's ID when saving, even though the Address column isn't visible. This happens in the background during save.
 
 ## The Fix
 
-Modify the save logic in Manual Bill Entry to auto-assign the single lot's ID when:
-1. The project has exactly 1 lot
-2. The row doesn't already have a `lotId` set
+Reduce the Memo column from `col-span-6` to `col-span-5` for single-lot projects so columns fit exactly in 20:
 
-## Implementation
+**Fixed single-lot layout (grid-cols-20):**
+| Column | Old Span | New Span | Running Total |
+|--------|----------|----------|---------------|
+| Cost Code | 5 | 5 | 5 |
+| Memo | 6 | **5** | 10 |
+| Quantity | 2 | 2 | 12 |
+| Cost | 2 | 2 | 14 |
+| Total | 2 | 2 | 16 |
+| Purchase Order | 3 | 3 | 19 |
+| Action | 1 | 1 | **20** |
+
+## Files to Change
 
 **File:** `src/components/bills/ManualBillEntry.tsx`
 
-### Change the billLines mapping (around line 431-456)
+### Job Cost Tab - Header (line 739)
+Change Memo from `col-span-6` to `col-span-5` when addresses hidden
 
-Add logic to default `lot_id` to the single lot when applicable:
+### Job Cost Tab - Rows (line 772)
+Change Memo input container from `col-span-6` to `col-span-5` when addresses hidden
 
-```typescript
-// Get the single lot ID if project has exactly one lot
-const singleLotId = lots.length === 1 ? lots[0]?.id : undefined;
+### Expense Tab - Header
+Same change for Memo column in expense header
 
-const billLines: BillLineData[] = [
-  ...resolvedJobRows
-    .filter(row => row.accountId || row.amount)
-    .map(row => ({
-      line_type: 'job_cost' as const,
-      cost_code_id: row.accountId || undefined,
-      project_id: row.projectId || projectId || undefined,
-      // Auto-assign single lot if no lot selected
-      lot_id: row.lotId || singleLotId || undefined,
-      purchase_order_id: row.purchaseOrderId || undefined,
-      quantity: parseFloat(row.quantity) || 1,
-      unit_cost: parseFloat(row.amount) || 0,
-      amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
-      memo: row.memo || undefined
-    })),
-  ...resolvedExpenseRows
-    .filter(row => row.accountId || row.amount)
-    .map(row => ({
-      line_type: 'expense' as const,
-      account_id: row.accountId || undefined,
-      project_id: row.projectId || projectId || undefined,
-      // Expense rows could also use singleLotId if needed
-      quantity: parseFloat(row.quantity) || 1,
-      unit_cost: parseFloat(row.amount) || 0,
-      amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
-      memo: row.memo || undefined
-    }))
-];
-```
-
-## What This Achieves
-
-| Scenario | Before Fix | After Fix |
-|----------|------------|-----------|
-| Single-lot project, manual entry | `lot_id = NULL` | `lot_id = [Lot 1 UUID]` |
-| Multi-lot project, no address selected | `lot_id = NULL` | `lot_id = NULL` (user must select) |
-| Multi-lot project, address selected | `lot_id = [selected]` | `lot_id = [selected]` |
+### Expense Tab - Rows
+Same change for Memo input container in expense rows
 
 ## Result
 
-All bill lines will have proper `lot_id` assignment regardless of whether the Address column is visible, ensuring consistent data for reports and filtering.
+The delete button will appear on the same row as all other columns for both single-lot and multi-lot projects.
