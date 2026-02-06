@@ -2687,6 +2687,7 @@ export type Database = {
           project_id: string
           reminder_date: string | null
           reminder_day_of_week: number | null
+          sent_on: string | null
           specifications: string | null
           status: string
           updated_at: string
@@ -2701,6 +2702,7 @@ export type Database = {
           project_id: string
           reminder_date?: string | null
           reminder_day_of_week?: number | null
+          sent_on?: string | null
           specifications?: string | null
           status?: string
           updated_at?: string
@@ -2715,6 +2717,7 @@ export type Database = {
           project_id?: string
           reminder_date?: string | null
           reminder_day_of_week?: number | null
+          sent_on?: string | null
           specifications?: string | null
           status?: string
           updated_at?: string

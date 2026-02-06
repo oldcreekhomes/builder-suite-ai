@@ -213,9 +213,15 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
 
       // Only update status to 'sent' if email was successfully sent
       if (emailResult?.success) {
+        // Update status and set sent_on if not already set (preserve first send date)
+        const updateData: { status: string; sent_on?: string } = { status: 'sent' };
+        if (!bidPackage.sent_on) {
+          updateData.sent_on = new Date().toISOString();
+        }
+        
         const { error: updateError } = await supabase
           .from('project_bid_packages')
-          .update({ status: 'sent' })
+          .update(updateData)
           .eq('id', bidPackage.id);
 
         if (updateError) {

@@ -212,6 +212,7 @@ export function BidPackageDetailsModal({
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-3 text-sm font-medium">Status</th>
+                  <th className="text-left p-3 text-sm font-medium">Sent On</th>
                   <th className="text-left p-3 text-sm font-medium">Due Date</th>
                   <th className="text-left p-3 text-sm font-medium">Reminder</th>
                   <th className="text-left p-3 text-sm font-medium">Specifications</th>
@@ -236,6 +237,9 @@ export function BidPackageDetailsModal({
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
+                  </td>
+                  <td className="p-3 text-sm text-muted-foreground">
+                    {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
                   </td>
                   <td className="p-3">
                     <BiddingDatePicker
