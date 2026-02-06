@@ -107,3 +107,6 @@ verify_jwt = true
 
 [functions.send-signup-emails]
 verify_jwt = false
+
+[functions.split-pending-bill-lines]
+verify_jwt = false
