@@ -4,6 +4,14 @@ import { Button } from '@/components/ui/button';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { getFileIcon, getFileIconColor, getCleanFileName } from '../utils/fileIconUtils';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import { SelectProjectFilesModal } from '../SelectProjectFilesModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown, Upload, FolderOpen } from 'lucide-react';
 
 // Helper to get storage path for specification files
 const getProjectFileStoragePath = (fileRef: string): string => {
@@ -14,12 +22,22 @@ const getProjectFileStoragePath = (fileRef: string): string => {
 interface BiddingTableRowFilesProps {
   item: any;
   isReadOnly?: boolean;
+  projectId?: string;
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
+  onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
 }
 
-export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, onDeleteIndividualFile }: BiddingTableRowFilesProps) {
+export function BiddingTableRowFiles({ 
+  item, 
+  isReadOnly = false, 
+  projectId,
+  onFileUpload, 
+  onDeleteIndividualFile,
+  onLinkProjectFiles 
+}: BiddingTableRowFilesProps) {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [showProjectFilesModal, setShowProjectFilesModal] = useState(false);
   const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   const handleFileUpload = () => {
@@ -41,6 +59,12 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
     input.click();
   };
 
+  const handleSelectProjectFiles = (storagePaths: string[]) => {
+    if (onLinkProjectFiles && storagePaths.length > 0) {
+      onLinkProjectFiles(item.id, storagePaths);
+    }
+  };
+
   const confirmDelete = () => {
     if (fileToDelete && onDeleteIndividualFile) {
       onDeleteIndividualFile(item.id, fileToDelete);
@@ -54,6 +78,9 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
     const storagePath = getProjectFileStoragePath(fileName);
     openSpecificationFile(storagePath, displayName);
   };
+
+  // Get existing file paths to exclude from project files modal
+  const existingFilePaths = (item.files || []).map((f: string) => getProjectFileStoragePath(f));
 
   return (
     <TableCell className="py-1">
@@ -93,16 +120,32 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
           </div>
         )}
         
-        {/* Always show upload button when not read-only */}
+        {/* Dropdown for add file options when not read-only */}
         {!isReadOnly && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleFileUpload}
-            className="h-8 text-xs"
-          >
-            Add Files
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+              >
+                Add Files
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleFileUpload}>
+                <Upload className="mr-2 h-4 w-4" />
+                From Computer
+              </DropdownMenuItem>
+              {projectId && onLinkProjectFiles && (
+                <DropdownMenuItem onClick={() => setShowProjectFilesModal(true)}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  From Project Files
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
@@ -113,6 +156,17 @@ export function BiddingTableRowFiles({ item, isReadOnly = false, onFileUpload, o
         title="Delete File"
         description={`Are you sure you want to delete "${fileToDelete ? getCleanFileName(fileToDelete) : ''}"? This action cannot be undone.`}
       />
+
+      {/* Project Files Selection Modal */}
+      {projectId && (
+        <SelectProjectFilesModal
+          open={showProjectFilesModal}
+          onOpenChange={setShowProjectFilesModal}
+          projectId={projectId}
+          onSelectFiles={handleSelectProjectFiles}
+          existingFiles={existingFilePaths}
+        />
+      )}
     </TableCell>
   );
 }
