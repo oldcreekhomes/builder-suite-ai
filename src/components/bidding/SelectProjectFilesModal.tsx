@@ -10,10 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Search, FileText, FileSpreadsheet, File, Loader2 } from 'lucide-react';
+import { Search, Folder, Loader2, CheckSquare, Square } from 'lucide-react';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
-import { formatDistanceToNow } from 'date-fns';
+import { useProjectFolders } from '@/hooks/useProjectFolders';
+import { SimpleBreadcrumb } from '@/components/files/SimpleBreadcrumb';
 
 interface SelectProjectFilesModalProps {
   open: boolean;
@@ -23,41 +23,28 @@ interface SelectProjectFilesModalProps {
   existingFiles?: string[];
 }
 
-const getFileIcon = (fileName: string) => {
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  switch (extension) {
-    case 'xlsx':
-    case 'xls':
-      return FileSpreadsheet;
-    case 'pdf':
-      return File;
-    default:
-      return FileText;
-  }
-};
+interface SimpleFolder {
+  name: string;
+  path: string;
+}
 
-const getFileIconColor = (fileName: string) => {
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  switch (extension) {
-    case 'pdf':
-      return 'text-red-600';
-    case 'xlsx':
-    case 'xls':
-      return 'text-green-600';
-    case 'docx':
-    case 'doc':
-      return 'text-blue-600';
-    default:
-      return 'text-muted-foreground';
-  }
-};
+interface SimpleFile {
+  id: string;
+  displayName: string;
+  file_size: number;
+  mime_type: string;
+  storage_path: string;
+  uploaded_at: string;
+  original_filename: string;
+}
 
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+const getFileIcon = (mimeType: string) => {
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType.includes('pdf')) return '📄';
+  if (mimeType.includes('word')) return '📝';
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+  if (mimeType.includes('zip') || mimeType.includes('rar')) return '🗜️';
+  return '📁';
 };
 
 export function SelectProjectFilesModal({
@@ -68,29 +55,164 @@ export function SelectProjectFilesModal({
   existingFiles = [],
 }: SelectProjectFilesModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPath, setCurrentPath] = useState('');
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   
-  const { data: projectFiles, isLoading } = useProjectFiles(projectId);
+  const { data: allFiles = [], isLoading: filesLoading } = useProjectFiles(projectId);
+  const { data: folderRows = [], isLoading: foldersLoading } = useProjectFolders(projectId);
+  
+  const isLoading = filesLoading || foldersLoading;
 
-  // Filter files based on search and exclude already attached files
-  const filteredFiles = useMemo(() => {
-    if (!projectFiles) return [];
-    
-    return projectFiles.filter(file => {
-      // Exclude already attached files
-      if (existingFiles.includes(file.storage_path)) return false;
+  // Helper to normalize any path variations (same as SimpleFileManager)
+  const normalizePath = (p?: string) => {
+    if (!p) return '';
+    return p
+      .replace(/\\/g, '/') // windows to unix
+      .replace(/\s+\/\s+/g, '/') // trim spaces around slashes
+      .replace(/\/+/g, '/') // collapse multiple slashes
+      .replace(/^\//, '') // remove leading slash
+      .replace(/\/$/, '') // remove trailing slash
+      .trim();
+  };
+
+  // Get files and folders for current path (same logic as SimpleFileManager)
+  const getCurrentItems = useMemo(() => {
+    const normalizedCurrentPath = normalizePath(currentPath);
+
+    const folders = new Set<string>();
+    const files: SimpleFile[] = [];
+
+    // Filter out already attached files and get current path items
+    allFiles.forEach(file => {
+      // Skip already attached files
+      if (existingFiles.includes(file.storage_path)) return;
       
-      // Apply search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        return (
-          file.original_filename.toLowerCase().includes(query) ||
-          file.filename.toLowerCase().includes(query)
-        );
+      // Skip folderkeeper files
+      if (file.file_type === 'folderkeeper') return;
+
+      let filePath = normalizePath(file.original_filename);
+
+      if (!filePath) return;
+
+      if (normalizedCurrentPath) {
+        // We're in a subfolder
+        if (!(filePath + '/').startsWith(normalizedCurrentPath + '/')) return;
+
+        const remainingPath = filePath.substring(normalizedCurrentPath.length + 1);
+        const nextSlash = remainingPath.indexOf('/');
+
+        if (nextSlash === -1) {
+          // It's a file in current folder
+          files.push({
+            id: file.id,
+            displayName: remainingPath,
+            file_size: file.file_size,
+            mime_type: file.mime_type,
+            storage_path: file.storage_path,
+            uploaded_at: file.uploaded_at,
+            original_filename: file.original_filename
+          });
+        } else {
+          // It's a direct child folder
+          const folderName = remainingPath.substring(0, nextSlash);
+          if (folderName) folders.add(folderName);
+        }
+      } else {
+        // We're at root
+        const firstSlash = filePath.indexOf('/');
+
+        if (firstSlash === -1) {
+          // Root level file
+          files.push({
+            id: file.id,
+            displayName: filePath,
+            file_size: file.file_size,
+            mime_type: file.mime_type,
+            storage_path: file.storage_path,
+            uploaded_at: file.uploaded_at,
+            original_filename: file.original_filename
+          });
+        } else {
+          // Root level folder
+          const folderName = filePath.substring(0, firstSlash);
+          if (folderName) folders.add(folderName);
+        }
       }
-      return true;
     });
-  }, [projectFiles, searchQuery, existingFiles]);
+
+    // Include folders from project_folders (authoritative)
+    if (folderRows && folderRows.length > 0) {
+      folderRows.forEach((fr: any) => {
+        const frParent = normalizePath(fr.parent_path || '');
+        if (!normalizedCurrentPath) {
+          if (!fr.parent_path || frParent === '') {
+            if (fr.folder_name) folders.add(fr.folder_name);
+          }
+        } else {
+          if (frParent === normalizedCurrentPath) {
+            if (fr.folder_name) folders.add(fr.folder_name);
+          }
+        }
+      });
+    }
+
+    // Sort folders alphabetically (case-insensitive)
+    const sortedFolders: SimpleFolder[] = Array.from(folders)
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .map(name => ({
+        name,
+        path: normalizedCurrentPath ? `${normalizedCurrentPath}/${name}` : name
+      }));
+
+    // Sort files alphabetically by display name (case-insensitive)
+    const sortedFiles = files.sort((a, b) =>
+      a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase())
+    );
+
+    return {
+      folders: sortedFolders,
+      files: sortedFiles
+    };
+  }, [allFiles, folderRows, currentPath, existingFiles]);
+
+  // Apply search filter
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return getCurrentItems;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return {
+      folders: getCurrentItems.folders.filter(folder => 
+        folder.name.toLowerCase().includes(query)
+      ),
+      files: getCurrentItems.files.filter(file => 
+        file.displayName.toLowerCase().includes(query)
+      )
+    };
+  }, [getCurrentItems, searchQuery]);
+
+  // Get all files in a folder (recursively)
+  const getFilesInFolder = (folderPath: string): string[] => {
+    const normalizedFolderPath = normalizePath(folderPath);
+    return allFiles
+      .filter(file => {
+        if (existingFiles.includes(file.storage_path)) return false;
+        if (file.file_type === 'folderkeeper') return false;
+        const filePath = normalizePath(file.original_filename);
+        return (filePath + '/').startsWith(normalizedFolderPath + '/') || 
+               filePath.startsWith(normalizedFolderPath + '/');
+      })
+      .map(file => file.storage_path);
+  };
+
+  const handleFolderClick = (folderPath: string) => {
+    setCurrentPath(folderPath);
+  };
+
+  const handleBreadcrumbClick = (path: string) => {
+    setCurrentPath(path);
+  };
 
   const handleToggleFile = (storagePath: string) => {
     setSelectedPaths(prev => {
@@ -104,26 +226,85 @@ export function SelectProjectFilesModal({
     });
   };
 
+  const handleToggleFolder = (folderPath: string) => {
+    const filesInFolder = getFilesInFolder(folderPath);
+    
+    setSelectedPaths(prev => {
+      const newSet = new Set(prev);
+      const allSelected = filesInFolder.every(path => prev.has(path));
+      
+      if (allSelected) {
+        // Deselect all files in folder
+        filesInFolder.forEach(path => newSet.delete(path));
+      } else {
+        // Select all files in folder
+        filesInFolder.forEach(path => newSet.add(path));
+      }
+      return newSet;
+    });
+  };
+
+  const isFolderSelected = (folderPath: string): boolean => {
+    const filesInFolder = getFilesInFolder(folderPath);
+    if (filesInFolder.length === 0) return false;
+    return filesInFolder.every(path => selectedPaths.has(path));
+  };
+
+  const isFolderPartiallySelected = (folderPath: string): boolean => {
+    const filesInFolder = getFilesInFolder(folderPath);
+    if (filesInFolder.length === 0) return false;
+    const selectedCount = filesInFolder.filter(path => selectedPaths.has(path)).length;
+    return selectedCount > 0 && selectedCount < filesInFolder.length;
+  };
+
   const handleSelectAll = () => {
-    if (selectedPaths.size === filteredFiles.length) {
-      setSelectedPaths(new Set());
+    const allCurrentFiles = filteredItems.files.map(f => f.storage_path);
+    const allFolderFiles = filteredItems.folders.flatMap(folder => getFilesInFolder(folder.path));
+    const allPaths = [...allCurrentFiles, ...allFolderFiles];
+    
+    const allSelected = allPaths.every(path => selectedPaths.has(path));
+    
+    if (allSelected) {
+      // Deselect all in current view
+      setSelectedPaths(prev => {
+        const newSet = new Set(prev);
+        allPaths.forEach(path => newSet.delete(path));
+        return newSet;
+      });
     } else {
-      setSelectedPaths(new Set(filteredFiles.map(f => f.storage_path)));
+      // Select all in current view
+      setSelectedPaths(prev => {
+        const newSet = new Set(prev);
+        allPaths.forEach(path => newSet.add(path));
+        return newSet;
+      });
     }
+  };
+
+  const isAllSelected = () => {
+    const allCurrentFiles = filteredItems.files.map(f => f.storage_path);
+    const allFolderFiles = filteredItems.folders.flatMap(folder => getFilesInFolder(folder.path));
+    const allPaths = [...allCurrentFiles, ...allFolderFiles];
+    if (allPaths.length === 0) return false;
+    return allPaths.every(path => selectedPaths.has(path));
   };
 
   const handleAttach = () => {
     onSelectFiles(Array.from(selectedPaths));
     setSelectedPaths(new Set());
     setSearchQuery('');
+    setCurrentPath('');
     onOpenChange(false);
   };
 
   const handleClose = () => {
     setSelectedPaths(new Set());
     setSearchQuery('');
+    setCurrentPath('');
     onOpenChange(false);
   };
+
+  const totalItems = filteredItems.folders.length + filteredItems.files.length;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -147,21 +328,31 @@ export function SelectProjectFilesModal({
             />
           </div>
 
+          {/* Breadcrumb */}
+          <SimpleBreadcrumb 
+            currentPath={currentPath} 
+            onPathClick={handleBreadcrumbClick} 
+          />
+
           {/* Select All */}
-          {filteredFiles.length > 0 && (
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={selectedPaths.size === filteredFiles.length && filteredFiles.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-                <span className="text-sm text-muted-foreground">
-                  Select all ({filteredFiles.length} files)
-                </span>
-              </div>
+          {totalItems > 0 && (
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAll}
+                className="gap-2"
+              >
+                {isAllSelected() ? (
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+                {isAllSelected() ? 'Deselect All' : 'Select All'}
+              </Button>
               {selectedPaths.size > 0 && (
                 <span className="text-sm font-medium">
-                  {selectedPaths.size} selected
+                  {selectedPaths.size} file(s) selected
                 </span>
               )}
             </div>
@@ -173,42 +364,89 @@ export function SelectProjectFilesModal({
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : filteredFiles.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchQuery 
-                  ? 'No files match your search.' 
-                  : projectFiles?.length === 0 
-                    ? 'No files in this project yet.'
-                    : 'All project files are already attached.'
-                }
+            ) : totalItems === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Folder className="h-12 w-12 mb-4" />
+                <p>
+                  {searchQuery 
+                    ? 'No files match your search.' 
+                    : currentPath
+                      ? 'This folder is empty.'
+                      : 'No files in this project yet.'
+                  }
+                </p>
               </div>
             ) : (
-              <div className="divide-y">
-                {filteredFiles.map((file) => {
-                  const IconComponent = getFileIcon(file.original_filename);
-                  const iconColor = getFileIconColor(file.original_filename);
+              <div className="p-4 space-y-2">
+                {/* Folders */}
+                {filteredItems.folders.map((folder) => {
+                  const isSelected = isFolderSelected(folder.path);
+                  const isPartial = isFolderPartiallySelected(folder.path);
+                  
+                  return (
+                    <div
+                      key={folder.path}
+                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors ${
+                        isSelected ? 'bg-accent border-primary' : ''
+                      }`}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleToggleFolder(folder.path)}
+                        className="p-1"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-primary" />
+                        ) : isPartial ? (
+                          <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Folder className="h-5 w-5 text-blue-500" />
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleFolderClick(folder.path)}
+                      >
+                        <p className="font-medium">{folder.name}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Files */}
+                {filteredItems.files.map((file) => {
                   const isSelected = selectedPaths.has(file.storage_path);
 
                   return (
                     <div
                       key={file.id}
-                      className={`flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer ${
-                        isSelected ? 'bg-primary/5' : ''
+                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors cursor-pointer ${
+                        isSelected ? 'bg-accent border-primary' : ''
                       }`}
                       onClick={() => handleToggleFile(file.storage_path)}
                     >
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => handleToggleFile(file.storage_path)}
-                      />
-                      <IconComponent className={`h-5 w-5 flex-shrink-0 ${iconColor}`} />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleFile(file.storage_path);
+                        }}
+                        className="p-1"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <div className="text-xl">
+                        {getFileIcon(file.mime_type)}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {file.original_filename}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(file.file_size)} • Uploaded {formatDistanceToNow(new Date(file.uploaded_at), { addSuffix: true })}
-                        </p>
+                        <p className="font-medium truncate">{file.displayName}</p>
                       </div>
                     </div>
                   );
