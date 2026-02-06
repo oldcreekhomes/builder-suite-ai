@@ -1,82 +1,96 @@
 
-# Auto-Populate Address When Single Lot Exists
+# Add Cost Code Validation to Bill Submission (Enter with AI)
 
-## Summary
-When a project has only one lot, the Address column in "Enter with AI" should automatically populate with that lot's information instead of requiring the user to select it manually.
+## Problem
+Bills can currently be submitted through "Enter with AI" without a cost code assigned to line items. Every invoice must have a cost code (for job_cost lines) or account (for expense lines) before submission.
 
 ## Current State
-- The `BatchBillReviewTable` displays lot information from `bill.lines[].lot_id` and `lot_name`
-- The `pending_bill_lines` table does NOT have a `lot_id` column (only `bill_lines` does)
-- Lots are stored in `project_lots` table and accessible via the `useLots` hook
-- The interface already expects `lot_id` and `lot_name` on line items
 
-## Implementation
+### Manual Bill Entry (Already Validated)
+`ManualBillEntry.tsx` (lines 316-380) already properly validates:
+- Job cost rows must have `accountId` (cost code) - shows toast error and prevents save
+- Expense rows must have `accountId` (account) - shows toast error and prevents save
 
-### Step 1: Add lot_id Column to pending_bill_lines Table
-Add the missing column to allow persistence of lot assignments on pending bills.
+### Enter with AI (MISSING Validation)
+`BillsApprovalTabs.tsx` `handleSubmitAllBills()` currently validates:
+- Duplicate reference numbers
+- Missing vendor ID
+- Missing project ID
 
-```sql
-ALTER TABLE pending_bill_lines ADD COLUMN lot_id UUID REFERENCES project_lots(id);
-```
+**Missing**: Cost code/account validation on line items
 
-### Step 2: Update BillsApprovalTabs.tsx
-1. Import and use the `useLots` hook to fetch lots for the project
-2. When fetching bill lines, if there's exactly one lot:
-   - Auto-assign that lot's `id` and `lot_name` to each line item
-3. Update the lines in the database so the assignment persists
+## Solution
 
-**Code changes in `BillsApprovalTabs.tsx`:**
+Add cost code validation to `handleSubmitAllBills()` in `BillsApprovalTabs.tsx` that mirrors the Manual Bill Entry validation logic.
+
+## Technical Changes
+
+### File: `src/components/bills/BillsApprovalTabs.tsx`
+
+**Add validation after duplicate check (around line 283, before "Only proceed with validated bills"):**
 
 ```tsx
-// Import the useLots hook
-import { useLots } from "@/hooks/useLots";
+// Validate cost codes/accounts on all selected bills
+const billsWithMissingCostCodes: { fileName: string; missingCount: number }[] = [];
 
-// Inside the component, fetch lots
-const { lots } = useLots(effectiveProjectId);
-
-// In the fetchAllLines effect, after fetching lines:
-// If exactly 1 lot exists and line has no lot_id, auto-assign it
-if (lots.length === 1) {
-  const singleLot = lots[0];
-  lines = lines.map(line => ({
-    ...line,
-    lot_id: line.lot_id || singleLot.id,
-    lot_name: line.lot_name || singleLot.lot_name || `Lot ${singleLot.lot_number}`,
-  }));
+for (const bill of validatedBills) {
+  let missingCount = 0;
   
-  // Optionally persist to database for lines without lot_id
-  const linesToUpdate = lines.filter(l => !l.lot_id);
-  if (linesToUpdate.length > 0) {
-    await supabase
-      .from('pending_bill_lines')
-      .update({ lot_id: singleLot.id })
-      .in('id', linesToUpdate.map(l => l.id));
+  bill.lines?.forEach((line) => {
+    // For job_cost lines, cost_code_id is required
+    // For expense lines, account_id is required
+    if (line.line_type === 'job_cost' && !line.cost_code_id) {
+      missingCount++;
+    } else if (line.line_type === 'expense' && !line.account_id) {
+      missingCount++;
+    }
+  });
+  
+  if (missingCount > 0) {
+    billsWithMissingCostCodes.push({
+      fileName: bill.file_name,
+      missingCount
+    });
   }
+}
+
+if (billsWithMissingCostCodes.length > 0) {
+  const billNames = billsWithMissingCostCodes
+    .map(b => b.fileName)
+    .slice(0, 3)
+    .join(', ');
+  const remaining = billsWithMissingCostCodes.length > 3 
+    ? ` and ${billsWithMissingCostCodes.length - 3} more` 
+    : '';
+  
+  toast({
+    title: "Missing Cost Codes",
+    description: `Cannot submit: ${billsWithMissingCostCodes.length} bill(s) are missing cost codes (${billNames}${remaining}). Please assign cost codes before submitting.`,
+    variant: "destructive",
+  });
+  setIsSubmitting(false);
+  return;
 }
 ```
 
-### Step 3: Update approve_pending_bill RPC (if needed)
-Ensure the RPC copies `lot_id` from `pending_bill_lines` to `bill_lines` when approving.
+## Validation Logic Summary
 
-## Technical Details
+| Line Type | Required Field | Error Message |
+|-----------|----------------|---------------|
+| `job_cost` | `cost_code_id` | "Missing cost codes" |
+| `expense` | `account_id` | "Missing cost codes" (same message for simplicity) |
 
-### Files to Modify:
-1. **Database migration**: Add `lot_id` column to `pending_bill_lines`
-2. **`src/components/bills/BillsApprovalTabs.tsx`**: 
-   - Import `useLots` hook
-   - Add auto-population logic in the `fetchAllLines` effect
-   - Add `lots` to the effect dependencies
+## User Experience
 
-### Flow:
-1. User uploads bills to "Enter with AI"
-2. System extracts bill data and creates `pending_bill_lines`
-3. On render, `BillsApprovalTabs` fetches lots for the project
-4. If exactly 1 lot exists:
-   - Each line item gets auto-assigned that lot's ID and name
-   - The lot assignment is persisted to the database
-5. `BatchBillReviewTable` displays the auto-populated address
+1. User selects bills in "Enter with AI" tab
+2. User clicks "Submit Selected Bills"
+3. System checks each bill's line items:
+   - `job_cost` lines must have `cost_code_id`
+   - `expense` lines must have `account_id`
+4. If any line is missing required data:
+   - Toast shows: "Missing Cost Codes - Cannot submit: X bill(s) are missing cost codes (file1.pdf, file2.pdf...). Please assign cost codes before submitting."
+   - Submission is blocked
+5. User must edit those bills and assign cost codes, then retry
 
-### Edge Cases:
-- If project has 0 lots: No auto-population, shows "-"
-- If project has 2+ lots: No auto-population, user must select manually
-- If lot already assigned: Don't override existing assignment
+## Files to Modify
+- `src/components/bills/BillsApprovalTabs.tsx` - Add cost code validation logic
