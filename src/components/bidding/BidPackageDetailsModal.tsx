@@ -35,6 +35,7 @@ interface BidPackageDetailsModalProps {
   onDelete?: (itemId: string) => void;
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
+  onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
   onSendClick?: () => void;
   onTestEmailClick?: () => void;
   onAddCompaniesClick?: () => void;
@@ -72,6 +73,7 @@ export function BidPackageDetailsModal({
   onDelete,
   onFileUpload,
   onDeleteIndividualFile,
+  onLinkProjectFiles,
   onSendClick,
   onTestEmailClick,
   onAddCompaniesClick,
@@ -273,8 +275,10 @@ export function BidPackageDetailsModal({
                   />
                   <BiddingTableRowFiles
                     item={item}
+                    projectId={item.project_id}
                     onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
                     onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
+                    onLinkProjectFiles={onLinkProjectFiles}
                     isReadOnly={isReadOnly}
                   />
                   <BiddingTableRowActions

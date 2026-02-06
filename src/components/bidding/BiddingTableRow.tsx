@@ -178,6 +178,7 @@ export function BiddingTableRow({
         onDelete={onDelete}
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
+        onLinkProjectFiles={onLinkProjectFiles}
         onSendClick={() => setShowSendModal(true)}
         onTestEmailClick={() => setShowTestEmailModal(true)}
         onCloseWithPO={handleCloseWithPO}
