@@ -1,75 +1,80 @@
 
 
-# Add "From Project Files" Option to Bid Package Details Modal
+# Synchronize "Enter with AI" Layout with "Review" Tab
 
-## Summary
-The "Add Files" dropdown in the bid package details modal only shows "From Computer" because the required `projectId` and `onLinkProjectFiles` props are not being passed to the `BiddingTableRowFiles` component inside the modal. This plan adds those props to match the table row behavior.
+## Overview
+The "Enter with AI" (Extracted Bills) tab needs to match the "Review" tab layout exactly. Currently, the Extracted Bills table (`BatchBillReviewTable`) is missing several columns that exist in the Review tab, and the column order differs.
 
-## Root Cause
-In `BiddingTableRowFiles.tsx`, the "From Project Files" menu item only renders when **both** conditions are met:
-```tsx
-{projectId && onLinkProjectFiles && (
-  <DropdownMenuItem onClick={() => setShowProjectFilesModal(true)}>
-    <FolderOpen className="mr-2 h-4 w-4" />
-    From Project Files
-  </DropdownMenuItem>
-)}
-```
+## Current Layout Comparison
 
-Currently, `BidPackageDetailsModal` doesn't receive or pass these props.
+### Enter with AI (BatchBillReviewTable) - Current
+| Checkbox | Vendor | Reference # | Bill Date | Terms | Due Date | Cost Code | Total | File | Issues | Actions |
 
-## Changes
+### Review Tab (BillsApprovalTable) - Target Layout
+| Vendor | Cost Code | Bill Date | Due Date | Amount | Reference | Memo | Address | Files | Notes | PO Status | Actions |
 
-### File: `src/components/bidding/BidPackageDetailsModal.tsx`
+## Required Changes to BatchBillReviewTable
 
-1. **Add `onLinkProjectFiles` to the props interface** (around line 37)
-   - Add: `onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;`
+### 1. Column Reordering and Additions
+Change from current columns to match Review tab:
+- Keep: Checkbox (prepend), Vendor, Cost Code, Bill Date, Due Date, Amount (rename from Total), Reference, File
+- Add: Memo, Address, Notes, PO Status
+- Remove: Terms, Issues (will be shown as badge/indicator instead)
 
-2. **Destructure the new prop** (around line 75)
-   - Add `onLinkProjectFiles` to the destructured props
+### 2. New Column Order
+| Checkbox | Vendor | Cost Code | Bill Date | Due Date | Amount | Reference | Memo | Address | Files | Notes | PO Status | Actions |
 
-3. **Pass props to `BiddingTableRowFiles`** (around line 274-279)
-   - Add `projectId={item.project_id}` (we can use `item.project_id` since the item already has this)
-   - Add `onLinkProjectFiles={onLinkProjectFiles}`
+### 3. Detailed Changes to `src/components/bills/BatchBillReviewTable.tsx`
 
-### File: `src/components/bidding/BiddingTableRow.tsx`
+**Header Row Updates (lines ~476-503):**
+- Reorder columns to: Checkbox, Vendor, Cost Code, Bill Date, Due Date, Amount, Reference, Memo, Address, Files, Notes (optional for extracted), PO Status (placeholder), Actions
+- Remove "Terms" and "Issues" columns from header (terms can be shown elsewhere or in edit dialog; issues shown as badge on row)
 
-4. **Pass `onLinkProjectFiles` to `BidPackageDetailsModal`** (around line 168-203)
-   - Add: `onLinkProjectFiles={onLinkProjectFiles}`
+**Data Row Updates (lines ~580-750):**
+- Reorder cell rendering to match new header order
+- Add Memo column: Display first line memo or combined memos
+- Add Address column: Show lot assignment if available (from lines data), or "-" if not set
+- Add PO Status column: Show "No PO" badge for now (PO matching not available for pending bills)
+- Change "Total" to "Amount" for consistency
 
-## Code Changes
+**Empty State Updates (lines ~431-467):**
+- Update colSpan to match new column count
 
-**BidPackageDetailsModal.tsx - Props interface (add after line 37):**
-```tsx
-onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
-```
+### 4. Manual Bill Entry - Address Column Already Exists
+The manual bill entry form (ManualBillEntry.tsx) already includes the Address dropdown in the Job Cost tab. The user confirmed this works, so no changes needed there.
 
-**BidPackageDetailsModal.tsx - Destructure (add to destructure list):**
-```tsx
-onLinkProjectFiles,
-```
+## Files to Modify
 
-**BidPackageDetailsModal.tsx - BiddingTableRowFiles usage (lines 274-279):**
-```tsx
-<BiddingTableRowFiles
-  item={item}
-  projectId={item.project_id}
-  onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
-  onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
-  onLinkProjectFiles={onLinkProjectFiles}
-  isReadOnly={isReadOnly}
-/>
-```
+### `src/components/bills/BatchBillReviewTable.tsx`
+1. Update header row to match Review tab column order:
+   - Checkbox | Vendor | Cost Code | Bill Date | Due Date | Amount | Reference | Memo | Address | Files | PO Status | Actions
+2. Update data row cells to match new order
+3. Add Memo cell (extract from bill lines or extracted_data)
+4. Add Address cell (placeholder or from lot assignment)
+5. Add PO Status cell (show "No PO" badge as default for pending bills)
+6. Remove Terms column (still editable in Edit dialog)
+7. Remove Issues column (show as indicator/badge elsewhere)
+8. Update empty state colSpan
 
-**BiddingTableRow.tsx - BidPackageDetailsModal usage (add after line 180):**
-```tsx
-onLinkProjectFiles={onLinkProjectFiles}
-```
+## Column Mapping
 
-## Result
-After these changes, when clicking "Add Files" in the bid package details modal, the dropdown will show both:
-- From Computer
-- From Project Files
+| Review Tab | BatchBillReviewTable (New) | Data Source |
+|------------|---------------------------|-------------|
+| Vendor | Vendor | `extracted_data.vendor_name` |
+| Cost Code | Cost Code | First line cost code name |
+| Bill Date | Bill Date | `extracted_data.bill_date` |
+| Due Date | Due Date | `extracted_data.due_date` or computed |
+| Amount | Amount | Total from lines or extracted_data |
+| Reference | Reference | `extracted_data.reference_number` |
+| Memo | Memo (NEW) | First line memo or "-" |
+| Address | Address (NEW) | Line lot assignment or "-" |
+| Files | Files | File icon (existing) |
+| Notes | Notes (NEW) | Show "Add" button or indicator |
+| PO Status | PO Status (NEW) | "No PO" badge (pending bills can't match POs) |
+| Actions | Actions | Edit/Delete buttons |
 
-Clicking "From Project Files" will open the same project files selection modal that works in the table view.
+## Technical Notes
+- The "Issues" column functionality will be preserved as a visual indicator (red vendor name, missing cost code badge, etc.) rather than a separate column
+- Terms can still be viewed/edited in the Edit dialog
+- PO Status will show "No PO" for all pending bills since they haven't been approved yet
 
