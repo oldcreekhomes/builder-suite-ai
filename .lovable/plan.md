@@ -1,80 +1,82 @@
 
+# Auto-Populate Address When Single Lot Exists
 
-# Synchronize "Enter with AI" Layout with "Review" Tab
+## Summary
+When a project has only one lot, the Address column in "Enter with AI" should automatically populate with that lot's information instead of requiring the user to select it manually.
 
-## Overview
-The "Enter with AI" (Extracted Bills) tab needs to match the "Review" tab layout exactly. Currently, the Extracted Bills table (`BatchBillReviewTable`) is missing several columns that exist in the Review tab, and the column order differs.
+## Current State
+- The `BatchBillReviewTable` displays lot information from `bill.lines[].lot_id` and `lot_name`
+- The `pending_bill_lines` table does NOT have a `lot_id` column (only `bill_lines` does)
+- Lots are stored in `project_lots` table and accessible via the `useLots` hook
+- The interface already expects `lot_id` and `lot_name` on line items
 
-## Current Layout Comparison
+## Implementation
 
-### Enter with AI (BatchBillReviewTable) - Current
-| Checkbox | Vendor | Reference # | Bill Date | Terms | Due Date | Cost Code | Total | File | Issues | Actions |
+### Step 1: Add lot_id Column to pending_bill_lines Table
+Add the missing column to allow persistence of lot assignments on pending bills.
 
-### Review Tab (BillsApprovalTable) - Target Layout
-| Vendor | Cost Code | Bill Date | Due Date | Amount | Reference | Memo | Address | Files | Notes | PO Status | Actions |
+```sql
+ALTER TABLE pending_bill_lines ADD COLUMN lot_id UUID REFERENCES project_lots(id);
+```
 
-## Required Changes to BatchBillReviewTable
+### Step 2: Update BillsApprovalTabs.tsx
+1. Import and use the `useLots` hook to fetch lots for the project
+2. When fetching bill lines, if there's exactly one lot:
+   - Auto-assign that lot's `id` and `lot_name` to each line item
+3. Update the lines in the database so the assignment persists
 
-### 1. Column Reordering and Additions
-Change from current columns to match Review tab:
-- Keep: Checkbox (prepend), Vendor, Cost Code, Bill Date, Due Date, Amount (rename from Total), Reference, File
-- Add: Memo, Address, Notes, PO Status
-- Remove: Terms, Issues (will be shown as badge/indicator instead)
+**Code changes in `BillsApprovalTabs.tsx`:**
 
-### 2. New Column Order
-| Checkbox | Vendor | Cost Code | Bill Date | Due Date | Amount | Reference | Memo | Address | Files | Notes | PO Status | Actions |
+```tsx
+// Import the useLots hook
+import { useLots } from "@/hooks/useLots";
 
-### 3. Detailed Changes to `src/components/bills/BatchBillReviewTable.tsx`
+// Inside the component, fetch lots
+const { lots } = useLots(effectiveProjectId);
 
-**Header Row Updates (lines ~476-503):**
-- Reorder columns to: Checkbox, Vendor, Cost Code, Bill Date, Due Date, Amount, Reference, Memo, Address, Files, Notes (optional for extracted), PO Status (placeholder), Actions
-- Remove "Terms" and "Issues" columns from header (terms can be shown elsewhere or in edit dialog; issues shown as badge on row)
+// In the fetchAllLines effect, after fetching lines:
+// If exactly 1 lot exists and line has no lot_id, auto-assign it
+if (lots.length === 1) {
+  const singleLot = lots[0];
+  lines = lines.map(line => ({
+    ...line,
+    lot_id: line.lot_id || singleLot.id,
+    lot_name: line.lot_name || singleLot.lot_name || `Lot ${singleLot.lot_number}`,
+  }));
+  
+  // Optionally persist to database for lines without lot_id
+  const linesToUpdate = lines.filter(l => !l.lot_id);
+  if (linesToUpdate.length > 0) {
+    await supabase
+      .from('pending_bill_lines')
+      .update({ lot_id: singleLot.id })
+      .in('id', linesToUpdate.map(l => l.id));
+  }
+}
+```
 
-**Data Row Updates (lines ~580-750):**
-- Reorder cell rendering to match new header order
-- Add Memo column: Display first line memo or combined memos
-- Add Address column: Show lot assignment if available (from lines data), or "-" if not set
-- Add PO Status column: Show "No PO" badge for now (PO matching not available for pending bills)
-- Change "Total" to "Amount" for consistency
+### Step 3: Update approve_pending_bill RPC (if needed)
+Ensure the RPC copies `lot_id` from `pending_bill_lines` to `bill_lines` when approving.
 
-**Empty State Updates (lines ~431-467):**
-- Update colSpan to match new column count
+## Technical Details
 
-### 4. Manual Bill Entry - Address Column Already Exists
-The manual bill entry form (ManualBillEntry.tsx) already includes the Address dropdown in the Job Cost tab. The user confirmed this works, so no changes needed there.
+### Files to Modify:
+1. **Database migration**: Add `lot_id` column to `pending_bill_lines`
+2. **`src/components/bills/BillsApprovalTabs.tsx`**: 
+   - Import `useLots` hook
+   - Add auto-population logic in the `fetchAllLines` effect
+   - Add `lots` to the effect dependencies
 
-## Files to Modify
+### Flow:
+1. User uploads bills to "Enter with AI"
+2. System extracts bill data and creates `pending_bill_lines`
+3. On render, `BillsApprovalTabs` fetches lots for the project
+4. If exactly 1 lot exists:
+   - Each line item gets auto-assigned that lot's ID and name
+   - The lot assignment is persisted to the database
+5. `BatchBillReviewTable` displays the auto-populated address
 
-### `src/components/bills/BatchBillReviewTable.tsx`
-1. Update header row to match Review tab column order:
-   - Checkbox | Vendor | Cost Code | Bill Date | Due Date | Amount | Reference | Memo | Address | Files | PO Status | Actions
-2. Update data row cells to match new order
-3. Add Memo cell (extract from bill lines or extracted_data)
-4. Add Address cell (placeholder or from lot assignment)
-5. Add PO Status cell (show "No PO" badge as default for pending bills)
-6. Remove Terms column (still editable in Edit dialog)
-7. Remove Issues column (show as indicator/badge elsewhere)
-8. Update empty state colSpan
-
-## Column Mapping
-
-| Review Tab | BatchBillReviewTable (New) | Data Source |
-|------------|---------------------------|-------------|
-| Vendor | Vendor | `extracted_data.vendor_name` |
-| Cost Code | Cost Code | First line cost code name |
-| Bill Date | Bill Date | `extracted_data.bill_date` |
-| Due Date | Due Date | `extracted_data.due_date` or computed |
-| Amount | Amount | Total from lines or extracted_data |
-| Reference | Reference | `extracted_data.reference_number` |
-| Memo | Memo (NEW) | First line memo or "-" |
-| Address | Address (NEW) | Line lot assignment or "-" |
-| Files | Files | File icon (existing) |
-| Notes | Notes (NEW) | Show "Add" button or indicator |
-| PO Status | PO Status (NEW) | "No PO" badge (pending bills can't match POs) |
-| Actions | Actions | Edit/Delete buttons |
-
-## Technical Notes
-- The "Issues" column functionality will be preserved as a visual indicator (red vendor name, missing cost code badge, etc.) rather than a separate column
-- Terms can still be viewed/edited in the Edit dialog
-- PO Status will show "No PO" for all pending bills since they haven't been approved yet
-
+### Edge Cases:
+- If project has 0 lots: No auto-population, shows "-"
+- If project has 2+ lots: No auto-population, user must select manually
+- If lot already assigned: Don't override existing assignment
