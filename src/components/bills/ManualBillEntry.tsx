@@ -731,8 +731,8 @@ export function ManualBillEntry() {
                     "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
                     showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
-                  <div className="col-span-4">Cost Code</div>
-                  <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>Memo</div>
+                  <div className="col-span-5">Cost Code</div>
+                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
@@ -747,7 +747,7 @@ export function ManualBillEntry() {
                     "grid gap-2 p-3 border-t w-full", 
                     showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
-                    <div className="col-span-4">
+                    <div className="col-span-5">
                       <CostCodeSearchInput
                         value={row.account}
                         onChange={(value) => updateJobCostRow(row.id, 'account', value)}
@@ -765,7 +765,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
                       <Input
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -934,8 +934,8 @@ export function ManualBillEntry() {
                   "grid gap-2 p-3 bg-muted font-medium text-sm w-full", 
                   showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                 )}>
-                  <div className="col-span-4">Account</div>
-                  <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>Memo</div>
+                  <div className="col-span-5">Account</div>
+                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
@@ -950,7 +950,7 @@ export function ManualBillEntry() {
                     "grid gap-2 p-3 border-t w-full", 
                     showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
-                    <div className="col-span-4">
+                    <div className="col-span-5">
                       <AccountSearchInput
                         value={row.account || ""}
                         onChange={(value) => updateExpenseRow(row.id, 'account', value)}
@@ -962,7 +962,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-4" : "col-span-6"}>
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
                       <Input 
                         placeholder="Expense memo"
                         value={row.memo}
