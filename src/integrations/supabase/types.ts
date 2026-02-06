@@ -2476,6 +2476,7 @@ export type Database = {
           id: string
           line_number: number
           line_type: string
+          lot_id: string | null
           memo: string | null
           owner_id: string
           pending_upload_id: string
@@ -2497,6 +2498,7 @@ export type Database = {
           id?: string
           line_number?: number
           line_type: string
+          lot_id?: string | null
           memo?: string | null
           owner_id: string
           pending_upload_id: string
@@ -2518,6 +2520,7 @@ export type Database = {
           id?: string
           line_number?: number
           line_type?: string
+          lot_id?: string | null
           memo?: string | null
           owner_id?: string
           pending_upload_id?: string
@@ -2541,6 +2544,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
           {
