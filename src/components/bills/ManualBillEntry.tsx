@@ -428,6 +428,9 @@ export function ManualBillEntry() {
       return;
     }
 
+    // Auto-assign single lot ID for single-lot projects
+    const singleLotId = lots.length === 1 ? lots[0]?.id : undefined;
+
     const billLines: BillLineData[] = [
       ...resolvedJobRows
         .filter(row => row.accountId || row.amount)
@@ -435,7 +438,7 @@ export function ManualBillEntry() {
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
-          lot_id: row.lotId || undefined,
+          lot_id: row.lotId || singleLotId || undefined,
           purchase_order_id: row.purchaseOrderId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
@@ -448,6 +451,7 @@ export function ManualBillEntry() {
           line_type: 'expense' as const,
           account_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
+          lot_id: row.lotId || singleLotId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
