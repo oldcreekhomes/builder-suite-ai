@@ -1,94 +1,138 @@
 
-# Add Files from Builder Suite - Project File Picker
+# Redesign "Select Project Files" Modal to Match Main File Browser
 
 ## Summary
-Add a feature that allows users to select files directly from the project's Builder Suite files when attaching files to bid packages, eliminating the need to download and re-upload files they already have in the system.
+Completely redesign the `SelectProjectFilesModal` to look identical to the main file browser (`SimpleFileList`). The current modal shows a flat list of files with full paths displayed, but it should show folder navigation with the same visual styling as the Files page.
 
-## User Experience
+## Visual Changes
 
-When clicking "Add Files" on a bidding package:
-1. A dropdown or split button will appear with two options:
-   - "From Computer" - Opens the current native file picker (existing behavior)
-   - "From Project Files" - Opens a new modal to browse and select existing Builder Suite project files
+### Current State
+- Flat list showing full file paths like "Drawings/Old Drawings/Old Architecture/file.pdf"
+- No folder navigation
+- Different row styling than the main file browser
 
-The "From Project Files" modal will:
-- Display a list of all project files with folder navigation
-- Allow multi-select with checkboxes
-- Show file icons, names, and sizes
-- Include a search/filter capability
-- Have "Cancel" and "Attach Selected" buttons
+### Target State (matching first screenshot)
+- Folder navigation with blue folder icons
+- Files shown only when inside the folder
+- Same row styling: checkbox + folder/file icon + name + hover states
+- Breadcrumb navigation to go back to parent folders
+- "Select All" checkbox at the top
 
 ## Technical Approach
 
-### 1. Create a New File Picker Modal Component
-**New file**: `src/components/bidding/SelectProjectFilesModal.tsx`
+### Changes to `SelectProjectFilesModal.tsx`
 
-This modal will:
-- Use the existing `useProjectFiles` hook to fetch files
-- Display files in a table format similar to the SimpleFileList component
-- Support folder navigation using the same path-based logic
-- Allow multi-selection with checkboxes
-- Return selected file references on confirmation
+1. **Add folder navigation state**
+   - Add `currentPath` state to track which folder the user is viewing
+   - Use the same path-based logic as `SimpleFileManager.getCurrentItems()`
 
-### 2. Modify BiddingTableRowFiles Component
-**File**: `src/components/bidding/components/BiddingTableRowFiles.tsx`
+2. **Use the `useProjectFolders` hook**
+   - Import and use `useProjectFolders` to get folder structure
+   - Apply the same folder/file filtering logic as the main file browser
 
-Changes:
-- Replace the single "Add Files" button with a dropdown button
-- Add state to control the new project files modal
-- Add a handler for when project files are selected
+3. **Add breadcrumb navigation**
+   - Import and use `SimpleBreadcrumb` component
+   - Allow navigating back to parent folders
 
-### 3. Create a Link Files Handler in useBiddingMutations
-**File**: `src/hooks/useBiddingMutations.ts`
+4. **Match the visual styling**
+   - Use the same row structure as `SimpleFileList`:
+     - Checkbox (Square/CheckSquare icons with ghost button)
+     - Blue Folder icon for folders
+     - File type emoji icons for files
+     - Name displayed the same way
+     - Rounded borders with hover states
 
-Add a new function `handleLinkProjectFiles` that:
-- Accepts an array of project file references (storage paths)
-- Appends these references to the bid package's `files` array
-- Uses the existing pattern for updating the `files` column
-
-### 4. Storage Path Handling
-Since project files use storage paths like `{projectId}/{uuid}_{filename}` and bidding files use `specifications/{filename}`:
-- Store the full storage path reference in the `files` array
-- Update the file preview/download logic to handle both path formats
+5. **Update selection logic**
+   - When selecting a folder, include all files within that folder
+   - Maintain separate tracking for selected files vs folders
+   - Calculate total selected items count for the Attach button
 
 ## Component Structure
 
 ```text
-BiddingTableRowFiles
+SelectProjectFilesModal
   |
-  +-- DropdownMenu (new)
-  |     +-- "From Computer" (current native upload)
-  |     +-- "From Project Files" (opens new modal)
+  +-- DialogHeader (title + description)
   |
-  +-- SelectProjectFilesModal (new)
-        +-- Breadcrumb navigation
-        +-- File list with checkboxes
-        +-- Search filter
-        +-- Attach button
+  +-- Search Input
+  |
+  +-- SimpleBreadcrumb (path navigation)
+  |
+  +-- Select All row
+  |
+  +-- ScrollArea containing:
+  |     +-- Folder rows (clickable to navigate, checkbox to select all contents)
+  |     +-- File rows (checkbox to select individual files)
+  |
+  +-- DialogFooter (Cancel + Attach buttons)
 ```
 
-## Files to Create/Modify
+## Files to Modify
 
-1. **Create**: `src/components/bidding/SelectProjectFilesModal.tsx`
-   - New modal component for browsing and selecting project files
+1. **`src/components/bidding/SelectProjectFilesModal.tsx`** (complete rewrite)
+   - Add `currentPath` state for folder navigation
+   - Import `useProjectFolders` hook
+   - Implement `getCurrentItems()` logic (same as SimpleFileManager)
+   - Add `SimpleBreadcrumb` for navigation
+   - Match row styling exactly to `SimpleFileList`:
+     - `flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent`
+     - Ghost button with Square/CheckSquare icons
+     - Folder icon with `text-blue-500`
+     - File emoji icons based on mime type
+   - Handle folder click to navigate into folder
+   - Handle folder selection to select all files within
+   - Update "Select All" to work with current folder view
 
-2. **Modify**: `src/components/bidding/components/BiddingTableRowFiles.tsx`
-   - Add dropdown menu for upload options
-   - Add modal state and handlers
-   - Pass project files handler
+## Key Code Changes
 
-3. **Modify**: `src/hooks/useBiddingMutations.ts`
-   - Add `handleLinkProjectFiles` function
-   - Return it from the hook
+### Row Styling (matching SimpleFileList)
+```tsx
+// Folder row
+<div className="flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent">
+  <Button variant="ghost" size="sm" className="p-1">
+    {isSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+  </Button>
+  <Folder className="h-5 w-5 text-blue-500" />
+  <div className="flex-1 cursor-pointer">
+    <p className="font-medium">{folder.name}</p>
+  </div>
+</div>
 
-4. **Modify**: `src/components/bidding/BiddingTable.tsx`
-   - Pass projectId to BiddingTableRow for the new modal
+// File row
+<div className="flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent">
+  <Button variant="ghost" size="sm" className="p-1">
+    {isSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}
+  </Button>
+  <div className="text-xl">{getFileIcon(file.mime_type)}</div>
+  <div className="flex-1 min-w-0 cursor-pointer">
+    <p className="font-medium truncate">{file.displayName}</p>
+  </div>
+</div>
+```
 
-5. **Modify**: `src/components/bidding/BiddingTableRow.tsx`
-   - Accept and pass projectId to BiddingTableRowFiles
+### getCurrentItems Logic
+```tsx
+// Same logic as SimpleFileManager.getCurrentItems()
+const getCurrentItems = () => {
+  const normalizedCurrentPath = normalizePath(currentPath);
+  const folders = new Set<string>();
+  const files: any[] = [];
 
-## Benefits
-- No more downloading and re-uploading files
-- Faster workflow for attaching specifications
-- Files are referenced (not copied), saving storage space
-- Consistent experience with Builder Suite's file management
+  allFiles.forEach(file => {
+    let filePath = normalizePath(file.original_filename);
+    // ... same filtering logic
+  });
+
+  return { folders: sortedFolders, files: sortedFiles };
+};
+```
+
+## User Experience Flow
+
+1. User clicks "From Project Files" in the dropdown
+2. Modal opens showing root folders and files (same as Files page)
+3. User can click a folder to navigate into it
+4. Breadcrumb shows current path, clicking navigates back
+5. User selects files/folders using checkboxes
+6. Selecting a folder adds all files within to selection
+7. Click "Attach" to attach all selected files
