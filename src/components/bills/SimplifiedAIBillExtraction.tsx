@@ -185,8 +185,13 @@ export default function SimplifiedAIBillExtraction({
       const uploadedIds: string[] = [];
 
       for (const file of Array.from(files)) {
+        // Sanitize filename for Supabase Storage (remove special chars like [ ])
+        const sanitizedName = file.name
+          .replace(/\s+/g, '_')
+          .replace(/[^\w.-]/g, '_')
+          .replace(/_+/g, '_');
         // Generate path with user ID to match RLS policies
-        const filePath = `pending/${user.id}/${crypto.randomUUID()}-${file.name}`;
+        const filePath = `pending/${user.id}/${crypto.randomUUID()}-${sanitizedName}`;
         console.log('[Upload] Uploading file to path:', filePath);
 
         // Add optimistic UI entry
