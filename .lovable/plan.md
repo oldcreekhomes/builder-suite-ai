@@ -1,45 +1,59 @@
 
-# Fix: Add `confirmed` to handleTaskUpdate in CustomGanttChart
 
-## Problem Identified
+# Fix: Sync Database Category Values with UI Labels
 
-The database shows `confirmed: null` for task 9.3 - the save is NOT happening. The console logs show `Update data being sent to database: {}` (empty object).
+## Problem
 
-**Root Cause:** The `handleTaskUpdate` function in `CustomGanttChart.tsx` builds `mutationData` by explicitly checking each field, but `confirmed` is missing from this list (lines 378-425).
+The sidebar shows **7 issues** but the Issues page shows only **5**. The mismatch is caused by:
+- 2 issues in the database have `category = "Orders"`
+- The UI expects `category = "Purchase Orders"`
 
-When you click "Red" in the context menu:
-1. It calls `onTaskUpdate(task.id, { confirmed: false })` (correct)
-2. `handleTaskUpdate` receives `updates = { confirmed: false }` (correct)
-3. But `mutationData` never gets `confirmed` added to it (BUG)
-4. Mutation is called with empty object
-5. Database returns error "0 rows" because nothing to update
+You want the database values to match exactly what the UI displays.
 
-## Fix Required
+## Solution
 
-### File: `src/components/schedule/CustomGanttChart.tsx`
+Two changes are needed:
 
-Add `confirmed` handling after the `notes` check (around line 425):
+### 1. Database Update (One-Time Fix)
 
-```typescript
-if (updates.notes !== undefined) {
-  optimisticTask.notes = updates.notes;
-  mutationData.notes = updates.notes;
-}
-// ADD THIS BLOCK:
-if (updates.confirmed !== undefined) {
-  optimisticTask.confirmed = updates.confirmed;
-  mutationData.confirmed = updates.confirmed;
-}
+Update the 2 existing issues to use "Purchase Orders" as the category:
+
+```sql
+UPDATE company_issues 
+SET category = 'Purchase Orders' 
+WHERE category = 'Orders';
 ```
 
-## What This Fixes
+This will change:
+- "Create a printable PDF PO..." → category: "Purchase Orders"
+- "Discuss the ability to edit a PO..." → category: "Purchase Orders"
 
-1. Right-clicking a task bar and selecting a color will now properly save to database
-2. The `confirmed` field will be included in the mutation payload
-3. The bar color will immediately update (optimistic) and persist after refresh
+### 2. Code Fix - AddIssueRow.tsx (Prevents Future Issues)
 
-## Summary
+The location dropdown in `AddIssueRow.tsx` uses lowercase values like `"orders"`. While this is for the `location` field (not category), it should be consistent with the category naming. Update the Select items to use proper capitalized values matching the category names:
 
-Two changes were needed but only one was made:
-1. `useTaskMutations.tsx` - Add `confirmed` to interface and updateData builder (DONE in last edit)
-2. `CustomGanttChart.tsx` - Add `confirmed` to mutationData builder (MISSING - needs to be added)
+**File:** `src/components/issues/AddIssueRow.tsx` (lines 184-195)
+
+Change from:
+```typescript
+<SelectItem value="accounting">Accounting</SelectItem>
+<SelectItem value="orders">Purchase Orders</SelectItem>
+// ... etc
+```
+
+To:
+```typescript
+<SelectItem value="Accounting">Accounting</SelectItem>
+<SelectItem value="Purchase Orders">Purchase Orders</SelectItem>
+// ... etc
+```
+
+## Result
+
+After these changes:
+- Database will have `category = "Purchase Orders"` for all PO-related issues
+- Sidebar will show **7** issues
+- Issues page will show **7** issues (Accounting: 1, Bidding: 4, Purchase Orders: 2)
+- All new issues will use consistent capitalized category/location values
+- No more mismatches between code labels and database values
+
