@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Upload, FolderOpen } from 'lucide-react';
+import { Upload, FolderOpen } from 'lucide-react';
 
 // Helper to get storage path for specification files
 const getProjectFileStoragePath = (fileRef: string): string => {
@@ -130,7 +130,6 @@ export function BiddingTableRowFiles({
                 className="h-8 text-xs"
               >
                 Add Files
-                <ChevronDown className="ml-1 h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
