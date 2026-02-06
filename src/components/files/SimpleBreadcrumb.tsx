@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SimpleBreadcrumbProps {
@@ -30,9 +30,8 @@ export const SimpleBreadcrumb: React.FC<SimpleBreadcrumbProps> = ({
         variant="ghost"
         size="sm"
         onClick={() => handlePathClick(-1)}
-        className="gap-1 h-10 px-2"
+        className="h-8 px-2"
       >
-        <Home className="h-4 w-4" />
         Project Files
       </Button>
 

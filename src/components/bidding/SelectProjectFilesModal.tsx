@@ -8,9 +8,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Folder, Loader2, CheckSquare, Square } from 'lucide-react';
+import { Folder, Loader2, CheckSquare, Square } from 'lucide-react';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
 import { SimpleBreadcrumb } from '@/components/files/SimpleBreadcrumb';
@@ -54,7 +53,6 @@ export function SelectProjectFilesModal({
   onSelectFiles,
   existingFiles = [],
 }: SelectProjectFilesModalProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentPath, setCurrentPath] = useState('');
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   
@@ -175,22 +173,6 @@ export function SelectProjectFilesModal({
     };
   }, [allFiles, folderRows, currentPath, existingFiles]);
 
-  // Apply search filter
-  const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return getCurrentItems;
-    }
-    
-    const query = searchQuery.toLowerCase();
-    return {
-      folders: getCurrentItems.folders.filter(folder => 
-        folder.name.toLowerCase().includes(query)
-      ),
-      files: getCurrentItems.files.filter(file => 
-        file.displayName.toLowerCase().includes(query)
-      )
-    };
-  }, [getCurrentItems, searchQuery]);
 
   // Get all files in a folder (recursively)
   const getFilesInFolder = (folderPath: string): string[] => {
@@ -257,54 +239,20 @@ export function SelectProjectFilesModal({
     return selectedCount > 0 && selectedCount < filesInFolder.length;
   };
 
-  const handleSelectAll = () => {
-    const allCurrentFiles = filteredItems.files.map(f => f.storage_path);
-    const allFolderFiles = filteredItems.folders.flatMap(folder => getFilesInFolder(folder.path));
-    const allPaths = [...allCurrentFiles, ...allFolderFiles];
-    
-    const allSelected = allPaths.every(path => selectedPaths.has(path));
-    
-    if (allSelected) {
-      // Deselect all in current view
-      setSelectedPaths(prev => {
-        const newSet = new Set(prev);
-        allPaths.forEach(path => newSet.delete(path));
-        return newSet;
-      });
-    } else {
-      // Select all in current view
-      setSelectedPaths(prev => {
-        const newSet = new Set(prev);
-        allPaths.forEach(path => newSet.add(path));
-        return newSet;
-      });
-    }
-  };
-
-  const isAllSelected = () => {
-    const allCurrentFiles = filteredItems.files.map(f => f.storage_path);
-    const allFolderFiles = filteredItems.folders.flatMap(folder => getFilesInFolder(folder.path));
-    const allPaths = [...allCurrentFiles, ...allFolderFiles];
-    if (allPaths.length === 0) return false;
-    return allPaths.every(path => selectedPaths.has(path));
-  };
-
   const handleAttach = () => {
     onSelectFiles(Array.from(selectedPaths));
     setSelectedPaths(new Set());
-    setSearchQuery('');
     setCurrentPath('');
     onOpenChange(false);
   };
 
   const handleClose = () => {
     setSelectedPaths(new Set());
-    setSearchQuery('');
     setCurrentPath('');
     onOpenChange(false);
   };
 
-  const totalItems = filteredItems.folders.length + filteredItems.files.length;
+  const totalItems = getCurrentItems.folders.length + getCurrentItems.files.length;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -317,49 +265,21 @@ export function SelectProjectFilesModal({
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search files..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+          {/* Breadcrumb */}
+          <div className="flex items-center justify-between">
+            <SimpleBreadcrumb 
+              currentPath={currentPath} 
+              onPathClick={handleBreadcrumbClick} 
             />
+            {selectedPaths.size > 0 && (
+              <span className="text-sm font-medium">
+                {selectedPaths.size} file(s) selected
+              </span>
+            )}
           </div>
 
-          {/* Breadcrumb */}
-          <SimpleBreadcrumb 
-            currentPath={currentPath} 
-            onPathClick={handleBreadcrumbClick} 
-          />
-
-          {/* Select All */}
-          {totalItems > 0 && (
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSelectAll}
-                className="gap-2"
-              >
-                {isAllSelected() ? (
-                  <CheckSquare className="h-4 w-4 text-primary" />
-                ) : (
-                  <Square className="h-4 w-4" />
-                )}
-                {isAllSelected() ? 'Deselect All' : 'Select All'}
-              </Button>
-              {selectedPaths.size > 0 && (
-                <span className="text-sm font-medium">
-                  {selectedPaths.size} file(s) selected
-                </span>
-              )}
-            </div>
-          )}
-
           {/* File List */}
-          <ScrollArea className="flex-1 border rounded-md">
+          <ScrollArea className="flex-1 border rounded-md max-h-[400px]">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -368,18 +288,16 @@ export function SelectProjectFilesModal({
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Folder className="h-12 w-12 mb-4" />
                 <p>
-                  {searchQuery 
-                    ? 'No files match your search.' 
-                    : currentPath
-                      ? 'This folder is empty.'
-                      : 'No files in this project yet.'
+                  {currentPath
+                    ? 'This folder is empty.'
+                    : 'No files in this project yet.'
                   }
                 </p>
               </div>
             ) : (
-              <div className="p-4 space-y-2">
+              <div className="p-4 space-y-1">
                 {/* Folders */}
-                {filteredItems.folders.map((folder) => {
+                {getCurrentItems.folders.map((folder) => {
                   const isSelected = isFolderSelected(folder.path);
                   const isPartial = isFolderPartiallySelected(folder.path);
                   
@@ -416,7 +334,7 @@ export function SelectProjectFilesModal({
                 })}
 
                 {/* Files */}
-                {filteredItems.files.map((file) => {
+                {getCurrentItems.files.map((file) => {
                   const isSelected = selectedPaths.has(file.storage_path);
 
                   return (
