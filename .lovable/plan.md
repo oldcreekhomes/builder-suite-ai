@@ -1,60 +1,94 @@
 
-# Fix "Sent On" Date Color to Match Due Date and Reminder Date
+# Add Files from Builder Suite - Project File Picker
 
 ## Summary
-The "Sent On" date is always displaying in a muted gray color, while the Due Date and Reminder Date only use gray for the placeholder and show populated dates in the standard dark text color. We need to apply the same conditional styling.
+Add a feature that allows users to select files directly from the project's Builder Suite files when attaching files to bid packages, eliminating the need to download and re-upload files they already have in the system.
 
-## Changes Overview
+## User Experience
 
-### 1. Update BiddingTableRowContent.tsx
-**File**: `src/components/bidding/components/BiddingTableRowContent.tsx`
+When clicking "Add Files" on a bidding package:
+1. A dropdown or split button will appear with two options:
+   - "From Computer" - Opens the current native file picker (existing behavior)
+   - "From Project Files" - Opens a new modal to browse and select existing Builder Suite project files
 
-**Current code (line 125-127)**:
-```tsx
-<TableCell className="py-1 w-32 text-sm text-muted-foreground">
-  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
-</TableCell>
+The "From Project Files" modal will:
+- Display a list of all project files with folder navigation
+- Allow multi-select with checkboxes
+- Show file icons, names, and sizes
+- Include a search/filter capability
+- Have "Cancel" and "Attach Selected" buttons
+
+## Technical Approach
+
+### 1. Create a New File Picker Modal Component
+**New file**: `src/components/bidding/SelectProjectFilesModal.tsx`
+
+This modal will:
+- Use the existing `useProjectFiles` hook to fetch files
+- Display files in a table format similar to the SimpleFileList component
+- Support folder navigation using the same path-based logic
+- Allow multi-selection with checkboxes
+- Return selected file references on confirmation
+
+### 2. Modify BiddingTableRowFiles Component
+**File**: `src/components/bidding/components/BiddingTableRowFiles.tsx`
+
+Changes:
+- Replace the single "Add Files" button with a dropdown button
+- Add state to control the new project files modal
+- Add a handler for when project files are selected
+
+### 3. Create a Link Files Handler in useBiddingMutations
+**File**: `src/hooks/useBiddingMutations.ts`
+
+Add a new function `handleLinkProjectFiles` that:
+- Accepts an array of project file references (storage paths)
+- Appends these references to the bid package's `files` array
+- Uses the existing pattern for updating the `files` column
+
+### 4. Storage Path Handling
+Since project files use storage paths like `{projectId}/{uuid}_{filename}` and bidding files use `specifications/{filename}`:
+- Store the full storage path reference in the `files` array
+- Update the file preview/download logic to handle both path formats
+
+## Component Structure
+
+```text
+BiddingTableRowFiles
+  |
+  +-- DropdownMenu (new)
+  |     +-- "From Computer" (current native upload)
+  |     +-- "From Project Files" (opens new modal)
+  |
+  +-- SelectProjectFilesModal (new)
+        +-- Breadcrumb navigation
+        +-- File list with checkboxes
+        +-- Search filter
+        +-- Attach button
 ```
 
-**Updated code**:
-```tsx
-<TableCell className={cn("py-1 w-32 text-sm", !item.sent_on && "text-muted-foreground")}>
-  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
-</TableCell>
-```
+## Files to Create/Modify
 
-- Add import for `cn` utility from `@/lib/utils`
-- Only apply `text-muted-foreground` when date is NOT set
-- When date is populated, it will use the default dark text color
+1. **Create**: `src/components/bidding/SelectProjectFilesModal.tsx`
+   - New modal component for browsing and selecting project files
 
-### 2. Update BidPackageDetailsModal.tsx
-**File**: `src/components/bidding/BidPackageDetailsModal.tsx`
+2. **Modify**: `src/components/bidding/components/BiddingTableRowFiles.tsx`
+   - Add dropdown menu for upload options
+   - Add modal state and handlers
+   - Pass project files handler
 
-**Current code (line 241-243)**:
-```tsx
-<td className="p-3 text-sm text-muted-foreground">
-  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
-</td>
-```
+3. **Modify**: `src/hooks/useBiddingMutations.ts`
+   - Add `handleLinkProjectFiles` function
+   - Return it from the hook
 
-**Updated code**:
-```tsx
-<td className={cn("p-3 text-sm", !item.sent_on && "text-muted-foreground")}>
-  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
-</td>
-```
+4. **Modify**: `src/components/bidding/BiddingTable.tsx`
+   - Pass projectId to BiddingTableRow for the new modal
 
-- Add import for `cn` utility from `@/lib/utils`
-- Only apply `text-muted-foreground` when date is NOT set
-- When date is populated, it will use the default dark text color
+5. **Modify**: `src/components/bidding/BiddingTableRow.tsx`
+   - Accept and pass projectId to BiddingTableRowFiles
 
-## Visual Result
-After these changes:
-- **Populated dates**: Will display in the same dark color as Due Date and Reminder Date
-- **Empty dates**: Will continue to show "mm/dd/yyyy" in the muted gray color
-
-This applies to all three tabs (Draft, Bidding, Closed) as well as the bid package details modal dialog.
-
-## Files to Modify
-1. `src/components/bidding/components/BiddingTableRowContent.tsx`
-2. `src/components/bidding/BidPackageDetailsModal.tsx`
+## Benefits
+- No more downloading and re-uploading files
+- Faster workflow for attaching specifications
+- Files are referenced (not copied), saving storage space
+- Consistent experience with Builder Suite's file management
