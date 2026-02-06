@@ -16,7 +16,7 @@ import { PayBillsTable } from "./PayBillsTable";
 import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
 import { ManualBillEntry } from "./ManualBillEntry";
-import { LotAllocationDialog, type LotAllocation } from "./LotAllocationDialog";
+import { LotAllocationDialog, type LotAllocation } from "./LotAllocationDialog"; // Kept for future custom allocation feature
 import { usePendingBills, type PendingBill, type PendingBillLine } from "@/hooks/usePendingBills";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { useBillCounts } from "@/hooks/useBillCounts";
@@ -70,13 +70,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   
-  // Multi-lot allocation dialog state
+  // Multi-lot allocation dialog state (kept for future custom allocation feature)
   const [showLotAllocationDialog, setShowLotAllocationDialog] = useState(false);
   const [pendingAllocationData, setPendingAllocationData] = useState<{
     bills: BatchBill[];
     totalAmount: number;
   } | null>(null);
-  const [shouldContinueSubmit, setShouldContinueSubmit] = useState(false);
   // Fetch and sync pending bills with their lines, auto-populate lot if only one exists
   useEffect(() => {
     if (!pendingBills || pendingBills.length === 0) {
@@ -336,26 +335,38 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         return;
       }
 
-      // Check if multi-lot allocation is needed (2+ lots and some lines missing lot_id)
+      // Auto-split across lots if needed (2+ lots and some lines missing lot_id)
       if (lots.length >= 2) {
         const billsWithMissingLots = validatedBills.filter(bill =>
           bill.lines?.some(line => !line.lot_id)
         );
         
         if (billsWithMissingLots.length > 0) {
-          // Calculate total amount needing allocation
-          const totalAmount = billsWithMissingLots.reduce((sum, bill) => {
-            const lineTotal = bill.lines
-              ?.filter(line => !line.lot_id)
-              .reduce((lineSum, line) => lineSum + (line.amount || 0), 0) || 0;
-            return sum + lineTotal;
-          }, 0);
+          // Call edge function to split evenly across all lots (fast, server-side)
+          const { data, error } = await supabase.functions.invoke('split-pending-bill-lines', {
+            body: {
+              pendingUploadIds: billsWithMissingLots.map(b => b.id),
+              projectId: effectiveProjectId
+            }
+          });
           
-          // Store data and show dialog
-          setPendingAllocationData({ bills: billsWithMissingLots, totalAmount });
-          setShowLotAllocationDialog(true);
-          setIsSubmitting(false);
-          return;
+          if (error) {
+            toast({
+              title: "Error",
+              description: error.message || "Failed to allocate bills across addresses",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          
+          toast({
+            title: "Auto-Allocated",
+            description: `Bills split evenly across ${lots.length} addresses`,
+          });
+          
+          // Refetch to get updated lines with lot assignments, then continue
+          await refetchPendingBills();
         }
       }
       // Map validated bills to the format expected by batchApproveBills
@@ -446,118 +457,16 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     }
   }, [batchBills, selectedBillIds, effectiveProjectId, batchApproveBills, toast, refetchPendingBills, queryClient, checkDuplicate, lots]);
 
-  // Handler for lot allocation confirmation
-  const handleAllocationConfirm = useCallback(async (allocations: LotAllocation[]) => {
-    const selectedAllocations = allocations.filter(a => a.selected);
-    if (selectedAllocations.length === 0 || !pendingAllocationData) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      // For each bill with missing lots, split lines across selected lots
-      for (const bill of pendingAllocationData.bills) {
-        const linesToSplit = bill.lines?.filter(line => !line.lot_id) || [];
-        
-        for (const line of linesToSplit) {
-          const originalAmount = line.amount || 0;
-          
-          // Calculate proportional amounts based on allocation
-          const totalAllocation = selectedAllocations.reduce((s, a) => s + a.amount, 0);
-          
-          // Update original line with first lot
-          const firstLot = selectedAllocations[0];
-          const firstLotProportion = firstLot.amount / totalAllocation;
-          const firstLotAmount = Math.round(originalAmount * firstLotProportion * 100) / 100;
-          
-          await supabase
-            .from('pending_bill_lines')
-            .update({ 
-              lot_id: firstLot.lotId, 
-              amount: firstLotAmount,
-              unit_cost: firstLotAmount
-            })
-            .eq('id', line.id);
-          
-          // Create new lines for remaining lots
-          let remainingAmount = originalAmount - firstLotAmount;
-          for (let i = 1; i < selectedAllocations.length; i++) {
-            const lot = selectedAllocations[i];
-            const isLast = i === selectedAllocations.length - 1;
-            const lotProportion = lot.amount / totalAllocation;
-            const lotAmount = isLast 
-              ? Math.round(remainingAmount * 100) / 100  // Last lot gets remainder to avoid rounding issues
-              : Math.round(originalAmount * lotProportion * 100) / 100;
-            remainingAmount -= lotAmount;
-            
-            // Get next line number
-            const { data: maxLine } = await supabase
-              .from('pending_bill_lines')
-              .select('line_number')
-              .eq('pending_upload_id', bill.id)
-              .order('line_number', { ascending: false })
-              .limit(1);
-            
-            const nextLineNumber = (maxLine?.[0]?.line_number || 0) + 1;
-            
-            await supabase.from('pending_bill_lines').insert({
-              pending_upload_id: bill.id,
-              owner_id: line.owner_id,
-              line_number: nextLineNumber,
-              line_type: line.line_type,
-              cost_code_id: line.cost_code_id,
-              account_id: line.account_id,
-              project_id: line.project_id,
-              lot_id: lot.lotId,
-              quantity: line.quantity,
-              unit_cost: lotAmount,
-              amount: lotAmount,
-              memo: line.memo,
-              description: line.description,
-            });
-          }
-        }
-      }
-      
-      toast({
-        title: "Allocation Applied",
-        description: `Bill amounts have been allocated across ${selectedAllocations.length} addresses.`,
-      });
-      
-      // Refresh bills data and continue with submission
-      await refetchPendingBills();
-      setShowLotAllocationDialog(false);
-      setPendingAllocationData(null);
-      
-      // Signal to continue with submission after state updates
-      setShouldContinueSubmit(true);
-    } catch (error) {
-      console.error("Error applying allocation:", error);
-      toast({
-        title: "Error",
-        description: "Failed to apply allocation. Please try again.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-    }
-  }, [pendingAllocationData, refetchPendingBills, toast]);
-
-  // Auto-continue submission after allocation is applied and batchBills updates
-  useEffect(() => {
-    if (shouldContinueSubmit && !showLotAllocationDialog && batchBills.length > 0) {
-      setShouldContinueSubmit(false);
-      // Small delay to ensure batchBills state has updated with new lot assignments
-      const timer = setTimeout(() => {
-        handleSubmitAllBills();
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [shouldContinueSubmit, showLotAllocationDialog, batchBills, handleSubmitAllBills]);
+  // Handler for lot allocation confirmation (kept for future custom allocation feature)
+  const handleAllocationConfirm = useCallback(async (_allocations: LotAllocation[]) => {
+    // Currently unused - auto-split is now handled by edge function
+    setShowLotAllocationDialog(false);
+    setPendingAllocationData(null);
+  }, []);
 
   const handleAllocationCancel = useCallback(() => {
     setShowLotAllocationDialog(false);
     setPendingAllocationData(null);
-    setIsSubmitting(false);
-    setShouldContinueSubmit(false);
   }, []);
 
   const getTabLabel = (status: string, count: number | undefined) => {
