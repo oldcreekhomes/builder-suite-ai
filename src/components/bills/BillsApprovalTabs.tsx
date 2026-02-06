@@ -76,6 +76,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     bills: BatchBill[];
     totalAmount: number;
   } | null>(null);
+  const [shouldContinueSubmit, setShouldContinueSubmit] = useState(false);
   // Fetch and sync pending bills with their lines, auto-populate lot if only one exists
   useEffect(() => {
     if (!pendingBills || pendingBills.length === 0) {
@@ -527,8 +528,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       setShowLotAllocationDialog(false);
       setPendingAllocationData(null);
       
-      // The useEffect watching pendingBills will update batchBills
-      // After that completes, user can click submit again
+      // Signal to continue with submission after state updates
+      setShouldContinueSubmit(true);
     } catch (error) {
       console.error("Error applying allocation:", error);
       toast({
@@ -536,15 +537,27 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         description: "Failed to apply allocation. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   }, [pendingAllocationData, refetchPendingBills, toast]);
+
+  // Auto-continue submission after allocation is applied and batchBills updates
+  useEffect(() => {
+    if (shouldContinueSubmit && !showLotAllocationDialog && batchBills.length > 0) {
+      setShouldContinueSubmit(false);
+      // Small delay to ensure batchBills state has updated with new lot assignments
+      const timer = setTimeout(() => {
+        handleSubmitAllBills();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldContinueSubmit, showLotAllocationDialog, batchBills, handleSubmitAllBills]);
 
   const handleAllocationCancel = useCallback(() => {
     setShowLotAllocationDialog(false);
     setPendingAllocationData(null);
     setIsSubmitting(false);
+    setShouldContinueSubmit(false);
   }, []);
 
   const getTabLabel = (status: string, count: number | undefined) => {
