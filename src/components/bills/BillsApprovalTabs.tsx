@@ -280,6 +280,48 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         });
       }
       
+      // Validate cost codes/accounts on all selected bills
+      const billsWithMissingCostCodes: { fileName: string; missingCount: number }[] = [];
+
+      for (const bill of validatedBills) {
+        let missingCount = 0;
+        
+        bill.lines?.forEach((line) => {
+          // For job_cost lines, cost_code_id is required
+          // For expense lines, account_id is required
+          if (line.line_type === 'job_cost' && !line.cost_code_id) {
+            missingCount++;
+          } else if (line.line_type === 'expense' && !line.account_id) {
+            missingCount++;
+          }
+        });
+        
+        if (missingCount > 0) {
+          billsWithMissingCostCodes.push({
+            fileName: bill.file_name,
+            missingCount
+          });
+        }
+      }
+
+      if (billsWithMissingCostCodes.length > 0) {
+        const billNames = billsWithMissingCostCodes
+          .map(b => b.fileName)
+          .slice(0, 3)
+          .join(', ');
+        const remaining = billsWithMissingCostCodes.length > 3 
+          ? ` and ${billsWithMissingCostCodes.length - 3} more` 
+          : '';
+        
+        toast({
+          title: "Missing Cost Codes",
+          description: `Cannot submit: ${billsWithMissingCostCodes.length} bill(s) are missing cost codes (${billNames}${remaining}). Please assign cost codes before submitting.`,
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Only proceed with validated bills
       if (validatedBills.length === 0) {
         setIsSubmitting(false);
