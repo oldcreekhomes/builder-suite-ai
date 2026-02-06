@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -122,7 +123,7 @@ export function BiddingTableRowContent({
         onJustClose={handleJustClose}
         onCreatePO={handleCreatePO}
       />
-      <TableCell className="py-1 w-32 text-sm text-muted-foreground">
+      <TableCell className={cn("py-1 w-32 text-sm", !item.sent_on && "text-muted-foreground")}>
         {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
       </TableCell>
       <TableCell className="py-1 w-32">

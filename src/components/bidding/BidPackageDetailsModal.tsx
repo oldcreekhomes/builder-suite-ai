@@ -14,6 +14,7 @@ import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
 import { X, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { useDistanceFilter } from '@/hooks/useDistanceFilter';
 import { DistanceFilterBar } from './components/DistanceFilterBar';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
@@ -238,7 +239,7 @@ export function BidPackageDetailsModal({
                       </SelectContent>
                     </Select>
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground">
+                  <td className={cn("p-3 text-sm", !item.sent_on && "text-muted-foreground")}>
                     {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
                   </td>
                   <td className="p-3">
