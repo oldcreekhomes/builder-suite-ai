@@ -736,7 +736,7 @@ export function ManualBillEntry() {
                     showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
                   <div className="col-span-5">Cost Code</div>
-                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
+                  <div className="col-span-5">Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
@@ -769,7 +769,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
+                    <div className="col-span-5">
                       <Input
                         placeholder="Job cost memo"
                         value={row.memo}
@@ -939,7 +939,7 @@ export function ManualBillEntry() {
                   showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                 )}>
                   <div className="col-span-5">Account</div>
-                  <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>Memo</div>
+                  <div className="col-span-5">Memo</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
@@ -966,7 +966,7 @@ export function ManualBillEntry() {
                         className="h-8"
                       />
                     </div>
-                    <div className={showAddressColumn ? "col-span-5" : "col-span-6"}>
+                    <div className="col-span-5">
                       <Input 
                         placeholder="Expense memo"
                         value={row.memo}
