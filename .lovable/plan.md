@@ -1,57 +1,79 @@
 
-# Fix Grid Layout Whitespace in Manual Bill Entry
+# Fix: Auto-Assign Lot ID for Single-Lot Projects in Manual Bill Entry
 
-## The Problem
+## The Problem You Found
 
-The columns in the multi-lot grid don't add up to the full 25 columns, leaving whitespace to the right of the Action button.
+You're correct - for single-lot projects like Ocean Watch, bill lines are being saved **without** a `lot_id` in the database. This creates an inconsistency:
 
-**Current multi-lot layout (grid-cols-25):**
-| Column | Span | Running Total |
-|--------|------|---------------|
-| Cost Code | 4 | 4 |
-| Memo | 4 | 8 |
-| Quantity | 2 | 10 |
-| Cost | 2 | 12 |
-| Total | 2 | 14 |
-| Address | 3 | 17 |
-| Purchase Order | 4 | 21 |
-| Split | 1 | 22 |
-| Action | 1 | 23 |
+| Entry Method | Single-Lot Project Behavior |
+|--------------|----------------------------|
+| Enter with AI | Automatically assigns the single lot's ID to all lines |
+| Enter Manually | Saves with `lot_id = NULL` because Address column is hidden |
 
-**Missing: 2 columns** - This is causing the whitespace.
+**Database evidence:** All bill_lines from single-lot projects have `lot_id = NULL`, even though those projects have a valid "Lot 1" record in `project_lots`.
+
+## Why This Matters
+
+- **Job Costs Report**: Uses `lot_id` to filter costs by lot - NULL values may be excluded
+- **Data Consistency**: Multi-lot projects have proper lot assignments, but single-lot projects don't
+- **Future Reporting**: Any lot-based filtering or aggregation will miss these records
 
 ## The Fix
 
-Increase Cost Code and Memo columns equally to fill the gap:
+Modify the save logic in Manual Bill Entry to auto-assign the single lot's ID when:
+1. The project has exactly 1 lot
+2. The row doesn't already have a `lotId` set
 
-| Column | Old Span | New Span |
-|--------|----------|----------|
-| Cost Code | 4 | **5** |
-| Memo | 4 | **5** |
-| (all others stay the same) | | |
-
-**New total: 5 + 5 + 2 + 2 + 2 + 3 + 4 + 1 + 1 = 25** ✓
-
-## Changes Required
+## Implementation
 
 **File:** `src/components/bills/ManualBillEntry.tsx`
 
-### Job Cost Tab - Header (around line 734-742)
-- Change Cost Code from `col-span-4` to `col-span-5`
-- Change Memo from `col-span-4` to `col-span-5`
+### Change the billLines mapping (around line 431-456)
 
-### Job Cost Tab - Rows (around line 750, 768)
-- Change Cost Code input from `col-span-4` to `col-span-5`
-- Change Memo input from `col-span-4` to `col-span-5`
+Add logic to default `lot_id` to the single lot when applicable:
 
-### Expense Tab - Header (around line 937-945)
-- Change Account from `col-span-4` to `col-span-5`
-- Change Memo from `col-span-4` to `col-span-5`
+```typescript
+// Get the single lot ID if project has exactly one lot
+const singleLotId = lots.length === 1 ? lots[0]?.id : undefined;
 
-### Expense Tab - Rows (around line 953, 965)
-- Change Account input from `col-span-4` to `col-span-5`
-- Change Memo input from `col-span-4` to `col-span-5`
+const billLines: BillLineData[] = [
+  ...resolvedJobRows
+    .filter(row => row.accountId || row.amount)
+    .map(row => ({
+      line_type: 'job_cost' as const,
+      cost_code_id: row.accountId || undefined,
+      project_id: row.projectId || projectId || undefined,
+      // Auto-assign single lot if no lot selected
+      lot_id: row.lotId || singleLotId || undefined,
+      purchase_order_id: row.purchaseOrderId || undefined,
+      quantity: parseFloat(row.quantity) || 1,
+      unit_cost: parseFloat(row.amount) || 0,
+      amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
+      memo: row.memo || undefined
+    })),
+  ...resolvedExpenseRows
+    .filter(row => row.accountId || row.amount)
+    .map(row => ({
+      line_type: 'expense' as const,
+      account_id: row.accountId || undefined,
+      project_id: row.projectId || projectId || undefined,
+      // Expense rows could also use singleLotId if needed
+      quantity: parseFloat(row.quantity) || 1,
+      unit_cost: parseFloat(row.amount) || 0,
+      amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
+      memo: row.memo || undefined
+    }))
+];
+```
+
+## What This Achieves
+
+| Scenario | Before Fix | After Fix |
+|----------|------------|-----------|
+| Single-lot project, manual entry | `lot_id = NULL` | `lot_id = [Lot 1 UUID]` |
+| Multi-lot project, no address selected | `lot_id = NULL` | `lot_id = NULL` (user must select) |
+| Multi-lot project, address selected | `lot_id = [selected]` | `lot_id = [selected]` |
 
 ## Result
 
-The grid will now fill 100% of the available width with no whitespace to the right of the delete button.
+All bill lines will have proper `lot_id` assignment regardless of whether the Address column is visible, ensuring consistent data for reports and filtering.
