@@ -19,9 +19,10 @@ export default {
 			}
 		},
 	extend: {
-			gridTemplateColumns: {
+		gridTemplateColumns: {
 				'20': 'repeat(20, minmax(0, 1fr))',
 				'24': 'repeat(24, minmax(0, 1fr))',
+				'25': 'repeat(25, minmax(0, 1fr))',
 			},
 			fontFamily: {
 				sans: ['Montserrat', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
