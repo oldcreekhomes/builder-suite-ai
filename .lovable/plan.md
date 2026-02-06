@@ -1,50 +1,60 @@
 
-# Populate "Sent On" Dates for Existing Bid Packages
+# Fix "Sent On" Date Color to Match Due Date and Reminder Date
 
 ## Summary
-The "Sent On" column was successfully added to the UI but shows "mm/dd/yyyy" for all existing bid packages because they were sent before the feature was implemented. We need to backfill the `sent_on` data for all existing sent and closed bid packages.
+The "Sent On" date is always displaying in a muted gray color, while the Due Date and Reminder Date only use gray for the placeholder and show populated dates in the standard dark text color. We need to apply the same conditional styling.
 
-## Solution Approach
-Run a database migration that populates the `sent_on` field for existing records using the best available historical data:
+## Changes Overview
 
-1. **Primary source**: Use the earliest `project_bids.created_at` timestamp for each bid package (this is when the first company was added to receive the bid)
-2. **Fallback source**: For bid packages without any associated bids, use the `project_bid_packages.created_at` timestamp
+### 1. Update BiddingTableRowContent.tsx
+**File**: `src/components/bidding/components/BiddingTableRowContent.tsx`
 
-## Database Migration
-
-The migration will:
-1. Update all "sent" and "closed" bid packages that have associated project_bids records, setting `sent_on` to the earliest bid creation date
-2. Update remaining "sent" and "closed" bid packages (without bids) to use their own `created_at` as the `sent_on` date
-
-```sql
--- Step 1: Update sent_on from earliest project_bid for packages with bids
-UPDATE project_bid_packages bp
-SET sent_on = earliest_bid.first_bid_date
-FROM (
-  SELECT 
-    bid_package_id,
-    MIN(created_at) as first_bid_date
-  FROM project_bids
-  GROUP BY bid_package_id
-) earliest_bid
-WHERE bp.id = earliest_bid.bid_package_id
-AND bp.status IN ('sent', 'closed')
-AND bp.sent_on IS NULL;
-
--- Step 2: For packages without bids, use package created_at
-UPDATE project_bid_packages
-SET sent_on = created_at
-WHERE status IN ('sent', 'closed')
-AND sent_on IS NULL;
+**Current code (line 125-127)**:
+```tsx
+<TableCell className="py-1 w-32 text-sm text-muted-foreground">
+  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
+</TableCell>
 ```
 
-## Data Impact
-- 348 closed bid packages will be updated
-- 93 sent bid packages will be updated
-- Draft bid packages will remain with `sent_on = NULL` (as expected)
+**Updated code**:
+```tsx
+<TableCell className={cn("py-1 w-32 text-sm", !item.sent_on && "text-muted-foreground")}>
+  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
+</TableCell>
+```
 
-## Expected Result
-After the migration, all bid packages in the "Bidding" and "Closed" tabs will show their actual sent dates in the "Sent On" column instead of "mm/dd/yyyy".
+- Add import for `cn` utility from `@/lib/utils`
+- Only apply `text-muted-foreground` when date is NOT set
+- When date is populated, it will use the default dark text color
+
+### 2. Update BidPackageDetailsModal.tsx
+**File**: `src/components/bidding/BidPackageDetailsModal.tsx`
+
+**Current code (line 241-243)**:
+```tsx
+<td className="p-3 text-sm text-muted-foreground">
+  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
+</td>
+```
+
+**Updated code**:
+```tsx
+<td className={cn("p-3 text-sm", !item.sent_on && "text-muted-foreground")}>
+  {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
+</td>
+```
+
+- Add import for `cn` utility from `@/lib/utils`
+- Only apply `text-muted-foreground` when date is NOT set
+- When date is populated, it will use the default dark text color
+
+## Visual Result
+After these changes:
+- **Populated dates**: Will display in the same dark color as Due Date and Reminder Date
+- **Empty dates**: Will continue to show "mm/dd/yyyy" in the muted gray color
+
+This applies to all three tabs (Draft, Bidding, Closed) as well as the bid package details modal dialog.
 
 ## Files to Modify
-1. `supabase/migrations/[timestamp]_backfill_sent_on_dates.sql` (new file)
+1. `src/components/bidding/components/BiddingTableRowContent.tsx`
+2. `src/components/bidding/BidPackageDetailsModal.tsx`
