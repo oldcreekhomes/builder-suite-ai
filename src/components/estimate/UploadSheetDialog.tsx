@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2, CheckCircle2, XCircle, Sparkles, AlertCircle } from "lucide-react";
-import * as pdfjsLib from "pdfjs-dist";
+import { pdfjs } from "@/lib/pdfConfig";
 import { autoExtractAndSave } from "@/utils/autoExtractTakeoff";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -104,7 +104,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
       if (isPDF) {
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
         setUploadProgress({ current: 0, total: pdf.numPages });
 
         // Process each page - upload to storage only, NO database insert
