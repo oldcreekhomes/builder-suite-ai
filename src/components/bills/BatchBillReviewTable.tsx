@@ -445,19 +445,41 @@ export function BatchBillReviewTable({
     return uniqueMemos.join(' • ');
   };
 
-  // Helper to get lot/address display from pending bill lines
-  const getLotDisplay = (bill: PendingBill): string => {
-    if (!bill.lines || bill.lines.length === 0) return '-';
+  // Helper to get lot/address allocation data from pending bill lines
+  const getLotAllocationData = (bill: PendingBill) => {
+    if (!bill.lines || bill.lines.length === 0) {
+      return { display: '-', breakdown: [], totalAmount: 0, uniqueLotCount: 0 };
+    }
     
-    const lotNames = bill.lines
-      .filter(line => line.lot_id && line.lot_name)
-      .map(line => line.lot_name);
+    // Group amounts by lot
+    const lotMap = new Map<string, { name: string; amount: number }>();
     
-    if (lotNames.length === 0) return '-';
+    bill.lines.forEach(line => {
+      if (line.lot_id && line.lot_name) {
+        const existing = lotMap.get(line.lot_id);
+        if (existing) {
+          existing.amount += line.amount || 0;
+        } else {
+          lotMap.set(line.lot_id, { name: line.lot_name, amount: line.amount || 0 });
+        }
+      }
+    });
     
-    const uniqueLots = [...new Set(lotNames)];
-    if (uniqueLots.length === 1) return uniqueLots[0]!;
-    return `+${uniqueLots.length}`;
+    const breakdown = Array.from(lotMap.values());
+    const totalAmount = bill.lines.reduce((sum, line) => sum + (line.amount || 0), 0);
+    const uniqueLotCount = lotMap.size;
+    
+    if (uniqueLotCount === 0) return { display: '-', breakdown: [], totalAmount, uniqueLotCount: 0 };
+    if (uniqueLotCount === 1) return { display: breakdown[0]?.name || '-', breakdown, totalAmount, uniqueLotCount: 1 };
+    
+    return { display: `+${uniqueLotCount}`, breakdown, totalAmount, uniqueLotCount };
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
   };
 
   // Column count for empty state: Checkbox(1) + Vendor(1) + CostCode(1) + BillDate(1) + DueDate(1) + Amount(1) + Reference(1) + Memo(1) + Address(1) + Files(1) + POStatus(1) + Actions(1) = 12
@@ -612,7 +634,7 @@ export function BatchBillReviewTable({
               const referenceNumber = getExtractedValue(bill, 'reference_number', 'referenceNumber');
               const billDate = getExtractedValue(bill, 'bill_date', 'billDate');
               const memoSummary = getMemoSummary(bill);
-              const lotDisplay = getLotDisplay(bill);
+              const lotAllocationData = getLotAllocationData(bill);
               
               // Compute due date display
               const getDueDateDisplay = () => {
@@ -765,7 +787,31 @@ export function BatchBillReviewTable({
                   
                   {/* Address */}
                   <TableCell className="px-2 py-1 text-xs w-24">
-                    {lotDisplay}
+                    {lotAllocationData.uniqueLotCount > 1 ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-default">{lotAllocationData.display}</span>
+                          </TooltipTrigger>
+                          <TooltipContent className="p-2">
+                            <div className="space-y-1 text-xs">
+                              {lotAllocationData.breakdown.map((lot, idx) => (
+                                <div key={idx} className="flex justify-between gap-4">
+                                  <span>{lot.name}</span>
+                                  <span className="font-medium">{formatCurrency(lot.amount)}</span>
+                                </div>
+                              ))}
+                              <div className="border-t pt-1 mt-1 flex justify-between gap-4 font-semibold">
+                                <span>Total</span>
+                                <span>{formatCurrency(lotAllocationData.totalAmount)}</span>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      lotAllocationData.display
+                    )}
                   </TableCell>
                   
                   {/* Files */}
