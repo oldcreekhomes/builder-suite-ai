@@ -30,6 +30,7 @@ export interface PendingBillLine {
   cost_code_id?: string;
   project_id?: string;
   purchase_order_id?: string;
+  lot_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;

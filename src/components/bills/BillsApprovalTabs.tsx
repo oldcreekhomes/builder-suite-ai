@@ -19,6 +19,7 @@ import { ManualBillEntry } from "./ManualBillEntry";
 import { usePendingBills, type PendingBill, type PendingBillLine } from "@/hooks/usePendingBills";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { useBillCounts } from "@/hooks/useBillCounts";
+import { useLots } from "@/hooks/useLots";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,6 +50,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const { checkDuplicate } = useReferenceNumberValidation();
   const effectiveProjectId = projectId || (projectIds && projectIds.length === 1 ? projectIds[0] : undefined);
   
+  // Fetch lots for the project to enable auto-population when only one lot exists
+  const { lots } = useLots(effectiveProjectId);
+  
   const { data: counts, isLoading: countsLoading } = useBillCounts(effectiveProjectId, projectIds);
   
   const {
@@ -65,7 +69,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
 
-  // Fetch and sync pending bills with their lines
+  // Fetch and sync pending bills with their lines, auto-populate lot if only one exists
   useEffect(() => {
     if (!pendingBills || pendingBills.length === 0) {
       setBatchBills([]);
@@ -92,7 +96,31 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
             return { ...bill, lines: [] };
           }
 
-          return { ...bill, lines: (lines || []) as PendingBillLine[] };
+          let processedLines = (lines || []) as PendingBillLine[];
+          
+          // Auto-populate lot_id if exactly one lot exists and line doesn't have lot assigned
+          if (lots.length === 1) {
+            const singleLot = lots[0];
+            const linesToUpdate = processedLines.filter(l => !l.lot_id);
+            
+            // Update lines in database if they don't have lot_id
+            if (linesToUpdate.length > 0 && !cancelled) {
+              const lineIds = linesToUpdate.map(l => l.id);
+              await supabase
+                .from('pending_bill_lines')
+                .update({ lot_id: singleLot.id })
+                .in('id', lineIds);
+            }
+            
+            // Update local lines with lot info
+            processedLines = processedLines.map(line => ({
+              ...line,
+              lot_id: line.lot_id || singleLot.id,
+              lot_name: (line as any).lot_name || singleLot.lot_name || `Lot ${singleLot.lot_number}`,
+            }));
+          }
+
+          return { ...bill, lines: processedLines };
         })
       );
 
@@ -109,7 +137,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
     return () => {
       cancelled = true;
     };
-  }, [pendingBills]);
+  }, [pendingBills, lots]);
 
   const handleExtractionStart = useCallback(() => {
     setIsExtracting(true);
