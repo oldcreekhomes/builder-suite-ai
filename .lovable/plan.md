@@ -1,64 +1,49 @@
 
 
-# Create Bid Management Feature Page
+# Replace "Compare Bids Instantly" Image with Actual Screenshot
 
 ## Overview
-Create a new feature page for "Bid Management" at `/features/bid-management` following the exact same template structure as Smart Gantt Scheduling, AI Bill Management, and Accounting pages.
+You want to replace the placeholder image in the "Compare Bids Instantly" feature row with an actual screenshot of the bid comparison interface showing multiple vendors.
 
-## Page Structure (Matching Existing Template)
+## Current Situation
+The "Compare Bids Instantly" section (line 95-106 in `src/pages/features/BidManagement.tsx`) currently uses:
+```tsx
+imageSrc="/images/bid-management-preview.png"
+```
 
-### Hero Section
-- **Small Label**: "BID MANAGEMENT"
-- **Large Headline**: "Automated Bid Collection"
-- **Description**: Focus on the core value - eliminating manual bid chasing and automating subcontractor communication
+This is the same placeholder image used across all feature rows.
 
-### Feature Rows (4 rows alternating layout)
+## What I Need From You
 
-| Row | Label | Title | Key Message |
-|-----|-------|-------|-------------|
-| 1 | NO LOGIN REQUIRED | Subs Bid Without Creating Accounts | Subcontractors receive an email link to view specs and submit their bid - no passwords, no apps, no barriers |
-| 2 | AUTOMATIC REMINDERS | Never Chase a Late Bid Again | Set reminder dates and BuilderSuite automatically emails subs who haven't responded - escalating frequency until you get a response |
-| 3 | SIDE-BY-SIDE COMPARISON | Compare Bids Instantly | All bids display in one view with pricing, included items, and attachments - making award decisions fast and informed |
-| 4 | CENTRALIZED COMMUNICATION | Every Conversation in One Place | Questions, clarifications, and bid revisions all tracked in one thread per bid package - nothing lost in email |
+To capture the actual bid comparison screenshot, I need you to:
 
-### CTA Section
-- Headline: "Ready to Streamline Your Bid Process?"
-- Subtitle encouraging signup
-- Same styling as other pages (gray gradient background)
+1. **Navigate to a project with bid data** - Go to one of your projects that has a bid package with multiple vendors/subcontractors who have submitted bids
 
-## File Changes
+2. **Expand a bid package row** - Click on a group (like "03 - Concrete" or similar) to expand it and show the list of companies with their:
+   - Company names
+   - Will Bid status (Yes/No)
+   - Price values
+   - Proposals attached
 
-### New File: `src/pages/features/BidManagement.tsx`
-Create new file following the exact structure of GanttScheduling.tsx:
-- Same imports (useState, useNavigate, components, icons)
-- Same component structure with path modal
-- Hero section with proper spacing and styling
-- 4 FeatureRow components with `expandableImage={true}` and `showPathModal={true}`
-- CTA section with gray gradient
-- Footer and path selection modal
+3. **Take a screenshot** - Either:
+   - Use your browser's screenshot tool to capture the bid comparison view
+   - Or let me know which project/bid package to navigate to and I can try capturing it from the browser
 
-### Update: `src/App.tsx`
-Add two changes:
-1. **Line ~39**: Add import for the new page:
-   ```tsx
-   import FeatureBidManagement from "./pages/features/BidManagement";
-   ```
+4. **Upload the screenshot** - Once you have a good screenshot showing multiple vendors with their bid information, upload it to the chat
 
-2. **Line ~89**: Add route definition:
-   ```tsx
-   <Route path="/features/bid-management" element={<FeatureBidManagement />} />
-   ```
+## File Changes (Once Screenshot is Ready)
 
-## Key Differentiators to Highlight
+**`src/pages/features/BidManagement.tsx`**
 
-The content emphasizes what makes BuilderSuite's bid management superior:
+After you provide the screenshot, I will:
 
-1. **Zero Friction for Subs** - No accounts, no apps, just click and bid
-2. **Automated Follow-ups** - System does the chasing, not project managers
-3. **Smart Reminders** - Set it and forget it until bids come in
-4. **Organized Comparison** - No more spreadsheets to compare quotes
-5. **Audit Trail** - Every interaction documented automatically
+1. Save the screenshot to `/public/images/` with an appropriate name like `bid-comparison-screenshot.png`
 
-## Image Usage
-All feature rows will use `/images/bid-management-preview.png` which already exists in the public folder.
+2. Update line 101 to use the new image:
+   - From: `imageSrc="/images/bid-management-preview.png"`
+   - To: `imageSrc="/images/bid-comparison-screenshot.png"`
+
+## Alternative Approach
+
+If you'd prefer, you can tell me which specific project ID to navigate to, and I can try again to capture the screenshot using the browser tool. The browser session needs to have proper authentication to access the bidding page.
 
