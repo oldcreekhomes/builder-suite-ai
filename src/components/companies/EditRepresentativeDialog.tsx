@@ -142,7 +142,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent 
         className="max-w-md"
         onPointerDownOutside={(e) => e.preventDefault()}
