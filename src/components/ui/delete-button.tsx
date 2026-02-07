@@ -46,7 +46,11 @@ export function DeleteButton({
       <Button
         variant={variant}
         size={size}
-        onClick={() => !disabled && setShowConfirmation(true)}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!disabled) setShowConfirmation(true);
+        }}
         disabled={isLoading || disabled}
         className={`${variant === 'destructive' ? 'text-white' : 'text-destructive hover:text-destructive/90 hover:bg-destructive/10'} flex items-center gap-2 ${className}`}
       >

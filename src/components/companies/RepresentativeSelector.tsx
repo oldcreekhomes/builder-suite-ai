@@ -157,6 +157,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
                   <Button 
                     variant="ghost" 
                     size="sm"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingRep(representative);
