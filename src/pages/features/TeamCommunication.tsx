@@ -35,7 +35,7 @@ export default function TeamCommunication() {
                 TEAM COMMUNICATION
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                Keep Everyone in the Loop—Automatically
+                Keep Everyone in the Loop
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
                 Eliminate scattered texts, buried emails, and missed messages. BuilderSuite centralizes all project communication with automatic notifications so the right people always know what's happening.
