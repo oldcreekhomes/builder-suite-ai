@@ -35,6 +35,7 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      data-radix-dialog-content=""
       onInteractOutside={(e) => {
         const target = e.target as HTMLElement | null;
         // Prevent dialog from closing when interacting with Google Places dropdown
