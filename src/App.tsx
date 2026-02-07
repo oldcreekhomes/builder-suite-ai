@@ -36,6 +36,7 @@ import AboutUs from "./pages/AboutUs";
 import FeatureAccounting from "./pages/features/Accounting";
 import FeatureAIBillManagement from "./pages/features/AIBillManagement";
 import FeatureGanttScheduling from "./pages/features/GanttScheduling";
+import FeatureBidManagement from "./pages/features/BidManagement";
 import ApproveBills from "./pages/ApproveBills";
 import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
@@ -87,6 +88,7 @@ const AppContent = () => {
           <Route path="/features/accounting" element={<FeatureAccounting />} />
           <Route path="/features/gantt-scheduling" element={<FeatureGanttScheduling />} />
           <Route path="/features/ai-bill-management" element={<FeatureAIBillManagement />} />
+          <Route path="/features/bid-management" element={<FeatureBidManagement />} />
           
           {/* Root route - conditionally shows Landing or Dashboard */}
           <Route path="/" element={<RootRoute />} />
