@@ -16,39 +16,47 @@ export default function TeamCommunication() {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
   const navigate = useNavigate();
 
+  const handleGetStartedClick = () => {
+    setIsPathModalOpen(true);
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
+    <div className="min-h-screen w-full bg-background">
+      {/* Header */}
+      <PublicHeader onGetStartedClick={handleGetStartedClick} />
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-muted to-background py-20 md:py-32">
+      <section className="py-20 md:py-28 bg-gradient-to-b from-muted to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <span className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+            {/* Text Content */}
+            <div className="space-y-6">
+              <span className="text-sm font-semibold tracking-widest uppercase text-primary">
                 TEAM COMMUNICATION
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
                 Keep Everyone in the Loop—Automatically
               </h1>
-              <p className="text-lg text-muted-foreground max-w-lg">
+              <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
                 Eliminate scattered texts, buried emails, and missed messages. BuilderSuite centralizes all project communication with automatic notifications so the right people always know what's happening.
               </p>
               <Button 
                 size="lg" 
-                className="group"
+                className="text-lg px-8"
                 onClick={() => setIsPathModalOpen(true)}
               >
                 Sign Up
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
+
+            {/* Hero Image */}
             <div className="relative">
               <div className="rounded-2xl overflow-hidden shadow-2xl">
                 <img
                   src="/images/team-communication-forecast-messages.png"
                   alt="Team Communication Dashboard"
-                  className="w-full h-auto"
+                  className="w-full h-auto object-cover"
                 />
               </div>
             </div>
@@ -112,21 +120,21 @@ export default function TeamCommunication() {
       />
 
       {/* CTA Section */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-muted/30 to-background">
+      <section className="py-20 bg-gradient-to-b from-muted/30 to-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Ready to Simplify Project Communication?
           </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Join builders who have eliminated the chaos of scattered messages and keep their entire team—including subcontractors—informed automatically.
           </p>
           <Button 
             size="lg" 
-            className="group"
+            className="text-lg px-8 py-6"
             onClick={() => setIsPathModalOpen(true)}
           >
-            Get Started Today
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            Get Started
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </section>
