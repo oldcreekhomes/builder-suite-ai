@@ -1,41 +1,33 @@
 
+## Summary
+Update two stat labels in "The BuilderSuite Difference" section on the About Us page.
 
-## Update Our Story Page: Year and Content Changes
+## Changes
 
-### Overview
-Update the founding year from 2018 to 2019, change growth references from 8 years to less than 7 years, and remove "The Problem Nobody Understood" section entirely.
+### 1. Update "Projects Managed" Label
+- **Location**: Line 334
+- **Current**: "Projects Managed"
+- **New**: "Lots Managed"
 
-### Changes Required
+### 2. Update "In Budgets Tracked" Label  
+- **Location**: Line 338
+- **Current**: "In Budgets Tracked"
+- **New**: "In the Pipeline"
 
-**File: `src/pages/AboutUs.tsx`**
+## Technical Details
 
-**1. Update Stats Row (lines 95-106)**
-- Change year from `2018` to `2019`
-- Change `<8 Years` to `<7 Years`
+**File**: `src/pages/AboutUs.tsx`
 
-**2. Update Origin Story Paragraphs (lines 112-119)**
-- Line 113: Change "In 2018" to "In 2019"
-- Line 119: Change "in less than eight years" to "in less than seven years"
+The stats row (lines 323-340) will be updated:
 
-**3. Update Growth Timeline (lines 147-156)**
-- Line 153: Change `2018` to `2019`
-- Line 154: Keep description "Started with Excel & QuickBooks"
+```tsx
+// Before
+<p className="text-muted-foreground">Projects Managed</p>
+<p className="text-muted-foreground">In Budgets Tracked</p>
 
-**4. Remove "The Problem Nobody Understood" Section (lines 224-253)**
-- Delete the entire section including:
-  - Section header "The Problem Nobody Understood"
-  - Competitor mentions (CoConstruct, JobTread, BuilderTrend, BuildTools)
-  - Quote block
-  - Silicon Valley engineers paragraph
+// After
+<p className="text-muted-foreground">Lots Managed</p>
+<p className="text-muted-foreground">In the Pipeline</p>
+```
 
-### Summary of Text Changes
-
-| Location | Before | After |
-|----------|--------|-------|
-| Stats row year | 2018 | 2019 |
-| Stats row growth | <8 Years | <7 Years |
-| Origin paragraph | "In 2018, Matt Gray..." | "In 2019, Matt Gray..." |
-| Origin paragraph | "in less than eight years" | "in less than seven years" |
-| Timeline first item | 2018 | 2019 |
-| Problem section | (entire section) | (removed) |
-
+The "$100M+" value stays the same, only the label beneath it changes.
