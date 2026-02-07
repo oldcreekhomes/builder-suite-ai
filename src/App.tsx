@@ -33,7 +33,7 @@ import Accounting from "./pages/Accounting";
 import MarketplaceSignup from "./pages/MarketplaceSignup";
 import MarketplacePortal from "./pages/MarketplacePortal";
 import AboutUs from "./pages/AboutUs";
-
+import FeatureAccounting from "./pages/features/Accounting";
 import ApproveBills from "./pages/ApproveBills";
 import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
@@ -80,6 +80,9 @@ const AppContent = () => {
           
           {/* About Us page */}
           <Route path="/about" element={<AboutUs />} />
+          
+          {/* Feature pages */}
+          <Route path="/features/accounting" element={<FeatureAccounting />} />
           
           {/* Root route - conditionally shows Landing or Dashboard */}
           <Route path="/" element={<RootRoute />} />

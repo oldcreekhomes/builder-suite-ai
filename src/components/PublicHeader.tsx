@@ -1,27 +1,23 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2 } from "lucide-react";
+import { Building2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PublicHeaderProps {
   onGetStartedClick: () => void;
 }
 
+const featureMenuItems = [
+  { label: "Accounting", route: "/features/accounting" },
+  { label: "AI Bill Management", route: "/features/ai-bill-management" },
+  { label: "Bid Management", route: "/features/bid-management" },
+  { label: "Document Management", route: "/features/document-management" },
+  { label: "Gantt Scheduling", route: "/features/gantt-scheduling" },
+  { label: "Team Communication", route: "/features/team-communication" },
+];
+
 export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const handleFeaturesClick = () => {
-    if (location.pathname === "/") {
-      // On landing page, scroll to features section
-      const featuresSection = document.getElementById("features");
-      if (featuresSection) {
-        featuresSection.scrollIntoView({ behavior: "smooth" });
-      }
-    } else {
-      // On other pages, navigate to landing page with hash
-      navigate("/#features");
-    }
-  };
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -47,12 +43,31 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
             >
               Our Philosophy
             </Link>
-            <button 
-              onClick={handleFeaturesClick}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Features
-            </button>
+            
+            {/* Features Dropdown */}
+            <div className="relative group">
+              <button 
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Features
+                <ChevronDown className="h-4 w-4 transition-transform group-hover:rotate-180" />
+              </button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="bg-card border border-border rounded-lg shadow-lg py-2 min-w-[200px]">
+                  {featureMenuItems.map((item) => (
+                    <Link
+                      key={item.route}
+                      to={item.route}
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </nav>
 
           {/* Right: Actions */}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PublicHeader } from "@/components/PublicHeader";
+import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
@@ -497,33 +498,7 @@ const AboutUs = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-card border-t border-border py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <Link to="/" className="inline-flex items-center justify-center mb-4">
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite</span>
-            </Link>
-            <div className="flex items-center justify-center gap-6 mb-6">
-              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-                Home
-              </Link>
-              <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                Our Philosophy
-              </Link>
-              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
-                Sign In
-              </Link>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              Software for Builders. Built by Builders.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              © 2026 BuilderSuite AI. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 };
