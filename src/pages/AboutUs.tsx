@@ -331,11 +331,11 @@ const AboutUs = () => {
             </div>
             <div>
               <p className="text-3xl font-bold text-primary">100+</p>
-              <p className="text-muted-foreground">Projects Managed</p>
+              <p className="text-muted-foreground">Lots Managed</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-primary">$100M+</p>
-              <p className="text-muted-foreground">In Budgets Tracked</p>
+              <p className="text-muted-foreground">In the Pipeline</p>
             </div>
           </div>
         </div>
