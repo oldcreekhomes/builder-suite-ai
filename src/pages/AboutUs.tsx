@@ -484,7 +484,7 @@ const AboutUs = () => {
                     Matt Gray is the founder of both Old Creek Homes, LLC and BuilderSuite. He's been in the construction industry for over twenty years, building hundreds of homes and thousands of apartments throughout the Washington, DC region.
                   </p>
                   <p>
-                    After years of frustration with construction software that promised everything and delivered headaches, Matt decided to build the platform he always wished existed. Today, he uses BuilderSuite every day to manage his own construction projects—and he's committed to building the best construction management software in the industry.
+                    After years of frustration with construction software that promised everything and delivered headaches, Matt decided to build the platform he always wished existed. Today, he uses BuilderSuite every day at Old Creek Homes, LLC—and he's committed to building the best construction management software in the industry.
                   </p>
                 </div>
               </div>
