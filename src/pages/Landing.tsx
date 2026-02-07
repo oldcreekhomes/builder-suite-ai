@@ -233,7 +233,7 @@ const Landing = () => {
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-muted-foreground mb-6">
-                    I want home builders to find me in the BuilderSuite Marketplace directory.
+                    I want Home Builders to find me in the BuilderSuite Marketplace directory.
                   </p>
                   <Button size="lg" variant="outline" className="w-full">
                     Join Marketplace
