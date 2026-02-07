@@ -1,57 +1,143 @@
 
 
-## Center the Marketplace Signup Page
+## Create SEO-Optimized About Us Page
 
-### Problem
-The marketplace signup form appears left-aligned because:
-1. The header uses `max-w-7xl` (very wide container)
-2. The main content uses `max-w-2xl` (narrower, but both use `mx-auto`)
-3. On wide screens, the header content stretches across the full width while the form stays narrow and left-aligned within its container
+### Overview
+Create a comprehensive About Us page that tells the BuilderSuite story, emphasizing that it was built by builders who couldn't find existing software that solved their real problems. The page will be designed to provide rich content for Google to crawl and index.
 
-### Solution
-Restructure the layout so the entire page content is centered in the viewport, creating a cohesive centered design.
+### Key Messaging Themes
 
-### File to Modify
+1. **Origin Story** - BuilderSuite was born out of necessity, not opportunity. The founders tried every construction management software on the market and none of them understood the real problems builders face.
 
-**`src/pages/MarketplaceSignup.tsx`**
+2. **Old Creek Homes Connection** - This software is actively used daily by Old Creek Homes, LLC. Every bug, every improvement, every feature comes from real-world use on actual construction projects.
 
-### Changes
+3. **Continuous Improvement** - Unlike competitors who have a "set it and forget it" mentality, BuilderSuite is updated constantly based on daily discoveries and user feedback.
 
-1. **Update the header container** (line 201)
-   - Change from `max-w-7xl mx-auto` to `max-w-2xl mx-auto`
-   - This aligns the header width with the form width
+4. **Builder-First Philosophy** - Every feature is designed by people who actually swing hammers and manage budgets, not Silicon Valley engineers who have never set foot on a job site.
 
-2. **Add flexbox centering to the main wrapper** (line 198)
-   - Add `flex flex-col` to the root div
-   - This ensures proper vertical structure
+### Page Structure
 
-3. **Update main content area** (line 218)
-   - Keep the `max-w-2xl mx-auto` but ensure the content fills available space properly
+**1. Hero Section**
+- Headline: "Built by Builders. For Builders."
+- Subheadline: A brief statement about why BuilderSuite exists
 
-### Visual Result
+**2. The Problem Section**
+- Why existing solutions failed
+- The frustration of using software built by people who don't understand construction
+- Specific pain points: accounting integration, lack of updates, unresponsive support
 
-```text
-BEFORE:
-+------------------------------------------+
-| Logo                     Back to Home    |  <- Header spans full width
-+------------------------------------------+
-| +----------------+                       |
-| | Form Card      |                       |  <- Form left-aligned in 2xl container
-| +----------------+                       |
-+------------------------------------------+
+**3. Our Story Section**
+- How Old Creek Homes tried every platform (CoConstruct, JobTread, BuilderTrend, BuildTools)
+- The decision to build their own solution
+- Matt Gray's role as founder
 
-AFTER:
-+------------------------------------------+
-|        +------------------------+        |
-|        | Logo     Back to Home  |        |  <- Header matches form width
-|        +------------------------+        |
-|        +------------------------+        |
-|        |     Form Card          |        |  <- Centered form
-|        +------------------------+        |
-+------------------------------------------+
+**4. Our Philosophy Section**
+- Daily active use on real projects
+- Continuous updates and improvements
+- Issues are fixed in days, not years
+- Direct feedback loop from job site to software
+
+**5. The Old Creek Homes Difference**
+- Photo/branding for Old Creek Homes
+- How many projects managed
+- Real-world validation
+- The company actively eats their own dog food
+
+**6. Meet the Team Section**
+- Founder profile: Matt Gray
+- Room for future team members
+
+**7. Our Values Section**
+- Builder-first design
+- Rapid iteration
+- Real-world testing
+- Honest pricing
+
+**8. CTA Section**
+- Invitation to join and be part of the journey
+- Get Started button (with path selection modal)
+
+---
+
+### File Changes
+
+**1. Create `src/pages/AboutUs.tsx`**
+
+New page with all sections described above. Will follow the same design patterns as Landing.tsx:
+- Sticky header with navigation
+- Alternating section backgrounds
+- Consistent typography and spacing
+- Rich semantic HTML for SEO (proper heading hierarchy, meta content)
+- Path selection modal for CTA buttons
+
+Key content blocks:
+- Problem statement with specific competitor mentions
+- Old Creek Homes story and daily usage
+- Emphasis on continuous updates
+- Team/founder section
+- Values and philosophy
+
+**2. Update `src/App.tsx`**
+
+Add route for the About Us page:
+```typescript
+import AboutUs from "./pages/AboutUs";
+// ...
+<Route path="/about" element={<AboutUs />} />
 ```
 
-### Technical Details
+**3. Update `src/pages/Landing.tsx`**
 
-The fix aligns the header's max-width constraint with the main content's max-width, creating a unified centered column layout that looks balanced on all screen sizes.
+Add "About Us" link to the header navigation (between Sign In and Get Started):
+```typescript
+<Link to="/about">
+  <Button variant="ghost">About Us</Button>
+</Link>
+```
+
+Also add About Us link to the footer for additional SEO value.
+
+---
+
+### SEO Considerations
+
+- **Semantic HTML**: Use proper h1, h2, h3 hierarchy
+- **Rich Content**: Long-form text that Google can index
+- **Internal Linking**: Links back to home and signup
+- **Keywords**: Construction management, home builder software, project management, QuickBooks alternative
+- **Meta Content**: Page-specific title and description (handled by React Helmet or similar if needed)
+- **Crawlable Structure**: All content server-rendered and accessible
+
+### Content Draft (Key Sections)
+
+**Hero:**
+> "We didn't set out to build software. We had no choice."
+
+**The Problem:**
+> We tried every construction management platform on the market. CoConstruct. JobTread. BuilderTrend. BuildTools. And everyone in between.
+>
+> The problem? They were all built by tech companies that had never managed a construction project. They didn't understand why accounting needs to be at the core, not bolted on. They didn't understand why a schedule that doesn't communicate with subcontractors is useless. They didn't understand that when there's a bug, waiting 2 years for a fix isn't acceptable.
+>
+> So we stopped waiting for someone else to build what we needed. We built it ourselves.
+
+**Old Creek Homes:**
+> BuilderSuite isn't theoretical software built in a vacuum. It's used every single day by Old Creek Homes, LLC, on real construction projects with real budgets and real deadlines.
+>
+> When we find an issue on the job site, it gets fixed in the software. When we discover a better workflow, it gets added. This is the fundamental difference between BuilderSuite and every other platform: we actually use what we build.
+
+**Values:**
+> - **Builder-First**: Every feature starts with "how would this work on the job site?"
+> - **Continuous Improvement**: We update BuilderSuite constantly, not annually
+> - **Real-World Testing**: If it doesn't work for Old Creek Homes, it doesn't ship
+> - **Honest Communication**: When something breaks, we tell you. When it's fixed, you know.
+
+---
+
+### Technical Implementation Notes
+
+- Reuse existing UI components (Card, Button, etc.)
+- Match Landing.tsx styling patterns
+- Include Path Selection Modal for "Get Started" CTAs
+- Responsive design for all screen sizes
+- Consistent branding (Building2 icon, color scheme)
 
