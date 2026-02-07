@@ -110,7 +110,7 @@ const AboutUs = () => {
           <div className="max-w-3xl mx-auto">
             <div className="prose prose-lg max-w-none text-center">
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-                In 2019, Matt Gray started Old Creek Homes, LLC with nothing but Excel spreadsheets, QuickBooks, and a small pocket of change.
+                In 2019, Matt Gray started Old Creek Homes, LLC with nothing but Excel spreadsheets, QuickBooks, and forty-seven thousand dollars.
               </p>
               <p className="text-xl md:text-2xl font-medium text-foreground mb-6">
                 One home became two. Two became four. Four became eight.
