@@ -310,7 +310,7 @@ const AboutUs = () => {
               </div>
               <div>
                 <p className="text-lg text-muted-foreground mb-4">
-                  "BuilderSuite is used every single day by Old Creek Homes, LLC, on real construction projects with real budgets and real deadlines. When we find an issue on the job site, it gets fixed in the software—usually the same day. When we discover a better workflow, it gets added. This is the fundamental difference between BuilderSuite and every other platform: <strong className="text-foreground">we actually use what we build.</strong>"
+                  "BuilderSuite is used every single day by Old Creek Homes, LLC, on real construction projects with real budgets and real deadlines. When we find an issue in the software, it gets fixed immediately—usually the same day. When we discover a better workflow, it gets added. This is the fundamental difference between BuilderSuite and every other platform: <strong className="text-foreground">we actually use what we build.</strong>"
                 </p>
                 <div>
                   <p className="font-semibold text-foreground">Matt Gray</p>
