@@ -9,9 +9,9 @@ interface PublicHeaderProps {
 const featureMenuItems = [
   { label: "Accounting", route: "/features/accounting" },
   { label: "AI Bill Management", route: "/features/ai-bill-management" },
+  { label: "Smart Gantt Scheduling", route: "/features/gantt-scheduling" },
   { label: "Bid Management", route: "/features/bid-management" },
   { label: "Document Management", route: "/features/document-management" },
-  { label: "Gantt Scheduling", route: "/features/gantt-scheduling" },
   { label: "Team Communication", route: "/features/team-communication" },
 ];
 
