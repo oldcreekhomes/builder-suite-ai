@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { FeatureRow } from "@/components/FeatureRow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
   Building2, 
   Users, 
@@ -27,8 +29,10 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const Landing = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPathModalOpen, setIsPathModalOpen] = useState(false);
   const { toast } = useToast();
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
@@ -161,13 +165,43 @@ const Landing = () => {
               <Link to="/auth">
                 <Button variant="ghost">Sign In</Button>
               </Link>
-              <Link to="/auth?tab=signup">
-                <Button>Get Started</Button>
-              </Link>
+              <Button onClick={() => setIsPathModalOpen(true)}>Get Started</Button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Path Selection Modal */}
+      <Dialog open={isPathModalOpen} onOpenChange={setIsPathModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogTitle className="text-center text-2xl font-bold">
+            Which best describes you?
+          </DialogTitle>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => navigate('/auth?tab=signup')}
+            >
+              <CardHeader className="text-center pb-2">
+                <HardHat className="h-10 w-10 text-primary mx-auto mb-2" />
+                <CardTitle className="text-lg">I'm a Home Builder</CardTitle>
+                <CardDescription>General Contractor or Remodel Contractor</CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <Card 
+              className="cursor-pointer hover:border-primary transition-colors"
+              onClick={() => navigate('/auth/marketplace')}
+            >
+              <CardHeader className="text-center pb-2">
+                <Handshake className="h-10 w-10 text-primary mx-auto mb-2" />
+                <CardTitle className="text-lg">I'm a Subcontractor</CardTitle>
+                <CardDescription>Vendor, Supplier, or Service Provider</CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Hero Section */}
       <section className="py-16 pb-8 bg-gradient-to-b from-muted to-white">
@@ -214,7 +248,7 @@ const Landing = () => {
                     I want to manage my projects, budgets, schedules, and accounting all in one place.
                   </p>
                   <Button size="lg" className="w-full">
-                    Get Started Free
+                    Get Started
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
