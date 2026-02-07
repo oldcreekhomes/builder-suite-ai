@@ -1,143 +1,186 @@
 
 
-## Create SEO-Optimized About Us Page
+## Redesign "Our Story" Page with Compelling Origin Narrative
 
 ### Overview
-Create a comprehensive About Us page that tells the BuilderSuite story, emphasizing that it was built by builders who couldn't find existing software that solved their real problems. The page will be designed to provide rich content for Google to crawl and index.
+Transform the About Us page into a powerful "Our Story" page that tells the compelling origin of Old Creek Homes and BuilderSuite. The hero will be completely redesigned to showcase the journey from 2018 with Excel and QuickBooks to managing over $100M in the pipeline today.
 
-### Key Messaging Themes
+### Key Narrative Changes
 
-1. **Origin Story** - BuilderSuite was born out of necessity, not opportunity. The founders tried every construction management software on the market and none of them understood the real problems builders face.
-
-2. **Old Creek Homes Connection** - This software is actively used daily by Old Creek Homes, LLC. Every bug, every improvement, every feature comes from real-world use on actual construction projects.
-
-3. **Continuous Improvement** - Unlike competitors who have a "set it and forget it" mentality, BuilderSuite is updated constantly based on daily discoveries and user feedback.
-
-4. **Builder-First Philosophy** - Every feature is designed by people who actually swing hammers and manage budgets, not Silicon Valley engineers who have never set foot on a job site.
-
-### Page Structure
-
-**1. Hero Section**
-- Headline: "Built by Builders. For Builders."
-- Subheadline: A brief statement about why BuilderSuite exists
-
-**2. The Problem Section**
-- Why existing solutions failed
-- The frustration of using software built by people who don't understand construction
-- Specific pain points: accounting integration, lack of updates, unresponsive support
-
-**3. Our Story Section**
-- How Old Creek Homes tried every platform (CoConstruct, JobTread, BuilderTrend, BuildTools)
-- The decision to build their own solution
-- Matt Gray's role as founder
-
-**4. Our Philosophy Section**
-- Daily active use on real projects
-- Continuous updates and improvements
-- Issues are fixed in days, not years
-- Direct feedback loop from job site to software
-
-**5. The Old Creek Homes Difference**
-- Photo/branding for Old Creek Homes
-- How many projects managed
-- Real-world validation
-- The company actively eats their own dog food
-
-**6. Meet the Team Section**
-- Founder profile: Matt Gray
-- Room for future team members
-
-**7. Our Values Section**
-- Builder-first design
-- Rapid iteration
-- Real-world testing
-- Honest pricing
-
-**8. CTA Section**
-- Invitation to join and be part of the journey
-- Get Started button (with path selection modal)
+**Origin Story (from user):**
+- 2018: Matt Gray started Old Creek Homes with Excel, QuickBooks, and a small pocket of change
+- Growth trajectory: 1 home became 2, 2 became 4, 4 became 8
+- Today: Over $100 million of homes in the pipeline in less than 8 years
+- Needed software that could keep up with exponential growth
+- Couldn't wait for other software companies to build features
+- Vision: As Old Creek Homes grows, BuilderSuite grows with it
 
 ---
 
 ### File Changes
 
-**1. Create `src/pages/AboutUs.tsx`**
+**1. Update `src/pages/AboutUs.tsx`**
 
-New page with all sections described above. Will follow the same design patterns as Landing.tsx:
-- Sticky header with navigation
-- Alternating section backgrounds
-- Consistent typography and spacing
-- Rich semantic HTML for SEO (proper heading hierarchy, meta content)
-- Path selection modal for CTA buttons
+**Hero Section Redesign (lines 80-90):**
 
-Key content blocks:
-- Problem statement with specific competitor mentions
-- Old Creek Homes story and daily usage
-- Emphasis on continuous updates
-- Team/founder section
-- Values and philosophy
+Replace the current simple hero with a Procore-inspired layout featuring:
+- Main headline: "Built by Builders. For Builders."
+- Subheadline: "We didn't set out to build software. We had no choice."
+- Compelling stats row (similar to Procore): 2018 (Founded), $100M+ (In Pipeline), 8 Years (of Growth)
+- Rich paragraph telling the origin story
 
-**2. Update `src/App.tsx`**
+New hero content:
+```text
+In 2018, Matt Gray started Old Creek Homes, LLC with nothing but 
+Excel spreadsheets, QuickBooks, and a small pocket of change.
 
-Add route for the About Us page:
-```typescript
-import AboutUs from "./pages/AboutUs";
-// ...
-<Route path="/about" element={<AboutUs />} />
+One home became two. Two became four. Four became eight.
+
+Today, we have over $100 million of homes in the pipeline—in less 
+than eight years. We needed software that could keep up with us. 
+We couldn't wait for a software company to build features while we 
+continued to grow exponentially.
+
+So we built it ourselves.
 ```
 
-**3. Update `src/pages/Landing.tsx`**
+**Add Growth Timeline Section (new section after hero):**
 
-Add "About Us" link to the header navigation (between Sign In and Get Started):
-```typescript
-<Link to="/about">
-  <Button variant="ghost">About Us</Button>
-</Link>
+A visual timeline showing key milestones:
+- 2018: Founded with Excel & QuickBooks
+- Growth: Exponential project growth
+- Challenge: Existing software couldn't keep pace
+- Solution: Built BuilderSuite from scratch
+- Today: $100M+ pipeline, software that grows with us
+
+**Update Vision Statement:**
+
+Add a dedicated vision block:
+```text
+Our vision is simple: As Old Creek Homes grows, BuilderSuite grows 
+with it. We continue to develop features that help us innovate, 
+streamline operations, maximize output, and reduce human error.
+
+Every improvement we make for ourselves, we share with you.
 ```
 
-Also add About Us link to the footer for additional SEO value.
+---
+
+**2. Update `src/pages/Landing.tsx`**
+
+**Change navigation text (line 169):**
+- From: `About Us`
+- To: `Our Story`
+
+**Update footer link (line 638):**
+- From: `About Us`
+- To: `Our Story`
+
+---
+
+**3. Update `src/pages/AboutUs.tsx` - Header & Footer**
+
+**Header navigation (line ~39-41):**
+- Update to show "Our Story" as current page context
+
+**Footer link (line ~448-449):**
+- From: `About`
+- To: `Our Story`
+
+---
+
+### Page Section Structure (Revised)
+
+1. **Hero Section** (redesigned)
+   - "Built by Builders. For Builders." headline
+   - "We didn't set out to build software. We had no choice." subheadline
+   - Stats row: 2018 | $100M+ | 8 Years
+   - Origin narrative paragraph
+
+2. **Growth Timeline Section** (new)
+   - Visual journey from Excel/QuickBooks to $100M pipeline
+   - Key milestones highlighted
+
+3. **The Problem Section** (existing, minor refinements)
+   - Competitor struggles
+   - Why nothing worked
+
+4. **Our Vision Section** (new/enhanced)
+   - "As Old Creek Homes grows, BuilderSuite grows"
+   - Continuous innovation message
+
+5. **Our Story Section** (existing, refined)
+   - Old Creek Homes connection
+   - From frustration to innovation
+
+6. **The Old Creek Homes Difference** (existing)
+   - Daily usage
+   - Same-day fixes
+
+7. **Our Philosophy Section** (existing)
+   - Builder-first design values
+
+8. **Why We're Different** (existing)
+   - Key differentiators
+
+9. **Meet the Founder** (existing)
+   - Matt Gray bio
+
+10. **CTA Section** (existing)
+    - Join the journey
+
+---
+
+### Technical Implementation
+
+**New Hero Layout Structure:**
+```tsx
+{/* Hero Section */}
+<section className="py-20 bg-gradient-to-b from-muted to-background">
+  <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    {/* Main headline */}
+    <div className="text-center mb-12">
+      <h1>Built by Builders. For Builders.</h1>
+      <p>We didn't set out to build software. We had no choice.</p>
+    </div>
+    
+    {/* Stats row */}
+    <div className="grid grid-cols-3 gap-8 mb-12">
+      <div className="text-center">
+        <p className="text-4xl font-bold text-primary">2018</p>
+        <p>Founded</p>
+      </div>
+      <div className="text-center">
+        <p className="text-4xl font-bold text-primary">$100M+</p>
+        <p>In Pipeline</p>
+      </div>
+      <div className="text-center">
+        <p className="text-4xl font-bold text-primary">8 Years</p>
+        <p>of Growth</p>
+      </div>
+    </div>
+    
+    {/* Origin Story */}
+    <div className="max-w-3xl mx-auto text-center">
+      <p>In 2018, Matt Gray started Old Creek Homes...</p>
+      <p>One home became two. Two became four...</p>
+      <p>So we built it ourselves.</p>
+    </div>
+  </div>
+</section>
+```
+
+**Growth Timeline Visual:**
+- Horizontal timeline on desktop
+- Vertical cards on mobile
+- Icons and visual indicators for each milestone
 
 ---
 
 ### SEO Considerations
 
-- **Semantic HTML**: Use proper h1, h2, h3 hierarchy
-- **Rich Content**: Long-form text that Google can index
-- **Internal Linking**: Links back to home and signup
-- **Keywords**: Construction management, home builder software, project management, QuickBooks alternative
-- **Meta Content**: Page-specific title and description (handled by React Helmet or similar if needed)
-- **Crawlable Structure**: All content server-rendered and accessible
-
-### Content Draft (Key Sections)
-
-**Hero:**
-> "We didn't set out to build software. We had no choice."
-
-**The Problem:**
-> We tried every construction management platform on the market. CoConstruct. JobTread. BuilderTrend. BuildTools. And everyone in between.
->
-> The problem? They were all built by tech companies that had never managed a construction project. They didn't understand why accounting needs to be at the core, not bolted on. They didn't understand why a schedule that doesn't communicate with subcontractors is useless. They didn't understand that when there's a bug, waiting 2 years for a fix isn't acceptable.
->
-> So we stopped waiting for someone else to build what we needed. We built it ourselves.
-
-**Old Creek Homes:**
-> BuilderSuite isn't theoretical software built in a vacuum. It's used every single day by Old Creek Homes, LLC, on real construction projects with real budgets and real deadlines.
->
-> When we find an issue on the job site, it gets fixed in the software. When we discover a better workflow, it gets added. This is the fundamental difference between BuilderSuite and every other platform: we actually use what we build.
-
-**Values:**
-> - **Builder-First**: Every feature starts with "how would this work on the job site?"
-> - **Continuous Improvement**: We update BuilderSuite constantly, not annually
-> - **Real-World Testing**: If it doesn't work for Old Creek Homes, it doesn't ship
-> - **Honest Communication**: When something breaks, we tell you. When it's fixed, you know.
-
----
-
-### Technical Implementation Notes
-
-- Reuse existing UI components (Card, Button, etc.)
-- Match Landing.tsx styling patterns
-- Include Path Selection Modal for "Get Started" CTAs
-- Responsive design for all screen sizes
-- Consistent branding (Building2 icon, color scheme)
+- Richer content with specific numbers ($100M, 2018, 8 years)
+- Long-form narrative for Google indexing
+- Keywords: construction management software, home builder, exponential growth, QuickBooks alternative
+- Proper heading hierarchy maintained
 
