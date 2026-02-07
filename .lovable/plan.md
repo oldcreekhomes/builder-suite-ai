@@ -1,74 +1,56 @@
 
-# Fix Plan: Type Placeholder Styling and Actions Centering
+# Fix Plan: Standardize Actions Column and Button Styling
 
-## Issues to Address
+## Summary of Issues
 
-### Issue 1: Type Field Styling When Empty
-**Current behavior:** When no type is selected, showing "Enter type" inside a gray badge (black background visible)
-**Desired behavior:** When no type is selected, show "Enter type" as plain grayed-out text (exactly like "Enter phone")
+Based on my analysis of all three tables:
 
-The solution is to conditionally render:
-- If `rep.title` exists: show the colored Badge
-- If no title: show plain gray text "Enter type" without any Badge wrapper
+1. **Companies tab**: Actions header is `text-right` but buttons are left-aligned (not centered)
+2. **Representatives tab**: Edit button uses default styling (no color class)
+3. **Marketplace Representatives tab**: Edit button has `text-gray-600 hover:text-gray-800` making it explicitly gray
 
-### Issue 2: Actions Buttons Alignment
-**Current behavior:** Edit/Delete buttons are right-aligned (`justify-end`)
-**Desired behavior:** Center the buttons directly under the "Actions" header
+## Changes Required
 
-Changes needed:
-- Change "Actions" header from `text-right` to `text-center`
-- Change the buttons container from `justify-end` to `justify-center`
+### File 1: `src/components/companies/CompaniesTable.tsx`
 
----
+#### Change A: Center Actions header (line 228)
+**Current:** `text-right`
+**Change to:** `text-center`
 
-## Files to Modify
-
-### File 1: `src/components/representatives/RepresentativesTable.tsx`
-
-#### Change A: Fix Type placeholder styling (lines 333-337)
-Replace the current Badge-always approach with conditional rendering:
-
+#### Change B: Center action buttons (line 304)
 **Current:**
 ```tsx
-<SelectTrigger className="...">
-  <Badge className={`${getTypeColor(rep.title || '')} text-[10px] px-1 py-0 border-0`}>
-    {rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Enter type'}
-  </Badge>
-</SelectTrigger>
+<div className="flex items-center space-x-1">
 ```
-
 **Change to:**
 ```tsx
-<SelectTrigger className="...">
-  {rep.title ? (
-    <Badge className={`${getTypeColor(rep.title)} text-[10px] px-1 py-0 border-0`}>
-      {representativeTypes.find(t => t.value === rep.title)?.label || rep.title}
-    </Badge>
-  ) : (
-    <span className="text-xs text-gray-400">Enter type</span>
-  )}
-</SelectTrigger>
+<div className="flex justify-center items-center space-x-1">
 ```
 
-#### Change B: Center Actions header (line 302)
-**Current:** `text-right`
-**Change to:** `text-center`
-
-#### Change C: Center action buttons (line 398)
-**Current:** `justify-end`
-**Change to:** `justify-center`
+Note: Companies uses an Archive icon (orange) intentionally because it archives companies rather than permanently deleting them. This is different functionality from the Delete button used in Representatives/Marketplace. If you want me to change this to a Trash icon, please confirm.
 
 ---
 
-### File 2: `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
+### File 2: `src/components/representatives/RepresentativesTable.tsx`
 
-#### Change A: Center Actions header (line 128)
-**Current:** `text-right`
-**Change to:** `text-center`
+#### Change: Remove any graying on Edit button
+The current Edit button (lines 403-410) has no explicit color class, which is correct. No changes needed here - it already matches Companies.
 
-#### Change B: Center action buttons (line 157)
-**Current:** `justify-end`
-**Change to:** `justify-center`
+---
+
+### File 3: `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
+
+#### Change: Remove gray color from Edit button (line 161)
+**Current:**
+```tsx
+className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
+```
+**Change to:**
+```tsx
+className="h-6 w-6 p-0"
+```
+
+This removes the explicit gray coloring so it matches the Companies and Representatives Edit buttons.
 
 ---
 
@@ -76,11 +58,12 @@ Replace the current Badge-always approach with conditional rendering:
 
 | File | Changes |
 |------|---------|
-| RepresentativesTable.tsx | Show plain gray "Enter type" text when no type selected; center Actions header and buttons |
-| MarketplaceRepresentativesTable.tsx | Center Actions header and buttons |
+| CompaniesTable.tsx | Center Actions header (`text-center`); center buttons container (`justify-center`) |
+| RepresentativesTable.tsx | No changes needed - Edit button already matches |
+| MarketplaceRepresentativesTable.tsx | Remove `text-gray-600 hover:text-gray-800` from Edit button |
 
 ## Result After Implementation
 
-1. Empty type fields will show "Enter type" in plain gray text (matching "Enter phone" style exactly)
-2. When a type is selected, it will display as a colored badge (unchanged)
-3. Edit/Delete buttons will be centered directly under the "Actions" header in both tables
+1. All three tables will have Edit/Delete buttons centered under the Actions header
+2. All Edit buttons will have the same default darker color (no gray styling)
+3. Companies will keep the Archive icon (orange) since it archives rather than deletes - let me know if you want this changed to Trash2
