@@ -277,7 +277,7 @@ const AboutUs = () => {
                     <Users className="h-8 w-8 text-primary flex-shrink-0" />
                     <div>
                       <h3 className="font-semibold text-foreground mb-2">Real Daily Use</h3>
-                      <p className="text-muted-foreground">Today, BuilderSuite manages every project at Old Creek Homes. We track millions in budgets, coordinate dozens of subcontractors, and process thousands of bills—all on the same software we're offering to you.</p>
+                      <p className="text-muted-foreground">Today, BuilderSuite manages every project at Old Creek Homes. We track tens of millions in budgets, coordinate with hundreds of subcontractors, and process millions of dollars in invoices on a monthly basis. Damn! All in the same software we're offering to you.</p>
                     </div>
                   </div>
                 </CardContent>
