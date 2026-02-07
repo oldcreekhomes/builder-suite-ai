@@ -44,6 +44,7 @@ export function DeleteButton({
   return (
     <>
       <Button
+        type="button"
         variant={variant}
         size={size}
         onPointerDownCapture={(e) => e.stopPropagation()}

@@ -155,6 +155,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
                 </span>
                 <div className="flex justify-center items-center space-x-1 w-16">
                   <Button 
+                    type="button"
                     variant="ghost" 
                     size="sm"
                     onPointerDownCapture={(e) => e.stopPropagation()}
