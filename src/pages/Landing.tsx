@@ -170,7 +170,7 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-b from-muted to-white">
+      <section className="py-16 pb-8 bg-gradient-to-b from-muted to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-6 tracking-tight text-center">
@@ -182,20 +182,12 @@ const Landing = () => {
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               So we built our own.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth?tab=signup">
-                <Button size="lg" className="px-8 py-6 text-lg">
-                  Get Started
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
           </div>
         </div>
       </section>
 
       {/* Who Are You? Section - Two Paths */}
-      <section className="py-20 bg-background">
+      <section className="pt-8 pb-20 bg-background">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
