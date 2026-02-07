@@ -101,7 +101,7 @@ const AboutUs = () => {
               <p className="text-sm md:text-base text-muted-foreground mt-1">In Pipeline</p>
             </div>
             <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
-              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">&lt;7 Years</p>
+              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">7 Years</p>
               <p className="text-sm md:text-base text-muted-foreground mt-1">of Growth</p>
             </div>
           </div>
