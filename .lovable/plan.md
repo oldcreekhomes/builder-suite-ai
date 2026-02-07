@@ -1,144 +1,57 @@
 
 
-## Add Path Selection Modal to Feature Row Buttons
+## Center the Marketplace Signup Page
 
-### Overview
-When users click "Sign Up" on any feature row (Accounting, AI Bill Management, etc.), instead of navigating directly to the builder signup, a modal will appear asking them to choose their path: Home Builder or Subcontractor/Vendor.
+### Problem
+The marketplace signup form appears left-aligned because:
+1. The header uses `max-w-7xl` (very wide container)
+2. The main content uses `max-w-2xl` (narrower, but both use `mx-auto`)
+3. On wide screens, the header content stretches across the full width while the form stays narrow and left-aligned within its container
 
-### Implementation Approach
+### Solution
+Restructure the layout so the entire page content is centered in the viewport, creating a cohesive centered design.
 
-**Modify `src/components/FeatureRow.tsx`**
+### File to Modify
 
-1. **Add new state** for the path selection modal:
-   - `isPathModalOpen` - controls the modal visibility
+**`src/pages/MarketplaceSignup.tsx`**
 
-2. **Replace the direct Link with a Button** that opens the modal:
-   - Currently: `<Link to={buttonLink}>` wraps the button
-   - New: A standalone `<Button>` with an `onClick` handler
+### Changes
 
-3. **Add the Path Selection Modal** with two options:
-   - **Home Builder card** - Links to `/auth?tab=signup`
-   - **Subcontractor/Vendor card** - Links to `/auth/marketplace`
+1. **Update the header container** (line 201)
+   - Change from `max-w-7xl mx-auto` to `max-w-2xl mx-auto`
+   - This aligns the header width with the form width
 
-4. **Add new optional prop** to control this behavior:
-   - `showPathModal?: boolean` - when true, shows the modal instead of direct navigation
-   - Default: `false` (maintains backward compatibility)
+2. **Add flexbox centering to the main wrapper** (line 198)
+   - Add `flex flex-col` to the root div
+   - This ensures proper vertical structure
 
-### File Changes
+3. **Update main content area** (line 218)
+   - Keep the `max-w-2xl mx-auto` but ensure the content fills available space properly
 
-**`src/components/FeatureRow.tsx`**
-
-Add imports:
-- `Card`, `CardContent`, `CardDescription`, `CardHeader`, `CardTitle` from ui/card
-- `HardHat`, `Handshake` icons from lucide-react
-- `useNavigate` from react-router-dom
-
-Add new prop to interface:
-```typescript
-showPathModal?: boolean;
-```
-
-Add state:
-```typescript
-const [isPathModalOpen, setIsPathModalOpen] = useState(false);
-```
-
-Replace button/link logic (lines 63-68):
-```typescript
-{showPathModal ? (
-  <Button 
-    variant="outline" 
-    size="lg" 
-    className="group"
-    onClick={() => setIsPathModalOpen(true)}
-  >
-    {buttonText}
-    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-  </Button>
-) : (
-  <Button variant="outline" size="lg" asChild className="group">
-    <Link to={buttonLink}>
-      {buttonText}
-      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-    </Link>
-  </Button>
-)}
-```
-
-Add the Path Selection Modal (after the image modal):
-```typescript
-{/* Path Selection Modal */}
-<Dialog open={isPathModalOpen} onOpenChange={setIsPathModalOpen}>
-  <DialogContent className="max-w-2xl">
-    <DialogTitle className="text-center text-2xl font-bold">
-      Which best describes you?
-    </DialogTitle>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-      {/* Home Builder Option */}
-      <Card className="cursor-pointer hover:border-primary transition-colors" 
-            onClick={() => navigate('/auth?tab=signup')}>
-        <CardHeader className="text-center pb-2">
-          <HardHat className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="text-lg">I'm a Home Builder</CardTitle>
-          <CardDescription>General Contractor or Remodel Contractor</CardDescription>
-        </CardHeader>
-      </Card>
-      
-      {/* Subcontractor Option */}
-      <Card className="cursor-pointer hover:border-primary transition-colors"
-            onClick={() => navigate('/auth/marketplace')}>
-        <CardHeader className="text-center pb-2">
-          <Handshake className="h-10 w-10 text-primary mx-auto mb-2" />
-          <CardTitle className="text-lg">I'm a Subcontractor</CardTitle>
-          <CardDescription>Vendor, Supplier, or Service Provider</CardDescription>
-        </CardHeader>
-      </Card>
-    </div>
-  </DialogContent>
-</Dialog>
-```
-
----
-
-**`src/pages/Landing.tsx`**
-
-Add `showPathModal={true}` prop to all 6 FeatureRow components:
-
-- Line 289-300: Accounting FeatureRow
-- Line 302-312: AI Bill Management FeatureRow
-- Line 314-325: Bid Management FeatureRow  
-- Line 327-337: Document Management FeatureRow
-- Line 339-350: Gantt Scheduling FeatureRow
-- Line 352-362: Team Communication FeatureRow
-
-Example:
-```typescript
-<FeatureRow
-  label="ACCOUNTING"
-  title="Streamlined Financial Management"
-  description="..."
-  buttonText="Sign Up"
-  buttonLink="/auth?tab=signup"
-  showPathModal={true}  // ADD THIS
-  ...
-/>
-```
-
-### User Experience Flow
+### Visual Result
 
 ```text
-User clicks "Sign Up" on any feature row
-           ↓
-   Modal appears asking:
-  "Which best describes you?"
-           ↓
-  ┌─────────────┬─────────────┐
-  │  🏠 Home    │  🤝 Sub-    │
-  │  Builder    │  contractor │
-  └─────────────┴─────────────┘
-           ↓
-  User clicks their choice
-           ↓
-  Navigates to appropriate signup path
+BEFORE:
++------------------------------------------+
+| Logo                     Back to Home    |  <- Header spans full width
++------------------------------------------+
+| +----------------+                       |
+| | Form Card      |                       |  <- Form left-aligned in 2xl container
+| +----------------+                       |
++------------------------------------------+
+
+AFTER:
++------------------------------------------+
+|        +------------------------+        |
+|        | Logo     Back to Home  |        |  <- Header matches form width
+|        +------------------------+        |
+|        +------------------------+        |
+|        |     Form Card          |        |  <- Centered form
+|        +------------------------+        |
++------------------------------------------+
 ```
+
+### Technical Details
+
+The fix aligns the header's max-width constraint with the main content's max-width, creating a unified centered column layout that looks balanced on all screen sizes.
 
