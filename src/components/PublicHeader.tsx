@@ -55,7 +55,7 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
               
               {/* Dropdown Menu */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                <div className="bg-card border border-border rounded-lg shadow-lg py-2 min-w-[200px]">
+                <div className="bg-card border border-border rounded-lg shadow-lg py-2 min-w-[240px]">
                   {featureMenuItems.map((item) => (
                     <Link
                       key={item.route}
