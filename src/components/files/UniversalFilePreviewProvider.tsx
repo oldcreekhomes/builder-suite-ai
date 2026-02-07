@@ -13,6 +13,7 @@ interface UniversalFilePreviewContextType {
   openCheckAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
   openDepositAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
   openCreditCardAttachment: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
+  openInsuranceCertificate: (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => void;
 }
 
 const UniversalFilePreviewContext = createContext<UniversalFilePreviewContextType | null>(null);
@@ -44,7 +45,8 @@ export function UniversalFilePreviewProvider({ children, onFileDeleted }: Univer
     openJournalEntryAttachment,
     openCheckAttachment,
     openDepositAttachment,
-    openCreditCardAttachment
+    openCreditCardAttachment,
+    openInsuranceCertificate
   } = useUniversalFilePreview();
 
   const contextValue: UniversalFilePreviewContextType = {
@@ -57,7 +59,8 @@ export function UniversalFilePreviewProvider({ children, onFileDeleted }: Univer
     openJournalEntryAttachment,
     openCheckAttachment,
     openDepositAttachment,
-    openCreditCardAttachment
+    openCreditCardAttachment,
+    openInsuranceCertificate
   };
 
   return (

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CompaniesTable } from "@/components/companies/CompaniesTable";
 import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
@@ -36,10 +37,11 @@ export default function Companies() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader />
+      <UniversalFilePreviewProvider>
+        <div className="min-h-screen flex w-full bg-gray-50">
+          <AppSidebar />
+          <main className="flex-1 flex flex-col">
+            <DashboardHeader />
           
           <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
@@ -146,8 +148,9 @@ export default function Companies() {
             open={addMarketplaceRepresentativeOpen} 
             onOpenChange={setAddMarketplaceRepresentativeOpen} 
           />
-        </main>
-      </div>
+          </main>
+        </div>
+      </UniversalFilePreviewProvider>
     </SidebarProvider>
   );
 }

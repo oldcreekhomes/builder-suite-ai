@@ -5,7 +5,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle, Upload, FileDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Shield, AlertTriangle, CheckCircle2, XCircle, Upload, FileDown, FileText } from "lucide-react";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +73,85 @@ function getStatusBadge(status: "current" | "expiring" | "expired" | "not_set") 
     default:
       return null;
   }
+}
+
+// Extracted data rows component that uses the file preview context
+function InsuranceDataRows({ 
+  insurances, 
+  certificateFilePath,
+  certificateFileName 
+}: { 
+  insurances: InsuranceRecord[]; 
+  certificateFilePath?: string;
+  certificateFileName?: string;
+}) {
+  const { openInsuranceCertificate } = useUniversalFilePreviewContext();
+
+  const handleViewCertificate = () => {
+    if (certificateFilePath) {
+      openInsuranceCertificate(
+        certificateFilePath,
+        certificateFileName || 'Insurance Certificate.pdf'
+      );
+    }
+  };
+
+  return (
+    <div>
+      {INSURANCE_TYPES.map(({ key, label }) => {
+        const record = insurances?.find(i => i.insurance_type === key);
+        const status = getInsuranceStatus(record?.expiration_date || null);
+        
+        return (
+          <div 
+            key={key} 
+            className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.5fr_0.4fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
+          >
+            <span className="truncate font-medium flex items-center gap-2 text-xs">
+              {getStatusBadge(status)}
+              {label}
+            </span>
+            <span className="truncate text-muted-foreground text-xs">
+              {record?.policy_number || "—"}
+            </span>
+            <span className="truncate text-muted-foreground text-xs">
+              {record?.carrier_name || "—"}
+            </span>
+            <span className="truncate text-xs">
+              {record?.expiration_date 
+                ? format(new Date(record.expiration_date), 'MM/dd/yy')
+                : "—"}
+            </span>
+            <span className={cn(
+              "truncate text-xs",
+              status === "current" ? "text-green-600" :
+              status === "expiring" ? "text-yellow-600" :
+              status === "expired" ? "text-red-600" :
+              "text-muted-foreground"
+            )}>
+              {status === "current" ? "Current" :
+               status === "expiring" ? "Expiring" :
+               status === "expired" ? "Expired" :
+               "Not Set"}
+            </span>
+            <span className="flex items-center justify-center">
+              {certificateFilePath ? (
+                <button
+                  onClick={handleViewCertificate}
+                  className="p-1 hover:bg-muted rounded transition-colors"
+                  title="View Certificate"
+                >
+                  <FileText className="h-4 w-4 text-primary" />
+                </button>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // Standalone content component for use in tabs
@@ -322,55 +402,20 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
         <div className="space-y-4">
           <div className="border rounded-md overflow-hidden">
             {/* Header row */}
-            <div className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.5fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+            <div className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.5fr_0.4fr] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
               <span>Coverage Type</span>
               <span>Policy #</span>
               <span>Carrier</span>
               <span>Expiration</span>
               <span>Status</span>
+              <span>Policy</span>
             </div>
             {/* Data rows */}
-            <div>
-              {INSURANCE_TYPES.map(({ key, label }) => {
-                const record = insurances?.find(i => i.insurance_type === key);
-                const status = getInsuranceStatus(record?.expiration_date || null);
-                
-                return (
-                  <div 
-                    key={key} 
-                    className="grid grid-cols-[1.6fr_0.8fr_1fr_0.6fr_0.5fr] gap-2 px-3 py-2 text-sm border-b last:border-b-0 hover:bg-muted/30"
-                  >
-                    <span className="truncate font-medium flex items-center gap-2 text-xs">
-                      {getStatusBadge(status)}
-                      {label}
-                    </span>
-                    <span className="truncate text-muted-foreground text-xs">
-                      {record?.policy_number || "—"}
-                    </span>
-                    <span className="truncate text-muted-foreground text-xs">
-                      {record?.carrier_name || "—"}
-                    </span>
-                    <span className="truncate text-xs">
-                      {record?.expiration_date 
-                        ? format(new Date(record.expiration_date), 'MM/dd/yy')
-                        : "—"}
-                    </span>
-                    <span className={cn(
-                      "truncate text-xs",
-                      status === "current" ? "text-green-600" :
-                      status === "expiring" ? "text-yellow-600" :
-                      status === "expired" ? "text-red-600" :
-                      "text-muted-foreground"
-                    )}>
-                      {status === "current" ? "Current" :
-                       status === "expiring" ? "Expiring" :
-                       status === "expired" ? "Expired" :
-                       "Not Set"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            <InsuranceDataRows 
+              insurances={insurances || []} 
+              certificateFilePath={certificateUpload?.file_path}
+              certificateFileName={certificateUpload?.file_name}
+            />
           </div>
           
           <div className="grid grid-cols-2 gap-3">
