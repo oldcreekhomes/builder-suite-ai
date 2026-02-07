@@ -1214,6 +1214,7 @@ export type Database = {
           home_builder_id: string
           id: string
           insurance_required: boolean
+          marketplace_company_id: string | null
           phone_number: string | null
           state: string | null
           terms: string | null
@@ -1234,6 +1235,7 @@ export type Database = {
           home_builder_id: string
           id?: string
           insurance_required?: boolean
+          marketplace_company_id?: string | null
           phone_number?: string | null
           state?: string | null
           terms?: string | null
@@ -1254,6 +1256,7 @@ export type Database = {
           home_builder_id?: string
           id?: string
           insurance_required?: boolean
+          marketplace_company_id?: string | null
           phone_number?: string | null
           state?: string | null
           terms?: string | null
@@ -1261,7 +1264,15 @@ export type Database = {
           website?: string | null
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_marketplace_company_id_fkey"
+            columns: ["marketplace_company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_cost_codes: {
         Row: {
@@ -2382,6 +2393,7 @@ export type Database = {
           service_areas: string[] | null
           specialties: string[] | null
           updated_at: string
+          user_id: string | null
           website: string | null
         }
         Insert: {
@@ -2399,6 +2411,7 @@ export type Database = {
           service_areas?: string[] | null
           specialties?: string[] | null
           updated_at?: string
+          user_id?: string | null
           website?: string | null
         }
         Update: {
@@ -2416,6 +2429,7 @@ export type Database = {
           service_areas?: string[] | null
           specialties?: string[] | null
           updated_at?: string
+          user_id?: string | null
           website?: string | null
         }
         Relationships: []
@@ -3746,6 +3760,7 @@ export type Database = {
           phone_number: string | null
           role: string
           updated_at: string
+          user_type: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -3760,6 +3775,7 @@ export type Database = {
           phone_number?: string | null
           role?: string
           updated_at?: string
+          user_type?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -3774,6 +3790,7 @@ export type Database = {
           phone_number?: string | null
           role?: string
           updated_at?: string
+          user_type?: string | null
         }
         Relationships: []
       }

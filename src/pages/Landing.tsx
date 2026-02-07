@@ -19,7 +19,9 @@ import {
   Shield, 
   Play,
   ArrowRight,
-  Check
+  Check,
+  HardHat,
+  Handshake
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -188,6 +190,66 @@ const Landing = () => {
                 </Button>
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Who Are You? Section - Two Paths */}
+      <section className="py-20 bg-background">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Who Are You?
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              BuilderSuite serves two types of businesses. Choose your path.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Home Builder Path */}
+            <Card className="relative overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer group">
+              <Link to="/auth?tab=signup" className="block">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <HardHat className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl">I'm a Home Builder</CardTitle>
+                  <CardDescription className="text-base">or General Contractor</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground mb-6">
+                    I want to manage my projects, budgets, schedules, and accounting all in one place.
+                  </p>
+                  <Button size="lg" className="w-full">
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Link>
+            </Card>
+
+            {/* Marketplace Vendor Path */}
+            <Card className="relative overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer group">
+              <Link to="/auth/marketplace" className="block">
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Handshake className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl">I'm a Subcontractor</CardTitle>
+                  <CardDescription className="text-base">Vendor, Supplier, or Service Provider</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-muted-foreground mb-6">
+                    I want home builders to find me in the BuilderSuite Marketplace directory.
+                  </p>
+                  <Button size="lg" variant="outline" className="w-full">
+                    Join Marketplace
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Link>
+            </Card>
           </div>
         </div>
       </section>
