@@ -1,122 +1,103 @@
 
-<goal>
-Make “Update Representative” behave as expected:
-Save representative → close Edit Representative dialog → remain inside Edit Company dialog on the Representatives tab (no return to /companies).
-</goal>
+<summary>
+The behavior you’re calling “going to the Company/Rep page” is almost certainly not a route change at all. What’s happening is: the Edit Company dialog is closing because the Edit Company form is being submitted when you click “Update Representative”, and Edit Company’s success handler explicitly closes itself.
 
-<what-is-actually-going-wrong>
-Even though it “feels like navigation,” the app is almost certainly doing this:
-1) Parent Edit Company dialog receives an “I should close now” signal (Radix outside-interaction / focus-outside / escape semantics).
-2) CompaniesTable’s handler runs:
-   onOpenChange={(open) => !open && setEditingCompany(null)}
-3) editingCompany becomes null → EditCompanyDialog unmounts → you’re back on the Companies & Reps page.
+So we don’t need “navigate back to the reps tab.” We need to stop the nested representative form submit event from triggering the parent Edit Company form submit.
+</summary>
 
-So the bug is not “where to navigate after save” — it’s “stop the parent dialog from closing as a side-effect of interacting with the nested dialog.”
-</what-is-actually-going-wrong>
+<what-we-found-in-the-code>
+1) Edit Company closes only via explicit code in `EditCompanyDialog.tsx`:
+- `updateCompanyMutation.onSuccess` shows toast “Company updated successfully” and calls `onOpenChange(false)` (which clears `editingCompany` in `CompaniesTable` and unmounts the dialog).
 
-<key-observation-from-the-code>
-- EditCompanyDialog uses Radix <Dialog> and is controlled by CompaniesTable state (editingCompany).
-- The nested EditRepresentativeDialog is portaled (Radix does this) and can be interpreted as “outside” the parent dialog’s content.
-- We already hardened the shared DialogContent wrapper, but the close is still happening, which strongly suggests Radix is still finding a path to close the parent.
-</key-observation-from-the-code>
+2) Users are seeing the “Company updated successfully” toast after updating a representative (from your earlier replay/video descriptions). That means the parent company update mutation is firing at the same time as representative update.
 
-<solution-overview>
-Make the Edit Company dialog “explicit-close only”:
-- Do not allow it to close via outside click, focus outside, or Escape.
-- Only allow it to close from explicit actions (Cancel button, Save Company button, maybe an “X” close if you have one).
+3) Key technical detail (this is the missing puzzle piece):
+- React synthetic events bubble through the React component tree even across portals.
+- Your Edit Representative dialog is rendered inside `EditCompanyDialog`’s React tree (it’s returned by `RepresentativeContent`, which is inside the Edit Company `<form>`).
+- When the representative dialog’s `<form>` submits (Update Representative button is `type="submit"`), that submit event can bubble to the parent company form handler in React — even though the dialog content is portaled in the DOM.
 
-This aligns with the desired workflow: while editing a company and its reps, the modal shouldn’t disappear because of a nested modal interaction.
+That explains perfectly:
+- Rep saves successfully
+- Then Company also “saves successfully”
+- Then Edit Company closes (because company onSuccess closes it)
+- You land back on the underlying Companies/Representatives page
+</what-we-found-in-the-code>
 
-Additionally, make the Representatives tab controlled so it reliably stays on the tab the user is working in.
-</solution-overview>
+<root-cause>
+The nested “Edit Representative” form submit event is bubbling up (via React’s event system) and triggering the parent “Edit Company” form submission handler. The parent then runs `updateCompanyMutation`, shows “Company updated successfully”, and closes the dialog.
+
+This is why all the Radix “outside click” protections haven’t solved it: the close is coming from the parent’s own successful submit, not from outside interactions.
+</root-cause>
+
+<fix-strategy>
+Stop submit propagation from the nested representative form so it cannot trigger the parent company form submission.
+
+We will:
+- Intercept the representative form submit event and call `e.preventDefault()` + `e.stopPropagation()`.
+- Then run the representative `react-hook-form` submit programmatically.
+- (Optional hardening) Also stop propagation on the Update Representative button click in capture phase to eliminate edge cases.
+</fix-strategy>
 
 <implementation-steps>
-Step 1 — Prevent Edit Company dialog from closing on outside interactions
-File: src/components/companies/EditCompanyDialog.tsx
+Step 1 — Patch nested representative form submit to not bubble
+File: `src/components/companies/EditRepresentativeDialog.tsx`
 
-Change the parent <DialogContent> to block Radix close triggers:
-- Add:
-  - onPointerDownOutside={(e) => e.preventDefault()}
-  - onInteractOutside={(e) => e.preventDefault()}
-  - onFocusOutside={(e) => e.preventDefault()}
-  - onEscapeKeyDown={(e) => e.preventDefault()}  (optional but recommended)
+Change:
+- Current:
+  - `<form onSubmit={form.handleSubmit(onSubmit)} ...>`
+- New:
+  - `<form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void form.handleSubmit(onSubmit)(); }} ...>`
 
-Result:
-- The parent dialog cannot close due to nested dialog portal interactions.
-- Closing is only via explicit UI actions we control.
+Notes:
+- We’ll call `form.handleSubmit(onSubmit)()` directly so the representative save still runs, but no submit event reaches the parent.
+- Keep the Update button as `type="submit"` (or optionally convert it to `type="button"` and call submit manually).
 
-Step 2 — Control the Edit Company active tab (so it stays on Representatives)
-File: src/components/companies/EditCompanyDialog.tsx
+Step 2 — Add “belt and suspenders” event blocking on the Update button
+File: `src/components/companies/EditRepresentativeDialog.tsx`
 
-Currently Tabs uses defaultValue="company-info" (uncontrolled).
-Update to a controlled Tabs value:
-- const [activeTab, setActiveTab] = useState<'company-info' | 'representatives' | 'insurance'>('company-info');
-- <Tabs value={activeTab} onValueChange={setActiveTab} ...>
+Add to the Update Representative button:
+- `onPointerDownCapture={(e) => e.stopPropagation()}`
+- `onClickCapture={(e) => e.stopPropagation()}`
 
-This ensures:
-- If the user is on Representatives, they remain there after rep updates.
-- If we ever need to force them back to Representatives (e.g., after opening/closing rep dialog), we can setActiveTab('representatives') safely.
+This prevents any click/submit related events from bubbling into the Edit Company dialog tree.
 
-Step 3 — Ensure representative updates only refresh the correct representative query key
-File: src/components/companies/EditRepresentativeDialog.tsx
+Step 3 — Verify we no longer see “Company updated successfully” toast when updating a rep
+Because that toast only exists in `EditCompanyDialog.tsx`, it’s a perfect indicator:
+- After this fix, updating a representative should show only:
+  - “Representative updated successfully”
+- The Edit Company dialog should remain open, on the Representatives tab.
 
-Right now, onSuccess invalidates:
-- ['company-representatives']  (unscoped)
-
-But RepresentativeContent fetches with:
-- ['company-representatives', companyId]
-
-Adjust invalidation to match the actual list query key (scoped by companyId), so the list refreshes reliably without touching anything unrelated:
-- invalidateQueries({ queryKey: ['company-representatives', representative.company_id] })
-
-This won’t fix the closing by itself, but it makes the “I saved, do I see my changes?” part consistent and avoids side effects.
-
-Step 4 — Verify no other explicit close is firing
-Files:
-- src/components/companies/CompaniesTable.tsx (parent open/close)
-- src/components/companies/EditCompanyDialog.tsx (parent dialog)
-- src/components/companies/RepresentativeSelector.tsx (nested rep dialog launcher)
-
-We’ll confirm:
-- No code path calls the parent onOpenChange(false) as a side effect of representative save.
-- The only onOpenChange(false) in rep edit closes the rep dialog (setEditingRep(null)), not the company dialog.
-
+Step 4 (optional) — Apply the same pattern to any other nested dialogs with forms
+If there are other nested form dialogs inside other parent forms, we’ll replicate the same “stopPropagation on submit” pattern. But we’ll start with the one that’s breaking your workflow.
 </implementation-steps>
 
-<why-this-will-work>
-- It removes the entire class of “parent closes because Radix thinks the nested portal is outside” by simply not allowing outside-driven closure at all on the Edit Company dialog.
-- It matches the real-world expectation for an “Edit Company” workflow: users shouldn’t lose their place because they edited a nested entity.
-- Controlled tabs ensure the UI reliably stays on “Representatives” after the nested dialog closes.
-</why-this-will-work>
-
-<test-plan>
-1) Go to Companies → click Edit on a company.
-2) Click “Representatives” tab.
-3) Click Edit (pencil) on a representative.
-4) Change First Name → click “Update Representative”.
-Expected:
-- Success toast appears.
-- Edit Representative dialog closes.
-- Edit Company dialog remains open.
-- You are still on the Representatives tab.
-- The list reflects the updated name.
-
-Regression:
-5) Click outside the Edit Company dialog: it should NOT close (by design after this change).
-6) Press Escape: it should NOT close (by design after this change).
-7) Save Company: should still close the dialog (explicit close path).
-8) Cancel Company: should still close the dialog (explicit close path).
-</test-plan>
-
 <files-to-change>
-- src/components/companies/EditCompanyDialog.tsx
-  - Block outside/focus/escape close on DialogContent
-  - Make Tabs controlled (activeTab state)
-
-- src/components/companies/EditRepresentativeDialog.tsx
-  - Fix query invalidation key to ['company-representatives', companyId]
+- `src/components/companies/EditRepresentativeDialog.tsx`
+  - Stop submit event propagation so parent Edit Company form can’t be submitted.
+  - Add capture-phase stopPropagation on the Update Representative button for extra safety.
 </files-to-change>
 
-<notes>
-If you strongly want the Edit Company dialog to still close on outside click in other contexts, we can make this behavior conditional (e.g., only disable outside close while a nested rep dialog is open). But the simplest/most reliable fix is to make Edit Company explicit-close only.
-</notes>
+<test-plan>
+1) Go to Companies → Edit a company (Edit Company dialog opens).
+2) Click Representatives tab.
+3) Click Edit on a representative.
+4) Change any field → click “Update Representative”.
+
+Expected:
+- Toast: “Representative updated successfully”
+- Edit Representative dialog closes
+- Edit Company dialog stays open
+- You remain on Representatives tab
+- Critically: you do NOT see “Company updated successfully” anymore.
+
+Regression:
+5) Click “Update Company” (in Edit Company footer) still updates company and closes dialog as designed.
+6) Delete Representative flow still works and keeps Edit Company open.
+</test-plan>
+
+<why-this-is-the-simple-direct-fix-you-asked-for>
+You asked for “upon update, go back to Edit Company reps tab.”
+The reason that doesn’t work is the app is already there — it’s just closing the whole Edit Company dialog immediately due to an unintended parent form submit.
+
+Once we stop the nested submit from triggering the parent submit, the UI will naturally behave exactly as you described: save rep → close rep dialog → you’re still in Edit Company → Representatives tab.
+</why-this-is-the-simple-direct-fix-you-asked-for>
