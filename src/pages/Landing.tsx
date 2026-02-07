@@ -216,13 +216,13 @@ const Landing = () => {
             <div>
               <div className="space-y-4">
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
-                  "We at Old Creek Homes didn't want to build software — we had no choice. We needed a system that had accounting, chat, budgets, automation, AI, product cost tracking and more. There is software out there, but the people building it are engineers — not builders so they really don't get it."
+                  "We didn't want to build software — we had no choice.
                 </p>
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
-                  "Here's the best part. Everyday we keep making it better as our company grows, so will the ability and needs of the software."
+                  We needed an application that had accounting, historical cost tracking, chat, budgets, invoice automation and much more.
                 </p>
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed italic">
-                  "There are no demos either. It was built to be intuitive so there are no questions. Try it out and let me know what you think!"
+                  Instead of asking someone else to build us a Home Builder application, we built our own."
                 </p>
               </div>
             </div>
