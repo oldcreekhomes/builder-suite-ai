@@ -1,181 +1,173 @@
 
+# Fix Plan: Type Placeholder and Actions Button Alignment
 
-# Standardization Plan: Representatives and Marketplace Representatives Tables
+## Issues to Fix
 
-## Summary of Changes
+### Issue 1: Type Placeholder Text Inconsistency
+Currently when no type is selected:
+- Phone shows: "Enter phone"
+- Type shows: "Select type" (in code) but appears as "Not Specified" 
 
-This plan addresses 5 specific issues to make the Representatives and Marketplace Representatives tables uniform.
+**Change:** Update the placeholder from "Select type" to "Enter type" for consistency.
+
+### Issue 2: Actions Buttons Not Aligned Under Header
+The Edit and Delete buttons appear left-aligned within their cell, but the "Actions" header is right-aligned. The buttons need to be positioned directly under the Actions header on the right side.
+
+**Root cause:** The DeleteButton component doesn't have explicit size constraints like the Edit button does. Need to ensure both buttons are properly sized and the flex container pushes them to the right edge.
 
 ---
 
-## Change 1: Rename Tab "Marketplace Reps" to "Marketplace Representatives"
+## Files to Modify
 
-**File:** `src/pages/Companies.tsx`
+### File 1: `src/components/representatives/RepresentativesTable.tsx`
 
-**Current (line 56):**
+#### Change 1: Update Type Placeholder (line 335)
+**Current:**
 ```tsx
-<TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
+{rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Select type'}
 ```
 
 **Change to:**
 ```tsx
-<TabsTrigger value="marketplace-representatives">Marketplace Representatives</TabsTrigger>
+{rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Enter type'}
 ```
 
----
+#### Change 2: Fix Actions Cell Button Alignment (lines 397-416)
+The current structure has the buttons in a flex container but they're not properly constrained. Need to add explicit sizing to DeleteButton.
 
-## Change 2: Add Colored Badge for Type in Representatives Table
-
-Currently, the Representatives table shows the Type as plain text in a dropdown. The Marketplace Representatives table shows a colored badge. We will add the same colored badge styling to the Representatives table.
-
-**File:** `src/components/representatives/RepresentativesTable.tsx`
-
-The `getTypeColor` function already exists (lines 213-224) but isn't used for display. We need to show a Badge with the type color alongside the Select dropdown, or modify the Select display to show the badge.
-
-**Approach:** Display the current type as a colored Badge, and when clicked, it opens the Select to change it.
-
-**Changes:**
-- Modify the Type cell (lines 318-337) to display a colored Badge when a type is selected
-- Add more type colors to the `getTypeColor` function to cover all types (superintendent, sales rep, owner, office manager, accountant)
-
----
-
-## Change 3: Remove Icons from Email and Phone in Marketplace Representatives
-
-**File:** `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
-
-**Current Email cell (lines 150-158):**
-```tsx
-<TableCell className="px-2 py-1">
-  {rep.email ? (
-    <div className="flex items-center space-x-1">
-      <Mail className="h-3 w-3 text-gray-400" />
-      <span className="text-xs">{rep.email}</span>
-    </div>
-  ) : (
-    <span className="text-gray-400 text-xs">-</span>
-  )}
-</TableCell>
-```
-
-**Change to:**
-```tsx
-<TableCell className="px-2 py-1">
-  <span className="text-xs">{rep.email || '-'}</span>
-</TableCell>
-```
-
-**Current Phone cell (lines 160-168):**
-```tsx
-<TableCell className="px-2 py-1">
-  {rep.phone_number ? (
-    <div className="flex items-center space-x-1">
-      <Phone className="h-3 w-3 text-gray-400" />
-      <span className="text-xs">{rep.phone_number}</span>
-    </div>
-  ) : (
-    <span className="text-gray-400 text-xs">-</span>
-  )}
-</TableCell>
-```
-
-**Change to:**
-```tsx
-<TableCell className="px-2 py-1">
-  <span className="text-xs">{rep.phone_number || '-'}</span>
-</TableCell>
-```
-
-Also remove the unused Mail and Phone imports from line 13.
-
----
-
-## Change 4: Right-Align Action Buttons Under Actions Header
-
-Both tables currently have the buttons left-aligned within the Actions cell despite the header being right-aligned.
-
-### Representatives Table
-**File:** `src/components/representatives/RepresentativesTable.tsx`
-
-**Current (lines 385-404):**
+**Current:**
 ```tsx
 <TableCell className="px-2 py-1 text-right align-middle">
   <div className="flex justify-end items-center space-x-1">
-```
-This looks correct but let me verify the actual rendering.
-
-### Marketplace Representatives Table
-**File:** `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
-
-**Current (lines 170-187):**
-```tsx
-<TableCell className="px-2 py-1">
-  <div className="flex items-center space-x-1">
+    <Button 
+      variant="ghost" 
+      size="sm"
+      onClick={() => handleEditClick(rep)}
+      className="h-6 w-6 p-0 flex items-center justify-center"
+    >
+      <Edit className="h-3 w-3" />
+    </Button>
+    <div className="flex items-center">
+      <DeleteButton
+        onDelete={() => deleteRepMutation.mutate(rep.id)}
+        title="Delete Representative"
+        description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
+        isLoading={deleteRepMutation.isPending}
+      />
+    </div>
+  </div>
+</TableCell>
 ```
 
 **Change to:**
+```tsx
+<TableCell className="px-2 py-1 align-middle">
+  <div className="flex justify-end items-center space-x-1">
+    <Button 
+      variant="ghost" 
+      size="sm"
+      onClick={() => handleEditClick(rep)}
+      className="h-6 w-6 p-0 flex items-center justify-center"
+    >
+      <Edit className="h-3 w-3" />
+    </Button>
+    <DeleteButton
+      onDelete={() => deleteRepMutation.mutate(rep.id)}
+      title="Delete Representative"
+      description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
+      isLoading={deleteRepMutation.isPending}
+      size="icon"
+      className="h-6 w-6 p-0"
+    />
+  </div>
+</TableCell>
+```
+
+Key changes:
+- Remove the extra wrapping `<div className="flex items-center">` around DeleteButton
+- Add `size="icon"` and `className="h-6 w-6 p-0"` to DeleteButton to match Edit button sizing
+
+---
+
+### File 2: `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
+
+#### Change: Fix Actions Cell Button Sizing (lines 156-172)
+
+**Current:**
 ```tsx
 <TableCell className="px-2 py-1 text-right">
   <div className="flex justify-end items-center space-x-1">
-```
-
----
-
-## Change 5: Fix Company Column Width in Representatives Table
-
-The issue is that long company names are wrapping to two rows. The solution is to allow the company column more space by reducing the Email column's minimum width.
-
-**File:** `src/components/representatives/RepresentativesTable.tsx`
-
-**Current Email header (line 287):**
-```tsx
-<TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[320px] pr-4">Email</TableHead>
-```
-
-**Change to:**
-```tsx
-<TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[200px]">Email</TableHead>
-```
-
-**Current Email cell (line 339):**
-```tsx
-<TableCell className="px-2 py-1 align-middle min-w-[320px] pr-4">
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
+      onClick={() => handleEditClick(rep)}
+    >
+      <Edit className="h-3 w-3" />
+    </Button>
+    <DeleteButton
+      onDelete={() => deleteRepresentativeMutation.mutate(rep.id)}
+      title="Delete Representative"
+      description="Are you sure you want to delete this representative? This action cannot be undone."
+      isLoading={deleteRepresentativeMutation.isPending}
+    />
+  </div>
+</TableCell>
 ```
 
 **Change to:**
 ```tsx
-<TableCell className="px-2 py-1 align-middle min-w-[200px]">
+<TableCell className="px-2 py-1 align-middle">
+  <div className="flex justify-end items-center space-x-1">
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
+      onClick={() => handleEditClick(rep)}
+    >
+      <Edit className="h-3 w-3" />
+    </Button>
+    <DeleteButton
+      onDelete={() => deleteRepresentativeMutation.mutate(rep.id)}
+      title="Delete Representative"
+      description="Are you sure you want to delete this representative? This action cannot be undone."
+      isLoading={deleteRepresentativeMutation.isPending}
+      size="icon"
+      className="h-6 w-6 p-0"
+    />
+  </div>
+</TableCell>
 ```
 
-Also add `whitespace-nowrap` to the Company cell to prevent wrapping:
-
-**Current Company cell (line 317):**
-```tsx
-<TableCell className="px-2 py-1 text-xs align-middle">{rep.companies?.company_name}</TableCell>
-```
-
-**Change to:**
-```tsx
-<TableCell className="px-2 py-1 text-xs align-middle whitespace-nowrap">{rep.companies?.company_name}</TableCell>
-```
+Key changes:
+- Add `size="icon"` and `className="h-6 w-6 p-0"` to DeleteButton to match Edit button
 
 ---
 
-## Technical Details: Files to Modify
+### File 3: `src/components/ui/delete-button.tsx`
 
-| File | Changes |
-|------|---------|
-| `src/pages/Companies.tsx` | Rename tab from "Marketplace Reps" to "Marketplace Representatives" |
-| `src/components/representatives/RepresentativesTable.tsx` | Add colored Badge for Type, reduce Email min-width, add whitespace-nowrap to Company |
-| `src/components/marketplace/MarketplaceRepresentativesTable.tsx` | Remove icons from Email/Phone, right-align action buttons |
+#### Change: Support "icon" size properly
+
+The DeleteButton component needs to accept `size="icon"` as a valid option.
+
+**Current (line 11):**
+```tsx
+size?: "default" | "sm" | "lg" | "icon";
+```
+
+This already supports "icon" - good!
 
 ---
+
+## Summary of Changes
+
+| File | Change |
+|------|--------|
+| RepresentativesTable.tsx | Change "Select type" to "Enter type"; fix DeleteButton sizing with `size="icon"` and `className="h-6 w-6 p-0"` |
+| MarketplaceRepresentativesTable.tsx | Fix DeleteButton sizing with `size="icon"` and `className="h-6 w-6 p-0"` |
 
 ## Result After Implementation
 
-1. Tab will read "Marketplace Representatives" instead of "Marketplace Reps"
-2. Type column in Representatives will show colored badges matching Marketplace Representatives style
-3. Email and Phone in Marketplace Representatives will show plain text without icons
-4. Edit/Delete buttons will appear directly under the Actions header in both tables
-5. Company names in Representatives table will stay on one line
-
+1. Empty type fields will show "Enter type" placeholder (matching "Enter phone" style)
+2. Edit and Delete buttons will be properly sized at 24x24 pixels (h-6 w-6)
+3. Both buttons will appear right-aligned directly under the "Actions" header
