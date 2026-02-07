@@ -207,7 +207,7 @@ const Landing = () => {
                     <HardHat className="h-8 w-8 text-primary" />
                   </div>
                   <CardTitle className="text-xl">I'm a Home Builder</CardTitle>
-                  <CardDescription className="text-base">or General Contractor</CardDescription>
+                  <CardDescription className="text-base">General Contractor or Remodel Contractor</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-muted-foreground mb-6">
