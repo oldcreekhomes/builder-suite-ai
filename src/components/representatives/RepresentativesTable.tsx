@@ -388,7 +388,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                         variant="ghost" 
                         size="sm"
                         onClick={() => handleEditClick(rep)}
-                        className="h-8 w-8 p-0 flex items-center justify-center"
+                        className="h-6 w-6 p-0 flex items-center justify-center"
                       >
                         <Edit className="h-3 w-3" />
                       </Button>

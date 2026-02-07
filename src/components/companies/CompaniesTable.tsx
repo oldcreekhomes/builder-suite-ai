@@ -215,7 +215,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
   return (
     <>      
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
@@ -225,7 +225,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
