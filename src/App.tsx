@@ -32,6 +32,7 @@ import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
 import MarketplaceSignup from "./pages/MarketplaceSignup";
 import MarketplacePortal from "./pages/MarketplacePortal";
+import AboutUs from "./pages/AboutUs";
 
 import ApproveBills from "./pages/ApproveBills";
 import ReviewBills from "./pages/ReviewBills";
@@ -76,6 +77,9 @@ const AppContent = () => {
           
           {/* Landing page route - redirect to root */}
           <Route path="/landing" element={<Navigate to="/" replace />} />
+          
+          {/* About Us page */}
+          <Route path="/about" element={<AboutUs />} />
           
           {/* Root route - conditionally shows Landing or Dashboard */}
           <Route path="/" element={<RootRoute />} />
