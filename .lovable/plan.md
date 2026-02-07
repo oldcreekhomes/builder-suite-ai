@@ -1,19 +1,23 @@
 
-# Fix Plan: Type Placeholder and Actions Button Alignment
+# Fix Plan: Type Placeholder Styling and Actions Centering
 
-## Issues to Fix
+## Issues to Address
 
-### Issue 1: Type Placeholder Text Inconsistency
-Currently when no type is selected:
-- Phone shows: "Enter phone"
-- Type shows: "Select type" (in code) but appears as "Not Specified" 
+### Issue 1: Type Field Styling When Empty
+**Current behavior:** When no type is selected, showing "Enter type" inside a gray badge (black background visible)
+**Desired behavior:** When no type is selected, show "Enter type" as plain grayed-out text (exactly like "Enter phone")
 
-**Change:** Update the placeholder from "Select type" to "Enter type" for consistency.
+The solution is to conditionally render:
+- If `rep.title` exists: show the colored Badge
+- If no title: show plain gray text "Enter type" without any Badge wrapper
 
-### Issue 2: Actions Buttons Not Aligned Under Header
-The Edit and Delete buttons appear left-aligned within their cell, but the "Actions" header is right-aligned. The buttons need to be positioned directly under the Actions header on the right side.
+### Issue 2: Actions Buttons Alignment
+**Current behavior:** Edit/Delete buttons are right-aligned (`justify-end`)
+**Desired behavior:** Center the buttons directly under the "Actions" header
 
-**Root cause:** The DeleteButton component doesn't have explicit size constraints like the Edit button does. Need to ensure both buttons are properly sized and the flex container pushes them to the right edge.
+Changes needed:
+- Change "Actions" header from `text-right` to `text-center`
+- Change the buttons container from `justify-end` to `justify-center`
 
 ---
 
@@ -21,153 +25,62 @@ The Edit and Delete buttons appear left-aligned within their cell, but the "Acti
 
 ### File 1: `src/components/representatives/RepresentativesTable.tsx`
 
-#### Change 1: Update Type Placeholder (line 335)
+#### Change A: Fix Type placeholder styling (lines 333-337)
+Replace the current Badge-always approach with conditional rendering:
+
 **Current:**
 ```tsx
-{rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Select type'}
+<SelectTrigger className="...">
+  <Badge className={`${getTypeColor(rep.title || '')} text-[10px] px-1 py-0 border-0`}>
+    {rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Enter type'}
+  </Badge>
+</SelectTrigger>
 ```
 
 **Change to:**
 ```tsx
-{rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Enter type'}
+<SelectTrigger className="...">
+  {rep.title ? (
+    <Badge className={`${getTypeColor(rep.title)} text-[10px] px-1 py-0 border-0`}>
+      {representativeTypes.find(t => t.value === rep.title)?.label || rep.title}
+    </Badge>
+  ) : (
+    <span className="text-xs text-gray-400">Enter type</span>
+  )}
+</SelectTrigger>
 ```
 
-#### Change 2: Fix Actions Cell Button Alignment (lines 397-416)
-The current structure has the buttons in a flex container but they're not properly constrained. Need to add explicit sizing to DeleteButton.
+#### Change B: Center Actions header (line 302)
+**Current:** `text-right`
+**Change to:** `text-center`
 
-**Current:**
-```tsx
-<TableCell className="px-2 py-1 text-right align-middle">
-  <div className="flex justify-end items-center space-x-1">
-    <Button 
-      variant="ghost" 
-      size="sm"
-      onClick={() => handleEditClick(rep)}
-      className="h-6 w-6 p-0 flex items-center justify-center"
-    >
-      <Edit className="h-3 w-3" />
-    </Button>
-    <div className="flex items-center">
-      <DeleteButton
-        onDelete={() => deleteRepMutation.mutate(rep.id)}
-        title="Delete Representative"
-        description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
-        isLoading={deleteRepMutation.isPending}
-      />
-    </div>
-  </div>
-</TableCell>
-```
-
-**Change to:**
-```tsx
-<TableCell className="px-2 py-1 align-middle">
-  <div className="flex justify-end items-center space-x-1">
-    <Button 
-      variant="ghost" 
-      size="sm"
-      onClick={() => handleEditClick(rep)}
-      className="h-6 w-6 p-0 flex items-center justify-center"
-    >
-      <Edit className="h-3 w-3" />
-    </Button>
-    <DeleteButton
-      onDelete={() => deleteRepMutation.mutate(rep.id)}
-      title="Delete Representative"
-      description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
-      isLoading={deleteRepMutation.isPending}
-      size="icon"
-      className="h-6 w-6 p-0"
-    />
-  </div>
-</TableCell>
-```
-
-Key changes:
-- Remove the extra wrapping `<div className="flex items-center">` around DeleteButton
-- Add `size="icon"` and `className="h-6 w-6 p-0"` to DeleteButton to match Edit button sizing
+#### Change C: Center action buttons (line 398)
+**Current:** `justify-end`
+**Change to:** `justify-center`
 
 ---
 
 ### File 2: `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
 
-#### Change: Fix Actions Cell Button Sizing (lines 156-172)
+#### Change A: Center Actions header (line 128)
+**Current:** `text-right`
+**Change to:** `text-center`
 
-**Current:**
-```tsx
-<TableCell className="px-2 py-1 text-right">
-  <div className="flex justify-end items-center space-x-1">
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
-      onClick={() => handleEditClick(rep)}
-    >
-      <Edit className="h-3 w-3" />
-    </Button>
-    <DeleteButton
-      onDelete={() => deleteRepresentativeMutation.mutate(rep.id)}
-      title="Delete Representative"
-      description="Are you sure you want to delete this representative? This action cannot be undone."
-      isLoading={deleteRepresentativeMutation.isPending}
-    />
-  </div>
-</TableCell>
-```
-
-**Change to:**
-```tsx
-<TableCell className="px-2 py-1 align-middle">
-  <div className="flex justify-end items-center space-x-1">
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
-      onClick={() => handleEditClick(rep)}
-    >
-      <Edit className="h-3 w-3" />
-    </Button>
-    <DeleteButton
-      onDelete={() => deleteRepresentativeMutation.mutate(rep.id)}
-      title="Delete Representative"
-      description="Are you sure you want to delete this representative? This action cannot be undone."
-      isLoading={deleteRepresentativeMutation.isPending}
-      size="icon"
-      className="h-6 w-6 p-0"
-    />
-  </div>
-</TableCell>
-```
-
-Key changes:
-- Add `size="icon"` and `className="h-6 w-6 p-0"` to DeleteButton to match Edit button
+#### Change B: Center action buttons (line 157)
+**Current:** `justify-end`
+**Change to:** `justify-center`
 
 ---
 
-### File 3: `src/components/ui/delete-button.tsx`
+## Summary
 
-#### Change: Support "icon" size properly
-
-The DeleteButton component needs to accept `size="icon"` as a valid option.
-
-**Current (line 11):**
-```tsx
-size?: "default" | "sm" | "lg" | "icon";
-```
-
-This already supports "icon" - good!
-
----
-
-## Summary of Changes
-
-| File | Change |
-|------|--------|
-| RepresentativesTable.tsx | Change "Select type" to "Enter type"; fix DeleteButton sizing with `size="icon"` and `className="h-6 w-6 p-0"` |
-| MarketplaceRepresentativesTable.tsx | Fix DeleteButton sizing with `size="icon"` and `className="h-6 w-6 p-0"` |
+| File | Changes |
+|------|---------|
+| RepresentativesTable.tsx | Show plain gray "Enter type" text when no type selected; center Actions header and buttons |
+| MarketplaceRepresentativesTable.tsx | Center Actions header and buttons |
 
 ## Result After Implementation
 
-1. Empty type fields will show "Enter type" placeholder (matching "Enter phone" style)
-2. Edit and Delete buttons will be properly sized at 24x24 pixels (h-6 w-6)
-3. Both buttons will appear right-aligned directly under the "Actions" header
+1. Empty type fields will show "Enter type" in plain gray text (matching "Enter phone" style exactly)
+2. When a type is selected, it will display as a colored badge (unchanged)
+3. Edit/Delete buttons will be centered directly under the "Actions" header in both tables
