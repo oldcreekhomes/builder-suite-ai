@@ -155,7 +155,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void form.handleSubmit(onSubmit)(); }} className="space-y-4">
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="general">General</TabsTrigger>
@@ -306,7 +306,12 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateRepresentativeMutation.isPending}>
+              <Button 
+                type="submit" 
+                disabled={updateRepresentativeMutation.isPending}
+                onPointerDownCapture={(e) => e.stopPropagation()}
+                onClickCapture={(e) => e.stopPropagation()}
+              >
                 {updateRepresentativeMutation.isPending ? "Updating..." : "Update Representative"}
               </Button>
             </div>
