@@ -126,7 +126,7 @@ const AIBillManagement = () => {
         description="Stop looking up cost codes for every line item. BuilderSuite remembers which cost codes you typically use for each vendor and suggests them automatically. One click to confirm, and you're done."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/images/bid-management-preview.png"
+        imageSrc="/images/accounting-bills-preview.png"
         imageAlt="Smart Cost Code Assignment"
         className="bg-muted/30"
         expandableImage={true}
@@ -139,7 +139,7 @@ const AIBillManagement = () => {
         description="Set up approval rules based on amount, vendor, or project. Bills get routed to the right people automatically, with email notifications and one-click approval. No more chasing signatures or losing invoices in email."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/images/document-management-preview.png"
+        imageSrc="/images/ai-bill-management-preview.png"
         imageAlt="Approval Workflow"
         reversed={true}
         className="bg-background"
