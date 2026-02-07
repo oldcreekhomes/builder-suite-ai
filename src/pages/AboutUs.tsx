@@ -478,16 +478,13 @@ const AboutUs = () => {
               </div>
               <div className="md:w-2/3 p-8">
                 <h3 className="text-2xl font-bold text-foreground mb-2">Matt Gray</h3>
-                <p className="text-primary font-medium mb-4">Founder & CEO</p>
+                <p className="text-primary font-medium mb-4">Founder</p>
                 <div className="space-y-4 text-muted-foreground">
                   <p>
-                    Matt Gray is the founder of both Old Creek Homes, LLC and BuilderSuite. He's been in the construction industry for years, managing custom home builds and remodels throughout the region.
+                    Matt Gray is the founder of both Old Creek Homes, LLC and BuilderSuite. He's been in the construction industry for over twenty years, building hundreds of homes and thousands of apartments throughout the Washington, DC region.
                   </p>
                   <p>
                     After years of frustration with construction software that promised everything and delivered headaches, Matt decided to build the platform he always wished existed. Today, he uses BuilderSuite every day to manage his own construction projects—and he's committed to building the best construction management software in the industry.
-                  </p>
-                  <p className="italic">
-                    "I'm not a software guy who decided to build construction software. I'm a builder who got tired of using broken software. There's a big difference."
                   </p>
                 </div>
               </div>
@@ -513,9 +510,6 @@ const AboutUs = () => {
             Get Started
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
-          <p className="text-sm text-muted-foreground mt-4">
-            No credit card required • Start your free trial today
-          </p>
         </div>
       </section>
 
