@@ -211,13 +211,23 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
   });
 
   const getTypeColor = (type: string) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case 'estimator':
         return 'bg-blue-100 text-blue-800';
       case 'project manager':
         return 'bg-green-100 text-green-800';
       case 'foreman':
         return 'bg-orange-100 text-orange-800';
+      case 'superintendent':
+        return 'bg-purple-100 text-purple-800';
+      case 'sales representative':
+        return 'bg-teal-100 text-teal-800';
+      case 'owner':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'office manager':
+        return 'bg-pink-100 text-pink-800';
+      case 'accountant':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -284,7 +294,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Last Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[320px] pr-4">Email</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[200px]">Email</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notifications</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notifications</TableHead>
@@ -314,14 +324,16 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                   <TableCell className="px-2 py-1 text-xs font-medium align-middle">
                     {rep.last_name}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs align-middle">{rep.companies?.company_name}</TableCell>
+                  <TableCell className="px-2 py-1 text-xs align-middle whitespace-nowrap">{rep.companies?.company_name}</TableCell>
                   <TableCell className="px-2 py-1 align-middle">
                     <Select 
                       value={rep.title || ''} 
                       onValueChange={(value) => handleTitleChange(rep.id, value)}
                     >
                       <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
-                        <SelectValue placeholder="Select type" className="text-xs" />
+                        <Badge className={`${getTypeColor(rep.title || '')} text-[10px] px-1 py-0 border-0`}>
+                          {rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Select type'}
+                        </Badge>
                       </SelectTrigger>
                       <SelectContent className="bg-background border-border shadow-lg z-50">
                         {representativeTypes.map((type) => (
@@ -336,7 +348,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="px-2 py-1 align-middle min-w-[320px] pr-4">
+                  <TableCell className="px-2 py-1 align-middle min-w-[200px]">
                     <input
                       value={rep.email || ''}
                       onChange={(e) => handleEmailChange(rep.id, e.target.value)}
