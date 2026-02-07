@@ -353,7 +353,7 @@ const AboutUs = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="bg-card">
               <CardContent className="pt-8">
                 <div className="flex items-start gap-4">
@@ -396,22 +396,6 @@ const AboutUs = () => {
                     <h3 className="text-xl font-semibold text-foreground mb-2">Real-World Testing</h3>
                     <p className="text-muted-foreground">
                       If it doesn't work for Old Creek Homes, it doesn't ship. Every feature is tested on actual construction projects before it reaches you. We're not experimenting on our customers—we're experimenting on ourselves.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card">
-              <CardContent className="pt-8">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Honest Communication</h3>
-                    <p className="text-muted-foreground">
-                      When something breaks, we tell you. When it's fixed, you know. No corporate speak, no ticket numbers that disappear into the void. We respond to feedback because we're builders too, and we know how frustrating it is to be ignored.
                     </p>
                   </div>
                 </div>
