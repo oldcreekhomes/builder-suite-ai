@@ -93,7 +93,7 @@ const AboutUs = () => {
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-4 md:gap-8 mb-12 md:mb-16">
             <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
-              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">2018</p>
+              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">2019</p>
               <p className="text-sm md:text-base text-muted-foreground mt-1">Founded</p>
             </div>
             <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
@@ -101,7 +101,7 @@ const AboutUs = () => {
               <p className="text-sm md:text-base text-muted-foreground mt-1">In Pipeline</p>
             </div>
             <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
-              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">&lt;8 Years</p>
+              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">&lt;7 Years</p>
               <p className="text-sm md:text-base text-muted-foreground mt-1">of Growth</p>
             </div>
           </div>
@@ -110,13 +110,13 @@ const AboutUs = () => {
           <div className="max-w-3xl mx-auto">
             <div className="prose prose-lg max-w-none text-center">
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-                In 2018, Matt Gray started Old Creek Homes, LLC with nothing but Excel spreadsheets, QuickBooks, and a small pocket of change.
+                In 2019, Matt Gray started Old Creek Homes, LLC with nothing but Excel spreadsheets, QuickBooks, and a small pocket of change.
               </p>
               <p className="text-xl md:text-2xl font-medium text-foreground mb-6">
                 One home became two. Two became four. Four became eight.
               </p>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-                Today, we have over <strong className="text-foreground">$100 million</strong> of homes in the pipeline—in less than eight years. We needed software that could keep up with us. We couldn't wait for a software company to build features while we continued to grow exponentially.
+                Today, we have over <strong className="text-foreground">$100 million</strong> of homes in the pipeline—in less than seven years. We needed software that could keep up with us. We couldn't wait for a software company to build features while we continued to grow exponentially.
               </p>
               <p className="text-xl md:text-2xl font-semibold text-primary">
                 So we built it ourselves.
@@ -150,7 +150,7 @@ const AboutUs = () => {
                   <Building2 className="h-7 w-7 text-primary" />
                 </div>
                 <div className="mt-4">
-                  <p className="font-bold text-foreground">2018</p>
+                  <p className="font-bold text-foreground">2019</p>
                   <p className="text-sm text-muted-foreground mt-1">Started with Excel & QuickBooks</p>
                 </div>
               </div>
@@ -221,36 +221,6 @@ const AboutUs = () => {
         </div>
       </section>
 
-      {/* The Problem Section */}
-      <section className="py-20 bg-background">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              The Problem Nobody Understood
-            </h2>
-          </div>
-          
-          <div className="prose prose-lg max-w-none">
-            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              We tried every construction management platform on the market. <strong className="text-foreground">CoConstruct</strong>. <strong className="text-foreground">JobTread</strong>. <strong className="text-foreground">BuilderTrend</strong>. <strong className="text-foreground">BuildTools</strong>. And everyone in between.
-            </p>
-            
-            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              The problem? They were all built by tech companies that had never managed a construction project. They didn't understand why <strong className="text-foreground">accounting needs to be at the core</strong>, not bolted on as an afterthought. They didn't understand why a schedule that doesn't communicate with subcontractors is useless. They didn't understand that when there's a bug, <strong className="text-foreground">waiting 2 years for a fix isn't acceptable</strong>.
-            </p>
-
-            <div className="bg-muted/50 rounded-xl p-8 my-8 border border-border">
-              <p className="text-xl text-foreground font-medium italic text-center">
-                "Every software company said the same thing: 'That's a great idea, we'll add it to the roadmap.' Years later, nothing changed. So we stopped waiting for someone else to build what we needed. We built it ourselves."
-              </p>
-            </div>
-
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Most construction software is designed by Silicon Valley engineers who have never set foot on a job site. They don't know the frustration of reconciling bills at midnight, chasing down subcontractors for schedule confirmations, or explaining to a client why the budget report doesn't match the actual costs. <strong className="text-foreground">We do.</strong>
-            </p>
-          </div>
-        </div>
-      </section>
 
       {/* Our Story Section */}
       <section className="py-20 bg-muted/30">
