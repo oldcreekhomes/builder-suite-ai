@@ -1,98 +1,119 @@
 
 <context>
-User-visible bug: In the Edit Company → Representatives tab, saving changes in the nested “Edit Representative” dialog still closes the parent Edit Company dialog and returns to the main Companies page. Delete now behaves correctly (returns to Edit Company), but Update Representative does not.
+Current behavior: Updating a representative inside Edit Company → Representatives tab still closes the parent Edit Company dialog and drops you back to /companies, even after:
+- removing ['companies'] invalidations for representative mutations (delete path now OK),
+- setting modal={false} on the nested Edit Representative dialog (companies/EditRepresentativeDialog.tsx),
+- adding data-radix-dialog-content / data-radix-alert-dialog-content markers (dialog.tsx / alert-dialog.tsx).
 
-Current state in code:
-- `src/components/companies/EditRepresentativeDialog.tsx` already has `modal={false}` and onSuccess only invalidates `['company-representatives']`.
-- The app uses Radix Dialog (shadcn) with a custom `onInteractOutside` handler in `src/components/ui/dialog.tsx` intended to prevent parent dialogs from closing when interacting with nested dialogs.
-- That handler currently checks for selectors like:
-  - `[data-radix-dialog-content]`
-  - `[data-radix-alert-dialog-content]`
-  but Radix does NOT emit these attributes by default, and our wrappers do not add them.
+Key observation from the codebase:
+- The Edit Company dialog is a Radix Dialog (modal) controlled by CompaniesTable state:
+  - open={!!editingCompany}
+  - onOpenChange={(open) => !open && setEditingCompany(null)}
+So if the parent Radix dialog fires onOpenChange(false) for any reason (outside interaction/focus outside/escape), CompaniesTable clears editingCompany and the app “returns to the Companies page”.
 </context>
 
-<root-cause>
-The parent “Edit Company” dialog is closing because Radix considers clicks inside the nested “Edit Representative” dialog to be an “outside interaction” relative to the parent dialog’s content (the nested dialog is portaled elsewhere in the DOM). The parent dialog therefore receives an outside-interaction event and closes.
+<what-we-learned-from-code>
+1) There are two different EditRepresentativeDialog components:
+   - src/components/companies/EditRepresentativeDialog.tsx (used by EditCompanyDialog via RepresentativeSelector.tsx)
+   - src/components/representatives/EditRepresentativeDialog.tsx (separate, includes other query invalidations and is not modal={false})
+   The one actually used in the Edit Company Representatives tab is:
+   - RepresentativeSelector.tsx imports: `import { EditRepresentativeDialog } from "./EditRepresentativeDialog";`
+   So the problem is in the nested Radix dialog interaction between:
+   - Parent: EditCompanyDialog (Radix Dialog, modal)
+   - Child: companies/EditRepresentativeDialog (Radix Dialog, modal={false})
 
-We attempted to guard against this in `src/components/ui/dialog.tsx` by detecting whether the click target is inside another Radix dialog, but the detection currently fails because:
-- `[data-radix-dialog-content]` and `[data-radix-alert-dialog-content]` do not exist anywhere in the DOM today (confirmed by searching node_modules and our wrappers).
+2) Our global DialogContent wrapper (src/components/ui/dialog.tsx) currently guards ONLY `onInteractOutside`.
+   However, Radix can close dialogs based on:
+   - onPointerDownOutside
+   - onFocusOutside
+   - (and then also triggers onInteractOutside)
+   In nested portal scenarios, it’s common for the parent to be closed by pointer-down-outside or focus-outside semantics before our onInteractOutside guard is sufficient.
 
-So the parent dialog treats child-dialog clicks as outside clicks and closes, sending the user back to `/companies`.
-</root-cause>
+This explains why the issue can persist even with the marker attributes and onInteractOutside guard in place.
+</what-we-are-going-to-change>
+Goal: Make the parent dialog reliably ignore ALL “outside” signals that originate from within any other dialog/alert-dialog content (i.e., from a nested portal), not just the generic onInteractOutside.
 
-<solution-overview>
-Make nested-dialog detection actually work by adding explicit “marker” data attributes to our dialog content wrappers, and keep the existing “prevent parent close when interacting with nested dialog” logic.
+We will harden src/components/ui/dialog.tsx so it prevents parent dialog closure for nested dialogs at the earliest relevant hooks:
+- onPointerDownOutside
+- onFocusOutside
+- onInteractOutside (keep as a fallback)
 
-This is a robust, app-wide fix:
-- It fixes Edit Representative closing the parent Edit Company dialog.
-- It also hardens all nested dialog scenarios across the app (not just this page).
-</solution-overview>
+This is an app-wide fix that should stabilize all nested Radix dialogs, not just the Company/Representative flow.
+</what-to-implement>
+Step 1: Update DialogContent wrapper to guard pointer-down-outside and focus-outside
+File: src/components/ui/dialog.tsx
 
-<implementation-steps>
-1) Add a marker attribute to DialogContent so parent dialogs can detect “this click happened inside a dialog”
-   - File: `src/components/ui/dialog.tsx`
-   - Update the `DialogPrimitive.Content` wrapper to include a stable attribute, e.g.:
-     - `data-radix-dialog-content=""` (or `data-lovable-dialog-content=""`)
-   - Keep the current `onInteractOutside` handler, but ensure it checks for the attribute we actually set.
+Implementation details:
+- In the DialogPrimitive.Content props destructuring, also pick up:
+  - onPointerDownOutside
+  - onFocusOutside
+  - onInteractOutside (already present)
+- Implement a shared helper inside the component, e.g.:
+  - `shouldBlockOutsideEvent(target: HTMLElement | null): boolean`
+  - returns true if target is inside:
+    - `[data-radix-dialog-content]` OR
+    - `[data-radix-alert-dialog-content]` OR
+    - (optional) other portaled Radix overlays if needed later
 
-   Recommended approach (minimal change, leverages existing logic):
-   - Add: `data-radix-dialog-content=""` to the content root
-   - Leave this existing logic in place:
-     ```ts
-     target?.closest('[data-radix-dialog-content]')
-     ```
-   This makes the current prevention code finally become effective.
+- Wire it to all three handlers:
+  1) onPointerDownOutside:
+     - if shouldBlockOutsideEvent(e.target as HTMLElement | null) => e.preventDefault(); return;
+     - else call the user-provided onPointerDownOutside if any
+  2) onFocusOutside:
+     - same logic
+  3) onInteractOutside:
+     - keep existing logic, but align it with the shared helper to avoid divergence
 
-2) Add a marker attribute to AlertDialogContent for the same reason (completes the pattern)
-   - File: `src/components/ui/alert-dialog.tsx`
-   - Update `AlertDialogPrimitive.Content` wrapper to include:
-     - `data-radix-alert-dialog-content=""`
+Why this matters:
+- Even if onInteractOutside is called, by then the dialog may already be in a closing flow; blocking earlier events is the reliable nested-modal pattern.
 
-3) Verify Edit Representative no longer closes Edit Company when saving
-   - No changes needed in `src/components/companies/EditRepresentativeDialog.tsx` beyond what you already have (modal={false} is fine).
-   - The key change is ensuring the parent dialog can correctly detect nested dialog interactions and not close.
+Step 2: Verify we still set the marker attribute on dialog content
+File: src/components/ui/dialog.tsx
+- Keep: `data-radix-dialog-content=""` on DialogPrimitive.Content (already added)
+This is required so `closest('[data-radix-dialog-content]')` can detect nested dialog content.
 
-4) (Optional hardening) Expand nested detection to cover other portaled overlays if you use them
-   - Only if you still see edge cases:
-     - Popover, Select, DropdownMenu content can also be portaled.
-   - Add additional checks in `dialog.tsx` like:
-     - `[data-radix-popover-content]`, `[data-radix-select-content]`, etc.
-   - This is optional; the representative issue should be fixed by marking dialog/alert-dialog content.
+Step 3 (only if needed after testing): Extend the “nested overlay” allowlist
+If the representative dialog uses other portaled components (Select/Popover/Dropdown), those can also trigger parent “outside” events. If we still reproduce the issue after Step 1, we will extend detection to include:
+- `[data-radix-select-content]`
+- `[data-radix-popover-content]`
+- `[data-radix-dropdown-menu-content]`
+This would be done in the same shared helper in dialog.tsx.
 
-</implementation-steps>
-
-<files-to-change>
-- `src/components/ui/dialog.tsx`
-  - Add `data-radix-dialog-content` marker to `DialogPrimitive.Content`
-  - Ensure `onInteractOutside` checks match that marker (it already does; it just needs the attribute to exist)
-
-- `src/components/ui/alert-dialog.tsx`
-  - Add `data-radix-alert-dialog-content` marker to `AlertDialogPrimitive.Content`
-</files-to-change>
-
-<test-plan>
-Reproduce the exact workflow from your video:
-
-1) Go to Companies → click Edit on any company
-2) Switch to Representatives tab
-3) Click Edit (pencil) on a representative
-4) Change a field and click “Update Representative”
+We will not add these until we confirm they are necessary, to avoid unintentionally blocking legitimate outside clicks.
+</what-we_will_not_change>
+- We will not change routing or add manual navigation hacks.
+- We will not change CompaniesTable open-state logic, because the dialog should not be closing in the first place.
+- We will not reintroduce invalidation of ['companies'] on representative updates.
+</what_success_looks_like>
+After the change:
+- Edit Company dialog remains open.
+- User clicks Edit on a rep → nested dialog opens.
+- User clicks Update Representative → save succeeds → nested dialog closes.
+- User is still in Edit Company dialog on the Representatives tab.
+- No redirect/return to the Companies page.
+</test_plan>
+1) Go to /companies
+2) Click Edit on a company → Edit Company dialog opens
+3) Click Representatives tab
+4) Click Edit (pencil) on any representative
+5) Change a field and click “Update Representative”
    Expected:
    - Toast: “Representative updated successfully”
    - Edit Representative dialog closes
-   - You remain in Edit Company dialog on Representatives tab (no navigation back to main Companies page)
+   - Edit Company dialog remains open on Representatives tab
 
-Regression checks:
-5) Click Delete on a representative
-   - Confirmation shows
-   - After delete, you remain on Edit Company → Representatives tab
-6) Click outside the Edit Company dialog
-   - It should close only when you truly click outside (not when interacting with nested dialogs)
-
-</test-plan>
-
-<notes-why-this-works>
-Radix determines “outside” based on whether the event target is inside the parent dialog’s content node. Since nested dialogs are portaled, they are outside in DOM terms, so the parent closes unless we explicitly prevent it.
-
-By marking dialog content nodes with a known attribute and checking `target.closest(...)` inside `onInteractOutside`, we reliably detect nested dialog interactions and prevent the parent from closing.
-</notes-why-this-works>
+Regression:
+6) Click outside the Edit Company dialog (true outside) → it should close normally
+7) Delete representative flow still returns you to Edit Company → Representatives tab
+8) Interact with Select controls inside the representative dialog (Type dropdown) and save again
+</test_diagnostics_if_it_still_fails>
+If it still closes after Step 1:
+- We’ll capture console logs during the click/save (to see whether parent onSubmit is firing or any unexpected onOpenChange triggers).
+- We’ll likely need Step 3 (add select/popover/dropdown content selectors to the nested-overlay allowlist), because Radix Select’s portaled content can be interpreted as outside interaction for the parent dialog.
+</test_scope_and_risk>
+- Low risk: changes are contained to the shared dialog wrapper and only affect “outside interactions” behavior.
+- Intended outcome: parent dialogs become more stable when nested dialogs/overlays are used.
+</testables>
+Files to change:
+- src/components/ui/dialog.tsx
+No other files are required for the first pass.
