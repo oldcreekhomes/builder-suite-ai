@@ -27,31 +27,48 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+// Helper to detect if an event target is inside a nested Radix overlay
+const isInsideNestedOverlay = (target: HTMLElement | null): boolean => {
+  if (!target) return false;
+  return !!(
+    target.closest('[data-radix-dialog-content]') ||
+    target.closest('[data-radix-alert-dialog-content]') ||
+    target.closest('.pac-container') ||
+    target.closest('.pac-item') ||
+    target.closest('[data-radix-select-content]') ||
+    target.closest('[data-radix-popover-content]') ||
+    target.closest('[data-radix-dropdown-menu-content]')
+  );
+};
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onInteractOutside, ...props }, ref) => (
+>(({ className, children, onInteractOutside, onPointerDownOutside, onFocusOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       data-radix-dialog-content=""
-      onInteractOutside={(e) => {
+      onPointerDownOutside={(e) => {
         const target = e.target as HTMLElement | null;
-        // Prevent dialog from closing when interacting with Google Places dropdown
-        if (
-          target?.closest('.pac-container') ||
-          target?.closest('.pac-item') ||
-          target?.classList.contains('pac-container')
-        ) {
+        if (isInsideNestedOverlay(target)) {
           e.preventDefault();
           return;
         }
-        // Prevent parent dialog from closing when interacting with nested Radix dialogs/alert-dialogs
-        if (
-          target?.closest('[data-radix-dialog-content]') ||
-          target?.closest('[data-radix-alert-dialog-content]')
-        ) {
+        onPointerDownOutside?.(e);
+      }}
+      onFocusOutside={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (isInsideNestedOverlay(target)) {
+          e.preventDefault();
+          return;
+        }
+        onFocusOutside?.(e);
+      }}
+      onInteractOutside={(e) => {
+        const target = e.target as HTMLElement | null;
+        if (isInsideNestedOverlay(target)) {
           e.preventDefault();
           return;
         }
