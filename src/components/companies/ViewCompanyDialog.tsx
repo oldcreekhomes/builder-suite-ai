@@ -45,6 +45,7 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
+  company_id: string;
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
   receive_po_notifications?: boolean;

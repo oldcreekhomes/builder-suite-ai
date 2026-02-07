@@ -52,6 +52,7 @@ interface Representative {
   email?: string;
   phone_number?: string;
   title?: string;
+  company_id: string;
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
   receive_po_notifications?: boolean;
@@ -120,7 +121,8 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
+      // Invalidate with scoped query key to refresh the list without affecting parent
+      queryClient.invalidateQueries({ queryKey: ['company-representatives', representative?.company_id] });
       toast({
         title: "Success",
         description: "Representative updated successfully",

@@ -173,6 +173,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'company-info' | 'representatives' | 'insurance'>('company-info');
   const initializationDone = useRef(false);
 
   // Stable company ID for preventing unnecessary re-renders
@@ -290,6 +291,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   useEffect(() => {
     if (!open) {
       setSelectedCostCodes([]);
+      setActiveTab('company-info');
       initializationDone.current = false;
       form.reset();
     }
@@ -413,14 +415,20 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   return (
     <Dialog key={stableCompanyId} open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Edit Company</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
-            <Tabs defaultValue="company-info" className="w-full">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
               <TabsList className="w-full grid grid-cols-3">
                 <TabsTrigger value="company-info">Company Information</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
