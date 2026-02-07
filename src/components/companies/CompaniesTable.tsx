@@ -225,7 +225,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -301,7 +301,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                   </Tooltip>
                 </TableCell>
                 <TableCell className="px-2 py-1">
-                  <div className="flex items-center space-x-1">
+                  <div className="flex justify-center items-center space-x-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
