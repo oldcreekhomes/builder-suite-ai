@@ -297,6 +297,7 @@ const Landing = () => {
         reversed={true}
         className="bg-background"
         expandableImage={true}
+        showPathModal={true}
       />
 
       <FeatureRow
@@ -309,6 +310,7 @@ const Landing = () => {
         imageAlt="BuilderSuite Bill Management"
         className="bg-muted/30"
         expandableImage={true}
+        showPathModal={true}
       />
 
       <FeatureRow
@@ -322,6 +324,7 @@ const Landing = () => {
         reversed={true}
         className="bg-background"
         expandableImage={true}
+        showPathModal={true}
       />
 
       <FeatureRow
@@ -334,6 +337,7 @@ const Landing = () => {
         imageAlt="BuilderSuite Document Management"
         className="bg-muted/30"
         expandableImage={true}
+        showPathModal={true}
       />
 
       <FeatureRow
@@ -347,6 +351,7 @@ const Landing = () => {
         reversed={true}
         className="bg-background"
         expandableImage={true}
+        showPathModal={true}
       />
 
       <FeatureRow
@@ -359,6 +364,7 @@ const Landing = () => {
         imageAlt="BuilderSuite Team Communication"
         className="bg-muted/30"
         expandableImage={true}
+        showPathModal={true}
       />
 
       {/* Social Proof Section */}
