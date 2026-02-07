@@ -1,55 +1,144 @@
 
 
-## Remove Hero "Get Started" Button and Tighten Layout
+## Add Path Selection Modal to Feature Row Buttons
 
-### Problem
-The current landing page has a "Get Started" button in the hero section that conflicts with the "Who Are You?" two-path section directly below it. This creates confusion because:
-1. The hero button goes directly to `/auth?tab=signup` (builder signup only)
-2. The section below properly differentiates between builders and marketplace vendors
+### Overview
+When users click "Sign Up" on any feature row (Accounting, AI Bill Management, etc.), instead of navigating directly to the builder signup, a modal will appear asking them to choose their path: Home Builder or Subcontractor/Vendor.
 
-### Solution
-Remove the "Get Started" button from the hero section and reduce the spacing to create a tighter, more cohesive flow from the hero messaging directly into the "Who Are You?" path selection.
+### Implementation Approach
 
-### File to Modify
+**Modify `src/components/FeatureRow.tsx`**
+
+1. **Add new state** for the path selection modal:
+   - `isPathModalOpen` - controls the modal visibility
+
+2. **Replace the direct Link with a Button** that opens the modal:
+   - Currently: `<Link to={buttonLink}>` wraps the button
+   - New: A standalone `<Button>` with an `onClick` handler
+
+3. **Add the Path Selection Modal** with two options:
+   - **Home Builder card** - Links to `/auth?tab=signup`
+   - **Subcontractor/Vendor card** - Links to `/auth/marketplace`
+
+4. **Add new optional prop** to control this behavior:
+   - `showPathModal?: boolean` - when true, shows the modal instead of direct navigation
+   - Default: `false` (maintains backward compatibility)
+
+### File Changes
+
+**`src/components/FeatureRow.tsx`**
+
+Add imports:
+- `Card`, `CardContent`, `CardDescription`, `CardHeader`, `CardTitle` from ui/card
+- `HardHat`, `Handshake` icons from lucide-react
+- `useNavigate` from react-router-dom
+
+Add new prop to interface:
+```typescript
+showPathModal?: boolean;
+```
+
+Add state:
+```typescript
+const [isPathModalOpen, setIsPathModalOpen] = useState(false);
+```
+
+Replace button/link logic (lines 63-68):
+```typescript
+{showPathModal ? (
+  <Button 
+    variant="outline" 
+    size="lg" 
+    className="group"
+    onClick={() => setIsPathModalOpen(true)}
+  >
+    {buttonText}
+    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+  </Button>
+) : (
+  <Button variant="outline" size="lg" asChild className="group">
+    <Link to={buttonLink}>
+      {buttonText}
+      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+    </Link>
+  </Button>
+)}
+```
+
+Add the Path Selection Modal (after the image modal):
+```typescript
+{/* Path Selection Modal */}
+<Dialog open={isPathModalOpen} onOpenChange={setIsPathModalOpen}>
+  <DialogContent className="max-w-2xl">
+    <DialogTitle className="text-center text-2xl font-bold">
+      Which best describes you?
+    </DialogTitle>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+      {/* Home Builder Option */}
+      <Card className="cursor-pointer hover:border-primary transition-colors" 
+            onClick={() => navigate('/auth?tab=signup')}>
+        <CardHeader className="text-center pb-2">
+          <HardHat className="h-10 w-10 text-primary mx-auto mb-2" />
+          <CardTitle className="text-lg">I'm a Home Builder</CardTitle>
+          <CardDescription>General Contractor or Remodel Contractor</CardDescription>
+        </CardHeader>
+      </Card>
+      
+      {/* Subcontractor Option */}
+      <Card className="cursor-pointer hover:border-primary transition-colors"
+            onClick={() => navigate('/auth/marketplace')}>
+        <CardHeader className="text-center pb-2">
+          <Handshake className="h-10 w-10 text-primary mx-auto mb-2" />
+          <CardTitle className="text-lg">I'm a Subcontractor</CardTitle>
+          <CardDescription>Vendor, Supplier, or Service Provider</CardDescription>
+        </CardHeader>
+      </Card>
+    </div>
+  </DialogContent>
+</Dialog>
+```
+
+---
 
 **`src/pages/Landing.tsx`**
 
-### Changes
+Add `showPathModal={true}` prop to all 6 FeatureRow components:
 
-1. **Remove the "Get Started" button block** (lines 185-192)
-   - Delete the entire `<div className="flex flex-col sm:flex-row gap-4 justify-center">` block containing the button
+- Line 289-300: Accounting FeatureRow
+- Line 302-312: AI Bill Management FeatureRow
+- Line 314-325: Bid Management FeatureRow  
+- Line 327-337: Document Management FeatureRow
+- Line 339-350: Gantt Scheduling FeatureRow
+- Line 352-362: Team Communication FeatureRow
 
-2. **Reduce hero section bottom padding** (line 173)
-   - Change `py-20` to `py-16 pb-8` so the hero flows more naturally into the path selection
-
-3. **Reduce "Who Are You?" section top padding** (line 198)
-   - Change `py-20` to `pt-8 pb-20` to close the gap between the hero and path selection
-
-### Visual Result
-
-```text
-BEFORE:
-+---------------------------+
-|  Hero Title               |
-|  Subtitle                 |
-|                           |
-|  [Get Started Button]     |  <-- REMOVE THIS
-|                           |
-|                           |  <-- Large gap
-|                           |
-|  Who Are You?             |
-|  [Builder] [Subcontractor]|
-+---------------------------+
-
-AFTER:
-+---------------------------+
-|  Hero Title               |
-|  Subtitle                 |
-|                           |  <-- Tighter spacing
-|  Who Are You?             |
-|  [Builder] [Subcontractor]|
-+---------------------------+
+Example:
+```typescript
+<FeatureRow
+  label="ACCOUNTING"
+  title="Streamlined Financial Management"
+  description="..."
+  buttonText="Sign Up"
+  buttonLink="/auth?tab=signup"
+  showPathModal={true}  // ADD THIS
+  ...
+/>
 ```
 
-This creates a single, clear call-to-action flow where visitors immediately see their two options after reading the hero message.
+### User Experience Flow
+
+```text
+User clicks "Sign Up" on any feature row
+           ↓
+   Modal appears asking:
+  "Which best describes you?"
+           ↓
+  ┌─────────────┬─────────────┐
+  │  🏠 Home    │  🤝 Sub-    │
+  │  Builder    │  contractor │
+  └─────────────┴─────────────┘
+           ↓
+  User clicks their choice
+           ↓
+  Navigates to appropriate signup path
+```
 
