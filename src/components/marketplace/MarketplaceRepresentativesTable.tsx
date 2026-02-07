@@ -125,7 +125,7 @@ export function MarketplaceRepresentativesTable() {
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -154,7 +154,7 @@ export function MarketplaceRepresentativesTable() {
                   <span className="text-xs">{rep.phone_number || '-'}</span>
                 </TableCell>
                 <TableCell className="px-2 py-1 align-middle">
-                  <div className="flex justify-end items-center space-x-1">
+                  <div className="flex justify-center items-center space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"
