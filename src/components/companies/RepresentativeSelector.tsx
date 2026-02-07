@@ -157,7 +157,10 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => setEditingRep(representative)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingRep(representative);
+                    }}
                     className="h-6 w-6 p-0 flex items-center justify-center"
                   >
                     <Edit className="h-3 w-3" />
