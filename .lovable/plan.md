@@ -1,114 +1,68 @@
 
 
-# Smart Gantt Scheduling Feature Page
+# Fix Smart Gantt Scheduling Page to Match Template
 
 ## Overview
-Create a new "Smart Gantt Scheduling" feature page focused on automation, subcontractor communication, and color-coded status tracking. Also update the features dropdown menu to rename and reposition this item.
+The Smart Gantt Scheduling page has several layout and styling differences from the Accounting and AI Bill Management pages. This plan aligns it exactly with those templates.
+
+## Issues Identified
+
+| Issue | Current (Wrong) | Should Be |
+|-------|-----------------|-----------|
+| Root container | `flex flex-col` | No flex classes |
+| Hero background | `from-muted/50` | `from-muted` |
+| Hero padding | `py-24 md:py-32` | `py-20 md:py-28` |
+| Hero text spacing | `space-y-8` | `space-y-6` |
+| Hero description | `text-lg` | `text-lg md:text-xl` |
+| Hero button styling | `group` only | `text-lg px-8` |
+| Hero button text | "Get Started" | "Sign Up" |
+| Hero image wrapper | Single div with shadow-xl | Nested divs with shadow-2xl |
+| Feature rows | Missing `expandableImage={true}` | Add `expandableImage={true}` to all |
+| CTA section | Blue (`bg-primary`) with white text | Light gray gradient with dark text |
 
 ## File Changes
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/PublicHeader.tsx` | Modify | Rename "Gantt Scheduling" to "Smart Gantt Scheduling" and move to position 3 |
-| `src/pages/features/GanttScheduling.tsx` | Create | New feature page using the Accounting/AI Bill Management template |
-| `src/App.tsx` | Modify | Add route for `/features/gantt-scheduling` |
+**`src/pages/features/GanttScheduling.tsx`**
 
-## Menu Restructure
+1. **Line 24** - Change root container class:
+   - From: `min-h-screen flex flex-col bg-background`
+   - To: `min-h-screen w-full bg-background`
 
-**Current Order:**
-1. Accounting
-2. AI Bill Management
-3. Bid Management
-4. Document Management
-5. Gantt Scheduling
-6. Team Communication
+2. **Line 28** - Change hero section:
+   - From: `w-full py-24 md:py-32 bg-gradient-to-b from-muted/50 to-background`
+   - To: `py-20 md:py-28 bg-gradient-to-b from-muted to-background`
 
-**New Order:**
-1. Accounting
-2. AI Bill Management
-3. Smart Gantt Scheduling (renamed + moved)
-4. Bid Management
-5. Document Management
-6. Team Communication
+3. **Line 32** - Change text content spacing:
+   - From: `space-y-8`
+   - To: `space-y-6`
 
-## Page Structure
+4. **Line 39** - Change description styling:
+   - From: `text-lg text-muted-foreground max-w-lg`
+   - To: `text-lg md:text-xl text-muted-foreground max-w-lg`
 
-```text
-+------------------------------------------+
-|         PublicHeader (shared)            |
-+------------------------------------------+
-|                                          |
-|    HERO SECTION                          |
-|    "SMART GANTT SCHEDULING"              |
-|    "Your Subs Confirm. You See Colors."  |
-|    + Hero image                          |
-+------------------------------------------+
-|                                          |
-|    FEATURE ROW 1 (bg-muted/30)           |
-|    "Automated Email Notifications"       |
-+------------------------------------------+
-|                                          |
-|    FEATURE ROW 2 (bg-background)         |
-|    "One-Click Confirmation"              |
-+------------------------------------------+
-|                                          |
-|    FEATURE ROW 3 (bg-muted/30)           |
-|    "Color-Coded Status at a Glance"      |
-+------------------------------------------+
-|                                          |
-|    FEATURE ROW 4 (bg-background)         |
-|    "Project Manager Efficiency"          |
-+------------------------------------------+
-|                                          |
-|    CTA SECTION                           |
-|    "Ready to Automate Your Schedule?"    |
-+------------------------------------------+
-|         PublicFooter (shared)            |
-+------------------------------------------+
-```
+5. **Lines 42-49** - Change hero button:
+   - From: `size="lg" className="group"` with "Get Started"
+   - To: `size="lg" className="text-lg px-8"` with "Sign Up"
 
-## Content Details
+6. **Lines 52-59** - Change hero image wrapper structure:
+   - From: Single `<div className="relative rounded-2xl overflow-hidden shadow-xl">`
+   - To: Nested `<div className="relative"><div className="rounded-2xl overflow-hidden shadow-2xl">`
 
-### Hero Section
-- **Label**: "SMART GANTT SCHEDULING"
-- **Title**: "Your Subs Confirm. You See Colors."
-- **Description**: "Stop chasing subcontractors for schedule confirmations. BuilderSuite automatically emails your subs when they're scheduled, captures their yes/no response, and updates your Gantt chart with color-coded status—so you know exactly who's showing up."
-- **Image**: `/images/gantt-schedule-preview.png`
+7. **Lines 65-75** - Add `expandableImage={true}` to Feature Row 1
 
-### Feature Row 1 - Automated Email Notifications (Image Left)
-- **Label**: "AUTOMATED NOTIFICATIONS"
-- **Title**: "Schedule Once, Notify Automatically"
-- **Description**: "When you schedule a task, BuilderSuite automatically emails the assigned subcontractor with the date, time, and job details. No more phone calls, no more manual emails, no more wondering if they got the message."
+8. **Lines 78-88** - Add `expandableImage={true}` to Feature Row 2
 
-### Feature Row 2 - One-Click Confirmation (Image Right, reversed)
-- **Label**: "ONE-CLICK CONFIRMATION"
-- **Title**: "Subs Confirm Without Logging In"
-- **Description**: "Subcontractors receive a simple email with Yes/No buttons. One click confirms their attendance—no accounts to create, no passwords to remember, no apps to download. Their response instantly updates your schedule."
+9. **Lines 91-101** - Add `expandableImage={true}` to Feature Row 3
 
-### Feature Row 3 - Color-Coded Status (Image Left)
-- **Label**: "VISUAL STATUS"
-- **Title**: "See Who's Confirmed at a Glance"
-- **Description**: "Blue means scheduled, Green means confirmed, Red means declined. Project managers can scan the entire Gantt chart in seconds and know exactly which subs are coming and which need follow-up. No more guessing games."
+10. **Lines 104-114** - Add `expandableImage={true}` to Feature Row 4
 
-### Feature Row 4 - Project Manager Efficiency (Image Right, reversed)
-- **Label**: "PM EFFICIENCY"
-- **Title**: "Manage by Exception, Not by Chasing"
-- **Description**: "Focus your time on the red tasks that need attention instead of calling every sub to confirm. BuilderSuite handles the routine communication so project managers can solve real problems and keep projects on track."
+11. **Lines 117-135** - Replace entire CTA section:
+    - From: Blue background with white text
+    - To: Light gray gradient (`bg-gradient-to-b from-muted/30 to-background`) with dark text (`text-foreground`)
 
-### CTA Section
-- **Title**: "Ready to Automate Your Schedule Coordination?"
-- **Description**: "Join builders who have eliminated schedule chaos and know exactly who's showing up—every single day."
-
-## Technical Details
-
-1. **PublicHeader.tsx** - Update `featureMenuItems` array:
-   - Change label from "Gantt Scheduling" to "Smart Gantt Scheduling"
-   - Reorder to position 3 (index 2)
-
-2. **GanttScheduling.tsx** - New file following established template:
-   - Import same components (PublicHeader, PublicFooter, FeatureRow, Dialog, etc.)
-   - Use path selection modal pattern
-   - Use `gantt-schedule-preview.png` for images
-
-3. **App.tsx** - Add import and route for the new page
+## Result
+After these changes, the Smart Gantt Scheduling page will be pixel-perfect identical in layout and behavior to the Accounting and AI Bill Management pages, including:
+- Correct alignment and spacing
+- Expandable images that enlarge on click
+- Matching CTA section styling
 
