@@ -96,7 +96,6 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-representatives', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
         title: "Success",
         description: "Representative deleted successfully",

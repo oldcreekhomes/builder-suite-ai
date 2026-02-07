@@ -121,7 +121,6 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-representatives'] });
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast({
         title: "Success",
         description: "Representative updated successfully",
