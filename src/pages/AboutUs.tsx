@@ -361,9 +361,9 @@ const AboutUs = () => {
                     <Target className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-foreground mb-2">Builder-First Design</h3>
+                    <h3 className="text-xl font-semibold text-foreground mb-2">Front Line Design</h3>
                     <p className="text-muted-foreground">
-                      Every feature starts with one question: "How would this work on the job site?" If it doesn't make sense for a builder in the field, it doesn't ship. We don't add features to check boxes—we add features that solve real problems.
+                      <strong>We do not interview users and ask them what they need, period. We know what they need.</strong> As our business grows, new features are added organically—allowing you to grow with the software.
                     </p>
                   </div>
                 </div>
