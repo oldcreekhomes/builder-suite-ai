@@ -46,6 +46,7 @@ export function DeleteButton({
       <Button
         variant={variant}
         size={size}
+        onPointerDownCapture={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
