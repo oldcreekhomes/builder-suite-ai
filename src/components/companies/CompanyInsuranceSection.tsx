@@ -33,6 +33,8 @@ interface InsuranceContentProps {
   companyId: string | null;
   homeBuilder: string;
   onExtractedDataChange?: (data: ExtractedInsuranceData | null, pendingUploadId: string | null) => void;
+  showUploadUI?: boolean;
+  onShowUploadChange?: (show: boolean) => void;
 }
 
 const INSURANCE_TYPES = [
@@ -155,14 +157,17 @@ function InsuranceDataRows({
 }
 
 // Standalone content component for use in tabs
-export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange }: InsuranceContentProps) {
+export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange, showUploadUI, onShowUploadChange }: InsuranceContentProps) {
   const [formData, setFormData] = useState<Record<InsuranceType, InsuranceFormData>>({
     commercial_general_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
     automobile_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
     umbrella_liability: { expiration_date: "", policy_number: "", carrier_name: "" },
     workers_compensation: { expiration_date: "", policy_number: "", carrier_name: "" },
   });
-  const [showUpload, setShowUpload] = useState(false);
+  // Use controlled state if provided, otherwise use internal state
+  const [internalShowUpload, setInternalShowUpload] = useState(false);
+  const showUpload = showUploadUI ?? internalShowUpload;
+  const setShowUpload = onShowUploadChange ?? setInternalShowUpload;
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedInsuranceData | null>(null);
   const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
@@ -418,33 +423,6 @@ export function InsuranceContent({ companyId, homeBuilder, onExtractedDataChange
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowUpload(true)}
-              className="w-full"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload New Certificate
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                if (!certificateUpload?.file_path) return;
-                const { data } = await supabase.storage
-                  .from('insurance-certificates')
-                  .createSignedUrl(certificateUpload.file_path, 3600);
-                if (data?.signedUrl) {
-                  window.open(data.signedUrl, '_blank');
-                }
-              }}
-              disabled={!certificateUpload?.file_path}
-              className="w-full"
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              View Certificate
-            </Button>
-          </div>
         </div>
       )}
 

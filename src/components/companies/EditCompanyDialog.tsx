@@ -35,7 +35,7 @@ import { CostCodeSelector } from "./CostCodeSelector";
 import { RepresentativeContent } from "./RepresentativeSelector";
 import { InsuranceContent } from "./CompanyInsuranceSection";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search, ShieldOff, Info } from "lucide-react";
+import { Search, ShieldOff, Info, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const companySchema = z.object({
@@ -174,6 +174,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'company-info' | 'representatives' | 'insurance'>('company-info');
+  const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
   const initializationDone = useRef(false);
 
   // Stable company ID for preventing unnecessary re-renders
@@ -292,6 +293,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     if (!open) {
       setSelectedCostCodes([]);
       setActiveTab('company-info');
+      setShowInsuranceUpload(false);
       initializationDone.current = false;
       form.reset();
     }
@@ -577,24 +579,40 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 <InsuranceContent 
                   companyId={company.id}
                   homeBuilder=""
+                  showUploadUI={showInsuranceUpload}
+                  onShowUploadChange={setShowInsuranceUpload}
                 />
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end space-x-4 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={updateCompanyMutation.isPending}
-              >
-                {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
-              </Button>
+            <div className="flex justify-between pt-4 border-t">
+              <div>
+                {activeTab === 'insurance' && !showInsuranceUpload && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowInsuranceUpload(true)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Certificate
+                  </Button>
+                )}
+              </div>
+              <div className="flex space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={updateCompanyMutation.isPending}
+                >
+                  {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
