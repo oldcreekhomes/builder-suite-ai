@@ -363,7 +363,7 @@ const AboutUs = () => {
                   <div>
                     <h3 className="text-xl font-semibold text-foreground mb-2">Front Line Design</h3>
                     <p className="text-muted-foreground">
-                      We do not interview users and ask them what they need, period. <strong>We know what they need.</strong> As our business grows, new features are added organically—allowing you to grow with the software.
+                      We do not interview users and ask them what they need. <strong>We know what they need.</strong> As our business grows, new features are added organically—allowing you to grow with the software.
                     </p>
                   </div>
                 </div>
