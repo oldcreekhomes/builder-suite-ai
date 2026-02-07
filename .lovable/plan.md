@@ -1,128 +1,181 @@
 
 
-# UI Standardization Plan: Companies & Representatives Tables
-
-## Current Inconsistencies Identified
-
-After analyzing all four tabs (Companies, Representatives, Marketplace, Marketplace Reps), here are the inconsistencies:
-
-### 1. Name Column Format
-
-| Tab | Current Format |
-|-----|----------------|
-| Companies | "Company Name" (single column) |
-| Representatives | "First Name" + "Last Name" (two columns) |
-| Marketplace | "Company Name" (single column) |
-| Marketplace Reps | "Name" (single combined column: "John Smith") |
-
-**Issue**: Marketplace Reps combines first/last name into one "Name" column, while Representatives uses separate columns.
-
-### 2. Delete Button Appearance and Location
-
-| Tab | Delete Button | Location |
-|-----|---------------|----------|
-| Companies | Orange Archive icon (no trash) | In Actions, no header text alignment |
-| Representatives | Red Trash icon (DeleteButton component) | In Actions, right-aligned header |
-| Marketplace | No delete (View only) | N/A |
-| Marketplace Reps | Red Trash icon (DeleteButton component) | In Actions, no text alignment |
-
-### 3. Actions Column Header Alignment
-
-| Tab | "Actions" Header Alignment |
-|-----|----------------------------|
-| Companies | Left-aligned (default) |
-| Representatives | `text-right` |
-| Marketplace | `text-right` |
-| Marketplace Reps | Left-aligned (default) |
-
-### 4. Action Button Sizes
-
-| Tab | Edit Button | Delete Button |
-|-----|-------------|---------------|
-| Companies | `h-6 w-6` | `h-6 w-6` (Archive icon) |
-| Representatives | `h-8 w-8` | Standard DeleteButton |
-| Marketplace | `h-6` text button | N/A |
-| Marketplace Reps | `h-6 w-6` | Standard DeleteButton |
-
-### 5. Container Styling
-
-| Tab | Container Style |
-|-----|-----------------|
-| Companies | `border rounded-lg overflow-hidden` |
-| Representatives | `border rounded-lg` |
-| Marketplace | `bg-white rounded-lg border shadow-sm` |
-| Marketplace Reps | `bg-white rounded-lg border shadow-sm` |
-
----
-
-## Standardization Plan
-
-### Standard to Apply
-
-Use **Representatives** table as the baseline standard since it's the most complete, with these unified rules:
-
-#### A. Name Columns
-- **Representatives**: Keep "First Name" + "Last Name" (two columns)
-- **Marketplace Reps**: Change from single "Name" to "First Name" + "Last Name" (two columns)
-
-#### B. Actions Column
-- Header: `text-right` alignment for all tables
-- Button sizes: `h-6 w-6` for icon buttons (standardize Representatives from h-8 to h-6)
-- Delete/Archive: Use consistent `DeleteButton` component with red trash icon for Representatives and Marketplace Reps
-- Companies: Keep Archive (orange) icon since archiving is different from deleting
-
-#### C. Container Styling
-- Standardize to: `border rounded-lg` (simpler, consistent)
-
----
-
-## Implementation Details
-
-### File 1: `src/components/representatives/RepresentativesTable.tsx`
-
-**Changes:**
-1. Line 292: Actions header already has `text-right` - OK
-2. Lines 387-391: Change edit button from `h-8 w-8` to `h-6 w-6`
-3. Line 279: Container - already uses `border rounded-lg` - OK
-
-### File 2: `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
-
-**Changes:**
-1. Line 122: Change header from "Name" to "First Name"
-2. Add new header column after "First Name": "Last Name"
-3. Line 127: Change Actions header to include `text-right`
-4. Lines 133-136: Split the name display into two separate TableCells
-5. Update all `colSpan` values from 6 to 7
-6. Line 118: Change container from `bg-white rounded-lg border shadow-sm` to `border rounded-lg`
-
-### File 3: `src/components/marketplace/MarketplaceCompaniesTable.tsx`
-
-**Changes:**
-1. Line 74: Change container from `bg-white rounded-lg border shadow-sm` to `border rounded-lg`
-
-### File 4: `src/components/companies/CompaniesTable.tsx`
-
-**Changes:**
-1. Line 228: Change Actions header to include `text-right`
-2. Line 218: Container already uses `border rounded-lg overflow-hidden` - change to `border rounded-lg` for consistency
-
----
+# Standardization Plan: Representatives and Marketplace Representatives Tables
 
 ## Summary of Changes
 
-| Component | Changes |
-|-----------|---------|
-| RepresentativesTable | Reduce edit button size from h-8 to h-6 |
-| MarketplaceRepresentativesTable | Split "Name" into "First Name" + "Last Name", add `text-right` to Actions, update container |
-| MarketplaceCompaniesTable | Update container styling |
-| CompaniesTable | Add `text-right` to Actions header, update container styling |
+This plan addresses 5 specific issues to make the Representatives and Marketplace Representatives tables uniform.
 
-## Result
+---
 
-After implementation:
-- All tables use the same container styling
-- All "Actions" headers are right-aligned
-- All representative tables (both your companies and marketplace) display First Name and Last Name as separate columns
-- All edit buttons are uniformly sized at `h-6 w-6`
-- Delete buttons use the consistent `DeleteButton` component
+## Change 1: Rename Tab "Marketplace Reps" to "Marketplace Representatives"
+
+**File:** `src/pages/Companies.tsx`
+
+**Current (line 56):**
+```tsx
+<TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
+```
+
+**Change to:**
+```tsx
+<TabsTrigger value="marketplace-representatives">Marketplace Representatives</TabsTrigger>
+```
+
+---
+
+## Change 2: Add Colored Badge for Type in Representatives Table
+
+Currently, the Representatives table shows the Type as plain text in a dropdown. The Marketplace Representatives table shows a colored badge. We will add the same colored badge styling to the Representatives table.
+
+**File:** `src/components/representatives/RepresentativesTable.tsx`
+
+The `getTypeColor` function already exists (lines 213-224) but isn't used for display. We need to show a Badge with the type color alongside the Select dropdown, or modify the Select display to show the badge.
+
+**Approach:** Display the current type as a colored Badge, and when clicked, it opens the Select to change it.
+
+**Changes:**
+- Modify the Type cell (lines 318-337) to display a colored Badge when a type is selected
+- Add more type colors to the `getTypeColor` function to cover all types (superintendent, sales rep, owner, office manager, accountant)
+
+---
+
+## Change 3: Remove Icons from Email and Phone in Marketplace Representatives
+
+**File:** `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
+
+**Current Email cell (lines 150-158):**
+```tsx
+<TableCell className="px-2 py-1">
+  {rep.email ? (
+    <div className="flex items-center space-x-1">
+      <Mail className="h-3 w-3 text-gray-400" />
+      <span className="text-xs">{rep.email}</span>
+    </div>
+  ) : (
+    <span className="text-gray-400 text-xs">-</span>
+  )}
+</TableCell>
+```
+
+**Change to:**
+```tsx
+<TableCell className="px-2 py-1">
+  <span className="text-xs">{rep.email || '-'}</span>
+</TableCell>
+```
+
+**Current Phone cell (lines 160-168):**
+```tsx
+<TableCell className="px-2 py-1">
+  {rep.phone_number ? (
+    <div className="flex items-center space-x-1">
+      <Phone className="h-3 w-3 text-gray-400" />
+      <span className="text-xs">{rep.phone_number}</span>
+    </div>
+  ) : (
+    <span className="text-gray-400 text-xs">-</span>
+  )}
+</TableCell>
+```
+
+**Change to:**
+```tsx
+<TableCell className="px-2 py-1">
+  <span className="text-xs">{rep.phone_number || '-'}</span>
+</TableCell>
+```
+
+Also remove the unused Mail and Phone imports from line 13.
+
+---
+
+## Change 4: Right-Align Action Buttons Under Actions Header
+
+Both tables currently have the buttons left-aligned within the Actions cell despite the header being right-aligned.
+
+### Representatives Table
+**File:** `src/components/representatives/RepresentativesTable.tsx`
+
+**Current (lines 385-404):**
+```tsx
+<TableCell className="px-2 py-1 text-right align-middle">
+  <div className="flex justify-end items-center space-x-1">
+```
+This looks correct but let me verify the actual rendering.
+
+### Marketplace Representatives Table
+**File:** `src/components/marketplace/MarketplaceRepresentativesTable.tsx`
+
+**Current (lines 170-187):**
+```tsx
+<TableCell className="px-2 py-1">
+  <div className="flex items-center space-x-1">
+```
+
+**Change to:**
+```tsx
+<TableCell className="px-2 py-1 text-right">
+  <div className="flex justify-end items-center space-x-1">
+```
+
+---
+
+## Change 5: Fix Company Column Width in Representatives Table
+
+The issue is that long company names are wrapping to two rows. The solution is to allow the company column more space by reducing the Email column's minimum width.
+
+**File:** `src/components/representatives/RepresentativesTable.tsx`
+
+**Current Email header (line 287):**
+```tsx
+<TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[320px] pr-4">Email</TableHead>
+```
+
+**Change to:**
+```tsx
+<TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[200px]">Email</TableHead>
+```
+
+**Current Email cell (line 339):**
+```tsx
+<TableCell className="px-2 py-1 align-middle min-w-[320px] pr-4">
+```
+
+**Change to:**
+```tsx
+<TableCell className="px-2 py-1 align-middle min-w-[200px]">
+```
+
+Also add `whitespace-nowrap` to the Company cell to prevent wrapping:
+
+**Current Company cell (line 317):**
+```tsx
+<TableCell className="px-2 py-1 text-xs align-middle">{rep.companies?.company_name}</TableCell>
+```
+
+**Change to:**
+```tsx
+<TableCell className="px-2 py-1 text-xs align-middle whitespace-nowrap">{rep.companies?.company_name}</TableCell>
+```
+
+---
+
+## Technical Details: Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/Companies.tsx` | Rename tab from "Marketplace Reps" to "Marketplace Representatives" |
+| `src/components/representatives/RepresentativesTable.tsx` | Add colored Badge for Type, reduce Email min-width, add whitespace-nowrap to Company |
+| `src/components/marketplace/MarketplaceRepresentativesTable.tsx` | Remove icons from Email/Phone, right-align action buttons |
+
+---
+
+## Result After Implementation
+
+1. Tab will read "Marketplace Representatives" instead of "Marketplace Reps"
+2. Type column in Representatives will show colored badges matching Marketplace Representatives style
+3. Email and Phone in Marketplace Representatives will show plain text without icons
+4. Edit/Delete buttons will appear directly under the Actions header in both tables
+5. Company names in Representatives table will stay on one line
 
