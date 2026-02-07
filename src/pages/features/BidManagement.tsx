@@ -98,7 +98,7 @@ export default function BidManagement() {
         description="All bids display in one organized view with pricing, included items, exclusions, and attachments. No more spreadsheets, no more digging through emails. Make informed award decisions in minutes, not hours."
         buttonText="Sign Up"
         buttonLink="/auth?tab=signup"
-        imageSrc="/images/bid-management-preview.png"
+        imageSrc="/images/bid-comparison-screenshot.png"
         imageAlt="Bid comparison dashboard"
         className="bg-muted/30"
         expandableImage={true}
