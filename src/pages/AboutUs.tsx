@@ -78,13 +78,145 @@ const AboutUs = () => {
       </Dialog>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-b from-muted to-background">
+      <section className="py-20 md:py-28 bg-gradient-to-b from-muted to-background">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Main Headline */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight">
+              Built by Builders. <span className="text-primary">For Builders.</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+              We didn't set out to build software. We had no choice.
+            </p>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-4 md:gap-8 mb-12 md:mb-16">
+            <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
+              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">2018</p>
+              <p className="text-sm md:text-base text-muted-foreground mt-1">Founded</p>
+            </div>
+            <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
+              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">$100M+</p>
+              <p className="text-sm md:text-base text-muted-foreground mt-1">In Pipeline</p>
+            </div>
+            <div className="text-center p-4 md:p-6 rounded-xl bg-card border border-border">
+              <p className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary">&lt;8 Years</p>
+              <p className="text-sm md:text-base text-muted-foreground mt-1">of Growth</p>
+            </div>
+          </div>
+
+          {/* Origin Story */}
+          <div className="max-w-3xl mx-auto">
+            <div className="prose prose-lg max-w-none text-center">
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+                In 2018, Matt Gray started Old Creek Homes, LLC with nothing but Excel spreadsheets, QuickBooks, and a small pocket of change.
+              </p>
+              <p className="text-xl md:text-2xl font-medium text-foreground mb-6">
+                One home became two. Two became four. Four became eight.
+              </p>
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+                Today, we have over <strong className="text-foreground">$100 million</strong> of homes in the pipeline—in less than eight years. We needed software that could keep up with us. We couldn't wait for a software company to build features while we continued to grow exponentially.
+              </p>
+              <p className="text-xl md:text-2xl font-semibold text-primary">
+                So we built it ourselves.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Growth Timeline Section */}
+      <section className="py-16 md:py-20 bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <span className="text-sm font-semibold tracking-widest uppercase text-primary mb-4 block">
+              Our Journey
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              From Excel to $100M+
+            </h2>
+          </div>
+
+          {/* Timeline */}
+          <div className="relative">
+            {/* Desktop horizontal line */}
+            <div className="hidden md:block absolute top-8 left-0 right-0 h-0.5 bg-border" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-4">
+              {/* 2018 */}
+              <div className="relative flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 border-4 border-background shadow-lg flex items-center justify-center z-10">
+                  <Building2 className="h-7 w-7 text-primary" />
+                </div>
+                <div className="mt-4">
+                  <p className="font-bold text-foreground">2018</p>
+                  <p className="text-sm text-muted-foreground mt-1">Started with Excel & QuickBooks</p>
+                </div>
+              </div>
+
+              {/* Growth */}
+              <div className="relative flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 border-4 border-background shadow-lg flex items-center justify-center z-10">
+                  <Zap className="h-7 w-7 text-primary" />
+                </div>
+                <div className="mt-4">
+                  <p className="font-bold text-foreground">Growth</p>
+                  <p className="text-sm text-muted-foreground mt-1">1→2→4→8 homes exponentially</p>
+                </div>
+              </div>
+
+              {/* Challenge */}
+              <div className="relative flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 border-4 border-background shadow-lg flex items-center justify-center z-10">
+                  <Target className="h-7 w-7 text-primary" />
+                </div>
+                <div className="mt-4">
+                  <p className="font-bold text-foreground">Challenge</p>
+                  <p className="text-sm text-muted-foreground mt-1">Existing software couldn't keep pace</p>
+                </div>
+              </div>
+
+              {/* Solution */}
+              <div className="relative flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 border-4 border-background shadow-lg flex items-center justify-center z-10">
+                  <Wrench className="h-7 w-7 text-primary" />
+                </div>
+                <div className="mt-4">
+                  <p className="font-bold text-foreground">Solution</p>
+                  <p className="text-sm text-muted-foreground mt-1">Built BuilderSuite from scratch</p>
+                </div>
+              </div>
+
+              {/* Today */}
+              <div className="relative flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-primary border-4 border-background shadow-lg flex items-center justify-center z-10">
+                  <CheckCircle className="h-7 w-7 text-primary-foreground" />
+                </div>
+                <div className="mt-4">
+                  <p className="font-bold text-foreground">Today</p>
+                  <p className="text-sm text-muted-foreground mt-1">$100M+ pipeline & growing</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Vision Section */}
+      <section className="py-16 md:py-20 bg-gradient-to-br from-primary/5 to-primary/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight">
-            Built by Builders. <span className="text-primary">For Builders.</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            We didn't set out to build software. We had no choice.
+          <span className="text-sm font-semibold tracking-widest uppercase text-primary mb-4 block">
+            Our Vision
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+            As Old Creek Homes Grows, BuilderSuite Grows With It
+          </h2>
+          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6 max-w-3xl mx-auto">
+            Our vision is simple: we continue to develop features that help us innovate, streamline operations, maximize output, and reduce human error.
+          </p>
+          <p className="text-lg md:text-xl font-medium text-foreground">
+            Every improvement we make for ourselves, we share with you.
           </p>
         </div>
       </section>
