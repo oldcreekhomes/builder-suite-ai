@@ -526,7 +526,7 @@ const AboutUs = () => {
                 Home
               </Link>
               <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                About
+                Our Philosophy
               </Link>
               <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
                 Sign In

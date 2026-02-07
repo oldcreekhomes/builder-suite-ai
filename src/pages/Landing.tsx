@@ -166,7 +166,7 @@ const Landing = () => {
                 <Button variant="ghost">Sign In</Button>
               </Link>
               <Link to="/about">
-                <Button variant="ghost">Our Story</Button>
+                <Button variant="ghost">Our Philosophy</Button>
               </Link>
               <Button onClick={() => setIsPathModalOpen(true)}>Get Started</Button>
             </div>
@@ -635,7 +635,7 @@ const Landing = () => {
                 Home
               </Link>
               <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                Our Story
+                Our Philosophy
               </Link>
               <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
