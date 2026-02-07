@@ -46,6 +46,14 @@ const DialogContent = React.forwardRef<
           e.preventDefault();
           return;
         }
+        // Prevent parent dialog from closing when interacting with nested Radix dialogs/alert-dialogs
+        if (
+          target?.closest('[data-radix-dialog-content]') ||
+          target?.closest('[data-radix-alert-dialog-content]')
+        ) {
+          e.preventDefault();
+          return;
+        }
         onInteractOutside?.(e);
       }}
       className={cn(
