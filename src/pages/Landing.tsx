@@ -165,6 +165,9 @@ const Landing = () => {
               <Link to="/auth">
                 <Button variant="ghost">Sign In</Button>
               </Link>
+              <Link to="/about">
+                <Button variant="ghost">About Us</Button>
+              </Link>
               <Button onClick={() => setIsPathModalOpen(true)}>Get Started</Button>
             </div>
           </div>
@@ -627,7 +630,18 @@ const Landing = () => {
               <Building2 className="h-6 w-6 text-primary" />
               <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite</span>
             </div>
-            <p className="text-muted-foreground mb-6">
+            <div className="flex items-center justify-center gap-6 mb-6">
+              <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Home
+              </Link>
+              <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
+                About Us
+              </Link>
+              <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
+                Sign In
+              </Link>
+            </div>
+            <p className="text-muted-foreground mb-4">
               Software for Builders. Built by Builders.
             </p>
             <p className="text-sm text-muted-foreground">
