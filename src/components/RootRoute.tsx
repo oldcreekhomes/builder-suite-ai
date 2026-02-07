@@ -1,12 +1,57 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "@/pages/Index";
 import Landing from "@/pages/Landing";
+import MarketplacePortal from "@/pages/MarketplacePortal";
 
 const RootRoute = () => {
   const { user, loading } = useAuth();
+  const [userType, setUserType] = useState<string | null>(null);
+  const [userTypeLoading, setUserTypeLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchUserType = async () => {
+      if (user) {
+        setUserTypeLoading(true);
+        try {
+          // First check user metadata
+          const metadataUserType = user.user_metadata?.user_type;
+          if (metadataUserType) {
+            setUserType(metadataUserType);
+            setUserTypeLoading(false);
+            return;
+          }
+
+          // Fallback: query the users table
+          const { data, error } = await supabase
+            .from('users')
+            .select('user_type')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error("Error fetching user type:", error);
+            setUserType('home_builder'); // Default to home builder
+          } else {
+            setUserType(data?.user_type || 'home_builder');
+          }
+        } catch (err) {
+          console.error("Error in fetchUserType:", err);
+          setUserType('home_builder');
+        } finally {
+          setUserTypeLoading(false);
+        }
+      } else {
+        setUserType(null);
+      }
+    };
+
+    fetchUserType();
+  }, [user]);
 
   // Show loading state with visible text (doesn't depend solely on Tailwind)
-  if (loading) {
+  if (loading || userTypeLoading) {
     return (
       <div 
         className="min-h-screen flex flex-col items-center justify-center bg-background"
@@ -49,8 +94,18 @@ const RootRoute = () => {
     );
   }
 
-  // Show Landing for unauthenticated users, Index for authenticated
-  return user ? <Index /> : <Landing />;
+  // If not authenticated, show landing page
+  if (!user) {
+    return <Landing />;
+  }
+
+  // Route based on user type
+  if (userType === 'marketplace_vendor') {
+    return <MarketplacePortal />;
+  }
+
+  // Default: Full BuilderSuite app for home builders
+  return <Index />;
 };
 
 export default RootRoute;

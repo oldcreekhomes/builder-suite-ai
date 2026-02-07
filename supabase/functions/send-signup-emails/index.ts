@@ -12,6 +12,7 @@ interface SignupEmailRequest {
   email: string;
   companyName: string;
   signupTime: string;
+  userType?: 'home_builder' | 'marketplace_vendor';
 }
 
 const ADMIN_EMAIL = "mgray@oldcreekhomes.com";
@@ -23,10 +24,13 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, companyName, signupTime }: SignupEmailRequest = await req.json();
+    const { email, companyName, signupTime, userType = 'home_builder' }: SignupEmailRequest = await req.json();
 
-    console.log("🚀 Processing signup notification for:", email);
-    console.log("📋 Request data:", { email, companyName, signupTime });
+    const isMarketplaceVendor = userType === 'marketplace_vendor';
+    const signupTypeLabel = isMarketplaceVendor ? 'Marketplace Vendor' : 'Home Builder';
+
+    console.log("🚀 Processing signup notification for:", email, "Type:", signupTypeLabel);
+    console.log("📋 Request data:", { email, companyName, signupTime, userType });
 
     // Format the signup time for display
     const formattedTime = new Date(signupTime).toLocaleString('en-US', {
@@ -44,14 +48,14 @@ const handler = async (req: Request): Promise<Response> => {
     const adminEmailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [ADMIN_EMAIL],
-      subject: `New Home Builder Signup - ${companyName}`,
+      subject: `New ${signupTypeLabel} Signup - ${companyName}`,
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>New Home Builder Signup - ${companyName}</title>
+    <title>New ${signupTypeLabel} Signup - ${companyName}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
@@ -65,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">🎉 New Home Builder Signup!</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">🎉 New ${signupTypeLabel} Signup!</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">BuilderSuite AI</p>
                         </td>
                     </tr>
@@ -82,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
                                             <tr>
                                                 <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                        A new home builder has signed up for BuilderSuite AI:
+                                                        A new ${signupTypeLabel.toLowerCase()} has signed up for BuilderSuite AI:
                                                     </p>
                                                 </td>
                                             </tr>
@@ -154,17 +158,35 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send welcome email to new user
     console.log("📧 Sending welcome email to:", email);
+    
+    // Different welcome content based on user type
+    const welcomeSubject = isMarketplaceVendor 
+      ? "Welcome to BuilderSuite Marketplace!"
+      : "Welcome to BuilderSuite AI!";
+    
+    const welcomeMessage = isMarketplaceVendor
+      ? `Your company <strong>${companyName}</strong> is now listed in the BuilderSuite Marketplace. Home builders and general contractors can now find and contact you.`
+      : `Your account for <strong>${companyName}</strong> has been created successfully. We're excited to have you on board!`;
+    
+    const nextStepsMessage = isMarketplaceVendor
+      ? `Once you verify your email, you can log in to update your company profile, add specialties, service areas, and more.`
+      : `A member of our team will be reaching out shortly to help you get started and answer any questions you may have.`;
+    
+    const closingMessage = isMarketplaceVendor
+      ? `We look forward to connecting you with builders!`
+      : `We look forward to helping you build better!`;
+
     const userEmailResponse = await resend.emails.send({
       from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
       to: [email],
-      subject: "Welcome to BuilderSuite AI!",
+      subject: welcomeSubject,
       html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Welcome to BuilderSuite AI!</title>
+    <title>${welcomeSubject}</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
@@ -178,7 +200,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Welcome to BuilderSuite AI!</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${welcomeSubject}</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${companyName}</p>
                         </td>
                     </tr>
@@ -195,21 +217,21 @@ const handler = async (req: Request): Promise<Response> => {
                                             <tr>
                                                 <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                        Thank you for signing up for BuilderSuite AI!
+                                                        Thank you for signing up!
                                                     </p>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                        Your account for <strong>${companyName}</strong> has been created successfully. We're excited to have you on board!
+                                                        ${welcomeMessage}
                                                     </p>
                                                 </td>
                                             </tr>
                                             <tr>
                                                 <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                        A member of our team will be reaching out shortly to help you get started and answer any questions you may have.
+                                                        ${nextStepsMessage}
                                                     </p>
                                                 </td>
                                             </tr>
@@ -226,7 +248,7 @@ const handler = async (req: Request): Promise<Response> => {
                             </table>
                             
                             <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                We look forward to helping you build better!
+                                ${closingMessage}
                             </p>
                             
                         </td>

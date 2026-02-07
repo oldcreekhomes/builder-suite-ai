@@ -30,6 +30,8 @@ import Index from "./pages/Index";
 import RootRoute from "./components/RootRoute";
 import NotFound from "./pages/NotFound";
 import Accounting from "./pages/Accounting";
+import MarketplaceSignup from "./pages/MarketplaceSignup";
+import MarketplacePortal from "./pages/MarketplacePortal";
 
 import ApproveBills from "./pages/ApproveBills";
 import ReviewBills from "./pages/ReviewBills";
@@ -65,8 +67,12 @@ const AppContent = () => {
           <SidebarProvider>
             <ImpersonationBanner />
             <Routes>
-          {/* Auth route */}
+          {/* Auth routes */}
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/marketplace" element={<MarketplaceSignup />} />
+          
+          {/* Marketplace Portal - for marketplace vendors */}
+          <Route path="/marketplace-portal" element={<ProtectedRoute><MarketplacePortal /></ProtectedRoute>} />
           
           {/* Landing page route - redirect to root */}
           <Route path="/landing" element={<Navigate to="/" replace />} />
