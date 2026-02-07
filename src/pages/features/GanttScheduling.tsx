@@ -35,7 +35,7 @@ export default function GanttScheduling() {
                 SMART GANTT SCHEDULING
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                Your Subs Confirm. You See Colors.
+                Scheduling Automation
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
                 Stop chasing subcontractors for schedule confirmations. BuilderSuite automatically emails your subs when they're scheduled, captures their yes/no response, and updates your Gantt chart with color-coded status—so you know exactly who's showing up.
