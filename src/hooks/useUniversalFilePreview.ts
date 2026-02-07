@@ -120,6 +120,15 @@ export function useUniversalFilePreview() {
     });
   };
 
+  const openInsuranceCertificate = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
+    openFile({
+      name: fileName || filePath.split('/').pop() || filePath,
+      bucket: 'insurance-certificates',
+      path: filePath,
+      ...additionalData
+    });
+  };
+
   return {
     previewFile,
     isOpen,
@@ -133,6 +142,7 @@ export function useUniversalFilePreview() {
     openJournalEntryAttachment,
     openCheckAttachment,
     openDepositAttachment,
-    openCreditCardAttachment
+    openCreditCardAttachment,
+    openInsuranceCertificate
   };
 }
