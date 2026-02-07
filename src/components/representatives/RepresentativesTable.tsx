@@ -332,7 +332,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                     >
                       <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
                         <Badge className={`${getTypeColor(rep.title || '')} text-[10px] px-1 py-0 border-0`}>
-                          {rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Select type'}
+                          {rep.title ? representativeTypes.find(t => t.value === rep.title)?.label || rep.title : 'Enter type'}
                         </Badge>
                       </SelectTrigger>
                       <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -394,7 +394,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-right align-middle">
+                  <TableCell className="px-2 py-1 align-middle">
                     <div className="flex justify-end items-center space-x-1">
                       <Button 
                         variant="ghost" 
@@ -404,14 +404,14 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <div className="flex items-center">
-                        <DeleteButton
-                          onDelete={() => deleteRepMutation.mutate(rep.id)}
-                          title="Delete Representative"
-                          description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
-                          isLoading={deleteRepMutation.isPending}
-                        />
-                      </div>
+                      <DeleteButton
+                        onDelete={() => deleteRepMutation.mutate(rep.id)}
+                        title="Delete Representative"
+                        description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
+                        isLoading={deleteRepMutation.isPending}
+                        size="icon"
+                        className="h-6 w-6 p-0"
+                      />
                     </div>
                   </TableCell>
                 </TableRow>

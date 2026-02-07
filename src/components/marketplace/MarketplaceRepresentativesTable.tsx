@@ -153,7 +153,7 @@ export function MarketplaceRepresentativesTable() {
                 <TableCell className="px-2 py-1">
                   <span className="text-xs">{rep.phone_number || '-'}</span>
                 </TableCell>
-                <TableCell className="px-2 py-1 text-right">
+                <TableCell className="px-2 py-1 align-middle">
                   <div className="flex justify-end items-center space-x-1">
                     <Button
                       variant="ghost"
@@ -168,6 +168,8 @@ export function MarketplaceRepresentativesTable() {
                       title="Delete Representative"
                       description="Are you sure you want to delete this representative? This action cannot be undone."
                       isLoading={deleteRepresentativeMutation.isPending}
+                      size="icon"
+                      className="h-6 w-6 p-0"
                     />
                   </div>
                 </TableCell>
