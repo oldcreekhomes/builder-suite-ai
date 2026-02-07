@@ -1,49 +1,63 @@
 
-
-# Replace "Compare Bids Instantly" Image with Actual Screenshot
+# Create Document Management Feature Page
 
 ## Overview
-You want to replace the placeholder image in the "Compare Bids Instantly" feature row with an actual screenshot of the bid comparison interface showing multiple vendors.
+Create a new feature page for "Document Management" at `/features/document-management` following the exact template structure as the other feature pages. The navigation already includes Document Management in the Features dropdown, and the preview image already exists.
 
-## Current Situation
-The "Compare Bids Instantly" section (line 95-106 in `src/pages/features/BidManagement.tsx`) currently uses:
+## Page Structure
+
+### Hero Section
+- **Label**: "DOCUMENT MANAGEMENT"
+- **Headline**: "All Your Project Files in One Place"
+- **Description**: Focus on eliminating the chaos of Dropbox, Google Drive, and scattered file systems - everything lives with the project
+
+### Feature Rows (4 rows, alternating layout)
+
+| Row | Label | Title | Key Message |
+|-----|-------|-------|-------------|
+| 1 | PROJECT-CENTERED STORAGE | Files Belong to Projects, Not Folders | Unlike Dropbox or Google Drive where you hunt through folder hierarchies, BuilderSuite organizes files by project automatically. Plans, specs, contracts, and photos all live where they belong - with the job. |
+| 2 | NO MORE APP SWITCHING | Ditch the External File Services | Stop paying for Dropbox, Google Drive, or Box. BuilderSuite includes unlimited project storage so your documents, photos, and drawings are all in one platform - no more switching between apps. |
+| 3 | SHARE INSTANTLY | Send Files Without Downloading First | Share any file or folder with a single link. Subcontractors, clients, and architects get immediate access without creating accounts or installing apps - just click and view. |
+| 4 | BUILT-IN ORGANIZATION | Folders, Versions, and Search | Create folder structures that make sense for construction. Track document versions, search across all projects, and never lose a file in an email attachment again. |
+
+### CTA Section
+- Headline: "Ready to Consolidate Your Project Files?"
+- Subtitle encouraging signup
+- Light gray gradient background (matching other pages)
+
+## File Changes
+
+### New File: `src/pages/features/DocumentManagement.tsx`
+Create a new page following the exact structure of GanttScheduling.tsx and BidManagement.tsx:
+- Same imports (useState, useNavigate, icons, components)
+- PublicHeader with path modal handler
+- Hero section with proper gradient and layout
+- 4 FeatureRow components with `expandableImage={true}` and `showPathModal={true}`
+- Alternating backgrounds (bg-muted/30 and bg-background)
+- CTA section with gray gradient
+- PublicFooter
+- Path selection modal (Home Builder vs Subcontractor)
+
+### Update: `src/App.tsx`
+Add import and route:
+
+1. Add import after existing feature imports (~line 39):
 ```tsx
-imageSrc="/images/bid-management-preview.png"
+import FeatureDocumentManagement from "./pages/features/DocumentManagement";
 ```
 
-This is the same placeholder image used across all feature rows.
+2. Add route after existing feature routes (~line 89):
+```tsx
+<Route path="/features/document-management" element={<FeatureDocumentManagement />} />
+```
 
-## What I Need From You
+## Key Value Propositions to Highlight
 
-To capture the actual bid comparison screenshot, I need you to:
+1. **No More Tool Sprawl** - Eliminate Dropbox, Google Drive, Box subscriptions
+2. **Project-First Organization** - Files automatically organized by job, not arbitrary folders
+3. **Zero-Friction Sharing** - Links work without accounts or downloads
+4. **Construction-Ready** - Built for plans, specs, photos, and contracts
+5. **Unlimited Storage** - No per-seat storage limits to worry about
 
-1. **Navigate to a project with bid data** - Go to one of your projects that has a bid package with multiple vendors/subcontractors who have submitted bids
-
-2. **Expand a bid package row** - Click on a group (like "03 - Concrete" or similar) to expand it and show the list of companies with their:
-   - Company names
-   - Will Bid status (Yes/No)
-   - Price values
-   - Proposals attached
-
-3. **Take a screenshot** - Either:
-   - Use your browser's screenshot tool to capture the bid comparison view
-   - Or let me know which project/bid package to navigate to and I can try capturing it from the browser
-
-4. **Upload the screenshot** - Once you have a good screenshot showing multiple vendors with their bid information, upload it to the chat
-
-## File Changes (Once Screenshot is Ready)
-
-**`src/pages/features/BidManagement.tsx`**
-
-After you provide the screenshot, I will:
-
-1. Save the screenshot to `/public/images/` with an appropriate name like `bid-comparison-screenshot.png`
-
-2. Update line 101 to use the new image:
-   - From: `imageSrc="/images/bid-management-preview.png"`
-   - To: `imageSrc="/images/bid-comparison-screenshot.png"`
-
-## Alternative Approach
-
-If you'd prefer, you can tell me which specific project ID to navigate to, and I can try again to capture the screenshot using the browser tool. The browser session needs to have proper authentication to access the bidding page.
-
+## Image Usage
+All feature rows will use the existing `/images/document-management-preview.png` image.
