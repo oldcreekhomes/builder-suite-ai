@@ -1,85 +1,98 @@
 
-## Fix: Keep Edit Company Dialog Open After Updating Representative
+<context>
+User-visible bug: In the Edit Company → Representatives tab, saving changes in the nested “Edit Representative” dialog still closes the parent Edit Company dialog and returns to the main Companies page. Delete now behaves correctly (returns to Edit Company), but Update Representative does not.
 
-### Problem Analysis
-When you update a representative in the Edit Representative dialog and click "Update Representative":
-1. The representative saves successfully
-2. Both the Edit Representative dialog AND the Edit Company dialog close
-3. You're returned to the main Companies page
+Current state in code:
+- `src/components/companies/EditRepresentativeDialog.tsx` already has `modal={false}` and onSuccess only invalidates `['company-representatives']`.
+- The app uses Radix Dialog (shadcn) with a custom `onInteractOutside` handler in `src/components/ui/dialog.tsx` intended to prevent parent dialogs from closing when interacting with nested dialogs.
+- That handler currently checks for selectors like:
+  - `[data-radix-dialog-content]`
+  - `[data-radix-alert-dialog-content]`
+  but Radix does NOT emit these attributes by default, and our wrappers do not add them.
+</context>
 
-However, when you **delete** a representative, it works correctly - you stay in the Edit Company dialog.
+<root-cause>
+The parent “Edit Company” dialog is closing because Radix considers clicks inside the nested “Edit Representative” dialog to be an “outside interaction” relative to the parent dialog’s content (the nested dialog is portaled elsewhere in the DOM). The parent dialog therefore receives an outside-interaction event and closes.
 
-### Root Cause
-The issue is related to how Radix UI handles nested modal dialogs. When the inner `EditRepresentativeDialog` closes via `onOpenChange(false)`, Radix's modal behavior (focus trapping, escape key handling, outside click detection) can inadvertently trigger the parent dialog to also close.
+We attempted to guard against this in `src/components/ui/dialog.tsx` by detecting whether the click target is inside another Radix dialog, but the detection currently fails because:
+- `[data-radix-dialog-content]` and `[data-radix-alert-dialog-content]` do not exist anywhere in the DOM today (confirmed by searching node_modules and our wrappers).
 
-The Delete flow uses `AlertDialog` which has different internal handling than `Dialog`. When the Edit Representative dialog (which is a `Dialog`) closes, the focus restoration and modal cleanup may be causing the parent Edit Company dialog to receive an unexpected close signal.
+So the parent dialog treats child-dialog clicks as outside clicks and closes, sending the user back to `/companies`.
+</root-cause>
 
-### Solution
-Apply `modal={false}` to the inner Edit Representative dialog. This disables Radix's modal behaviors (focus lock, outside pointer event blocking) that cause conflicts with nested modals. The dialog will still appear and function normally, but it won't fight with the parent dialog's modal state.
+<solution-overview>
+Make nested-dialog detection actually work by adding explicit “marker” data attributes to our dialog content wrappers, and keep the existing “prevent parent close when interacting with nested dialog” logic.
 
-This is a targeted, safe fix that:
-- Preserves all existing functionality (form submission, validation, styling)
-- Only changes the modal behavior of the nested dialog
-- Won't affect the parent Edit Company dialog's modal behavior
+This is a robust, app-wide fix:
+- It fixes Edit Representative closing the parent Edit Company dialog.
+- It also hardens all nested dialog scenarios across the app (not just this page).
+</solution-overview>
 
----
+<implementation-steps>
+1) Add a marker attribute to DialogContent so parent dialogs can detect “this click happened inside a dialog”
+   - File: `src/components/ui/dialog.tsx`
+   - Update the `DialogPrimitive.Content` wrapper to include a stable attribute, e.g.:
+     - `data-radix-dialog-content=""` (or `data-lovable-dialog-content=""`)
+   - Keep the current `onInteractOutside` handler, but ensure it checks for the attribute we actually set.
 
-## Implementation
+   Recommended approach (minimal change, leverages existing logic):
+   - Add: `data-radix-dialog-content=""` to the content root
+   - Leave this existing logic in place:
+     ```ts
+     target?.closest('[data-radix-dialog-content]')
+     ```
+   This makes the current prevention code finally become effective.
 
-### File: `src/components/companies/EditRepresentativeDialog.tsx`
+2) Add a marker attribute to AlertDialogContent for the same reason (completes the pattern)
+   - File: `src/components/ui/alert-dialog.tsx`
+   - Update `AlertDialogPrimitive.Content` wrapper to include:
+     - `data-radix-alert-dialog-content=""`
 
-**Change:** Add `modal={false}` to the Dialog component.
+3) Verify Edit Representative no longer closes Edit Company when saving
+   - No changes needed in `src/components/companies/EditRepresentativeDialog.tsx` beyond what you already have (modal={false} is fine).
+   - The key change is ensuring the parent dialog can correctly detect nested dialog interactions and not close.
 
-**Location:** Line 145
+4) (Optional hardening) Expand nested detection to cover other portaled overlays if you use them
+   - Only if you still see edge cases:
+     - Popover, Select, DropdownMenu content can also be portaled.
+   - Add additional checks in `dialog.tsx` like:
+     - `[data-radix-popover-content]`, `[data-radix-select-content]`, etc.
+   - This is optional; the representative issue should be fixed by marking dialog/alert-dialog content.
 
-**Before:**
-```tsx
-return (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-```
+</implementation-steps>
 
-**After:**
-```tsx
-return (
-  <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
-```
+<files-to-change>
+- `src/components/ui/dialog.tsx`
+  - Add `data-radix-dialog-content` marker to `DialogPrimitive.Content`
+  - Ensure `onInteractOutside` checks match that marker (it already does; it just needs the attribute to exist)
 
----
+- `src/components/ui/alert-dialog.tsx`
+  - Add `data-radix-alert-dialog-content` marker to `AlertDialogPrimitive.Content`
+</files-to-change>
 
-## Technical Details
+<test-plan>
+Reproduce the exact workflow from your video:
 
-Setting `modal={false}` on a Radix Dialog:
-- Disables the focus lock (focus can move to other elements)
-- Disables the outside click handler (we already have our own via `onPointerDownOutside` and `onInteractOutside` on DialogContent)
-- Prevents interference with the parent dialog's modal state
+1) Go to Companies → click Edit on any company
+2) Switch to Representatives tab
+3) Click Edit (pencil) on a representative
+4) Change a field and click “Update Representative”
+   Expected:
+   - Toast: “Representative updated successfully”
+   - Edit Representative dialog closes
+   - You remain in Edit Company dialog on Representatives tab (no navigation back to main Companies page)
 
-This is a common pattern when using nested Radix dialogs and is the recommended approach when modal-on-modal conflicts occur.
+Regression checks:
+5) Click Delete on a representative
+   - Confirmation shows
+   - After delete, you remain on Edit Company → Representatives tab
+6) Click outside the Edit Company dialog
+   - It should close only when you truly click outside (not when interacting with nested dialogs)
 
----
+</test-plan>
 
-## Files to Change
-- `src/components/companies/EditRepresentativeDialog.tsx` (add `modal={false}` to Dialog)
+<notes-why-this-works>
+Radix determines “outside” based on whether the event target is inside the parent dialog’s content node. Since nested dialogs are portaled, they are outside in DOM terms, so the parent closes unless we explicitly prevent it.
 
----
-
-## Expected Result
-After this fix:
-1. Click Edit on a representative in Edit Company → Representatives tab
-2. Edit Representative dialog opens and stays open
-3. Make changes and click "Update Representative"
-4. Edit Representative dialog closes
-5. You remain in the Edit Company dialog on the Representatives tab
-6. The representatives list updates with your changes
-7. Delete flow continues to work as before
-
----
-
-## Testing Steps
-1. Go to Companies → click Edit on a company
-2. Go to Representatives tab
-3. Click Edit on a representative
-4. Change the first name and click "Update Representative"
-5. Verify you stay in the Edit Company dialog
-6. Verify the representative's name is updated in the list
-7. Test Cancel button - should also return to Edit Company
-8. Test Delete - should continue to work correctly
+By marking dialog content nodes with a known attribute and checking `target.closest(...)` inside `onInteractOutside`, we reliably detect nested dialog interactions and prevent the parent from closing.
+</notes-why-this-works>
