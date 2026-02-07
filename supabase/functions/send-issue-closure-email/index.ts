@@ -68,9 +68,9 @@ const handler = async (req: Request): Promise<Response> => {
     const fileText = solutionFiles.length === 1 ? 'file' : 'files';
     
     // Generate comment row HTML if message exists
-    const commentRowHtml = solutionMessage && solutionMessage.trim().length > 0 
+  const commentRowHtml = solutionMessage && solutionMessage.trim().length > 0 
       ? `<tr>
-           <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Comment:</td>
+           <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #dc2626;">Solution:</td>
            <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${solutionMessage}</td>
          </tr>`
       : '';
@@ -132,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
                                                 <td style="padding: 20px; margin: 0;">
                                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
                                                         <tr style="background-color: #f5f5f5;">
-                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Title:</td>
+                                                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Issue:</td>
                                                             <td style="padding: 10px; border: 1px solid #ddd; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${issueTitle}</td>
                                                         </tr>
                                                         <tr>
