@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { FeatureRow } from "@/components/FeatureRow";
+import { PublicHeader } from "@/components/PublicHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,10 +31,23 @@ import { useToast } from "@/hooks/use-toast";
 
 const Landing = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
   const { toast } = useToast();
+
+  // Handle hash navigation for features section
+  useEffect(() => {
+    if (location.hash === "#features") {
+      setTimeout(() => {
+        const featuresSection = document.getElementById("features");
+        if (featuresSection) {
+          featuresSection.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+  }, [location.hash]);
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,25 +168,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen w-full bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/auth">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link to="/about">
-                <Button variant="ghost">Our Philosophy</Button>
-              </Link>
-              <Button onClick={() => setIsPathModalOpen(true)}>Get Started</Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
       {/* Path Selection Modal */}
       <Dialog open={isPathModalOpen} onOpenChange={setIsPathModalOpen}>
@@ -323,7 +319,8 @@ const Landing = () => {
       </section>
 
       {/* Feature Rows */}
-      <FeatureRow
+      <div id="features">
+        <FeatureRow
         label="ACCOUNTING"
         title="Streamlined Financial Management"
         description="No more QuickBooks. No more integration headaches. Accounting is built right into BuilderSuite, keeping everything consolidated in one system."
@@ -403,6 +400,7 @@ const Landing = () => {
         expandableImage={true}
         showPathModal={true}
       />
+      </div>
 
       {/* Social Proof Section */}
       <section className="py-20 bg-background">

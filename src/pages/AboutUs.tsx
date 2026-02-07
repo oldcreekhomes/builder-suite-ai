@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { PublicHeader } from "@/components/PublicHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
@@ -25,25 +26,7 @@ const AboutUs = () => {
   return (
     <div className="min-h-screen w-full bg-background">
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link to="/" className="flex items-center">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link to="/auth">
-                <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link to="/">
-                <Button variant="ghost">Home</Button>
-              </Link>
-              <Button onClick={() => setIsPathModalOpen(true)}>Get Started</Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
       {/* Path Selection Modal */}
       <Dialog open={isPathModalOpen} onOpenChange={setIsPathModalOpen}>
