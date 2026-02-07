@@ -1,78 +1,113 @@
 
+## What I found (why it still closes instantly)
+Your Edit Company screen is a Radix `Dialog`. Inside it, you open:
+- another Radix `Dialog` (Edit Representative), and
+- a Radix `AlertDialog` (Delete confirmation)
+
+These are “nested modals” that render in **portals** (they get moved to the end of the `<body>`). Radix’s “outside interaction” logic is handled via **document-level pointer events** (often in capture phase). That means:
+- `e.stopPropagation()` on the button click is sometimes not enough, because Radix may have already handled the pointer event before your handler runs.
+- The parent dialog can interpret the opening click (or the follow-up focus change) as an outside interaction and immediately close the child/parent dialog.
+
+This is why both **Edit** and **Delete** still “flash open then close.”
+
 ## Goal
-Fix the “opens then instantly closes” behavior for both **Edit** and **Delete** inside **Edit Company → Representatives** so:
-- Edit stays open, allows changes, and after saving returns you to the Edit Company dialog.
-- Delete shows a confirmation warning and only deletes after confirming.
+Make Edit and Delete dialogs reliably stay open:
+- Click **Edit** → the Edit Representative dialog stays open and can be saved.
+- Click **Delete** → the confirmation dialog stays open until the user confirms or cancels.
+- After save/delete, you remain in the Edit Company dialog and the reps list updates.
 
-## What’s happening (root cause)
-You have **nested Radix modals**:
-- Outer modal: **EditCompanyDialog** (`@radix-ui/react-dialog`)
-- Inner modal: **EditRepresentativeDialog** (`@radix-ui/react-dialog`)
-- Delete confirmation: **AlertDialog** (`@radix-ui/react-alert-dialog`)
+---
 
-With nested portals/modals, Radix can interpret the original click as an “outside interaction” for the newly-opened modal, or the outer modal can react to interactions intended for the inner overlay. Result: `onOpenChange(false)` fires immediately and the modal closes.
+## Implementation approach (robust fix)
+We’ll fix this at the **dialog system level** and at the **trigger buttons**, using capture-phase event handling + better “nested Radix portal” detection.
 
-Your current `stopPropagation()` on the Edit click helped some cases, but the video shows it’s still closing due to **outside-interaction / pointerdown handling**, and Delete currently doesn’t stop propagation at all.
+### A) Make the base `DialogContent` ignore interactions coming from other Radix dialogs/alert-dialogs
+**File:** `src/components/ui/dialog.tsx`
 
-## Plan (implementation steps)
+Update the existing `onInteractOutside` handler in `DialogContent` to also prevent the parent dialog from closing when the interaction originates from:
+- an element inside another Radix dialog content, or
+- an element inside an alert-dialog content
 
-### 1) Make Edit button stop propagation on pointerdown (not just click)
+Concretely, extend the existing Google Places exception to also check for:
+- `target.closest('[data-radix-dialog-content]')`
+- `target.closest('[data-radix-alert-dialog-content]')`
+
+If true → `e.preventDefault()` and return.
+
+Why this helps:
+- When the inner modal is portalled to `<body>`, clicks inside it are “outside” of the parent dialog’s DOM.
+- This prevents the parent from closing when you interact with the child modal (and also helps with the initial open in some nested timing cases).
+
+### B) Stop pointer events at capture-phase on the Edit and Delete triggers
 **File:** `src/components/companies/RepresentativeSelector.tsx`
 
-- Keep the existing `onClick(e) { e.stopPropagation(); ... }`
-- Add `onPointerDown={(e) => e.stopPropagation()}` to the Edit button as well.
-  - Reason: Radix “outside” logic is typically pointer-driven; stopping only `click` can be too late.
+On the **Edit** button:
+- Add `onPointerDownCapture={(e) => e.stopPropagation()}`
+- Keep the existing `onPointerDown` and `onClick`, but the key addition is the **capture** handler.
 
-### 2) Ensure Delete button trigger also stops propagation (pointerdown + click)
+Why:
+- Radix listens very early; capture-phase suppression is more reliable than bubble-only suppression.
+
+### C) Stop pointer events at capture-phase inside the shared DeleteButton trigger
 **File:** `src/components/ui/delete-button.tsx`
 
-Update the internal `<Button ... onClick={...}>` so it:
-- Accepts the event parameter
-- Calls `e.stopPropagation()` (and optionally `e.preventDefault()` if needed)
-- Also add `onPointerDown={(e) => e.stopPropagation()}` on that button
+On the internal `<Button>` that opens the confirmation:
+- Add `onPointerDownCapture={(e) => e.stopPropagation()}`
+- Keep `onPointerDown` and `onClick` stopPropagation as well.
 
-This prevents the outer dialog from treating the delete-trigger interaction as an outside click and closing the confirmation immediately.
+This ensures the outer Edit Company dialog doesn’t treat the delete-trigger pointerdown as an outside interaction.
 
-### 3) Prevent the inner “Edit Representative” dialog from auto-closing due to outside interactions in nested-modal context
-**File:** `src/components/companies/EditRepresentativeDialog.tsx`
+### D) If needed, make Edit Representative dialog non-modal to avoid nested-modal focus locking conflicts (fallback)
+**File:** `src/components/representatives/EditRepresentativeDialog.tsx`
 
-Update the Radix `<DialogContent>` to defensively prevent immediate close in nested usage:
+If A–C still doesn’t fully resolve the “flash close” in your environment, apply this targeted fallback:
+- Change the inner `<Dialog ...>` to `<Dialog modal={false} ...>`
 
-- Add:
-  - `onInteractOutside={(e) => e.preventDefault()}`
-  - `onPointerDownOutside={(e) => e.preventDefault()}` (if supported by the wrapped component props)
-- Optionally (if needed after testing): set `modal={false}` on the inner `<Dialog ...>` to avoid nested-modal focus/interaction conflicts while still keeping the UI usable within Edit Company.
+Why:
+- `modal={false}` disables some of Radix’s modal behaviors (focus lock / outside pointer event blocking) that frequently cause nested-modal instability.
 
-We’ll start with `onInteractOutside/onPointerDownOutside` first, because it keeps the dialog modal behavior while eliminating the “instant close”.
+We will implement A–C first; D is a controlled fallback if the issue persists after A–C.
 
-### 4) Prevent the Delete confirmation (AlertDialog) from instantly closing in nested context
-**File:** `src/components/ui/delete-confirmation-dialog.tsx`
+### E) Confirm Delete behavior remains safe
+Your current Delete flow already requires confirmation:
+- Clicking Delete opens `DeleteConfirmationDialog`
+- The representative is only deleted when the user clicks the “Delete” button in that dialog
 
-Add `onPointerDownOutside={(e) => e.preventDefault()}` to `<AlertDialogContent>` (and/or `onInteractOutside` if available).
-- This ensures the confirmation dialog doesn’t immediately close due to nested-dialog outside detection.
+We’ll keep this behavior; the fix is only to prevent the dialog from closing instantly.
 
-### 5) Verify the intended UX flows end-to-end
-Manual test checklist:
-1. Go to **Companies → Edit Company → Representatives tab**
-2. Click **Edit** on a representative:
-   - Dialog stays open
-   - You can change fields
-   - Click **Update Representative**:
-     - Success toast appears
-     - Edit Representative dialog closes
-     - You remain in Edit Company dialog on the Representatives tab
-     - Table reflects updates (type badge, email/phone, etc.)
-3. Click **Delete**:
-   - Confirmation dialog stays open
-   - Clicking **Cancel** closes confirmation only
-   - Clicking **Delete** deletes and refreshes list, with toast shown
+---
 
-## Notes / Risk management
-- This fix is targeted to the nested modal interaction problem and uses Radix-supported event hooks to prevent “outside click” closures.
-- If `onInteractOutside` prevention is too strict (e.g., you want clicking the backdrop to close the inner modal), we can refine it to only prevent close when the outer Edit Company dialog is open, or only during the initial open tick.
+## Step-by-step changes (what I will edit)
+1. **`src/components/ui/dialog.tsx`**
+   - Update `onInteractOutside` in `DialogContent`:
+     - Keep existing `.pac-container` exception
+     - Add checks for nested Radix contents (`data-radix-dialog-content` and `data-radix-alert-dialog-content`)
+     - `preventDefault()` when detected
 
-## Files expected to change
-- `src/components/companies/RepresentativeSelector.tsx` (Edit button pointerdown stop)
-- `src/components/ui/delete-button.tsx` (stop propagation on delete trigger)
-- `src/components/companies/EditRepresentativeDialog.tsx` (prevent outside-interaction auto close)
-- `src/components/ui/delete-confirmation-dialog.tsx` (prevent outside-interaction auto close)
+2. **`src/components/companies/RepresentativeSelector.tsx`**
+   - Add `onPointerDownCapture` stopPropagation to the Edit button
+
+3. **`src/components/ui/delete-button.tsx`**
+   - Add `onPointerDownCapture` stopPropagation to the delete trigger button
+
+4. **Re-test flow**
+   - Open Edit Company → Representatives
+   - Click Edit: dialog stays open, make change, click Update: dialog closes, returns to Edit Company, list refreshes
+   - Click Delete: confirmation dialog stays open; Cancel closes it; Delete performs deletion and list refreshes
+
+5. **If still flashing** (only then)
+   - **`src/components/representatives/EditRepresentativeDialog.tsx`** set `modal={false}` on the inner dialog root
+
+---
+
+## Acceptance criteria (what “fixed” looks like)
+- Edit dialog never closes immediately after opening; user can type and save.
+- Delete confirmation never closes immediately after opening; user must explicitly confirm/cancel.
+- After saving/deleting, user remains in the Edit Company dialog and sees updated reps list.
+
+---
+
+## Notes / risks
+- Preventing parent dialogs from closing when interacting with nested dialogs is generally safe and is a common Radix pattern.
+- The `modal={false}` fallback slightly changes focus/scroll trapping behavior for the inner dialog; we will only apply it if A–C is not sufficient.
+
