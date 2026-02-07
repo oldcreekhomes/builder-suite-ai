@@ -94,19 +94,6 @@ const Accounting = () => {
 
       {/* Feature Rows */}
       <FeatureRow
-        label="GENERAL LEDGER"
-        title="Built-In Double-Entry Accounting"
-        description="Full double-entry accounting without the need for external software. Track every dollar with proper debits and credits, generate balance sheets and income statements, and maintain a complete audit trail—all within BuilderSuite."
-        buttonText="Sign Up"
-        buttonLink="/auth?tab=signup"
-        imageSrc="/images/accounting-bills-preview.png"
-        imageAlt="BuilderSuite General Ledger"
-        className="bg-muted/30"
-        expandableImage={true}
-        showPathModal={true}
-      />
-
-      <FeatureRow
         label="AI-POWERED BILL ENTRY"
         title="Scan and Extract Bill Data Automatically"
         description="Say goodbye to manual data entry. Upload hundreds of vendor bills and let AI extract amounts, dates, vendor information, and line items automatically. Review, verify cost codes, and route for approval in a fraction of the time."
@@ -114,6 +101,19 @@ const Accounting = () => {
         buttonLink="/auth?tab=signup"
         imageSrc="/images/ai-bill-management-preview.png"
         imageAlt="AI-Powered Bill Management"
+        className="bg-muted/30"
+        expandableImage={true}
+        showPathModal={true}
+      />
+
+      <FeatureRow
+        label="GENERAL LEDGER"
+        title="Built-In Double-Entry Accounting"
+        description="Full double-entry accounting without the need for external software. Track every dollar with proper debits and credits, generate balance sheets and income statements, and maintain a complete audit trail—all within BuilderSuite."
+        buttonText="Sign Up"
+        buttonLink="/auth?tab=signup"
+        imageSrc="/images/accounting-bills-preview.png"
+        imageAlt="BuilderSuite General Ledger"
         reversed={true}
         className="bg-background"
         expandableImage={true}
