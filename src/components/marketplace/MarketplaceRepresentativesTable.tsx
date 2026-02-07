@@ -10,7 +10,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Phone, Building2, Edit, Trash2 } from "lucide-react";
+import { Building2, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,27 +148,13 @@ export function MarketplaceRepresentativesTable() {
                   </Badge>
                 </TableCell>
                 <TableCell className="px-2 py-1">
-                  {rep.email ? (
-                    <div className="flex items-center space-x-1">
-                      <Mail className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs">{rep.email}</span>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400 text-xs">-</span>
-                  )}
+                  <span className="text-xs">{rep.email || '-'}</span>
                 </TableCell>
                 <TableCell className="px-2 py-1">
-                  {rep.phone_number ? (
-                    <div className="flex items-center space-x-1">
-                      <Phone className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs">{rep.phone_number}</span>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400 text-xs">-</span>
-                  )}
+                  <span className="text-xs">{rep.phone_number || '-'}</span>
                 </TableCell>
-                <TableCell className="px-2 py-1">
-                  <div className="flex items-center space-x-1">
+                <TableCell className="px-2 py-1 text-right">
+                  <div className="flex justify-end items-center space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"

@@ -53,7 +53,7 @@ export default function Companies() {
                 <TabsTrigger value="companies">Companies</TabsTrigger>
                 <TabsTrigger value="representatives">Representatives</TabsTrigger>
                 <TabsTrigger value="marketplace-companies">Marketplace</TabsTrigger>
-                <TabsTrigger value="marketplace-representatives">Marketplace Reps</TabsTrigger>
+                <TabsTrigger value="marketplace-representatives">Marketplace Representatives</TabsTrigger>
               </TabsList>
               
               <TabsContent value="companies" className="space-y-4">
