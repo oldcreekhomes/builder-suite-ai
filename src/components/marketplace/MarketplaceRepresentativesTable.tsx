@@ -115,25 +115,27 @@ export function MarketplaceRepresentativesTable() {
 
   return (
     <>
-      <div className="bg-white rounded-lg border shadow-sm">
+      <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">First Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Last Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Email</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Actions</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {representatives.map((rep) => (
               <TableRow key={rep.id} className="h-10">
                 <TableCell className="px-2 py-1">
-                  <div className="text-xs font-medium">
-                    {rep.first_name} {rep.last_name}
-                  </div>
+                  <div className="text-xs font-medium">{rep.first_name}</div>
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  <div className="text-xs font-medium">{rep.last_name}</div>
                 </TableCell>
                 <TableCell className="px-2 py-1">
                   <div className="text-xs font-medium">
@@ -188,7 +190,7 @@ export function MarketplaceRepresentativesTable() {
 
             {representatives.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
                   No marketplace representatives found.
                 </TableCell>
               </TableRow>

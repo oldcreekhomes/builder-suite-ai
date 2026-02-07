@@ -71,7 +71,7 @@ export function MarketplaceCompaniesTable() {
 
   return (
     <>
-      <div className="bg-white rounded-lg border shadow-sm">
+      <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
