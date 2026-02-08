@@ -124,7 +124,8 @@ export function MarketplaceCompaniesTable({
           return { ...company, distance: null };
         })
         .filter(company => {
-          if (company.distance === null) return true; // Include companies without coordinates
+          // Exclude companies without coordinates - they can't be distance-filtered
+          if (company.distance === null) return false;
           return company.distance <= currentRadius;
         })
         .sort((a, b) => {
