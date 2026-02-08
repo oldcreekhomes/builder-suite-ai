@@ -1,21 +1,16 @@
-import { useState } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { COMPANY_TYPES } from "@/constants/companyTypes";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypes";
 
 interface CompanyTypeComboboxProps {
   value: string;
@@ -26,37 +21,32 @@ interface CompanyTypeComboboxProps {
 export function CompanyTypeCombobox({ 
   value, 
   onSelect, 
-  placeholder = "Search company types..." 
+  placeholder = "Select company type" 
 }: CompanyTypeComboboxProps) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
-          aria-expanded={open}
           className="w-full justify-between font-normal"
         >
-          {value || <span className="text-muted-foreground">Select company type</span>}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {value || <span className="text-muted-foreground">{placeholder}</span>}
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={placeholder} />
-          <CommandList>
-            <CommandEmpty>No company type found.</CommandEmpty>
-            <CommandGroup>
-              {COMPANY_TYPES.map((type) => (
-                <CommandItem
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]" align="start">
+        {Object.entries(COMPANY_TYPE_CATEGORIES).map(([category, types]) => (
+          <DropdownMenuSub key={category}>
+            <DropdownMenuSubTrigger className="cursor-pointer">
+              {category}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="max-h-[300px] overflow-y-auto">
+              {types.map((type) => (
+                <DropdownMenuItem
                   key={type}
-                  value={type}
-                  onSelect={(currentValue) => {
-                    onSelect(currentValue === value ? "" : currentValue);
-                    setOpen(false);
-                  }}
+                  onClick={() => onSelect(type)}
+                  className="cursor-pointer"
                 >
                   <Check
                     className={cn(
@@ -65,12 +55,12 @@ export function CompanyTypeCombobox({
                     )}
                   />
                   {type}
-                </CommandItem>
+                </DropdownMenuItem>
               ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
