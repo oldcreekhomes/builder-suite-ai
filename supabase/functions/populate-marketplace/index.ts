@@ -8,25 +8,66 @@ const corsHeaders = {
 
 // Google Places API mapping (duplicated here for edge function)
 const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }> = {
-  // Financial & Legal Services
-  "Accountant/CPA": { keyword: "accountant CPA" },
-  "Appraiser": { keyword: "real estate appraiser" },
-  "Attorney/Legal Services": { type: "lawyer" },
-  "Construction Lender": { keyword: "construction loan lender" },
-  "Mortgage Lender": { keyword: "mortgage lender" },
-  "Insurance Agent": { type: "insurance_agency" },
-  "Surety Bond Provider": { keyword: "surety bond" },
-  "Title Company": { keyword: "title company" },
-  
   // Design & Engineering
   "Architect": { keyword: "architect" },
   "Civil Engineer": { keyword: "civil engineering firm" },
   "Geotechnical Engineer": { keyword: "geotechnical engineering" },
   "Interior Designer": { keyword: "interior designer" },
-  "Landscape Architect": { keyword: "landscape architect" },
   "Land Surveyor": { keyword: "land surveyor" },
+  "Landscape Architect": { keyword: "landscape architect" },
   "MEP Engineer": { keyword: "mechanical electrical plumbing engineer" },
   "Structural Engineer": { keyword: "structural engineer" },
+  
+  // Exterior & Landscaping
+  "Deck/Fence Contractor": { keyword: "deck fence contractor" },
+  "Garage Door Installer": { keyword: "garage door installer" },
+  "Gutter Contractor": { keyword: "gutter contractor" },
+  "Irrigation Contractor": { keyword: "irrigation contractor" },
+  "Landscaping Contractor": { keyword: "landscaper" },
+  "Pool/Spa Contractor": { keyword: "pool contractor" },
+  
+  // Financial Services
+  "Accountant/CPA": { keyword: "accountant CPA" },
+  "Appraiser": { keyword: "real estate appraiser" },
+  "Construction Lender": { keyword: "construction loan lender" },
+  "Insurance Agent": { type: "insurance_agency" },
+  "Mortgage Lender": { keyword: "mortgage lender" },
+  "Surety Bond Provider": { keyword: "surety bond" },
+  "Title Company": { keyword: "title company" },
+  
+  // Government & Other
+  "Home Warranty Provider": { keyword: "home warranty" },
+  "Municipality/Permitting": { type: "local_government_office" },
+  "Real Estate Agent": { type: "real_estate_agency" },
+  "Utility Company": { keyword: "utility company" },
+  
+  // Interior Trades
+  "Cabinet Maker": { keyword: "cabinet maker" },
+  "Countertop Fabricator": { keyword: "countertop fabricator" },
+  "Drywall Contractor": { keyword: "drywall contractor" },
+  "Flooring Contractor": { type: "flooring_contractor" },
+  "Insulation Contractor": { keyword: "insulation contractor" },
+  "Painter": { type: "painter" },
+  "Tile Contractor": { keyword: "tile contractor" },
+  "Window/Door Installer": { keyword: "window door installer" },
+  
+  // Legal Services
+  "Attorney/Legal Services": { type: "lawyer" },
+  
+  // Materials & Equipment
+  "Building Materials Supplier": { type: "hardware_store" },
+  "Equipment Rental": { keyword: "equipment rental" },
+  "Fixture Supplier": { keyword: "plumbing fixtures supplier" },
+  "Lumber Yard": { keyword: "lumber yard" },
+  "Ready-Mix Concrete": { keyword: "ready mix concrete" },
+  
+  // Mechanical Systems
+  "Electrical Contractor": { type: "electrician" },
+  "Fire Protection/Sprinkler": { keyword: "fire sprinkler contractor" },
+  "HVAC Contractor": { keyword: "HVAC contractor" },
+  "Low Voltage/Security": { keyword: "security system installer" },
+  "Plumbing Contractor": { type: "plumber" },
+  "Solar/Renewable Energy": { keyword: "solar installer" },
   
   // Site Work & Foundation
   "Concrete Contractor": { keyword: "concrete contractor" },
@@ -45,45 +86,6 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   "Siding Contractor": { keyword: "siding contractor" },
   "Steel Fabricator": { keyword: "steel fabricator" },
   "Truss Manufacturer": { keyword: "truss manufacturer" },
-  
-  // Mechanical Systems
-  "Electrical Contractor": { type: "electrician" },
-  "Fire Protection/Sprinkler": { keyword: "fire sprinkler contractor" },
-  "HVAC Contractor": { keyword: "HVAC contractor" },
-  "Plumbing Contractor": { type: "plumber" },
-  "Solar/Renewable Energy": { keyword: "solar installer" },
-  "Low Voltage/Security": { keyword: "security system installer" },
-  
-  // Interior Trades
-  "Cabinet Maker": { keyword: "cabinet maker" },
-  "Countertop Fabricator": { keyword: "countertop fabricator" },
-  "Drywall Contractor": { keyword: "drywall contractor" },
-  "Flooring Contractor": { type: "flooring_contractor" },
-  "Insulation Contractor": { keyword: "insulation contractor" },
-  "Painter": { type: "painter" },
-  "Tile Contractor": { keyword: "tile contractor" },
-  "Window/Door Installer": { keyword: "window door installer" },
-  
-  // Exterior & Landscaping
-  "Deck/Fence Contractor": { keyword: "deck fence contractor" },
-  "Garage Door Installer": { keyword: "garage door installer" },
-  "Gutter Contractor": { keyword: "gutter contractor" },
-  "Landscaping Contractor": { keyword: "landscaper" },
-  "Pool/Spa Contractor": { keyword: "pool contractor" },
-  "Irrigation Contractor": { keyword: "irrigation contractor" },
-  
-  // Materials & Equipment
-  "Building Materials Supplier": { type: "hardware_store" },
-  "Equipment Rental": { keyword: "equipment rental" },
-  "Fixture Supplier": { keyword: "plumbing fixtures supplier" },
-  "Lumber Yard": { keyword: "lumber yard" },
-  "Ready-Mix Concrete": { keyword: "ready mix concrete" },
-  
-  // Government & Other
-  "Municipality/Permitting": { type: "local_government_office" },
-  "Utility Company": { keyword: "utility company" },
-  "Home Warranty Provider": { keyword: "home warranty" },
-  "Real Estate Agent": { type: "real_estate_agency" },
 };
 
 // Washington D.C. coordinates
