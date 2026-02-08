@@ -2386,7 +2386,9 @@ export type Database = {
           description: string | null
           id: string
           insurance_verified: boolean | null
+          lat: number | null
           license_numbers: string[] | null
+          lng: number | null
           message_count: number | null
           phone_number: string | null
           rating: number | null
@@ -2405,7 +2407,9 @@ export type Database = {
           description?: string | null
           id?: string
           insurance_verified?: boolean | null
+          lat?: number | null
           license_numbers?: string[] | null
+          lng?: number | null
           message_count?: number | null
           phone_number?: string | null
           rating?: number | null
@@ -2424,7 +2428,9 @@ export type Database = {
           description?: string | null
           id?: string
           insurance_verified?: boolean | null
+          lat?: number | null
           license_numbers?: string[] | null
+          lng?: number | null
           message_count?: number | null
           phone_number?: string | null
           rating?: number | null
@@ -2527,6 +2533,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      marketplace_subscriptions: {
+        Row: {
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          max_radius_miles: number
+          owner_id: string
+          status: string
+          stripe_subscription_id: string | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          max_radius_miles?: number
+          owner_id: string
+          status?: string
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          max_radius_miles?: number
+          owner_id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       pending_bill_lines: {
         Row: {
@@ -3805,6 +3850,12 @@ export type Database = {
           email: string
           first_name: string | null
           home_builder_id: string | null
+          hq_address: string | null
+          hq_city: string | null
+          hq_lat: number | null
+          hq_lng: number | null
+          hq_state: string | null
+          hq_zip: string | null
           id: string
           last_name: string | null
           phone_number: string | null
@@ -3820,6 +3871,12 @@ export type Database = {
           email: string
           first_name?: string | null
           home_builder_id?: string | null
+          hq_address?: string | null
+          hq_city?: string | null
+          hq_lat?: number | null
+          hq_lng?: number | null
+          hq_state?: string | null
+          hq_zip?: string | null
           id?: string
           last_name?: string | null
           phone_number?: string | null
@@ -3835,6 +3892,12 @@ export type Database = {
           email?: string
           first_name?: string | null
           home_builder_id?: string | null
+          hq_address?: string | null
+          hq_city?: string | null
+          hq_lat?: number | null
+          hq_lng?: number | null
+          hq_state?: string | null
+          hq_zip?: string | null
           id?: string
           last_name?: string | null
           phone_number?: string | null
@@ -3927,6 +3990,10 @@ export type Database = {
             }
             Returns: string
           }
+      calculate_distance_miles: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       can_close_period: {
         Args: { check_date: string; check_project_id: string }
         Returns: {
