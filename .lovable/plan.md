@@ -1,100 +1,79 @@
 
 
-# Marketplace Category Filter Sidebar
+# Alphabetize Categories and Split Financial & Legal
 
 ## Overview
 
-Replace the current dropdown category filter with a clean sidebar navigation panel (similar to the Settings page) that displays parent categories with expandable/flyout child types. This will give users a much more organized way to browse the 50+ company types.
+This plan addresses three issues:
+1. **Parent categories are not in alphabetical order** - currently showing in a random order
+2. **Child types within categories are not alphabetized** - making it hard to find specific types
+3. **"Financial & Legal Services" is too long** - causing the chevron arrow to be cut off; split into two separate categories
 
-## Current Problem
+## New Category Structure (Alphabetized)
 
-- The category dropdown shows all categories in a flat list
-- When a parent category is selected, ALL children in that category are displayed at once
-- Users cannot quickly isolate a specific company type like "Architect" vs "Interior Designer"
-- The UI is cramped and hard to navigate with 9 categories and 50+ child types
+After splitting and alphabetizing, here are the 10 categories in order:
 
-## Solution
+| # | Category Name | Child Types (Alphabetized) |
+|---|---------------|---------------------------|
+| 1 | Design & Engineering | Architect, Civil Engineer, Geotechnical Engineer, Interior Designer, Land Surveyor, Landscape Architect, MEP Engineer, Structural Engineer |
+| 2 | Exterior & Landscaping | Deck/Fence Contractor, Garage Door Installer, Gutter Contractor, Irrigation Contractor, Landscaping Contractor, Pool/Spa Contractor |
+| 3 | Financial Services | Accountant/CPA, Appraiser, Construction Lender, Insurance Agent, Mortgage Lender, Surety Bond Provider, Title Company |
+| 4 | Government & Other | Home Warranty Provider, Municipality/Permitting, Other, Real Estate Agent, Utility Company |
+| 5 | Interior Trades | Cabinet Maker, Countertop Fabricator, Drywall Contractor, Flooring Contractor, Insulation Contractor, Painter, Tile Contractor, Window/Door Installer |
+| 6 | Legal Services | Attorney/Legal Services |
+| 7 | Materials & Equipment | Building Materials Supplier, Equipment Rental, Fixture Supplier, Lumber Yard, Ready-Mix Concrete |
+| 8 | Mechanical Systems | Electrical Contractor, Fire Protection/Sprinkler, HVAC Contractor, Low Voltage/Security, Plumbing Contractor, Solar/Renewable Energy |
+| 9 | Site Work & Foundation | Concrete Contractor, Demolition Contractor, Excavation Contractor, Foundation Contractor, Grading Contractor, Paving Contractor, Septic System Installer, Utility Contractor |
+| 10 | Structural Trades | Framing Contractor, Masonry Contractor, Roofing Contractor, Siding Contractor, Steel Fabricator, Truss Manufacturer |
 
-Create a sidebar-style filter panel on the left side of the Marketplace page:
+## Files to Modify
 
-```text
-+-------------------+------------------------------------------+
-| Marketplace       |                                          |
-| Category Filter   |  Companies Table                         |
-|                   |                                          |
-| > All Companies   |  [Search bar]                            |
-|                   |                                          |
-| Financial & Legal |  | Company | Type | Location | etc...   |
-|   > Accountant    |  | ABC Co  | ...  | ...      |           |
-|   > Appraiser     |  | XYZ Inc | ...  | ...      |           |
-|   > Attorney      |                                          |
-|   > ...           |                                          |
-|                   |                                          |
-| Design & Eng      |                                          |
-|   > Architect     |                                          |
-|   > Civil Eng     |                                          |
-|   > ...           |                                          |
-|                   |                                          |
-| Site Work         |                                          |
-| Structural Trades |                                          |
-| ...               |                                          |
-+-------------------+------------------------------------------+
-```
-
-## UI Design
-
-- Left sidebar (approximately 220px wide) with a clean vertical list
-- Parent categories shown as collapsible sections (accordion-style)
-- Click parent category header to expand/collapse children
-- Click a specific child type to filter the table to ONLY that type
-- "All Companies" option at the top to clear all filters
-- Active selection highlighted with a left border (like Settings page)
-- Children indented under their parent category
-
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/marketplace/MarketplaceCategorySidebar.tsx` | Create | New sidebar component with collapsible categories |
-| `src/pages/Marketplace.tsx` | Modify | Replace dropdown with sidebar, adjust layout to side-by-side |
+| File | Changes |
+|------|---------|
+| `src/constants/companyTypeGoogleMapping.ts` | Update `COMPANY_TYPE_CATEGORIES` array - split Financial & Legal, alphabetize all |
+| `src/constants/companyTypes.ts` | Update `COMPANY_TYPE_CATEGORIES` object - split and alphabetize |
+| `supabase/functions/populate-marketplace/index.ts` | Update the comment groupings for consistency (mappings themselves don't need category changes since they're keyed by type name) |
 
 ## Technical Implementation
 
-### 1. MarketplaceCategorySidebar Component
+### 1. companyTypeGoogleMapping.ts - COMPANY_TYPE_CATEGORIES array
 
-- Uses Collapsible component from Radix UI (already installed)
-- Props:
-  - `selectedCategory: string` - currently selected parent category ("all" or category name)
-  - `selectedType: string | null` - currently selected child type (for granular filtering)
-  - `onCategoryChange: (category: string) => void`
-  - `onTypeChange: (type: string | null) => void`
-- Structure:
-  - "All Companies" link at top
-  - Each category is a collapsible section
-  - Children are indented list items under each category
-  - Clicking a child sets both category AND type
-  - Clicking the parent category header toggles collapse and optionally selects all types
+Replace the current array with alphabetically sorted categories. Each category's `types` array will also be sorted alphabetically.
 
-### 2. Marketplace Page Layout Changes
+**Before:**
+```typescript
+export const COMPANY_TYPE_CATEGORIES = [
+  { name: "Financial & Legal Services", types: [...] },
+  { name: "Design & Engineering", types: [...] },
+  // ... unsorted
+];
+```
 
-- Change from single-column layout to flex row with sidebar + content
-- Remove the Select dropdown for categories
-- Keep the search bar in the main content area
-- Pass both `selectedCategory` and `selectedType` to the table component
+**After:**
+```typescript
+export const COMPANY_TYPE_CATEGORIES = [
+  { name: "Design & Engineering", types: ["Architect", "Civil Engineer", ...] },
+  { name: "Exterior & Landscaping", types: ["Deck/Fence Contractor", ...] },
+  { name: "Financial Services", types: ["Accountant/CPA", "Appraiser", ...] },
+  { name: "Government & Other", types: ["Home Warranty Provider", ...] },
+  { name: "Interior Trades", types: ["Cabinet Maker", ...] },
+  { name: "Legal Services", types: ["Attorney/Legal Services"] },
+  // ... all alphabetized
+];
+```
 
-### 3. MarketplaceCompaniesTable Filtering Update
+### 2. companyTypes.ts - COMPANY_TYPE_CATEGORIES object
 
-- Add `selectedType` prop to filter by specific company type
-- When `selectedType` is set, show only companies with that exact type
-- When only `selectedCategory` is set (no type), show all types in that category
+Update the Record object to match the new structure with split and alphabetized categories.
 
-## Styling Approach
+### 3. Edge Function Comments
 
-Match the Settings page sidebar style:
-- Fixed-width sidebar with border-right
-- Clean white background
-- Active items have a left border accent color
-- Hover states for items
-- Smooth collapse/expand animations
-- Typography: 14px font, semibold for categories, regular for types
+Update the comment groupings in the GOOGLE_PLACES_MAPPING to reflect "Financial Services" and "Legal Services" as separate sections.
+
+## Benefits
+
+- Shorter category names prevent text truncation and arrow clipping
+- Alphabetical ordering makes it intuitive to find categories quickly
+- Both parent categories and child types are consistently sorted
+- 10 categories instead of 9, but each is more focused
 
