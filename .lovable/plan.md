@@ -1,80 +1,100 @@
 
 
-# Fix Marketplace Companies Table Layout
+# Marketplace Category Filter Sidebar
 
 ## Overview
 
-This plan will completely overhaul the marketplace table layout based on your feedback:
+Replace the current dropdown category filter with a clean sidebar navigation panel (similar to the Settings page) that displays parent categories with expandable/flyout child types. This will give users a much more organized way to browse the 50+ company types.
 
-1. **Remove the gap** between Company Name and Type columns
-2. **Delete Source column** (no longer showing "Google")
-3. **Remove Specialties** - from UI AND database
-4. **Split Contact into two columns**: "Phone" and "Website" (side by side, not stacked)
-5. **Remove Actions column** entirely
+## Current Problem
 
-## Current vs New Column Structure
+- The category dropdown shows all categories in a flat list
+- When a parent category is selected, ALL children in that category are displayed at once
+- Users cannot quickly isolate a specific company type like "Architect" vs "Interior Designer"
+- The UI is cramped and hard to navigate with 9 categories and 50+ child types
 
-| Current Layout (8 cols) | New Layout (6 cols) |
-|------------------------|---------------------|
-| Company Name           | Company Name        |
-| Type                   | Type                |
-| Source                 | ~~REMOVED~~         |
-| Location               | Location            |
-| Rating                 | Rating              |
-| Specialties            | ~~REMOVED~~         |
-| Contact (stacked)      | Phone               |
-|                        | Website             |
-| Actions                | ~~REMOVED~~         |
+## Solution
 
-## Files to Modify
+Create a sidebar-style filter panel on the left side of the Marketplace page:
 
-| File | Changes |
-|------|---------|
-| `src/components/marketplace/MarketplaceCompaniesTable.tsx` | Rebuild table with new 6-column layout |
-| `src/components/marketplace/ViewMarketplaceCompanyDialog.tsx` | Remove specialties section from dialog |
-| Database migration | Drop the `specialties` column from `marketplace_companies` |
-| `src/integrations/supabase/types.ts` | Auto-regenerated after migration |
-
-## Implementation Details
-
-### 1. MarketplaceCompaniesTable.tsx Changes
-
-**Header Row (new structure):**
-```
-Company Name | Type | Location | Rating | Phone | Website
+```text
++-------------------+------------------------------------------+
+| Marketplace       |                                          |
+| Category Filter   |  Companies Table                         |
+|                   |                                          |
+| > All Companies   |  [Search bar]                            |
+|                   |                                          |
+| Financial & Legal |  | Company | Type | Location | etc...   |
+|   > Accountant    |  | ABC Co  | ...  | ...      |           |
+|   > Appraiser     |  | XYZ Inc | ...  | ...      |           |
+|   > Attorney      |                                          |
+|   > ...           |                                          |
+|                   |                                          |
+| Design & Eng      |                                          |
+|   > Architect     |                                          |
+|   > Civil Eng     |                                          |
+|   > ...           |                                          |
+|                   |                                          |
+| Site Work         |                                          |
+| Structural Trades |                                          |
+| ...               |                                          |
++-------------------+------------------------------------------+
 ```
 
-**Row Layout:**
-- Company Name: Normal width, left-aligned
-- Type: Badge with color coding
-- Location: MapPin icon + truncated address
-- Rating: Star icon + rating + review count
-- Phone: Phone number as plain text (or dash if empty)
-- Website: Clickable link (or dash if empty)
+## UI Design
 
-**Remove:**
-- Source column and badge
-- Specialties column
-- Contact column (replaced by separate Phone/Website)
-- Actions column and Details button
-- ViewMarketplaceCompanyDialog state and component import
+- Left sidebar (approximately 220px wide) with a clean vertical list
+- Parent categories shown as collapsible sections (accordion-style)
+- Click parent category header to expand/collapse children
+- Click a specific child type to filter the table to ONLY that type
+- "All Companies" option at the top to clear all filters
+- Active selection highlighted with a left border (like Settings page)
+- Children indented under their parent category
 
-### 2. ViewMarketplaceCompanyDialog.tsx Changes
+## Files to Create/Modify
 
-Remove the "Specialties" section (lines 151-163) since we're dropping that data from the database entirely.
+| File | Action | Description |
+|------|--------|-------------|
+| `src/components/marketplace/MarketplaceCategorySidebar.tsx` | Create | New sidebar component with collapsible categories |
+| `src/pages/Marketplace.tsx` | Modify | Replace dropdown with sidebar, adjust layout to side-by-side |
 
-### 3. Database Migration
+## Technical Implementation
 
-```sql
-ALTER TABLE marketplace_companies DROP COLUMN IF EXISTS specialties;
-```
+### 1. MarketplaceCategorySidebar Component
 
-This permanently removes the specialties array column from the database.
+- Uses Collapsible component from Radix UI (already installed)
+- Props:
+  - `selectedCategory: string` - currently selected parent category ("all" or category name)
+  - `selectedType: string | null` - currently selected child type (for granular filtering)
+  - `onCategoryChange: (category: string) => void`
+  - `onTypeChange: (type: string | null) => void`
+- Structure:
+  - "All Companies" link at top
+  - Each category is a collapsible section
+  - Children are indented list items under each category
+  - Clicking a child sets both category AND type
+  - Clicking the parent category header toggles collapse and optionally selects all types
 
-## Technical Notes
+### 2. Marketplace Page Layout Changes
 
-- The `colSpan` for empty state will change from 8 to 6
-- The interface `MarketplaceCompany` will be updated to remove `specialties` after migration
-- Phone and Website columns will show a dash "-" when data is missing
-- The table will be more compact and scannable without the cluttered layout
+- Change from single-column layout to flex row with sidebar + content
+- Remove the Select dropdown for categories
+- Keep the search bar in the main content area
+- Pass both `selectedCategory` and `selectedType` to the table component
+
+### 3. MarketplaceCompaniesTable Filtering Update
+
+- Add `selectedType` prop to filter by specific company type
+- When `selectedType` is set, show only companies with that exact type
+- When only `selectedCategory` is set (no type), show all types in that category
+
+## Styling Approach
+
+Match the Settings page sidebar style:
+- Fixed-width sidebar with border-right
+- Clean white background
+- Active items have a left border accent color
+- Hover states for items
+- Smooth collapse/expand animations
+- Typography: 14px font, semibold for categories, regular for types
 
