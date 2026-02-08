@@ -15,7 +15,6 @@ interface MarketplaceCompany {
   website?: string;
   phone_number?: string;
   description?: string;
-  specialties?: string[];
   service_areas?: string[];
   license_numbers?: string[];
   insurance_verified?: boolean;
@@ -148,19 +147,6 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
 
           <Separator />
 
-          {/* Specialties */}
-          {company.specialties && company.specialties.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Specialties</h3>
-              <div className="flex flex-wrap gap-2">
-                {company.specialties.map((specialty, index) => (
-                  <Badge key={index} variant="secondary">
-                    {specialty}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Service Areas */}
           {company.service_areas && company.service_areas.length > 0 && (
