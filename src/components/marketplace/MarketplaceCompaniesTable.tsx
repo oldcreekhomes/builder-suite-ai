@@ -107,9 +107,9 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
                 </TableCell>
                 <TableCell className="px-2 py-1">
                   {company.address ? (
-                    <div className="flex items-center space-x-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                    <div className="flex items-start space-x-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-muted-foreground">
                         {company.address}
                       </span>
                     </div>
