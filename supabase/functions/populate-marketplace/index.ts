@@ -6,85 +6,194 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Google Places API mapping (duplicated here for edge function)
+// Google Places API mapping - comprehensive 200+ company types
 const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }> = {
-  // Design & Engineering
+  // ============ DESIGNERS ============
   "Architect": { keyword: "architect" },
-  "Civil Engineer": { keyword: "civil engineering firm" },
-  "Geotechnical Engineer": { keyword: "geotechnical engineering" },
+  "Bath Designer": { keyword: "bathroom designer" },
+  "Closet Designer": { keyword: "custom closet designer" },
+  "Home Theater Designer": { keyword: "home theater design installation" },
   "Interior Designer": { keyword: "interior designer" },
-  "Land Surveyor": { keyword: "land surveyor" },
+  "Kitchen Designer": { keyword: "kitchen designer" },
   "Landscape Architect": { keyword: "landscape architect" },
-  "MEP Engineer": { keyword: "mechanical electrical plumbing engineer" },
+  "Lighting Designer": { keyword: "lighting designer" },
+
+  // ============ ENGINEERS ============
+  "Civil Engineer": { keyword: "civil engineering firm" },
+  "Electrical Engineer": { keyword: "electrical engineering firm" },
+  "Environmental Engineer": { keyword: "environmental engineering consultant" },
+  "Fire Protection Engineer": { keyword: "fire protection engineer" },
+  "Geotechnical Engineer": { keyword: "geotechnical engineering" },
+  "Mechanical Engineer": { keyword: "mechanical engineering firm" },
+  "MEP Engineer": { keyword: "MEP engineering firm" },
+  "Plumbing Engineer": { keyword: "plumbing engineering" },
+  "Stormwater Engineer": { keyword: "stormwater management engineering" },
   "Structural Engineer": { keyword: "structural engineer" },
-  
-  // Exterior & Landscaping
-  "Deck/Fence Contractor": { keyword: "deck fence contractor" },
+  "Transportation Engineer": { keyword: "transportation engineering" },
+
+  // ============ EQUIPMENT SUPPLIERS ============
+  "Crane Rental": { keyword: "crane rental" },
+  "Dumpster Rental": { keyword: "dumpster rental" },
+  "Equipment Rental": { keyword: "construction equipment rental" },
+  "Generator Rental": { keyword: "generator rental" },
+  "Heavy Equipment Rental": { keyword: "heavy equipment rental" },
+  "Portable Toilet Rental": { keyword: "portable toilet rental construction" },
+  "Scaffolding Rental": { keyword: "scaffolding rental" },
+  "Tool Rental": { keyword: "tool rental" },
+
+  // ============ EXTERIOR & LANDSCAPING ============
+  "Deck Contractor": { keyword: "deck builder contractor" },
+  "Driveway Contractor": { keyword: "driveway contractor" },
+  "Exterior Painting Contractor": { keyword: "exterior house painter" },
+  "Fence Contractor": { keyword: "fence contractor" },
   "Garage Door Installer": { keyword: "garage door installer" },
   "Gutter Contractor": { keyword: "gutter contractor" },
   "Irrigation Contractor": { keyword: "irrigation contractor" },
-  "Landscaping Contractor": { keyword: "landscaper" },
+  "Landscaping Contractor": { keyword: "landscaping contractor" },
+  "Lawn Care Service": { keyword: "lawn care service" },
+  "Outdoor Living Contractor": { keyword: "outdoor living contractor patio" },
+  "Patio Contractor": { keyword: "patio contractor" },
+  "Paving Contractor": { keyword: "paving contractor" },
   "Pool/Spa Contractor": { keyword: "pool contractor" },
-  
-  // Financial Services
+  "Pressure Washing Service": { keyword: "pressure washing service" },
+  "Tree Service": { keyword: "tree service arborist" },
+  "Window Cleaning Service": { keyword: "window cleaning service" },
+
+  // ============ FINANCIAL SERVICES ============
   "Accountant/CPA": { keyword: "accountant CPA" },
   "Appraiser": { keyword: "real estate appraiser" },
+  "Commercial Lender": { keyword: "commercial real estate lender" },
   "Construction Lender": { keyword: "construction loan lender" },
+  "Financial Advisor": { keyword: "financial advisor" },
   "Insurance Agent": { type: "insurance_agency" },
   "Mortgage Lender": { keyword: "mortgage lender" },
+  "Private Money Lender": { keyword: "private money lender hard money" },
   "Surety Bond Provider": { keyword: "surety bond" },
+  "Tax Consultant": { keyword: "tax consultant" },
   "Title Company": { keyword: "title company" },
-  
-  // Government & Other
+
+  // ============ GOVERNMENT & SERVICES ============
+  "Arborist": { keyword: "certified arborist" },
+  "Energy Auditor": { keyword: "home energy auditor" },
+  "Home Inspector": { keyword: "home inspector" },
   "Home Warranty Provider": { keyword: "home warranty" },
+  "Mold Inspector": { keyword: "mold inspector testing" },
   "Municipality/Permitting": { type: "local_government_office" },
   "Real Estate Agent": { type: "real_estate_agency" },
+  "Termite Inspector": { keyword: "termite inspector pest control" },
   "Utility Company": { keyword: "utility company" },
-  
-  // Interior Trades
-  "Cabinet Maker": { keyword: "cabinet maker" },
+
+  // ============ INTERIOR TRADES ============
+  "Accent Wall Contractor": { keyword: "accent wall installation contractor" },
+  "Built-In Cabinet Installer": { keyword: "built-in cabinet installation" },
+  "Cabinet Installer": { keyword: "cabinet installation contractor" },
+  "Cabinet Manufacturer": { keyword: "custom cabinet manufacturer" },
+  "Carpet Installer": { keyword: "carpet installer" },
+  "Closet System Installer": { keyword: "custom closet system installer" },
   "Countertop Fabricator": { keyword: "countertop fabricator" },
+  "Countertop Installer": { keyword: "countertop installation" },
+  "Decorative Painter/Faux Finisher": { keyword: "faux finish decorative painter" },
+  "Door Installer": { keyword: "interior door installer" },
   "Drywall Contractor": { keyword: "drywall contractor" },
+  "Finish Carpenter": { keyword: "finish carpenter trim" },
   "Flooring Contractor": { type: "flooring_contractor" },
+  "Hardwood Flooring Installer": { keyword: "hardwood floor installation" },
   "Insulation Contractor": { keyword: "insulation contractor" },
+  "Interior Trim Contractor": { keyword: "interior trim carpentry contractor" },
+  "Millwork Installer": { keyword: "millwork installation" },
   "Painter": { type: "painter" },
+  "Shiplap Installer": { keyword: "shiplap installation contractor" },
+  "Spray Foam Contractor": { keyword: "spray foam insulation contractor" },
+  "Stair Contractor": { keyword: "stair contractor builder" },
   "Tile Contractor": { keyword: "tile contractor" },
-  "Window/Door Installer": { keyword: "window door installer" },
-  
-  // Legal Services
-  "Attorney/Legal Services": { type: "lawyer" },
-  
-  // Materials & Equipment
+  "Vinyl/LVP Installer": { keyword: "luxury vinyl plank installer" },
+  "Wallpaper Installer": { keyword: "wallpaper installer" },
+  "Window Installer": { keyword: "window installer" },
+
+  // ============ LEGAL SERVICES ============
+  "Business Attorney": { keyword: "business attorney" },
+  "Construction Attorney": { keyword: "construction lawyer" },
+  "Contract Attorney": { keyword: "contract attorney" },
+  "Environmental Attorney": { keyword: "environmental lawyer" },
+  "HOA Attorney": { keyword: "HOA attorney homeowners association" },
+  "Land Use Attorney": { keyword: "land use attorney zoning" },
+  "Lien Attorney": { keyword: "mechanics lien attorney" },
+  "Real Estate Attorney": { keyword: "real estate attorney" },
+  "Title Attorney": { keyword: "title attorney" },
+  "Zoning Attorney": { keyword: "zoning attorney" },
+
+  // ============ MATERIAL SUPPLIERS ============
+  "Brick & Stone Supplier": { keyword: "brick stone supplier masonry" },
   "Building Materials Supplier": { type: "hardware_store" },
-  "Equipment Rental": { keyword: "equipment rental" },
-  "Fixture Supplier": { keyword: "plumbing fixtures supplier" },
+  "Cabinet Supplier": { keyword: "cabinet supplier showroom" },
+  "Concrete Supplier (Ready-Mix)": { keyword: "ready mix concrete supplier" },
+  "Countertop Supplier": { keyword: "countertop supplier" },
+  "Door & Window Supplier": { keyword: "door window supplier" },
+  "Drywall Supplier": { keyword: "drywall supplier" },
+  "Electrical Fixtures Supplier": { keyword: "electrical supply lighting fixtures" },
+  "Flooring Supplier": { keyword: "flooring supplier" },
+  "Hardware Supplier": { keyword: "hardware supplier" },
+  "Insulation Supplier": { keyword: "insulation supplier" },
   "Lumber Yard": { keyword: "lumber yard" },
-  "Ready-Mix Concrete": { keyword: "ready mix concrete" },
-  
-  // Mechanical Systems
+  "Millwork Supplier": { keyword: "millwork supplier" },
+  "Paint Supplier": { keyword: "paint supplier store" },
+  "Plumbing Fixtures Supplier": { keyword: "plumbing fixtures supplier" },
+  "Roofing Materials Supplier": { keyword: "roofing materials supplier" },
+  "Steel Supplier": { keyword: "steel supplier" },
+  "Tile Supplier": { keyword: "tile supplier showroom" },
+
+  // ============ MEP CONTRACTORS ============
+  "Audio/Video Installer": { keyword: "audio video installer" },
   "Electrical Contractor": { type: "electrician" },
-  "Fire Protection/Sprinkler": { keyword: "fire sprinkler contractor" },
+  "Fire Sprinkler Contractor": { keyword: "fire sprinkler contractor" },
+  "Generator Installer": { keyword: "generator installer" },
   "HVAC Contractor": { keyword: "HVAC contractor" },
-  "Low Voltage/Security": { keyword: "security system installer" },
+  "Low Voltage Contractor": { keyword: "low voltage contractor" },
   "Plumbing Contractor": { type: "plumber" },
-  "Solar/Renewable Energy": { keyword: "solar installer" },
-  
-  // Site Work & Foundation
+  "Security System Installer": { keyword: "security system installer" },
+  "Smart Home Installer": { keyword: "smart home installer automation" },
+  "Solar/Renewable Energy Contractor": { keyword: "solar installer" },
+
+  // ============ SITE WORK CONTRACTORS ============
   "Concrete Contractor": { keyword: "concrete contractor" },
   "Demolition Contractor": { keyword: "demolition contractor" },
+  "Earthwork Contractor": { keyword: "earthwork contractor" },
+  "Erosion Control Contractor": { keyword: "erosion control contractor" },
   "Excavation Contractor": { keyword: "excavation contractor" },
   "Foundation Contractor": { keyword: "foundation contractor" },
   "Grading Contractor": { keyword: "grading contractor" },
-  "Paving Contractor": { keyword: "paving contractor" },
+  "Land Clearing Contractor": { keyword: "land clearing contractor" },
+  "Retaining Wall Contractor": { keyword: "retaining wall contractor" },
   "Septic System Installer": { keyword: "septic system installer" },
+  "Storm Water Management Contractor": { keyword: "stormwater management contractor" },
   "Utility Contractor": { keyword: "utility contractor" },
-  
-  // Structural Trades
+
+  // ============ SPECIALTY CONTRACTORS ============
+  "Brick Mason": { keyword: "brick mason" },
+  "Chimney Contractor": { keyword: "chimney contractor" },
+  "EIFS Contractor": { keyword: "EIFS stucco contractor" },
+  "Elevator Installer": { keyword: "residential elevator installer" },
+  "Fireplace Installer": { keyword: "fireplace installer" },
+  "Glass/Mirror Contractor": { keyword: "glass mirror contractor" },
+  "Home Automation Contractor": { keyword: "home automation contractor" },
+  "Metal Railing Contractor": { keyword: "metal railing contractor" },
+  "Shower Door Installer": { keyword: "shower door installer" },
+  "Stone Mason": { keyword: "stone mason" },
+  "Stucco Contractor": { keyword: "stucco contractor" },
+  "Waterproofing Contractor": { keyword: "waterproofing contractor" },
+  "Wrought Iron Contractor": { keyword: "wrought iron fabricator" },
+
+  // ============ STRUCTURAL TRADES ============
+  "Deck Framing Contractor": { keyword: "deck framing contractor" },
+  "Floor Joist Installer": { keyword: "floor joist installer" },
   "Framing Contractor": { keyword: "framing contractor" },
+  "Lumber Framing Contractor": { keyword: "lumber framing contractor" },
   "Masonry Contractor": { keyword: "masonry contractor" },
+  "Post-Frame Builder": { keyword: "post frame builder pole barn" },
   "Roofing Contractor": { type: "roofing_contractor" },
   "Siding Contractor": { keyword: "siding contractor" },
   "Steel Fabricator": { keyword: "steel fabricator" },
+  "Timber Frame Builder": { keyword: "timber frame builder" },
   "Truss Manufacturer": { keyword: "truss manufacturer" },
 };
 
@@ -194,12 +303,13 @@ serve(async (req) => {
       centerLat = DC_CENTER.lat,
       centerLng = DC_CENTER.lng,
       radiusMeters = 50000, // Default to max single search radius
-      maxResultsPerCategory = 5,
+      maxResultsPerCategory = 10, // Increased from 5 to 10
       minRating = 4.0,
     } = body;
 
     console.log(`Starting marketplace population for ${categories.length} categories`);
     console.log(`Center: ${centerLat}, ${centerLng}, Radius: ${radiusMeters}m`);
+    console.log(`Max results per category: ${maxResultsPerCategory}, Min rating: ${minRating}`);
 
     const results: {
       category: string;
