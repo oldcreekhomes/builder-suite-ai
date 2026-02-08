@@ -327,6 +327,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+
+      {/* Marketplace Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Marketplace</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Control access to the vendor marketplace
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-marketplace" className="text-sm font-normal cursor-pointer">
+                Access Marketplace
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and search the vendor marketplace to find contractors and suppliers
+              </p>
+            </div>
+            <Switch
+              id="access-marketplace"
+              checked={preferences.can_access_marketplace}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_marketplace: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
