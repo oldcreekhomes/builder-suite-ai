@@ -39,6 +39,7 @@ import FeatureGanttScheduling from "./pages/features/GanttScheduling";
 import FeatureBidManagement from "./pages/features/BidManagement";
 import FeatureDocumentManagement from "./pages/features/DocumentManagement";
 import FeatureTeamCommunication from "./pages/features/TeamCommunication";
+import FeatureJoinMarketplace from "./pages/features/JoinMarketplace";
 import ApproveBills from "./pages/ApproveBills";
 import ReviewBills from "./pages/ReviewBills";
 import BalanceSheet from "./pages/BalanceSheet";
@@ -93,6 +94,7 @@ const AppContent = () => {
           <Route path="/features/bid-management" element={<FeatureBidManagement />} />
           <Route path="/features/document-management" element={<FeatureDocumentManagement />} />
           <Route path="/features/team-communication" element={<FeatureTeamCommunication />} />
+          <Route path="/features/join-marketplace" element={<FeatureJoinMarketplace />} />
           
           {/* Root route - conditionally shows Landing or Dashboard */}
           <Route path="/" element={<RootRoute />} />

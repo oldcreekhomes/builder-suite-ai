@@ -1,18 +1,22 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ChevronDown } from "lucide-react";
+import { Building2, ChevronDown, HardHat, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PublicHeaderProps {
   onGetStartedClick: () => void;
 }
 
-const featureMenuItems = [
+const builderFeatures = [
   { label: "Accounting", route: "/features/accounting" },
   { label: "AI Bill Management", route: "/features/ai-bill-management" },
   { label: "Smart Gantt Scheduling", route: "/features/gantt-scheduling" },
   { label: "Bid Management", route: "/features/bid-management" },
   { label: "Document Management", route: "/features/document-management" },
   { label: "Team Communication", route: "/features/team-communication" },
+];
+
+const subcontractorFeatures = [
+  { label: "Join the Marketplace", route: "/features/join-marketplace" },
 ];
 
 export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
@@ -44,19 +48,46 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
               Our Philosophy
             </Link>
             
-            {/* Features Dropdown */}
+            {/* For Builders Dropdown */}
             <div className="relative group">
               <button 
                 className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                Features
+                <HardHat className="h-4 w-4" />
+                For Builders
                 <ChevronDown className="h-4 w-4 transition-transform group-hover:rotate-180" />
               </button>
               
               {/* Dropdown Menu */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                 <div className="bg-card border border-border rounded-lg shadow-lg py-2 min-w-[240px]">
-                  {featureMenuItems.map((item) => (
+                  {builderFeatures.map((item) => (
+                    <Link
+                      key={item.route}
+                      to={item.route}
+                      className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* For Subcontractors Dropdown */}
+            <div className="relative group">
+              <button 
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Handshake className="h-4 w-4" />
+                For Subcontractors
+                <ChevronDown className="h-4 w-4 transition-transform group-hover:rotate-180" />
+              </button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="bg-card border border-border rounded-lg shadow-lg py-2 min-w-[240px]">
+                  {subcontractorFeatures.map((item) => (
                     <Link
                       key={item.route}
                       to={item.route}
