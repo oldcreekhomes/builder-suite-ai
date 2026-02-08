@@ -250,13 +250,13 @@ export function SendMarketplaceMessageModal({
           )}
 
           {/* Actions */}
-          <div className="flex justify-between pt-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button 
               type="button" 
-              variant="ghost"
+              variant="outline"
               onClick={handleClose}
             >
-              No thanks
+              Cancel
             </Button>
             <Button 
               type="submit"
