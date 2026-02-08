@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarInset } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Store } from "lucide-react";
@@ -22,6 +22,7 @@ export default function Marketplace() {
           {/* Header */}
           <div className="space-y-2">
             <div className="flex items-center gap-3">
+              <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <Store className="h-8 w-8 text-primary" />
               <h1 className="text-3xl font-bold text-foreground">Marketplace</h1>
             </div>
