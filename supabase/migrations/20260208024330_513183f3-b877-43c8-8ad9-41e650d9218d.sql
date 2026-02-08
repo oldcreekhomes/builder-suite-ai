@@ -1,0 +1,1 @@
+ALTER TABLE marketplace_companies DROP COLUMN IF EXISTS specialties;

@@ -19,7 +19,6 @@ interface MarketplaceCompany {
   address: string | null;
   phone_number: string | null;
   website: string | null;
-  specialties: string[] | null;
   service_areas: string[] | null;
   license_numbers: string[] | null;
 }
@@ -41,7 +40,6 @@ const MarketplacePortal = () => {
     address: "",
     phone_number: "",
     website: "",
-    specialties: "",
     service_areas: ""
   });
 
@@ -76,7 +74,6 @@ const MarketplacePortal = () => {
           address: data.address || "",
           phone_number: data.phone_number || "",
           website: data.website || "",
-          specialties: (data.specialties || []).join(", "),
           service_areas: (data.service_areas || []).join(", ")
         });
       }
@@ -105,7 +102,6 @@ const MarketplacePortal = () => {
           address: editForm.address || null,
           phone_number: editForm.phone_number || null,
           website: editForm.website || null,
-          specialties: editForm.specialties ? editForm.specialties.split(",").map(s => s.trim()).filter(Boolean) : null,
           service_areas: editForm.service_areas ? editForm.service_areas.split(",").map(s => s.trim()).filter(Boolean) : null
         })
         .eq('id', company.id);
@@ -273,17 +269,6 @@ const MarketplacePortal = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="specialties">Specialties</Label>
-                  <Textarea
-                    id="specialties"
-                    value={editForm.specialties}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, specialties: e.target.value }))}
-                    placeholder="e.g., Framing, Roofing, Electrical (comma-separated)"
-                    rows={2}
-                  />
-                  <p className="text-xs text-muted-foreground">Separate multiple specialties with commas</p>
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="service_areas">Service Areas</Label>
@@ -374,52 +359,28 @@ const MarketplacePortal = () => {
               </CardContent>
             </Card>
 
-            {/* Specialties & Service Areas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Specialties</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {company.specialties && company.specialties.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {company.specialties.map((specialty, idx) => (
-                        <span 
-                          key={idx}
-                          className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
-                        >
-                          {specialty}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No specialties added yet.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Service Areas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {company.service_areas && company.service_areas.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {company.service_areas.map((area, idx) => (
-                        <span 
-                          key={idx}
-                          className="px-3 py-1 bg-muted text-foreground text-sm rounded-full"
-                        >
-                          {area}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No service areas added yet.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            {/* Service Areas */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Service Areas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {company.service_areas && company.service_areas.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {company.service_areas.map((area, idx) => (
+                      <span 
+                        key={idx}
+                        className="px-3 py-1 bg-muted text-foreground text-sm rounded-full"
+                      >
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No service areas added yet.</p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Status Card */}
             <Card className="bg-primary/5 border-primary/20">

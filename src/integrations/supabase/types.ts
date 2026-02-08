@@ -2392,7 +2392,6 @@ export type Database = {
           review_count: number | null
           service_areas: string[] | null
           source: string | null
-          specialties: string[] | null
           updated_at: string
           user_id: string | null
           website: string | null
@@ -2411,7 +2410,6 @@ export type Database = {
           review_count?: number | null
           service_areas?: string[] | null
           source?: string | null
-          specialties?: string[] | null
           updated_at?: string
           user_id?: string | null
           website?: string | null
@@ -2430,7 +2428,6 @@ export type Database = {
           review_count?: number | null
           service_areas?: string[] | null
           source?: string | null
-          specialties?: string[] | null
           updated_at?: string
           user_id?: string | null
           website?: string | null
