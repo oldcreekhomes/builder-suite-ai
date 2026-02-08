@@ -63,7 +63,7 @@ const JoinMarketplace = () => {
                 FOR SUBCONTRACTORS
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                Get Found by Home Builders
+                Get Found by Builders
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-lg">
                 Join the BuilderSuite Marketplace and put your business in front of home builders actively looking for quality subcontractors in your area.
