@@ -1,120 +1,72 @@
 
 
-## EMERGENCY: Stop Google API Bleeding - $800/day
+# Add Marketplace Permission to Employee Access
 
-This plan immediately stops all Google API costs and implements permanent safeguards.
+Simple approach: Add `can_access_marketplace` permission that is **disabled by default for ALL users**. Admins can enable it per-employee as needed.
 
-### Immediate Actions (Stop the Bleeding)
+## Overview
 
-**Action 1: Disable Cron Job**
+| Component | Change |
+|-----------|--------|
+| Database | Add `can_access_marketplace` boolean column (default: `false`) |
+| Hook | Add to `useNotificationPreferences.tsx` interface and defaults |
+| Permission Hook | Create `useMarketplacePermissions.ts` |
+| Guard | Create `MarketplaceGuard.tsx` |
+| Sidebar | Conditionally show Marketplace link based on permission |
+| Employee Access UI | Add "Marketplace" section with toggle |
+| Route | Wrap `/marketplace` with guard |
 
-Run this SQL in Supabase Dashboard immediately:
-
-```sql
-SELECT cron.unschedule('monthly-marketplace-refresh');
-```
-
-**Action 2: Remove Auto-Population Trigger**
-
-The `populate-marketplace` function is being called automatically. We need to add a safety lock.
-
-### Implementation Steps
-
-**Step 1: Add Admin-Only Cost Confirmation to MarketplacePopulator**
-
-Update `src/components/admin/MarketplacePopulator.tsx` to:
-- Show estimated cost BEFORE running ($2-5 per category)
-- Require typing "CONFIRM" to proceed
-- Add daily rate limit check
-
-**Step 2: Disable Distance Calculation by Default**
-
-Update `src/components/marketplace/MarketplaceCompaniesTable.tsx`:
-- Remove automatic distance calculation on category browse
-- Add explicit "Calculate Distances" button users must click
-- Cache distances permanently in database (not just 5-minute React Query cache)
-
-**Step 3: Create `marketplace_distance_cache` Table**
+## Database Changes
 
 ```sql
-CREATE TABLE marketplace_distance_cache (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  origin_lat DECIMAL(10, 7) NOT NULL,
-  origin_lng DECIMAL(10, 7) NOT NULL,
-  origin_address TEXT NOT NULL,
-  company_id UUID REFERENCES marketplace_companies(id) ON DELETE CASCADE,
-  distance_miles DECIMAL(8, 2),
-  calculated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(origin_lat, origin_lng, company_id)
-);
-
-CREATE INDEX idx_distance_cache_origin ON marketplace_distance_cache(origin_lat, origin_lng);
-CREATE INDEX idx_distance_cache_company ON marketplace_distance_cache(company_id);
+ALTER TABLE public.user_notification_preferences 
+ADD COLUMN can_access_marketplace boolean NOT NULL DEFAULT false;
 ```
 
-**Step 4: Update Distance Calculation Logic**
+That's it - no special logic for owners or any user type. Everyone starts with `false`.
 
-Modify `src/hooks/useDistanceFilter.ts` and the marketplace table to:
-1. First check the database cache
-2. Only call Google API for companies NOT in cache
-3. Store results permanently (not 5-minute TTL)
+## Files to Create
 
-**Step 5: Add Session Tokens to All Autocomplete Components**
+### 1. `src/hooks/useMarketplacePermissions.ts`
 
-Update these 4 files to use `google.maps.places.AutocompleteSessionToken`:
-- `src/components/AddressAutocomplete.tsx`
-- `src/components/StructuredAddressInput.tsx`
-- `src/hooks/useGooglePlaces.ts`
-- `src/hooks/useGooglePlacesAddress.ts`
-
-Session tokens bundle all keystrokes into ONE billable event instead of billing per character.
-
-**Step 6: Add Safety Lock to populate-marketplace**
-
-Update `supabase/functions/populate-marketplace/index.ts` to:
-- Check for `ADMIN_POPULATE_SECRET` environment variable
-- Require secret in request header to run
-- Add rate limiting (max 1 run per day)
-
-### Files to Modify
-
-1. **Database**: Run SQL to disable cron and create cache table
-2. `src/components/admin/MarketplacePopulator.tsx` - Add cost warning and confirmation
-3. `src/components/marketplace/MarketplaceCompaniesTable.tsx` - Disable auto-distance, add button
-4. `src/hooks/useDistanceFilter.ts` - Add database caching
-5. `supabase/functions/calculate-distances/index.ts` - Check cache first
-6. `src/components/AddressAutocomplete.tsx` - Add session tokens
-7. `src/components/StructuredAddressInput.tsx` - Add session tokens
-8. `src/hooks/useGooglePlaces.ts` - Add session tokens
-9. `src/hooks/useGooglePlacesAddress.ts` - Add session tokens
-10. `supabase/functions/populate-marketplace/index.ts` - Add safety lock
-
-### Cost Projection After Fix
-
-| Current | After Fix |
-|---------|-----------|
-| $800/day | ~$0.50/day |
-| Auto-runs 3x/day | Manual only with confirmation |
-| Distance calc every browse | Cached permanently |
-| Per-keystroke autocomplete | Session-based ($0.017 per session) |
-
-### Technical Details
-
-**Why This Happened:**
-- `populate-marketplace` makes ~60 API calls per category (200+ categories)
-- 3 runs today = ~36,000 calls
-- Distance Matrix called on every category browse
-- Autocomplete without session tokens bills per keystroke
-
-**Database Cache Schema:**
-The cache stores (origin_lat, origin_lng, company_id) as unique key, so the same HQ→company distance is never recalculated.
-
-**Session Token Implementation:**
 ```typescript
-const sessionToken = new google.maps.places.AutocompleteSessionToken();
-autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
-  types: ['address'],
-  sessionToken: sessionToken
-});
+import { useNotificationPreferences } from "./useNotificationPreferences";
+
+export const useMarketplacePermissions = () => {
+  const { preferences, isLoading } = useNotificationPreferences();
+
+  return {
+    canAccessMarketplace: preferences.can_access_marketplace ?? false,
+    isLoading,
+  };
+};
 ```
+
+### 2. `src/components/guards/MarketplaceGuard.tsx`
+
+Standard guard following existing pattern - redirects to `/` with toast if no permission.
+
+## Files to Modify
+
+### 1. `src/hooks/useNotificationPreferences.tsx`
+- Add `can_access_marketplace: boolean` to interface
+- Add `can_access_marketplace: false` to `defaultPreferences`
+
+### 2. `src/components/sidebar/SidebarNavigation.tsx`
+- Import `useMarketplacePermissions`
+- Only show Marketplace link if `canAccessMarketplace` is true
+
+### 3. `src/components/employees/EmployeeAccessPreferences.tsx`
+- Add "Marketplace" section with toggle for `can_access_marketplace`
+
+### 4. `src/App.tsx`
+- Wrap `/marketplace` route with `MarketplaceGuard`
+
+## Default Behavior
+
+| All Users | Default Access |
+|-----------|----------------|
+| Everyone | Disabled |
+
+Admins enable access per-employee through Employee Access settings.
 
