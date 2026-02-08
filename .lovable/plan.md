@@ -1,83 +1,112 @@
 
 
-# Fix Team Communication Page Template
+# Split Navigation: "For Builders" and "For Subcontractors"
 
-## Problem
-The Team Communication page was created with slight template variations compared to the other feature pages, causing visual inconsistencies in:
-- Hero section padding and spacing
-- Label color styling
-- Button sizing and styling
-- CTA section layout
+## Overview
+Replace the single "Features" dropdown with two separate dropdowns that clearly differentiate content for Home Builders vs. Subcontractors. This aligns with the two-path signup strategy and helps visitors immediately understand which content is relevant to them.
 
-## Solution
-Update `TeamCommunication.tsx` to match the exact structure of `DocumentManagement.tsx` and `GanttScheduling.tsx`, keeping all the Team Communication content intact.
-
-## Changes Required
-
-### File: `src/pages/features/TeamCommunication.tsx`
-
-**1. Container class (line 20)**
-- Change: `min-h-screen bg-background`
-- To: `min-h-screen w-full bg-background`
-
-**2. Hero section padding (line 24)**
-- Change: `py-20 md:py-32`
-- To: `py-20 md:py-28`
-
-**3. Text content spacing (line 27)**
-- Change: `space-y-8`
-- To: `space-y-6`
-
-**4. Label color (line 28)**
-- Change: `text-muted-foreground`
-- To: `text-primary`
-
-**5. Description text size (line 34)**
-- Change: `text-lg text-muted-foreground`
-- To: `text-lg md:text-xl text-muted-foreground`
-
-**6. Sign Up button styling (lines 37-44)**
-- Change: `size="lg" className="group"`
-- To: `size="lg" className="text-lg px-8"`
-- Change arrow: `className="h-4 w-4 transition-transform group-hover:translate-x-1"`
-- To: `className="ml-2 h-5 w-5"`
-
-**7. Hero image styling (line 51)**
-- Change: `className="w-full h-auto"`
-- To: `className="w-full h-auto object-cover"`
-
-**8. CTA section padding (line 115)**
-- Change: `py-24 md:py-32`
-- To: `py-20`
-
-**9. CTA title margin (line 117)**
-- Change: `mb-6`
-- To: `mb-4`
-
-**10. CTA description text size (line 120)**
-- Change: `text-lg text-muted-foreground`
-- To: `text-xl text-muted-foreground`
-
-**11. CTA button styling (lines 123-130)**
-- Change: `size="lg" className="group"`
-- To: `size="lg" className="text-lg px-8 py-6"`
-- Update button text: "Get Started Today" → "Get Started"
-- Change arrow: `className="h-4 w-4 transition-transform group-hover:translate-x-1"`
-- To: `className="ml-2 h-5 w-5"`
-
-**12. Add handleGetStartedClick function**
-Add the helper function used in other pages:
-```tsx
-const handleGetStartedClick = () => {
-  setIsPathModalOpen(true);
-};
+## Current Navigation Structure
+```
+Home | Our Philosophy | Features ▼ | Sign In | Get Started
+                          └── Accounting
+                          └── AI Bill Management
+                          └── Smart Gantt Scheduling
+                          └── Bid Management
+                          └── Document Management
+                          └── Team Communication
 ```
 
-## Content Preserved
-All Team Communication specific content will remain unchanged:
-- Hero headline: "Keep Everyone in the Loop—Automatically"
-- Hero description about eliminating scattered texts and emails
-- All 4 feature rows with their labels, titles, and descriptions
-- CTA headline: "Ready to Simplify Project Communication?"
-- Image references to `/images/team-communication-forecast-messages.png`
+## New Navigation Structure
+```
+Home | Our Philosophy | For Builders ▼ | For Subcontractors ▼ | Sign In | Get Started
+                            │                    │
+                            │                    └── Join the Marketplace
+                            │
+                            └── Accounting
+                            └── AI Bill Management
+                            └── Smart Gantt Scheduling
+                            └── Bid Management
+                            └── Document Management
+                            └── Team Communication
+```
+
+## Files to Change
+
+### 1. Update: `src/components/PublicHeader.tsx`
+
+**Changes:**
+- Replace single `featureMenuItems` array with two arrays:
+  - `builderFeatures` - existing 6 feature pages
+  - `subcontractorFeatures` - starting with "Join the Marketplace"
+- Replace single "Features" dropdown with two dropdowns:
+  - "For Builders" with HardHat icon
+  - "For Subcontractors" with Handshake icon
+- Each dropdown maintains existing styling (min-w-240px, proper z-index, solid background)
+
+### 2. Create: `src/pages/features/JoinMarketplace.tsx`
+
+**New subcontractor feature page following the established template:**
+- **Hero Section**: 
+  - Label: "FOR SUBCONTRACTORS"
+  - Headline: "Get Found by Home Builders"
+  - Description: Focus on visibility in the BuilderSuite Marketplace directory
+- **Feature Rows** (4 rows, alternating layout):
+  1. **FREE LISTING** - "Your Business in Front of Builders" - Get listed in the directory at no cost
+  2. **VERIFIED PROFILE** - "Build Trust Before the First Call" - Showcase insurance, licenses, portfolio
+  3. **DIRECT CONNECTIONS** - "Builders Come to You" - No cold calling, receive opportunities directly
+  4. **ZERO FRICTION** - "Respond Without Apps" - No downloads, respond to bids and schedules via email
+- **CTA Section**: "Ready to Get More Work?" with button linking to `/auth/marketplace`
+
+### 3. Update: `src/App.tsx`
+
+**Add route:**
+```tsx
+import FeatureJoinMarketplace from "./pages/features/JoinMarketplace";
+// ...
+<Route path="/features/join-marketplace" element={<FeatureJoinMarketplace />} />
+```
+
+## Visual Design
+
+The two dropdowns will use subtle icons to reinforce the distinction:
+- **For Builders**: HardHat icon (matches existing path modal)
+- **For Subcontractors**: Handshake icon (matches existing path modal)
+
+Both dropdowns maintain the same styling as the current Features dropdown for visual consistency.
+
+## Technical Details
+
+### PublicHeader Component Updates
+
+```tsx
+// Two separate feature arrays
+const builderFeatures = [
+  { label: "Accounting", route: "/features/accounting" },
+  { label: "AI Bill Management", route: "/features/ai-bill-management" },
+  { label: "Smart Gantt Scheduling", route: "/features/gantt-scheduling" },
+  { label: "Bid Management", route: "/features/bid-management" },
+  { label: "Document Management", route: "/features/document-management" },
+  { label: "Team Communication", route: "/features/team-communication" },
+];
+
+const subcontractorFeatures = [
+  { label: "Join the Marketplace", route: "/features/join-marketplace" },
+];
+```
+
+### JoinMarketplace.tsx Structure
+
+Will follow the exact template established by other feature pages:
+- Same imports (useState, useNavigate, icons, components)
+- PublicHeader with path modal handler
+- Hero section with gradient `from-muted` to `to-background`
+- 4 FeatureRow components with `expandableImage={true}`
+- Alternating backgrounds: `bg-muted/30` → `bg-background` → `bg-muted/30` → `bg-background`
+- CTA section with gray gradient
+- PublicFooter
+- Path selection modal (though this page primarily targets subcontractors)
+
+### Image Assets
+
+Will use a placeholder or existing marketplace-related image. You may want to provide a specific screenshot for the Join Marketplace page later.
 
