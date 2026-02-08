@@ -230,10 +230,16 @@ serve(async (req) => {
     }
 
     // Increment message count on company
+    const { data: currentCompany } = await supabase
+      .from('marketplace_companies')
+      .select('message_count')
+      .eq('id', marketplaceCompanyId)
+      .single();
+
     const { error: updateError } = await supabase
       .from('marketplace_companies')
       .update({ 
-        message_count: (company as any).message_count ? (company as any).message_count + 1 : 1 
+        message_count: (currentCompany?.message_count || 0) + 1 
       })
       .eq('id', marketplaceCompanyId);
 
@@ -241,13 +247,6 @@ serve(async (req) => {
       console.error("Failed to update message count:", updateError);
       // Don't throw - email was sent successfully
     }
-
-    // Use RPC to increment atomically
-    await supabase.rpc('increment_marketplace_message_count', { 
-      company_id: marketplaceCompanyId 
-    }).catch(() => {
-      // Fallback already handled above
-    });
 
     return new Response(
       JSON.stringify({ 
