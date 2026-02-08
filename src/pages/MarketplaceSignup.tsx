@@ -219,7 +219,7 @@ const MarketplaceSignup = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Company Type */}
               <div className="space-y-2">
                 <Label htmlFor="companyType">Company Type *</Label>
@@ -273,11 +273,7 @@ const MarketplaceSignup = () => {
                 </div>
               </div>
 
-              <hr className="my-6" />
-
-              <div>
-                <h3 className="font-medium mb-4">Primary Contact</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* First Name */}
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name *</Label>
@@ -300,28 +296,22 @@ const MarketplaceSignup = () => {
                       placeholder="Smith"
                     />
                   </div>
-                </div>
               </div>
 
-              <hr className="my-6" />
-
-              <div>
-                <h3 className="font-medium mb-4">Login Credentials</h3>
-                <div className="space-y-4">
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@company.com"
-                      required
-                    />
-                  </div>
+                required
+              />
+            </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Password */}
                     <div className="space-y-2">
                       <Label htmlFor="password">Password *</Label>
@@ -346,8 +336,6 @@ const MarketplaceSignup = () => {
                         placeholder="••••••••"
                         required
                       />
-                    </div>
-                  </div>
                 </div>
               </div>
 
