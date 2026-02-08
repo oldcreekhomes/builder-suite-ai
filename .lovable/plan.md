@@ -1,126 +1,93 @@
 
-# Fix Marketplace Radius Filtering and Slider Display
+Goal
+- Make Marketplace radius filtering work relative to the builder/GC HQ (e.g., “228 S Washington St, Alexandria, VA”) and ensure the results change correctly when the user changes the radius (15mi should not include Ashburn/Chantilly).
+- Keep the slider UX as “30 miles is Free; above 30 requires upgrade” while still showing the full 100-mile scale for context.
 
-## Issues Identified
+What’s actually broken right now (root cause)
+- The DB has 809 marketplace companies and 0 of them have lat/lng populated (confirmed via query).
+- The table’s distance filtering currently depends on lat/lng. After the recent change to “exclude companies without coordinates”, the result becomes “0 companies” because every company’s coordinates are missing.
+- This is why nothing is showing even though you know there are suppliers nearby.
 
-### Issue 1: Slider Display Confusion
-The slider shows "10 miles" on the right side with markers showing "30 mi FREE" and "100 mi PRO", but the slider's max value is set to `maxRadius` (30 for free tier). This creates a confusing visual where the slider can't go past 30, but the "100 mi PRO" marker makes it look like a 100-mile scale.
+Correct approach for this app (matches “Add Companies” style of using Google)
+- Do not rely on lat/lng existing in marketplace_companies.
+- Instead, compute distances on-demand from the HQ address to each supplier’s address using the existing Supabase Edge Function `calculate-distances` (it calls Google Distance Matrix API).
+- This gives us real “distance from HQ” behavior even when suppliers have no stored coordinates, and it will correctly filter out Ashburn/Chantilly when radius is small.
 
-**Fix**: Redesign the slider to show the full 100-mile (or 500-mile) scale visually, with the 30-mile FREE tier marker positioned at the correct point (30% of the way for a 0-100 scale). Free users can drag up to 30 miles; attempting to go further triggers the upgrade modal.
+Implementation design
+1) MarketplaceCompaniesTable: compute distance via edge function and filter by currentRadius
+- Keep current category/type filtering and search filtering as the first steps (to reduce how many suppliers we compute distances for).
+- Build HQ “origin” string from the stored HQ fields:
+  - origin = [hq_address, hq_city, hq_state, hq_zip].filter(Boolean).join(', ')
+- Build destinations list from supplier addresses:
+  - companiesPayload = filteredByCategoryAndSearch.map(c => ({ id: c.id, address: c.address ?? '' }))
+- Call:
+  - supabase.functions.invoke('calculate-distances', { body: { projectAddress: origin, companies: companiesPayload }})
+- Store results as a map: distancesByCompanyId[id] = { distance, error }
+- Filtering:
+  - Exclude suppliers with distance === null (no address / no route / API failure)
+  - Include suppliers where distance <= currentRadius
+- Sorting:
+  - Sort by distance ascending so closer suppliers appear first.
+- Display:
+  - Distance column shows the computed distance.
+  - If distances are currently being computed, show a lightweight “Calculating distances…” state (keep the table visible but show a subtle loading indicator so it doesn’t feel broken).
 
-### Issue 2: Distance Filtering Not Working
-All marketplace companies have `lat` and `lng` values as `null` in the database. The current filtering logic includes all companies without coordinates:
+2) Make the radius control “Showing X suppliers…” accurate
+- Marketplace.tsx currently passes filteredCount={0} totalCount={0} to MarketplaceRadiusControl, so the UI can never be correct.
+- Add a callback prop to MarketplaceCompaniesTable, e.g.:
+  - onCountsChange({ filteredCount, totalCount, excludedUnknownDistanceCount })
+- Marketplace.tsx stores these counts in state and passes them to MarketplaceRadiusControl.
+- MarketplaceRadiusControl will then show the real number of suppliers within the selected radius.
 
-```typescript
-if (company.distance === null) return true; // Include companies without coordinates
-```
+3) Handle “unknown distance” suppliers transparently (so users don’t think data vanished)
+- Some suppliers may have missing/invalid addresses, causing distance=null.
+- We will:
+  - Exclude them from “within radius” filtering (because we cannot confirm they are within range).
+  - Show a small note above the table such as:
+    - “Some suppliers were excluded because their address couldn’t be mapped.”
+  - (Optional follow-up) Add a toggle “Include suppliers with unknown distance” to show them at the bottom (clearly labeled “Distance unavailable”).
 
-This means companies from Ashburn, Chantilly, etc. (which are outside the selected radius) are still shown because they have no coordinates to calculate distance from.
+4) Keep the tier behavior consistent (Free vs Pro vs Enterprise)
+- Slider UX stays:
+  - Visual scale: 5–100 (Free/Pro), 5–500 (Enterprise)
+  - Free users can drag above 30 but it triggers upgrade modal; currentRadius remains capped via maxRadius.
+- Table behavior stays:
+  - It filters by currentRadius (user-chosen).
+  - If you want “locked beyond tier” rows in the future, we can show them when the selected radius is larger than the tier allows, but right now currentRadius is already constrained, so locking is not necessary for correctness.
 
-**Fix**: 
-1. **Immediate UI fix**: Don't show the Distance column or filter by radius if companies lack coordinates. Instead, show a message explaining the data limitation.
-2. **Data fix**: Geocode the marketplace company addresses to populate lat/lng values.
+Files to change
+- src/components/marketplace/MarketplaceCompaniesTable.tsx
+  - Add a React Query call to `calculate-distances` using HQ address + the currently relevant supplier subset.
+  - Replace the current lat/lng Haversine logic with the returned driving distances.
+  - Add onCountsChange prop to report filteredCount/totalCount and unknown-distance count.
+- src/pages/Marketplace.tsx
+  - Track counts state and pass real values into MarketplaceRadiusControl.
+- src/components/marketplace/MarketplaceRadiusControl.tsx
+  - No major logic change required; just consume the real filteredCount/totalCount values already supported by props.
+  - (Optional) Adjust copy to clarify “30 miles free” vs “Pro up to 100”.
 
----
+Edge cases and safeguards
+- Performance:
+  - We only compute distances for the currently relevant list (after category/type and search), not all 809 at once.
+  - `calculate-distances` already batches 25 destinations/request server-side.
+- Caching:
+  - Use a stable query key such as:
+    - ['marketplace-distances', origin, filteredCompanyIdsHash]
+  - That way the app won’t re-call Google unnecessarily unless the HQ or the supplier set changes.
+- Rate limits / failures:
+  - If the edge function errors, show a clear message:
+    - “Could not calculate distances right now. Please try again.”
+  - Keep the table list visible (but without distance filtering) only if you explicitly want fallback behavior; otherwise keep a clear error state to avoid misleading results.
 
-## Technical Implementation
+Testing checklist (what you should see after the fix)
+1) Go to /marketplace with HQ set to “228 S Washington St, Alexandria, VA”.
+2) Pick a type (e.g., Driveway Contractor).
+3) At 30 miles: you should see suppliers sorted by distance, and the count should be non-zero.
+4) Move radius to 15 miles:
+   - Suppliers beyond 15 miles (Ashburn/Chantilly) should disappear.
+   - The “Showing X suppliers within Y miles” line should update immediately and match the table.
+5) Search box still filters the already-in-range results correctly.
 
-### File 1: `src/components/marketplace/MarketplaceRadiusControl.tsx`
-Redesign the slider to use a fixed 100-mile scale (or 500 for enterprise), with visual markers at:
-- 5 mi (minimum)
-- 30 mi (FREE tier limit) - positioned at 30% mark
-- 100 mi (PRO tier limit) - positioned at 100% mark
+Follow-up (optional, but recommended)
+- Backfill lat/lng in marketplace_companies via a one-time geocoding job for faster UI sorting and the ability to do server-side geo queries later. This is not required once we use Distance Matrix, but it can improve performance and enable map views.
 
-For free users:
-- Slider visually extends to 100 miles
-- Dragging past 30 miles triggers upgrade modal
-- Current value shown clearly
-
-### File 2: `src/components/marketplace/MarketplaceCompaniesTable.tsx`
-Update the distance filtering logic:
-- If companies lack lat/lng, do NOT default to including them
-- Either filter them out OR show them without distance data but clearly indicate "Distance unavailable"
-- For companies with lat/lng, properly filter by currentRadius
-
-### File 3: Database geocoding (future enhancement)
-Create an edge function or background job to geocode marketplace company addresses and populate lat/lng fields. This is the root fix that makes radius filtering actually work.
-
----
-
-## Detailed Changes
-
-### MarketplaceRadiusControl.tsx Changes
-
-| Current Behavior | New Behavior |
-|-----------------|--------------|
-| `sliderMax = tier === 'enterprise' ? 500 : maxRadius` (30 for free) | `sliderMax = 100` (always show full scale up to PRO limit) |
-| Slider only goes to 30 for free users | Slider shows full scale, but values above maxRadius trigger upgrade |
-| Markers at 5mi, 30mi FREE, 100mi PRO evenly spaced | Markers positioned proportionally (30% for 30mi, 100% for 100mi) |
-
-```typescript
-// New slider approach
-const displayMax = 100; // Always show up to PRO scale
-const freeLimit = 30;
-
-const handleSliderChange = (values: number[]) => {
-  const newRadius = values[0];
-  if (newRadius > maxRadius) {
-    onUpgradeClick(); // Trigger upgrade if exceeding tier limit
-  } else {
-    onRadiusChange(newRadius);
-  }
-};
-```
-
-### MarketplaceCompaniesTable.tsx Changes
-
-| Current Behavior | New Behavior |
-|-----------------|--------------|
-| `if (company.distance === null) return true` | `if (company.distance === null) return false` OR show separately |
-| Shows all companies regardless of coordinates | Only shows companies within radius (if they have coords) |
-| Distance column shows "-" for null | Shows "Calculating..." or "N/A" with tooltip |
-
-Option A (stricter): Exclude companies without coordinates from radius filtering
-```typescript
-.filter(company => {
-  if (company.distance === null) return false; // Exclude companies without coords
-  return company.distance <= currentRadius;
-})
-```
-
-Option B (flexible): Show companies without coordinates at the bottom with a note
-```typescript
-// Separate into two groups: with distance, without distance
-const withCoords = filtered.filter(c => c.distance !== null && c.distance <= currentRadius);
-const withoutCoords = filtered.filter(c => c.distance === null);
-// Display withCoords first, then withoutCoords with a separator
-```
-
----
-
-## Implementation Steps
-
-1. **Update `MarketplaceRadiusControl.tsx`**:
-   - Change slider scale to always show 100 miles (or 500 for enterprise)
-   - Position tier markers proportionally
-   - Handle upgrade trigger when exceeding tier limit
-
-2. **Update `MarketplaceCompaniesTable.tsx`**:
-   - Change distance filter logic to exclude (or separate) companies without coordinates
-   - Add visual indicator for companies awaiting geocoding
-
-3. **Future: Geocode marketplace data**:
-   - Create edge function to batch geocode company addresses
-   - Update marketplace_companies table with lat/lng values
-   - This makes the radius filter fully functional
-
----
-
-## Expected Outcome
-
-After these changes:
-- Slider will show a 5-100 mile scale with "30 mi FREE" at the 30% mark and "100 mi PRO" at the right
-- Free users can adjust radius from 5-30 miles
-- Attempting to go past 30 miles shows upgrade modal
-- Companies without lat/lng coordinates won't bypass the distance filter
-- Clear visual distinction between companies with/without distance data
