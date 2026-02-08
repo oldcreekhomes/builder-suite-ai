@@ -27,8 +27,11 @@ export function useGooglePlacesAddress({
   const [apiKey, setApiKey] = useState<string | null>(null);
   
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const autocompleteInitialized = useRef(false);
   const onPlaceSelectedRef = useRef(onPlaceSelected);
+  const isProcessingRef = useRef(false);
 
   // Keep callback ref up to date
   useEffect(() => {
@@ -180,10 +183,75 @@ export function useGooglePlacesAddress({
       city,
       state,
       zip,
-      lat: place.geometry.location.lat(),
-      lng: place.geometry.location.lng(),
+      lat: typeof place.geometry.location.lat === 'function' 
+        ? place.geometry.location.lat() 
+        : place.geometry.location.lat as unknown as number,
+      lng: typeof place.geometry.location.lng === 'function' 
+        ? place.geometry.location.lng() 
+        : place.geometry.location.lng as unknown as number,
     };
   }, []);
+
+  // Process place with fallback chain: PlacesService -> Geocoder -> Direct parsing
+  const processPlace = useCallback((place: google.maps.places.PlaceResult) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    console.log('Processing place:', place);
+
+    const handleAddressData = (addressData: AddressData | null) => {
+      isProcessingRef.current = false;
+      if (addressData && onPlaceSelectedRef.current) {
+        console.log('Address data parsed:', addressData);
+        onPlaceSelectedRef.current(addressData);
+      }
+    };
+
+    // If we have a place_id, try PlacesService.getDetails() first for complete data
+    if (place.place_id && placesServiceRef.current) {
+      console.log('Trying PlacesService.getDetails()...');
+      placesServiceRef.current.getDetails(
+        { 
+          placeId: place.place_id, 
+          fields: ['address_components', 'geometry', 'formatted_address', 'name'] 
+        },
+        (details, status) => {
+          console.log('PlacesService result:', status, details);
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && details?.address_components) {
+            const addressData = parseAddressComponents(details);
+            if (addressData) {
+              handleAddressData(addressData);
+              return;
+            }
+          }
+          
+          // Fallback to Geocoder
+          if (geocoderRef.current && place.place_id) {
+            console.log('Falling back to Geocoder...');
+            geocoderRef.current.geocode({ placeId: place.place_id }, (results, geoStatus) => {
+              console.log('Geocoder result:', geoStatus, results);
+              if (geoStatus === window.google.maps.GeocoderStatus.OK && results?.[0]) {
+                const addressData = parseAddressComponents(results[0] as google.maps.places.PlaceResult);
+                handleAddressData(addressData);
+              } else {
+                // Final fallback: try direct parsing
+                const addressData = parseAddressComponents(place);
+                handleAddressData(addressData);
+              }
+            });
+          } else {
+            // No geocoder, try direct parsing
+            const addressData = parseAddressComponents(place);
+            handleAddressData(addressData);
+          }
+        }
+      );
+    } else {
+      // No place_id, try direct parsing
+      const addressData = parseAddressComponents(place);
+      handleAddressData(addressData);
+    }
+  }, [parseAddressComponents]);
 
   // Initialize autocomplete
   const initializeAutocomplete = useCallback(() => {
@@ -191,40 +259,80 @@ export function useGooglePlacesAddress({
     if (autocompleteInitialized.current && autocompleteRef.current) return;
 
     try {
+      console.log('Initializing Google Places Autocomplete for address...');
+      
       // Clear any existing autocomplete
       if (autocompleteRef.current) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
         autocompleteRef.current = null;
       }
 
-      // Create new autocomplete instance for address search
+      // Create PlacesService and Geocoder for fallbacks
+      const serviceDiv = document.createElement('div');
+      placesServiceRef.current = new window.google.maps.places.PlacesService(serviceDiv);
+      geocoderRef.current = new window.google.maps.Geocoder();
+
+      // Create new autocomplete instance for address search with expanded fields
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         inputRef.current,
         {
           types: ['address'],
           componentRestrictions: { country: 'us' },
-          fields: ['address_components', 'geometry'],
+          fields: ['address_components', 'geometry', 'place_id', 'formatted_address', 'name'],
         }
       );
 
       autocompleteInitialized.current = true;
+      console.log('Google Places Autocomplete initialized');
 
       // Handle place selection
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
+        console.log('place_changed event fired:', place);
         
         if (place) {
-          const addressData = parseAddressComponents(place);
-          if (addressData && onPlaceSelectedRef.current) {
-            onPlaceSelectedRef.current(addressData);
-          }
+          processPlace(place);
         }
       });
 
     } catch (err) {
       console.error('Error initializing Google Places Autocomplete:', err);
     }
-  }, [isGoogleLoaded, isActive, inputRef, parseAddressComponents]);
+  }, [isGoogleLoaded, isActive, inputRef, processPlace]);
+
+  // Add document-level click handler for pac-items to bypass modal interference
+  useEffect(() => {
+    if (!isActive || !isGoogleLoaded) return;
+
+    const handlePacItemClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const pacItem = target.closest('.pac-item');
+      
+      if (pacItem) {
+        console.log('pac-item clicked, stopping propagation');
+        // Stop the event from reaching modal handlers
+        e.stopPropagation();
+        
+        // Small delay to let Google process the selection
+        setTimeout(() => {
+          const place = autocompleteRef.current?.getPlace();
+          if (place && (place.address_components || place.place_id)) {
+            console.log('Processing place after pac-item click:', place);
+            processPlace(place);
+          }
+        }, 100);
+      }
+    };
+
+    // Use capture phase to intercept before modal handlers
+    document.addEventListener('mousedown', handlePacItemClick, true);
+    document.addEventListener('pointerdown', handlePacItemClick, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePacItemClick, true);
+      document.removeEventListener('pointerdown', handlePacItemClick, true);
+    };
+  }, [isActive, isGoogleLoaded, processPlace]);
 
   // Initialize autocomplete when conditions are met
   useEffect(() => {
@@ -250,10 +358,13 @@ export function useGooglePlacesAddress({
   useEffect(() => {
     if (!isActive) {
       autocompleteInitialized.current = false;
+      isProcessingRef.current = false;
       if (autocompleteRef.current) {
         window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
         autocompleteRef.current = null;
       }
+      placesServiceRef.current = null;
+      geocoderRef.current = null;
     }
   }, [isActive]);
 
