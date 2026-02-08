@@ -118,7 +118,7 @@ export function SendMarketplaceMessageModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px] p-0 gap-0">
         {/* Header */}
-        <DialogHeader className="p-4 pb-3 border-b">
+        <DialogHeader className="p-3 pb-2 border-b">
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
@@ -150,7 +150,7 @@ export function SendMarketplaceMessageModal({
         </DialogHeader>
 
         {/* Company Info */}
-        <div className="px-4 py-3 border-b bg-muted/30">
+        <div className="px-3 py-2 border-b bg-muted/30">
           <h3 className="font-semibold text-foreground">{company.company_name}</h3>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
             {company.rating && (
@@ -171,16 +171,16 @@ export function SendMarketplaceMessageModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
           {/* Message */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="message">Your message</Label>
             <Textarea
               id="message"
               placeholder="Give details like what you need done and how soon you need it"
               value={message}
               onChange={(e) => setMessage(e.target.value.slice(0, 600))}
-              className="min-h-[100px] resize-none"
+              className="min-h-[80px] resize-none"
             />
             <div className="text-xs text-muted-foreground text-right">
               {message.length}/600
@@ -188,7 +188,7 @@ export function SendMarketplaceMessageModal({
           </div>
 
           {/* Name */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
@@ -202,12 +202,12 @@ export function SendMarketplaceMessageModal({
           </div>
 
           {/* Response Method */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>How would you like to hear back?</Label>
             <RadioGroup 
               value={responseMethod} 
               onValueChange={(v) => setResponseMethod(v as "email" | "phone")}
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-1"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="phone" id="phone-option" />
@@ -226,7 +226,7 @@ export function SendMarketplaceMessageModal({
 
           {/* Conditional Input */}
           {responseMethod === 'email' ? (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -237,7 +237,7 @@ export function SendMarketplaceMessageModal({
               />
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
@@ -250,7 +250,7 @@ export function SendMarketplaceMessageModal({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 pt-1">
             <Button 
               type="button" 
               variant="outline"
