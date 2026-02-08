@@ -1,4 +1,4 @@
-
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Table, 
@@ -8,9 +8,11 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Globe, MapPin, Star, Phone, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Globe, MapPin, Star, Phone, Building2, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
+import { SendMarketplaceMessageModal } from "./SendMarketplaceMessageModal";
 
 interface MarketplaceCompany {
   id: string;
@@ -25,6 +27,7 @@ interface MarketplaceCompany {
   insurance_verified?: boolean;
   rating?: number;
   review_count?: number;
+  message_count?: number;
   created_at: string;
 }
 
@@ -35,6 +38,9 @@ interface MarketplaceCompaniesTableProps {
 }
 
 export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory = null, selectedType = null }: MarketplaceCompaniesTableProps) {
+  const [selectedCompany, setSelectedCompany] = useState<MarketplaceCompany | null>(null);
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
+
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['marketplace-companies'],
     queryFn: async () => {
@@ -47,6 +53,11 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
       return data as MarketplaceCompany[];
     },
   });
+
+  const handleMessageClick = (company: MarketplaceCompany) => {
+    setSelectedCompany(company);
+    setMessageModalOpen(true);
+  };
 
   // Get the company types for selected category
   const categoryTypes = selectedCategory 
@@ -112,24 +123,25 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
       <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[20%]">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[40%]">Location</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[18%]">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[32%]">Location</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[12%]">Rating</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[16%]">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[12%]">Website</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[14%]">Phone</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[10%]">Website</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[14%]">Contact</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredCompanies.map((company) => (
               <TableRow key={company.id} className="h-10">
                 <TableCell className="px-2 py-1">
-                  <div className="text-xs font-medium">{company.company_name}</div>
+                  <div className="text-xs font-medium truncate">{company.company_name}</div>
                 </TableCell>
                 <TableCell className="px-2 py-1">
                   {company.address ? (
                     <div className="flex items-start space-x-1">
                       <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground truncate">
                         {company.address}
                       </span>
                     </div>
@@ -140,7 +152,7 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
                 <TableCell className="px-2 py-1">
                   {company.rating ? (
                     <div className="flex items-center space-x-1">
-                      <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
                       <span className="text-xs font-medium">{company.rating}</span>
                       <span className="text-xs text-muted-foreground">({company.review_count || 0})</span>
                     </div>
@@ -152,7 +164,7 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
                   {company.phone_number ? (
                     <div className="flex items-center space-x-1">
                       <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                      <span className="text-xs text-muted-foreground">{company.phone_number}</span>
+                      <span className="text-xs text-muted-foreground truncate">{company.phone_number}</span>
                     </div>
                   ) : (
                     <span className="text-muted-foreground text-xs">-</span>
@@ -173,12 +185,23 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
                     <span className="text-muted-foreground text-xs">-</span>
                   )}
                 </TableCell>
+                <TableCell className="px-2 py-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => handleMessageClick(company)}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Message
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
 
             {filteredCompanies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-4 text-xs text-muted-foreground">
                   No marketplace companies found.
                 </TableCell>
               </TableRow>
@@ -186,6 +209,12 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
           </TableBody>
         </Table>
       </div>
+
+      <SendMarketplaceMessageModal
+        company={selectedCompany}
+        open={messageModalOpen}
+        onOpenChange={setMessageModalOpen}
+      />
     </>
   );
 }

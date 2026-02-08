@@ -2387,6 +2387,7 @@ export type Database = {
           id: string
           insurance_verified: boolean | null
           license_numbers: string[] | null
+          message_count: number | null
           phone_number: string | null
           rating: number | null
           review_count: number | null
@@ -2405,6 +2406,7 @@ export type Database = {
           id?: string
           insurance_verified?: boolean | null
           license_numbers?: string[] | null
+          message_count?: number | null
           phone_number?: string | null
           rating?: number | null
           review_count?: number | null
@@ -2423,6 +2425,7 @@ export type Database = {
           id?: string
           insurance_verified?: boolean | null
           license_numbers?: string[] | null
+          message_count?: number | null
           phone_number?: string | null
           rating?: number | null
           review_count?: number | null
@@ -2471,6 +2474,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketplace_company_representatives_marketplace_company_id_fkey"
+            columns: ["marketplace_company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          marketplace_company_id: string
+          message: string
+          recipient_email: string | null
+          response_method: string
+          sender_email: string | null
+          sender_name: string
+          sender_phone: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          marketplace_company_id: string
+          message: string
+          recipient_email?: string | null
+          response_method: string
+          sender_email?: string | null
+          sender_name: string
+          sender_phone?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          marketplace_company_id?: string
+          message?: string
+          recipient_email?: string | null
+          response_method?: string
+          sender_email?: string | null
+          sender_name?: string
+          sender_phone?: string | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_messages_marketplace_company_id_fkey"
             columns: ["marketplace_company_id"]
             isOneToOne: false
             referencedRelation: "marketplace_companies"
