@@ -14,6 +14,7 @@ import { Globe, MapPin, Users, Star, Phone, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { ViewMarketplaceCompanyDialog } from "./ViewMarketplaceCompanyDialog";
+import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
 
 interface MarketplaceCompany {
   id: string;
@@ -30,9 +31,15 @@ interface MarketplaceCompany {
   rating?: number;
   review_count?: number;
   created_at: string;
+  source?: string;
 }
 
-export function MarketplaceCompaniesTable() {
+interface MarketplaceCompaniesTableProps {
+  searchQuery?: string;
+  selectedCategory?: string;
+}
+
+export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory = "all" }: MarketplaceCompaniesTableProps) {
   const [viewingCompany, setViewingCompany] = useState<MarketplaceCompany | null>(null);
 
   const { data: companies = [], isLoading } = useQuery({
@@ -46,6 +53,29 @@ export function MarketplaceCompaniesTable() {
       if (error) throw error;
       return data as MarketplaceCompany[];
     },
+  });
+
+  // Get the company types for selected category
+  const categoryTypes = selectedCategory !== "all" 
+    ? COMPANY_TYPE_CATEGORIES.find(cat => cat.name === selectedCategory)?.types || []
+    : [];
+
+  // Filter companies based on search and category
+  const filteredCompanies = companies.filter(company => {
+    // Category filter
+    if (selectedCategory !== "all" && !categoryTypes.includes(company.company_type)) {
+      return false;
+    }
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        company.company_name.toLowerCase().includes(query) ||
+        company.address?.toLowerCase().includes(query) ||
+        company.company_type.toLowerCase().includes(query)
+      );
+    }
+    return true;
   });
 
   const getCompanyTypeColor = (type: string) => {
@@ -66,17 +96,21 @@ export function MarketplaceCompaniesTable() {
   };
 
   if (isLoading) {
-    return <div className="p-4 text-sm">Loading marketplace companies...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">Loading marketplace companies...</div>;
   }
 
   return (
     <>
+      <div className="text-sm text-muted-foreground mb-2">
+        Showing {filteredCompanies.length} of {companies.length} companies
+      </div>
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Source</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Location</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Rating</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Specialties</TableHead>
@@ -85,7 +119,7 @@ export function MarketplaceCompaniesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.map((company) => (
+            {filteredCompanies.map((company) => (
               <TableRow key={company.id} className="h-10">
                 <TableCell className="px-2 py-1">
                   <div className="text-xs font-medium">{company.company_name}</div>
@@ -96,16 +130,21 @@ export function MarketplaceCompaniesTable() {
                   </Badge>
                 </TableCell>
                 <TableCell className="px-2 py-1">
+                  <Badge variant={company.source === 'google_places' ? 'secondary' : 'outline'} className="text-[10px] px-1 py-0">
+                    {company.source === 'google_places' ? 'Google' : 'Manual'}
+                  </Badge>
+                </TableCell>
+                <TableCell className="px-2 py-1">
                   <div className="flex items-center space-x-1">
                     {company.address && (
                       <>
-                        <MapPin className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs text-gray-600 truncate max-w-[120px]">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground truncate max-w-[120px]">
                           {company.address}
                         </span>
                       </>
                     )}
-                    {!company.address && <span className="text-gray-400 text-xs">-</span>}
+                    {!company.address && <span className="text-muted-foreground text-xs">-</span>}
                   </div>
                 </TableCell>
                 <TableCell className="px-2 py-1">
@@ -113,10 +152,10 @@ export function MarketplaceCompaniesTable() {
                     <div className="flex items-center space-x-1">
                       <Star className="h-3 w-3 text-yellow-400 fill-current" />
                       <span className="text-xs font-medium">{company.rating}</span>
-                      <span className="text-xs text-gray-500">({company.review_count || 0})</span>
+                      <span className="text-xs text-muted-foreground">({company.review_count || 0})</span>
                     </div>
                   )}
-                  {!company.rating && <span className="text-gray-400 text-xs">-</span>}
+                  {!company.rating && <span className="text-muted-foreground text-xs">-</span>}
                 </TableCell>
                 <TableCell className="px-2 py-1">
                   {company.specialties && company.specialties.length > 0 ? (
@@ -131,15 +170,15 @@ export function MarketplaceCompaniesTable() {
                       )}
                     </div>
                   ) : (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-muted-foreground text-xs">-</span>
                   )}
                 </TableCell>
                 <TableCell className="px-2 py-1">
                   <div className="flex flex-col space-y-0.5">
                     {company.phone_number && (
                       <div className="flex items-center space-x-1">
-                        <Phone className="h-2.5 w-2.5 text-gray-400" />
-                        <span className="text-[10px] text-gray-600">{company.phone_number}</span>
+                        <Phone className="h-2.5 w-2.5 text-muted-foreground" />
+                        <span className="text-[10px] text-muted-foreground">{company.phone_number}</span>
                       </div>
                     )}
                     {company.website && (
@@ -147,7 +186,7 @@ export function MarketplaceCompaniesTable() {
                         href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+                        className="flex items-center space-x-1 text-primary hover:text-primary/80"
                       >
                         <Globe className="h-2.5 w-2.5" />
                         <span className="text-[10px]">Website</span>
@@ -160,7 +199,7 @@ export function MarketplaceCompaniesTable() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setViewingCompany(company)}
-                    className="h-6 px-2 text-xs hover:bg-gray-100"
+                    className="h-6 px-2 text-xs"
                   >
                     Details
                   </Button>
@@ -168,9 +207,9 @@ export function MarketplaceCompaniesTable() {
               </TableRow>
             ))}
 
-            {companies.length === 0 && (
+            {filteredCompanies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={8} className="text-center py-4 text-xs text-muted-foreground">
                   No marketplace companies found.
                 </TableCell>
               </TableRow>

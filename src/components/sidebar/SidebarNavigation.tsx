@@ -16,7 +16,8 @@ import {
   ShoppingCart,
   Calculator,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  Store
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -90,6 +91,13 @@ const navigationItems = [
     icon: Clock,
     enabled: true,
   },
+  {
+    title: "Marketplace",
+    url: "/marketplace",
+    icon: Store,
+    enabled: true,
+    isGlobal: true,
+  },
 ];
 
 interface SidebarNavigationProps {
@@ -153,6 +161,11 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     return navigationItems.map(item => {
       // Keep Company Dashboard as-is (not project-specific)
       if (item.title === "Company Dashboard") {
+        return item;
+      }
+      
+      // Keep global items (like Marketplace) as-is
+      if ((item as any).isGlobal) {
         return item;
       }
       

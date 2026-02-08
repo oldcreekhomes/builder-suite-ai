@@ -1,8 +1,6 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
-
-const items: any[] = [];
 
 export function CompanyDashboardNav() {
   const { data: issueCounts } = useIssueCounts();
@@ -20,18 +18,15 @@ export function CompanyDashboardNav() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-3 py-1">
+        {/* Marketplace Link */}
         <div>
-          {items.map((item) => (
-            <div key={item.title}>
-              <a 
-                href={item.url} 
-                className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-              >
-                <item.icon className="h-4 w-4" />
-                <span className="flex-1">{item.title}</span>
-              </a>
-            </div>
-          ))}
+          <Link 
+            to="/marketplace" 
+            className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+          >
+            <Store className="h-4 w-4" />
+            <span className="flex-1">Marketplace</span>
+          </Link>
         </div>
 
         {/* Software Issues Section with separator */}
