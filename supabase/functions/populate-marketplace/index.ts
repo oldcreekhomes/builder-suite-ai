@@ -277,10 +277,6 @@ serve(async (req) => {
                 rating: details.rating || null,
                 review_count: details.user_ratings_total || null,
                 source: 'google_places',
-                // Set default values for required fields
-                contact_email: null,
-                contact_name: null,
-                description: null,
               });
 
             if (insertError) {

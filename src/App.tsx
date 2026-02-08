@@ -58,6 +58,7 @@ import BidDeclined from "./pages/BidDeclined";
 import SubmitBid from "./pages/SubmitBid";
 import CloseBooks from "./pages/accounting/CloseBooks";
 import OutboundRedirect from "./pages/OutboundRedirect";
+import Marketplace from "./pages/Marketplace";
 
 const queryClient = new QueryClient();
 
@@ -171,6 +172,9 @@ const AppContent = () => {
           
           {/* Issues route - company-wide */}
           <Route path="/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
+          
+          {/* Marketplace route - company-wide */}
+          <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
           
           {/* Companies route */}
           <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />

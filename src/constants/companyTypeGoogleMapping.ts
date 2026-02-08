@@ -95,3 +95,43 @@ export const DC_CENTER = {
 // 50 miles in meters (max radius for Google Places is 50,000m, so we'll do overlapping searches)
 export const FIFTY_MILES_METERS = 80467;
 export const MAX_GOOGLE_RADIUS = 50000;
+
+// Categories with their company types for filtering UI
+export const COMPANY_TYPE_CATEGORIES = [
+  {
+    name: "Financial & Legal Services",
+    types: ["Accountant/CPA", "Appraiser", "Attorney/Legal Services", "Construction Lender", "Mortgage Lender", "Insurance Agent", "Surety Bond Provider", "Title Company"],
+  },
+  {
+    name: "Design & Engineering",
+    types: ["Architect", "Civil Engineer", "Geotechnical Engineer", "Interior Designer", "Landscape Architect", "Land Surveyor", "MEP Engineer", "Structural Engineer"],
+  },
+  {
+    name: "Site Work & Foundation",
+    types: ["Concrete Contractor", "Demolition Contractor", "Excavation Contractor", "Foundation Contractor", "Grading Contractor", "Paving Contractor", "Septic System Installer", "Utility Contractor"],
+  },
+  {
+    name: "Structural Trades",
+    types: ["Framing Contractor", "Masonry Contractor", "Roofing Contractor", "Siding Contractor", "Steel Fabricator", "Truss Manufacturer"],
+  },
+  {
+    name: "Mechanical Systems",
+    types: ["Electrical Contractor", "Fire Protection/Sprinkler", "HVAC Contractor", "Plumbing Contractor", "Solar/Renewable Energy", "Low Voltage/Security"],
+  },
+  {
+    name: "Interior Trades",
+    types: ["Cabinet Maker", "Countertop Fabricator", "Drywall Contractor", "Flooring Contractor", "Insulation Contractor", "Painter", "Tile Contractor", "Window/Door Installer"],
+  },
+  {
+    name: "Exterior & Landscaping",
+    types: ["Deck/Fence Contractor", "Garage Door Installer", "Gutter Contractor", "Landscaping Contractor", "Pool/Spa Contractor", "Irrigation Contractor"],
+  },
+  {
+    name: "Materials & Equipment",
+    types: ["Building Materials Supplier", "Equipment Rental", "Fixture Supplier", "Lumber Yard", "Ready-Mix Concrete"],
+  },
+  {
+    name: "Government & Other",
+    types: ["Municipality/Permitting", "Utility Company", "Home Warranty Provider", "Real Estate Agent", "Other"],
+  },
+];
