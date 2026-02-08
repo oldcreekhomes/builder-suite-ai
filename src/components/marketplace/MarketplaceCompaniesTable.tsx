@@ -32,9 +32,10 @@ interface MarketplaceCompany {
 interface MarketplaceCompaniesTableProps {
   searchQuery?: string;
   selectedCategory?: string;
+  selectedType?: string | null;
 }
 
-export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory = "all" }: MarketplaceCompaniesTableProps) {
+export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory = "all", selectedType = null }: MarketplaceCompaniesTableProps) {
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['marketplace-companies'],
     queryFn: async () => {
@@ -53,11 +54,18 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
     ? COMPANY_TYPE_CATEGORIES.find(cat => cat.name === selectedCategory)?.types || []
     : [];
 
-  // Filter companies based on search and category
+  // Filter companies based on search, category, and specific type
   const filteredCompanies = companies.filter(company => {
-    // Category filter
-    if (selectedCategory !== "all" && !categoryTypes.includes(company.company_type)) {
-      return false;
+    // Specific type filter (most granular)
+    if (selectedType) {
+      if (company.company_type !== selectedType) {
+        return false;
+      }
+    } else if (selectedCategory !== "all") {
+      // Category filter (parent level)
+      if (!categoryTypes.includes(company.company_type)) {
+        return false;
+      }
     }
     // Search filter
     if (searchQuery) {
