@@ -1,50 +1,74 @@
 
 
-# Center the Marketplace Signup Page Layout
+# Redesign Marketplace Signup to Match Auth Page Layout
 
-## Problem Identified
-The `/auth/marketplace` page content appears left-aligned because:
-1. The header background spans full width, but the inner content is constrained to `max-w-2xl` (672px)
-2. On wide screens, this narrow centered content looks left-aligned relative to the full viewport
-3. The visual imbalance makes the page look skewed to the left
+## Problem
+The Marketplace Signup page has a layout issue where:
+- A custom header takes up space at the top
+- The gray background (`bg-muted/30`) doesn't span the full viewport
+- The content appears left-aligned with white space on the right
+- The form card is not centered in the viewport
 
 ## Solution
-Expand the header's max-width to match standard page layouts (`max-w-7xl` like the PublicHeader uses), ensuring the BuilderSuite logo and "Back to Home" button span appropriately across the viewport. The main content area will remain centered with proper padding.
+Adopt the same clean, centered layout pattern used by the `/auth` page:
+- Full-screen gray background (`bg-gray-50`)
+- Card centered both horizontally and vertically using flexbox
+- Remove the custom header (keep "Back to Home" link within the form area)
+- Use tabs to switch between "Sign In" and "Join Marketplace" views
 
 ## File to Change
 
 ### `src/pages/MarketplaceSignup.tsx`
 
-**Header Changes (Line 206):**
-- Change `max-w-2xl` to `max-w-7xl` for the header container
-- This matches the PublicHeader component's layout and ensures the header content spans properly
+Replace the current layout structure with the Auth page's centered pattern:
 
-**Current:**
+**Current Layout:**
 ```tsx
-<div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+<div className="min-h-screen bg-muted/30 flex flex-col">
+  <header>...</header>
+  <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-12">
+    <div className="text-center mb-8">...</div>
+    <Card>...</Card>
+  </main>
+</div>
 ```
 
-**New:**
+**New Layout (matching Auth page):**
 ```tsx
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-```
-
-**Main Content Changes (Line 223):**
-- Add `flex-1 flex flex-col items-center` to ensure vertical centering and horizontal alignment
-- Keep the Card at `max-w-2xl` but ensure it's centered within the flex container
-
-**Current:**
-```tsx
-<main className="max-w-2xl mx-auto px-4 py-12">
-```
-
-**New:**
-```tsx
-<main className="flex-1 w-full max-w-2xl mx-auto px-4 py-12">
+<div className="min-h-screen w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div className="w-full max-w-md space-y-8">
+    <div className="text-center">
+      <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+        Join the BuilderSuite Marketplace
+      </h2>
+      <p className="mt-2 text-sm text-gray-600">
+        Get listed where home builders can find you
+      </p>
+    </div>
+    <Card className="w-full">
+      <!-- Form content -->
+    </Card>
+    <div className="text-center">
+      <Link to="/" className="text-sm text-primary hover:underline">
+        Back to Home
+      </Link>
+    </div>
+  </div>
+</div>
 ```
 
 ## Visual Result
-- Header: BuilderSuite logo on left, "Back to Home" on right, spanning the full width like the public header
-- Main content: Title, description, and form card centered in the viewport
-- Consistent appearance with other pages in the application
+- Gray background (`bg-gray-50`) spans the entire viewport
+- Title "Join the BuilderSuite Marketplace" centered at top
+- Form card perfectly centered horizontally and vertically
+- "Back to Home" link below the card
+- Matches the visual style of the `/auth` page exactly
+- Mobile-responsive with proper padding
+
+## Technical Details
+- Replace the outer container classes to use `flex items-center justify-center`
+- Remove the custom `<header>` element entirely
+- Change `max-w-2xl` to `max-w-md` to match Auth page width
+- Move "Back to Home" link to below the card
+- Keep all form fields and submission logic unchanged
 
