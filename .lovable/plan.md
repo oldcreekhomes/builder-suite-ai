@@ -1,72 +1,90 @@
 
 
-# Add Marketplace Permission to Employee Access
+# Fix: Marketplace Menu Not Hiding When Access Revoked
 
-Simple approach: Add `can_access_marketplace` permission that is **disabled by default for ALL users**. Admins can enable it per-employee as needed.
+The Marketplace menu item still appears after you disable your access because the sidebar component isn't getting the updated permission data in real-time.
 
-## Overview
+## Root Cause
 
-| Component | Change |
-|-----------|--------|
-| Database | Add `can_access_marketplace` boolean column (default: `false`) |
-| Hook | Add to `useNotificationPreferences.tsx` interface and defaults |
-| Permission Hook | Create `useMarketplacePermissions.ts` |
-| Guard | Create `MarketplaceGuard.tsx` |
-| Sidebar | Conditionally show Marketplace link based on permission |
-| Employee Access UI | Add "Marketplace" section with toggle |
-| Route | Wrap `/marketplace` with guard |
+When you toggle the Marketplace permission in Employee Access settings:
+1. The database updates correctly (verified: `can_access_marketplace: false`)
+2. React Query invalidates the cache for that specific user
+3. But the sidebar doesn't automatically refetch or re-render with the new value
 
-## Database Changes
+This same issue could affect other permission toggles, but the pattern hasn't been consistently applied.
 
-```sql
-ALTER TABLE public.user_notification_preferences 
-ADD COLUMN can_access_marketplace boolean NOT NULL DEFAULT false;
-```
+## Solution
 
-That's it - no special logic for owners or any user type. Everyone starts with `false`.
+Add a Supabase realtime subscription to `useNotificationPreferences` that listens for changes to the current user's preferences and automatically refetches the data. This follows the existing pattern mentioned in project memory for "realtime-permissions-updates-supabase-subscription".
 
-## Files to Create
+## Changes Required
 
-### 1. `src/hooks/useMarketplacePermissions.ts`
+### 1. Update `src/hooks/useNotificationPreferences.tsx`
+
+Add realtime subscription to detect preference changes:
 
 ```typescript
-import { useNotificationPreferences } from "./useNotificationPreferences";
+import { useEffect } from "react";
 
-export const useMarketplacePermissions = () => {
-  const { preferences, isLoading } = useNotificationPreferences();
+// Inside useNotificationPreferences hook, add after the useQuery:
 
-  return {
-    canAccessMarketplace: preferences.can_access_marketplace ?? false,
-    isLoading,
+useEffect(() => {
+  if (!targetUserId) return;
+
+  const channel = supabase
+    .channel(`preferences-${targetUserId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'user_notification_preferences',
+        filter: `user_id=eq.${targetUserId}`,
+      },
+      () => {
+        // Refetch preferences when database changes
+        queryClient.invalidateQueries({ 
+          queryKey: ['notification-preferences', targetUserId] 
+        });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
   };
-};
+}, [targetUserId, queryClient]);
 ```
 
-### 2. `src/components/guards/MarketplaceGuard.tsx`
+### 2. (Optional) Add optional chaining for safety
 
-Standard guard following existing pattern - redirects to `/` with toast if no permission.
+Update `useMarketplacePermissions.ts` to match `useEstimatePermissions.ts`:
+
+```typescript
+canAccessMarketplace: preferences?.can_access_marketplace ?? false,
+```
+
+## How This Fixes the Issue
+
+| Before | After |
+|--------|-------|
+| Toggle permission OFF in settings | Toggle permission OFF in settings |
+| Database updates | Database updates |
+| React Query cache invalidated for that userId | Realtime subscription detects change |
+| Sidebar doesn't know to refetch | `invalidateQueries` triggers refetch |
+| Menu still visible | Menu disappears immediately |
 
 ## Files to Modify
 
-### 1. `src/hooks/useNotificationPreferences.tsx`
-- Add `can_access_marketplace: boolean` to interface
-- Add `can_access_marketplace: false` to `defaultPreferences`
+| File | Change |
+|------|--------|
+| `src/hooks/useNotificationPreferences.tsx` | Add Supabase realtime subscription |
+| `src/hooks/useMarketplacePermissions.ts` | Add optional chaining (minor) |
 
-### 2. `src/components/sidebar/SidebarNavigation.tsx`
-- Import `useMarketplacePermissions`
-- Only show Marketplace link if `canAccessMarketplace` is true
+## Testing
 
-### 3. `src/components/employees/EmployeeAccessPreferences.tsx`
-- Add "Marketplace" section with toggle for `can_access_marketplace`
-
-### 4. `src/App.tsx`
-- Wrap `/marketplace` route with `MarketplaceGuard`
-
-## Default Behavior
-
-| All Users | Default Access |
-|-----------|----------------|
-| Everyone | Disabled |
-
-Admins enable access per-employee through Employee Access settings.
+After implementation:
+1. Navigate to Employee Access settings for your own user
+2. Toggle Marketplace access OFF
+3. The Marketplace menu item should disappear immediately without page refresh
 
