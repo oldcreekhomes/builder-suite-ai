@@ -29,16 +29,18 @@ export function MarketplaceRadiusControl({
 }: MarketplaceRadiusControlProps) {
   const hqDisplay = hqCity && hqState ? `${hqCity}, ${hqState}` : 'Not set';
   
-  // Calculate slider value (0-100 scale)
-  const sliderMax = tier === 'enterprise' ? 500 : maxRadius;
-  const sliderValue = Math.min(currentRadius, sliderMax);
+  // Fixed 100-mile scale for free/pro, 500 for enterprise
+  const displayMax = tier === 'enterprise' ? 500 : 100;
+  const sliderValue = Math.min(currentRadius, displayMax);
+  const freeLimit = TIER_LIMITS.free.radius; // 30 miles
+  const proLimit = TIER_LIMITS.pro.radius; // 100 miles
 
   const handleSliderChange = (values: number[]) => {
     const newRadius = values[0];
     if (newRadius <= maxRadius) {
       onRadiusChange(newRadius);
     } else {
-      // Trigger upgrade modal if trying to exceed limit
+      // Trigger upgrade modal if trying to exceed tier limit
       onUpgradeClick();
     }
   };
@@ -76,28 +78,40 @@ export function MarketplaceRadiusControl({
           <Slider
             value={[sliderValue]}
             onValueChange={handleSliderChange}
-            max={sliderMax}
+            max={displayMax}
             min={5}
             step={5}
             className="w-full"
           />
           
-          {/* Tier markers */}
-          <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-            <span>5 mi</span>
-            <div className="flex items-center gap-1">
-              <span>30 mi</span>
-              <span className="text-primary font-medium">FREE</span>
-            </div>
+          {/* Tier markers positioned proportionally */}
+          <div className="relative mt-1 h-4 text-xs text-muted-foreground">
+            {/* 5 mi - left edge */}
+            <span className="absolute left-0">5 mi</span>
+            
+            {/* 30 mi FREE marker - positioned at 30% for 100-mile scale */}
             {tier !== 'enterprise' && (
-              <div className="flex items-center gap-1">
+              <div 
+                className="absolute flex items-center gap-0.5 -translate-x-1/2"
+                style={{ left: `${((freeLimit - 5) / (displayMax - 5)) * 100}%` }}
+              >
+                <span>30 mi</span>
+                <span className="text-primary font-medium">FREE</span>
+              </div>
+            )}
+            
+            {/* 100 mi PRO marker - right edge for non-enterprise */}
+            {tier !== 'enterprise' && (
+              <div className="absolute right-0 flex items-center gap-0.5">
                 <Lock className="h-3 w-3" />
                 <span>100 mi</span>
                 <span className="text-primary font-medium">PRO</span>
               </div>
             )}
+            
+            {/* Enterprise unlimited marker */}
             {tier === 'enterprise' && (
-              <div className="flex items-center gap-1">
+              <div className="absolute right-0 flex items-center gap-0.5">
                 <Crown className="h-3 w-3 text-accent-foreground" />
                 <span>Unlimited</span>
               </div>
