@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Table, 
@@ -9,7 +9,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Lock } from "lucide-react";
+import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
 import { SendMarketplaceMessageModal } from "./SendMarketplaceMessageModal";
@@ -35,37 +35,44 @@ interface MarketplaceCompany {
   created_at: string;
 }
 
+interface DistanceResult {
+  companyId: string;
+  distance: number | null;
+  error?: string;
+}
+
 interface MarketplaceCompaniesTableProps {
   searchQuery?: string;
   selectedCategory?: string | null;
   selectedType?: string | null;
   currentRadius?: number;
-}
-
-// Haversine distance calculation
-function calculateDistanceMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 3959; // Earth's radius in miles
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  onCountsChange?: (counts: { filteredCount: number; totalCount: number; excludedCount: number }) => void;
 }
 
 export function MarketplaceCompaniesTable({ 
   searchQuery = "", 
   selectedCategory = null, 
   selectedType = null,
-  currentRadius = 30 
+  currentRadius = 30,
+  onCountsChange
 }: MarketplaceCompaniesTableProps) {
   const [selectedCompany, setSelectedCompany] = useState<MarketplaceCompany | null>(null);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   
   const { hqData, hasHQSet } = useCompanyHQ();
   const { maxRadius, tier } = useMarketplaceSubscription();
+
+  // Build origin address from HQ data
+  const hqOrigin = useMemo(() => {
+    if (!hasHQSet || !hqData) return null;
+    const parts = [
+      hqData.hq_address,
+      hqData.hq_city,
+      hqData.hq_state,
+      hqData.hq_zip
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }, [hasHQSet, hqData]);
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['marketplace-companies'],
@@ -90,10 +97,9 @@ export function MarketplaceCompaniesTable({
     ? COMPANY_TYPE_CATEGORIES.find(cat => cat.name === selectedCategory)?.types || []
     : [];
 
-  // Filter and calculate distances
-  const { filteredCompanies, totalInCategory } = useMemo(() => {
+  // Filter by category/type and search first (to reduce distance API calls)
+  const preFiltedCompanies = useMemo(() => {
     let filtered = companies;
-    let total = 0;
 
     // Category/type filter first
     if (selectedCategory) {
@@ -103,36 +109,7 @@ export function MarketplaceCompaniesTable({
         filtered = filtered.filter(c => categoryTypes.includes(c.company_type));
       }
     } else {
-      return { filteredCompanies: [], totalInCategory: 0 };
-    }
-
-    total = filtered.length;
-
-    // Apply distance filtering if HQ is set
-    if (hasHQSet && hqData?.hq_lat && hqData?.hq_lng) {
-      filtered = filtered
-        .map(company => {
-          if (company.lat && company.lng) {
-            const distance = calculateDistanceMiles(
-              hqData.hq_lat!,
-              hqData.hq_lng!,
-              company.lat,
-              company.lng
-            );
-            return { ...company, distance };
-          }
-          return { ...company, distance: null };
-        })
-        .filter(company => {
-          // Exclude companies without coordinates - they can't be distance-filtered
-          if (company.distance === null) return false;
-          return company.distance <= currentRadius;
-        })
-        .sort((a, b) => {
-          if (a.distance === null) return 1;
-          if (b.distance === null) return -1;
-          return a.distance - b.distance;
-        });
+      return [];
     }
 
     // Search filter
@@ -145,11 +122,111 @@ export function MarketplaceCompaniesTable({
       );
     }
 
+    return filtered;
+  }, [companies, selectedCategory, selectedType, categoryTypes, searchQuery]);
+
+  // Create a stable key for the distance query based on company IDs
+  const companyIdsForDistance = useMemo(() => {
+    return preFiltedCompanies
+      .filter(c => c.address && c.address.trim() && c.address !== 'Unknown')
+      .map(c => c.id)
+      .sort()
+      .join(',');
+  }, [preFiltedCompanies]);
+
+  // Fetch distances from the edge function
+  const { data: distancesData, isLoading: isLoadingDistances, error: distanceError } = useQuery({
+    queryKey: ['marketplace-distances', hqOrigin, companyIdsForDistance],
+    queryFn: async () => {
+      if (!hqOrigin || !companyIdsForDistance) return {};
+      
+      const companiesPayload = preFiltedCompanies
+        .filter(c => c.address && c.address.trim() && c.address !== 'Unknown')
+        .map(c => ({ id: c.id, address: c.address! }));
+      
+      if (companiesPayload.length === 0) return {};
+
+      const { data, error } = await supabase.functions.invoke('calculate-distances', {
+        body: { 
+          projectAddress: hqOrigin, 
+          companies: companiesPayload 
+        }
+      });
+
+      if (error) {
+        console.error('Distance calculation error:', error);
+        throw error;
+      }
+
+      // Transform results into a map: companyId -> distance
+      const distanceMap: Record<string, number | null> = {};
+      if (data?.results) {
+        Object.values(data.results as Record<string, DistanceResult>).forEach((result: DistanceResult) => {
+          distanceMap[result.companyId] = result.distance;
+        });
+      }
+
+      return distanceMap;
+    },
+    enabled: Boolean(hqOrigin && selectedCategory && companyIdsForDistance),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  });
+
+  // Apply distance filtering and sorting
+  const { filteredCompanies, totalInCategory, excludedCount } = useMemo(() => {
+    const total = preFiltedCompanies.length;
+    let excluded = 0;
+
+    if (!hasHQSet || !hqOrigin || !distancesData) {
+      // If no HQ or distances not loaded yet, show all pre-filtered companies without distance info
+      return { 
+        filteredCompanies: preFiltedCompanies.map(c => ({ ...c, distance: null as number | null })), 
+        totalInCategory: total,
+        excludedCount: 0
+      };
+    }
+
+    // Add distance to each company and filter/sort
+    const withDistances = preFiltedCompanies.map(company => {
+      const distance = distancesData[company.id] ?? null;
+      return { ...company, distance };
+    });
+
+    // Filter by radius
+    const filtered = withDistances.filter(company => {
+      if (company.distance === null) {
+        // Exclude companies without calculable distance
+        excluded++;
+        return false;
+      }
+      return company.distance <= currentRadius;
+    });
+
+    // Sort by distance (closest first)
+    filtered.sort((a, b) => {
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
+
     return { 
-      filteredCompanies: filtered as (MarketplaceCompany & { distance?: number | null })[], 
-      totalInCategory: total 
+      filteredCompanies: filtered, 
+      totalInCategory: total,
+      excludedCount: excluded
     };
-  }, [companies, selectedCategory, selectedType, categoryTypes, searchQuery, hasHQSet, hqData, currentRadius]);
+  }, [preFiltedCompanies, hasHQSet, hqOrigin, distancesData, currentRadius]);
+
+  // Report counts to parent
+  useEffect(() => {
+    if (onCountsChange) {
+      onCountsChange({
+        filteredCount: filteredCompanies.length,
+        totalCount: totalInCategory,
+        excludedCount
+      });
+    }
+  }, [filteredCompanies.length, totalInCategory, excludedCount, onCountsChange]);
 
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading marketplace companies...</div>;
@@ -170,19 +247,42 @@ export function MarketplaceCompaniesTable({
     );
   }
 
+  const showDistanceColumn = hasHQSet && hqOrigin;
+
   return (
     <>
+      {/* Loading/error state for distances */}
+      {isLoadingDistances && showDistanceColumn && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Calculating distances from your HQ...
+        </div>
+      )}
+      
+      {distanceError && (
+        <div className="text-sm text-destructive mb-2">
+          Could not calculate distances. Please try again.
+        </div>
+      )}
+
+      {excludedCount > 0 && !isLoadingDistances && (
+        <div className="text-sm text-muted-foreground mb-2">
+          {excludedCount} supplier{excludedCount !== 1 ? 's' : ''} excluded (address couldn't be mapped)
+        </div>
+      )}
+
       <div className="text-sm text-muted-foreground mb-2">
         Showing {filteredCompanies.length} of {totalInCategory} companies
-        {hasHQSet && ` within ${currentRadius} miles`}
+        {showDistanceColumn && !isLoadingDistances && ` within ${currentRadius} miles`}
       </div>
+      
       <div className="border rounded-lg">
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[18%]">Company Name</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[28%]">Location</TableHead>
-              {hasHQSet && (
+              {showDistanceColumn && (
                 <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[10%]">Distance</TableHead>
               )}
               <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[12%]">Rating</TableHead>
@@ -217,9 +317,11 @@ export function MarketplaceCompaniesTable({
                       <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
-                  {hasHQSet && (
+                  {showDistanceColumn && (
                     <TableCell className="px-2 py-1">
-                      {company.distance !== null && company.distance !== undefined ? (
+                      {isLoadingDistances ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      ) : company.distance !== null && company.distance !== undefined ? (
                         <span className="text-xs text-muted-foreground">
                           {company.distance.toFixed(1)} mi
                         </span>
@@ -280,9 +382,9 @@ export function MarketplaceCompaniesTable({
               );
             })}
 
-            {filteredCompanies.length === 0 && (
+            {filteredCompanies.length === 0 && !isLoadingDistances && (
               <TableRow>
-                <TableCell colSpan={hasHQSet ? 7 : 6} className="text-center py-4 text-xs text-muted-foreground">
+                <TableCell colSpan={showDistanceColumn ? 7 : 6} className="text-center py-4 text-xs text-muted-foreground">
                   No marketplace companies found within {currentRadius} miles.
                 </TableCell>
               </TableRow>

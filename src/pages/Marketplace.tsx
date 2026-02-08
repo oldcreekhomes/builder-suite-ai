@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,9 @@ export default function Marketplace() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [currentRadius, setCurrentRadius] = useState(30);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  
+  // Track counts from the table
+  const [tableCounts, setTableCounts] = useState({ filteredCount: 0, totalCount: 0, excludedCount: 0 });
 
   const { hqData, hasHQSet, isLoading: hqLoading, updateHQ, isUpdating } = useCompanyHQ();
   const { tier, maxRadius, isLoading: subscriptionLoading } = useMarketplaceSubscription();
@@ -37,6 +40,10 @@ export default function Marketplace() {
       setCurrentRadius(radius);
     }
   };
+
+  const handleCountsChange = useCallback((counts: { filteredCount: number; totalCount: number; excludedCount: number }) => {
+    setTableCounts(counts);
+  }, []);
 
   if (hqLoading || subscriptionLoading) {
     return (
@@ -83,8 +90,8 @@ export default function Marketplace() {
                 currentRadius={currentRadius}
                 maxRadius={maxRadius}
                 tier={tier}
-                filteredCount={0} // Will be updated by table
-                totalCount={0}
+                filteredCount={tableCounts.filteredCount}
+                totalCount={tableCounts.totalCount}
                 onRadiusChange={handleRadiusChange}
                 onUpgradeClick={() => setUpgradeModalOpen(true)}
               />
@@ -107,6 +114,7 @@ export default function Marketplace() {
               selectedCategory={selectedCategory}
               selectedType={selectedType}
               currentRadius={currentRadius}
+              onCountsChange={handleCountsChange}
             />
           </div>
         </div>
