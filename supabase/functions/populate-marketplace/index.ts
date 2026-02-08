@@ -214,13 +214,48 @@ interface PlaceResult {
   };
 }
 
+interface SearchResponse {
+  results: PlaceResult[];
+  next_page_token?: string;
+  status: string;
+  error_message?: string;
+}
+
 interface PopulateRequest {
   categories?: string[];
   centerLat?: number;
   centerLng?: number;
   radiusMeters?: number;
-  maxResultsPerCategory?: number;
+  targetPerCategory?: number;
   minRating?: number;
+}
+
+interface CategoryCount {
+  company_type: string;
+  count: number;
+}
+
+async function getExistingCounts(supabase: ReturnType<typeof createClient>): Promise<Map<string, number>> {
+  console.log('Fetching existing category counts...');
+  
+  const { data, error } = await supabase
+    .from('marketplace_companies')
+    .select('company_type')
+    .eq('source', 'google_places');
+  
+  if (error) {
+    console.error('Error fetching existing counts:', error);
+    return new Map();
+  }
+  
+  const counts = new Map<string, number>();
+  for (const row of data || []) {
+    const type = row.company_type;
+    counts.set(type, (counts.get(type) || 0) + 1);
+  }
+  
+  console.log(`Found ${counts.size} existing categories with data`);
+  return counts;
 }
 
 async function searchNearbyPlaces(
@@ -228,20 +263,25 @@ async function searchNearbyPlaces(
   lat: number,
   lng: number,
   radius: number,
-  mapping: { type?: string; keyword?: string }
-): Promise<PlaceResult[]> {
+  mapping: { type?: string; keyword?: string },
+  pageToken?: string | null
+): Promise<SearchResponse> {
   const baseUrl = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
   const params = new URLSearchParams({
     location: `${lat},${lng}`,
-    radius: String(Math.min(radius, 50000)), // Max 50km per Google
+    radius: String(Math.min(radius, 50000)),
     key: apiKey,
   });
 
-  if (mapping.type) {
-    params.set('type', mapping.type);
-  }
-  if (mapping.keyword) {
-    params.set('keyword', mapping.keyword);
+  if (pageToken) {
+    params.set('pagetoken', pageToken);
+  } else {
+    if (mapping.type) {
+      params.set('type', mapping.type);
+    }
+    if (mapping.keyword) {
+      params.set('keyword', mapping.keyword);
+    }
   }
 
   const url = `${baseUrl}?${params.toString()}`;
@@ -250,12 +290,49 @@ async function searchNearbyPlaces(
   const response = await fetch(url);
   const data = await response.json();
 
-  if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-    console.error(`Google Places API error: ${data.status}`, data.error_message);
-    return [];
-  }
+  return {
+    results: data.results || [],
+    next_page_token: data.next_page_token,
+    status: data.status,
+    error_message: data.error_message,
+  };
+}
 
-  return data.results || [];
+async function searchNearbyPlacesWithPagination(
+  apiKey: string,
+  lat: number,
+  lng: number,
+  radius: number,
+  mapping: { type?: string; keyword?: string },
+  maxResults: number
+): Promise<PlaceResult[]> {
+  let allResults: PlaceResult[] = [];
+  let nextPageToken: string | null = null;
+  let attempts = 0;
+  const maxAttempts = 3; // Max 3 pages (60 results)
+
+  do {
+    const response = await searchNearbyPlaces(apiKey, lat, lng, radius, mapping, nextPageToken);
+    
+    if (response.status !== 'OK' && response.status !== 'ZERO_RESULTS') {
+      console.error(`Google Places API error: ${response.status}`, response.error_message);
+      break;
+    }
+
+    allResults = [...allResults, ...response.results];
+    nextPageToken = response.next_page_token || null;
+    attempts++;
+
+    console.log(`Page ${attempts}: Got ${response.results.length} results, total: ${allResults.length}`);
+
+    if (allResults.length >= maxResults) break;
+    if (nextPageToken && attempts < maxAttempts) {
+      // Google requires a short delay before using next_page_token
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  } while (nextPageToken && attempts < maxAttempts);
+
+  return allResults;
 }
 
 async function getPlaceDetails(apiKey: string, placeId: string): Promise<PlaceResult | null> {
@@ -302,56 +379,101 @@ serve(async (req) => {
       categories = Object.keys(GOOGLE_PLACES_MAPPING),
       centerLat = DC_CENTER.lat,
       centerLng = DC_CENTER.lng,
-      radiusMeters = 50000, // Default to max single search radius
-      maxResultsPerCategory = 10, // Increased from 5 to 10
-      minRating = 4.0,
+      radiusMeters = 50000,
+      targetPerCategory = 10,
+      minRating = 3.5,
     } = body;
 
-    console.log(`Starting marketplace population for ${categories.length} categories`);
+    console.log(`Starting SMART marketplace population for ${categories.length} categories`);
     console.log(`Center: ${centerLat}, ${centerLng}, Radius: ${radiusMeters}m`);
-    console.log(`Max results per category: ${maxResultsPerCategory}, Min rating: ${minRating}`);
+    console.log(`Target per category: ${targetPerCategory}, Min rating: ${minRating}`);
+
+    // Get existing counts for smart fill
+    const existingCounts = await getExistingCounts(supabase);
 
     const results: {
       category: string;
+      existingCount: number;
+      needed: number;
       added: number;
       skipped: number;
       errors: string[];
     }[] = [];
+
+    let totalSkippedCategories = 0;
 
     // Process each category
     for (const category of categories) {
       const mapping = GOOGLE_PLACES_MAPPING[category];
       if (!mapping) {
         console.log(`No mapping found for category: ${category}`);
-        results.push({ category, added: 0, skipped: 0, errors: [`No mapping for ${category}`] });
+        results.push({ 
+          category, 
+          existingCount: 0, 
+          needed: targetPerCategory, 
+          added: 0, 
+          skipped: 0, 
+          errors: [`No mapping for ${category}`] 
+        });
         continue;
       }
 
-      console.log(`Processing category: ${category}`);
-      const categoryResult = { category, added: 0, skipped: 0, errors: [] as string[] };
+      // Check existing count
+      const existingCount = existingCounts.get(category) || 0;
+      const needed = Math.max(0, targetPerCategory - existingCount);
+
+      if (needed === 0) {
+        console.log(`Skipping ${category}: already has ${existingCount} companies (>= ${targetPerCategory})`);
+        totalSkippedCategories++;
+        results.push({ 
+          category, 
+          existingCount, 
+          needed: 0, 
+          added: 0, 
+          skipped: existingCount, 
+          errors: [] 
+        });
+        continue;
+      }
+
+      console.log(`Processing ${category}: has ${existingCount}, needs ${needed} more`);
+      const categoryResult = { 
+        category, 
+        existingCount, 
+        needed, 
+        added: 0, 
+        skipped: 0, 
+        errors: [] as string[] 
+      };
 
       try {
-        // Search for places
-        const places = await searchNearbyPlaces(
+        // Search for places with pagination to get more results
+        const places = await searchNearbyPlacesWithPagination(
           googleApiKey,
           centerLat,
           centerLng,
           radiusMeters,
-          mapping
+          mapping,
+          needed + 10 // Get extra to account for filtering/duplicates
         );
 
         console.log(`Found ${places.length} places for ${category}`);
 
-        // Filter by rating and limit results
+        // Filter by rating and limit to what we need
         const filteredPlaces = places
           .filter(p => (p.rating || 0) >= minRating)
           .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-          .slice(0, maxResultsPerCategory);
+          .slice(0, needed + 5);
 
         console.log(`Filtered to ${filteredPlaces.length} places with rating >= ${minRating}`);
 
         // Get details and insert each place
         for (const place of filteredPlaces) {
+          if (categoryResult.added >= needed) {
+            console.log(`Reached target of ${needed} for ${category}`);
+            break;
+          }
+
           try {
             // Get additional details
             const details = await getPlaceDetails(googleApiKey, place.place_id);
@@ -395,7 +517,7 @@ serve(async (req) => {
               console.error(`Insert error for ${companyName}:`, insertError);
               categoryResult.errors.push(`Insert failed for ${companyName}: ${insertError.message}`);
             } else {
-              console.log(`Added: ${companyName}`);
+              console.log(`Added: ${companyName} (${category})`);
               categoryResult.added++;
             }
 
@@ -421,8 +543,11 @@ serve(async (req) => {
     const totalAdded = results.reduce((sum, r) => sum + r.added, 0);
     const totalSkipped = results.reduce((sum, r) => sum + r.skipped, 0);
     const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0);
+    const categoriesNeedingData = results.filter(r => r.needed > 0).length;
 
     console.log(`Population complete: ${totalAdded} added, ${totalSkipped} skipped, ${totalErrors} errors`);
+    console.log(`Categories skipped (already full): ${totalSkippedCategories}`);
+    console.log(`Categories that needed data: ${categoriesNeedingData}`);
 
     return new Response(
       JSON.stringify({
@@ -432,6 +557,8 @@ serve(async (req) => {
           totalSkipped,
           totalErrors,
           categoriesProcessed: results.length,
+          categoriesSkipped: totalSkippedCategories,
+          categoriesNeedingData,
         },
         results,
       }),
