@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Building2 } from "lucide-react";
+import { MapPin, Building2, Loader2, AlertCircle } from "lucide-react";
 import { UpdateHQData } from "@/hooks/useCompanyHQ";
+import { useGooglePlacesAddress, AddressData } from "@/hooks/useGooglePlacesAddress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SetupHQModalProps {
   open: boolean;
@@ -27,69 +29,22 @@ export function SetupHQModal({ open, onOpenChange, onSave, isLoading }: SetupHQM
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handlePlaceSelect = useCallback(() => {
-    const autocomplete = autocompleteRef.current;
-    if (!autocomplete) return;
-
-    const place = autocomplete.getPlace();
-    if (!place.address_components || !place.geometry?.location) return;
-
-    let streetNumber = "";
-    let streetName = "";
-    let cityValue = "";
-    let stateValue = "";
-    let zipValue = "";
-
-    for (const component of place.address_components) {
-      const type = component.types[0];
-      switch (type) {
-        case "street_number":
-          streetNumber = component.long_name;
-          break;
-        case "route":
-          streetName = component.long_name;
-          break;
-        case "locality":
-          cityValue = component.long_name;
-          break;
-        case "administrative_area_level_1":
-          stateValue = component.short_name;
-          break;
-        case "postal_code":
-          zipValue = component.long_name;
-          break;
-      }
-    }
-
-    const fullAddress = streetNumber ? `${streetNumber} ${streetName}` : streetName;
-    
-    setAddress(fullAddress);
-    setCity(cityValue);
-    setState(stateValue);
-    setZip(zipValue);
-    setLat(place.geometry.location.lat());
-    setLng(place.geometry.location.lng());
+  const handlePlaceSelected = useCallback((addressData: AddressData) => {
+    setAddress(addressData.street);
+    setCity(addressData.city);
+    setState(addressData.state);
+    setZip(addressData.zip);
+    setLat(addressData.lat);
+    setLng(addressData.lng);
   }, []);
 
-  useEffect(() => {
-    if (!open || !inputRef.current || !window.google?.maps?.places) return;
-
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ["address"],
-      componentRestrictions: { country: "us" },
-      fields: ["address_components", "geometry"],
-    });
-
-    autocomplete.addListener("place_changed", handlePlaceSelect);
-    autocompleteRef.current = autocomplete;
-
-    return () => {
-      google.maps.event.clearInstanceListeners(autocomplete);
-    };
-  }, [open, handlePlaceSelect]);
+  const { isLoading: isGoogleLoading, error: googleError, isGoogleLoaded } = useGooglePlacesAddress({
+    inputRef,
+    isActive: open,
+    onPlaceSelected: handlePlaceSelected,
+  });
 
   const handleSubmit = () => {
     if (!address || !city || !state || !zip || lat === null || lng === null) return;
@@ -121,17 +76,34 @@ export function SetupHQModal({ open, onOpenChange, onSave, isLoading }: SetupHQM
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
+          {googleError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{googleError}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="search-address">Search Address</Label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {isGoogleLoading ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+              ) : (
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              )}
               <Input
                 ref={inputRef}
                 id="search-address"
-                placeholder="Start typing your address..."
+                placeholder={isGoogleLoading ? "Loading address search..." : "Start typing your address..."}
                 className="pl-9"
+                disabled={isGoogleLoading || !!googleError}
               />
             </div>
+            {!isGoogleLoading && !googleError && isGoogleLoaded && (
+              <p className="text-xs text-muted-foreground">
+                Type your address and select from the dropdown
+              </p>
+            )}
           </div>
 
           {address && (
