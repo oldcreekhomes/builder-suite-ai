@@ -21,6 +21,7 @@ import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
 import { BudgetWarningsTab } from "@/components/settings/BudgetWarningsTab";
 import { DashboardSettingsTab } from "@/components/settings/DashboardSettingsTab";
+import { CompanyProfileTab } from "@/components/settings/CompanyProfileTab";
 
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
@@ -148,20 +149,24 @@ const Settings = () => {
           <main className="flex-1 flex flex-col">
             <DashboardHeader />
             <div className="flex-1 flex">
-              <Tabs defaultValue="cost-codes" orientation="vertical" className="flex w-full">
+              <Tabs defaultValue="company-profile" orientation="vertical" className="flex w-full">
                 <div className="w-52 shrink-0 border-r border-border bg-background p-4">
                   <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
                   <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
+                    <TabsTrigger value="company-profile" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Company Profile</TabsTrigger>
                     <TabsTrigger value="cost-codes" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Cost Codes</TabsTrigger>
                     <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
                     <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Chart of Accounts</TabsTrigger>
                     <TabsTrigger value="budget" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Budget</TabsTrigger>
                     <TabsTrigger value="dashboard" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Dashboard</TabsTrigger>
-                    
                   </TabsList>
                 </div>
                 
                 <div className="flex-1 min-w-0 p-6">
+                  <TabsContent value="company-profile" className="mt-0">
+                    <CompanyProfileTab />
+                  </TabsContent>
+
                   <TabsContent value="cost-codes" className="mt-0">
                     <CostCodesTab
                       costCodes={costCodes}

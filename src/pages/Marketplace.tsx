@@ -5,11 +5,46 @@ import { Input } from "@/components/ui/input";
 import { Search, Store } from "lucide-react";
 import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceCompaniesTable";
 import { MarketplaceCategorySidebar } from "@/components/marketplace/MarketplaceCategorySidebar";
+import { MarketplaceRadiusControl } from "@/components/marketplace/MarketplaceRadiusControl";
+import { SetupHQModal } from "@/components/marketplace/SetupHQModal";
+import { UpgradeMarketplaceModal } from "@/components/marketplace/UpgradeMarketplaceModal";
+import { useCompanyHQ } from "@/hooks/useCompanyHQ";
+import { useMarketplaceSubscription, SubscriptionTier } from "@/hooks/useMarketplaceSubscription";
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [currentRadius, setCurrentRadius] = useState(30);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+
+  const { hqData, hasHQSet, isLoading: hqLoading, updateHQ, isUpdating } = useCompanyHQ();
+  const { tier, maxRadius, isLoading: subscriptionLoading } = useMarketplaceSubscription();
+
+  // Show setup HQ modal for new users
+  const [setupModalOpen, setSetupModalOpen] = useState(false);
+
+  // Check if we need to show setup modal (no HQ set and not loading)
+  const shouldShowSetupModal = !hqLoading && !hasHQSet && !setupModalOpen;
+
+  const handleUpgradeSelect = (selectedTier: SubscriptionTier) => {
+    // TODO: Integrate with Stripe checkout
+    console.log('Selected tier:', selectedTier);
+  };
+
+  const handleRadiusChange = (radius: number) => {
+    if (radius <= maxRadius) {
+      setCurrentRadius(radius);
+    }
+  };
+
+  if (hqLoading || subscriptionLoading) {
+    return (
+      <div className="min-h-screen flex w-full bg-background items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -40,6 +75,21 @@ export default function Marketplace() {
 
           {/* Companies content */}
           <div className="flex-1 p-6 overflow-auto">
+            {/* Radius Control - only show if HQ is set */}
+            {hasHQSet && (
+              <MarketplaceRadiusControl
+                hqCity={hqData?.hq_city || null}
+                hqState={hqData?.hq_state || null}
+                currentRadius={currentRadius}
+                maxRadius={maxRadius}
+                tier={tier}
+                filteredCount={0} // Will be updated by table
+                totalCount={0}
+                onRadiusChange={handleRadiusChange}
+                onUpgradeClick={() => setUpgradeModalOpen(true)}
+              />
+            )}
+
             {/* Search */}
             <div className="relative max-w-md mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -56,10 +106,30 @@ export default function Marketplace() {
               searchQuery={searchQuery}
               selectedCategory={selectedCategory}
               selectedType={selectedType}
+              currentRadius={currentRadius}
             />
           </div>
         </div>
       </SidebarInset>
+
+      {/* Setup HQ Modal - shows on first visit */}
+      <SetupHQModal
+        open={shouldShowSetupModal || setupModalOpen}
+        onOpenChange={setSetupModalOpen}
+        onSave={(data) => {
+          updateHQ(data);
+          setSetupModalOpen(false);
+        }}
+        isLoading={isUpdating}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeMarketplaceModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        currentTier={tier}
+        onSelectTier={handleUpgradeSelect}
+      />
     </div>
   );
 }
