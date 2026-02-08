@@ -10,7 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MarketplaceCategorySidebarProps {
-  selectedCategory: string;
+  selectedCategory: string | null;
   selectedType: string | null;
   onCategoryChange: (category: string) => void;
   onTypeChange: (type: string | null) => void;
@@ -32,17 +32,10 @@ export function MarketplaceCategorySidebar({
     );
   };
 
-  const handleAllCompaniesClick = () => {
-    onCategoryChange("all");
-    onTypeChange(null);
-  };
-
   const handleTypeClick = (categoryName: string, typeName: string) => {
     onCategoryChange(categoryName);
     onTypeChange(typeName);
   };
-
-  const isAllSelected = selectedCategory === "all" && selectedType === null;
 
   return (
     <div className="w-[220px] flex-shrink-0 border-r border-border bg-background">
@@ -55,22 +48,8 @@ export function MarketplaceCategorySidebar({
       
       <ScrollArea className="h-[calc(100vh-200px)]">
         <div className="p-2">
-          {/* All Companies option */}
-          <button
-            onClick={handleAllCompaniesClick}
-            className={cn(
-              "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
-              "hover:bg-muted",
-              isAllSelected
-                ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
-                : "text-muted-foreground"
-            )}
-          >
-            All Companies
-          </button>
-
           {/* Category sections */}
-          <div className="mt-2 space-y-1">
+          <div className="space-y-1">
             {COMPANY_TYPE_CATEGORIES.map((category) => {
               const isOpen = openCategories.includes(category.name);
               const isCategoryActive = selectedCategory === category.name;

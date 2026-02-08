@@ -8,7 +8,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Globe, MapPin, Star, Phone } from "lucide-react";
+import { Globe, MapPin, Star, Phone, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
 
@@ -30,11 +30,11 @@ interface MarketplaceCompany {
 
 interface MarketplaceCompaniesTableProps {
   searchQuery?: string;
-  selectedCategory?: string;
+  selectedCategory?: string | null;
   selectedType?: string | null;
 }
 
-export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory = "all", selectedType = null }: MarketplaceCompaniesTableProps) {
+export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory = null, selectedType = null }: MarketplaceCompaniesTableProps) {
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['marketplace-companies'],
     queryFn: async () => {
@@ -49,18 +49,23 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
   });
 
   // Get the company types for selected category
-  const categoryTypes = selectedCategory !== "all" 
+  const categoryTypes = selectedCategory 
     ? COMPANY_TYPE_CATEGORIES.find(cat => cat.name === selectedCategory)?.types || []
     : [];
 
   // Filter companies based on search, category, and specific type
   const filteredCompanies = companies.filter(company => {
+    // If no category selected, show nothing
+    if (!selectedCategory) {
+      return false;
+    }
+    
     // Specific type filter (most granular)
     if (selectedType) {
       if (company.company_type !== selectedType) {
         return false;
       }
-    } else if (selectedCategory !== "all") {
+    } else {
       // Category filter (parent level)
       if (!categoryTypes.includes(company.company_type)) {
         return false;
@@ -81,6 +86,21 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
 
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading marketplace companies...</div>;
+  }
+
+  // Empty state when no category is selected
+  if (!selectedCategory) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className="rounded-full bg-muted p-4 mb-4">
+          <Building2 className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Select a Category</h3>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Choose a company type from the sidebar to browse top-rated contractors and service providers in your area.
+        </p>
+      </div>
+    );
   }
 
   return (

@@ -8,7 +8,7 @@ import { MarketplaceCategorySidebar } from "@/components/marketplace/Marketplace
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
   return (
