@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, ArrowLeft, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -170,8 +170,8 @@ const MarketplaceSignup = () => {
       <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl">Check Your Email!</CardTitle>
             <CardDescription className="text-base">
@@ -200,35 +200,18 @@ const MarketplaceSignup = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
-      {/* Header */}
-      <header className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link to="/" className="flex items-center">
-              <Building2 className="h-8 w-8 text-primary" />
-              <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite</span>
-            </Link>
-            <Link to="/">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-12">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Join the BuilderSuite Marketplace</h1>
-          <p className="text-muted-foreground">
-            Get listed where home builders and general contractors can find you.
+    <div className="min-h-screen w-full flex items-center justify-center bg-muted/30 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-extrabold text-foreground">
+            Join the BuilderSuite Marketplace
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Get listed where home builders can find you
           </p>
         </div>
 
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Company Information</CardTitle>
             <CardDescription>
@@ -395,7 +378,13 @@ const MarketplaceSignup = () => {
             </form>
           </CardContent>
         </Card>
-      </main>
+        
+        <div className="text-center">
+          <Link to="/" className="text-sm text-primary hover:underline">
+            ← Back to Home
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
