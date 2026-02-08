@@ -11,6 +11,7 @@ export const GOOGLE_PLACES_MAPPING: Record<string, GooglePlacesMapping> = {
   "Architect": { keyword: "architect" },
   "Bath Designer": { keyword: "bathroom designer" },
   "Closet Designer": { keyword: "custom closet designer" },
+  "Home Designer": { keyword: "home designer house plans" },
   "Home Theater Designer": { keyword: "home theater design installation" },
   "Interior Designer": { keyword: "interior designer" },
   "Kitchen Designer": { keyword: "kitchen designer" },
@@ -23,6 +24,8 @@ export const GOOGLE_PLACES_MAPPING: Record<string, GooglePlacesMapping> = {
   "Environmental Engineer": { keyword: "environmental engineering consultant" },
   "Fire Protection Engineer": { keyword: "fire protection engineer" },
   "Geotechnical Engineer": { keyword: "geotechnical engineering" },
+  "Land Surveyor": { keyword: "land surveyor" },
+  "Materials Testing Lab": { keyword: "geotechnical testing laboratory" },
   "Mechanical Engineer": { keyword: "mechanical engineering firm" },
   "MEP Engineer": { keyword: "MEP engineering firm" },
   "Plumbing Engineer": { keyword: "plumbing engineering" },
@@ -74,15 +77,15 @@ export const GOOGLE_PLACES_MAPPING: Record<string, GooglePlacesMapping> = {
   // ============ GOVERNMENT & SERVICES ============
   "Arborist": { keyword: "certified arborist" },
   "Energy Auditor": { keyword: "home energy auditor" },
+  "Environmental Consultant": { keyword: "environmental consultant" },
   "Home Inspector": { keyword: "home inspector" },
   "Home Warranty Provider": { keyword: "home warranty" },
   "Mold Inspector": { keyword: "mold inspector testing" },
   "Municipality/Permitting": { type: "local_government_office" },
+  "Print/Reprographics Service": { keyword: "blueprint printing reprographics" },
   "Real Estate Agent": { type: "real_estate_agency" },
   "Termite Inspector": { keyword: "termite inspector pest control" },
   "Utility Company": { keyword: "utility company" },
-
-  // ============ INTERIOR TRADES ============
   "Accent Wall Contractor": { keyword: "accent wall installation contractor" },
   "Built-In Cabinet Installer": { keyword: "built-in cabinet installation" },
   "Cabinet Installer": { keyword: "cabinet installation contractor" },
@@ -122,6 +125,7 @@ export const GOOGLE_PLACES_MAPPING: Record<string, GooglePlacesMapping> = {
   "Zoning Attorney": { keyword: "zoning attorney" },
 
   // ============ MATERIAL SUPPLIERS ============
+  "Appliance Supplier": { keyword: "appliance store" },
   "Brick & Stone Supplier": { keyword: "brick stone supplier masonry" },
   "Building Materials Supplier": { type: "hardware_store" },
   "Cabinet Supplier": { keyword: "cabinet supplier showroom" },
@@ -152,6 +156,7 @@ export const GOOGLE_PLACES_MAPPING: Record<string, GooglePlacesMapping> = {
   "Security System Installer": { keyword: "security system installer" },
   "Smart Home Installer": { keyword: "smart home installer automation" },
   "Solar/Renewable Energy Contractor": { keyword: "solar installer" },
+  "Water Treatment Contractor": { keyword: "water treatment contractor" },
 
   // ============ SITE WORK CONTRACTORS ============
   "Concrete Contractor": { keyword: "concrete contractor" },
@@ -168,6 +173,7 @@ export const GOOGLE_PLACES_MAPPING: Record<string, GooglePlacesMapping> = {
   "Utility Contractor": { keyword: "utility contractor" },
 
   // ============ SPECIALTY CONTRACTORS ============
+  "Abatement Contractor": { keyword: "asbestos abatement contractor" },
   "Brick Mason": { keyword: "brick mason" },
   "Chimney Contractor": { keyword: "chimney contractor" },
   "EIFS Contractor": { keyword: "EIFS stucco contractor" },
@@ -210,11 +216,11 @@ export const MAX_GOOGLE_RADIUS = 50000;
 export const COMPANY_TYPE_CATEGORIES = [
   {
     name: "Designers",
-    types: ["Architect", "Bath Designer", "Closet Designer", "Home Theater Designer", "Interior Designer", "Kitchen Designer", "Landscape Architect", "Lighting Designer"],
+    types: ["Architect", "Bath Designer", "Closet Designer", "Home Designer", "Home Theater Designer", "Interior Designer", "Kitchen Designer", "Landscape Architect", "Lighting Designer"],
   },
   {
     name: "Engineers",
-    types: ["Civil Engineer", "Electrical Engineer", "Environmental Engineer", "Fire Protection Engineer", "Geotechnical Engineer", "Mechanical Engineer", "MEP Engineer", "Plumbing Engineer", "Stormwater Engineer", "Structural Engineer", "Transportation Engineer"],
+    types: ["Civil Engineer", "Electrical Engineer", "Environmental Engineer", "Fire Protection Engineer", "Geotechnical Engineer", "Land Surveyor", "Materials Testing Lab", "Mechanical Engineer", "MEP Engineer", "Plumbing Engineer", "Stormwater Engineer", "Structural Engineer", "Transportation Engineer"],
   },
   {
     name: "Equipment Suppliers",
@@ -230,7 +236,7 @@ export const COMPANY_TYPE_CATEGORIES = [
   },
   {
     name: "Government & Services",
-    types: ["Arborist", "Energy Auditor", "Home Inspector", "Home Warranty Provider", "Mold Inspector", "Municipality/Permitting", "Real Estate Agent", "Termite Inspector", "Utility Company"],
+    types: ["Arborist", "Energy Auditor", "Environmental Consultant", "Home Inspector", "Home Warranty Provider", "Mold Inspector", "Municipality/Permitting", "Print/Reprographics Service", "Real Estate Agent", "Termite Inspector", "Utility Company"],
   },
   {
     name: "Interior Trades",
@@ -242,11 +248,11 @@ export const COMPANY_TYPE_CATEGORIES = [
   },
   {
     name: "Material Suppliers",
-    types: ["Brick & Stone Supplier", "Building Materials Supplier", "Cabinet Supplier", "Concrete Supplier (Ready-Mix)", "Countertop Supplier", "Door & Window Supplier", "Drywall Supplier", "Electrical Fixtures Supplier", "Flooring Supplier", "Hardware Supplier", "Insulation Supplier", "Lumber Yard", "Millwork Supplier", "Paint Supplier", "Plumbing Fixtures Supplier", "Roofing Materials Supplier", "Steel Supplier", "Tile Supplier"],
+    types: ["Appliance Supplier", "Brick & Stone Supplier", "Building Materials Supplier", "Cabinet Supplier", "Concrete Supplier (Ready-Mix)", "Countertop Supplier", "Door & Window Supplier", "Drywall Supplier", "Electrical Fixtures Supplier", "Flooring Supplier", "Hardware Supplier", "Insulation Supplier", "Lumber Yard", "Millwork Supplier", "Paint Supplier", "Plumbing Fixtures Supplier", "Roofing Materials Supplier", "Steel Supplier", "Tile Supplier"],
   },
   {
     name: "MEP Contractors",
-    types: ["Audio/Video Installer", "Electrical Contractor", "Fire Sprinkler Contractor", "Generator Installer", "HVAC Contractor", "Low Voltage Contractor", "Plumbing Contractor", "Security System Installer", "Smart Home Installer", "Solar/Renewable Energy Contractor"],
+    types: ["Audio/Video Installer", "Electrical Contractor", "Fire Sprinkler Contractor", "Generator Installer", "HVAC Contractor", "Low Voltage Contractor", "Plumbing Contractor", "Security System Installer", "Smart Home Installer", "Solar/Renewable Energy Contractor", "Water Treatment Contractor"],
   },
   {
     name: "Site Work Contractors",
@@ -254,7 +260,7 @@ export const COMPANY_TYPE_CATEGORIES = [
   },
   {
     name: "Specialty Contractors",
-    types: ["Brick Mason", "Chimney Contractor", "EIFS Contractor", "Elevator Installer", "Fireplace Installer", "Glass/Mirror Contractor", "Home Automation Contractor", "Metal Railing Contractor", "Shower Door Installer", "Stone Mason", "Stucco Contractor", "Waterproofing Contractor", "Wrought Iron Contractor"],
+    types: ["Abatement Contractor", "Brick Mason", "Chimney Contractor", "EIFS Contractor", "Elevator Installer", "Fireplace Installer", "Glass/Mirror Contractor", "Home Automation Contractor", "Metal Railing Contractor", "Shower Door Installer", "Stone Mason", "Stucco Contractor", "Waterproofing Contractor", "Wrought Iron Contractor"],
   },
   {
     name: "Structural Trades",

@@ -6,6 +6,7 @@ export const COMPANY_TYPE_CATEGORIES: Record<string, string[]> = {
     "Architect",
     "Bath Designer",
     "Closet Designer",
+    "Home Designer",
     "Home Theater Designer",
     "Interior Designer",
     "Kitchen Designer",
@@ -18,6 +19,8 @@ export const COMPANY_TYPE_CATEGORIES: Record<string, string[]> = {
     "Environmental Engineer",
     "Fire Protection Engineer",
     "Geotechnical Engineer",
+    "Land Surveyor",
+    "Materials Testing Lab",
     "Mechanical Engineer",
     "MEP Engineer",
     "Plumbing Engineer",
@@ -69,10 +72,12 @@ export const COMPANY_TYPE_CATEGORIES: Record<string, string[]> = {
   "Government & Services": [
     "Arborist",
     "Energy Auditor",
+    "Environmental Consultant",
     "Home Inspector",
     "Home Warranty Provider",
     "Mold Inspector",
     "Municipality/Permitting",
+    "Print/Reprographics Service",
     "Real Estate Agent",
     "Termite Inspector",
     "Utility Company",
@@ -117,6 +122,7 @@ export const COMPANY_TYPE_CATEGORIES: Record<string, string[]> = {
     "Zoning Attorney",
   ],
   "Material Suppliers": [
+    "Appliance Supplier",
     "Brick & Stone Supplier",
     "Building Materials Supplier",
     "Cabinet Supplier",
@@ -147,6 +153,7 @@ export const COMPANY_TYPE_CATEGORIES: Record<string, string[]> = {
     "Security System Installer",
     "Smart Home Installer",
     "Solar/Renewable Energy Contractor",
+    "Water Treatment Contractor",
   ],
   "Site Work Contractors": [
     "Concrete Contractor",
@@ -163,6 +170,7 @@ export const COMPANY_TYPE_CATEGORIES: Record<string, string[]> = {
     "Utility Contractor",
   ],
   "Specialty Contractors": [
+    "Abatement Contractor",
     "Brick Mason",
     "Chimney Contractor",
     "EIFS Contractor",

@@ -12,6 +12,7 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   "Architect": { keyword: "architect" },
   "Bath Designer": { keyword: "bathroom designer" },
   "Closet Designer": { keyword: "custom closet designer" },
+  "Home Designer": { keyword: "home designer house plans" },
   "Home Theater Designer": { keyword: "home theater design installation" },
   "Interior Designer": { keyword: "interior designer" },
   "Kitchen Designer": { keyword: "kitchen designer" },
@@ -24,6 +25,8 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   "Environmental Engineer": { keyword: "environmental engineering consultant" },
   "Fire Protection Engineer": { keyword: "fire protection engineer" },
   "Geotechnical Engineer": { keyword: "geotechnical engineering" },
+  "Land Surveyor": { keyword: "land surveyor" },
+  "Materials Testing Lab": { keyword: "geotechnical testing laboratory" },
   "Mechanical Engineer": { keyword: "mechanical engineering firm" },
   "MEP Engineer": { keyword: "MEP engineering firm" },
   "Plumbing Engineer": { keyword: "plumbing engineering" },
@@ -75,10 +78,12 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   // ============ GOVERNMENT & SERVICES ============
   "Arborist": { keyword: "certified arborist" },
   "Energy Auditor": { keyword: "home energy auditor" },
+  "Environmental Consultant": { keyword: "environmental consultant" },
   "Home Inspector": { keyword: "home inspector" },
   "Home Warranty Provider": { keyword: "home warranty" },
   "Mold Inspector": { keyword: "mold inspector testing" },
   "Municipality/Permitting": { type: "local_government_office" },
+  "Print/Reprographics Service": { keyword: "blueprint printing reprographics" },
   "Real Estate Agent": { type: "real_estate_agency" },
   "Termite Inspector": { keyword: "termite inspector pest control" },
   "Utility Company": { keyword: "utility company" },
@@ -123,6 +128,7 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   "Zoning Attorney": { keyword: "zoning attorney" },
 
   // ============ MATERIAL SUPPLIERS ============
+  "Appliance Supplier": { keyword: "appliance store" },
   "Brick & Stone Supplier": { keyword: "brick stone supplier masonry" },
   "Building Materials Supplier": { type: "hardware_store" },
   "Cabinet Supplier": { keyword: "cabinet supplier showroom" },
@@ -153,6 +159,7 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   "Security System Installer": { keyword: "security system installer" },
   "Smart Home Installer": { keyword: "smart home installer automation" },
   "Solar/Renewable Energy Contractor": { keyword: "solar installer" },
+  "Water Treatment Contractor": { keyword: "water treatment contractor" },
 
   // ============ SITE WORK CONTRACTORS ============
   "Concrete Contractor": { keyword: "concrete contractor" },
@@ -169,6 +176,7 @@ const GOOGLE_PLACES_MAPPING: Record<string, { type?: string; keyword?: string }>
   "Utility Contractor": { keyword: "utility contractor" },
 
   // ============ SPECIALTY CONTRACTORS ============
+  "Abatement Contractor": { keyword: "asbestos abatement contractor" },
   "Brick Mason": { keyword: "brick mason" },
   "Chimney Contractor": { keyword: "chimney contractor" },
   "EIFS Contractor": { keyword: "EIFS stucco contractor" },
