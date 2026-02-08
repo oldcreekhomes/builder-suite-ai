@@ -203,7 +203,7 @@ const MarketplaceSignup = () => {
     <div className="min-h-screen bg-muted/30 flex flex-col">
       {/* Header */}
       <header className="bg-card border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <Link to="/" className="flex items-center">
               <Building2 className="h-8 w-8 text-primary" />
@@ -220,7 +220,7 @@ const MarketplaceSignup = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-12">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Join the BuilderSuite Marketplace</h1>
           <p className="text-muted-foreground">
