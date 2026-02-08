@@ -1,48 +1,76 @@
 
 
-# Populate Marketplace with Massive Google Places Import
+# Remove "All Companies" and Start with Empty State
 
-## Current State
+## Overview
 
-- **290 companies** currently in database (old category names)
-- **175 new categories** defined in the edge function
-- **0 companies** imported for new categories like "Construction Attorney", "Cabinet Manufacturer", etc.
+Change the Marketplace to require users to select a category before seeing any companies. This creates a more intentional browsing experience and reduces the overwhelming feeling of 800+ companies on initial load.
 
-## The Plan: Trigger Full Import
+---
 
-Simply invoke the `populate-marketplace` edge function to run the massive import. The function is already configured to:
-- Process all 175 company types
-- Fetch 10 companies per category (already set in code)
-- Search 50-mile radius around Washington D.C.
-- Filter for 4.0+ star ratings
+## Changes Required
 
-## Expected Results
+### 1. Marketplace.tsx - Change Default State
 
-| Metric | Current | After Import |
-|--------|---------|--------------|
-| Company Types | 62 (old) | **175+ (new)** |
-| Companies per Type | 5 | **10** |
-| Total Companies | 290 | **1,750+** |
+Update the initial state from `"all"` to `null` so no category is selected on page load:
 
-## Cost Estimate
+```tsx
+// Before
+const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-- 175 categories × ~10 Place Details API calls = ~1,750 calls
-- Cost: ~$29.75 (at $0.017/call)
-- One-time import cost is well worth it for $100/month per company revenue
+// After  
+const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+```
 
-## Implementation
+---
 
-1. **Call the edge function** with default parameters to trigger full import
-2. **Function processes** all 175 categories automatically
-3. **Deduplication** - skips companies already in database by name+address
-4. **New companies** get inserted with new category names
+### 2. MarketplaceCategorySidebar.tsx - Remove "All Companies" Button
 
-## No Code Changes Needed
+Remove the "All Companies" button entirely from the sidebar (lines 58-70), and update the type definitions to allow `null` for selectedCategory:
 
-The edge function is already configured correctly with:
-- `maxResultsPerCategory = 10` (already set)
-- All 175 category mappings (already in place)
-- Deduplication logic (already working)
+- Remove the `handleAllCompaniesClick` function
+- Remove the `isAllSelected` check
+- Remove the "All Companies" button JSX
+- Update the interface to accept `string | null` for selectedCategory
 
-I just need to **invoke the edge function** to trigger the import.
+---
+
+### 3. MarketplaceCompaniesTable.tsx - Add Empty State
+
+Update the table to show a helpful empty state when no category is selected:
+
+- Change `selectedCategory` default from `"all"` to `null`
+- When `selectedCategory` is `null`, show an empty state message prompting users to select a category
+- Hide the "Showing X of Y companies" text when nothing is selected
+
+**Empty state design:**
+```
+┌────────────────────────────────────────────┐
+│                                            │
+│         📂 Select a Category               │
+│                                            │
+│   Choose a company type from the sidebar   │
+│   to browse top-rated contractors and      │
+│   service providers in your area.          │
+│                                            │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/Marketplace.tsx` | Change default selectedCategory to `null` |
+| `src/components/marketplace/MarketplaceCategorySidebar.tsx` | Remove "All Companies" button, update types |
+| `src/components/marketplace/MarketplaceCompaniesTable.tsx` | Add empty state when no selection, update default |
+
+---
+
+## Result
+
+- Page loads with an empty state and helpful instructions
+- Users must actively choose what type of company they want to find
+- Cleaner, more intentional UX for discovering specific contractors
 
