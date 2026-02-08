@@ -5,22 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-
-const COMPANY_TYPES = [
-  "Subcontractor",
-  "Vendor",
-  "Lender",
-  "Municipality",
-  "CPA",
-  "Insurance",
-  "Other"
-];
-
+import { CompanyTypeCombobox } from "@/components/marketplace/CompanyTypeCombobox";
 const MarketplaceSignup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -223,16 +212,10 @@ const MarketplaceSignup = () => {
               {/* Company Type */}
               <div className="space-y-2">
                 <Label htmlFor="companyType">Company Type *</Label>
-                <Select value={companyType} onValueChange={setCompanyType} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your company type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COMPANY_TYPES.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CompanyTypeCombobox
+                  value={companyType}
+                  onSelect={setCompanyType}
+                />
               </div>
 
               {/* Company Name */}
