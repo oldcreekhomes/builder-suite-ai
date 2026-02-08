@@ -3797,6 +3797,7 @@ export type Database = {
           can_access_employees: boolean
           can_access_estimate: boolean
           can_access_manage_bills: boolean
+          can_access_marketplace: boolean
           can_access_owner_dashboard: boolean
           can_access_pm_dashboard: boolean
           can_access_reports: boolean
@@ -3819,6 +3820,7 @@ export type Database = {
           can_access_employees?: boolean
           can_access_estimate?: boolean
           can_access_manage_bills?: boolean
+          can_access_marketplace?: boolean
           can_access_owner_dashboard?: boolean
           can_access_pm_dashboard?: boolean
           can_access_reports?: boolean
@@ -3841,6 +3843,7 @@ export type Database = {
           can_access_employees?: boolean
           can_access_estimate?: boolean
           can_access_manage_bills?: boolean
+          can_access_marketplace?: boolean
           can_access_owner_dashboard?: boolean
           can_access_pm_dashboard?: boolean
           can_access_reports?: boolean

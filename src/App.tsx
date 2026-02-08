@@ -59,6 +59,7 @@ import SubmitBid from "./pages/SubmitBid";
 import CloseBooks from "./pages/accounting/CloseBooks";
 import OutboundRedirect from "./pages/OutboundRedirect";
 import Marketplace from "./pages/Marketplace";
+import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 
 const queryClient = new QueryClient();
 
@@ -173,8 +174,8 @@ const AppContent = () => {
           {/* Issues route - company-wide */}
           <Route path="/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
           
-          {/* Marketplace route - company-wide */}
-          <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+          {/* Marketplace route - company-wide, requires marketplace permission */}
+          <Route path="/marketplace" element={<ProtectedRoute><MarketplaceGuard><Marketplace /></MarketplaceGuard></ProtectedRoute>} />
           
           {/* Companies route */}
           <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
