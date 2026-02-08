@@ -131,6 +131,7 @@ export function StructuredAddressInput({
   // Use uncontrolled input for street address to prevent Google/React race condition
   const streetInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   
@@ -216,6 +217,9 @@ export function StructuredAddressInput({
       // Create Geocoder for fallback
       geocoderRef.current = new window.google.maps.Geocoder();
 
+      // Create session token to bundle autocomplete + place details into single billing event
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         streetInputRef.current,
         {
@@ -224,6 +228,9 @@ export function StructuredAddressInput({
           fields: ['address_components', 'formatted_address', 'geometry', 'name', 'place_id']
         }
       );
+      
+      // Set session token (not in types but supported by API)
+      (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
 
       // Add custom styling for the Google Places dropdown
       const style = document.createElement('style');
@@ -282,6 +289,12 @@ export function StructuredAddressInput({
         setTimeout(() => {
           isProcessingSelectionRef.current = false;
         }, 300);
+        
+        // Create new session token for next search (session ends on place selection)
+        sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+        if (autocompleteRef.current) {
+          (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
+        }
       };
 
       // Helper function to try Geocoder as fallback

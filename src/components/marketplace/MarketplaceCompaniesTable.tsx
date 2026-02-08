@@ -9,12 +9,13 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Lock, Loader2 } from "lucide-react";
+import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Lock, Loader2, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
 import { SendMarketplaceMessageModal } from "./SendMarketplaceMessageModal";
 import { useCompanyHQ } from "@/hooks/useCompanyHQ";
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
+import { toast } from "sonner";
 
 interface MarketplaceCompany {
   id: string;
@@ -58,6 +59,9 @@ export function MarketplaceCompaniesTable({
 }: MarketplaceCompaniesTableProps) {
   const [selectedCompany, setSelectedCompany] = useState<MarketplaceCompany | null>(null);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [distanceCalculationEnabled, setDistanceCalculationEnabled] = useState(false);
+  const [isCalculatingDistances, setIsCalculatingDistances] = useState(false);
+  const [calculatedDistances, setCalculatedDistances] = useState<Record<string, number | null>>({});
   
   const { hqData, hasHQSet } = useCompanyHQ();
   const { maxRadius, tier } = useMarketplaceSubscription();
@@ -73,6 +77,12 @@ export function MarketplaceCompaniesTable({
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : null;
   }, [hasHQSet, hqData]);
+
+  // Reset distances when category changes
+  useEffect(() => {
+    setDistanceCalculationEnabled(false);
+    setCalculatedDistances({});
+  }, [selectedCategory, selectedType]);
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['marketplace-companies'],
@@ -125,61 +135,98 @@ export function MarketplaceCompaniesTable({
     return filtered;
   }, [companies, selectedCategory, selectedType, categoryTypes, searchQuery]);
 
-  // Create a stable key for the distance query based on company IDs
-  const companyIdsForDistance = useMemo(() => {
-    return preFiltedCompanies
-      .filter(c => c.address && c.address.trim() && c.address !== 'Unknown')
-      .map(c => c.id)
-      .sort()
-      .join(',');
-  }, [preFiltedCompanies]);
-
-  // Fetch distances from the edge function
-  const { data: distancesData, isLoading: isLoadingDistances, error: distanceError } = useQuery({
-    queryKey: ['marketplace-distances', hqOrigin, companyIdsForDistance],
-    queryFn: async () => {
-      if (!hqOrigin || !companyIdsForDistance) return {};
-      
+  // Manual distance calculation function
+  const calculateDistances = async () => {
+    if (!hqOrigin || preFiltedCompanies.length === 0) return;
+    
+    setIsCalculatingDistances(true);
+    
+    try {
       const companiesPayload = preFiltedCompanies
         .filter(c => c.address && c.address.trim() && c.address !== 'Unknown')
         .map(c => ({ id: c.id, address: c.address! }));
       
-      if (companiesPayload.length === 0) return {};
+      if (companiesPayload.length === 0) {
+        toast.error("No companies with valid addresses to calculate distances for.");
+        return;
+      }
 
+      // Check cache first
+      const { data: cachedData } = await supabase
+        .from('marketplace_distance_cache')
+        .select('company_id, distance_miles')
+        .eq('origin_address', hqOrigin)
+        .in('company_id', companiesPayload.map(c => c.id));
+
+      const cachedDistances: Record<string, number | null> = {};
+      const uncachedCompanies: typeof companiesPayload = [];
+
+      if (cachedData && cachedData.length > 0) {
+        cachedData.forEach(row => {
+          cachedDistances[row.company_id] = row.distance_miles;
+        });
+        
+        companiesPayload.forEach(c => {
+          if (!(c.id in cachedDistances)) {
+            uncachedCompanies.push(c);
+          }
+        });
+      } else {
+        uncachedCompanies.push(...companiesPayload);
+      }
+
+      // If all are cached, use them directly
+      if (uncachedCompanies.length === 0) {
+        setCalculatedDistances(cachedDistances);
+        setDistanceCalculationEnabled(true);
+        toast.success(`Loaded ${Object.keys(cachedDistances).length} cached distances.`);
+        return;
+      }
+
+      // Call API for uncached companies
       const { data, error } = await supabase.functions.invoke('calculate-distances', {
         body: { 
           projectAddress: hqOrigin, 
-          companies: companiesPayload 
+          companies: uncachedCompanies 
         }
       });
 
       if (error) {
         console.error('Distance calculation error:', error);
-        throw error;
+        toast.error("Failed to calculate distances. Please try again.");
+        return;
       }
 
-      // Transform results into a map: companyId -> distance
-      const distanceMap: Record<string, number | null> = {};
+      // Merge cached and new distances
+      const newDistances: Record<string, number | null> = { ...cachedDistances };
       if (data?.results) {
         Object.values(data.results as Record<string, DistanceResult>).forEach((result: DistanceResult) => {
-          distanceMap[result.companyId] = result.distance;
+          newDistances[result.companyId] = result.distance;
         });
       }
 
-      return distanceMap;
-    },
-    enabled: Boolean(hqOrigin && selectedCategory && companyIdsForDistance),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-  });
+      setCalculatedDistances(newDistances);
+      setDistanceCalculationEnabled(true);
+      
+      const cachedCount = Object.keys(cachedDistances).length;
+      const newCount = uncachedCompanies.length;
+      toast.success(`Calculated ${newCount} distances (${cachedCount} from cache).`);
+      
+    } catch (err) {
+      console.error('Distance calculation error:', err);
+      toast.error("Failed to calculate distances. Please try again.");
+    } finally {
+      setIsCalculatingDistances(false);
+    }
+  };
 
   // Apply distance filtering and sorting
   const { filteredCompanies, totalInCategory, excludedCount } = useMemo(() => {
     const total = preFiltedCompanies.length;
     let excluded = 0;
 
-    if (!hasHQSet || !hqOrigin || !distancesData) {
-      // If no HQ or distances not loaded yet, show all pre-filtered companies without distance info
+    if (!hasHQSet || !hqOrigin || !distanceCalculationEnabled) {
+      // If no HQ or distances not calculated, show all pre-filtered companies without distance info
       return { 
         filteredCompanies: preFiltedCompanies.map(c => ({ ...c, distance: null as number | null })), 
         totalInCategory: total,
@@ -189,7 +236,7 @@ export function MarketplaceCompaniesTable({
 
     // Add distance to each company and filter/sort
     const withDistances = preFiltedCompanies.map(company => {
-      const distance = distancesData[company.id] ?? null;
+      const distance = calculatedDistances[company.id] ?? null;
       return { ...company, distance };
     });
 
@@ -215,7 +262,7 @@ export function MarketplaceCompaniesTable({
       totalInCategory: total,
       excludedCount: excluded
     };
-  }, [preFiltedCompanies, hasHQSet, hqOrigin, distancesData, currentRadius]);
+  }, [preFiltedCompanies, hasHQSet, hqOrigin, calculatedDistances, currentRadius, distanceCalculationEnabled]);
 
   // Report counts to parent
   useEffect(() => {
@@ -247,25 +294,41 @@ export function MarketplaceCompaniesTable({
     );
   }
 
-  const showDistanceColumn = hasHQSet && hqOrigin;
+  const showDistanceColumn = hasHQSet && hqOrigin && distanceCalculationEnabled;
 
   return (
     <>
-      {/* Loading/error state for distances */}
-      {isLoadingDistances && showDistanceColumn && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Calculating distances from your HQ...
-        </div>
-      )}
-      
-      {distanceError && (
-        <div className="text-sm text-destructive mb-2">
-          Could not calculate distances. Please try again.
+      {/* Distance calculation controls */}
+      {hasHQSet && hqOrigin && !distanceCalculationEnabled && (
+        <div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border">
+          <Calculator className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Calculate distances from your HQ</p>
+            <p className="text-xs text-muted-foreground">
+              {preFiltedCompanies.length} companies in this category
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={calculateDistances}
+            disabled={isCalculatingDistances}
+          >
+            {isCalculatingDistances ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Calculating...
+              </>
+            ) : (
+              <>
+                <MapPin className="h-4 w-4 mr-2" />
+                Calculate Distances
+              </>
+            )}
+          </Button>
         </div>
       )}
 
-      {excludedCount > 0 && !isLoadingDistances && (
+      {excludedCount > 0 && distanceCalculationEnabled && (
         <div className="text-sm text-muted-foreground mb-2">
           {excludedCount} supplier{excludedCount !== 1 ? 's' : ''} excluded (address couldn't be mapped)
         </div>
@@ -273,7 +336,7 @@ export function MarketplaceCompaniesTable({
 
       <div className="text-sm text-muted-foreground mb-2">
         Showing {filteredCompanies.length} of {totalInCategory} companies
-        {showDistanceColumn && !isLoadingDistances && ` within ${currentRadius} miles`}
+        {showDistanceColumn && ` within ${currentRadius} miles`}
       </div>
       
       <div className="border rounded-lg">
@@ -319,9 +382,7 @@ export function MarketplaceCompaniesTable({
                   </TableCell>
                   {showDistanceColumn && (
                     <TableCell className="px-2 py-1">
-                      {isLoadingDistances ? (
-                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      ) : company.distance !== null && company.distance !== undefined ? (
+                      {company.distance !== null && company.distance !== undefined ? (
                         <span className="text-xs text-muted-foreground">
                           {company.distance.toFixed(1)} mi
                         </span>
@@ -382,10 +443,12 @@ export function MarketplaceCompaniesTable({
               );
             })}
 
-            {filteredCompanies.length === 0 && !isLoadingDistances && (
+            {filteredCompanies.length === 0 && (
               <TableRow>
                 <TableCell colSpan={showDistanceColumn ? 7 : 6} className="text-center py-4 text-xs text-muted-foreground">
-                  No marketplace companies found within {currentRadius} miles.
+                  {distanceCalculationEnabled 
+                    ? `No marketplace companies found within ${currentRadius} miles.`
+                    : "No companies found. Try selecting a different category or calculating distances."}
                 </TableCell>
               </TableRow>
             )}

@@ -5,10 +5,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypes";
-import { Loader2, MapPin, Building2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, MapPin, Building2, CheckCircle2, AlertCircle, AlertTriangle, DollarSign } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PopulateResult {
   category: string;
@@ -29,6 +40,9 @@ interface PopulateResponse {
   error?: string;
 }
 
+// Estimated costs per category (Nearby Search + Place Details)
+const ESTIMATED_COST_PER_CATEGORY = 2.50; // ~$2.50 per category on average
+
 export function MarketplacePopulator() {
   const { toast } = useToast();
   const [isPopulating, setIsPopulating] = useState(false);
@@ -36,9 +50,14 @@ export function MarketplacePopulator() {
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const [results, setResults] = useState<PopulateResponse | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmationText, setConfirmationText] = useState("");
 
   // Get all company types flattened
   const allCompanyTypes = Object.values(COMPANY_TYPE_CATEGORIES).flat().filter(t => t !== "Other");
+
+  // Calculate estimated cost
+  const estimatedCost = selectedCategories.length * ESTIMATED_COST_PER_CATEGORY;
 
   const handleSelectAll = () => {
     if (selectedCategories.length === allCompanyTypes.length) {
@@ -68,7 +87,7 @@ export function MarketplacePopulator() {
     }
   };
 
-  const handlePopulate = async () => {
+  const handlePopulateClick = () => {
     if (selectedCategories.length === 0) {
       toast({
         title: "No categories selected",
@@ -77,7 +96,14 @@ export function MarketplacePopulator() {
       });
       return;
     }
+    
+    // Show confirmation dialog
+    setConfirmationText("");
+    setShowConfirmDialog(true);
+  };
 
+  const handleConfirmedPopulate = async () => {
+    setShowConfirmDialog(false);
     setIsPopulating(true);
     setProgress(0);
     setResults(null);
@@ -144,6 +170,27 @@ export function MarketplacePopulator() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Cost Warning Banner */}
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-800 dark:text-amber-200">Google API Cost Warning</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  This operation incurs Google Places API charges. Each category costs approximately <strong>${ESTIMATED_COST_PER_CATEGORY.toFixed(2)}</strong> (Nearby Search + Place Details calls).
+                </p>
+                {selectedCategories.length > 0 && (
+                  <div className="flex items-center gap-2 mt-2 text-amber-800 dark:text-amber-200">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="font-medium">
+                      Estimated cost: ${estimatedCost.toFixed(2)} for {selectedCategories.length} categories
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Category Selection */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -187,8 +234,13 @@ export function MarketplacePopulator() {
               ))}
             </ScrollArea>
 
-            <div className="text-sm text-muted-foreground">
-              {selectedCategories.length} of {allCompanyTypes.length} categories selected
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>{selectedCategories.length} of {allCompanyTypes.length} categories selected</span>
+              {selectedCategories.length > 0 && (
+                <span className="font-medium text-amber-600">
+                  Est. cost: ${estimatedCost.toFixed(2)}
+                </span>
+              )}
             </div>
           </div>
 
@@ -205,9 +257,10 @@ export function MarketplacePopulator() {
 
           {/* Action Button */}
           <Button
-            onClick={handlePopulate}
+            onClick={handlePopulateClick}
             disabled={isPopulating || selectedCategories.length === 0}
             className="w-full"
+            variant={selectedCategories.length > 50 ? "destructive" : "default"}
           >
             {isPopulating ? (
               <>
@@ -217,7 +270,7 @@ export function MarketplacePopulator() {
             ) : (
               <>
                 <MapPin className="mr-2 h-4 w-4" />
-                Populate Marketplace ({selectedCategories.length} categories)
+                Populate Marketplace ({selectedCategories.length} categories - ~${estimatedCost.toFixed(2)})
               </>
             )}
           </Button>
@@ -290,6 +343,53 @@ export function MarketplacePopulator() {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              Confirm API Cost
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You are about to run the marketplace populator for <strong>{selectedCategories.length} categories</strong>.
+              </p>
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-3">
+                <p className="font-semibold text-amber-800 dark:text-amber-200">
+                  Estimated cost: ${estimatedCost.toFixed(2)}
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  This will make Google Places API calls that incur billing charges.
+                </p>
+              </div>
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="confirm-input">
+                  Type <strong>CONFIRM</strong> to proceed:
+                </Label>
+                <Input
+                  id="confirm-input"
+                  value={confirmationText}
+                  onChange={(e) => setConfirmationText(e.target.value)}
+                  placeholder="Type CONFIRM"
+                  className="font-mono"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmationText("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmedPopulate}
+              disabled={confirmationText !== "CONFIRM"}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Proceed with Population
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

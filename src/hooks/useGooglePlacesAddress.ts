@@ -27,6 +27,7 @@ export function useGooglePlacesAddress({
   const [apiKey, setApiKey] = useState<string | null>(null);
   
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const autocompleteInitialized = useRef(false);
   const onPlaceSelectedRef = useRef(onPlaceSelected);
@@ -210,6 +211,9 @@ export function useGooglePlacesAddress({
       // Create Geocoder for fallback
       geocoderRef.current = new window.google.maps.Geocoder();
 
+      // Create session token to bundle autocomplete + place details into single billing event
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+
       // Create new autocomplete instance
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         inputRef.current,
@@ -219,6 +223,9 @@ export function useGooglePlacesAddress({
           fields: ['address_components', 'geometry', 'place_id', 'formatted_address']
         }
       );
+      
+      // Set session token (not in types but supported by API)
+      (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
 
       autocompleteInitialized.current = true;
       console.log('Google Places Autocomplete initialized for address');
@@ -239,6 +246,12 @@ export function useGooglePlacesAddress({
           if (addressData && onPlaceSelectedRef.current) {
             console.log('Address parsed successfully:', addressData);
             onPlaceSelectedRef.current(addressData);
+            
+            // Create new session token for next search (session ends on place selection)
+            sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+            if (autocompleteRef.current) {
+              (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
+            }
             return;
           }
         }
@@ -253,6 +266,12 @@ export function useGooglePlacesAddress({
               if (addressData && onPlaceSelectedRef.current) {
                 console.log('Address parsed from Geocoder:', addressData);
                 onPlaceSelectedRef.current(addressData);
+                
+                // Create new session token for next search
+                sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+                if (autocompleteRef.current) {
+                  (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
+                }
               }
             } else {
               console.error('Geocoder failed:', status);

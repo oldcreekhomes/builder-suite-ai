@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -37,6 +38,11 @@ serve(async (req) => {
       throw new Error('Google Maps Distance Matrix API key not configured')
     }
 
+    // Initialize Supabase client for caching
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
     const results: Record<string, DistanceResult> = {}
 
     // Filter companies that have addresses
@@ -60,13 +66,59 @@ serve(async (req) => {
       )
     }
 
+    // Check cache for existing distances
+    console.log(`Checking cache for ${companiesWithAddresses.length} companies...`)
+    const { data: cachedDistances } = await supabase
+      .from('marketplace_distance_cache')
+      .select('company_id, distance_miles')
+      .eq('origin_address', projectAddress)
+      .in('company_id', companiesWithAddresses.map(c => c.id))
+
+    const cachedCompanyIds = new Set<string>()
+    if (cachedDistances && cachedDistances.length > 0) {
+      console.log(`Found ${cachedDistances.length} cached distances`)
+      cachedDistances.forEach(row => {
+        cachedCompanyIds.add(row.company_id)
+        results[row.company_id] = {
+          companyId: row.company_id,
+          distance: row.distance_miles
+        }
+      })
+    }
+
+    // Filter to only uncached companies
+    const uncachedCompanies = companiesWithAddresses.filter(c => !cachedCompanyIds.has(c.id))
+    
+    if (uncachedCompanies.length === 0) {
+      console.log('All distances were cached, no API calls needed')
+      // Handle companies without addresses
+      companies.forEach(company => {
+        if (!company.address || !company.address.trim() || company.address === 'Unknown') {
+          results[company.id] = {
+            companyId: company.id,
+            distance: null,
+            error: 'No address available'
+          }
+        }
+      })
+      
+      return new Response(
+        JSON.stringify({ results, fromCache: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`Need to calculate distances for ${uncachedCompanies.length} companies via API`)
+
     // Batch companies for API efficiency (max 25 destinations per request)
     const batches = []
     const batchSize = 25
     
-    for (let i = 0; i < companiesWithAddresses.length; i += batchSize) {
-      batches.push(companiesWithAddresses.slice(i, i + batchSize))
+    for (let i = 0; i < uncachedCompanies.length; i += batchSize) {
+      batches.push(uncachedCompanies.slice(i, i + batchSize))
     }
+
+    const newDistances: Array<{ company_id: string; distance_miles: number | null; origin_address: string; origin_lat: number; origin_lng: number }> = []
 
     // Process each batch
     for (const batch of batches) {
@@ -117,10 +169,21 @@ serve(async (req) => {
         if (element.status === 'OK' && element.distance && element.distance.value) {
           // Convert meters to miles
           const distanceInMiles = element.distance.value * 0.000621371
+          const roundedDistance = Math.round(distanceInMiles * 10) / 10 // Round to 1 decimal
+          
           results[companyId] = {
             companyId,
-            distance: Math.round(distanceInMiles * 10) / 10 // Round to 1 decimal
+            distance: roundedDistance
           }
+
+          // Prepare for cache insertion (we'll use 0,0 for lat/lng since we're keying by address)
+          newDistances.push({
+            company_id: companyId,
+            distance_miles: roundedDistance,
+            origin_address: projectAddress,
+            origin_lat: 0,
+            origin_lng: 0
+          })
         } else {
           results[companyId] = {
             companyId,
@@ -129,6 +192,22 @@ serve(async (req) => {
           }
         }
       })
+    }
+
+    // Cache the new distances
+    if (newDistances.length > 0) {
+      console.log(`Caching ${newDistances.length} new distances`)
+      const { error: cacheError } = await supabase
+        .from('marketplace_distance_cache')
+        .upsert(newDistances, { 
+          onConflict: 'origin_lat,origin_lng,company_id',
+          ignoreDuplicates: true 
+        })
+      
+      if (cacheError) {
+        console.error('Failed to cache distances:', cacheError)
+        // Don't fail the request, just log the error
+      }
     }
 
     // Handle companies without addresses
@@ -143,7 +222,14 @@ serve(async (req) => {
     })
 
     return new Response(
-      JSON.stringify({ results }),
+      JSON.stringify({ 
+        results, 
+        stats: {
+          fromCache: cachedCompanyIds.size,
+          fromApi: newDistances.length,
+          total: Object.keys(results).length
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
