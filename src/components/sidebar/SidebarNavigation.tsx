@@ -91,13 +91,6 @@ const navigationItems = [
     icon: Clock,
     enabled: true,
   },
-  {
-    title: "Marketplace",
-    url: "/marketplace",
-    icon: Store,
-    enabled: true,
-    isGlobal: true,
-  },
 ];
 
 interface SidebarNavigationProps {
@@ -256,6 +249,15 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                 </div>
               </div>
             )}
+            
+            {/* Marketplace - Global link, shown for all users */}
+            <Link
+              to="/marketplace"
+              className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+            >
+              <Store className="h-4 w-4" />
+              <span className="flex-1">Marketplace</span>
+            </Link>
           </div>
 
         </div>
