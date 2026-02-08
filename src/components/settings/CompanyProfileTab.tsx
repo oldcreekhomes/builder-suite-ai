@@ -3,8 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MapPin, Building2, Save } from "lucide-react";
-import { useCompanyHQ, UpdateHQData } from "@/hooks/useCompanyHQ";
+import { MapPin, Building2, Save, Loader2, AlertCircle } from "lucide-react";
+import { useCompanyHQ } from "@/hooks/useCompanyHQ";
+import { useGooglePlacesAddress, AddressData } from "@/hooks/useGooglePlacesAddress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function CompanyProfileTab() {
   const { hqData, isLoading, updateHQ, isUpdating } = useCompanyHQ();
@@ -17,8 +19,7 @@ export function CompanyProfileTab() {
   const [lng, setLng] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Load existing data
   useEffect(() => {
@@ -32,67 +33,21 @@ export function CompanyProfileTab() {
     }
   }, [hqData]);
 
-  const handlePlaceSelect = useCallback(() => {
-    const autocomplete = autocompleteRef.current;
-    if (!autocomplete) return;
-
-    const place = autocomplete.getPlace();
-    if (!place.address_components || !place.geometry?.location) return;
-
-    let streetNumber = "";
-    let streetName = "";
-    let cityValue = "";
-    let stateValue = "";
-    let zipValue = "";
-
-    for (const component of place.address_components) {
-      const type = component.types[0];
-      switch (type) {
-        case "street_number":
-          streetNumber = component.long_name;
-          break;
-        case "route":
-          streetName = component.long_name;
-          break;
-        case "locality":
-          cityValue = component.long_name;
-          break;
-        case "administrative_area_level_1":
-          stateValue = component.short_name;
-          break;
-        case "postal_code":
-          zipValue = component.long_name;
-          break;
-      }
-    }
-
-    const fullAddress = streetNumber ? `${streetNumber} ${streetName}` : streetName;
-    
-    setAddress(fullAddress);
-    setCity(cityValue);
-    setState(stateValue);
-    setZip(zipValue);
-    setLat(place.geometry.location.lat());
-    setLng(place.geometry.location.lng());
+  const handlePlaceSelected = useCallback((addressData: AddressData) => {
+    setAddress(addressData.street);
+    setCity(addressData.city);
+    setState(addressData.state);
+    setZip(addressData.zip);
+    setLat(addressData.lat);
+    setLng(addressData.lng);
     setHasChanges(true);
   }, []);
 
-  useEffect(() => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
-
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ["address"],
-      componentRestrictions: { country: "us" },
-      fields: ["address_components", "geometry"],
-    });
-
-    autocomplete.addListener("place_changed", handlePlaceSelect);
-    autocompleteRef.current = autocomplete;
-
-    return () => {
-      google.maps.event.clearInstanceListeners(autocomplete);
-    };
-  }, [handlePlaceSelect]);
+  const { isLoading: isGoogleLoading, error: googleError, isGoogleLoaded } = useGooglePlacesAddress({
+    inputRef,
+    isActive: true,
+    onPlaceSelected: handlePlaceSelected,
+  });
 
   const handleSave = () => {
     if (!address || !city || !state || !zip || lat === null || lng === null) return;
@@ -135,21 +90,35 @@ export function CompanyProfileTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {googleError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{googleError}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="search-address">Search Address</Label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {isGoogleLoading ? (
+                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+              ) : (
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              )}
               <Input
                 ref={inputRef}
                 id="search-address"
-                placeholder="Start typing to search for your address..."
+                placeholder={isGoogleLoading ? "Loading address search..." : "Start typing to search for your address..."}
                 defaultValue={address}
                 className="pl-9"
+                disabled={isGoogleLoading || !!googleError}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Type your address and select from the dropdown to auto-fill
-            </p>
+            {!isGoogleLoading && !googleError && isGoogleLoaded && (
+              <p className="text-xs text-muted-foreground">
+                Type your address and select from the dropdown to auto-fill
+              </p>
+            )}
           </div>
 
           {address && (
