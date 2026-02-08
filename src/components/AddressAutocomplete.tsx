@@ -29,6 +29,7 @@ export function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const suggestionsHiddenRef = useRef(false);
@@ -82,6 +83,9 @@ export function AddressAutocomplete({
     if (!isLoaded || !inputRef.current) return;
 
     try {
+      // Create session token to bundle autocomplete + place details into single billing event
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+      
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         inputRef.current,
         {
@@ -89,6 +93,9 @@ export function AddressAutocomplete({
           componentRestrictions: { country: 'us' }
         }
       );
+      
+      // Set session token (not in types but supported by API)
+      (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
 
       // Add custom styling for better visibility and z-index
       const addCustomStyles = () => {
@@ -142,6 +149,12 @@ export function AddressAutocomplete({
           onChange(fixedAddress);
           // Close the Google suggestions after selection
           closeSuggestions();
+          
+          // Create new session token for next search (session ends on place selection)
+          sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+          if (autocompleteRef.current) {
+            (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
+          }
         }
       });
 

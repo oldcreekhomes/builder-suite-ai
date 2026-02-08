@@ -15,6 +15,7 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
   const [apiKey, setApiKey] = useState<string | null>(null);
   const companyNameRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
   const onPlaceSelectedRef = useRef(onPlaceSelected);
   const autocompleteInitialized = useRef(false);
 
@@ -116,6 +117,9 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
         autocompleteRef.current = null;
       }
 
+      // Create session token to bundle autocomplete + place details into single billing event
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+      
       // Create new autocomplete instance
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         companyNameRef.current,
@@ -124,8 +128,11 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
           fields: ['name', 'formatted_address', 'formatted_phone_number', 'website', 'rating', 'user_ratings_total', 'business_status', 'types', 'address_components']
         }
       );
+      
+      // Set session token (not in types but supported by API)
+      (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
 
-      console.log('Google Places Autocomplete initialized');
+      console.log('Google Places Autocomplete initialized with session token');
       autocompleteInitialized.current = true;
 
       // Add event listener for place selection
@@ -144,6 +151,12 @@ export function useGooglePlaces(open: boolean, onPlaceSelected: (place: any) => 
             title: "Success",
             description: "Company information loaded from Google Places",
           });
+          
+          // Create new session token for next search (session ends on place selection)
+          sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+          if (autocompleteRef.current) {
+            (autocompleteRef.current as any).setOptions({ sessionToken: sessionTokenRef.current });
+          }
         }
       });
 

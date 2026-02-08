@@ -2487,6 +2487,44 @@ export type Database = {
           },
         ]
       }
+      marketplace_distance_cache: {
+        Row: {
+          calculated_at: string | null
+          company_id: string | null
+          distance_miles: number | null
+          id: string
+          origin_address: string
+          origin_lat: number
+          origin_lng: number
+        }
+        Insert: {
+          calculated_at?: string | null
+          company_id?: string | null
+          distance_miles?: number | null
+          id?: string
+          origin_address: string
+          origin_lat: number
+          origin_lng: number
+        }
+        Update: {
+          calculated_at?: string | null
+          company_id?: string | null
+          distance_miles?: number | null
+          id?: string
+          origin_address?: string
+          origin_lat?: number
+          origin_lng?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_distance_cache_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_messages: {
         Row: {
           created_at: string | null
