@@ -1,46 +1,33 @@
 
 
-# Fix Marketplace Signup Page - Scroll to Top on Load
+# Standardize Button Text on Join Marketplace Page
 
-## Problem Identified
-The `/auth/marketplace` page has proper layout with:
-- BuilderSuite header with logo
-- Centered title "Join the BuilderSuite Marketplace"
-- Centered form card
+## Overview
+Update all four FeatureRow buttons on the Join Marketplace page to consistently say "Join the Marketplace" instead of the current varied text.
 
-However, when users navigate from a scrolled position on feature pages (like clicking "Join Free"), the browser maintains the scroll position, cutting off the header and title.
+## Current Button Text
+1. **FREE LISTING row**: "Join Free"
+2. **VERIFIED PROFILE row**: "Create Profile"
+3. **DIRECT CONNECTIONS row**: "Get Started"
+4. **ZERO FRICTION row**: "Learn More"
 
-## Solution
-Add a `useEffect` hook to scroll to the top of the page when the `MarketplaceSignup` component mounts. This ensures users always see the full page from the top.
+## New Button Text
+All four buttons will display: **"Join the Marketplace"**
 
 ## File to Change
 
-### `src/pages/MarketplaceSignup.tsx`
+### `src/pages/features/JoinMarketplace.tsx`
 
-Add scroll-to-top behavior in a `useEffect`:
+Update the `buttonText` prop on each of the four `FeatureRow` components:
 
-```tsx
-import { useState, useEffect } from "react";
-// ... existing imports
-
-const MarketplaceSignup = () => {
-  // ... existing state
-
-  // Scroll to top when component mounts
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  // ... rest of component
-};
-```
+| Row | Current | New |
+|-----|---------|-----|
+| FREE LISTING | `buttonText="Join Free"` | `buttonText="Join the Marketplace"` |
+| VERIFIED PROFILE | `buttonText="Create Profile"` | `buttonText="Join the Marketplace"` |
+| DIRECT CONNECTIONS | `buttonText="Get Started"` | `buttonText="Join the Marketplace"` |
+| ZERO FRICTION | `buttonText="Learn More"` | `buttonText="Join the Marketplace"` |
 
 ## Technical Details
 
-The fix adds a single `useEffect` with an empty dependency array that runs once when the component mounts. This calls `window.scrollTo(0, 0)` to reset the scroll position to the top of the page.
-
-This is a minimal, targeted fix that:
-1. Ensures the page always loads showing the BuilderSuite header and title
-2. Does not affect other navigation behavior
-3. Follows React best practices for side effects
+Four simple text changes in the same file. Each FeatureRow already links to `/auth/marketplace`, so only the button labels need updating.
 
