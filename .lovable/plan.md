@@ -1,115 +1,104 @@
 
-# Fix Google Places Integration for HQ Address Setup
+# Fix HQ Modal Google Places Selection
 
-## Problem Identified
+## Root Cause
 
-The "Set Up Your Headquarters" modal and Company Profile settings page cannot search for addresses because:
+The Google Places dropdown IS loading and showing suggestions (as seen in your screenshot), but clicking on a suggestion doesn't populate the form fields. This is because:
 
-1. **No Google Maps API loading** - Both `SetupHQModal.tsx` and `CompanyProfileTab.tsx` assume `window.google.maps.places` is already available globally, but nothing loads the Google Maps JavaScript API on these pages
-
-2. **Missing API key secret** - The `GOOGLE_MAPS_DISTANCE_MATRIX_KEY` is not configured in the project secrets, so even if the API loading code were present, it would fail
+1. The `useGooglePlacesAddress` hook relies solely on the `place_changed` event, which can be unreliable in modal contexts
+2. The dialog's event handling (pointer down outside, focus outside) may be intercepting clicks before Google can process them
+3. Missing fallback strategies that the working `StructuredAddressInput` and `useGooglePlaces` hooks have
 
 ## Solution
 
-### Part 1: Add Google Maps API Key
+Refactor `useGooglePlacesAddress` to match the proven patterns from:
+- `src/hooks/useGooglePlaces.ts` (used by AddCompanyDialog - works)
+- `src/components/StructuredAddressInput.tsx` (works with robust fallbacks)
 
-You need to add the `GOOGLE_MAPS_DISTANCE_MATRIX_KEY` secret to the project:
+### Key Changes
 
-1. Go to your Google Cloud Console
-2. Enable the **Places API** and **Maps JavaScript API**
-3. Create or use an existing API key with these APIs enabled
-4. Add the secret in Lovable: Settings > Secrets > Add `GOOGLE_MAPS_DISTANCE_MATRIX_KEY`
+1. **Add PlacesService + Geocoder fallbacks** - Like StructuredAddressInput, use getDetails() first, then Geocoder if that fails
 
-### Part 2: Create Reusable Google Places Hook for Address Input
+2. **Add document-level click handler for pac-items** - Capture clicks on Google's dropdown items directly, bypassing potential modal interference
 
-Create a new hook `useGooglePlacesAddress` that:
-- Fetches the API key from the edge function
-- Loads the Google Maps JavaScript API if not already loaded
-- Initializes autocomplete on the provided input ref
-- Parses address components into structured fields (street, city, state, zip, lat, lng)
+3. **Request more fields** - Include `name`, `formatted_address`, `place_id` in addition to `address_components` and `geometry`
 
-### Part 3: Update SetupHQModal
+4. **Better initialization timing** - Ensure the autocomplete is properly bound after modal animation completes
 
-Modify to:
-- Use the new `useGooglePlacesAddress` hook
-- Show loading state while Google API loads
-- Display error message if API key is missing
-
-### Part 4: Update CompanyProfileTab
-
-Same changes as SetupHQModal:
-- Use the new `useGooglePlacesAddress` hook
-- Handle loading and error states
-
----
-
-## Technical Implementation
-
-### New Hook: useGooglePlacesAddress
-
-```typescript
-// src/hooks/useGooglePlacesAddress.ts
-
-export function useGooglePlacesAddress(inputRef: RefObject<HTMLInputElement>, open: boolean) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedPlace, setSelectedPlace] = useState<AddressData | null>(null);
-  
-  // 1. Fetch API key from edge function
-  // 2. Load Google Maps script if not present
-  // 3. Initialize autocomplete on inputRef
-  // 4. Parse place_changed events into structured address data
-  
-  return { isLoading, error, selectedPlace, isGoogleLoaded };
-}
-```
-
-### Files to Modify
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useGooglePlacesAddress.ts` | NEW - Reusable hook for address autocomplete |
-| `src/components/marketplace/SetupHQModal.tsx` | Use new hook, add loading/error states |
-| `src/components/settings/CompanyProfileTab.tsx` | Use new hook, add loading/error states |
+| `src/hooks/useGooglePlacesAddress.ts` | Add PlacesService/Geocoder fallbacks, document click handler, improved field requests |
+| `src/components/marketplace/SetupHQModal.tsx` | Minor adjustments if needed for event handling |
 
----
+## Technical Implementation
 
-## User Action Required
+```typescript
+// Key additions to useGooglePlacesAddress.ts:
 
-Before the code changes can work, you must add the Google Maps API key:
+// 1. Add PlacesService and Geocoder refs
+const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
-1. Ensure your Google Cloud project has:
-   - Places API enabled
-   - Maps JavaScript API enabled
-   
-2. Add the secret to this Lovable project:
-   - Key name: `GOOGLE_MAPS_DISTANCE_MATRIX_KEY`
-   - Value: Your Google Maps API key
+// 2. In initializeAutocomplete, create service instances
+const serviceDiv = document.createElement('div');
+placesServiceRef.current = new window.google.maps.places.PlacesService(serviceDiv);
+geocoderRef.current = new window.google.maps.Geocoder();
 
----
+// 3. Request more fields
+autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+  types: ['address'],
+  componentRestrictions: { country: 'us' },
+  fields: ['address_components', 'geometry', 'place_id', 'formatted_address', 'name']
+});
 
-## Flow After Fix
+// 4. Use getDetails() with Geocoder fallback in place_changed handler
+autocompleteRef.current.addListener('place_changed', () => {
+  const place = autocompleteRef.current?.getPlace();
+  if (place?.place_id) {
+    // Try PlacesService.getDetails() first
+    placesServiceRef.current.getDetails(
+      { placeId: place.place_id, fields: ['address_components', 'geometry'] },
+      (details, status) => {
+        if (status === 'OK' && details?.address_components) {
+          processAddressComponents(details);
+        } else {
+          // Fallback to Geocoder
+          geocoderRef.current.geocode({ placeId: place.place_id }, ...);
+        }
+      }
+    );
+  }
+});
 
+// 5. Add document click handler for pac-items
+document.addEventListener('mousedown', (e) => {
+  const pacItem = (e.target as HTMLElement).closest('.pac-item');
+  if (pacItem) {
+    e.stopPropagation();
+    // Let Google process, then check for place data
+  }
+}, true);
 ```
-User opens Marketplace
-        ↓
-SetupHQModal appears (no HQ set)
-        ↓
-Hook fetches API key from edge function
-        ↓
-Google Maps JavaScript API loads
-        ↓
-Autocomplete initializes on address input
-        ↓
-User types "228 S Washington Street"
-        ↓
-Google Places dropdown appears with suggestions
-        ↓
-User selects address
-        ↓
-Fields auto-populate: street, city, state, zip, lat/lng
-        ↓
-User clicks "Continue to Marketplace"
-        ↓
-HQ saved → Marketplace filters to 30-mile radius
-```
+
+## Expected Outcome
+
+After this fix:
+1. User types address in HQ modal
+2. Google suggestions appear (already working)
+3. User clicks suggestion
+4. Click is captured before modal can interfere
+5. PlacesService.getDetails() fetches full address data
+6. If that fails, Geocoder provides fallback
+7. Address fields populate with street, city, state, zip, lat/lng
+8. User clicks "Continue to Marketplace"
+9. HQ is saved and marketplace filters to 30-mile radius
+
+## Secret Requirement
+
+The `GOOGLE_MAPS_DISTANCE_MATRIX_KEY` must be added to project secrets with:
+- Places API enabled
+- Maps JavaScript API enabled
+
+Go to **Settings > Secrets** and add this key before testing.
