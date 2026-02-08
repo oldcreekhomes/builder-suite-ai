@@ -1,26 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, LogOut, User, Phone, Globe, Mail, MapPin, Edit2, Save, X } from "lucide-react";
+import { Building2, LogOut, Phone, Globe, Mail, MapPin, Edit2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const COMPANY_TYPES = [
-  "Subcontractor",
-  "Vendor",
-  "Lender",
-  "Municipality",
-  "CPA",
-  "Insurance",
-  "Other"
-];
+import { CompanyTypeCombobox } from "@/components/marketplace/CompanyTypeCombobox";
 
 interface MarketplaceCompany {
   id: string;
@@ -243,19 +233,10 @@ const MarketplacePortal = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="company_type">Company Type *</Label>
-                    <Select 
-                      value={editForm.company_type} 
-                      onValueChange={(value) => setEditForm(prev => ({ ...prev, company_type: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COMPANY_TYPES.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <CompanyTypeCombobox
+                      value={editForm.company_type}
+                      onSelect={(value) => setEditForm(prev => ({ ...prev, company_type: value }))}
+                    />
                   </div>
                 </div>
 
