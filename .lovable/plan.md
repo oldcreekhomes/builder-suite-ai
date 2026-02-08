@@ -1,75 +1,126 @@
 
-Goal: Make the HQ modal’s Google address selection work exactly like the “Add Company” flow (reliable click-to-select inside Radix Dialog), without going in circles.
+# Fix Marketplace Radius Filtering and Slider Display
 
-What I found (why “nothing happens”):
-- The “Add Company” flow works because it relies on the normal Google Autocomplete `place_changed` flow and Radix Dialog’s guards (in `src/components/ui/dialog.tsx`) that explicitly treat `.pac-container` / `.pac-item` as “inside” the dialog, preventing the dialog from interfering.
-- Our HQ hook (`useGooglePlacesAddress`) currently adds a document-level capture listener that calls `stopPropagation()` on `.pac-item` clicks. In practice, this can block Google’s own internal event handling, so the Autocomplete selection never completes and `place_changed` may never fire. That matches your symptom: dropdown shows, click does nothing.
+## Issues Identified
 
-High-confidence fix:
-- Remove (or disable) the document-level `.pac-item` click interception from `useGooglePlacesAddress`.
-- Rely on the same mechanism that already makes “Add Company” work:
-  - Radix DialogContent’s `isInsideNestedOverlay()` already whitelists `.pac-container` and `.pac-item`, so the dialog should not close or steal focus when clicking suggestions.
-  - Let Google handle the click normally so `place_changed` fires reliably.
+### Issue 1: Slider Display Confusion
+The slider shows "10 miles" on the right side with markers showing "30 mi FREE" and "100 mi PRO", but the slider's max value is set to `maxRadius` (30 for free tier). This creates a confusing visual where the slider can't go past 30, but the "100 mi PRO" marker makes it look like a 100-mile scale.
 
-Implementation plan (code changes)
+**Fix**: Redesign the slider to show the full 100-mile (or 500-mile) scale visually, with the 30-mile FREE tier marker positioned at the correct point (30% of the way for a 0-100 scale). Free users can drag up to 30 miles; attempting to go further triggers the upgrade modal.
 
-1) Refactor `src/hooks/useGooglePlacesAddress.ts` to match the “Add Company” approach
-   A. Remove the entire “document-level click handler for pac-items” effect that does:
-      - `document.addEventListener('mousedown' / 'pointerdown', ..., true)`
-      - `e.stopPropagation()`
-      - the “setTimeout then getPlace” fallback
-   B. Keep initialization timing retries (the “attempts/maxAttempts” logic) since that is also used in `useGooglePlaces`.
-   C. Keep (or simplify) fallbacks:
-      - Primary: Autocomplete `place_changed` → `autocomplete.getPlace()`
-      - If `place.address_components` missing but `place.place_id` exists, use Geocoder `geocode({ placeId })` to get address components.
-      - (Optional) Avoid depending on `PlacesService.getDetails()` for HQ since:
-        - Console warning indicates PlacesService is “legacy” for new customers, and we don’t need establishment details here.
-        - Add Company does not depend on PlacesService and works fine.
-   D. Add very explicit logs (temporarily) to confirm:
-      - `place_changed` fired
-      - `place.place_id` present
-      - component counts
-      - lat/lng extraction success
-      This makes it immediately obvious what’s happening if anything still fails.
+### Issue 2: Distance Filtering Not Working
+All marketplace companies have `lat` and `lng` values as `null` in the database. The current filtering logic includes all companies without coordinates:
 
-2) Confirm the HQ modal uses the same “uncontrolled input” behavior
-   - SetupHQModal’s `<Input ref={inputRef} ... />` is already uncontrolled (no `value` prop), which is good.
-   - We will ensure we do not programmatically fight Google’s input updates (no manual clearing, no stopPropagation). Add Company works without that.
+```typescript
+if (company.distance === null) return true; // Include companies without coordinates
+```
 
-3) Validate Dialog stability (already in place)
-   - `src/components/ui/dialog.tsx` already protects `.pac-container` and `.pac-item` via `isInsideNestedOverlay()`.
-   - No changes required there unless we discover a different Radix overlay is interfering.
+This means companies from Ashburn, Chantilly, etc. (which are outside the selected radius) are still shown because they have no coordinates to calculate distance from.
 
-4) Testing checklist (end-to-end, same as your expectation)
-   - Go to `/marketplace`
-   - Modal opens: “Set Up Your Headquarters”
-   - Type “228 s washing…”
-   - Click a suggestion
-   - Verify in console:
-     - `place_changed event fired` appears
-     - address components are parsed
-     - lat/lng are set
-   - Verify UI updates:
-     - Street/City/State/ZIP preview box populates
-     - “Continue to Marketplace” button becomes enabled
-   - Click “Continue to Marketplace”
-   - Confirm HQ saves and modal closes
+**Fix**: 
+1. **Immediate UI fix**: Don't show the Distance column or filter by radius if companies lack coordinates. Instead, show a message explaining the data limitation.
+2. **Data fix**: Geocode the marketplace company addresses to populate lat/lng values.
 
-If it still fails after this change (unlikely, but prepared)
-- Next step would be to replicate StructuredAddressInput’s exact selection pipeline in HQ:
-  - Remove PlacesService
-  - Use Geocoder fallback only
-  - Ensure `onPointerDownOutside/onInteractOutside` guards are not overridden anywhere in the modal
-- I’d also add a small on-screen debug indicator in the modal (“Google selected place received”) to avoid relying on console.
+---
 
-Files to be edited
-- `src/hooks/useGooglePlacesAddress.ts`
-  - Remove document capture click interception
-  - Simplify place processing to mirror Add Company’s working pattern
-  - Keep Geocoder fallback
-  - Keep initialization retry logic
+## Technical Implementation
 
-No other file changes should be necessary to make clicking work, since SetupHQModal is already wired to `onPlaceSelected`.
+### File 1: `src/components/marketplace/MarketplaceRadiusControl.tsx`
+Redesign the slider to use a fixed 100-mile scale (or 500 for enterprise), with visual markers at:
+- 5 mi (minimum)
+- 30 mi (FREE tier limit) - positioned at 30% mark
+- 100 mi (PRO tier limit) - positioned at 100% mark
 
-Success criteria
-- Clicking a Google suggestion populates HQ fields on the first click, consistently, inside the HQ dialog (same behavior as Add Company).
+For free users:
+- Slider visually extends to 100 miles
+- Dragging past 30 miles triggers upgrade modal
+- Current value shown clearly
+
+### File 2: `src/components/marketplace/MarketplaceCompaniesTable.tsx`
+Update the distance filtering logic:
+- If companies lack lat/lng, do NOT default to including them
+- Either filter them out OR show them without distance data but clearly indicate "Distance unavailable"
+- For companies with lat/lng, properly filter by currentRadius
+
+### File 3: Database geocoding (future enhancement)
+Create an edge function or background job to geocode marketplace company addresses and populate lat/lng fields. This is the root fix that makes radius filtering actually work.
+
+---
+
+## Detailed Changes
+
+### MarketplaceRadiusControl.tsx Changes
+
+| Current Behavior | New Behavior |
+|-----------------|--------------|
+| `sliderMax = tier === 'enterprise' ? 500 : maxRadius` (30 for free) | `sliderMax = 100` (always show full scale up to PRO limit) |
+| Slider only goes to 30 for free users | Slider shows full scale, but values above maxRadius trigger upgrade |
+| Markers at 5mi, 30mi FREE, 100mi PRO evenly spaced | Markers positioned proportionally (30% for 30mi, 100% for 100mi) |
+
+```typescript
+// New slider approach
+const displayMax = 100; // Always show up to PRO scale
+const freeLimit = 30;
+
+const handleSliderChange = (values: number[]) => {
+  const newRadius = values[0];
+  if (newRadius > maxRadius) {
+    onUpgradeClick(); // Trigger upgrade if exceeding tier limit
+  } else {
+    onRadiusChange(newRadius);
+  }
+};
+```
+
+### MarketplaceCompaniesTable.tsx Changes
+
+| Current Behavior | New Behavior |
+|-----------------|--------------|
+| `if (company.distance === null) return true` | `if (company.distance === null) return false` OR show separately |
+| Shows all companies regardless of coordinates | Only shows companies within radius (if they have coords) |
+| Distance column shows "-" for null | Shows "Calculating..." or "N/A" with tooltip |
+
+Option A (stricter): Exclude companies without coordinates from radius filtering
+```typescript
+.filter(company => {
+  if (company.distance === null) return false; // Exclude companies without coords
+  return company.distance <= currentRadius;
+})
+```
+
+Option B (flexible): Show companies without coordinates at the bottom with a note
+```typescript
+// Separate into two groups: with distance, without distance
+const withCoords = filtered.filter(c => c.distance !== null && c.distance <= currentRadius);
+const withoutCoords = filtered.filter(c => c.distance === null);
+// Display withCoords first, then withoutCoords with a separator
+```
+
+---
+
+## Implementation Steps
+
+1. **Update `MarketplaceRadiusControl.tsx`**:
+   - Change slider scale to always show 100 miles (or 500 for enterprise)
+   - Position tier markers proportionally
+   - Handle upgrade trigger when exceeding tier limit
+
+2. **Update `MarketplaceCompaniesTable.tsx`**:
+   - Change distance filter logic to exclude (or separate) companies without coordinates
+   - Add visual indicator for companies awaiting geocoding
+
+3. **Future: Geocode marketplace data**:
+   - Create edge function to batch geocode company addresses
+   - Update marketplace_companies table with lat/lng values
+   - This makes the radius filter fully functional
+
+---
+
+## Expected Outcome
+
+After these changes:
+- Slider will show a 5-100 mile scale with "30 mi FREE" at the 30% mark and "100 mi PRO" at the right
+- Free users can adjust radius from 5-30 miles
+- Attempting to go past 30 miles shows upgrade modal
+- Companies without lat/lng coordinates won't bypass the distance filter
+- Clear visual distinction between companies with/without distance data
