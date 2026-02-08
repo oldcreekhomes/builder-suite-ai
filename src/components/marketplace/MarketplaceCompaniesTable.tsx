@@ -89,14 +89,14 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
         Showing {filteredCompanies.length} of {companies.length} companies
       </div>
       <div className="border rounded-lg">
-        <Table>
+      <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Location</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Rating</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[20%]">Company Name</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[40%]">Location</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[12%]">Rating</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[16%]">Phone</TableHead>
+              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[12%]">Website</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
