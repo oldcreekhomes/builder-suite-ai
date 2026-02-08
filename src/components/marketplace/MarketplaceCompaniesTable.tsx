@@ -8,7 +8,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Globe, MapPin, Star, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
@@ -79,22 +78,6 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
     return true;
   });
 
-  const getCompanyTypeColor = (type: string) => {
-    switch (type) {
-      case 'Subcontractor':
-        return 'bg-blue-100 text-blue-800';
-      case 'Vendor':
-        return 'bg-green-100 text-green-800';
-      case 'Municipality':
-        return 'bg-purple-100 text-purple-800';
-      case 'Consultant':
-        return 'bg-orange-100 text-orange-800';
-      case 'Lender':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading marketplace companies...</div>;
@@ -110,7 +93,6 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
           <TableHeader>
             <TableRow className="h-8">
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Location</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Rating</TableHead>
               <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
@@ -122,11 +104,6 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
               <TableRow key={company.id} className="h-10">
                 <TableCell className="px-2 py-1">
                   <div className="text-xs font-medium">{company.company_name}</div>
-                </TableCell>
-                <TableCell className="px-2 py-1">
-                  <Badge className={`${getCompanyTypeColor(company.company_type)} text-[10px] px-1 py-0`}>
-                    {company.company_type}
-                  </Badge>
                 </TableCell>
                 <TableCell className="px-2 py-1">
                   {company.address ? (
@@ -181,7 +158,7 @@ export function MarketplaceCompaniesTable({ searchQuery = "", selectedCategory =
 
             {filteredCompanies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-xs text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
                   No marketplace companies found.
                 </TableCell>
               </TableRow>
