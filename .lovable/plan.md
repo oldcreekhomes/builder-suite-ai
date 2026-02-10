@@ -1,34 +1,66 @@
 
 
-# Fix: Floating-Point Precision in Bill Payment Mutation
+# Rebrand: BuilderSuite AI to BuilderSuite with Stylized ML Symbol
 
-## Problem
+## Concept
 
-The dialog-side fix is working (it shows "$0.00 remaining" correctly), but the **mutation in `useBills.ts`** has the same floating-point bug. At line 760:
+Replace "BuilderSuite AI" with "BuilderSuite" followed by a small superscript "ML" styled like a trademark symbol (similar to how (TM) appears next to brand names, but with "ML" for Machine Learning). This gives a clean, professional look while highlighting the machine learning aspect.
 
-```typescript
-const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+## Visual Example
+
+```text
+BuilderSuite^ML   (where ^ML is a small superscript like the TM symbol)
 ```
-
-This produces something like `569.3000000000001`, and when compared to the user's input of `569.30`, the check `amountToPay > remainingBalance` passes -- but due to floating-point, sometimes the comparison flips and triggers the error.
-
-## Solution
-
-Apply the same cent-based rounding fix to `useBills.ts` line 760 and line 767.
 
 ## Changes
 
-### File: `src/hooks/useBills.ts`
+### 1. Sidebar Branding (top-left of the app)
+**File:** `src/components/sidebar/SidebarBranding.tsx`
 
-**Line 760** -- Round `remainingBalance`:
-```typescript
-const remainingBalance = Math.round((bill.total_amount - (bill.amount_paid || 0)) * 100) / 100;
+- Change "BuilderSuite AI" text to "BuilderSuite" with a styled superscript `<sup>` element containing "ML"
+- Style the "ML" with a small font size, slight vertical offset, and optionally a subtle circle/border to mimic the trademark look
+
+### 2. Public Header (marketing pages)
+**File:** `src/components/PublicHeader.tsx`
+
+- Update the logo text from "BuilderSuite" to include the ML superscript styling
+
+### 3. Public Footer
+**File:** `src/components/PublicFooter.tsx`
+
+- Same ML superscript treatment
+
+### 4. Page Title and Meta Tags
+**File:** `index.html`
+
+- Update `<title>` from "BuilderSuite AI" to "BuilderSuite ML"
+- Update all Open Graph and Twitter meta tags
+
+### 5. Other UI References (17 files total)
+These files contain "BuilderSuite AI" in various places (welcome messages, email templates, toast notifications, etc.) and will be updated to use "BuilderSuite" with the appropriate ML notation:
+
+- `src/pages/PasswordReset.tsx` - Welcome text
+- `src/components/auth/SignupForm.tsx` - Auth messaging
+- `src/pages/Landing.tsx` - Marketing copy
+- `supabase/functions/send-password-reset/index.ts` - Email templates
+- `supabase/functions/send-signup-emails/index.ts` - Email templates
+- Other files with "BuilderSuite AI" references
+
+### Styling Approach
+
+The ML superscript in React components will look like:
+
+```tsx
+<h1 className="text-xl font-bold text-black">
+  BuilderSuite<sup className="text-[0.5em] font-bold ml-0.5 align-super border border-current rounded-full px-0.5">ML</sup>
+</h1>
 ```
 
-**Line 767** -- Use cent-based comparison:
-```typescript
-if (Math.round(amountToPay * 100) > Math.round(remainingBalance * 100)) {
-```
+This creates the trademark-circle effect with:
+- Small font size (half the parent)
+- A rounded border creating the "circle" effect around "ML"
+- Proper superscript alignment
+- Slight padding for breathing room
 
-These two changes ensure the mutation-level validation matches the dialog-level fix already in place.
+For plain text contexts (emails, meta tags), it will simply read "BuilderSuite ML".
 
