@@ -333,13 +333,34 @@ export function AccountDetailDialog({
           .is('reversed_at', null)
           .in('id', billIds);
         
+        // If asOfDate is provided, calculate historical payment amounts
+        let paidAsOfDate: Record<string, number> = {};
+        if (asOfDate && billIds.length > 0) {
+          const asOfDateStr = asOfDate.toISOString().split('T')[0];
+          const { data: allocations } = await supabase
+            .from('bill_payment_allocations')
+            .select(`
+              bill_id,
+              amount_allocated,
+              bill_payments!inner(payment_date)
+            `)
+            .in('bill_id', billIds)
+            .lte('bill_payments.payment_date', asOfDateStr);
+
+          (allocations || []).forEach((alloc: any) => {
+            paidAsOfDate[alloc.bill_id] = (paidAsOfDate[alloc.bill_id] || 0) + alloc.amount_allocated;
+          });
+        }
+
         billsData?.forEach((bill: any) => {
           // Get first bill line for account display
           const sortedLines = (bill.bill_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
           const firstLine = sortedLines[0];
           
-          // Determine if bill is fully paid
-          const isPaid = bill.amount_paid >= bill.total_amount || bill.status === 'paid';
+          // Determine if bill is fully paid - use historical data when asOfDate provided
+          const isPaid = asOfDate
+            ? (paidAsOfDate[bill.id] || 0) >= bill.total_amount
+            : bill.amount_paid >= bill.total_amount || bill.status === 'paid';
           
           billsMap.set(bill.id, {
             ...bill,
