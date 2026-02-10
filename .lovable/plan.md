@@ -1,43 +1,38 @@
 
-# Fix: Accounts Payable Report Showing Wrong Total ($44,035.50)
 
-## Problem
+# Fix: A/P Aging Report Lot Filtering and "Total" Option
 
-The A/P Aging report (under the Reports tab) shows $44,035.50 instead of the correct ~$20,486.15. It is including bills that have already been paid because it uses `bill_payment_allocations` to determine historical payments -- but that table only has 2 records out of 11 actual payments. Individual bill payments skip that table entirely.
+## Problems
 
-This is the exact same bug we just fixed in the Account Detail Dialog.
+1. **Both lots show identical data ($20,486.15)**: The lot filter (line 142) includes bills where all `lot_id` values are `NULL` (`lotIds.every(id => id === null)`), causing unallocated bills to appear under every lot. This means Lot 1 and Lot 2 show the same bills instead of their own subset.
 
-## Solution
-
-Replace the `bill_payment_allocations` query in `AccountsPayableContent.tsx` with a `journal_entries` query (same pattern as the dialog fix).
+2. **No "Total" option**: The LotSelector dropdown only shows individual lots. There is no way to see a combined total across all lots.
 
 ## Changes
 
-### File: `src/components/reports/AccountsPayableContent.tsx` (lines 108-132)
+### 1. `src/components/budget/LotSelector.tsx` -- Add a "Total" option
 
-Replace the `bill_payment_allocations` query (Step 2 and Step 3) with:
+- Accept an optional `showTotal` prop (default `false`).
+- When `showTotal` is `true`, render an additional `SelectItem` with value `"__total__"` and label `"Total"` at the end of the dropdown list.
+- The A/P report will pass `showTotal={true}`.
 
-1. Query `journal_entries` joined with `journal_entry_lines` where `source_type = 'bill_payment'`, `source_id IN (billIds)`, `entry_date <= asOfDateStr`, `reversed_at IS NULL`, and `debit > 0`.
-2. Sum the debit amounts per `source_id` (which is the bill ID) to get total paid per bill as of the report date.
+### 2. `src/components/reports/AccountsPayableContent.tsx` -- Fix lot filtering and handle "Total"
 
-```typescript
-// Step 2: Query journal entries for bill payments made on or before the as-of date
-const { data: paymentEntries, error: payError } = await supabase
-  .from('journal_entries')
-  .select('source_id, journal_entry_lines!inner(debit)')
-  .eq('source_type', 'bill_payment')
-  .in('source_id', billIds)
-  .lte('entry_date', asOfDateStr)
-  .is('reversed_at', null)
-  .gt('journal_entry_lines.debit', 0);
+**Lot filtering fix (line 139-144)**:
+- When a specific lot is selected, only include bills that have at least one `bill_line` with that `lot_id`. Remove the `lotIds.every(id => id === null)` fallback -- bills with no lot allocation should only appear in the "Total" view, not under individual lots.
 
-// Step 3: Sum payments per bill
-const paidAsOfDate: Record<string, number> = {};
-(paymentEntries || []).forEach((entry: any) => {
-  const billId = entry.source_id;
-  const debit = entry.journal_entry_lines?.[0]?.debit || 0;
-  paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + debit;
-});
-```
+**"Total" handling**:
+- When `selectedLotId` is `"__total__"`, skip the lot filter entirely (show all outstanding bills across all lots).
+- Update the `enabled` condition (line 148) to also accept `"__total__"` as a valid selection.
+- Update the query key to reflect the selection.
 
-The rest of the logic (Step 4 - calculating open balance and filtering) remains unchanged since it already uses `paidAsOfDate` correctly.
+**Summary of filter logic**:
+- `Lot 1` selected: only bills with a `bill_line.lot_id` matching Lot 1's ID
+- `Lot 2` selected: only bills with a `bill_line.lot_id` matching Lot 2's ID
+- `Total` selected: all outstanding bills regardless of lot allocation
+
+### 3. PDF export update
+
+- When "Total" is selected, the PDF header will show "Total" instead of a lot name.
+- The `lotData` query will be skipped when `selectedLotId` is `"__total__"`.
+
