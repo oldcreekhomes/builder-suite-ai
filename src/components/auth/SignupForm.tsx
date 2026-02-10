@@ -43,7 +43,7 @@ const SignupForm = () => {
         toast({
           variant: "destructive",
           title: "Company Already Registered",
-          description: "This company is already registered with BuilderSuite AI. If you're an employee, please contact the owner of your company to receive an invitation to join.",
+          description: "This company is already registered with BuilderSuite ML. If you're an employee, please contact the owner of your company to receive an invitation to join.",
         });
         setIsLoading(false);
         return;

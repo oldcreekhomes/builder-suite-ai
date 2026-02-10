@@ -165,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email
     console.log("Sending email to:", recipientEmail);
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
       to: [recipientEmail],
       subject: `Accounting Reports - ${projectName} (As of ${formattedDate})`,
       html: generateEmailTemplate(projectName, formattedDate, reports, pdfFiles.length, customMessage),

@@ -83,7 +83,7 @@ const RootRoute = () => {
             fontSize: '14px'
           }}
         >
-          Loading BuilderSuite AI...
+          Loading BuilderSuite ML...
         </p>
         <style>{`
           @keyframes spin {

@@ -271,7 +271,7 @@ export const usePublishSchedule = (projectId: string) => {
               projectManagerName: projectManagerName,
               projectManagerPhone: projectManagerPhone,
               projectManagerEmail: projectManagerEmail,
-              senderCompanyName: manager?.company_name || 'BuilderSuite AI',
+              senderCompanyName: manager?.company_name || 'BuilderSuite ML',
               tasks: userToNotify.tasksAssigned.map(task => ({
                 id: task.id,
                 task_name: task.task_name,

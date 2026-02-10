@@ -221,7 +221,7 @@ const PasswordReset = () => {
         toast({
           title: "Success",
           description: isEmployeeInvitation 
-            ? "Your account has been set up successfully! Welcome to BuilderSuite AI." 
+            ? "Your account has been set up successfully! Welcome to BuilderSuite ML." 
             : "Your password has been updated successfully! Redirecting to dashboard...",
         });
         
@@ -248,7 +248,7 @@ const PasswordReset = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Welcome to BuilderSuite AI
+            Welcome to BuilderSuite ML
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {isEmployeeInvitation ? "Set up your password to access your account" : "Reset your password to access your account"}
