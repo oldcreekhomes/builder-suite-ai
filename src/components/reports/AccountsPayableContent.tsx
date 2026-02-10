@@ -105,25 +105,25 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
       const bills = data || [];
       if (bills.length === 0) return [];
 
-      // Step 2: Query bill_payment_allocations joined with bill_payments
-      // to get payments made on or before the as-of date
+      // Step 2: Query journal entries for bill payments made on or before the as-of date
       const billIds = bills.map(b => b.id);
-      const { data: allocations, error: allocError } = await supabase
-        .from('bill_payment_allocations')
-        .select(`
-          bill_id,
-          amount_allocated,
-          bill_payments!inner(payment_date)
-        `)
-        .in('bill_id', billIds)
-        .lte('bill_payments.payment_date', asOfDateStr);
+      const { data: paymentEntries, error: payError } = await supabase
+        .from('journal_entries')
+        .select('source_id, journal_entry_lines!inner(debit)')
+        .eq('source_type', 'bill_payment')
+        .in('source_id', billIds)
+        .lte('entry_date', asOfDateStr)
+        .is('reversed_at', null)
+        .gt('journal_entry_lines.debit', 0);
 
-      if (allocError) throw allocError;
+      if (payError) throw payError;
 
       // Step 3: Sum payments per bill as of the report date
       const paidAsOfDate: Record<string, number> = {};
-      (allocations || []).forEach(alloc => {
-        paidAsOfDate[alloc.bill_id] = (paidAsOfDate[alloc.bill_id] || 0) + alloc.amount_allocated;
+      (paymentEntries || []).forEach((entry: any) => {
+        const billId = entry.source_id;
+        const debit = entry.journal_entry_lines?.[0]?.debit || 0;
+        paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + debit;
       });
 
       // Step 4: Calculate open balance and filter
