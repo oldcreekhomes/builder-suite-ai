@@ -67,7 +67,9 @@ export function PayBillDialog({
   
   // For single bill, calculate remaining balance and allow partial payment
   const singleBill = !isMultiple ? billsArray[0] : null;
-  const remainingBalance = singleBill ? singleBill.total_amount - (singleBill.amount_paid || 0) : 0;
+  const remainingBalance = singleBill 
+    ? Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100 
+    : 0;
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentAmountError, setPaymentAmountError] = useState<string>("");
 
@@ -103,7 +105,9 @@ export function PayBillDialog({
         setPaymentAmountError("Payment amount must be greater than $0");
         return;
       }
-      if (amount > remainingBalance) {
+      const amountCents = Math.round(amount * 100);
+      const balanceCents = Math.round(remainingBalance * 100);
+      if (amountCents > balanceCents) {
         setPaymentAmountError(`Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`);
         return;
       }
@@ -129,7 +133,7 @@ export function PayBillDialog({
     } else {
       // When dialog opens, set default payment amount to remaining balance for single bill
       if (!isMultiple && singleBill) {
-        const remaining = singleBill.total_amount - (singleBill.amount_paid || 0);
+        const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
         setPaymentAmount(remaining.toFixed(2));
       }
     }
@@ -144,7 +148,9 @@ export function PayBillDialog({
   };
   
   const parsedPaymentAmount = parseFloat(paymentAmount);
-  const newRemainingBalance = !isNaN(parsedPaymentAmount) ? remainingBalance - parsedPaymentAmount : remainingBalance;
+  const newRemainingBalance = !isNaN(parsedPaymentAmount) 
+    ? Math.round((remainingBalance - parsedPaymentAmount) * 100) / 100 
+    : remainingBalance;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
