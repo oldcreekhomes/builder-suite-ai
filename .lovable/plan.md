@@ -1,38 +1,54 @@
 
 
-# Fix: A/P Aging Report Lot Filtering and "Total" Option
+# Split All Unallocated Bill Lines 50/50 Between Lot 1 and Lot 2
 
-## Problems
+## What's Happening
 
-1. **Both lots show identical data ($20,486.15)**: The lot filter (line 142) includes bills where all `lot_id` values are `NULL` (`lotIds.every(id => id === null)`), causing unallocated bills to appear under every lot. This means Lot 1 and Lot 2 show the same bills instead of their own subset.
+The project "413 E Nelson Ave" has **28 bill lines** across both Paid and Approved bills that have no lot allocation (Address column shows "-"). Only a few bills (the most recent ones) were properly split between the two lots. The rest need to be split evenly.
 
-2. **No "Total" option**: The LotSelector dropdown only shows individual lots. There is no way to see a combined total across all lots.
+## What We'll Do
 
-## Changes
+Call the existing `split-bill-lines-by-lot` edge function with all 28 unallocated bill line IDs. This function will:
 
-### 1. `src/components/budget/LotSelector.tsx` -- Add a "Total" option
+1. **Halve each existing line** and assign it to **Lot 1** (ceiling for odd pennies)
+2. **Create a new duplicate line** assigned to **Lot 2** (floor for odd pennies)
+3. Both lines keep the same cost code, memo, and other details -- only the amount and lot assignment change
 
-- Accept an optional `showTotal` prop (default `false`).
-- When `showTotal` is `true`, render an additional `SelectItem` with value `"__total__"` and label `"Total"` at the end of the dropdown list.
-- The A/P report will pass `showTotal={true}`.
+## Bills Affected
 
-### 2. `src/components/reports/AccountsPayableContent.tsx` -- Fix lot filtering and handle "Total"
+| Vendor | Reference | Amount | Status |
+|--------|-----------|--------|--------|
+| Old Creek Homes, LLC | 07022025 | $100.00 | Posted |
+| Wire Gill, LLP | 10891 | $722.50 (3 lines) | Paid |
+| Old Creek Homes, LLC | 07092025 | $500.00 | Posted |
+| Old Creek Homes, LLC | 07162025 | $1,168.00 | Posted |
+| ELG Consulting, LLC | 248 | $460.00 | Paid |
+| ELG Consulting, LLC | 239 | $120.00 | Paid |
+| Old Creek Homes, LLC | (no ref) | $1,250.00 x3 | Posted |
+| Old Creek Homes, LLC | 08112025 | $233.00 | Paid |
+| Old Creek Homes, LLC | (no ref) | $5,400.00 | Posted |
+| Old Creek Homes, LLC | 09102025 | $269.73 | Posted |
+| Old Creek Homes, LLC | 09242025 | $1,495.92 | Posted |
+| RC Fields & Associates | 55978 | $5,750.00 (2 lines) | Paid |
+| City of Alexandria | 10272025 | $4,793.85 | Paid |
+| Old Creek Homes, LLC | 11062025 | $1,250.00 | Paid |
+| Anchor Loans | 11102025 | $5,400.00 | Paid |
+| RC Fields & Associates | 56045 | $3,500.00 | Paid |
+| Old Creek Homes, LLC | (no ref) | $3,112.50 | Posted |
 
-**Lot filtering fix (line 139-144)**:
-- When a specific lot is selected, only include bills that have at least one `bill_line` with that `lot_id`. Remove the `lotIds.every(id => id === null)` fallback -- bills with no lot allocation should only appear in the "Total" view, not under individual lots.
+## Technical Details
 
-**"Total" handling**:
-- When `selectedLotId` is `"__total__"`, skip the lot filter entirely (show all outstanding bills across all lots).
-- Update the `enabled` condition (line 148) to also accept `"__total__"` as a valid selection.
-- Update the query key to reflect the selection.
+- **Lot 1 ID**: `a346f784-42bf-4734-a442-e9408a2257a5`
+- **Lot 2 ID**: `2bc5967c-03c6-4de3-ac01-47773991fbf6`
+- **28 bill line IDs** to split
+- Uses the existing `split-bill-lines-by-lot` edge function (no code changes needed)
+- The function uses the service role key, so it can update lines regardless of bill status
+- After splitting, each bill's Address column will show "+2" indicating both lots are allocated
 
-**Summary of filter logic**:
-- `Lot 1` selected: only bills with a `bill_line.lot_id` matching Lot 1's ID
-- `Lot 2` selected: only bills with a `bill_line.lot_id` matching Lot 2's ID
-- `Total` selected: all outstanding bills regardless of lot allocation
+## After Splitting
 
-### 3. PDF export update
-
-- When "Total" is selected, the PDF header will show "Total" instead of a lot name.
-- The `lotData` query will be skipped when `selectedLotId` is `"__total__"`.
+Once complete, the A/P Aging report will show accurate per-lot breakdowns:
+- **Lot 1**: approximately half of each bill's cost
+- **Lot 2**: approximately half of each bill's cost
+- **Total**: the full combined amount (should match the Balance Sheet)
 
