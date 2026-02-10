@@ -79,8 +79,9 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         throw new Error("Project ID is required for A/P Aging report");
       }
 
-      // Query bills that are posted/paid but not fully paid
-      // Exclude reversals and reversed bills
+      const asOfDateStr = asOfDate.toISOString().split('T')[0];
+
+      // Step 1: Fetch ALL non-reversed bills (posted or paid) with bill_date <= asOfDate
       const { data, error } = await supabase
         .from('bills')
         .select(`
@@ -97,21 +98,47 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         .in('status', ['posted', 'paid'])
         .eq('is_reversal', false)
         .is('reversed_by_id', null)
-        .lte('bill_date', asOfDate.toISOString().split('T')[0]);
+        .lte('bill_date', asOfDateStr);
 
       if (error) throw error;
 
-      // Filter bills with open balance
-      let filteredBills = (data || []).filter(bill => {
+      const bills = data || [];
+      if (bills.length === 0) return [];
+
+      // Step 2: Query bill_payment_allocations joined with bill_payments
+      // to get payments made on or before the as-of date
+      const billIds = bills.map(b => b.id);
+      const { data: allocations, error: allocError } = await supabase
+        .from('bill_payment_allocations')
+        .select(`
+          bill_id,
+          amount_allocated,
+          bill_payments!inner(payment_date)
+        `)
+        .in('bill_id', billIds)
+        .lte('bill_payments.payment_date', asOfDateStr);
+
+      if (allocError) throw allocError;
+
+      // Step 3: Sum payments per bill as of the report date
+      const paidAsOfDate: Record<string, number> = {};
+      (allocations || []).forEach(alloc => {
+        paidAsOfDate[alloc.bill_id] = (paidAsOfDate[alloc.bill_id] || 0) + alloc.amount_allocated;
+      });
+
+      // Step 4: Calculate open balance and filter
+      let filteredBills = bills.map(bill => ({
+        ...bill,
+        amount_paid: paidAsOfDate[bill.id] || 0,
+      })).filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
-        return openBalance > 0.01; // Has outstanding balance
+        return openBalance > 0.01;
       });
 
       // Filter by lot if selected
       if (selectedLotId) {
         filteredBills = filteredBills.filter(bill => {
           const lotIds = bill.bill_lines?.map(line => line.lot_id) || [];
-          // Include if any line has the selected lot_id OR all lines have null lot_id (unallocated)
           return lotIds.includes(selectedLotId) || lotIds.every(id => id === null);
         });
       }
