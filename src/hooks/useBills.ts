@@ -757,14 +757,14 @@ export const useBills = () => {
       if (billError) throw billError;
 
       // Use provided payment amount or remaining balance
-      const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+      const remainingBalance = Math.round((bill.total_amount - (bill.amount_paid || 0)) * 100) / 100;
       const amountToPay = paymentAmount !== undefined ? paymentAmount : remainingBalance;
 
       // Validate payment amount
       if (amountToPay <= 0) {
         throw new Error("Payment amount must be greater than zero");
       }
-      if (amountToPay > remainingBalance) {
+      if (Math.round(amountToPay * 100) > Math.round(remainingBalance * 100)) {
         throw new Error("Payment amount cannot exceed remaining balance");
       }
 
