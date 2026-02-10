@@ -59,7 +59,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
   const { data: lotData } = useQuery({
     queryKey: ['lot-name', selectedLotId],
     queryFn: async () => {
-      if (!selectedLotId) return null;
+      if (!selectedLotId || selectedLotId === '__total__') return null;
       const { data, error } = await supabase
         .from('project_lots')
         .select('lot_name, lot_number')
@@ -135,17 +135,17 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         return openBalance > 0.01;
       });
 
-      // Filter by lot if selected
-      if (selectedLotId) {
+      // Filter by lot if a specific lot is selected (not "Total")
+      if (selectedLotId && selectedLotId !== '__total__') {
         filteredBills = filteredBills.filter(bill => {
           const lotIds = bill.bill_lines?.map(line => line.lot_id) || [];
-          return lotIds.includes(selectedLotId) || lotIds.every(id => id === null);
+          return lotIds.includes(selectedLotId);
         });
       }
 
       return filteredBills as BillWithVendor[];
     },
-    enabled: !!user && !!session && !authLoading && !!projectId && !!selectedLotId,
+    enabled: !!user && !!session && !authLoading && !!projectId && (!!selectedLotId || selectedLotId === '__total__'),
   });
 
   // Calculate aging and group into buckets
@@ -236,7 +236,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
     setIsExportingPdf(true);
     
     try {
-      const lotName = lotData ? (lotData.lot_name || `Lot ${lotData.lot_number}`) : undefined;
+      const lotName = selectedLotId === '__total__' ? 'Total' : lotData ? (lotData.lot_name || `Lot ${lotData.lot_number}`) : undefined;
 
       const blob = await pdf(
         <AccountsPayablePdfDocument
@@ -390,6 +390,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
                 projectId={projectId}
                 selectedLotId={selectedLotId}
                 onSelectLot={setSelectedLotId}
+                showTotal
               />
             </div>
           </CardHeader>

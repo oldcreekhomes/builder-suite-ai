@@ -13,9 +13,10 @@ interface LotSelectorProps {
   projectId: string;
   selectedLotId: string | null;
   onSelectLot: (lotId: string) => void;
+  showTotal?: boolean;
 }
 
-export function LotSelector({ projectId, selectedLotId, onSelectLot }: LotSelectorProps) {
+export function LotSelector({ projectId, selectedLotId, onSelectLot, showTotal = false }: LotSelectorProps) {
   const { lots, isLoading, initializeLots } = useLots(projectId);
 
   // Auto-initialize lots if project has total_lots but no lot records
@@ -54,6 +55,9 @@ export function LotSelector({ projectId, selectedLotId, onSelectLot }: LotSelect
             {lot.lot_name || `Lot ${lot.lot_number}`}
           </SelectItem>
         ))}
+        {showTotal && (
+          <SelectItem value="__total__">Total</SelectItem>
+        )}
       </SelectContent>
     </Select>
   );
