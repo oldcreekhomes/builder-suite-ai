@@ -1,64 +1,60 @@
 
-# Fix: Hide Marketplace on Company Dashboard When No Permission
+
+# Fix: Floating-Point Precision in Pay Bill Dialog
 
 ## Problem
 
-The Marketplace menu shows on the main company dashboard because there are **two separate components** rendering the sidebar navigation:
+When paying the exact remaining balance ($569.30), floating-point arithmetic produces tiny rounding errors. For example, `15569.30 - 15000.00` might yield `569.3000000000001` internally. This causes:
 
-1. `SidebarNavigation.tsx` - Used on project pages (already has permission check)
-2. `CompanyDashboardNav.tsx` - Used on company dashboard (missing permission check)
-
-The `CompanyDashboardNav.tsx` component at lines 21-30 shows the Marketplace link **without checking permissions**.
+1. The validation error "Payment amount cannot exceed remaining balance of $569.30" even though you entered exactly $569.30
+2. The "After payment" text showing "-$0.00" instead of "$0.00"
 
 ## Solution
 
-Update `CompanyDashboardNav.tsx` to:
-1. Import and use the `useMarketplacePermissions` hook
-2. Conditionally render the Marketplace link only when `canAccessMarketplace` is true
+Use cent-based (integer) arithmetic for all monetary comparisons and calculations, as recommended for currency handling.
 
-## Code Changes
+## File: `src/components/PayBillDialog.tsx`
 
-### File: `src/components/sidebar/CompanyDashboardNav.tsx`
+### Change 1: Fix `remainingBalance` calculation (line 70)
+
+Round to 2 decimal places to eliminate floating-point drift:
 
 ```typescript
-import { AlertTriangle, Store } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useIssueCounts } from "@/hooks/useIssueCounts";
-import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
+const remainingBalance = singleBill 
+  ? Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100 
+  : 0;
+```
 
-export function CompanyDashboardNav() {
-  const { data: issueCounts } = useIssueCounts();
-  const { canAccessMarketplace, isLoading: marketplaceLoading } = useMarketplacePermissions();
-  
-  // ... existing issue counts logic ...
+### Change 2: Fix validation comparison (line 106)
 
-  return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="px-3 py-1">
-        {/* Marketplace Link - only show if user has permission */}
-        {!marketplaceLoading && canAccessMarketplace && (
-          <div>
-            <Link 
-              to="/marketplace" 
-              className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
-            >
-              <Store className="h-4 w-4" />
-              <span className="flex-1">Marketplace</span>
-            </Link>
-          </div>
-        )}
+Use cent-based comparison with a small tolerance:
 
-        {/* Software Issues Section ... */}
-      </div>
-    </div>
-  );
+```typescript
+const amountCents = Math.round(amount * 100);
+const balanceCents = Math.round(remainingBalance * 100);
+if (amountCents > balanceCents) {
+  setPaymentAmountError(`Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`);
+  return;
 }
 ```
 
-## Summary
+### Change 3: Fix "After payment" display (line 147)
 
-| File | Change |
-|------|--------|
-| `src/components/sidebar/CompanyDashboardNav.tsx` | Add permission check for Marketplace link |
+Round the remaining balance calculation:
 
-This will immediately hide the Marketplace link on the company dashboard when the user doesn't have access, and the realtime subscription we added earlier will ensure it updates immediately when permissions change.
+```typescript
+const newRemainingBalance = !isNaN(parsedPaymentAmount) 
+  ? Math.round((remainingBalance - parsedPaymentAmount) * 100) / 100 
+  : remainingBalance;
+```
+
+### Change 4: Fix default value when dialog opens (line 132)
+
+Round the default payment amount:
+
+```typescript
+const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
+```
+
+These changes ensure that entering the exact remaining balance will pass validation and show "$0.00 remaining" correctly.
+
