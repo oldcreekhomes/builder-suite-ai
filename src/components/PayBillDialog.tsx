@@ -148,7 +148,9 @@ export function PayBillDialog({
   };
   
   const parsedPaymentAmount = parseFloat(paymentAmount);
-  const newRemainingBalance = !isNaN(parsedPaymentAmount) ? remainingBalance - parsedPaymentAmount : remainingBalance;
+  const newRemainingBalance = !isNaN(parsedPaymentAmount) 
+    ? Math.round((remainingBalance - parsedPaymentAmount) * 100) / 100 
+    : remainingBalance;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
