@@ -133,7 +133,7 @@ export function PayBillDialog({
     } else {
       // When dialog opens, set default payment amount to remaining balance for single bill
       if (!isMultiple && singleBill) {
-        const remaining = singleBill.total_amount - (singleBill.amount_paid || 0);
+        const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
         setPaymentAmount(remaining.toFixed(2));
       }
     }
