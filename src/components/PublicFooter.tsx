@@ -12,7 +12,7 @@ export function PublicFooter({ className }: PublicFooterProps) {
         <div className="text-center">
           <Link to="/" className="inline-flex items-center justify-center mb-4">
             <Building2 className="h-6 w-6 text-primary" />
-            <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite<sup className="text-[0.5em] font-bold ml-0.5 align-super border border-current rounded-full px-0.5">ML</sup></span>
+            <span className="ml-2 text-lg font-bold text-foreground">BuilderSuite<sub className="text-[0.45em] font-bold ml-0.5 align-baseline relative -bottom-0.5 border border-current rounded-full px-0.5 leading-none">ML</sub></span>
           </Link>
           <div className="flex items-center justify-center gap-6 mb-6">
             <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
