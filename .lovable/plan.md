@@ -1,41 +1,30 @@
 
 
-# Fix: Accounts Payable Dialog "Hide Paid" Not As-Of-Date Aware
+# Fix: Accounts Payable Dialog - Duplicate Scrollbar, Wrong Total, Missing Filter
 
-## Problem
+## Issues Found
 
-The Balance Sheet shows $20,486.15 for Accounts Payable as of December 31, 2025. But when you click on that line to open the account detail dialog, it shows $16,986.15 -- a $3,500 difference.
+### 1. Duplicate Scrollbars
+Line 1077 of `AccountDetailDialog.tsx` sets `max-h-[85vh] overflow-y-auto` on the `DialogContent`. The Radix Dialog already renders inside a fixed-position container, and the inner `<div className="mt-4">` content creates a second scrollable area. Per the project's "single-scrollbar" pattern, the DialogContent should use `overflow-hidden` with the inner content area handling the scroll.
 
-The root cause is the same as the A/P Aging report bug that was just fixed: the dialog's "Hide Paid" toggle uses the bill's **current** `amount_paid` and `status` fields to determine if a bill is paid. So a bill that was paid on January 13, 2026 (after the Dec 31 as-of date) gets marked as "paid" and hidden from the dialog, even though it was still outstanding on December 31.
+### 2. Wrong Total ($44,035.50)
+Lines 1293-1297 calculate the summary by summing only **bill** transaction credits. This was fine before because "Hide Paid" removed paid bills AND their payments, leaving only unpaid bills whose credit sum equaled the outstanding balance. After the as-of-date fix, more bills correctly show as unpaid, but the payments made before Dec 31 also appear -- yet the total still only sums bill credits, ignoring payment debits. The correct total is simply the **last running balance** value, which already accounts for all debits and credits.
 
-The Balance Sheet total ($20,486.15) is correct because it uses journal entry dates. The dialog total ($16,986.15) is wrong because it hides bills based on their current payment status rather than their historical status.
-
-## Solution
-
-Make the `isPaid` determination as-of-date aware. When an `asOfDate` is provided, query `bill_payment_allocations` joined with `bill_payments` to calculate how much was paid on or before the as-of date, instead of relying on the bill's current `amount_paid` field.
+### 3. Consolidated Bill Payments Not Filtered by "Hide Paid"
+Lines 1065-1067 filter `bill` and `bill_payment` types when Hide Paid is on, but `consolidated_bill_payment` is not included in the filter. This means consolidated payment rows leak through even when they should be hidden.
 
 ## Changes
 
 ### File: `src/components/accounting/AccountDetailDialog.tsx`
 
-**In the query function (around lines 316-352):**
+**Fix 1 - Scrollbar (line 1077):** Change `overflow-y-auto` to `overflow-hidden` on DialogContent, and wrap the table area in a scrollable container.
 
-After fetching bills, if an `asOfDate` is provided:
+**Fix 2 - Total (lines 1293-1305):** Replace the bill-credits-only sum with the last value from the `balances` array (the final running balance), which correctly represents the net outstanding amount.
 
-1. Query `bill_payment_allocations` joined with `bill_payments` for all bill IDs, filtering by `payment_date <= asOfDate`.
-2. Sum allocations per bill to get the historical `amount_paid`.
-3. Use this historical amount (instead of `bill.amount_paid`) to determine `isPaid`.
+**Fix 3 - Filter (lines 1060-1071):** Add `consolidated_bill_payment` to the hidePaid filter so those payment rows are hidden when "Hide Paid" is toggled on.
 
-This is the same pattern already applied to `AccountsPayableContent.tsx`. The key change is on the `isPaid` calculation at line 342:
-
-```
-// Current (broken):
-const isPaid = bill.amount_paid >= bill.total_amount || bill.status === 'paid';
-
-// Fixed (when asOfDate is provided):
-const historicalPaid = paidAsOfDate[bill.id] || 0;
-const isPaid = historicalPaid >= bill.total_amount;
-```
-
-When no `asOfDate` is provided (e.g., from the Accounting page), the current behavior is preserved.
+### Summary of the fix:
+- Scrollbar: single scroll area, no nesting
+- Total: use final running balance instead of summing bill credits
+- Filter: include `consolidated_bill_payment` in the Hide Paid check
 
