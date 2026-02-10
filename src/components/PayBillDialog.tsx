@@ -105,7 +105,9 @@ export function PayBillDialog({
         setPaymentAmountError("Payment amount must be greater than $0");
         return;
       }
-      if (amount > remainingBalance) {
+      const amountCents = Math.round(amount * 100);
+      const balanceCents = Math.round(remainingBalance * 100);
+      if (amountCents > balanceCents) {
         setPaymentAmountError(`Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`);
         return;
       }
