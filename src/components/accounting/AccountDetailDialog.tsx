@@ -1062,7 +1062,7 @@ export function AccountDetailDialog({
     if (!hidePaid) return true;
     
     // If hidePaid is on, filter out paid bill and bill_payment transactions
-    if (txn.source_type === 'bill' || txn.source_type === 'bill_payment') {
+    if (txn.source_type === 'bill' || txn.source_type === 'bill_payment' || txn.source_type === 'consolidated_bill_payment') {
       return !txn.isPaid;
     }
     
@@ -1074,7 +1074,7 @@ export function AccountDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
@@ -1096,7 +1096,7 @@ export function AccountDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="mt-4">
+        <div className="mt-4 flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
@@ -1111,7 +1111,7 @@ export function AccountDetailDialog({
               }
             </div>
           ) : (
-            <Table className="text-xs">
+            <Table className="text-xs" containerClassName="relative w-full">
               <TableHeader>
                 <TableRow className="h-8">
                   <TableHead className="h-8 px-2 py-1 w-28">Type</TableHead>
@@ -1293,13 +1293,12 @@ export function AccountDetailDialog({
           {isAccountsPayable && displayedTransactions.length > 0 && (() => {
             const billTransactions = displayedTransactions.filter(txn => txn.source_type === 'bill');
             const totalBillCount = billTransactions.length;
-            // For liability accounts, credits represent the bill amounts
-            const totalBillAmount = billTransactions.reduce((sum, txn) => sum + txn.credit, 0);
+            const totalOutstanding = balances.length > 0 ? balances[balances.length - 1] : 0;
             return (
               <div className="mt-4 pt-4 border-t">
                 <div className="text-sm text-muted-foreground">
                   <p>Total bills: {totalBillCount}</p>
-                  <p>Total amount: {formatCurrency(totalBillAmount)}</p>
+                  <p>Total amount: {formatCurrency(totalOutstanding)}</p>
                 </div>
               </div>
             );
