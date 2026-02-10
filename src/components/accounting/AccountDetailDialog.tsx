@@ -333,22 +333,21 @@ export function AccountDetailDialog({
           .is('reversed_at', null)
           .in('id', billIds);
         
-        // If asOfDate is provided, calculate historical payment amounts
-        let paidAsOfDate: Record<string, number> = {};
+        // If asOfDate is provided, determine which bills were paid before that date
+        let billsPaidBeforeAsOf = new Set<string>();
         if (asOfDate && billIds.length > 0) {
           const asOfDateStr = asOfDate.toISOString().split('T')[0];
-          const { data: allocations } = await supabase
-            .from('bill_payment_allocations')
-            .select(`
-              bill_id,
-              amount_allocated,
-              bill_payments!inner(payment_date)
-            `)
-            .in('bill_id', billIds)
-            .lte('bill_payments.payment_date', asOfDateStr);
+          // Every bill payment creates a journal entry with source_type='bill_payment' and source_id=bill.id
+          const { data: paymentEntries } = await supabase
+            .from('journal_entries')
+            .select('source_id')
+            .eq('source_type', 'bill_payment')
+            .in('source_id', billIds)
+            .lte('entry_date', asOfDateStr)
+            .is('reversed_at', null);
 
-          (allocations || []).forEach((alloc: any) => {
-            paidAsOfDate[alloc.bill_id] = (paidAsOfDate[alloc.bill_id] || 0) + alloc.amount_allocated;
+          (paymentEntries || []).forEach((entry: any) => {
+            billsPaidBeforeAsOf.add(entry.source_id);
           });
         }
 
@@ -359,7 +358,7 @@ export function AccountDetailDialog({
           
           // Determine if bill is fully paid - use historical data when asOfDate provided
           const isPaid = asOfDate
-            ? (paidAsOfDate[bill.id] || 0) >= bill.total_amount
+            ? billsPaidBeforeAsOf.has(bill.id)
             : bill.amount_paid >= bill.total_amount || bill.status === 'paid';
           
           billsMap.set(bill.id, {
