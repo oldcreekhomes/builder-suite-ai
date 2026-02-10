@@ -95,16 +95,16 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       console.log("Attempting to send email via Resend...");
       const emailResponse = await resend.emails.send({
-        from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+        from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
         to: [email],
-        subject: "Reset Your Password - BuilderSuite AI",
+        subject: "Reset Your Password - BuilderSuite ML",
         html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Reset Your Password - BuilderSuite AI</title>
+    <title>Reset Your Password - BuilderSuite ML</title>
 </head>
 
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">BuilderSuite AI</h1>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">BuilderSuite ML</h1>
                             <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Construction Management Platform</p>
                         </td>
                     </tr>
@@ -135,7 +135,7 @@ const handler = async (req: Request): Promise<Response> => {
                                             <tr>
                                                 <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                        We received a request to reset your password for your BuilderSuite AI account.
+                                                        We received a request to reset your password for your BuilderSuite ML account.
                                                     </p>
                                                 </td>
                                             </tr>

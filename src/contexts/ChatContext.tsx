@@ -37,7 +37,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // Update browser tab title with unread count
   useEffect(() => {
-    const baseTitle = 'BuilderSuite AI';
+    const baseTitle = 'BuilderSuite ML';
     const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
     
     if (totalUnread > 0) {

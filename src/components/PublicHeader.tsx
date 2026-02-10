@@ -30,7 +30,7 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
           {/* Left: Logo */}
           <Link to="/" className="flex items-center">
             <Building2 className="h-8 w-8 text-primary" />
-            <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite</span>
+            <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite<sup className="text-[0.5em] font-bold ml-0.5 align-super border border-current rounded-full px-0.5">ML</sup></span>
           </Link>
 
           {/* Center: Navigation */}

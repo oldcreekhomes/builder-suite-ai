@@ -46,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send admin notification email
     console.log("📧 Sending admin notification to:", ADMIN_EMAIL);
     const adminEmailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
       to: [ADMIN_EMAIL],
       subject: `New ${signupTypeLabel} Signup - ${companyName}`,
       html: `<!DOCTYPE html>
@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
                             <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">🎉 New ${signupTypeLabel} Signup!</h1>
-                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">BuilderSuite AI</p>
+                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">BuilderSuite ML</p>
                         </td>
                     </tr>
                     
@@ -86,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
                                             <tr>
                                                 <td style="margin: 0; padding: 0 0 16px 0;">
                                                     <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                        A new ${signupTypeLabel.toLowerCase()} has signed up for BuilderSuite AI:
+                                                        A new ${signupTypeLabel.toLowerCase()} has signed up for BuilderSuite ML:
                                                     </p>
                                                 </td>
                                             </tr>
@@ -162,7 +162,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Different welcome content based on user type
     const welcomeSubject = isMarketplaceVendor 
       ? "Welcome to BuilderSuite Marketplace!"
-      : "Welcome to BuilderSuite AI!";
+      : "Welcome to BuilderSuite ML!";
     
     const welcomeMessage = isMarketplaceVendor
       ? `Your company <strong>${companyName}</strong> is now listed in the BuilderSuite Marketplace. Home builders and general contractors can now find and contact you.`
@@ -177,7 +177,7 @@ const handler = async (req: Request): Promise<Response> => {
       : `We look forward to helping you build better!`;
 
     const userEmailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
       to: [email],
       subject: welcomeSubject,
       html: `<!DOCTYPE html>
