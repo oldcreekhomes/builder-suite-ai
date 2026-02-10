@@ -1,60 +1,34 @@
 
 
-# Fix: Floating-Point Precision in Pay Bill Dialog
+# Fix: Floating-Point Precision in Bill Payment Mutation
 
 ## Problem
 
-When paying the exact remaining balance ($569.30), floating-point arithmetic produces tiny rounding errors. For example, `15569.30 - 15000.00` might yield `569.3000000000001` internally. This causes:
+The dialog-side fix is working (it shows "$0.00 remaining" correctly), but the **mutation in `useBills.ts`** has the same floating-point bug. At line 760:
 
-1. The validation error "Payment amount cannot exceed remaining balance of $569.30" even though you entered exactly $569.30
-2. The "After payment" text showing "-$0.00" instead of "$0.00"
+```typescript
+const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+```
+
+This produces something like `569.3000000000001`, and when compared to the user's input of `569.30`, the check `amountToPay > remainingBalance` passes -- but due to floating-point, sometimes the comparison flips and triggers the error.
 
 ## Solution
 
-Use cent-based (integer) arithmetic for all monetary comparisons and calculations, as recommended for currency handling.
+Apply the same cent-based rounding fix to `useBills.ts` line 760 and line 767.
 
-## File: `src/components/PayBillDialog.tsx`
+## Changes
 
-### Change 1: Fix `remainingBalance` calculation (line 70)
+### File: `src/hooks/useBills.ts`
 
-Round to 2 decimal places to eliminate floating-point drift:
-
+**Line 760** -- Round `remainingBalance`:
 ```typescript
-const remainingBalance = singleBill 
-  ? Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100 
-  : 0;
+const remainingBalance = Math.round((bill.total_amount - (bill.amount_paid || 0)) * 100) / 100;
 ```
 
-### Change 2: Fix validation comparison (line 106)
-
-Use cent-based comparison with a small tolerance:
-
+**Line 767** -- Use cent-based comparison:
 ```typescript
-const amountCents = Math.round(amount * 100);
-const balanceCents = Math.round(remainingBalance * 100);
-if (amountCents > balanceCents) {
-  setPaymentAmountError(`Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`);
-  return;
-}
+if (Math.round(amountToPay * 100) > Math.round(remainingBalance * 100)) {
 ```
 
-### Change 3: Fix "After payment" display (line 147)
-
-Round the remaining balance calculation:
-
-```typescript
-const newRemainingBalance = !isNaN(parsedPaymentAmount) 
-  ? Math.round((remainingBalance - parsedPaymentAmount) * 100) / 100 
-  : remainingBalance;
-```
-
-### Change 4: Fix default value when dialog opens (line 132)
-
-Round the default payment amount:
-
-```typescript
-const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
-```
-
-These changes ensure that entering the exact remaining balance will pass validation and show "$0.00 remaining" correctly.
+These two changes ensure the mutation-level validation matches the dialog-level fix already in place.
 
