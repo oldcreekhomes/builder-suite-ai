@@ -1,47 +1,30 @@
 
-# Fix: Balance Sheet $0.04 Imbalance from Bill Line Split Rounding
+# Fix $0.04 Balance Sheet Imbalance
 
-## Root Cause
+## Problem
+Four bills have bill line sums that exceed their `total_amount` due to rounding during the 50/50 split. Two of those bills also have imbalanced journal entries (debits exceed credits). This creates a $0.04 "Balance Sheet Difference" line.
 
-When we split bill lines 50/50 between lots using `Math.ceil` and `Math.floor`, lines with odd-cent amounts created tiny overages. For example, splitting $106.25 gives Lot 1 = $53.13 (ceil) and Lot 2 = $53.12 (floor) = $106.25 (correct). But splitting $63.75 gives Lot 1 = $31.88 and Lot 2 = $31.87 = $63.75 (correct). The problem occurs when MULTIPLE lines in the same bill all round up by $0.01 -- individually each split is correct, but collectively the bill lines sum exceeds the original total.
+## What We'll Fix
 
-The journal entry creation logic (useBills.ts line 193) uses `bill.total_amount` for the A/P credit line but sums individual `line.amount` values for debit lines. When bill_lines sum exceeds total_amount, debits exceed credits, breaking double-entry accounting.
+### Part 1: Fix Bill Line Amounts (4 bills)
+For each bill, reduce ONE Lot 1 line's amount by the overage so the lines sum equals `total_amount`:
 
-## Three-Part Fix
+| Bill (Ref) | Overage | Line to Adjust | Current | New |
+|------------|---------|----------------|---------|-----|
+| 11893 | $0.04 | Line 1 (e201433b) | $53.13 | $53.09 |
+| 12428-413 E Nelson | $0.02 | Line 1 (992d3535) | $53.13 | $53.11 |
+| INV-2026-00000996 | $0.01 | Line 5 (c79b1d78) | $0.98 | $0.97 |
+| 02022026-413 | $0.01 | Line 1 (a504ddf3) | $2.73 | $2.72 |
 
-### 1. Fix the Edge Function (`supabase/functions/split-bill-lines-by-lot/index.ts`)
+### Part 2: Fix Journal Entry Line Amounts (2 journal entries)
+Only 2 of the 4 bills have imbalanced journal entries (the other 2 were posted after the useBills.ts fix):
 
-Replace ceil/floor splitting with a remainder-based approach:
-- Lot 1 gets `Math.round(amount / 2 * 100) / 100`
-- Lot 2 gets `originalAmount - lot1Amount` (remainder ensures exact sum)
-- Same for unit_cost
+**Bill 11893** (JE f5de9e9d): Debits = $1,190.04, Credits = $1,190.00 -- reduce first Lot 1 debit line (4ca0d35b) from $53.13 to $53.09
 
-This guarantees `lot1Amount + lot2Amount === originalAmount` for every line.
+**Bill 02022026-413** (JE 0ca0e8bc): Debits = $5.46, Credits = $5.45 -- reduce first debit line (389a319b) from $2.73 to $2.72
 
-### 2. Fix Existing Data (4 bills with mismatched line sums)
+### Part 3: No Code Changes Needed
+The edge function and useBills.ts were already fixed in the previous update. This is purely a data correction via SQL.
 
-Run SQL corrections to adjust the Lot 1 line amounts (the ones that got ceiling) down by the overage. Then fix the corresponding journal entry debit lines to match. Bills to fix:
-
-| Bill | Reference | Lines Sum | Total | Overage |
-|------|-----------|-----------|-------|---------|
-| f8b175a8 | 11893 | $1,190.04 | $1,190.00 | $0.04 |
-| 9c24fbaf | 12428-413 E Nelson | $1,062.52 | $1,062.50 | $0.02 |
-| dd67e9d4 | INV-2026-00000996 | $2,001.96 | $2,001.95 | $0.01 |
-| 0f1e4c4d | 02022026-413 | $5.46 | $5.45 | $0.01 |
-
-For each bill:
-- Find the Lot 1 lines that received the ceiling amount
-- Reduce one Lot 1 line's amount by the overage (e.g., reduce by $0.01)
-- Find and reduce the corresponding journal entry debit line by the same amount
-
-### 3. Fix Bill Posting Logic (`src/hooks/useBills.ts`)
-
-As a preventive measure, change the A/P credit line calculation (around line 193) to use the **sum of actual line amounts** instead of `bill.total_amount`. This ensures journal entries are always internally balanced regardless of any line amount discrepancies:
-
-```text
-Before: const totalAmount = Math.abs(bill.total_amount);
-After:  const totalAmount = journalLines.reduce((sum, l) => sum + (l.debit || 0), 0)
-                          - journalLines.reduce((sum, l) => sum + (l.credit || 0), 0);
-```
-
-This guarantees that debits always equal credits in every journal entry going forward, even if bill_lines have rounding quirks.
+## Result
+After the SQL runs, the Balance Sheet will show Total Assets = Total Liabilities and Equity with no "DIFF" line.
