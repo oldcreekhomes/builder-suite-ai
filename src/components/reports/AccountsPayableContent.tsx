@@ -122,8 +122,10 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
       const paidAsOfDate: Record<string, number> = {};
       (paymentEntries || []).forEach((entry: any) => {
         const billId = entry.source_id;
-        const debit = entry.journal_entry_lines?.[0]?.debit || 0;
-        paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + debit;
+        const totalDebit = (entry.journal_entry_lines || []).reduce(
+          (sum: number, line: any) => sum + (line.debit || 0), 0
+        );
+        paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + totalDebit;
       });
 
       // Step 4: Calculate open balance and filter
