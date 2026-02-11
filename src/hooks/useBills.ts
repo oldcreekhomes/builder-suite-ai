@@ -190,15 +190,18 @@ export const useBills = () => {
       }
 
       // Credit AP for normal bills, Debit AP for credits
-      const totalAmount = Math.abs(bill.total_amount);
-      const isBillCredit = bill.total_amount < 0;
+      // Use sum of actual line debits/credits to guarantee balanced journal entry
+      const totalDebits = journalLines.reduce((sum, l) => sum + (l.debit || 0), 0);
+      const totalCredits = journalLines.reduce((sum, l) => sum + (l.credit || 0), 0);
+      const totalAmount = Math.round((totalDebits - totalCredits) * 100) / 100;
+      const isBillCredit = totalAmount < 0;
       
       journalLines.push({
         journal_entry_id: journalEntry.id,
         line_number: lineNumber,
         account_id: settings.ap_account_id,
-        debit: isBillCredit ? totalAmount : 0,
-        credit: isBillCredit ? 0 : totalAmount,
+        debit: isBillCredit ? Math.abs(totalAmount) : 0,
+        credit: isBillCredit ? 0 : Math.abs(totalAmount),
         memo: `AP - ${bill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
         owner_id: bill.owner_id,
         project_id: bill.project_id || null
