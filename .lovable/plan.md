@@ -1,32 +1,47 @@
 
-
-# Fix: A/P Aging Report Per-Lot Amount Calculation
-
-## Problem
-
-When you select Lot 1 or Lot 2, the report shows the **full bill amount** for every bill instead of just that lot's portion. This happens because the code uses `bill.total_amount` (the whole bill) regardless of which lot is selected. Since every bill now has lines for both lots (50/50 split), both lots show identical totals equal to the full project total.
+# Fix: Balance Sheet $0.04 Imbalance from Bill Line Split Rounding
 
 ## Root Cause
 
-The query fetches `bill_lines(lot_id)` but does NOT fetch the `amount` from each line. The open balance calculation always uses `bill.total_amount - bill.amount_paid`, which is the full bill amount.
+When we split bill lines 50/50 between lots using `Math.ceil` and `Math.floor`, lines with odd-cent amounts created tiny overages. For example, splitting $106.25 gives Lot 1 = $53.13 (ceil) and Lot 2 = $53.12 (floor) = $106.25 (correct). But splitting $63.75 gives Lot 1 = $31.88 and Lot 2 = $31.87 = $63.75 (correct). The problem occurs when MULTIPLE lines in the same bill all round up by $0.01 -- individually each split is correct, but collectively the bill lines sum exceeds the original total.
 
-## Solution
+The journal entry creation logic (useBills.ts line 193) uses `bill.total_amount` for the A/P credit line but sums individual `line.amount` values for debit lines. When bill_lines sum exceeds total_amount, debits exceed credits, breaking double-entry accounting.
 
-### File: `src/components/reports/AccountsPayableContent.tsx`
+## Three-Part Fix
 
-1. **Fetch line amounts**: Change the `bill_lines` select from `bill_lines(lot_id)` to `bill_lines(lot_id, amount)` so we have per-line amounts.
+### 1. Fix the Edge Function (`supabase/functions/split-bill-lines-by-lot/index.ts`)
 
-2. **Update the `BillWithVendor` interface**: Add `amount` to the `bill_lines` type: `bill_lines: { lot_id: string | null; amount: number }[]`.
+Replace ceil/floor splitting with a remainder-based approach:
+- Lot 1 gets `Math.round(amount / 2 * 100) / 100`
+- Lot 2 gets `originalAmount - lot1Amount` (remainder ensures exact sum)
+- Same for unit_cost
 
-3. **Calculate lot-specific amounts**: When a specific lot is selected (not "Total"), instead of using `bill.total_amount`, sum only the `bill_lines` amounts where `lot_id` matches the selected lot. This becomes the bill's effective `total_amount` for that lot view.
+This guarantees `lot1Amount + lot2Amount === originalAmount` for every line.
 
-4. **Pro-rate payments**: When viewing a specific lot, the payment amount should also be pro-rated. Calculate the lot's share as a ratio: `(lot line total / bill total_amount) * amount_paid`. This ensures that if a bill is half-paid, each lot shows half of that payment proportionally.
+### 2. Fix Existing Data (4 bills with mismatched line sums)
 
-5. **Open balance per lot**: The per-lot open balance becomes: `lotLineTotal - (lotLineTotal / billTotal * amountPaid)`.
+Run SQL corrections to adjust the Lot 1 line amounts (the ones that got ceiling) down by the overage. Then fix the corresponding journal entry debit lines to match. Bills to fix:
 
-### Summary of the math:
-- **Total view**: `openBalance = bill.total_amount - amountPaid` (unchanged)
-- **Lot view**: `lotAmount = sum of bill_lines.amount where lot_id = selectedLotId`, then `openBalance = lotAmount - (lotAmount / bill.total_amount * amountPaid)`
+| Bill | Reference | Lines Sum | Total | Overage |
+|------|-----------|-----------|-------|---------|
+| f8b175a8 | 11893 | $1,190.04 | $1,190.00 | $0.04 |
+| 9c24fbaf | 12428-413 E Nelson | $1,062.52 | $1,062.50 | $0.02 |
+| dd67e9d4 | INV-2026-00000996 | $2,001.96 | $2,001.95 | $0.01 |
+| 0f1e4c4d | 02022026-413 | $5.46 | $5.45 | $0.01 |
 
-This ensures Lot 1 shows exactly half the costs and Lot 2 shows the other half, and both add up to the Total.
+For each bill:
+- Find the Lot 1 lines that received the ceiling amount
+- Reduce one Lot 1 line's amount by the overage (e.g., reduce by $0.01)
+- Find and reduce the corresponding journal entry debit line by the same amount
 
+### 3. Fix Bill Posting Logic (`src/hooks/useBills.ts`)
+
+As a preventive measure, change the A/P credit line calculation (around line 193) to use the **sum of actual line amounts** instead of `bill.total_amount`. This ensures journal entries are always internally balanced regardless of any line amount discrepancies:
+
+```text
+Before: const totalAmount = Math.abs(bill.total_amount);
+After:  const totalAmount = journalLines.reduce((sum, l) => sum + (l.debit || 0), 0)
+                          - journalLines.reduce((sum, l) => sum + (l.credit || 0), 0);
+```
+
+This guarantees that debits always equal credits in every journal entry going forward, even if bill_lines have rounding quirks.
