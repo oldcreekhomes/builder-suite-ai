@@ -1,57 +1,53 @@
 
-
-# Fix 413 E Nelson: Split 104 Unallocated Journal Entry Lines 50/50
+# Fix A/P Report: Sum All Payment Debit Lines
 
 ## Problem
 
-The previous data fix for 413 E Nelson only split `bill_lines` between the two lots. It did **not** split `journal_entry_lines`, leaving 104 lines with no lot allocation. This causes reports to malfunction because the journal entries (which drive the Balance Sheet, per-lot calculations, and payment recognition) don't know which lot they belong to.
+The Balance Sheet correctly shows $21,086.14 for Accounts Payable on 412 E Nelson (as of 12/31/2025). The A/P Aging report shows $33,991.13 -- nearly double. The per-lot views show ~$16,995 each, which also don't match.
 
-412 E Nelson works because our recent migration handled both tables. 413 needs the same treatment for its journal entry lines.
+## Root Cause
 
-## What Needs Fixing
+In `src/components/reports/AccountsPayableContent.tsx`, line 125, the payment calculation reads only the **first** debit line from each payment journal entry:
 
-104 unallocated journal entry lines across these source types:
+```
+const debit = entry.journal_entry_lines?.[0]?.debit || 0;
+```
 
-| Source Type | Lines | Description |
-|---|---|---|
-| bill | 46 | Cost allocations and A/P credits from posted bills |
-| bill_payment | 22 | Payment debits and A/P debits from bill payments |
-| check | 4 | Check transaction entries |
-| manual | 12 | Manual journal entries |
-| deposit | 20 | Deposit transaction entries |
+After the 50/50 lot split, every payment journal entry now has **2 debit lines** (one per lot). The Supabase query with the `!inner` join actually returns **separate rows** for each matching debit line, but the code only reads `[0]` from each. This means only half of each payment is recognized, causing fully-paid bills to appear with open balances.
 
-Additionally, 6 unallocated bill lines exist on a voided bill (ref 11893, status "void"). These don't affect reports but should be cleaned up for consistency.
+**Example:** Bill 08112025 ($233.00) is fully paid. Its payment JE has two debit lines of $116.50 each. The code reads one $116.50 entry, so $116.50 appears as an open balance.
 
-## Project Details
+## Fix
 
-- Project ID: `c245acb9-53a0-4b23-9c9f-223c372766aa`
-- Lot 1: `a346f784-42bf-4734-a442-e9408a2257a5`
-- Lot 2: `2bc5967c-03c6-4de3-ac01-47773991fbf6`
+**One change** in `src/components/reports/AccountsPayableContent.tsx` at lines 123-127.
 
-## Splitting Logic
+Replace the current logic that reads only the first debit line:
+```
+(paymentEntries || []).forEach((entry: any) => {
+  const billId = entry.source_id;
+  const debit = entry.journal_entry_lines?.[0]?.debit || 0;
+  paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + debit;
+});
+```
 
-Same approach used successfully for 412:
-- Lot 1 amount = ROUND(original / 2, 2)
-- Lot 2 amount = original - Lot 1 amount (remainder approach ensures exact totals)
-- Debits and credits split independently using the same method
+With logic that sums **all** debit lines in each entry:
+```
+(paymentEntries || []).forEach((entry: any) => {
+  const billId = entry.source_id;
+  const totalDebit = (entry.journal_entry_lines || []).reduce(
+    (sum: number, line: any) => sum + (line.debit || 0), 0
+  );
+  paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + totalDebit;
+});
+```
 
-## Technical Steps
+## Expected Result
 
-### Step 1: Split Unallocated Journal Entry Lines
-For each of the 104 unallocated journal_entry_lines in 413:
-1. Update existing line: set lot_id to Lot 1, debit = ROUND(debit/2, 2), credit = ROUND(credit/2, 2)
-2. Insert new line for Lot 2 with remainder amounts
+After this fix:
+- A/P Report **Total** will match the Balance Sheet at **$21,086.14**
+- A/P Report per-lot views (Lot 1 and Lot 2) will show correct amounts that sum to the total
+- This will fix the issue for **both** 412 E Nelson and 413 E Nelson, and any future project with multi-lot bill splits
 
-### Step 2: Split Voided Bill Lines (cleanup)
-For the 6 unallocated bill_lines on the voided bill:
-1. Update existing line: set lot_id to Lot 1, amount = ROUND(amount/2, 2)
-2. Insert new line for Lot 2 with remainder
+## No Database Changes Needed
 
-### Step 3: Verification
-After migration, verify:
-- 0 unallocated bill_lines remaining for 413
-- 0 unallocated journal_entry_lines remaining for 413
-- All journal entries remain balanced (debits = credits per entry)
-
-## No Code Changes Required
-This is purely a data correction using the same approach that fixed 412.
+The data is correct. This is purely a report display bug where payments are being undercounted.
