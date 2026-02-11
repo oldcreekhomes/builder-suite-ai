@@ -43,8 +43,7 @@ serve(async (req) => {
         journal_entries!inner(source_id, source_type)
       `)
       .eq('project_id', projectId)
-      .is('lot_id', null)
-      .not('cost_code_id', 'is', null);
+      .is('lot_id', null);
 
     if (fetchError) {
       throw new Error(`Failed to fetch journal entry lines: ${fetchError.message}`);
@@ -63,11 +62,11 @@ serve(async (req) => {
       const originalDebit = parseFloat(line.debit) || 0;
       const originalCredit = parseFloat(line.credit) || 0;
       
-      // Calculate 50/50 split
-      const lot1Debit = Math.ceil(originalDebit * 100 / 2) / 100;
-      const lot2Debit = Math.floor(originalDebit * 100 / 2) / 100;
-      const lot1Credit = Math.ceil(originalCredit * 100 / 2) / 100;
-      const lot2Credit = Math.floor(originalCredit * 100 / 2) / 100;
+      // Calculate 50/50 split using remainder approach to guarantee exact sum
+      const lot1Debit = Math.round(originalDebit * 100 / 2) / 100;
+      const lot2Debit = Math.round((originalDebit - lot1Debit) * 100) / 100;
+      const lot1Credit = Math.round(originalCredit * 100 / 2) / 100;
+      const lot2Credit = Math.round((originalCredit - lot1Credit) * 100) / 100;
 
       console.log(`JE Line ${line.id}: Debit $${originalDebit} -> Lot1: $${lot1Debit}, Lot2: $${lot2Debit}`);
 
