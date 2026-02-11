@@ -47,11 +47,11 @@ serve(async (req) => {
       const originalAmount = parseFloat(line.amount);
       const originalUnitCost = parseFloat(line.unit_cost);
       
-      // Calculate 50/50 split (Lot 1 gets ceiling, Lot 2 gets floor for odd pennies)
-      const lot1Amount = Math.ceil(originalAmount * 100 / 2) / 100;
-      const lot2Amount = Math.floor(originalAmount * 100 / 2) / 100;
-      const lot1UnitCost = Math.ceil(originalUnitCost * 100 / 2) / 100;
-      const lot2UnitCost = Math.floor(originalUnitCost * 100 / 2) / 100;
+      // Calculate 50/50 split using remainder approach to guarantee exact sum
+      const lot1Amount = Math.round(originalAmount * 100 / 2) / 100;
+      const lot2Amount = Math.round((originalAmount - lot1Amount) * 100) / 100;
+      const lot1UnitCost = Math.round(originalUnitCost * 100 / 2) / 100;
+      const lot2UnitCost = Math.round((originalUnitCost - lot1UnitCost) * 100) / 100;
 
       console.log(`Line ${line.id}: $${originalAmount} -> Lot1: $${lot1Amount}, Lot2: $${lot2Amount}`);
 
