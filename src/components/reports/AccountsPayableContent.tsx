@@ -29,7 +29,7 @@ interface BillWithVendor {
   total_amount: number;
   amount_paid: number;
   vendor: { company_name: string } | null;
-  bill_lines: { lot_id: string | null }[];
+  bill_lines: { lot_id: string | null; amount: number }[];
 }
 
 export function AccountsPayableContent({ projectId }: AccountsPayableContentProps) {
@@ -92,7 +92,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
           total_amount,
           amount_paid,
           vendor:companies!vendor_id(company_name),
-          bill_lines(lot_id)
+          bill_lines(lot_id, amount)
         `)
         .eq('project_id', projectId)
         .in('status', ['posted', 'paid'])
@@ -127,21 +127,39 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
       });
 
       // Step 4: Calculate open balance and filter
+      const isLotView = selectedLotId && selectedLotId !== '__total__';
+
       let filteredBills = bills.map(bill => ({
         ...bill,
         amount_paid: paidAsOfDate[bill.id] || 0,
-      })).filter(bill => {
+      }));
+
+      if (isLotView) {
+        // Filter to bills that have lines for this lot
+        filteredBills = filteredBills.filter(bill => {
+          const lotLines = bill.bill_lines?.filter(line => line.lot_id === selectedLotId) || [];
+          return lotLines.length > 0;
+        });
+
+        // Replace total_amount with lot-specific amount and pro-rate payments
+        filteredBills = filteredBills.map(bill => {
+          const lotAmount = bill.bill_lines
+            .filter(line => line.lot_id === selectedLotId)
+            .reduce((sum, line) => sum + line.amount, 0);
+          const ratio = bill.total_amount > 0 ? lotAmount / bill.total_amount : 0;
+          return {
+            ...bill,
+            total_amount: lotAmount,
+            amount_paid: bill.amount_paid * ratio,
+          };
+        });
+      }
+
+      // Filter out fully paid bills
+      filteredBills = filteredBills.filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
         return openBalance > 0.01;
       });
-
-      // Filter by lot if a specific lot is selected (not "Total")
-      if (selectedLotId && selectedLotId !== '__total__') {
-        filteredBills = filteredBills.filter(bill => {
-          const lotIds = bill.bill_lines?.map(line => line.lot_id) || [];
-          return lotIds.includes(selectedLotId);
-        });
-      }
 
       return filteredBills as BillWithVendor[];
     },
