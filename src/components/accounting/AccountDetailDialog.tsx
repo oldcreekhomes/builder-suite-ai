@@ -380,31 +380,31 @@ export function AccountDetailDialog({
         // When a bill is corrected, the old bill gets reversed and a new one is created.
         // If the old bill was paid before the as-of date, the new bill should also be
         // considered paid for Hide Paid filtering purposes.
+        // Match by reference_number only (vendor may change during correction).
         if (asOfDate && billsPaidBeforeAsOf.size > 0) {
-          const paidReversedBills: Array<{ reference_number: string; vendor_id: string }> = [];
+          // Build a map of reference_number -> active bill IDs not yet marked as paid
+          const activeByRef = new Map<string, string[]>();
           billsMap.forEach((bill, billId) => {
-            if (billsPaidBeforeAsOf.has(billId) && bill.status === 'reversed') {
-              paidReversedBills.push({
-                reference_number: bill.reference_number,
-                vendor_id: bill.vendor_id,
-              });
+            if (bill.status !== 'reversed' && !billsPaidBeforeAsOf.has(billId) && bill.reference_number) {
+              const existing = activeByRef.get(bill.reference_number) || [];
+              existing.push(billId);
+              activeByRef.set(bill.reference_number, existing);
             }
           });
 
-          if (paidReversedBills.length > 0) {
-            billsMap.forEach((bill, billId) => {
-              if (bill.status !== 'reversed' && !billsPaidBeforeAsOf.has(billId)) {
-                const match = paidReversedBills.find(
-                  rb => rb.reference_number === bill.reference_number
-                    && rb.vendor_id === bill.vendor_id
-                );
-                if (match) {
-                  billsPaidBeforeAsOf.add(billId);
-                  bill.isPaid = true;
+          // For each paid+reversed bill, find active successors by reference_number only
+          billsMap.forEach((bill, billId) => {
+            if (billsPaidBeforeAsOf.has(billId) && bill.status === 'reversed' && bill.reference_number) {
+              const successorIds = activeByRef.get(bill.reference_number) || [];
+              successorIds.forEach(successorId => {
+                billsPaidBeforeAsOf.add(successorId);
+                const successorBill = billsMap.get(successorId);
+                if (successorBill) {
+                  successorBill.isPaid = true;
                 }
-              }
-            });
-          }
+              });
+            }
+          });
         }
       }
 
