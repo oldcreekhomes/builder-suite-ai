@@ -337,7 +337,6 @@ export function AccountDetailDialog({
             bill_lines(memo, line_number, account_id, cost_code_id)
           `)
           .eq('is_reversal', false)
-          .is('reversed_at', null)
           .in('id', billIds);
         
         // If asOfDate is provided, determine which bills were paid before that date
@@ -351,7 +350,7 @@ export function AccountDetailDialog({
             .eq('source_type', 'bill_payment')
             .in('source_id', billIds)
             .lte('entry_date', asOfDateStr)
-            .is('reversed_at', null);
+            .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr);
 
           (paymentEntries || []).forEach((entry: any) => {
             billsPaidBeforeAsOf.add(entry.source_id);
