@@ -1,53 +1,65 @@
 
-# Fix A/P Report: Sum All Payment Debit Lines
 
-## Problem
+# Eliminate Timezone Date Bugs Permanently
 
-The Balance Sheet correctly shows $21,086.14 for Accounts Payable on 412 E Nelson (as of 12/31/2025). The A/P Aging report shows $33,991.13 -- nearly double. The per-lot views show ~$16,995 each, which also don't match.
+## The Problem
 
-## Root Cause
+Every time a date-only string like `"2026-01-31"` is passed to `new Date()`, JavaScript parses it as **UTC midnight**. In US timezones, that shifts backward one day. This has caused repeated bugs across the app (closed books dates, transaction dates, report dates, etc.).
 
-In `src/components/reports/AccountsPayableContent.tsx`, line 125, the payment calculation reads only the **first** debit line from each payment journal entry:
+## The Solution
 
-```
-const debit = entry.journal_entry_lines?.[0]?.debit || 0;
-```
+### 1. Add a Safe Formatting Function to `src/utils/dateOnly.ts`
 
-After the 50/50 lot split, every payment journal entry now has **2 debit lines** (one per lot). The Supabase query with the `!inner` join actually returns **separate rows** for each matching debit line, but the code only reads `[0]` from each. This means only half of each payment is recognized, causing fully-paid bills to appear with open balances.
+Add a single utility that combines local parsing with date-fns formatting:
 
-**Example:** Bill 08112025 ($233.00) is fully paid. Its payment JE has two debit lines of $116.50 each. The code reads one $116.50 entry, so $116.50 appears as an open balance.
+```typescript
+import { format as dateFnsFormat } from "date-fns";
 
-## Fix
-
-**One change** in `src/components/reports/AccountsPayableContent.tsx` at lines 123-127.
-
-Replace the current logic that reads only the first debit line:
-```
-(paymentEntries || []).forEach((entry: any) => {
-  const billId = entry.source_id;
-  const debit = entry.journal_entry_lines?.[0]?.debit || 0;
-  paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + debit;
-});
+/**
+ * Safely format a YYYY-MM-DD date string for display.
+ * Parses as LOCAL time (not UTC) to avoid off-by-one day bugs.
+ */
+export const formatDateSafe = (dateStr: string, formatPattern: string): string => {
+  if (!dateStr) return '';
+  const localDate = toDateLocal(dateStr.split('T')[0]); // strip any time portion
+  return dateFnsFormat(localDate, formatPattern);
+};
 ```
 
-With logic that sums **all** debit lines in each entry:
-```
-(paymentEntries || []).forEach((entry: any) => {
-  const billId = entry.source_id;
-  const totalDebit = (entry.journal_entry_lines || []).reduce(
-    (sum: number, line: any) => sum + (line.debit || 0), 0
-  );
-  paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + totalDebit;
-});
-```
+### 2. Sweep All Files Using Unsafe `new Date()` on Date-Only Strings
 
-## Expected Result
+Replace every instance of `format(new Date(someDate), pattern)` with `formatDateSafe(someDate, pattern)` across 20+ files. The key files include:
 
-After this fix:
-- A/P Report **Total** will match the Balance Sheet at **$21,086.14**
-- A/P Report per-lot views (Lot 1 and Lot 2) will show correct amounts that sum to the total
-- This will fix the issue for **both** 412 E Nelson and 413 E Nelson, and any future project with multi-lot bill splits
+| File | Approx. Instances |
+|---|---|
+| CloseBooksPeriodManager.tsx | 3 (period_end_date) |
+| PODetailsDialog.tsx | 1+ |
+| JobCostActualDialog.tsx | 1+ |
+| JournalEntrySearchDialog.tsx | 2 |
+| CheckSearchDialog.tsx | 2 |
+| CreditCardSearchDialog.tsx | 2 |
+| SendSingleCompanyEmailModal.tsx | 2 |
+| FromBidsTab.tsx | 1 |
+| ReconciliationReviewDialog.tsx | 2 |
+| ReconcileAccountsContent.tsx | multiple |
+| BankReconciliation.tsx | multiple |
+| useBankReconciliation.ts | multiple (sorting) |
+| Other report/transaction files | various |
 
-## No Database Changes Needed
+**Note:** Some places already use the `+ "T00:00:00"` or `+ "T12:00:00"` workaround. These will also be replaced with `formatDateSafe` for consistency.
 
-The data is correct. This is purely a report display bug where payments are being undercounted.
+Fields that are **full timestamps** (like `closed_at`, `created_at`, `reopened_at`) are fine with `new Date()` and will be left as-is.
+
+### 3. What This Achieves
+
+- **One function** to remember: `formatDateSafe(dateStr, pattern)` -- works correctly every time
+- **No more timezone bugs** on date-only fields from the database
+- **Consistent pattern** across the entire codebase -- any future developer (or AI) just uses this function
+- **You never have to report this bug again**
+
+## Technical Details
+
+- Only `date-fns` format patterns change (imported once in dateOnly.ts)
+- The `toDateLocal` function already exists and is correct -- it creates `new Date(year, month-1, day)` which uses **local** timezone
+- Sorting comparisons using `new Date(a.date).getTime()` will also be updated to use `toDateLocal` to prevent subtle sort bugs near midnight UTC
+
