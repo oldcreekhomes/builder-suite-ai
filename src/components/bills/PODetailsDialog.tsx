@@ -7,6 +7,7 @@ import { FileText, AlertTriangle, DollarSign, Receipt, TrendingDown, CheckCircle
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { cn } from "@/lib/utils";
 
 interface PODetailsDialogProps {
@@ -229,7 +230,7 @@ export function PODetailsDialog({
                       {bill.reference_number || '—'}
                     </span>
                     <span className="text-muted-foreground">
-                      {format(new Date(bill.bill_date), 'MM/dd/yy')}
+                      {formatDateSafe(bill.bill_date, 'MM/dd/yy')}
                     </span>
                     <span className="font-medium text-right">{formatCurrency(bill.lineAmount)}</span>
                   </div>

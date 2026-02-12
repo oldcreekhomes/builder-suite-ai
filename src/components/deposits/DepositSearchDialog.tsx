@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { toast } from "@/hooks/use-toast";
 
 interface DepositLine {
@@ -138,7 +139,7 @@ export function DepositSearchDialog({
     
     const query = searchQuery.toLowerCase();
     return deposits.filter(deposit => {
-      const dateStr = format(new Date(deposit.deposit_date + 'T00:00:00'), 'MM/dd/yyyy');
+      const dateStr = formatDateSafe(deposit.deposit_date, 'MM/dd/yyyy');
       const memo = (deposit.memo || '').toLowerCase();
       const companyName = (deposit.companies?.company_name || '').toLowerCase();
       
@@ -254,7 +255,7 @@ export function DepositSearchDialog({
                         }}
                       >
                         <TableCell className="px-2 py-1 text-xs">
-                          {format(new Date(deposit.deposit_date + 'T00:00:00'), 'MM/dd/yyyy')}
+                          {formatDateSafe(deposit.deposit_date, 'MM/dd/yyyy')}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">
                           {deposit.companies?.company_name || 'Cash'}

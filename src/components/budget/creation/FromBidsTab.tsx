@@ -4,6 +4,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { formatDateSafe } from "@/utils/dateOnly";
 
 interface FromBidsTabProps {
   projectId: string;
@@ -101,7 +102,7 @@ export function FromBidsTab({ projectId, selectedBids, onBidsChange }: FromBidsT
                             </div>
                             {pkg.due_date && (
                               <div className="text-xs text-muted-foreground">
-                                Due: {format(new Date(pkg.due_date), 'MMM d, yyyy')}
+                                Due: {formatDateSafe(pkg.due_date, 'MMM d, yyyy')}
                               </div>
                             )}
                           </div>

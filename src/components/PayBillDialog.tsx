@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { CalendarIcon } from "lucide-react";
 import {
   Dialog,
@@ -256,7 +257,7 @@ export function PayBillDialog({
                 </div>
                 <div className="flex justify-between">
                   <span>Due Date:</span>
-                  <span>{billsArray[0].due_date ? format(new Date(billsArray[0].due_date), 'MMM dd, yyyy') : 'Not set'}</span>
+                  <span>{billsArray[0].due_date ? formatDateSafe(billsArray[0].due_date, 'MMM dd, yyyy') : 'Not set'}</span>
                 </div>
                 {billsArray[0].reference_number && (
                   <div className="flex justify-between">

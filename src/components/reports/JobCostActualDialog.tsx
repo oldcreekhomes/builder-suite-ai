@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Button } from "@/components/ui/button";
@@ -344,7 +345,7 @@ const formatCurrency = (value: number) => {
                           <span className="text-xs">{getTypeLabel(line.source_type)}</span>
                         </TableCell>
                         <TableCell className="px-2 py-1">
-                          <span className="text-xs">{format(new Date(line.journal_entries.entry_date), 'MM/dd/yyyy')}</span>
+                          <span className="text-xs">{formatDateSafe(line.journal_entries.entry_date, 'MM/dd/yyyy')}</span>
                         </TableCell>
                         <TableCell className="px-2 py-1">
                           <span className="text-xs">{line.vendor_name || '-'}</span>

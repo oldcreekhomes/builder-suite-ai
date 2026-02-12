@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { toast } from "@/hooks/use-toast";
 
 interface CreditCardLine {
@@ -127,7 +128,7 @@ export function CreditCardSearchDialog({
     
     const query = searchQuery.toLowerCase();
     return creditCards.filter(cc => {
-      const dateStr = format(new Date(cc.transaction_date + 'T00:00:00'), 'MM/dd/yyyy');
+      const dateStr = formatDateSafe(cc.transaction_date, 'MM/dd/yyyy');
       const vendor = (cc.vendor || '').toLowerCase();
       const memo = (cc.memo || '').toLowerCase();
       
@@ -248,7 +249,7 @@ export function CreditCardSearchDialog({
                         }}
                       >
                         <TableCell className="px-2 py-1 text-xs">
-                          {format(new Date(cc.transaction_date + 'T00:00:00'), 'MM/dd/yyyy')}
+                          {formatDateSafe(cc.transaction_date, 'MM/dd/yyyy')}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{cc.vendor}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">{cc.memo || ''}</TableCell>

@@ -4,6 +4,7 @@ import { useInsuranceAlerts } from "@/hooks/useInsuranceAlerts";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 
 export const InsuranceAlertsCard = () => {
   const { alerts, isLoading, errorCount, warningCount } = useInsuranceAlerts();
@@ -62,10 +63,10 @@ export const InsuranceAlertsCard = () => {
                   <p className="text-xs text-muted-foreground truncate max-w-[140px] flex-shrink-0">
                     {alert.status === "missing" && "No insurance"}
                     {alert.status === "expired" && (
-                      <>Expired {alert.expirationDate && format(new Date(alert.expirationDate), "M/d/yy")}</>
+                      <>Expired {alert.expirationDate && formatDateSafe(alert.expirationDate, "M/d/yy")}</>
                     )}
                     {alert.status === "expiring" && (
-                      <>Exp {alert.expirationDate && format(new Date(alert.expirationDate), "M/d/yy")} ({alert.daysRemaining}d)</>
+                      <>Exp {alert.expirationDate && formatDateSafe(alert.expirationDate, "M/d/yy")} ({alert.daysRemaining}d)</>
                     )}
                   </p>
                 </div>

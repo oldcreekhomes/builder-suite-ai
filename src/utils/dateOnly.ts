@@ -1,3 +1,5 @@
+import { format as dateFnsFormat } from "date-fns";
+
 /**
  * Date-only utilities for schedule functionality
  * All functions work with YYYY-MM-DD strings to avoid time/timezone issues
@@ -241,4 +243,15 @@ export const toDateLocal = (ymd: DateString): Date => {
 export const formatDisplayFromAny = (input: string | Date): string => {
   const ymd = normalizeToYMD(input);
   return ymd ? formatDisplayDate(ymd) : '';
+};
+
+/**
+ * Safely format a YYYY-MM-DD date string for display using date-fns patterns.
+ * Parses as LOCAL time (not UTC) to avoid off-by-one day bugs.
+ * Use this instead of format(new Date(dateStr), pattern) for date-only strings.
+ */
+export const formatDateSafe = (dateStr: string, formatPattern: string): string => {
+  if (!dateStr) return '';
+  const localDate = toDateLocal(dateStr.split('T')[0]); // strip any time portion
+  return dateFnsFormat(localDate, formatPattern);
 };

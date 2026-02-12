@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import {
   Dialog,
   DialogContent,
@@ -151,7 +152,7 @@ export function JournalEntrySearchDialog({
     
     const query = searchQuery.toLowerCase();
     return entries.filter(entry => {
-      const dateStr = format(new Date(entry.entry_date), 'MM/dd/yyyy');
+      const dateStr = formatDateSafe(entry.entry_date, 'MM/dd/yyyy');
       const description = (entry.description || '').toLowerCase();
       
       return dateStr.includes(query) || description.includes(query);
@@ -230,7 +231,7 @@ export function JournalEntrySearchDialog({
                       onClick={() => onSelectEntry(entry)}
                     >
                       <TableCell className="px-2 py-1 text-xs">
-                        {format(new Date(entry.entry_date), 'MM/dd/yyyy')}
+                        {formatDateSafe(entry.entry_date, 'MM/dd/yyyy')}
                       </TableCell>
                       <TableCell className="px-2 py-1 text-xs">
                         JE-{String(filteredEntries.length - index).padStart(3, '0')}
