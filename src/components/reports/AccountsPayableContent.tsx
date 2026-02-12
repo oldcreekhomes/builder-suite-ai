@@ -105,33 +105,35 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
       const bills = data || [];
       if (bills.length === 0) return [];
 
-      // Step 2: Build predecessor map (old reversed bill -> active bill)
-      // When a bill is corrected, the old bill gets reversed_by_id pointing to the reversal entry,
-      // and the reversal entry has reverses_id pointing to the old bill.
       const activeBillIds = bills.map(b => b.id);
-      
+
+      // Step 2: Build predecessor map (old reversed bill -> active bill)
+      // Fetch reversed bills with reference_number so we can map payments to successors
       const { data: reversedBills } = await supabase
         .from('bills')
-        .select('id, reversed_by_id')
+        .select('id, reversed_by_id, reference_number')
         .eq('project_id', projectId)
         .not('reversed_by_id', 'is', null)
         .eq('is_reversal', false);
 
-      // Map: predecessor (old) bill ID -> active bill ID
+      // Build a lookup: reference_number -> active bill ID
+      const activeByRef: Record<string, string> = {};
+      bills.forEach(b => {
+        if (b.reference_number) {
+          activeByRef[b.reference_number] = b.id;
+        }
+      });
+
+      // Map: predecessor (old) bill ID -> active bill ID by matching reference_number
       const predecessorToActive: Record<string, string> = {};
       const predecessorIds: string[] = [];
       (reversedBills || []).forEach((rb: any) => {
-        // rb.reversed_by_id is the reversal bill; we need to find the active bill that replaced it
-        // The reversal bill's reverses_id = rb.id, and the new corrected bill is a separate entry
-        // However, the payment JEs reference rb.id (the old bill). We need to map rb.id to the 
-        // active bill that has the same vendor/reference. Since we can't easily trace, we check
-        // if rb.reversed_by_id is itself a reversal that has a corresponding new bill.
-        // Simpler approach: any payment referencing rb.id should count toward the project total.
-        // We map it to itself for payment tracking purposes.
-        if (!activeBillIds.includes(rb.id)) {
-          predecessorIds.push(rb.id);
-          // Map to any active bill for aggregation - payments on old bills reduce total AP
-          predecessorToActive[rb.id] = rb.id; // Track separately
+        if (!activeBillIds.includes(rb.id) && rb.reference_number) {
+          const activeId = activeByRef[rb.reference_number];
+          if (activeId) {
+            predecessorIds.push(rb.id);
+            predecessorToActive[rb.id] = activeId;
+          }
         }
       });
 
@@ -156,7 +158,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
           (sum: number, line: any) => sum + (line.debit || 0), 0
         );
         // If this payment references a predecessor bill, credit it to the active bill
-        const targetBillId = activeBillIds.includes(sourceId) ? sourceId : sourceId;
+        const targetBillId = predecessorToActive[sourceId] || sourceId;
         paidAsOfDate[targetBillId] = (paidAsOfDate[targetBillId] || 0) + totalDebit;
       });
 
