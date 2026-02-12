@@ -1,103 +1,67 @@
 
-# Fix: Three-Way Accounting Reconciliation (Balance Sheet, Account Detail, A/P Aging)
+# Fix: Three-Way A/P Reconciliation (Balance Sheet vs Account Detail vs A/P Aging)
 
-## Problem Summary
+## Problem
 
-Three views that should show the same Accounts Payable balance are showing three different numbers:
+Three views showing Accounts Payable for 126 Longview Drive as of 12/31/2025 display three different numbers:
 
-- **Balance Sheet**: $26,053.95
-- **Account Detail Dialog**: $25,891.39
-- **A/P Aging Report**: $0.00
+| View | Amount | Status |
+|---|---|---|
+| Balance Sheet | $23,833.43 | Correct (journal-entry source of truth) |
+| Account Detail Dialog | $25,891.39 | Wrong (+$2,057.96) |
+| A/P Aging Report | $25,778.34 | Wrong (+$1,944.91, also missing $113.05 same-day bill) |
 
-## Root Causes Found
+## Root Cause Analysis
 
-### Bug 1: Balance Sheet is too HIGH ($26,053.95 instead of $25,891.39)
+Seven bills on this project were corrected (reversed and re-entered) on 12/08/2025. The original payment journal entries (totaling $2,057.96 in A/P debits) reference the OLD bill IDs. Those payments were later reversed on 01/21/2026. On the as-of date of 12/31/2025, those payments were still valid.
 
-The Balance Sheet query is missing a `reversed_by_id IS NULL` filter. When a bill is corrected (edited after posting), the original bill's journal entry gets `reversed_by_id` set to the new corrected entry. The Balance Sheet fails to exclude these corrected originals, double-counting 11 bill entries totaling $162.56 net excess.
+### Bug 1: Account Detail Dialog ($25,891.39)
 
-**Fix**: Add `.is('journal_entries.reversed_by_id', null)` to the Balance Sheet journal lines query in `BalanceSheetContent.tsx`.
+The bills lookup query at line 340 uses `.is('reversed_at', null)`, which excludes the 7 reversed bills from `billsMap`. The defensive filter at line 500 then removes bill_payment journal entries because `billsMap.has(source_id)` returns false for reversed bill IDs. This drops $2,057.96 in valid payment entries from the display.
 
-### Bug 2: Account Detail Dialog uses wrong reversal filtering
+The `billsPaidBeforeAsOf` query (line 354) also uses `.is('reversed_at', null)`, which excludes payments that were reversed after the as-of date.
 
-The Account Detail query uses strict `reversed_at IS NULL` instead of the as-of-date-aware pattern `(reversed_at IS NULL OR reversed_at > asOfDate)`. This means bill payments that were reversed AFTER the as-of date (e.g., reversed on Jan 21, 2026) are excluded from a Dec 31, 2025 report, even though they were valid on that date. In this case, 7 payment entries ($2,057.96) are incorrectly excluded. This error is partially masked because it partially offsets Bug 1's overcounting.
+### Bug 2: A/P Aging Report ($25,778.34)
 
-**Fix**: When `asOfDate` is provided, replace `.is('journal_entries.reversed_at', null)` with `.or('reversed_at.is.null,reversed_at.gt.{asOfDate}', { referencedTable: 'journal_entries' })` in `AccountDetailDialog.tsx`.
+Two sub-issues:
 
-### Bug 3: A/P Aging Report shows $0 due to lot filtering
+1. **Orphaned payments not counted (-$2,057.96)**: The payment query (line 114) uses `.in('source_id', billIds)` where `billIds` are only active bills. Payments referencing reversed (predecessor) bill IDs are never found. Additionally, `.is('reversed_at', null)` on payment JEs excludes payments reversed after the as-of date.
 
-When "Lot 1" is selected, the A/P Aging query only includes bills whose `bill_lines` have `lot_id` matching the selected lot. However, the vast majority of bill lines on this project have `lot_id = NULL` (legacy/unallocated). This filters out nearly every bill, resulting in $0.
+2. **Same-day bill excluded (-$113.05)**: The aging bucket logic (line 207) starts at `aging >= 1`, excluding bills dated on the as-of date itself (aging = 0 days).
 
-The Job Costs report already handles this correctly by including journal entries where `lot_id` matches the selected lot OR is NULL. The A/P Aging report needs to follow the same pattern.
+## Fix Plan
 
-**Fix**: In `AccountsPayableContent.tsx`, when filtering by lot, include bill lines where `lot_id = selectedLotId` OR `lot_id IS NULL`.
+### File 1: `src/components/accounting/AccountDetailDialog.tsx`
 
-## Canonical Filter Pattern
+**Change A** (line 340): Remove `.is('reversed_at', null)` from the bills lookup query. The bills lookup is for display enrichment only (vendor names, reference numbers). The journal entry query already handles which entries are valid. Keeping `.eq('is_reversal', false)` is sufficient.
 
-All three views must use the same journal entry filtering:
+**Change B** (line 354): Replace `.is('reversed_at', null)` with as-of-date-aware filtering: `.or('reversed_at.is.null,reversed_at.gt.${asOfDateStr}')`. This ensures payments valid on the as-of date are recognized for the isPaid determination.
+
+### File 2: `src/components/reports/AccountsPayableContent.tsx`
+
+**Change A** (lines 108-128): After getting active bill IDs, also query for predecessor (reversed) bill IDs using the `reverses_id` column on the bills table. This traces the correction chain: if a reversal bill has `reverses_id` pointing to an old bill, and that reversal bill's ID matches an active bill's `reversed_by_id`, we can map old payments to the active bill. Query payment JEs for BOTH active and predecessor bill IDs. Map predecessor payments to the active (corrected) bill in `paidAsOfDate`.
+
+**Change B** (line 116): Replace `.is('reversed_at', null)` with as-of-date-aware filtering: `.or('reversed_at.is.null,reversed_at.gt.${asOfDateStr}')`.
+
+**Change C** (line 207): Change `aging >= 1` to `aging >= 0` to include bills dated on the as-of date in the "1-30 Days" bucket (or create a "Current" row).
+
+### File 3: `src/components/reports/BalanceSheetContent.tsx`
+
+No changes needed -- already correct.
+
+## Technical Detail: Predecessor Bill Chain for A/P Aging
 
 ```text
-is_reversal = false
-AND reversed_by_id IS NULL
-AND (reversed_at IS NULL OR reversed_at > asOfDate)
+Step 1: Get active bills (reversed_by_id IS NULL, is_reversal = false)
+Step 2: Query reversed bills for the project to build predecessor map:
+        SELECT id, reversed_by_id FROM bills 
+        WHERE project_id = X AND reversed_by_id IS NOT NULL AND is_reversal = false
+Step 3: Build map: old_bill_id -> active_bill_id
+        (via matching: active bill whose ID chain links back to old bill)
+Step 4: Query payment JEs for both active AND predecessor bill IDs
+Step 5: For each payment referencing a predecessor bill, credit it to the active bill
 ```
 
-## Files to Edit
+## Expected Result After Fix
 
-| File | Change |
-|---|---|
-| `src/components/reports/BalanceSheetContent.tsx` | Add `.is('journal_entries.reversed_by_id', null)` to journal lines query |
-| `src/components/accounting/AccountDetailDialog.tsx` | Use as-of-date-aware reversal filtering when asOfDate is provided |
-| `src/components/reports/AccountsPayableContent.tsx` | Include NULL lot_id bill lines when a specific lot is selected |
-
-## Technical Details
-
-### BalanceSheetContent.tsx (line ~78)
-Add after the `.or(...)` reversal filter:
-```typescript
-.is('reversed_by_id', { referencedTable: 'journal_entries' }, null)
-```
-
-### AccountDetailDialog.tsx (lines 140-141)
-Replace:
-```typescript
-.is('journal_entries.reversed_at', null)
-.is('journal_entries.reversed_by_id', null);
-```
-With conditional logic:
-```typescript
-.is('journal_entries.reversed_by_id', null);
-// Then conditionally:
-if (asOfDate) {
-  query = query.or(
-    `reversed_at.is.null,reversed_at.gt.${asOfDate.toISOString().split('T')[0]}`,
-    { referencedTable: 'journal_entries' }
-  );
-} else {
-  query = query.is('journal_entries.reversed_at', null);
-}
-```
-
-### AccountsPayableContent.tsx (lines 139-157)
-Change the lot filtering from strict match to inclusive match:
-```typescript
-if (isLotView) {
-  filteredBills = filteredBills.filter(bill => {
-    const lotLines = bill.bill_lines?.filter(
-      line => line.lot_id === selectedLotId || line.lot_id === null
-    ) || [];
-    return lotLines.length > 0;
-  });
-
-  filteredBills = filteredBills.map(bill => {
-    const lotAmount = bill.bill_lines
-      .filter(line => line.lot_id === selectedLotId || line.lot_id === null)
-      .reduce((sum, line) => sum + line.amount, 0);
-    const ratio = bill.total_amount > 0 ? lotAmount / bill.total_amount : 0;
-    return {
-      ...bill,
-      total_amount: lotAmount,
-      amount_paid: bill.amount_paid * ratio,
-    };
-  });
-}
-```
+All three views will show $23,833.43 for A/P as of 12/31/2025 on 126 Longview Drive.
