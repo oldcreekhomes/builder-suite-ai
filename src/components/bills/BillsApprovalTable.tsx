@@ -73,6 +73,7 @@ interface BillForApproval {
     lot_id?: string;
     amount?: number;
     memo?: string;
+    purchase_order_id?: string;
     cost_codes?: {
       code: string;
       name: string;
@@ -256,6 +257,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             lot_id,
             amount,
             memo,
+            purchase_order_id,
             cost_codes!bill_lines_cost_code_id_fkey (
               code,
               name
@@ -303,6 +305,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       bill_lines: b.bill_lines?.map(l => ({
         cost_code_id: l.cost_code_id,
         amount: l.amount,
+        purchase_order_id: l.purchase_order_id,
         cost_codes: l.cost_codes
       }))
     }));
