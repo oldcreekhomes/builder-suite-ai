@@ -375,6 +375,37 @@ export function AccountDetailDialog({
             isPaid
           });
         });
+
+        // Map predecessor (reversed) paid bills to their successor (active) bills
+        // When a bill is corrected, the old bill gets reversed and a new one is created.
+        // If the old bill was paid before the as-of date, the new bill should also be
+        // considered paid for Hide Paid filtering purposes.
+        if (asOfDate && billsPaidBeforeAsOf.size > 0) {
+          const paidReversedBills: Array<{ reference_number: string; vendor_id: string }> = [];
+          billsMap.forEach((bill, billId) => {
+            if (billsPaidBeforeAsOf.has(billId) && bill.status === 'reversed') {
+              paidReversedBills.push({
+                reference_number: bill.reference_number,
+                vendor_id: bill.vendor_id,
+              });
+            }
+          });
+
+          if (paidReversedBills.length > 0) {
+            billsMap.forEach((bill, billId) => {
+              if (bill.status !== 'reversed' && !billsPaidBeforeAsOf.has(billId)) {
+                const match = paidReversedBills.find(
+                  rb => rb.reference_number === bill.reference_number
+                    && rb.vendor_id === bill.vendor_id
+                );
+                if (match) {
+                  billsPaidBeforeAsOf.add(billId);
+                  bill.isPaid = true;
+                }
+              }
+            });
+          }
+        }
       }
 
       // Collect all unique cost_code_ids and account_ids for lookup (declared early for consolidated payments)
