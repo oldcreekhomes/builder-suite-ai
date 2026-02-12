@@ -1,45 +1,60 @@
 
-# Add Purchase Order Dropdown to Edit Bill Dialog
+# Fix PO Currency Display and Match Edit Bill Grid to Manual Entry
 
-## What Changes
-Add a "Purchase Order" dropdown column to the Job Cost line items grid in the Edit Bill dialog, matching the exact same component (`POSelectionDropdown`) used in the manual bill entry form.
+## Two Issues to Fix
 
-## Changes Required
+### 1. Show Cents in PO Dialogs and Dropdowns
 
-### 1. Update the `ExpenseRow` interface (EditBillDialog.tsx)
-Add a `purchaseOrderId` field to track the selected PO per line item.
+Both `POSelectionDropdown.tsx` and `PODetailsDialog.tsx` use `formatCurrency` with `minimumFractionDigits: 0, maximumFractionDigits: 0`, which hides cents. Change both to use `minimumFractionDigits: 2, maximumFractionDigits: 2` so values like `$8,427.00` and `$-240.50` display correctly.
 
-### 2. Load existing `purchase_order_id` from bill lines
-When populating job cost rows from the database, read `line.purchase_order_id` into the new `purchaseOrderId` field.
+### 2. Match Edit Bill Grid Layout to Manual Entry
 
-### 3. Add the Purchase Order column to the Job Cost grid
-- Add a "Purchase Order" header column between "Total" and "Address" (or before "Action" if no address column)
-- Adjust grid column spans to accommodate the new column (matching the manual entry layout: 4 cols for PO)
-- Render `POSelectionDropdown` for each row, passing `projectId`, `vendorId` (from the bill's selected vendor), `value`, and `onChange`
+The Edit Bill dialog currently uses `grid-cols-28` (multi-lot) / `grid-cols-24` (single-lot) with oversized column spans, creating excess whitespace. Switch to match the Manual Bill Entry exactly:
 
-### 4. Wire up the save logic
-- **Draft bills** (`handleSave` / `updateBill`): Include `purchase_order_id` in the `BillLineData` objects
-- **Approved bills** (`handleConfirmedSave` / `updateApprovedBill`): Add `purchase_order_id` to the line update type and the Supabase update call in `useBills.ts`
+**Single-lot (no Address column): `grid-cols-20`**
+| Cost Code (5) | Memo (5) | Quantity (2) | Cost (2) | Total (2) | Purchase Order (3) | Action (1) |
 
-### 5. Update `updateApprovedBill` in useBills.ts
-Add `purchase_order_id` to the allowed fields in the line update so approved/posted/paid bills can also have their PO assignment changed.
+**Multi-lot (with Address column): `grid-cols-25`**
+| Cost Code (5) | Memo (5) | Quantity (2) | Cost (2) | Total (2) | Address (3) | Purchase Order (4) | Split (1) | Action (1) |
 
-## Grid Layout (Job Cost tab)
+Note: The Edit Bill dialog does not have a Split column, so for multi-lot we use:
+| Cost Code (5) | Memo (5) | Quantity (2) | Cost (2) | Total (2) | Address (3) | Purchase Order (4) | Action (1) | = 24
 
-**With Address column** (multi-lot): grid-cols-28
-| Cost Code (4) | Memo (5) | Qty (2) | Cost (2) | Total (2) | Address (4) | Purchase Order (4) | Split (1) | Action (1) |
+Adjusted to match manual entry proportions as closely as possible:
+- Multi-lot: `grid-cols-24` with spans 5, 5, 2, 2, 2, 3, 4, 1
+- Single-lot: `grid-cols-20` with spans 5, 5, 2, 2, 2, 3, 1
 
-**Without Address column** (single-lot): grid-cols-24
-| Cost Code (4) | Memo (7) | Qty (2) | Cost (2) | Total (2) | Purchase Order (4) | Action (1) |
+## Files to Edit
+
+| File | Change |
+|---|---|
+| `src/components/bills/PODetailsDialog.tsx` | Change `formatCurrency` to show 2 decimal places |
+| `src/components/bills/POSelectionDropdown.tsx` | Change `formatCurrency` to show 2 decimal places |
+| `src/components/bills/EditBillDialog.tsx` | Update grid from `grid-cols-28/24` to `grid-cols-24/20`, adjust all column spans to match manual entry proportions, update both header and row grids for Job Cost tab |
 
 ## Technical Details
 
-### Files Modified
-1. **`src/components/bills/EditBillDialog.tsx`** -- Add `purchaseOrderId` to `ExpenseRow`, add PO column to grid, wire up save
-2. **`src/hooks/useBills.ts`** -- Add `purchase_order_id` to `updateApprovedBill` line update type and Supabase call
+In `EditBillDialog.tsx`, the specific span changes for the Job Cost grid:
 
-### Key Behavior
-- The dropdown uses the bill's currently selected `vendor` and `billData.project_id` to fetch applicable POs
-- Existing `purchase_order_id` values from the database are pre-populated when editing
-- Auto-match by cost code is the default when POs exist (same as manual entry)
-- The info button next to the dropdown opens the PO details dialog (built into the component)
+**Header and rows (single-lot, currently `grid-cols-24`):**
+- Change to `grid-cols-20`
+- Cost Code: 4 -> 5
+- Memo: 7 -> 5
+- Quantity: 2 (same)
+- Cost: 2 (same)
+- Total: 2 (same)
+- Purchase Order: 4 -> 3
+- Action: 1 (same)
+
+**Header and rows (multi-lot, currently `grid-cols-28`):**
+- Change to `grid-cols-24`
+- Cost Code: 4 -> 5
+- Memo: 5 (same)
+- Quantity: 2 (same)
+- Cost: 2 (same)
+- Total: 2 (same)
+- Address: 4 -> 3
+- Purchase Order: 4 (same)
+- Action: 1 (same)
+
+The Job Cost Total footer row also needs its grid updated to match the new column totals.
