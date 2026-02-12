@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toDateLocal } from "@/utils/dateOnly";
 
 export interface AllocationLot {
   name: string;
@@ -967,7 +968,7 @@ export const useBankReconciliation = () => {
           ...consolidatedBillPaymentTransactions,
           ...manualJournalCredits
         ].sort((a, b) => 
-          new Date(a.date).getTime() - new Date(b.date).getTime()
+          toDateLocal(a.date).getTime() - toDateLocal(b.date).getTime()
         );
 
         // Combine deposits and journal entry debits (all are money in)
@@ -975,7 +976,7 @@ export const useBankReconciliation = () => {
           ...depositTransactions,
           ...manualJournalDebits
         ].sort((a, b) => 
-          new Date(a.date).getTime() - new Date(b.date).getTime()
+          toDateLocal(a.date).getTime() - toDateLocal(b.date).getTime()
         );
 
         console.log('[Reconciliation] Final results:', { 

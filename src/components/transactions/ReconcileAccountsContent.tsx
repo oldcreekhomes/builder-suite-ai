@@ -12,6 +12,7 @@ import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
 import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
 import { format, addMonths, endOfMonth } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Eye } from "lucide-react";
@@ -1272,7 +1273,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             if (!checksSortColumn) return 0;
                             let comparison = 0;
                             if (checksSortColumn === 'date') {
-                              comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                               comparison = a.date.localeCompare(b.date);
                             } else if (checksSortColumn === 'amount') {
                               comparison = a.amount - b.amount;
                             }
@@ -1291,7 +1292,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   value={check.date}
                                   type="date"
                                   onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
-                                  displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                                   displayFormat={(date) => formatDateSafe(date, "MM/dd/yyyy")}
                                 />
                               </td>
                               <td className="pl-3 pr-0 py-2 overflow-hidden">
@@ -1400,7 +1401,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             if (!depositsSortColumn) return 0;
                             let comparison = 0;
                             if (depositsSortColumn === 'date') {
-                              comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                              comparison = a.date.localeCompare(b.date);
                             } else if (depositsSortColumn === 'amount') {
                               comparison = a.amount - b.amount;
                             }
@@ -1419,7 +1420,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                   value={deposit.date}
                                   type="date"
                                   onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
-                                  displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                                  displayFormat={(date) => formatDateSafe(date, "MM/dd/yyyy")}
                                 />
                               </td>
                               <td className="pl-3 pr-0 py-2 overflow-hidden">
@@ -1552,7 +1553,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                         <span className="font-semibold text-amber-800 dark:text-amber-200">In Progress</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Statement Date: {format(new Date(inProgressReconciliation.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                        Statement Date: {formatDateSafe(inProgressReconciliation.statement_date, "MM/dd/yyyy")}
                         <span className="mx-2">•</span>
                         Ending Balance: {formatCurrency(inProgressReconciliation.statement_ending_balance || 0)}
                         <span className="mx-2">•</span>
@@ -1608,7 +1609,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                       .map((rec: any) => (
                         <tr key={rec.id} className="border-t hover:bg-muted/50">
                           <td className="p-3">
-                            {format(new Date(rec.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                            {formatDateSafe(rec.statement_date, "MM/dd/yyyy")}
                           </td>
                           <td className="p-3">
                             {formatCurrency(rec.statement_beginning_balance || 0)}
@@ -1635,7 +1636,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 size="sm"
                                 onClick={() => {
                                   setSelectedReconciliationNotes(rec.notes);
-                                  setSelectedReconciliationDate(format(new Date(rec.statement_date + "T00:00:00"), "MM/dd/yyyy"));
+                                  setSelectedReconciliationDate(formatDateSafe(rec.statement_date, "MM/dd/yyyy"));
                                   setNotesDialogOpen(true);
                                 }}
                                 className="h-8 w-8 p-0"
@@ -1715,7 +1716,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               This action cannot be undone.
               {selectedReconciliationToUndo && (
                 <div className="mt-2 text-sm">
-                  <strong>Statement Date:</strong> {format(new Date(selectedReconciliationToUndo.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                  <strong>Statement Date:</strong> {formatDateSafe(selectedReconciliationToUndo.statement_date, "MM/dd/yyyy")}
                 </div>
               )}
             </AlertDialogDescription>
@@ -1742,7 +1743,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               The transactions will become available for reconciliation again.
               {reconciliationToDiscard && (
                 <div className="mt-2 text-sm">
-                  <strong>Statement Date:</strong> {format(new Date(reconciliationToDiscard.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                  <strong>Statement Date:</strong> {formatDateSafe(reconciliationToDiscard.statement_date, "MM/dd/yyyy")}
                 </div>
               )}
             </AlertDialogDescription>

@@ -13,6 +13,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation } from "@/hooks/useBankReconciliation";
 import { format, addMonths, endOfMonth, addDays } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, CheckCircle2, ChevronDown, ChevronRight, Lock, Unlock } from "lucide-react";
@@ -458,7 +459,7 @@ const BankReconciliation = () => {
                       value={check.date}
                       type="date"
                       onSave={(value) => handleUpdateTransaction(check.id, check.type, 'date', value)}
-                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                       displayFormat={(date) => formatDateSafe(date, "MM/dd/yyyy")}
                     />
                   </td>
                                     <td className="p-2">
@@ -513,7 +514,7 @@ const BankReconciliation = () => {
                       value={deposit.date}
                       type="date"
                       onSave={(value) => handleUpdateTransaction(deposit.id, 'deposit', 'date', value)}
-                      displayFormat={(date) => format(new Date(date + "T12:00:00"), "MM/dd/yyyy")}
+                      displayFormat={(date) => formatDateSafe(date, "MM/dd/yyyy")}
                     />
                   </td>
                                     <td className="p-2">{deposit.source}</td>
@@ -630,7 +631,7 @@ const BankReconciliation = () => {
                           <tbody>
                             {reconciliationHistory.map((rec: any) => (
                               <tr key={rec.id} className="border-t">
-                                <td className="p-2">{format(new Date(rec.statement_date), "MM/dd/yyyy")}</td>
+                                <td className="p-2">{formatDateSafe(rec.statement_date, "MM/dd/yyyy")}</td>
                                 <td className="p-2 text-right">{formatCurrency(rec.statement_beginning_balance)}</td>
                                 <td className="p-2 text-right">{formatCurrency(rec.statement_ending_balance)}</td>
                                 <td className={cn(
@@ -697,7 +698,7 @@ const BankReconciliation = () => {
             <AlertDialogTitle>Undo Reconciliation?</AlertDialogTitle>
             <AlertDialogDescription>
               This will reverse the reconciliation for{' '}
-              {selectedReconciliationToUndo && format(new Date(selectedReconciliationToUndo.statement_date), "MM/dd/yyyy")}.
+              {selectedReconciliationToUndo && formatDateSafe(selectedReconciliationToUndo.statement_date, "MM/dd/yyyy")}.
               All transactions will be marked as unreconciled and become editable again.
               This action cannot be undone.
             </AlertDialogDescription>

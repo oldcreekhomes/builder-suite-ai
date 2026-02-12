@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Check, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { toast } from "@/hooks/use-toast";
 
 interface CheckLine {
@@ -145,7 +146,7 @@ export function CheckSearchDialog({
     
     const query = searchQuery.toLowerCase();
     return checks.filter(check => {
-      const dateStr = format(new Date(check.check_date + 'T00:00:00'), 'MM/dd/yyyy');
+      const dateStr = formatDateSafe(check.check_date, 'MM/dd/yyyy');
       const payTo = (check.pay_to || '').toLowerCase();
       const memo = (check.memo || '').toLowerCase();
       
@@ -261,7 +262,7 @@ export function CheckSearchDialog({
                         }}
                       >
                         <TableCell className="px-2 py-1 text-xs">
-                          {format(new Date(check.check_date + 'T00:00:00'), 'MM/dd/yyyy')}
+                          {formatDateSafe(check.check_date, 'MM/dd/yyyy')}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{check.pay_to}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">{getCheckDescription(check)}</TableCell>

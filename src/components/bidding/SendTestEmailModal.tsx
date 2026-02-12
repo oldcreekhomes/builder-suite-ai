@@ -7,6 +7,7 @@ import { Calendar, FileText, Building2, Send, TestTube } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { formatDateSafe } from "@/utils/dateOnly";
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
@@ -319,11 +320,11 @@ export function SendTestEmailModal({
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span><strong>Due Date:</strong> {bidPackage.due_date ? format(new Date(bidPackage.due_date), 'MMM dd, yyyy') : 'Not set'}</span>
+                  <span><strong>Due Date:</strong> {bidPackage.due_date ? formatDateSafe(bidPackage.due_date, 'MMM dd, yyyy') : 'Not set'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span><strong>Reminder Date:</strong> {bidPackage.reminder_date ? format(new Date(bidPackage.reminder_date), 'MMM dd, yyyy') : 'Not set'}</span>
+                  <span><strong>Reminder Date:</strong> {bidPackage.reminder_date ? formatDateSafe(bidPackage.reminder_date, 'MMM dd, yyyy') : 'Not set'}</span>
                 </div>
               </div>
             </div>

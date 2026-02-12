@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import {
   Dialog,
   DialogContent,
@@ -185,7 +186,7 @@ export function ReconciliationReviewDialog({
     ...(data?.checks || []),
     ...(data?.billPayments || []),
     ...(data?.journalEntries || []).filter(je => je.amount > 0),
-  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  ].sort((a, b) => a.date.localeCompare(b.date));
 
   // Combine deposits and journal entry credits
   const allCredits = [
@@ -194,7 +195,7 @@ export function ReconciliationReviewDialog({
       ...je,
       amount: Math.abs(je.amount),
     })),
-  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  ].sort((a, b) => a.date.localeCompare(b.date));
 
   const totalDebits = allDebits.reduce((sum, t) => sum + t.amount, 0);
   const totalCredits = allCredits.reduce((sum, t) => sum + t.amount, 0);
@@ -210,7 +211,7 @@ export function ReconciliationReviewDialog({
             Reconciliation Review
             {reconciliation && (
               <span className="text-muted-foreground font-normal ml-2">
-                - {format(new Date(reconciliation.statement_date + "T00:00:00"), "MMMM yyyy")}
+                - {formatDateSafe(reconciliation.statement_date, "MMMM yyyy")}
               </span>
             )}
           </DialogTitle>
@@ -218,7 +219,7 @@ export function ReconciliationReviewDialog({
             <div className="flex gap-6 text-sm text-muted-foreground mt-2">
               <div>
                 <span className="font-medium">Statement Date:</span>{" "}
-                {format(new Date(reconciliation.statement_date + "T00:00:00"), "MM/dd/yyyy")}
+                {formatDateSafe(reconciliation.statement_date, "MM/dd/yyyy")}
               </div>
               <div>
                 <span className="font-medium">Beginning:</span>{" "}
@@ -268,7 +269,7 @@ export function ReconciliationReviewDialog({
                           {allDebits.map((t) => (
                             <tr key={t.id} className="border-t">
                               <td className="p-2">
-                                {t.date ? format(new Date(t.date + "T00:00:00"), "MM/dd/yyyy") : '-'}
+                               {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2 capitalize">
                                 {t.type === 'bill_payment' ? 'Bill Payment' :
@@ -314,7 +315,7 @@ export function ReconciliationReviewDialog({
                           {allCredits.map((t) => (
                             <tr key={t.id} className="border-t">
                               <td className="p-2">
-                                {t.date ? format(new Date(t.date + "T00:00:00"), "MM/dd/yyyy") : '-'}
+                                {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2">
                                 {t.type === 'journal_entry' ? 'Journal Entry' : 'Deposit'}

@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CalendarIcon, Lock, Unlock, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
+import { formatDateSafe } from "@/utils/dateOnly";
 import { cn } from "@/lib/utils";
 import { useAccountingPeriods } from "@/hooks/useAccountingPeriods";
 import { useCloseBookPermissions } from "@/hooks/useCloseBookPermissions";
@@ -153,7 +154,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium">
-                        {format(new Date(period.period_end_date), "MMMM d, yyyy")}
+                        {formatDateSafe(period.period_end_date, "MMMM d, yyyy")}
                       </p>
                       <Badge variant={period.status === 'closed' ? 'destructive' : 'default'}>
                         {period.status === 'closed' ? 'Closed' : 'Open'}
