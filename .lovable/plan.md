@@ -1,112 +1,72 @@
 
-# Fix: Hide Paid Filter Discrepancy in Account Detail Dialog
+# Fix: Predecessor-to-Successor Bill Mapping in Hide Paid Filter
 
 ## Problem
 
-On 126 Longview Drive (as of 12/31/2025):
-- Balance Sheet shows A/P = **$23,833.43** (correct)
-- Account Detail Dialog with Hide Paid OFF = **$23,833.43** (correct, matches)
-- Account Detail Dialog with Hide Paid ON = **$25,891.39** (wrong, +$2,057.96)
-
-This works on 412/413 East Nelson because those projects have zero corrected bills.
+The "Hide Paid" filter in the Account Detail Dialog shows $25,891.39, while the Balance Sheet (and Hide Paid OFF) correctly shows $23,833.43. The difference is $2,057.96 from 7 corrected bills whose vendor was changed during correction.
 
 ## Root Cause
 
-Seven bills on this project were corrected on 12/08/2025. When a bill is corrected:
-1. The **old bill** gets reversed (its journal entry gets `reversed_by_id` set, excluding it from queries)
-2. A **new corrected bill** is created with a new ID
-3. The **old payment** journal entry (referencing the old bill ID) remains valid -- it has `reversed_by_id = NULL` on the JE and `reversed_at = 2026-01-21` (after the as-of date)
+The predecessor mapping code (added in the last fix) matches reversed bills to their corrected successors by `reference_number` AND `vendor_id`. However, when these 7 bills were corrected, the vendor was changed (e.g., from "The Home Depot" to "OCH at Nob Hill, LLC"). The reference numbers match ("11072025" = "11072025"), but the vendor IDs do not, so the mapping silently fails and the new bills are never marked as paid.
 
-As of 12/31/2025:
-- Old bill posting JEs: **excluded** (JE has `reversed_by_id` set)
-- Old payment JEs: **included** (JE has `reversed_by_id = NULL`, `reversed_at > as-of date`)
-- New bill posting JEs: **included** (normal active entries)
-- New payment JEs: **excluded** (entry_date = 2026-01-05, after as-of date)
-
-When Hide Paid is OFF, the old payment debits correctly offset the new bill credits, giving the right $23,833.43.
-
-When Hide Paid is ON, the `isPaid` flag determines what to hide:
-- Old payment lines: `isPaid = true` (payment JE found for old bill ID) -- **hidden**
-- New bill lines: `isPaid = false` (no payment JE found for new bill ID before 12/31) -- **shown**
-
-Result: the old payments (debits) are hidden but the new bills (credits) remain, inflating the total by $2,057.96.
+This works on 412/413 East Nelson because those projects have zero corrected bills.
 
 ## Fix
 
-**File: `src/components/accounting/AccountDetailDialog.tsx` (lines 358-377)**
+Replace the `reference_number` + `vendor_id` matching with a direct database-driven predecessor chain using the `reversed_by_id` column.
 
-After building `billsPaidBeforeAsOf` and iterating `billsData`, add a predecessor-to-successor mapping step:
+### File: `src/components/accounting/AccountDetailDialog.tsx`
 
-1. After `billsData` is populated, identify reversed bills that are marked as paid (in `billsPaidBeforeAsOf`)
-2. For each reversed+paid bill, find the active (unreversed) bill with the same `reference_number` and `vendor_id`
-3. Add that active bill's ID to `billsPaidBeforeAsOf`
+**Replace** the entire predecessor mapping block (lines 379-408) with logic that:
 
-This way, when the old bill was paid before the as-of date, the corrected replacement bill is also considered paid, and Hide Paid correctly hides both the new bill and the old payment.
+1. Queries the `bills` table for all reversed bills in the project that have `reversed_by_id IS NOT NULL` and `is_reversal = false`
+2. Builds a map: `old_bill_id` to `reversed_by_id` (the reversal bill)
+3. For each old bill that was paid before the as-of date, finds the active corrected successor bill that shares the same `reference_number` (ignoring vendor, since it may have changed)
+4. Marks those successor bills as paid in `billsPaidBeforeAsOf`
 
-```text
-Before (current logic):
-  billsPaidBeforeAsOf = { oldBillId }
-  Old payment isPaid = true  -> hidden
-  New bill isPaid = false    -> shown  (BUG: inflates total)
+The key change is removing the `vendor_id` match requirement, since the vendor can change during correction. Within a single project, `reference_number` alone is sufficient to identify the correction chain when we already know one side is reversed and the other is active.
 
-After (fixed logic):
-  billsPaidBeforeAsOf = { oldBillId, newBillId }
-  Old payment isPaid = true  -> hidden
-  New bill isPaid = true     -> hidden  (correct: both sides hidden, net zero)
-```
-
-### Implementation Detail
-
-After the `billsData?.forEach(...)` loop (around line 377), insert:
+### Technical Implementation
 
 ```typescript
-// Map predecessor (reversed) paid bills to their successor (active) bills
-// When a bill is corrected, the old bill gets reversed and a new one is created.
-// If the old bill was paid before the as-of date, the new bill should also be
-// considered paid for Hide Paid filtering purposes.
+// Replace lines 379-408 with:
 if (asOfDate && billsPaidBeforeAsOf.size > 0) {
-  const paidReversedBills: Array<{ reference_number: string; vendor_id: string }> = [];
+  // Build a map of reference_number -> active bill IDs for bills NOT yet marked as paid
+  const activeByRef = new Map<string, string[]>();
   billsMap.forEach((bill, billId) => {
-    if (billsPaidBeforeAsOf.has(billId) && bill.status === 'reversed') {
-      paidReversedBills.push({
-        reference_number: bill.reference_number,
-        vendor_id: bill.vendor_id,
-      });
+    if (bill.status !== 'reversed' && !billsPaidBeforeAsOf.has(billId) && bill.reference_number) {
+      const existing = activeByRef.get(bill.reference_number) || [];
+      existing.push(billId);
+      activeByRef.set(bill.reference_number, existing);
     }
   });
 
-  // For each paid+reversed bill, find the active successor with the same ref+vendor
-  if (paidReversedBills.length > 0) {
-    billsMap.forEach((bill, billId) => {
-      if (bill.status !== 'reversed' && !billsPaidBeforeAsOf.has(billId)) {
-        const match = paidReversedBills.find(
-          rb => rb.reference_number === bill.reference_number
-            && rb.vendor_id === bill.vendor_id
-        );
-        if (match) {
-          billsPaidBeforeAsOf.add(billId);
-          // Update the isPaid flag in billsMap
-          bill.isPaid = true;
+  // For each paid+reversed bill, find active successors by reference_number only
+  // (vendor may have changed during correction)
+  billsMap.forEach((bill, billId) => {
+    if (billsPaidBeforeAsOf.has(billId) && bill.status === 'reversed' && bill.reference_number) {
+      const successorIds = activeByRef.get(bill.reference_number) || [];
+      successorIds.forEach(successorId => {
+        billsPaidBeforeAsOf.add(successorId);
+        const successorBill = billsMap.get(successorId);
+        if (successorBill) {
+          successorBill.isPaid = true;
         }
-      }
-    });
-  }
+      });
+    }
+  });
 }
 ```
 
-## Why This Only Affects Projects with Corrected Bills
+## Why This Works
 
-The predecessor payment issue only occurs when:
-1. A bill was posted and paid
-2. The bill was then corrected (creating a new bill with a new ID)
-3. The report is viewed as-of a date between the correction and the re-payment
-
-412/413 East Nelson has zero corrected bills, so this code path is never triggered there.
+- The old bill (e.g., ref "11072025", vendor "The Home Depot", status "reversed") is in `billsPaidBeforeAsOf` because a payment JE references it
+- The new corrected bill (ref "11072025", vendor "OCH at Nob Hill", status "paid") has the same reference_number
+- By matching on `reference_number` only (within bills already scoped to the project), the successor is found and marked as paid
+- Both sides are then hidden by the Hide Paid filter, maintaining the correct $23,833.43 total
 
 ## Files to Edit
 
 | File | Change |
 |---|---|
-| `src/components/accounting/AccountDetailDialog.tsx` | Add predecessor-to-successor payment mapping after `billsData` loop |
-
-No changes needed to Balance Sheet or A/P Aging -- this fix is isolated to the Hide Paid logic in the Account Detail Dialog.
+| `src/components/accounting/AccountDetailDialog.tsx` | Replace predecessor mapping block (lines 379-408) to match by `reference_number` only instead of `reference_number` + `vendor_id` |
