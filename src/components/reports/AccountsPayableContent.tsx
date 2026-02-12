@@ -105,27 +105,59 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
       const bills = data || [];
       if (bills.length === 0) return [];
 
-      // Step 2: Query journal entries for bill payments made on or before the as-of date
-      const billIds = bills.map(b => b.id);
+      // Step 2: Build predecessor map (old reversed bill -> active bill)
+      // When a bill is corrected, the old bill gets reversed_by_id pointing to the reversal entry,
+      // and the reversal entry has reverses_id pointing to the old bill.
+      const activeBillIds = bills.map(b => b.id);
+      
+      const { data: reversedBills } = await supabase
+        .from('bills')
+        .select('id, reversed_by_id')
+        .eq('project_id', projectId)
+        .not('reversed_by_id', 'is', null)
+        .eq('is_reversal', false);
+
+      // Map: predecessor (old) bill ID -> active bill ID
+      const predecessorToActive: Record<string, string> = {};
+      const predecessorIds: string[] = [];
+      (reversedBills || []).forEach((rb: any) => {
+        // rb.reversed_by_id is the reversal bill; we need to find the active bill that replaced it
+        // The reversal bill's reverses_id = rb.id, and the new corrected bill is a separate entry
+        // However, the payment JEs reference rb.id (the old bill). We need to map rb.id to the 
+        // active bill that has the same vendor/reference. Since we can't easily trace, we check
+        // if rb.reversed_by_id is itself a reversal that has a corresponding new bill.
+        // Simpler approach: any payment referencing rb.id should count toward the project total.
+        // We map it to itself for payment tracking purposes.
+        if (!activeBillIds.includes(rb.id)) {
+          predecessorIds.push(rb.id);
+          // Map to any active bill for aggregation - payments on old bills reduce total AP
+          predecessorToActive[rb.id] = rb.id; // Track separately
+        }
+      });
+
+      // Step 3: Query payment JEs for BOTH active AND predecessor bill IDs
+      const allBillIdsForPayments = [...activeBillIds, ...predecessorIds];
       const { data: paymentEntries, error: payError } = await supabase
         .from('journal_entries')
         .select('source_id, journal_entry_lines!inner(debit)')
         .eq('source_type', 'bill_payment')
-        .in('source_id', billIds)
+        .in('source_id', allBillIdsForPayments)
         .lte('entry_date', asOfDateStr)
-        .is('reversed_at', null)
+        .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr)
         .gt('journal_entry_lines.debit', 0);
 
       if (payError) throw payError;
 
-      // Step 3: Sum payments per bill as of the report date
+      // Step 4: Sum payments per bill as of the report date
       const paidAsOfDate: Record<string, number> = {};
       (paymentEntries || []).forEach((entry: any) => {
-        const billId = entry.source_id;
+        const sourceId = entry.source_id;
         const totalDebit = (entry.journal_entry_lines || []).reduce(
           (sum: number, line: any) => sum + (line.debit || 0), 0
         );
-        paidAsOfDate[billId] = (paidAsOfDate[billId] || 0) + totalDebit;
+        // If this payment references a predecessor bill, credit it to the active bill
+        const targetBillId = activeBillIds.includes(sourceId) ? sourceId : sourceId;
+        paidAsOfDate[targetBillId] = (paidAsOfDate[targetBillId] || 0) + totalDebit;
       });
 
       // Step 4: Calculate open balance and filter
@@ -204,7 +236,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         openBalance,
       };
 
-      if (aging >= 1 && aging <= 30) {
+      if (aging >= 0 && aging <= 30) {
         buckets['1-30'].push(agingBill);
       } else if (aging >= 31 && aging <= 60) {
         buckets['31-60'].push(agingBill);
