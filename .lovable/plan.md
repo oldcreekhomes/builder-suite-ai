@@ -1,60 +1,17 @@
 
-# Fix PO Currency Display and Match Edit Bill Grid to Manual Entry
+# Fix: PO Status Not Updating After Edit Bill Save
 
-## Two Issues to Fix
+## Problem
+When a user edits a bill and changes the Purchase Order assignment, the "PO Status" badge on the Review/Approved/Paid tabs still shows the old status. The PO Comparison Dialog also shows stale data because the `bill-po-matching` query cache is not invalidated after saving.
 
-### 1. Show Cents in PO Dialogs and Dropdowns
+## Root Cause
+The `updateApprovedBill` and `updateBill` mutations in `src/hooks/useBills.ts` invalidate `bills`, `bills-for-approval-v3`, and `bill-approval-counts` on success, but they do **not** invalidate `bill-po-matching`. Since the PO matching query is cached separately (keyed by bill IDs), it retains stale data even after the bill lines are updated with a new `purchase_order_id`.
 
-Both `POSelectionDropdown.tsx` and `PODetailsDialog.tsx` use `formatCurrency` with `minimumFractionDigits: 0, maximumFractionDigits: 0`, which hides cents. Change both to use `minimumFractionDigits: 2, maximumFractionDigits: 2` so values like `$8,427.00` and `$-240.50` display correctly.
+## Fix
+Add `queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] })` to the `onSuccess` handler of the `updateApprovedBill` mutation (and `updateBill` for draft bills) in `src/hooks/useBills.ts`. This ensures the PO matching data is refetched immediately after any bill edit that could change PO assignments.
 
-### 2. Match Edit Bill Grid Layout to Manual Entry
+## File Changed
+- **`src/hooks/useBills.ts`** -- Add `bill-po-matching` invalidation to the `onSuccess` of `updateApprovedBill` (and `updateBill` if applicable)
 
-The Edit Bill dialog currently uses `grid-cols-28` (multi-lot) / `grid-cols-24` (single-lot) with oversized column spans, creating excess whitespace. Switch to match the Manual Bill Entry exactly:
-
-**Single-lot (no Address column): `grid-cols-20`**
-| Cost Code (5) | Memo (5) | Quantity (2) | Cost (2) | Total (2) | Purchase Order (3) | Action (1) |
-
-**Multi-lot (with Address column): `grid-cols-25`**
-| Cost Code (5) | Memo (5) | Quantity (2) | Cost (2) | Total (2) | Address (3) | Purchase Order (4) | Split (1) | Action (1) |
-
-Note: The Edit Bill dialog does not have a Split column, so for multi-lot we use:
-| Cost Code (5) | Memo (5) | Quantity (2) | Cost (2) | Total (2) | Address (3) | Purchase Order (4) | Action (1) | = 24
-
-Adjusted to match manual entry proportions as closely as possible:
-- Multi-lot: `grid-cols-24` with spans 5, 5, 2, 2, 2, 3, 4, 1
-- Single-lot: `grid-cols-20` with spans 5, 5, 2, 2, 2, 3, 1
-
-## Files to Edit
-
-| File | Change |
-|---|---|
-| `src/components/bills/PODetailsDialog.tsx` | Change `formatCurrency` to show 2 decimal places |
-| `src/components/bills/POSelectionDropdown.tsx` | Change `formatCurrency` to show 2 decimal places |
-| `src/components/bills/EditBillDialog.tsx` | Update grid from `grid-cols-28/24` to `grid-cols-24/20`, adjust all column spans to match manual entry proportions, update both header and row grids for Job Cost tab |
-
-## Technical Details
-
-In `EditBillDialog.tsx`, the specific span changes for the Job Cost grid:
-
-**Header and rows (single-lot, currently `grid-cols-24`):**
-- Change to `grid-cols-20`
-- Cost Code: 4 -> 5
-- Memo: 7 -> 5
-- Quantity: 2 (same)
-- Cost: 2 (same)
-- Total: 2 (same)
-- Purchase Order: 4 -> 3
-- Action: 1 (same)
-
-**Header and rows (multi-lot, currently `grid-cols-28`):**
-- Change to `grid-cols-24`
-- Cost Code: 4 -> 5
-- Memo: 5 (same)
-- Quantity: 2 (same)
-- Cost: 2 (same)
-- Total: 2 (same)
-- Address: 4 -> 3
-- Purchase Order: 4 (same)
-- Action: 1 (same)
-
-The Job Cost Total footer row also needs its grid updated to match the new column totals.
+## Technical Detail
+The `useBillPOMatching` hook (in `src/hooks/useBillPOMatching.ts`) caches under the key `['bill-po-matching', ...]`. Invalidating any query starting with `['bill-po-matching']` will force a refetch when the user returns to the table view, ensuring the PO Status badge and Comparison Dialog reflect the updated PO link.
