@@ -137,8 +137,15 @@ export function AccountDetailDialog({
         `)
         .eq('account_id', accountId)
         .eq('journal_entries.is_reversal', false)
-        .is('journal_entries.reversed_at', null)
         .is('journal_entries.reversed_by_id', null);
+
+      // As-of-date-aware reversal filtering
+      if (asOfDate) {
+        const asOfDateStr = asOfDate.toISOString().split('T')[0];
+        query = query.or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' });
+      } else {
+        query = query.is('journal_entries.reversed_at', null);
+      }
 
       // Apply date filter if asOfDate is provided
       if (asOfDate) {

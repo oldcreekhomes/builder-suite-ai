@@ -137,16 +137,18 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
       }));
 
       if (isLotView) {
-        // Filter to bills that have lines for this lot
+        // Filter to bills that have lines for this lot OR unallocated (null lot_id)
         filteredBills = filteredBills.filter(bill => {
-          const lotLines = bill.bill_lines?.filter(line => line.lot_id === selectedLotId) || [];
+          const lotLines = bill.bill_lines?.filter(
+            line => line.lot_id === selectedLotId || line.lot_id === null
+          ) || [];
           return lotLines.length > 0;
         });
 
         // Replace total_amount with lot-specific amount and pro-rate payments
         filteredBills = filteredBills.map(bill => {
           const lotAmount = bill.bill_lines
-            .filter(line => line.lot_id === selectedLotId)
+            .filter(line => line.lot_id === selectedLotId || line.lot_id === null)
             .reduce((sum, line) => sum + line.amount, 0);
           const ratio = bill.total_amount > 0 ? lotAmount / bill.total_amount : 0;
           return {
