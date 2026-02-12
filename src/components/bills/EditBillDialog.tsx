@@ -16,6 +16,7 @@ import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bi
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillLineData } from "@/hooks/useBills";
+import { POSelectionDropdown } from "@/components/bills/POSelectionDropdown";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -52,6 +53,7 @@ interface ExpenseRow {
   project: string;
   projectId?: string;
   lotId?: string;
+  purchaseOrderId?: string;
   quantity: string;
   amount: string;
   memo: string;
@@ -162,6 +164,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project: '',
           projectId: line.project_id || '',
           lotId: line.lot_id || '',
+          purchaseOrderId: line.purchase_order_id || undefined,
           quantity: line.quantity?.toString() || '1',
           amount: line.unit_cost?.toString() || '0',
           memo: line.memo || ''
@@ -377,6 +380,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           line_type: 'job_cost' as const,
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
+          purchase_order_id: row.purchaseOrderId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -388,6 +392,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           line_type: 'expense' as const,
           account_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
+          purchase_order_id: row.purchaseOrderId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -444,6 +449,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
           lot_id: row.lotId || undefined,
+          purchase_order_id: row.purchaseOrderId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -455,6 +461,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           line_type: 'expense' as const,
           account_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
+          purchase_order_id: row.purchaseOrderId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -482,6 +489,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             dbId: row.dbId!,
             cost_code_id: row.accountId || undefined,
             lot_id: row.lotId || undefined,
+            purchase_order_id: row.purchaseOrderId || undefined,
             memo: row.memo || undefined
           }));
 
@@ -490,6 +498,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           .map(row => ({
             dbId: row.dbId!,
             lot_id: row.lotId || undefined,
+            purchase_order_id: row.purchaseOrderId || undefined,
             memo: row.memo || undefined
           }));
 
@@ -804,18 +813,19 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 )}
 
                 <div className="border rounded-lg overflow-hidden w-full">
-                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-28" : "grid-cols-24")}>
                     <div className="col-span-4">Cost Code</div>
-                    <div className="col-span-7">Memo</div>
+                    <div className={showAddressColumn ? "col-span-5" : "col-span-7"}>Memo</div>
                     <div className="col-span-2">Quantity</div>
                     <div className="col-span-2">Cost</div>
                     <div className="col-span-2">Total</div>
-                    {showAddressColumn && <div className="col-span-6">Address</div>}
+                    {showAddressColumn && <div className="col-span-4">Address</div>}
+                    <div className="col-span-4">Purchase Order</div>
                     <div className="col-span-1 text-right">Action</div>
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-28" : "grid-cols-24")}>
                       <div className="col-span-4">
                         <CostCodeSearchInput
                           value={row.account}
@@ -828,7 +838,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-7">
+                      <div className={showAddressColumn ? "col-span-5" : "col-span-7"}>
                         <Input 
                           placeholder="Job cost memo"
                           value={row.memo}
@@ -867,7 +877,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         </div>
                       </div>
                       {showAddressColumn && (
-                        <div className="col-span-6">
+                        <div className="col-span-4">
                           <Select
                             value={row.lotId || ''}
                             onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
@@ -886,6 +896,16 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           </Select>
                         </div>
                       )}
+                      <div className="col-span-4">
+                        <POSelectionDropdown
+                          projectId={billData?.project_id}
+                          vendorId={vendor}
+                          value={row.purchaseOrderId}
+                          onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
+                          costCodeId={row.accountId}
+                          className="h-8"
+                        />
+                      </div>
                       <div className="col-span-1 flex items-center justify-end">
                         {!isApprovedBill && (
                           <Button
