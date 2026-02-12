@@ -103,6 +103,16 @@ export const useAccountingPeriods = (projectId?: string) => {
           .single();
 
         if (error) throw error;
+
+        // Auto-close any earlier periods still marked 'open'
+        await supabase
+          .from('accounting_periods')
+          .update({ status: 'closed', closed_at: new Date().toISOString(), closed_by: user.id })
+          .eq('owner_id', ownerId)
+          .eq('project_id', projectId)
+          .eq('status', 'open')
+          .lt('period_end_date', periodEndDate);
+
         return data;
       } else if (existingPeriod && existingPeriod.status === 'closed') {
         throw new Error('This period is already closed');
@@ -123,6 +133,16 @@ export const useAccountingPeriods = (projectId?: string) => {
         .single();
 
       if (error) throw error;
+
+      // Auto-close any earlier periods still marked 'open'
+      await supabase
+        .from('accounting_periods')
+        .update({ status: 'closed', closed_at: new Date().toISOString(), closed_by: user.id })
+        .eq('owner_id', ownerId)
+        .eq('project_id', projectId)
+        .eq('status', 'open')
+        .lt('period_end_date', periodEndDate);
+
       return data;
     },
     onSuccess: () => {
