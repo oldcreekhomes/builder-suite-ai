@@ -1028,6 +1028,7 @@ export const useBills = () => {
       queryClient.invalidateQueries({ queryKey: ['bill'] });
       queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
       toast({
         title: "Success",
         description: "Bill updated successfully",
@@ -1107,6 +1108,7 @@ export const useBills = () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
       queryClient.invalidateQueries({ queryKey: ['bill'] });
       toast({
         title: "Success",
