@@ -1,46 +1,46 @@
 
-# Fix: A/P Aging Report Predecessor Payment Mapping
+
+# Fix: Delete Old Folder Entry After Successful Move
 
 ## Problem
 
-The A/P Aging report for 126 Longview Drive shows **$25,891.39** instead of the correct **$23,833.43** shown on the Balance Sheet. The difference is $2,057.96 from payments on 7 corrected bills that are not being credited to the active replacement bills.
+When moving a folder (e.g., "Fontanelle") from "Drawings" to "Old Drawings," all files are moved correctly, but the original empty folder still appears in "Drawings." It should be removed since it was moved.
 
 ## Root Cause
 
-The predecessor mapping code in `AccountsPayableContent.tsx` has two bugs:
+In `MoveFilesModal.tsx`, after successfully moving all files within a folder (lines 130-182), the code never:
+1. Deletes the old `project_folders` database entry for the source folder
+2. Creates a new `project_folders` entry at the destination
 
-1. **Line 159 is a no-op**: `const targetBillId = activeBillIds.includes(sourceId) ? sourceId : sourceId;` -- this always returns `sourceId` regardless of the condition, so predecessor payments are tracked under the old (reversed) bill ID, which doesn't exist in the active bills list.
-
-2. **The `predecessorToActive` map (line 121) is never used**: It's built but never referenced when assigning payments to bills.
-
-The net result: payments referencing old bill IDs ($2,057.96 total) are fetched but never applied to any active bill, so those bills show as fully unpaid.
+The files move perfectly, but the folder record in `project_folders` stays at the old path, so the UI still renders the empty ghost folder.
 
 ## Fix
 
-**File: `src/components/reports/AccountsPayableContent.tsx`**
+**File: `src/components/files/MoveFilesModal.tsx`**
 
-Replace the broken predecessor mapping (lines 108-161) with logic that:
+After a folder is successfully moved (around line 169-171, where `successCount++` happens), add two operations:
 
-1. Fetches reversed bills with their `reference_number` (not just `id` and `reversed_by_id`)
-2. Builds a map from old bill ID to active bill ID by matching `reference_number` (same proven approach used in the Account Detail Dialog fix)
-3. Uses that map on line 159 to correctly route predecessor payments to their active successor bills
+1. **Delete the old folder entry** (and any subfolder entries under it) from `project_folders`
+2. **Insert a new folder entry** at the destination path in `project_folders`
 
-### Technical Changes
+```text
+Example:
+  Source: folder.path = "Drawings/Fontanelle"
+  Destination: selectedFolder = "Old Drawings"
 
-**Step 2 query** (line 113): Add `reference_number` to the select fields for reversed bills.
+  After files are moved:
+    DELETE FROM project_folders
+      WHERE project_id = ? AND (folder_path = 'Drawings/Fontanelle' OR folder_path LIKE 'Drawings/Fontanelle/%')
 
-**After the query**: Build a `ref -> active bill ID` lookup from the active bills, then map each reversed bill ID to the active bill with the same reference_number.
+    INSERT INTO project_folders (project_id, folder_path, parent_path, folder_name, created_by)
+      VALUES (?, 'Old Drawings/Fontanelle', 'Old Drawings', 'Fontanelle', user.id)
+```
 
-**Step 4 payment routing** (line 159): Replace the no-op with: `const targetBillId = predecessorToActive[sourceId] || sourceId;`
-
-This ensures that a payment on old bill "e385d597" (ref "GLHP-1230", $1,100) gets credited to active bill "c0facab1" (ref "GLHP-1230", $1,100), correctly reducing its open balance to $0 and removing it from the aging report.
-
-## Why This Works on Other Projects
-
-412/413 East Nelson has zero corrected bills, so the predecessor mapping code is never exercised. The bug only manifests when bills have been corrected (reversed and re-entered).
+The same cleanup applies to the empty folder case (lines 172-176) -- delete the old entry and create the new one at the destination.
 
 ## Files to Edit
 
 | File | Change |
 |---|---|
-| `src/components/reports/AccountsPayableContent.tsx` | Fix predecessor-to-active bill mapping using reference_number matching |
+| `src/components/files/MoveFilesModal.tsx` | After successful folder move, delete old `project_folders` entry and insert new one at the destination path |
+
