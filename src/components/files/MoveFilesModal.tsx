@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { FolderOpen, Home } from "lucide-react";
 
 interface SimpleFile {
@@ -49,6 +50,7 @@ export function MoveFilesModal({
   projectId 
 }: MoveFilesModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [existingFolders, setExistingFolders] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>("");
   const [isMoving, setIsMoving] = useState(false);
@@ -96,6 +98,38 @@ export function MoveFilesModal({
         description: "Failed to load existing folders",
         variant: "destructive",
       });
+    }
+  };
+
+  const syncFolderEntry = async (folder: SimpleFolder, destination: string) => {
+    try {
+      const folderName = folder.path.split('/').pop() || folder.name;
+      const newPath = destination === "ROOT" ? folderName : `${destination}/${folderName}`;
+      const newParent = destination === "ROOT" ? null : destination;
+
+      // Delete old folder entry and subfolders
+      await supabase
+        .from('project_folders')
+        .delete()
+        .eq('project_id', projectId)
+        .or(`folder_path.eq.${folder.path},folder_path.like.${folder.path}/%`);
+
+      // Insert new folder entry at destination
+      if (user) {
+        await supabase
+          .from('project_folders')
+          .insert({
+            project_id: projectId,
+            folder_path: newPath,
+            parent_path: newParent,
+            folder_name: folderName,
+            created_by: user.id,
+          });
+      }
+
+      console.log(`Synced folder entry: "${folder.path}" -> "${newPath}"`);
+    } catch (error) {
+      console.error('Error syncing folder entry:', error);
     }
   };
 
@@ -168,11 +202,17 @@ export function MoveFilesModal({
             if (!failures.some(f => f.includes(folder.name))) {
               console.log(`Successfully moved folder "${folder.path}"`);
               successCount++;
+              
+              // Clean up old folder entry and create new one
+              await syncFolderEntry(folder, selectedFolder);
             }
           } else {
             // Empty folder - consider it successfully moved
             console.log(`Folder "${folder.path}" is empty - considered moved`);
             successCount++;
+            
+            // Clean up old folder entry and create new one
+            await syncFolderEntry(folder, selectedFolder);
           }
         } catch (error) {
           console.error(`Error moving folder ${folder.path}:`, error);
