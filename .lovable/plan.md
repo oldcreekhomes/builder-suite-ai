@@ -1,65 +1,42 @@
 
 
-## Consolidate Employees and Companies into the Settings Page
+## Standardize Budget & Dashboard Headers + Add Descriptions to Employees & Companies
 
-### What Changes
+### Problem
 
-Move the Employees table and the Companies page (with its 4 sub-tabs: Companies, Representatives, Marketplace, Marketplace Representatives) into the Settings page as additional vertical tabs. Then simplify the sidebar user dropdown to just Profile, Settings, and Log out.
+The Budget and Dashboard tabs use smaller typography (`text-sm font-medium` heading, `text-xs` descriptions) while all other tabs use `text-lg font-semibold` headings with `text-sm` subtitles. Additionally, Employees and Companies tabs are missing subtitle descriptions.
 
-### Settings Page -- New Tab Layout
-
-The left sidebar in Settings will go from 6 tabs to 8:
+### Reference Pattern (from Chart of Accounts, Specifications, etc.)
 
 ```text
-Settings
------------------------
-  Company Profile
-  Employees          <-- NEW (moved from /employees page)
-  Companies          <-- NEW (moved from /companies page, includes its 4 sub-tabs)
-  Cost Codes
-  Specifications
-  Chart of Accounts
-  Budget
-  Dashboard
+Chart of Accounts                              [Action Buttons]
+Manage your chart of accounts (14 accounts)
 ```
 
-When "Companies" is selected, the content area will show the same horizontal tab bar (Companies / Representatives / Marketplace / Marketplace Representatives) that currently exists on the /companies page.
+Heading: `h3 className="text-lg font-semibold"`
+Subtitle: `p className="text-sm text-muted-foreground"`
 
-When "Employees" is selected, the content area will show the same Employee Management table with the "Add Employee" button.
+### Changes
 
-### Sidebar User Dropdown -- Simplified
+**1. BudgetWarningsTab.tsx**
+- Line 77: Change `text-sm font-medium` to `text-lg font-semibold`
+- Line 78: Change `text-xs text-muted-foreground` to `text-sm text-muted-foreground`
+- Line 85: Change Alert `text-xs` to `text-sm`
 
-Currently shows: Profile, Employees, Companies, Settings, Log out
+**2. DashboardSettingsTab.tsx**
+- Line 59: Change `text-sm font-medium` to `text-lg font-semibold`
+- Line 60: Change `text-xs text-muted-foreground` to `text-sm text-muted-foreground`
+- Line 67: Change Alert `text-xs` to `text-sm`
 
-After change: Profile, Settings, Log out
+**3. EmployeesTab.tsx**
+- Line 53: Change `text-2xl font-bold` to `text-lg font-semibold` (match the other tabs)
+- Add subtitle: "Manage your team members and their access permissions"
 
-The Employees and Companies menu items are removed since they're now accessible inside Settings.
+**4. CompaniesTab.tsx**
+- Line 35: Change `text-2xl font-bold` to `text-lg font-semibold`
+- Add subtitle: "Manage your companies, representatives, and marketplace connections"
 
-### Routing Changes
+### Result
 
-- `/employees` route will redirect to `/settings?tab=employees`
-- `/companies` route will redirect to `/settings?tab=companies`
-- This preserves any existing links or bookmarks
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/settings/EmployeesTab.tsx` | Wraps the EmployeeTable and AddEmployeeDialog for use inside the Settings tab |
-| `src/components/settings/CompaniesTab.tsx` | Wraps the Companies page content (4 sub-tabs with tables and add dialogs) for use inside the Settings tab |
-
-### Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/Settings.tsx` | Add "Employees" and "Companies" TabsTrigger + TabsContent entries; import and render the new tab components |
-| `src/components/sidebar/SidebarUserDropdown.tsx` | Remove the Employees and Companies DropdownMenuItems; remove related imports (Building2, UserPlus, useEmployeePermissions) |
-| `src/pages/Employees.tsx` | Replace with a redirect to `/settings?tab=employees` |
-| `src/pages/Companies.tsx` | Replace with a redirect to `/settings?tab=companies` |
-| `src/components/sidebar/SidebarNavigation.tsx` | Remove `/companies` and `/employees` from the `isGlobalPage` check since those routes now redirect |
-
-### Permissions
-
-- The Employees tab inside Settings will retain the same permission checks (isOwner, isAccountant, canAccessEmployees). If the user lacks permission, the tab content shows the existing "Access Denied" card.
-- The Companies tab has no special permission gating currently and stays that way.
+All 8 Settings tabs will share the identical header pattern: `text-lg font-semibold` title with a `text-sm text-muted-foreground` subtitle underneath.
 
