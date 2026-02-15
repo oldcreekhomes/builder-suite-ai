@@ -1,33 +1,30 @@
 
 
-## Redesign Onboarding Checklist: Two-Column Layout with Prominent Buttons
+## Improve Company HQ Save Flow and Update Description Text
 
 ### Changes
 
-**File: `src/components/OnboardingChecklist.tsx`**
+**1. Redirect to dashboard after successful save (`src/hooks/useCompanyHQ.ts`)**
 
-1. **Two-column grid layout** -- Split the 7 checklist items into two columns (4 on the left, 3 on the right) using a CSS grid, cutting the vertical height roughly in half.
+Update the `onSuccess` callback of the mutation to also invalidate the onboarding progress cache (so the checklist reflects the completed step immediately). Return `mutateAsync` instead of `mutate` so the component can chain a navigation call after success.
 
-2. **Replace text "Go" links with actual buttons** -- Swap the current plain text link for a small, styled `Button` component (using the existing `outline` or `default` variant at `sm` size) so it stands out clearly as an actionable element.
+**2. Navigate to dashboard from CompanyProfileTab (`src/components/settings/CompanyProfileTab.tsx`)**
 
-### Visual Result
+- Import `useNavigate` from react-router-dom
+- In `handleSave`, await the mutation and then call `navigate("/")` to return to the dashboard
+- The existing toast ("Company headquarters updated") already confirms the save
 
-```text
-+------------------------------------------------------------------+
-|  Get Started with BuilderSuite                           1 of 7  |
-|  ==================----------------------------          (14%)   |
-|                                                                  |
-|  Left Column                        Right Column                 |
-|  [x] Verify Email                   [ ] Add Subcontractors [Go]  |
-|  [ ] Set Up Company Profile  [Go]   [ ] Create First Project[Go] |
-|  [ ] Import Cost Codes       [Go]   [ ] Invite Employees   [Go]  |
-|  [ ] Import Chart of Accounts[Go]                                |
-+------------------------------------------------------------------+
-```
+**3. Update the CardDescription text**
+
+Replace:
+> "This address determines your free marketplace search radius (30 miles). Suppliers beyond this range require a paid subscription."
+
+With something like:
+> "Set your company's main office location. This helps BuilderSuite personalize your experience and connect you with nearby resources."
+
+This removes any mention of cost/pricing while still explaining why the address matters.
 
 ### Technical Details
 
-- Use `grid grid-cols-1 md:grid-cols-2 gap-2` to create the two-column layout
-- Split steps array: `steps.slice(0, 4)` for left, `steps.slice(4)` for right
-- Replace the `<button>` text link with `<Button variant="outline" size="sm">` from the existing UI library
-- Keep all existing logic (auto-hide, progress bar, navigation) unchanged
+- In `useCompanyHQ.ts`: add `queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] })` inside `onSuccess` so the dashboard checklist updates immediately. Also expose `updateHQAsync: updateHQMutation.mutateAsync`.
+- In `CompanyProfileTab.tsx`: use `useNavigate()`, call `await updateHQAsync(...)` then `navigate("/")` in `handleSave`. Update the `CardDescription` text.
