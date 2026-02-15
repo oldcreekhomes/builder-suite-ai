@@ -53,7 +53,7 @@ export function DashboardSettingsTab() {
   };
 
   return (
-    <div className="space-y-6 py-4">
+    <div className="space-y-6">
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Dashboard Settings</h3>
