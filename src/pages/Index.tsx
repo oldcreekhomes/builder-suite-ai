@@ -9,6 +9,7 @@ import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { ProjectBidsCard } from "@/components/ProjectBidsCard";
+import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
@@ -57,7 +58,7 @@ export default function Index() {
               canAccessAccountantDashboard={canAccessAccountantDashboard}
             />
             <div className="flex flex-1 flex-col gap-6 p-6">
-              
+              <OnboardingChecklist />
               {dashboardView === "project-manager" ? (
                 <>
                 <div className="grid gap-6 md:grid-cols-4" style={{ height: 'calc(100vh - 220px)' }}>

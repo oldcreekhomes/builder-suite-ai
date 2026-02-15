@@ -2611,6 +2611,56 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_progress: {
+        Row: {
+          chart_of_accounts_imported: boolean
+          companies_added: boolean
+          company_profile_completed: boolean
+          cost_codes_imported: boolean
+          created_at: string
+          email_verified: boolean
+          employees_invited: boolean
+          first_project_created: boolean
+          home_builder_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          chart_of_accounts_imported?: boolean
+          companies_added?: boolean
+          company_profile_completed?: boolean
+          cost_codes_imported?: boolean
+          created_at?: string
+          email_verified?: boolean
+          employees_invited?: boolean
+          first_project_created?: boolean
+          home_builder_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          chart_of_accounts_imported?: boolean
+          companies_added?: boolean
+          company_profile_completed?: boolean
+          cost_codes_imported?: boolean
+          created_at?: string
+          email_verified?: boolean
+          employees_invited?: boolean
+          first_project_created?: boolean
+          home_builder_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_home_builder_id_fkey"
+            columns: ["home_builder_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_bill_lines: {
         Row: {
           account_id: string | null
