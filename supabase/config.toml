@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.send-marketplace-message]
 verify_jwt = false
+
+[functions.copy-template-cost-codes]
+verify_jwt = false

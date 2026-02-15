@@ -188,6 +188,7 @@ const Settings = () => {
                       onBulkDeleteCostCodes={handleBulkDeleteCostCodes}
                       onPriceSync={refetch}
                       isEditing={editingCostCode !== null}
+                      onRefetch={refetch}
                     />
                   </TabsContent>
                   
