@@ -1,31 +1,30 @@
 
 
-## Fix Table Styling Consistency and Suppliers Sidebar
+## Fix Suppliers Sidebar Styling to Match Other Items
 
-### Problem 1: Table Border Breaking
-The Companies and Representatives tables use `border rounded-lg` but are missing `overflow-hidden`. This causes the sticky table header to break through the rounded border at the top.
+### Problem
+The "Suppliers" collapsible trigger uses `text-muted-foreground` (gray, lighter color) while all other sidebar items (Budget, Chart of Accounts, etc.) use the default `TabsTrigger` text color (darker foreground). This makes "Suppliers" visually inconsistent -- wrong font color and weight compared to the other items.
 
-### Problem 2: Column Header Font Mismatch
-The Companies and Representatives tables apply custom `h-8 px-2 py-1 text-xs font-medium` to every `TableHead`, overriding the default shadcn styling. The Cost Codes table uses the default `TableHead` classes (no overrides), which is the correct standard.
+### Fix
 
-### Problem 3: Suppliers Sidebar Label
-The "Suppliers" label uses `text-xs` (smaller than the `text-sm` used by all other sidebar items) and is a static, non-interactive div. It needs to become a same-size collapsible item.
+**File: `src/pages/Settings.tsx` (line 174)**
 
----
+Change the `CollapsibleTrigger` className to match the exact same styling as the `TabsTrigger` items:
 
-### Changes
+Current:
+```
+className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+```
 
-**1. `src/components/companies/CompaniesTable.tsx`**
-- Change `<div className="border rounded-lg">` to `<div className="border rounded-lg overflow-hidden">`
-- Remove all custom `h-8 px-2 py-1 text-xs font-medium` overrides from `TableHead` elements so they use the default shadcn styling (matching Cost Codes)
+Updated:
+```
+className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+```
 
-**2. `src/components/representatives/RepresentativesTable.tsx`**
-- Change `<div className="border rounded-lg">` to `<div className="border rounded-lg overflow-hidden">`
-- Remove all custom `h-8 px-2 py-1 text-xs font-medium` overrides from `TableHead` elements so they use the default shadcn styling (matching Cost Codes)
+Key changes:
+- `text-muted-foreground` changed to `text-foreground` (matches the default text color of TabsTrigger items)
+- Added `font-medium` to match the TabsTrigger font weight
+- Changed `hover:text-foreground` to `hover:bg-muted` to match the hover behavior of the other items
 
-**3. `src/pages/Settings.tsx`**
-- Replace the static "Suppliers" `div` label with a collapsible section using `Collapsible` from Radix UI
-- The trigger will be styled as `text-sm` (same font size as all other sidebar items) with a chevron icon that rotates on open/close
-- Companies and Representatives will be nested inside the collapsible content, indented with `pl-6`
-- The collapsible will default to open when either "companies" or "representatives" is the active tab
+This single line change ensures "Suppliers" looks identical to Budget, Chart of Accounts, Company Profile, etc. in both collapsed and expanded states.
 
