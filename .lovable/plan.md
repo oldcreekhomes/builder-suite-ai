@@ -1,29 +1,57 @@
 
+## Replicate Cost Code Template Dialog for Chart of Accounts
 
-## Fix Template Dialog: Update Text and Close Behavior
+### Overview
 
-### Problem
-1. The `DialogDescription` text needs updating to remove "Get started in seconds, not hours." prefix -- should only read: "Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:"
-2. When clicking "Import from Excel" or "I'll add them manually", the template dialog stays visible behind the new dialog because `templateDialogOpen` is derived from `costCodes.length === 0` and cannot be manually overridden.
+Copy the exact same "Set Up" dialog pattern from Cost Codes to Chart of Accounts. When a home builder has zero accounts, a dialog automatically appears with three options: Use Our Template, Import from QuickBooks (IIF), or Add Manually. Once any account exists, the dialog disappears. If all accounts are deleted, it reappears.
 
-### Solution
+### User Experience
 
-**1. Update text in `CostCodeTemplateDialog.tsx` (line 43-45)**
+Identical to the Cost Codes dialog but with "chart of accounts" language:
+- Title: "Set Up Your Chart of Accounts"
+- Description: "Your chart of accounts is the foundation of your project accounting and financial reporting. Choose how you'd like to get started:"
+- **Use Our Template** (primary) -- copies ~20 accounts from Old Creek Homes template
+- **Import from QuickBooks** -- closes dialog, opens the existing IIF import section (scrolls to it or highlights it)
+- **I'll add them manually** -- closes dialog, opens the Add Account dialog
+- Same green checkmarks, same black borders on secondary buttons
 
-Change the `DialogDescription` to:
-> "Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:"
+The checklist items for "Use Our Template" will be: "Account codes & names", "Account types", "Descriptions", "Ready-to-use structure"
 
-**2. Add manual dismiss state in `CostCodesTab.tsx`**
+### Technical Details
 
-- Add a `templateDismissed` state variable (default `false`)
-- Change `templateDialogOpen` logic to: `costCodes.length === 0 && !loading && !templateDismissed`
-- In `handleTemplateImportExcel` and `handleAddManually`, set `templateDismissed = true` before opening the next dialog
-- Reset `templateDismissed` back to `false` when the Excel or Add dialog closes (so the template dialog reappears if user cancels without adding anything and still has zero cost codes)
+**1. New Edge Function: `copy-template-accounts`**
 
-### Files to modify
+- Same authentication pattern as `copy-template-cost-codes`
+- Reads all accounts from Old Creek Homes (`owner_id = '2653aba8-d154-4301-99bf-77d559492e19'`) where `is_active = true`
+- Inserts copies with new UUIDs into the requesting user's account, preserving: `code`, `name`, `type`, `description`, `is_active`
+- Handles `parent_id` remapping (old ID to new ID) for any hierarchical accounts
+- Returns count of imported accounts
 
-| File | Change |
+**2. New Component: `src/components/settings/ChartOfAccountsTemplateDialog.tsx`**
+
+- Mirrors `CostCodeTemplateDialog.tsx` exactly in structure
+- Props: `open`, `onOpenChange`, `onUseTemplate`, `onImportQuickBooks`, `onAddManually`
+- Same visual design: recommended section with green checkmarks, black-bordered secondary buttons
+- Text adapted: "chart of accounts" instead of "cost codes", benefits list updated for accounting context
+
+**3. Update `src/components/settings/ChartOfAccountsTab.tsx`**
+
+- Add `templateDismissed` state (same pattern as CostCodesTab)
+- Compute `templateDialogOpen = accounts.length === 0 && !isLoading && !templateDismissed`
+- "Use Template" calls the new edge function, then invalidates the `['accounts']` query
+- "Import from QuickBooks" dismisses the template dialog (the IIF import card is already visible on the page beneath)
+- "Add Manually" dismisses the template dialog and opens the `AddAccountDialog`
+- Reset `templateDismissed` when the Add dialog closes (so template reappears if user cancels without adding)
+
+**4. Config update: `supabase/config.toml`**
+
+- Add `[functions.copy-template-accounts]` entry
+
+### Files to create/modify
+
+| File | Action |
 |------|--------|
-| `src/components/settings/CostCodeTemplateDialog.tsx` | Update DialogDescription text |
-| `src/components/settings/CostCodesTab.tsx` | Add `templateDismissed` state; set it in handlers; reset on child dialog close |
-
+| `supabase/functions/copy-template-accounts/index.ts` | Create -- edge function to copy Old Creek Homes accounts |
+| `supabase/config.toml` | Modify -- add function config entry |
+| `src/components/settings/ChartOfAccountsTemplateDialog.tsx` | Create -- the welcome/template dialog component |
+| `src/components/settings/ChartOfAccountsTab.tsx` | Modify -- integrate the template dialog |
