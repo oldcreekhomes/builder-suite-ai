@@ -1,29 +1,33 @@
 
 
-## Reset Company Profile for Derrick Russell Homes
+## Redesign Onboarding Checklist: Two-Column Layout with Prominent Buttons
 
-To allow you to retest the "Set Up Company Profile" onboarding step, two updates are needed:
+### Changes
 
-### 1. Clear the HQ address from the users table
-Set `hq_address`, `hq_city`, `hq_state`, `hq_zip`, `hq_lat`, and `hq_lng` back to `NULL` for Derrick Russell Homes so the live detection will see the profile as incomplete.
+**File: `src/components/OnboardingChecklist.tsx`**
 
-### 2. Reset the onboarding flag
-Set `company_profile_completed` to `false` in the `onboarding_progress` table.
+1. **Two-column grid layout** -- Split the 7 checklist items into two columns (4 on the left, 3 on the right) using a CSS grid, cutting the vertical height roughly in half.
 
-### SQL to Execute
+2. **Replace text "Go" links with actual buttons** -- Swap the current plain text link for a small, styled `Button` component (using the existing `outline` or `default` variant at `sm` size) so it stands out clearly as an actionable element.
+
+### Visual Result
 
 ```text
--- Clear HQ address data
-UPDATE users 
-SET hq_address = NULL, hq_city = NULL, hq_state = NULL, 
-    hq_zip = NULL, hq_lat = NULL, hq_lng = NULL
-WHERE id = '5d10b16a-3ffc-4ce2-b513-7990ac0de849';
-
--- Reset onboarding flag
-UPDATE onboarding_progress 
-SET company_profile_completed = false, updated_at = now()
-WHERE home_builder_id = '5d10b16a-3ffc-4ce2-b513-7990ac0de849';
++------------------------------------------------------------------+
+|  Get Started with BuilderSuite                           1 of 7  |
+|  ==================----------------------------          (14%)   |
+|                                                                  |
+|  Left Column                        Right Column                 |
+|  [x] Verify Email                   [ ] Add Subcontractors [Go]  |
+|  [ ] Set Up Company Profile  [Go]   [ ] Create First Project[Go] |
+|  [ ] Import Cost Codes       [Go]   [ ] Invite Employees   [Go]  |
+|  [ ] Import Chart of Accounts[Go]                                |
++------------------------------------------------------------------+
 ```
 
-After this, when Derrick Russell Homes loads their dashboard, the onboarding checklist will show "Set Up Company Profile" as incomplete with a link to go complete it.
+### Technical Details
 
+- Use `grid grid-cols-1 md:grid-cols-2 gap-2` to create the two-column layout
+- Split steps array: `steps.slice(0, 4)` for left, `steps.slice(4)` for right
+- Replace the `<button>` text link with `<Button variant="outline" size="sm">` from the existing UI library
+- Keep all existing logic (auto-hide, progress bar, navigation) unchanged
