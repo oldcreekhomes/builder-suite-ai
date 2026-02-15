@@ -171,7 +171,7 @@ const Settings = () => {
                     <TabsTrigger value="employees" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Employees</TabsTrigger>
                     <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
                     <Collapsible open={suppliersOpen} onOpenChange={setSuppliersOpen}>
-                      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
                         Suppliers
                         <ChevronRight className={`h-4 w-4 transition-transform ${suppliersOpen ? 'rotate-90' : ''}`} />
                       </CollapsibleTrigger>
