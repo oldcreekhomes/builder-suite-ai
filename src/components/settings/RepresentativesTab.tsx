@@ -2,24 +2,24 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-import { CompaniesTable } from "@/components/companies/CompaniesTable";
-import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
+import { RepresentativesTable } from "@/components/representatives/RepresentativesTable";
+import { AddRepresentativeModal } from "@/components/representatives/AddRepresentativeModal";
 
-export function CompaniesTab() {
-  const [addCompanyOpen, setAddCompanyOpen] = useState(false);
+export function RepresentativesTab() {
+  const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold text-black">Companies</h3>
-          <p className="text-sm text-gray-600">Manage your companies</p>
+          <h3 className="text-lg font-semibold text-black">Representatives</h3>
+          <p className="text-sm text-gray-600">Manage your company representatives</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => setAddCompanyOpen(true)}>
+          <Button onClick={() => setAddRepresentativeOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Company
+            Add Representative
           </Button>
         </div>
       </div>
@@ -34,9 +34,9 @@ export function CompaniesTab() {
         />
       </div>
 
-      <CompaniesTable searchQuery={searchQuery} />
+      <RepresentativesTable searchQuery={searchQuery} />
 
-      <AddCompanyDialog open={addCompanyOpen} onOpenChange={setAddCompanyOpen} />
+      <AddRepresentativeModal open={addRepresentativeOpen} onOpenChange={setAddRepresentativeOpen} />
     </div>
   );
 }
