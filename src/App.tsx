@@ -60,6 +60,7 @@ import CloseBooks from "./pages/accounting/CloseBooks";
 import OutboundRedirect from "./pages/OutboundRedirect";
 import Marketplace from "./pages/Marketplace";
 import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const AppContent = () => {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <ErrorBoundary>
         <ChatProvider>
           <SidebarProvider>
