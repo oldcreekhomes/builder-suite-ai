@@ -11,12 +11,57 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { EditAccountDialog } from "./EditAccountDialog";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChartOfAccountsTemplateDialog } from "./ChartOfAccountsTemplateDialog";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
   const [isImporting, setIsImporting] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [templateDismissed, setTemplateDismissed] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Show template dialog when no accounts exist and not loading
+  const templateDialogOpen = accounts.length === 0 && !isLoading && !templateDismissed;
+
+  const handleUseTemplate = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Not authenticated", variant: "destructive" });
+      return;
+    }
+
+    const response = await supabase.functions.invoke('copy-template-accounts', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+
+    if (response.error) {
+      throw new Error(response.error.message || 'Failed to import template');
+    }
+
+    const result = response.data;
+    toast({
+      title: "Template Imported!",
+      description: `Successfully imported ${result.accountsImported} accounts.`,
+    });
+
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+  };
+
+  const handleImportQuickBooks = () => {
+    setTemplateDismissed(true);
+  };
+
+  const handleAddManually = () => {
+    setTemplateDismissed(true);
+    setAddDialogOpen(true);
+  };
+
+  const handleAddDialogOpenChange = (open: boolean) => {
+    setAddDialogOpen(open);
+    if (!open) setTemplateDismissed(false);
+  };
 
   const handleImportIFF = async (files: File[]) => {
     if (files.length === 0) return;
@@ -34,17 +79,14 @@ export const ChartOfAccountsTab = () => {
     setIsImporting(true);
     
     try {
-      console.log('Starting IFF import process...');
       const formData = new FormData();
       formData.append('file', file);
 
-      // Get the user session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('Not authenticated');
       }
 
-      console.log('Calling parse-iff-file function...');
       const { data, error } = await supabase.functions.invoke('parse-iff-file', {
         body: formData,
         headers: {
@@ -52,29 +94,20 @@ export const ChartOfAccountsTab = () => {
         },
       });
 
-      console.log('Function response:', { data, error });
-      console.log('Function response data:', JSON.stringify(data, null, 2));
-
       if (error) {
-        console.error('Supabase function error:', error);
         throw error;
       }
 
       if (data?.success) {
-        console.log('Import successful, data returned:', data);
-        console.log('Accounts imported:', data.accounts?.length || 0);
         toast({
           title: "Import Successful",
           description: data.message,
         });
-        // Refresh the accounts list instead of full page reload
         window.location.reload();
       } else {
-        console.error('Import failed with data:', data);
         throw new Error(data?.error || 'Unknown error occurred');
       }
     } catch (error) {
-      console.error('Import error:', error);
       toast({
         title: "Import Failed", 
         description: error.message || "Failed to import chart of accounts",
@@ -137,8 +170,7 @@ export const ChartOfAccountsTab = () => {
         </CardContent>
       </Card>
 
-
-      {/* Chart of Accounts Table - Matching uniform design */}
+      {/* Chart of Accounts Table */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
@@ -219,9 +251,17 @@ export const ChartOfAccountsTab = () => {
         </div>
       </div>
 
+      <ChartOfAccountsTemplateDialog
+        open={templateDialogOpen}
+        onOpenChange={(open) => { if (!open) setTemplateDismissed(true); }}
+        onUseTemplate={handleUseTemplate}
+        onImportQuickBooks={handleImportQuickBooks}
+        onAddManually={handleAddManually}
+      />
+
       <AddAccountDialog
         open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
+        onOpenChange={handleAddDialogOpenChange}
       />
 
       <EditAccountDialog
