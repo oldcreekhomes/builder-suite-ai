@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,8 @@ import { useGooglePlacesAddress, AddressData } from "@/hooks/useGooglePlacesAddr
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function CompanyProfileTab() {
-  const { hqData, isLoading, updateHQ, isUpdating } = useCompanyHQ();
+  const navigate = useNavigate();
+  const { hqData, isLoading, updateHQAsync, isUpdating } = useCompanyHQ();
   
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -49,10 +51,10 @@ export function CompanyProfileTab() {
     onPlaceSelected: handlePlaceSelected,
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!address || !city || !state || !zip || lat === null || lng === null) return;
     
-    updateHQ({
+    await updateHQAsync({
       hq_address: address,
       hq_city: city,
       hq_state: state,
@@ -61,6 +63,7 @@ export function CompanyProfileTab() {
       hq_lng: lng,
     });
     setHasChanges(false);
+    navigate("/");
   };
 
   const isValid = address && city && state && zip && lat !== null && lng !== null;
@@ -85,8 +88,7 @@ export function CompanyProfileTab() {
             Company Headquarters
           </CardTitle>
           <CardDescription>
-            This address determines your free marketplace search radius (30 miles).
-            Suppliers beyond this range require a paid subscription.
+            Set your company's main office location. This helps BuilderSuite personalize your experience and connect you with nearby resources.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
