@@ -1,31 +1,40 @@
 
 
-## Fix: Branded Verification Email Not Sending
+## Fix: Auth Page Content Stuck to the Left
 
-### What Went Wrong
+### Root Cause
 
-The `send-signup-emails` edge function was never deployed after the last code update. That's why you received only the default Supabase plain-text confirmation email (the raw URL you see in the screenshot) and no branded email from BuilderSuite ML.
+The `SidebarProvider` in `App.tsx` wraps **all** routes, including `/auth`. This provider renders a sidebar layout container that takes up space on the left side of the screen, pushing the Auth page content (including the "Check Your Email" card) to the left instead of centering it.
+
+This is the same root cause that has been creating this problem repeatedly -- it's not a CSS issue on the Auth page itself, it's the parent layout.
 
 ### Fix
 
-**1. Deploy the `send-signup-emails` edge function**
-- The code is already written and correct -- it just needs to be deployed so it actually runs when called.
+**Move the Auth route (and other non-authenticated routes) outside the `SidebarProvider`** in `App.tsx`:
 
-**2. Suppress the default Supabase confirmation email**
-- Right now, Supabase sends its own plain "Confirm Your Email" with just a raw link. Since our edge function sends the branded version with the verification link via Resend, we need to prevent the duplicate default email.
-- Update the signup call in `SignupForm.tsx` to use `autoConfirm`-style flow: Instead of relying on Supabase's built-in email, the edge function already calls `auth.admin.generateLink()` which handles verification. We should disable Supabase's default confirmation email by **not** triggering it.
-- Specifically, in `SignupForm.tsx`, after calling `supabase.auth.signUp()`, the edge function handles the branded email. The default Supabase email is controlled by the SMTP/template settings in the Supabase dashboard. Since we can't change dashboard settings from code, the user will temporarily receive both emails until the Supabase template is updated -- but the branded one will be the professional one.
+1. Restructure `App.tsx` so that public/auth routes (`/auth`, `/reset-password`, `/landing`, `/about`, feature pages, shared routes, bid routes, etc.) render **outside** the `SidebarProvider`
+2. Only wrap the protected/dashboard routes inside the `SidebarProvider`
 
-**3. Delete the test user again and re-test**
-- Delete `buildersuiteai1@gmail.com` from auth and public tables so you can sign up fresh and verify the branded email arrives.
-
-### Steps
-
-1. Deploy the edge function
-2. Delete the test user (same admin cleanup as before)  
-3. Re-sign up to verify the branded email arrives
+This way the Auth page's `min-h-screen flex items-center justify-center` will work correctly against the full viewport width with no sidebar container interfering.
 
 ### Technical Detail
 
-The code in `send-signup-emails/index.ts` is correct -- it generates the verification link via `auth.admin.generateLink({ type: 'signup' })` and sends a branded HTML email via Resend. The only issue was deployment.
+In `App.tsx`, the current structure is:
 
+```text
+SidebarProvider (adds sidebar layout to ALL routes)
+  Routes
+    /auth  <-- gets sidebar layout, card shifts left
+    /project/...  <-- correctly gets sidebar
+```
+
+The fix changes it to:
+
+```text
+Routes
+  /auth  <-- no sidebar, centers correctly
+  SidebarProvider
+    /project/...  <-- correctly gets sidebar
+```
+
+Only one file changes: `src/App.tsx`.
