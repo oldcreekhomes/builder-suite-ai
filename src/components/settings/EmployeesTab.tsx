@@ -50,7 +50,10 @@ export function EmployeesTab() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-foreground">Employee Management</h2>
+        <div>
+          <h3 className="text-lg font-semibold">Employee Management</h3>
+          <p className="text-sm text-muted-foreground">Manage your team members and their access permissions</p>
+        </div>
         <Button onClick={() => setAddEmployeeOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Employee

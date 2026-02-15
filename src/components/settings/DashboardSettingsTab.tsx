@@ -56,15 +56,15 @@ export function DashboardSettingsTab() {
     <div className="space-y-6 py-4">
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium">Dashboard Settings</h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h3 className="text-lg font-semibold">Dashboard Settings</h3>
+          <p className="text-sm text-muted-foreground mt-1">
             Configure which cards appear on each dashboard view
           </p>
         </div>
         
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertDescription className="text-xs">
+          <AlertDescription className="text-sm">
             <strong>Company-Wide Settings:</strong> These settings apply to all employees in your company. 
             {!isOwner && " Only company owners can modify these settings."}
           </AlertDescription>

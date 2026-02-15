@@ -32,7 +32,10 @@ export function CompaniesTab() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-foreground">Companies & Representatives</h2>
+        <div>
+          <h3 className="text-lg font-semibold">Companies & Representatives</h3>
+          <p className="text-sm text-muted-foreground">Manage your companies, representatives, and marketplace connections</p>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
