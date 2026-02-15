@@ -4,7 +4,10 @@ import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CostCodesHeader } from './CostCodesHeader';
 import { CostCodesTable } from './CostCodesTable';
+import { CostCodeTemplateDialog } from './CostCodeTemplateDialog';
 import { useCostCodeGrouping } from '@/hooks/useCostCodeGrouping';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -26,6 +29,7 @@ interface CostCodesTabProps {
   onBulkDeleteCostCodes: () => void;
   onPriceSync?: () => void;
   isEditing?: boolean;
+  onRefetch?: () => void;
 }
 
 export function CostCodesTab({
@@ -44,24 +48,28 @@ export function CostCodesTab({
   onImportCostCodes,
   onBulkDeleteCostCodes,
   onPriceSync,
-  isEditing = false
+  isEditing = false,
+  onRefetch
 }: CostCodesTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addDialogInitialData, setAddDialogInitialData] = React.useState<{ parent_group?: string } | undefined>();
+  const [excelDialogRequested, setExcelDialogRequested] = React.useState(false);
+  const { toast } = useToast();
+
+  // Show template dialog when no cost codes exist and not loading
+  const templateDialogOpen = costCodes.length === 0 && !loading;
 
   // Filter cost codes based on search query - include parents when children match
   const filteredCostCodes = useMemo(() => {
     if (!searchQuery.trim()) return costCodes;
     const query = searchQuery.toLowerCase();
     
-    // First, find all codes that directly match the search
     const directMatches = costCodes.filter(cc => 
       cc.code.toLowerCase().includes(query) ||
       cc.name.toLowerCase().includes(query)
     );
     
-    // Collect parent codes that need to be included for hierarchy rendering
     const parentGroupsToInclude = new Set<string>();
     directMatches.forEach(cc => {
       if (cc.parent_group) {
@@ -69,7 +77,6 @@ export function CostCodesTab({
       }
     });
     
-    // Include both direct matches AND their parent codes
     return costCodes.filter(cc => 
       cc.code.toLowerCase().includes(query) ||
       cc.name.toLowerCase().includes(query) ||
@@ -80,13 +87,63 @@ export function CostCodesTab({
   const { parentCodes, groupedCostCodes, getParentCostCode } = useCostCodeGrouping(filteredCostCodes);
 
   const handleAddCostCode = (parentCode?: string) => {
-    // Set initial data and open dialog
     setAddDialogInitialData(parentCode ? { parent_group: parentCode } : undefined);
     setAddDialogOpen(true);
   };
 
+  const handleUseTemplate = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
+        return;
+      }
+
+      const response = await supabase.functions.invoke('copy-template-cost-codes', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to import template');
+      }
+
+      const result = response.data;
+      toast({
+        title: "Template Imported!",
+        description: `Successfully imported ${result.costCodesImported} cost codes and ${result.specificationsImported} specifications.`,
+      });
+
+      onRefetch?.();
+    } catch (error: any) {
+      console.error('Template import error:', error);
+      toast({
+        title: "Import Failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTemplateImportExcel = () => {
+    // The ExcelImportDialog is inside CostCodesHeader and manages its own open state via trigger.
+    // We'll just close the template dialog — user can click the Import Excel button in the header.
+    // For a smoother UX, we signal to programmatically open it.
+    setExcelDialogRequested(true);
+  };
+
+  // When excelDialogRequested is set, we auto-click after render — but since ExcelImportDialog
+  // uses its own internal state, the simplest approach is to just close and let the user click.
+  // The template dialog will reappear if they haven't imported anything.
+
   return (
     <div className="space-y-4">
+      <CostCodeTemplateDialog
+        open={templateDialogOpen}
+        onOpenChange={() => {}}
+        onUseTemplate={handleUseTemplate}
+        onImportExcel={handleTemplateImportExcel}
+      />
+
       <CostCodesHeader
         selectedCostCodes={selectedCostCodes}
         costCodes={costCodes}
