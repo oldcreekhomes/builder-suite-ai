@@ -34,8 +34,8 @@ export function CostCodeGroupRow({
   onUpdate
 }: CostCodeGroupRowProps) {
   return (
-    <TableRow className="bg-gray-50 h-10">
-      <TableCell className="py-1">
+    <TableRow className="bg-muted/30">
+      <TableCell>
         {parentCostCode && (
           <Checkbox
             checked={isSelected}
@@ -46,7 +46,7 @@ export function CostCodeGroupRow({
         )}
       </TableCell>
       <TableCell 
-        className="font-semibold text-gray-700 cursor-pointer py-1 text-sm"
+        className="font-medium cursor-pointer"
         onClick={() => onToggleCollapse(groupKey)}
       >
         <div className="flex items-center gap-2">
@@ -58,10 +58,10 @@ export function CostCodeGroupRow({
           <span>{groupKey}</span>
         </div>
       </TableCell>
-      <TableCell className="font-semibold text-gray-700 py-1 text-sm">
+      <TableCell className="font-medium">
         {parentCostCode?.name}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <CostCodeInlineEditor
             costCode={parentCostCode}
@@ -70,7 +70,7 @@ export function CostCodeGroupRow({
           />
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <CostCodeInlineEditor
             costCode={parentCostCode}
@@ -79,7 +79,7 @@ export function CostCodeGroupRow({
           />
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <CostCodeInlineEditor
             costCode={parentCostCode}
@@ -88,7 +88,7 @@ export function CostCodeGroupRow({
           />
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <CostCodeInlineEditor
             costCode={parentCostCode}
@@ -97,7 +97,7 @@ export function CostCodeGroupRow({
           />
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <CostCodeInlineEditor
             costCode={parentCostCode}
@@ -106,7 +106,7 @@ export function CostCodeGroupRow({
           />
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <CostCodeInlineEditor
             costCode={parentCostCode}
@@ -115,7 +115,7 @@ export function CostCodeGroupRow({
           />
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         {parentCostCode && (
           <TableRowActions actions={[
             { label: "Edit", onClick: () => onEdit(parentCostCode) },

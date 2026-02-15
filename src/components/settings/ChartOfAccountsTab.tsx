@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, Plus, Search } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ export const ChartOfAccountsTab = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [templateDismissed, setTemplateDismissed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -177,6 +179,18 @@ export const ChartOfAccountsTab = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>
+                  <Checkbox
+                    checked={filteredAccounts.length > 0 && selectedIds.size === filteredAccounts.length}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedIds(new Set(filteredAccounts.map(a => a.id)));
+                      } else {
+                        setSelectedIds(new Set());
+                      }
+                    }}
+                  />
+                </TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Account Name</TableHead>
                 <TableHead>Type</TableHead>
@@ -187,14 +201,24 @@ export const ChartOfAccountsTab = () => {
             <TableBody>
               {filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     {searchQuery ? 'No accounts match your search.' : 'No accounts found. Import from QuickBooks or add accounts manually.'}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAccounts.map((account) => (
                   <TableRow key={account.id}>
-                    <TableCell>{account.code}</TableCell>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(account.id)}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(selectedIds);
+                          if (checked) next.add(account.id); else next.delete(account.id);
+                          setSelectedIds(next);
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{account.code}</TableCell>
                     <TableCell>{account.name}</TableCell>
                     <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
                     <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
