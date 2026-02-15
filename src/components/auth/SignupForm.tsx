@@ -49,28 +49,31 @@ const SignupForm = ({ onSuccess }: { onSuccess?: (email: string) => void }) => {
         return;
       }
 
-      const metadata = {
-        user_type: "home_builder",
-        company_name: companyName.trim(),
-      };
-
-      const redirectUrl = `${window.location.origin}/auth`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: metadata,
-          emailRedirectTo: redirectUrl,
-        },
+      // Create user and send branded verification email via edge function
+      // This bypasses Supabase's default plain-text email entirely
+      const { data, error } = await supabase.functions.invoke('send-signup-emails', {
+        body: {
+          email: email,
+          password: password,
+          companyName: companyName.trim(),
+          signupTime: new Date().toISOString(),
+          userType: 'home_builder',
+        }
       });
 
       if (error) {
         console.error("Signup error:", error);
-        
+        toast({
+          title: "Error",
+          description: error.message || "An error occurred during signup.",
+          variant: "destructive",
+        });
+      } else if (data?.error) {
+        console.error("Signup error:", data.error);
         // Check for duplicate company name constraint violation
-        if (error.message.includes('unique_company_name_for_owners') || 
-            error.message.includes('Database error saving new user')) {
+        if (data.error.includes('unique_company_name_for_owners') || 
+            data.error.includes('already been registered') ||
+            data.error.includes('Database error')) {
           toast({
             variant: "destructive",
             title: "Company Already Registered",
@@ -79,25 +82,11 @@ const SignupForm = ({ onSuccess }: { onSuccess?: (email: string) => void }) => {
         } else {
           toast({
             title: "Error",
-            description: error.message,
+            description: data.error,
             variant: "destructive",
           });
         }
       } else {
-        // Send signup notification emails in the background
-        try {
-          await supabase.functions.invoke('send-signup-emails', {
-            body: {
-              email: email,
-              companyName: companyName.trim(),
-              signupTime: new Date().toISOString()
-            }
-          });
-        } catch (emailError) {
-          // Don't block signup if email fails - just log it
-          console.error("Failed to send signup emails:", emailError);
-        }
-
         if (onSuccess) {
           onSuccess(email);
         } else {
