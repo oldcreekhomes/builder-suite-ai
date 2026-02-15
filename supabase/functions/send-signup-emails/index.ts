@@ -6,11 +6,12 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface SignupEmailRequest {
   email: string;
+  password?: string;
   companyName: string;
   signupTime: string;
   userType?: 'home_builder' | 'marketplace_vendor';
@@ -280,12 +281,42 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, companyName, signupTime, userType = 'home_builder' }: SignupEmailRequest = await req.json();
+    const { email, password, companyName, signupTime, userType = 'home_builder' }: SignupEmailRequest = await req.json();
 
     const isMarketplaceVendor = userType === 'marketplace_vendor';
     const signupTypeLabel = isMarketplaceVendor ? 'Marketplace Vendor' : 'Home Builder';
 
-    console.log("🚀 Processing signup notification for:", email, "Type:", signupTypeLabel);
+    console.log("🚀 Processing signup for:", email, "Type:", signupTypeLabel);
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Step 1: Create the user via Admin API (no default Supabase email sent)
+    if (password) {
+      console.log("👤 Creating user via Admin API:", email);
+
+      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: false,
+        user_metadata: {
+          user_type: isMarketplaceVendor ? 'marketplace_vendor' : 'home_builder',
+          company_name: companyName,
+        },
+      });
+
+      if (createError) {
+        console.error("❌ Error creating user:", createError);
+        return new Response(
+          JSON.stringify({ error: createError.message }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      console.log("✅ User created:", userData.user?.id);
+    }
 
     const formattedTime = new Date(signupTime).toLocaleString('en-US', {
       weekday: 'long',
@@ -297,7 +328,7 @@ const handler = async (req: Request): Promise<Response> => {
       timeZoneName: 'short'
     });
 
-    // Send admin notification email
+    // Step 2: Send admin notification email
     console.log("📧 Sending admin notification to:", ADMIN_EMAIL);
     const adminEmailResponse = await resend.emails.send({
       from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
@@ -307,24 +338,22 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (adminEmailResponse.error) {
-      console.error("❌ Admin email failed to send:", adminEmailResponse.error);
+      console.error("❌ Admin email failed:", adminEmailResponse.error);
     } else {
-      console.log("✅ Admin notification email sent:", adminEmailResponse.data?.id);
+      console.log("✅ Admin notification sent:", adminEmailResponse.data?.id);
     }
 
-    // Send welcome/verification email to new user
-    console.log("📧 Sending welcome email to:", email);
+    // Small delay to avoid Resend rate limits
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Step 3: Send branded verification/welcome email to user
+    console.log("📧 Sending branded email to:", email);
 
     let userEmailResponse;
 
     if (!isMarketplaceVendor) {
-      // Home builder: generate verification link via Admin API and send branded email
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
-
-      console.log("🔑 Generating email verification link for:", email);
+      // Home builder: generate verification link and send branded email
+      console.log("🔑 Generating verification link for:", email);
 
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'signup',
@@ -336,12 +365,12 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (linkError) {
         console.error("❌ Error generating verification link:", linkError);
-        // Fall back to a simple welcome email without verification button
+        // Fall back to welcome email without button
         userEmailResponse = await resend.emails.send({
           from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
           to: [email],
           subject: "Welcome to BuilderSuite ML!",
-          html: buildMarketplaceWelcomeHtml(companyName), // reuse basic welcome as fallback
+          html: buildMarketplaceWelcomeHtml(companyName),
         });
       } else {
         const verificationLink = linkData.properties?.action_link;
@@ -355,7 +384,7 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
     } else {
-      // Marketplace vendor: send existing welcome email
+      // Marketplace vendor: send welcome email
       userEmailResponse = await resend.emails.send({
         from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
         to: [email],
@@ -365,15 +394,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (userEmailResponse.error) {
-      console.error("❌ User welcome email failed to send:", userEmailResponse.error);
+      console.error("❌ User email failed:", userEmailResponse.error);
     } else {
-      console.log("✅ User welcome email sent:", userEmailResponse.data?.id);
+      console.log("✅ User email sent:", userEmailResponse.data?.id);
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Signup emails sent successfully",
+        message: "Signup completed and emails sent",
         adminEmailId: adminEmailResponse.data?.id,
         userEmailId: userEmailResponse.data?.id
       }),
