@@ -1,16 +1,35 @@
 
-## Fix: Scroll to Top on Page Navigation
 
-**Problem**: When navigating between public pages (e.g., Home to Our Philosophy), the scroll position carries over from the previous page instead of resetting to the top.
+## Fix: Full-Screen "Check Your Email" Confirmation After Signup
 
-**Solution**: Add a small `ScrollToTop` component inside the `BrowserRouter` in `src/App.tsx` that listens for route changes and calls `window.scrollTo(0, 0)` on every navigation.
+### Problem
+After a home builder signs up, they see a tiny toast notification in the bottom-right corner saying "Account created!" and get immediately redirected to the homepage. The user will almost certainly miss this.
+
+### Solution
+Replace the toast + redirect with a full-screen confirmation page (same pattern already used in `MarketplaceSignup.tsx`).
 
 ### Changes
 
-**New file: `src/components/ScrollToTop.tsx`**
-- A simple component that uses `useLocation()` from React Router and a `useEffect` to scroll to the top of the window whenever the pathname changes.
+**Modified file: `src/components/auth/SignupForm.tsx`**
+- Add a `showSuccess` state (boolean, default false)
+- On successful signup, set `showSuccess = true` instead of showing a toast and navigating away
+- When `showSuccess` is true, render a centered confirmation card with:
+  - A checkmark icon
+  - "Check Your Email!" heading
+  - The user's email address highlighted
+  - Instructions to click the verification link
+  - A "What happens next?" section listing the steps
+  - A "Go to Sign In" button linking to `/auth`
 
-**Modified file: `src/App.tsx`**
-- Import and render `<ScrollToTop />` right after `<BrowserRouter>` (before `<Routes>`), so it fires on every route change across the entire app.
+**Modified file: `src/pages/Auth.tsx`**
+- Pass through a mechanism so that when `SignupForm` triggers its success state, the full Auth page renders the success view (since `SignupForm` is nested inside `Auth`'s card/tabs layout). The cleanest approach: lift the success state up so the entire Auth page can be replaced by the success screen, avoiding it being trapped inside the tab card.
 
-This is a standard React Router pattern -- one small component, one import, and the bug is fixed globally for all pages.
+### What the user sees after signing up
+A clean, centered card in the middle of the screen with:
+- A green checkmark icon
+- "Check Your Email!" title
+- "We've sent a verification link to **you@company.com**"
+- Next steps list
+- Button to go to Sign In
+
+This matches the existing `MarketplaceSignup` success screen pattern for consistency.
