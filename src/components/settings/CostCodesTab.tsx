@@ -54,7 +54,7 @@ export function CostCodesTab({
   const [searchQuery, setSearchQuery] = useState("");
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addDialogInitialData, setAddDialogInitialData] = React.useState<{ parent_group?: string } | undefined>();
-  const [excelDialogRequested, setExcelDialogRequested] = React.useState(false);
+  const [excelDialogOpen, setExcelDialogOpen] = React.useState(false);
   const { toast } = useToast();
 
   // Show template dialog when no cost codes exist and not loading
@@ -125,15 +125,12 @@ export function CostCodesTab({
   };
 
   const handleTemplateImportExcel = () => {
-    // The ExcelImportDialog is inside CostCodesHeader and manages its own open state via trigger.
-    // We'll just close the template dialog — user can click the Import Excel button in the header.
-    // For a smoother UX, we signal to programmatically open it.
-    setExcelDialogRequested(true);
+    setExcelDialogOpen(true);
   };
 
-  // When excelDialogRequested is set, we auto-click after render — but since ExcelImportDialog
-  // uses its own internal state, the simplest approach is to just close and let the user click.
-  // The template dialog will reappear if they haven't imported anything.
+  const handleAddManually = () => {
+    setAddDialogOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -142,6 +139,7 @@ export function CostCodesTab({
         onOpenChange={() => {}}
         onUseTemplate={handleUseTemplate}
         onImportExcel={handleTemplateImportExcel}
+        onAddManually={handleAddManually}
       />
 
       <CostCodesHeader
@@ -153,6 +151,8 @@ export function CostCodesTab({
         addDialogInitialData={addDialogInitialData}
         addDialogOpen={addDialogOpen}
         onAddDialogOpenChange={setAddDialogOpen}
+        excelDialogOpen={excelDialogOpen}
+        onExcelDialogOpenChange={setExcelDialogOpen}
       />
       
       <div className="relative w-64">
