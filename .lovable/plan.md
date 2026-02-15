@@ -1,25 +1,20 @@
 
 
-## Delete Test User: Derrick Russell Homes
+## Fix Signup Success Screen: Center + Simplify
 
-### Found
-- **User**: Derrick Russell Homes
-- **Email**: buildersuiteai1@gmail.com  
-- **ID**: `1e4bb07a-58e9-4a63-ba70-da6ed85ad2bb`
-- **Role**: owner / home_builder
+### Changes to `src/pages/Auth.tsx`
 
-### Steps
+**1. Fix centering / background issue**
+- Remove `bg-muted/30` from the success screen's wrapper div (this has caused the left-shift issue repeatedly)
+- Keep `min-h-screen flex items-center justify-center p-4` for proper centering
 
-1. **Create a temporary admin edge function** (`admin-delete-user`) that uses the service role key to:
-   - Delete the user from `auth.users` via `supabase.auth.admin.deleteUser()`
-   - Delete the user from `public.users`
-   - Delete their entry from `user_roles`
+**2. Remove the "What happens next?" box**
+- Delete the entire `<div className="bg-muted/50 ...">` block containing the bullet list (lines 42-50)
 
-2. **Deploy and invoke it** with the user ID `1e4bb07a-58e9-4a63-ba70-da6ed85ad2bb`
-
-3. **Delete the temporary edge function** after cleanup is complete (it's a one-time utility)
-
-4. **Verify** the user no longer exists in either table
-
-This is the same admin deletion pattern used in the existing `delete-employee` function, just without the ownership/authorization checks since this is a direct admin cleanup of a test account.
+The success screen will show only:
+- Checkmark icon
+- "Check Your Email!" heading
+- "We've sent a verification link to **email**"
+- "Click the link in your email..." helper text
+- "Go to Sign In" button
 
