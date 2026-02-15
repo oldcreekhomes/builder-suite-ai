@@ -24,17 +24,6 @@ export default {
 				'24': 'repeat(24, minmax(0, 1fr))',
 				'25': 'repeat(25, minmax(0, 1fr))',
 			},
-			fontFamily: {
-				sans: ['Montserrat', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-			},
-			fontSize: {
-				'xs': ['var(--font-size-xs)', { lineHeight: '1rem' }],
-				'sm': ['var(--font-size-sm)', { lineHeight: '1.25rem' }],
-				'base': ['var(--font-size-base)', { lineHeight: '1.5rem' }],
-				'lg': ['var(--font-size-lg)', { lineHeight: '1.75rem' }],
-				'xl': ['var(--font-size-xl)', { lineHeight: '1.75rem' }],
-				'2xl': ['var(--font-size-2xl)', { lineHeight: '2rem' }],
-			},
 			spacing: {
 				'icon-xs': 'var(--icon-xs)',
 				'icon-sm': 'var(--icon-sm)',

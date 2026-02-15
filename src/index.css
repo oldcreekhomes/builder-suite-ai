@@ -42,13 +42,6 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
     
-    /* Typography - Standardized font sizes */
-    --font-size-xs: 0.75rem;      /* 12px - Small labels, captions */
-    --font-size-sm: 0.875rem;     /* 14px - Default body text, table cells */
-    --font-size-base: 1rem;       /* 16px - Inputs, larger body text */
-    --font-size-lg: 1.125rem;     /* 18px - Section headings */
-    --font-size-xl: 1.25rem;      /* 20px - Dialog titles, page headings */
-    --font-size-2xl: 1.5rem;      /* 24px - Page titles */
     
     /* Icon sizes - Standardized icon dimensions */
     --icon-xs: 0.875rem;          /* 14px - Inline icons */
