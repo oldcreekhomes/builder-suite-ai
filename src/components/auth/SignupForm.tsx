@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
 
-const SignupForm = () => {
+const SignupForm = ({ onSuccess }: { onSuccess?: (email: string) => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -98,11 +98,15 @@ const SignupForm = () => {
           console.error("Failed to send signup emails:", emailError);
         }
 
-        toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
-        });
-        navigate("/");
+        if (onSuccess) {
+          onSuccess(email);
+        } else {
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account.",
+          });
+          navigate("/");
+        }
       }
     } catch (error) {
       console.error("Unexpected error:", error);
