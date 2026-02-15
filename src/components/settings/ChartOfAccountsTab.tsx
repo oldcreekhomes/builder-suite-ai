@@ -2,14 +2,13 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Plus, Edit, Search } from "lucide-react";
+import { Upload, Plus, Search } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { DeleteButton } from "@/components/ui/delete-button";
 import { EditAccountDialog } from "./EditAccountDialog";
 import { AddAccountDialog } from "./AddAccountDialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { ChartOfAccountsTemplateDialog } from "./ChartOfAccountsTemplateDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -200,28 +199,11 @@ export const ChartOfAccountsTab = () => {
                     <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
                     <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end items-center space-x-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => setEditingAccount(account)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Edit account</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <DeleteButton
-                          onDelete={() => deleteAccount.mutate(account.id)}
-                          title="Delete Account"
-                          description={`Are you sure you want to delete account ${account.code} - ${account.name}? This action cannot be undone.`}
-                          isLoading={deleteAccount.isPending}
-                        />
+                      <div className="flex justify-end">
+                        <TableRowActions actions={[
+                          { label: "Edit", onClick: () => setEditingAccount(account) },
+                          { label: "Delete", onClick: () => deleteAccount.mutate(account.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Account", confirmDescription: `Are you sure you want to delete account ${account.code} - ${account.name}? This action cannot be undone.`, isLoading: deleteAccount.isPending },
+                        ]} />
                       </div>
                     </TableCell>
                   </TableRow>

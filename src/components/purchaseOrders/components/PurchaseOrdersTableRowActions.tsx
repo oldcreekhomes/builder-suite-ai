@@ -1,8 +1,6 @@
 import React from 'react';
 import { TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { Send, TestTube, Edit } from 'lucide-react';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 
 interface PurchaseOrdersTableRowActionsProps {
@@ -26,44 +24,12 @@ export function PurchaseOrdersTableRowActions({
 }: PurchaseOrdersTableRowActionsProps) {
   return (
     <TableCell className="py-1">
-      <div className="flex items-center justify-end space-x-1">            
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title="Send Purchase Order"
-          onClick={onSendClick}
-        >
-          <Send className="h-4 w-4 text-black" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title="Send Test Email"
-          onClick={onTestEmailClick}
-        >
-          <TestTube className="h-4 w-4 text-blue-600" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title="Edit Purchase Order"
-          onClick={onEditClick}
-        >
-          <Edit className="h-4 w-4 text-foreground" />
-        </Button>
-        <DeleteButton
-          onDelete={() => onDelete(item)}
-          title="Cancel Purchase Order"
-          description={`Are you sure you want to cancel PO "${item.po_number}"? A cancellation email will be sent to all company representatives who receive PO notifications.`}
-          size="sm"
-          variant="ghost"
-          isLoading={isDeleting}
-          showIcon={true}
-        />
-      </div>
+      <TableRowActions actions={[
+        { label: "Send Purchase Order", onClick: onSendClick },
+        { label: "Send Test Email", onClick: onTestEmailClick },
+        { label: "Edit", onClick: onEditClick },
+        { label: "Cancel Purchase Order", onClick: () => onDelete(item), variant: "destructive", requiresConfirmation: true, confirmTitle: "Cancel Purchase Order", confirmDescription: `Are you sure you want to cancel PO "${item.po_number}"? A cancellation email will be sent to all company representatives who receive PO notifications.`, isLoading: isDeleting },
+      ]} />
     </TableCell>
   );
 }

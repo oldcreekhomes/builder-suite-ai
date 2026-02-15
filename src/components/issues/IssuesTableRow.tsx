@@ -3,14 +3,13 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Edit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { IssueFilesCell } from './IssueFilesCell';
 import { SolutionFilesCell } from './SolutionFilesCell';
 import { IssueCommentCell } from './IssueCommentCell';
-import { ResolveButton } from '@/components/ui/resolve-button';
+
 import type { CompanyIssue } from '@/hooks/useCompanyIssues';
 
 interface IssueFile {
@@ -261,17 +260,9 @@ export function IssuesTableRow({
       />
       
       <TableCell className="px-2 py-1 w-16">
-        <div className="flex items-center space-x-1">
-          <ResolveButton
-            onResolve={(ccUserIds) => onResolve(issue.id, ccUserIds)}
-            title="Resolve Issue"
-            description="Are you sure you want to resolve this issue? It will be marked as resolved and removed from the active list."
-            isLoading={isResolving}
-            className="h-6 w-6 p-0"
-            showIcon={true}
-            authorId={issue.created_by}
-          />
-        </div>
+        <TableRowActions actions={[
+          { label: "Resolve", onClick: () => onResolve(issue.id, []), variant: "destructive", requiresConfirmation: true, confirmTitle: "Resolve Issue", confirmDescription: "Are you sure you want to resolve this issue? It will be marked as resolved and removed from the active list.", isLoading: isResolving },
+        ]} />
       </TableCell>
     </TableRow>
   );

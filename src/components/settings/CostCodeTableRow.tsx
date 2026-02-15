@@ -2,12 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Trash2, ChevronRight, ChevronDown, Plus, LineChart } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, LineChart } from 'lucide-react';
 import { CostCodeInlineEditor } from '@/components/CostCodeInlineEditor';
 import { AddSubcategoryDialog } from '@/components/AddSubcategoryDialog';
 import type { Tables } from '@/integrations/supabase/types';
 import { compareCostCodes } from '@/lib/costCodeSort';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -198,19 +199,10 @@ export function CostCodeTableRow({
           />
         </TableCell>
         <TableCell>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={() => onEdit(costCode)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => onDelete(costCode)}
-              className="text-red-600 hover:text-red-800 hover:bg-red-100"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <TableRowActions actions={[
+            { label: "Edit", onClick: () => onEdit(costCode) },
+            { label: "Delete", onClick: () => onDelete(costCode), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Cost Code", confirmDescription: `Are you sure you want to delete "${costCode.code} - ${costCode.name}"? This action cannot be undone.` },
+          ]} />
         </TableCell>
       </TableRow>
 
