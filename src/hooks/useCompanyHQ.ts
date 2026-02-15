@@ -71,6 +71,7 @@ export function useCompanyHQ() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-hq'] });
+      queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
       toast.success('Company headquarters updated');
     },
     onError: (error) => {
@@ -87,6 +88,7 @@ export function useCompanyHQ() {
     error,
     hasHQSet,
     updateHQ: updateHQMutation.mutate,
+    updateHQAsync: updateHQMutation.mutateAsync,
     isUpdating: updateHQMutation.isPending,
   };
 }
