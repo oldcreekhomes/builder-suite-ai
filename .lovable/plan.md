@@ -1,32 +1,25 @@
 
 
-## Fix Suppliers Sidebar: Indentation and Highlighting
+## Fix Suppliers Highlight: Match Inactive Tab Style
 
-### Problem 1: Indentation on page load
-The `Collapsible` component sits inside the `TabsList` which has `flex flex-col`. On initial render, the Collapsible's internal layout interacts with the flex container differently than a simple `TabsTrigger`, causing it to appear indented. Once clicked, Radix recalculates and it snaps into place.
+### Problem
+The "Suppliers" collapsible trigger uses `font-medium text-foreground`, making it appear bold and dark at all times. The other sidebar items (`TabsTrigger`) use `text-muted-foreground` by default (lighter, normal weight) and only become highlighted when active. This makes "Suppliers" look permanently selected.
 
-**Fix**: Add `w-full` to the `Collapsible` wrapper so it fills the flex container width consistently from the start, matching the behavior of the `TabsTrigger` elements.
+### Fix
 
-### Problem 2: Highlighting when clicked
-The `CollapsibleTrigger` (a `<button>`) receives default browser focus styles and Radix `data-state="open"` styling, which causes it to appear highlighted after clicking.
+**File: `src/pages/Settings.tsx` (line 174)**
 
-**Fix**: Add focus-visible outline suppression and ensure no background is applied on the open state. Update the className to include `focus-visible:outline-none focus-visible:ring-0` and use `data-[state=open]:bg-transparent` to prevent the highlighted appearance.
+Change the `CollapsibleTrigger` className:
 
-### Changes
-
-**File: `src/pages/Settings.tsx`**
-
-Line 173 -- Add `className="w-full"` to the `Collapsible` component:
-```tsx
-<Collapsible open={suppliersOpen} onOpenChange={setSuppliersOpen} className="w-full">
+From:
+```
+text-sm font-medium text-foreground
 ```
 
-Line 174 -- Update `CollapsibleTrigger` className to prevent highlight:
-```tsx
-<CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-0 data-[state=open]:bg-transparent">
+To:
+```
+text-sm text-muted-foreground
 ```
 
-These two small changes ensure:
-- "Suppliers" aligns flush left on page load (no indentation)
-- Clicking "Suppliers" opens/closes the dropdown without leaving it highlighted
+This removes `font-medium` and switches `text-foreground` to `text-muted-foreground`, matching the default inactive appearance of all other sidebar items.
 
