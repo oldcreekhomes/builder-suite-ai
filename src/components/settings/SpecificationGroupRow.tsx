@@ -42,11 +42,11 @@ export function SpecificationGroupRow({
   onDeleteIndividualFile
 }: SpecificationGroupRowProps) {
   return (
-    <TableRow className="bg-muted/30 border-b-2 font-medium">
+    <TableRow className="bg-muted/30 font-medium">
       <TableCell className="pl-4">
         <button
           onClick={() => onToggleCollapse(groupKey)}
-          className="hover:bg-gray-100 rounded p-1 -ml-1"
+          className="hover:bg-muted rounded p-1 -ml-1"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />

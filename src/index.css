@@ -13,10 +13,6 @@
     --schedule-cell-px: 0.5rem;       /* 8px */
     --schedule-font-size: 0.875rem;   /* 14px */
     
-    /* Table sizing - clean shadcn defaults */
-    --table-head-h: 2.5rem;           /* 40px - header height */
-    --table-cell-py: 0.5rem;          /* 8px - vertical padding */
-    --table-cell-px: 1rem;            /* 16px - horizontal padding */
     
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -128,14 +124,6 @@
     @apply bg-background text-foreground font-sans text-sm;
   }
   
-  /* Standardized table styles */
-  table thead th {
-    @apply text-sm font-medium p-3;
-  }
-  
-  table tbody td {
-    @apply text-sm p-3;
-  }
   
   /* Standardized dialog title */
   h2[class*="text-"] {
