@@ -6,7 +6,23 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const TEMPLATE_OWNER_ID = "2653aba8-d154-4301-99bf-77d559492e19";
+// Hardcoded generic template accounts
+const TEMPLATE_ACCOUNTS = [
+  { code: "1010", name: "XYZ Bank", type: "asset", description: null },
+  { code: "1020", name: "Deposits", type: "asset", description: null },
+  { code: "1060", name: "Loan to XYZ", type: "asset", description: null },
+  { code: "1320", name: "Land - Held For Development", type: "asset", description: null },
+  { code: "1430", name: "WIP - Direct Construction Costs", type: "asset", description: null },
+  { code: "1670", name: "Deposits", type: "asset", description: null },
+  { code: "2010", name: "Accounts Payable", type: "liability", description: "Outstanding amounts owed to vendors and suppliers" },
+  { code: "2150", name: "XYZ Credit Card", type: "liability", description: null },
+  { code: "2530", name: "Loan - Land", type: "liability", description: null },
+  { code: "2540", name: "Loan Refinance", type: "liability", description: null },
+  { code: "2905", name: "Equity", type: "equity", description: null },
+  { code: "3120", name: "Construction Management Fees", type: "revenue", description: null },
+  { code: "32000", name: "Retained Earnings", type: "equity", description: "Undistributed earnings of the business" },
+  { code: "9150", name: "Ask Owner", type: "asset", description: null },
+];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -42,7 +58,7 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    // Use service role client to read template data and write to user's account
+    // Use service role client
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Get the user's owner_id
@@ -80,54 +96,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch all template accounts from Old Creek Homes
-    const { data: templateAccounts, error: templateError } = await adminClient
-      .from("accounts")
-      .select("*")
-      .eq("owner_id", TEMPLATE_OWNER_ID)
-      .eq("is_active", true)
-      .order("code");
-
-    if (templateError) {
-      console.error("Error fetching template accounts:", templateError);
-      return new Response(JSON.stringify({ error: "Failed to fetch template accounts" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!templateAccounts || templateAccounts.length === 0) {
-      return new Response(JSON.stringify({ error: "No template accounts found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Build old ID -> new ID mapping for parent_id remapping
-    const idMap = new Map<string, string>();
-    const newAccounts = templateAccounts.map((acct) => {
-      const newId = crypto.randomUUID();
-      idMap.set(acct.id, newId);
-      return {
-        id: newId,
-        owner_id: targetOwnerId,
-        code: acct.code,
-        name: acct.name,
-        type: acct.type,
-        description: acct.description,
-        is_active: acct.is_active,
-        parent_id: acct.parent_id, // will be remapped below
-      };
-    });
-
-    // Remap parent_id references
-    for (const acct of newAccounts) {
-      if (acct.parent_id && idMap.has(acct.parent_id)) {
-        acct.parent_id = idMap.get(acct.parent_id)!;
-      } else {
-        acct.parent_id = null;
-      }
-    }
+    // Build new accounts from hardcoded template
+    const newAccounts = TEMPLATE_ACCOUNTS.map((acct) => ({
+      id: crypto.randomUUID(),
+      owner_id: targetOwnerId,
+      code: acct.code,
+      name: acct.name,
+      type: acct.type,
+      description: acct.description,
+      is_active: true,
+      parent_id: null,
+    }));
 
     // Insert accounts in batches of 100
     const BATCH_SIZE = 100;
