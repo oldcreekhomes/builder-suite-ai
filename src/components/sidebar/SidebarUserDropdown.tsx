@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, UserPlus, Settings, Building2 } from "lucide-react";
+import { LogOut, User, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -13,21 +13,14 @@ import { Button } from "@/components/ui/button";
 import { SidebarFooter } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useEmployeePermissions } from "@/hooks/useEmployeePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileDialog } from "@/components/ProfileDialog";
 
 export function SidebarUserDropdown() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
-  const { isOwner, isAccountant } = useUserRole();
-  const { canAccessEmployees } = useEmployeePermissions();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-
-  // Show employees menu item if user is owner/accountant OR has permission
-  const showEmployeesMenu = isOwner || isAccountant || canAccessEmployees;
 
   const handleLogout = async () => {
     console.log("Logout initiated...");
@@ -99,23 +92,7 @@ export function SidebarUserDropdown() {
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
             </DropdownMenuItem>
-            {showEmployeesMenu && (
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate('/employees')}
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                <span>Employees</span>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => navigate('/companies')}
-            >
-              <Building2 className="mr-2 h-4 w-4" />
-              <span>Companies</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
               className="cursor-pointer"
               onClick={() => navigate('/settings')}
             >

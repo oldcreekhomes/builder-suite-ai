@@ -145,9 +145,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const isCompanyDashboard = location.pathname === '/';
   const isMessagesPage = location.pathname === '/messages' || location.pathname.includes('/messages');
   const isIssuesPage = location.pathname === '/issues';
-  const isGlobalPage = location.pathname === '/settings' || 
-                      location.pathname === '/companies' || 
-                      location.pathname === '/employees';
+  const isGlobalPage = location.pathname === '/settings';
   
   // Create navigation items with dynamic URLs for project pages
   const getNavigationItems = () => {
