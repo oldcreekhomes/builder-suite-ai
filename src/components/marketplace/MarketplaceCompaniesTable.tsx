@@ -342,16 +342,16 @@ export function MarketplaceCompaniesTable({
       <div className="border rounded-lg">
         <Table className="table-fixed w-full">
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[18%]">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[28%]">Location</TableHead>
+            <TableRow>
+              <TableHead className="w-[18%]">Company Name</TableHead>
+              <TableHead className="w-[28%]">Location</TableHead>
               {showDistanceColumn && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[10%]">Distance</TableHead>
+                <TableHead className="w-[10%]">Distance</TableHead>
               )}
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[12%]">Rating</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[14%]">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[8%]">Website</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-[10%]">Contact</TableHead>
+              <TableHead className="w-[12%]">Rating</TableHead>
+              <TableHead className="w-[14%]">Phone</TableHead>
+              <TableHead className="w-[8%]">Website</TableHead>
+              <TableHead className="w-[10%]">Contact</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

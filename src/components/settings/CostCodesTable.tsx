@@ -73,8 +73,8 @@ export function CostCodesTable({
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="h-10">
-            <TableHead className="font-bold py-2 text-sm w-12">
+          <TableRow>
+            <TableHead className="w-12">
               <Checkbox
                 checked={
                   selectedCostCodes.size === costCodes.length && costCodes.length > 0
@@ -87,16 +87,16 @@ export function CostCodesTable({
                 aria-label="Select all cost codes"
               />
             </TableHead>
-            <TableHead className="font-bold py-2 text-sm text-right">Code</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Description</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Quantity</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Price</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Unit</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Specifications</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Bidding</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Sub Categories</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Estimate</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
+            <TableHead className="text-right">Code</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Quantity</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Unit</TableHead>
+            <TableHead>Specifications</TableHead>
+            <TableHead>Bidding</TableHead>
+            <TableHead>Sub Categories</TableHead>
+            <TableHead>Estimate</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

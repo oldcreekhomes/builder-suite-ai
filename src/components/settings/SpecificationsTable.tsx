@@ -52,14 +52,14 @@ export function SpecificationsTable({
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="h-10">
-            <TableHead className="font-bold py-2 text-sm w-12">
+          <TableRow>
+            <TableHead className="w-12">
             </TableHead>
-            <TableHead className="font-bold py-2 text-sm">Code</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Name</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Description</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Files</TableHead>
-            <TableHead className="font-bold py-2 text-sm">Actions</TableHead>
+            <TableHead>Code</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Files</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

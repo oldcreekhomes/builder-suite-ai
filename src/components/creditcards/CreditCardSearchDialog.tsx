@@ -215,15 +215,15 @@ export function CreditCardSearchDialog({
           ) : (
             <Table containerClassName="max-h-[calc(85vh-8rem)]">
               <TableHeader>
-                <TableRow className="h-8">
-                  <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs">Vendor</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs">Address</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Balance</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-center">Cleared</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -27,17 +27,17 @@ export function JobCostGroupTotalRow({ group, totals }: JobCostGroupTotalRowProp
   };
 
   return (
-    <TableRow className="h-10 bg-muted/30 font-semibold">
-      <TableCell colSpan={2} className="py-2 text-sm">
+    <TableRow className="bg-muted/30 font-semibold">
+      <TableCell colSpan={2}>
         Subtotal - {group}
       </TableCell>
-      <TableCell className="text-right py-2 text-sm">
+      <TableCell className="text-right">
         {formatCurrency(totals.budget)}
       </TableCell>
-      <TableCell className="text-right py-2 text-sm">
+      <TableCell className="text-right">
         {formatCurrency(totals.actual)}
       </TableCell>
-      <TableCell className={`text-right py-2 text-sm ${getVarianceColor(totals.variance)}`}>
+      <TableCell className={`text-right ${getVarianceColor(totals.variance)}`}>
         {formatCurrency(totals.variance)}
       </TableCell>
     </TableRow>

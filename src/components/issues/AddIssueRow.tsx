@@ -131,16 +131,16 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
   };
 
   return (
-    <TableRow className="h-10 bg-muted/30">
-      <TableCell className="px-2 py-1 text-xs font-medium text-muted-foreground">
+    <TableRow className="bg-muted/30">
+      <TableCell className="text-muted-foreground">
         New
       </TableCell>
       
-      <TableCell className="px-2 py-1 text-xs font-medium text-muted-foreground">
+      <TableCell className="text-muted-foreground">
         You
       </TableCell>
       
-      <TableCell className="px-2 py-1">
+      <TableCell>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -151,7 +151,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         />
       </TableCell>
       
-      <TableCell className="px-2 py-1">
+      <TableCell>
         <Select value={priority} onValueChange={(value) => setPriority(value as 'Normal' | 'High')}>
           <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
             <SelectValue />
@@ -163,7 +163,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </Select>
       </TableCell>
 
-      <TableCell className="px-2 py-1">
+      <TableCell>
         <Button
           variant="outline"
           size="sm"
@@ -175,7 +175,7 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </Button>
       </TableCell>
 
-      <TableCell className="px-2 py-1">
+      <TableCell>
         <Select value={location} onValueChange={setLocation}>
           <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
             <SelectValue placeholder="Select location" />
@@ -196,11 +196,11 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
         </Select>
       </TableCell>
 
-      <TableCell className="px-2 py-1">
+      <TableCell>
         {/* Empty cell for solution files */}
       </TableCell>
       
-      <TableCell className="px-2 py-1">
+      <TableCell>
         <div className="flex gap-1">
           <Button
             size="sm"

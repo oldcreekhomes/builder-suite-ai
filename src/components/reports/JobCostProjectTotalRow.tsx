@@ -28,17 +28,17 @@ export function JobCostProjectTotalRow({
   };
 
   return (
-    <TableRow className="h-12 bg-primary/10 font-bold text-base">
-      <TableCell colSpan={2} className="py-3">
+    <TableRow className="bg-primary/10 font-bold">
+      <TableCell colSpan={2}>
         Total Project
       </TableCell>
-      <TableCell className="text-right py-3">
+      <TableCell className="text-right">
         {formatCurrency(totalBudget)}
       </TableCell>
-      <TableCell className="text-right py-3">
+      <TableCell className="text-right">
         {formatCurrency(totalActual)}
       </TableCell>
-      <TableCell className={`text-right py-3 ${getVarianceColor(totalVariance)}`}>
+      <TableCell className={`text-right ${getVarianceColor(totalVariance)}`}>
         {formatCurrency(totalVariance)}
       </TableCell>
     </TableRow>

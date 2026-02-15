@@ -34,48 +34,48 @@ export function PurchaseOrdersTableRowContent({
   const costCode = item.cost_codes;
 
   return (
-    <TableRow className="h-12">
-      <TableCell className="w-12 py-1">
+    <TableRow>
+      <TableCell className="w-12">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
       
-      <TableCell className="py-1">
-        <div className="text-sm font-medium whitespace-nowrap">
+      <TableCell>
+        <div className="font-medium whitespace-nowrap">
           {item.po_number || 'Generating...'}
         </div>
       </TableCell>
       
-      <TableCell className="py-1">
-        <div className={`text-sm ${costCode?.parent_group ? 'ml-4' : ''}`}>
+      <TableCell>
+        <div className={`${costCode?.parent_group ? 'ml-4' : ''}`}>
           <div className="font-medium">
             {costCode?.code}: {costCode?.name}
           </div>
         </div>
       </TableCell>
       
-      <TableCell className="py-1">
-        <div className="text-sm font-medium">
+      <TableCell>
+        <div className="font-medium">
           {item.companies?.company_name || 'N/A'}
         </div>
       </TableCell>
       
-      <TableCell className="py-1">
-        <div className="text-sm font-medium">
+      <TableCell>
+        <div className="font-medium">
           {item.total_amount ? `$${item.total_amount.toLocaleString()}` : 'N/A'}
         </div>
       </TableCell>
       
-      <TableCell className="py-1">
+      <TableCell>
         <NotesEditor
           value={item.notes || ''}
           onChange={(notes) => onUpdateNotes(item.id, notes)}
         />
       </TableCell>
       
-      <TableCell className="py-1">
+      <TableCell>
         <FilesCell files={item.files} projectId={projectId} />
       </TableCell>
       

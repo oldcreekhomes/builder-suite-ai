@@ -78,14 +78,14 @@ export function BiddingTableRowContent({
     onCloseWithPO?.();
   };
   return (
-    <TableRow className={`h-8 ${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell className="w-12 py-1">
+    <TableRow className={`${isSelected ? 'bg-blue-50' : ''}`}>
+      <TableCell className="w-12">
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="font-medium py-1 text-sm">
+      <TableCell className="font-medium">
         <div className="flex items-center justify-between">
           <div 
             className="flex items-center cursor-pointer hover:text-primary flex-1"
@@ -103,13 +103,13 @@ export function BiddingTableRowContent({
           </Button>
         </div>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <Select 
           value={item.status || 'draft'} 
           onValueChange={handleStatusChange}
           disabled={isReadOnly}
         >
-          <SelectTrigger className="w-20 h-8 text-sm">
+          <SelectTrigger className="w-20 h-8">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
@@ -127,10 +127,10 @@ export function BiddingTableRowContent({
         onJustClose={handleJustClose}
         onCreatePO={handleCreatePO}
       />
-      <TableCell className={cn("py-1 w-32 text-sm", !item.sent_on && "text-muted-foreground")}>
+      <TableCell className={cn("w-32", !item.sent_on && "text-muted-foreground")}>
         {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
       </TableCell>
-      <TableCell className="py-1 w-32">
+      <TableCell className="w-32">
         <BiddingDatePicker
           value={item.due_date}
           onChange={(biddingItemId, companyId, date) => onUpdateDueDate(biddingItemId, date)}
@@ -141,7 +141,7 @@ export function BiddingTableRowContent({
           field="due_date"
         />
       </TableCell>
-      <TableCell className="py-1 w-32">
+      <TableCell className="w-32">
         <BiddingDatePicker
           value={item.reminder_date}
           onChange={(biddingItemId, companyId, date) => onUpdateReminderDate(biddingItemId, date)}

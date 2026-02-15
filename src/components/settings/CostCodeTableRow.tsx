@@ -88,14 +88,14 @@ export function CostCodeTableRow({
   
   return (
     <>
-      <TableRow className="h-8">
-        <TableCell className="py-1">
+      <TableRow>
+        <TableCell>
           <Checkbox
             checked={isSelected}
             onCheckedChange={(checked) => onSelect(costCode.id, checked as boolean)}
           />
         </TableCell>
-        <TableCell className="font-medium py-1 text-sm text-right">
+        <TableCell className="font-medium text-right">
           <div className="flex items-center gap-1 justify-end">
             <div className="w-4 h-4 flex items-center justify-center">
               {isExpandable && onToggleExpand && (
@@ -114,15 +114,15 @@ export function CostCodeTableRow({
             <span>{costCode.code}</span>
           </div>
         </TableCell>
-        <TableCell className="py-1 text-sm pl-4">{costCode.name}</TableCell>
-        <TableCell className="py-1">
+        <TableCell className="pl-4">{costCode.name}</TableCell>
+        <TableCell>
           <CostCodeInlineEditor
             costCode={costCode}
             field="quantity"
             onUpdate={onUpdate}
           />
         </TableCell>
-        <TableCell className="py-1 relative">
+        <TableCell className="relative">
           <div className="flex items-center">
             <div className="flex-1">
               <CostCodeInlineEditor
@@ -150,16 +150,16 @@ export function CostCodeTableRow({
             </Tooltip>
           </div>
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell>
           <CostCodeInlineEditor
             costCode={costCode}
             field="unit_of_measure"
             onUpdate={onUpdate}
           />
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell>
           {isLeafSubcategory && !costCode.has_specifications ? (
-            <span className="text-muted-foreground text-sm">-</span>
+            <span className="text-muted-foreground">-</span>
           ) : (
             <CostCodeInlineEditor
               costCode={costCode}
@@ -168,9 +168,9 @@ export function CostCodeTableRow({
             />
           )}
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell>
           {isLeafSubcategory && !costCode.has_bidding ? (
-            <span className="text-muted-foreground text-sm">-</span>
+            <span className="text-muted-foreground">-</span>
           ) : (
             <CostCodeInlineEditor
               costCode={costCode}
@@ -179,9 +179,9 @@ export function CostCodeTableRow({
             />
           )}
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell>
           {isLeafSubcategory && !costCode.has_subcategories ? (
-            <span className="text-muted-foreground text-sm">-</span>
+            <span className="text-muted-foreground">-</span>
           ) : (
             <CostCodeInlineEditor
               costCode={costCode}
@@ -190,14 +190,14 @@ export function CostCodeTableRow({
             />
           )}
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell>
           <CostCodeInlineEditor
             costCode={costCode}
             field="estimate"
             onUpdate={onUpdate}
           />
         </TableCell>
-        <TableCell className="py-1">
+        <TableCell>
           <div className="flex gap-1">
             <Button variant="ghost" size="sm" onClick={() => onEdit(costCode)}>
               <Edit className="h-4 w-4" />
@@ -239,9 +239,9 @@ export function CostCodeTableRow({
           
           {/* Add Subcategory Button Row */}
           {onAddSubcategory && costCode.has_subcategories && (
-            <TableRow className="h-8 bg-muted/30">
-              <TableCell className="py-1"></TableCell>
-              <TableCell colSpan={10} className="py-1">
+            <TableRow className="bg-muted/30">
+              <TableCell></TableCell>
+              <TableCell colSpan={10}>
                 <Button
                   variant="ghost"
                   size="sm"

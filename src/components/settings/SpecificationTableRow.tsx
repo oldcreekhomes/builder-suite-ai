@@ -38,20 +38,20 @@ export function SpecificationTableRow({
   onDeleteIndividualFile
 }: SpecificationTableRowProps) {
   return (
-    <TableRow className="h-8">
-      <TableCell className="py-1">
+    <TableRow>
+      <TableCell>
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onSelect(specification.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="py-1 text-sm text-left">
+      <TableCell className="text-left">
         {specification.cost_code.code}
       </TableCell>
-      <TableCell className="py-1 text-sm">
+      <TableCell>
         {specification.cost_code.name}
       </TableCell>
-      <TableCell className="py-1 text-sm">
+      <TableCell>
         {specification.description ? (
           <button
             onClick={() => onEditDescription(specification)}
@@ -69,7 +69,7 @@ export function SpecificationTableRow({
           </button>
         )}
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <SpecificationFilesCell
           files={specification.files as string[] | null}
           specificationId={specification.id}
@@ -77,7 +77,7 @@ export function SpecificationTableRow({
           onDeleteIndividualFile={onDeleteIndividualFile}
         />
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <div className="flex items-center space-x-1">
           <Button
             variant="ghost"

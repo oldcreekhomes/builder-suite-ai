@@ -314,11 +314,11 @@ const formatCurrency = (value: number) => {
             ) : journalLines && journalLines.length > 0 ? (
               <Table className="text-xs" containerClassName="relative w-full">
                 <TableHeader>
-                  <TableRow className="h-8">
-                    <TableHead className="h-8 px-2 py-1">Type</TableHead>
-                    <TableHead className="h-8 px-2 py-1">Date</TableHead>
-                    <TableHead className="h-8 px-2 py-1">Name</TableHead>
-                    <TableHead className="h-8 px-2 py-1">
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>
                       <button 
                         className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
                         onClick={() => setDescriptionSort(prev => 
@@ -329,10 +329,10 @@ const formatCurrency = (value: number) => {
                         <ArrowUpDown className="h-3 w-3" />
                       </button>
                     </TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-right">Amount</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-right">Balance</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-center">Cleared</TableHead>
-                    <TableHead className="h-8 px-2 py-1 text-center">Actions</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-center">Cleared</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -340,31 +340,31 @@ const formatCurrency = (value: number) => {
                     const netAmount = line.debit - line.credit;
                     
                     return (
-                      <TableRow key={line.id} className="h-8">
-                        <TableCell className="px-2 py-1 whitespace-nowrap">
+                      <TableRow key={line.id}>
+                        <TableCell className="whitespace-nowrap">
                           <span className="text-xs">{getTypeLabel(line.source_type)}</span>
                         </TableCell>
-                        <TableCell className="px-2 py-1">
+                        <TableCell>
                           <span className="text-xs">{formatDateSafe(line.journal_entries.entry_date, 'MM/dd/yyyy')}</span>
                         </TableCell>
-                        <TableCell className="px-2 py-1">
+                        <TableCell>
                           <span className="text-xs">{line.vendor_name || '-'}</span>
                         </TableCell>
-                        <TableCell className="px-2 py-1">
+                        <TableCell>
                           <span className="text-xs">{line.memo || line.journal_entries.description || '-'}</span>
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-right">
+                        <TableCell className="text-right">
                           <span className="text-xs">{formatCurrency(netAmount)}</span>
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-right">
+                        <TableCell className="text-right">
                           <span className="text-xs">{formatCurrency(balances[index])}</span>
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-center">
+                        <TableCell className="text-center">
                           <div className="flex items-center justify-center">
                             {line.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
                           </div>
                         </TableCell>
-                        <TableCell className="px-2 py-1">
+                        <TableCell>
                           <div className="flex items-center justify-center">
                             {line.bill_id && !line.reconciled && !isDateLocked(line.journal_entries.entry_date) && (
                               <Button
@@ -411,16 +411,16 @@ const formatCurrency = (value: number) => {
                   })}
                   
                   {/* Total Row */}
-                  <TableRow className="h-8 font-semibold bg-muted/30">
-                    <TableCell className="px-2 py-1" colSpan={4}>
+                  <TableRow className="font-semibold bg-muted/30">
+                    <TableCell colSpan={4}>
                       <span className="text-xs font-semibold">Total</span>
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-right">
+                    <TableCell className="text-right">
                       <span className="text-xs font-semibold">{formatCurrency(total)}</span>
                     </TableCell>
-                    <TableCell className="px-2 py-1"></TableCell>
-                    <TableCell className="px-2 py-1"></TableCell>
-                    <TableCell className="px-2 py-1"></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
