@@ -1,43 +1,29 @@
 
 
-## Update Cost Code Template Dialog
+## Fix Template Dialog: Update Text and Close Behavior
 
-### Changes
+### Problem
+1. The `DialogDescription` text needs updating to remove "Get started in seconds, not hours." prefix -- should only read: "Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:"
+2. When clicking "Import from Excel" or "I'll add them manually", the template dialog stays visible behind the new dialog because `templateDialogOpen` is derived from `costCodes.length === 0` and cannot be manually overridden.
 
-**1. Combine subheadings into one (`CostCodeTemplateDialog.tsx`)**
+### Solution
 
-Merge the `DialogDescription` and the separate paragraph into a single `DialogDescription`:
+**1. Update text in `CostCodeTemplateDialog.tsx` (line 43-45)**
 
-> "Get started in seconds, not hours. Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:"
+Change the `DialogDescription` to:
+> "Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:"
 
-Remove the separate `<p>` block that currently duplicates this content.
+**2. Add manual dismiss state in `CostCodesTab.tsx`**
 
-**2. Green checkmarks (`CostCodeTemplateDialog.tsx`)**
-
-Change `CheckCircle2` class from `text-foreground` to `text-green-500`.
-
-**3. Black borders on secondary buttons (`CostCodeTemplateDialog.tsx`)**
-
-- "Import from Excel": add `border-foreground` class
-- "I'll add them manually": change from `variant="ghost"` to `variant="outline"` with `border-foreground` class
-
-**4. Make "Import from Excel" open the Excel dialog (`ExcelImportDialog.tsx`, `CostCodesHeader.tsx`, `CostCodesTab.tsx`)**
-
-- Add optional `externalOpen` and `onExternalOpenChange` props to `ExcelImportDialog` so it can be controlled from outside (while keeping the trigger button for normal use)
-- Pass these props through `CostCodesHeader`
-- In `CostCodesTab`, add `excelDialogOpen` state; when template dialog's "Import from Excel" is clicked, set it to `true`
-
-**5. Make "I'll add them manually" open the Add Cost Code dialog (`CostCodeTemplateDialog.tsx`, `CostCodesTab.tsx`)**
-
-- Add an `onAddManually` prop to `CostCodeTemplateDialog`
-- In `CostCodesTab`, wire it to set `addDialogOpen = true`
+- Add a `templateDismissed` state variable (default `false`)
+- Change `templateDialogOpen` logic to: `costCodes.length === 0 && !loading && !templateDismissed`
+- In `handleTemplateImportExcel` and `handleAddManually`, set `templateDismissed = true` before opening the next dialog
+- Reset `templateDismissed` back to `false` when the Excel or Add dialog closes (so the template dialog reappears if user cancels without adding anything and still has zero cost codes)
 
 ### Files to modify
 
-| File | Changes |
-|------|---------|
-| `src/components/settings/CostCodeTemplateDialog.tsx` | Combined subheading, green checks, black borders, add `onAddManually` prop |
-| `src/components/ExcelImportDialog.tsx` | Add optional controlled open props |
-| `src/components/settings/CostCodesHeader.tsx` | Pass through excel dialog props |
-| `src/components/settings/CostCodesTab.tsx` | Wire up excel and add-manually actions |
+| File | Change |
+|------|--------|
+| `src/components/settings/CostCodeTemplateDialog.tsx` | Update DialogDescription text |
+| `src/components/settings/CostCodesTab.tsx` | Add `templateDismissed` state; set it in handlers; reset on child dialog close |
 
