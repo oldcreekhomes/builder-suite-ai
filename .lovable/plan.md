@@ -1,20 +1,22 @@
 
 
-## Fix Budget & Dashboard Header Position
+## Remove Marketplace and Marketplace Representatives Tabs from Settings
 
-### Problem
+### Data Status
 
-The Budget Warnings and Dashboard Settings tabs have `py-4` padding on their outermost wrapper div, which pushes their title and subtitle lower than the other tabs. Company Profile, Employees, Companies, Cost Codes, Specifications, and Chart of Accounts all use `space-y-6` without `py-4`.
+The 4 marketplace representatives (Hector Diaz, Herschey Liss, Larry Perry, Sarah Vega) and their companies (Curated Real Estate Capital, Max Benjamin Partners, Tango Capital, CoreVest Finance) already exist in the main `marketplace_companies` and `marketplace_company_representatives` database tables. No data migration is needed -- they are already discoverable in the Marketplace feature.
 
 ### Changes
 
-**1. `src/components/settings/BudgetWarningsTab.tsx`**
-- Remove `py-4` from the outer div: change `className="space-y-6 py-4"` to `className="space-y-6"`
+**1. `src/components/settings/CompaniesTab.tsx`**
 
-**2. `src/components/settings/DashboardSettingsTab.tsx`**
-- Remove `py-4` from the outer div: change `className="space-y-6 py-4"` to `className="space-y-6"`
+- Remove the "Marketplace" and "Marketplace Representatives" `TabsTrigger` entries (change from 4-column grid to 2-column)
+- Remove the two `TabsContent` blocks for `marketplace-companies` and `marketplace-representatives`
+- Remove the state variables: `addMarketplaceCompanyOpen`, `addMarketplaceRepresentativeOpen`
+- Remove the dialog components: `AddMarketplaceCompanyDialog`, `AddMarketplaceRepresentativeDialog`
+- Remove unused imports: `MarketplaceCompaniesTable`, `MarketplaceRepresentativesTable`, `AddMarketplaceCompanyDialog`, `AddMarketplaceRepresentativeDialog`
+- Update the subtitle from "Manage your companies, representatives, and marketplace connections" to "Manage your companies and representatives"
 
 ### Result
 
-The title and subtitle on Budget and Dashboard will align to the exact same vertical position as all other Settings tabs.
-
+The Companies tab in Settings will show only two horizontal sub-tabs: **Companies** and **Representatives**. The Marketplace data remains intact in the database for the paid Marketplace feature.
