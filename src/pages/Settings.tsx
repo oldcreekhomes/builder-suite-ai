@@ -32,9 +32,12 @@ import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePr
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchParams } from "react-router-dom";
 
 const Settings = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || "company-profile";
   
   const {
     costCodes,
@@ -149,7 +152,7 @@ const Settings = () => {
           <main className="flex-1 flex flex-col">
             <DashboardHeader />
             <div className="flex-1 flex">
-              <Tabs defaultValue="company-profile" orientation="vertical" className="flex w-full">
+              <Tabs defaultValue={defaultTab} orientation="vertical" className="flex w-full">
                 <div className="w-52 shrink-0 border-r border-border bg-background p-4">
                   <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
                   <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
