@@ -1,30 +1,28 @@
 
 
-## Improve Company HQ Save Flow and Update Description Text
+## Fix: Onboarding Checklist Not Updating After Company Profile Save
 
-### Changes
+### Problem
 
-**1. Redirect to dashboard after successful save (`src/hooks/useCompanyHQ.ts`)**
+When the user saves their company HQ address and returns to the dashboard, the "Set Up Company Profile" step still appears unchecked. This happens because:
 
-Update the `onSuccess` callback of the mutation to also invalidate the onboarding progress cache (so the checklist reflects the completed step immediately). Return `mutateAsync` instead of `mutate` so the component can chain a navigation call after success.
+1. The `useCompanyHQ` hook invalidates the `onboarding-progress` query key on save, but the checklist also depends on a separate `onboarding-live-checks` query that re-checks the database directly.
+2. That `onboarding-live-checks` query has a 30-second stale time, so it serves cached (stale) data when the user lands back on the dashboard.
 
-**2. Navigate to dashboard from CompanyProfileTab (`src/components/settings/CompanyProfileTab.tsx`)**
+### Fix
 
-- Import `useNavigate` from react-router-dom
-- In `handleSave`, await the mutation and then call `navigate("/")` to return to the dashboard
-- The existing toast ("Company headquarters updated") already confirms the save
+**File: `src/hooks/useCompanyHQ.ts`**
 
-**3. Update the CardDescription text**
+Add invalidation of the `onboarding-live-checks` query key in the `onSuccess` callback, alongside the existing invalidations. This ensures the live check re-fetches fresh data when the user returns to the dashboard.
 
-Replace:
-> "This address determines your free marketplace search radius (30 miles). Suppliers beyond this range require a paid subscription."
+```typescript
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['company-hq'] });
+  queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] });
+  queryClient.invalidateQueries({ queryKey: ['onboarding-live-checks'] });  // <-- add this
+  toast.success('Company headquarters updated');
+},
+```
 
-With something like:
-> "Set your company's main office location. This helps BuilderSuite personalize your experience and connect you with nearby resources."
+This is a one-line change that ensures the checklist immediately reflects the completed step when the dashboard loads.
 
-This removes any mention of cost/pricing while still explaining why the address matters.
-
-### Technical Details
-
-- In `useCompanyHQ.ts`: add `queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] })` inside `onSuccess` so the dashboard checklist updates immediately. Also expose `updateHQAsync: updateHQMutation.mutateAsync`.
-- In `CompanyProfileTab.tsx`: use `useNavigate()`, call `await updateHQAsync(...)` then `navigate("/")` in `handleSave`. Update the `CardDescription` text.
