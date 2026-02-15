@@ -55,10 +55,11 @@ export function CostCodesTab({
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [addDialogInitialData, setAddDialogInitialData] = React.useState<{ parent_group?: string } | undefined>();
   const [excelDialogOpen, setExcelDialogOpen] = React.useState(false);
+  const [templateDismissed, setTemplateDismissed] = React.useState(false);
   const { toast } = useToast();
 
   // Show template dialog when no cost codes exist and not loading
-  const templateDialogOpen = costCodes.length === 0 && !loading;
+  const templateDialogOpen = costCodes.length === 0 && !loading && !templateDismissed;
 
   // Filter cost codes based on search query - include parents when children match
   const filteredCostCodes = useMemo(() => {
@@ -125,11 +126,23 @@ export function CostCodesTab({
   };
 
   const handleTemplateImportExcel = () => {
+    setTemplateDismissed(true);
     setExcelDialogOpen(true);
   };
 
   const handleAddManually = () => {
+    setTemplateDismissed(true);
     setAddDialogOpen(true);
+  };
+
+  const handleExcelDialogOpenChange = (open: boolean) => {
+    setExcelDialogOpen(open);
+    if (!open) setTemplateDismissed(false);
+  };
+
+  const handleAddDialogOpenChange = (open: boolean) => {
+    setAddDialogOpen(open);
+    if (!open) setTemplateDismissed(false);
   };
 
   return (
@@ -150,9 +163,9 @@ export function CostCodesTab({
         onAddCostCode={onAddCostCode}
         addDialogInitialData={addDialogInitialData}
         addDialogOpen={addDialogOpen}
-        onAddDialogOpenChange={setAddDialogOpen}
+        onAddDialogOpenChange={handleAddDialogOpenChange}
         excelDialogOpen={excelDialogOpen}
-        onExcelDialogOpenChange={setExcelDialogOpen}
+        onExcelDialogOpenChange={handleExcelDialogOpenChange}
       />
       
       <div className="relative w-64">
