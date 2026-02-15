@@ -8,17 +8,11 @@ import { AddCompanyDialog } from "@/components/companies/AddCompanyDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RepresentativesTable } from "@/components/representatives/RepresentativesTable";
 import { AddRepresentativeModal } from "@/components/representatives/AddRepresentativeModal";
-import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceCompaniesTable";
-import { MarketplaceRepresentativesTable } from "@/components/marketplace/MarketplaceRepresentativesTable";
-import { AddMarketplaceCompanyDialog } from "@/components/marketplace/AddMarketplaceCompanyDialog";
-import { AddMarketplaceRepresentativeDialog } from "@/components/marketplace/AddMarketplaceRepresentativeDialog";
 
 export function CompaniesTab() {
   const [activeTab, setActiveTab] = useState("companies");
   const [addCompanyOpen, setAddCompanyOpen] = useState(false);
   const [addRepresentativeOpen, setAddRepresentativeOpen] = useState(false);
-  const [addMarketplaceCompanyOpen, setAddMarketplaceCompanyOpen] = useState(false);
-  const [addMarketplaceRepresentativeOpen, setAddMarketplaceRepresentativeOpen] = useState(false);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
   const [representativeSearchQuery, setRepresentativeSearchQuery] = useState("");
   const queryClient = useQueryClient();
@@ -34,16 +28,14 @@ export function CompaniesTab() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Companies & Representatives</h3>
-          <p className="text-sm text-muted-foreground">Manage your companies, representatives, and marketplace connections</p>
+          <p className="text-sm text-muted-foreground">Manage your companies and representatives</p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="companies">Companies</TabsTrigger>
           <TabsTrigger value="representatives">Representatives</TabsTrigger>
-          <TabsTrigger value="marketplace-companies">Marketplace</TabsTrigger>
-          <TabsTrigger value="marketplace-representatives">Marketplace Representatives</TabsTrigger>
         </TabsList>
 
         <TabsContent value="companies" className="space-y-4">
@@ -86,40 +78,10 @@ export function CompaniesTab() {
           </div>
           <RepresentativesTable searchQuery={representativeSearchQuery} />
         </TabsContent>
-
-        <TabsContent value="marketplace-companies" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Marketplace Companies</h3>
-              <p className="text-sm text-gray-600">Browse companies available in the marketplace</p>
-            </div>
-            <Button onClick={() => setAddMarketplaceCompanyOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Company
-            </Button>
-          </div>
-          <MarketplaceCompaniesTable />
-        </TabsContent>
-
-        <TabsContent value="marketplace-representatives" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Marketplace Representatives</h3>
-              <p className="text-sm text-gray-600">Browse representatives from marketplace companies</p>
-            </div>
-            <Button onClick={() => setAddMarketplaceRepresentativeOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Representative
-            </Button>
-          </div>
-          <MarketplaceRepresentativesTable />
-        </TabsContent>
       </Tabs>
 
       <AddCompanyDialog open={addCompanyOpen} onOpenChange={setAddCompanyOpen} />
       <AddRepresentativeModal open={addRepresentativeOpen} onOpenChange={setAddRepresentativeOpen} />
-      <AddMarketplaceCompanyDialog open={addMarketplaceCompanyOpen} onOpenChange={setAddMarketplaceCompanyOpen} />
-      <AddMarketplaceRepresentativeDialog open={addMarketplaceRepresentativeOpen} onOpenChange={setAddMarketplaceRepresentativeOpen} />
     </div>
   );
 }
