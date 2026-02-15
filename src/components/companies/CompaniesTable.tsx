@@ -215,17 +215,17 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
   return (
     <>      
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-fit whitespace-nowrap">Company Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-80">Address</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Codes</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Website</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Representatives</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Actions</TableHead>
+            <TableRow>
+              <TableHead>Company Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Address</TableHead>
+              <TableHead>Cost Codes</TableHead>
+              <TableHead>Website</TableHead>
+              <TableHead>Representatives</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

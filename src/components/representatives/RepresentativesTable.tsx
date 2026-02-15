@@ -286,20 +286,20 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">First Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Last Name</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Company</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium min-w-[200px]">Email</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Phone</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Bid Notifications</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Schedule Notifications</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">PO Notifications</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center">Actions</TableHead>
+            <TableRow>
+              <TableHead>First Name</TableHead>
+              <TableHead>Last Name</TableHead>
+              <TableHead>Company</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="min-w-[200px]">Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead className="text-center">Bid Notifications</TableHead>
+              <TableHead className="text-center">Schedule Notifications</TableHead>
+              <TableHead className="text-center">PO Notifications</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
