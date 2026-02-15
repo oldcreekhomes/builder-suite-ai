@@ -2,7 +2,8 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Trash2, Paperclip } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import { SpecificationFilesCell } from './SpecificationFilesCell';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -78,16 +79,9 @@ export function SpecificationTableRow({
         />
       </TableCell>
       <TableCell>
-        <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(specification)}
-            className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
+        <TableRowActions actions={[
+          { label: "Delete", onClick: () => onDelete(specification), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Specification", confirmDescription: `Are you sure you want to delete this specification for "${specification.cost_code.code} - ${specification.cost_code.name}"?` },
+        ]} />
       </TableCell>
     </TableRow>
   );

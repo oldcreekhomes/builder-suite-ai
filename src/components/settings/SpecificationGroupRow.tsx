@@ -2,7 +2,8 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronRight, Edit, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -69,15 +70,11 @@ export function SpecificationGroupRow({
         {/* Empty files cell */}
       </TableCell>
       <TableCell>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => parentCostCode && onDelete(parentCostCode)}
-          className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
-          title="Delete group"
-        >
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        {parentCostCode && (
+          <TableRowActions actions={[
+            { label: "Delete Group", onClick: () => onDelete(parentCostCode), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Group", confirmDescription: `Are you sure you want to delete this specification group?` },
+          ]} />
+        )}
       </TableCell>
     </TableRow>
   );

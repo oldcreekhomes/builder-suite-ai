@@ -3,7 +3,8 @@ import React from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Edit, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import { CostCodeInlineEditor } from '@/components/CostCodeInlineEditor';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -116,29 +117,10 @@ export function CostCodeGroupRow({
       </TableCell>
       <TableCell className="py-1">
         {parentCostCode && (
-          <div className="flex gap-1">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(parentCostCode);
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(parentCostCode);
-              }}
-              className="text-red-600 hover:text-red-800 hover:bg-red-100"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          <TableRowActions actions={[
+            { label: "Edit", onClick: () => onEdit(parentCostCode) },
+            { label: "Delete", onClick: () => onDelete(parentCostCode), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Cost Code", confirmDescription: `Are you sure you want to delete "${parentCostCode.code} - ${parentCostCode.name}"? This action cannot be undone.` },
+          ]} />
         )}
       </TableCell>
     </TableRow>
