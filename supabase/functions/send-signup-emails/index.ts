@@ -112,8 +112,7 @@ function buildHomeBuilderVerificationHtml(companyName: string, verificationLink:
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; margin: 0 auto; border-collapse: collapse;">
                     <tr>
                         <td align="center" style="padding: 40px 30px; background-color: #000000; margin: 0;">
-                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.2;">Verify Your Email</h1>
-                            <p style="color: #cccccc; font-size: 16px; margin: 0; line-height: 1.4;">${companyName}</p>
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 700; margin: 0; line-height: 1.2;">Verify Your Email</h1>
                         </td>
                     </tr>
                     <tr>
@@ -121,67 +120,19 @@ function buildHomeBuilderVerificationHtml(companyName: string, verificationLink:
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e5e5e5;">
                                 <tr>
                                     <td style="padding: 25px; margin: 0;">
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+                                        <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+                                            Please verify your email address by clicking the button below.
+                                        </p>
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
                                             <tr>
-                                                <td style="margin: 0; padding: 0 0 16px 0;">
-                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0;">
-                                                        Thank you for signing up for BuilderSuite ML!
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="margin: 0; padding: 0 0 16px 0;">
-                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0;">
-                                                        Your account for <strong>${companyName}</strong> has been created successfully. Please verify your email address by clicking the button below:
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td align="center" style="margin: 0; padding: 10px 0 20px 0;">
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                                                        <tr>
-                                                            <td align="center" style="background-color: #000000;">
-                                                                <a href="${verificationLink}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Verify Your Email</a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="margin: 0; padding: 0 0 16px 0; border-top: 1px solid #e5e5e5; padding-top: 20px;">
-                                                    <p style="color: #000000; font-size: 14px; font-weight: 600; line-height: 1.6; margin: 0 0 8px 0;">
-                                                        What happens next?
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="margin: 0; padding: 0 0 8px 0;">
-                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0;">
-                                                        1. <strong>Verify your email</strong> by clicking the button above
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="margin: 0; padding: 0 0 8px 0;">
-                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0;">
-                                                        2. <strong>Sign in</strong> to your new account
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td style="margin: 0; padding: 0;">
-                                                    <p style="color: #000000; font-size: 14px; line-height: 1.6; margin: 0;">
-                                                        3. <strong>Set up your company</strong> and start building better
-                                                    </p>
+                                                <td align="center" style="background-color: #000000;">
+                                                    <a href="${verificationLink}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Verify Your Email</a>
                                                 </td>
                                             </tr>
                                         </table>
                                     </td>
                                 </tr>
                             </table>
-                            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0; text-align: center;">
-                                A member of our team will be reaching out shortly to help you get started.
-                            </p>
                         </td>
                     </tr>
                     <tr>
