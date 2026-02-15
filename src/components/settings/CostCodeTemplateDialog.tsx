@@ -14,6 +14,7 @@ interface CostCodeTemplateDialogProps {
   onOpenChange: (open: boolean) => void;
   onUseTemplate: () => Promise<void>;
   onImportExcel: () => void;
+  onAddManually: () => void;
 }
 
 export function CostCodeTemplateDialog({
@@ -21,6 +22,7 @@ export function CostCodeTemplateDialog({
   onOpenChange,
   onUseTemplate,
   onImportExcel,
+  onAddManually,
 }: CostCodeTemplateDialogProps) {
   const [importing, setImporting] = useState(false);
 
@@ -39,16 +41,11 @@ export function CostCodeTemplateDialog({
         <DialogHeader>
           <DialogTitle className="text-xl">Set Up Your Cost Codes</DialogTitle>
           <DialogDescription className="text-base text-muted-foreground">
-            Get started in seconds, not hours
+            Get started in seconds, not hours. Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 pt-2">
-          <p className="text-sm text-muted-foreground">
-            Cost codes are the foundation of your project budgets, bidding, and accounting.
-            Choose how you'd like to get started:
-          </p>
-
           {/* Option 1: Use Template */}
           <div className="rounded-lg border-2 border-foreground bg-muted/30 p-4 space-y-3">
             <div className="flex items-center gap-2">
@@ -63,7 +60,7 @@ export function CostCodeTemplateDialog({
             <ul className="text-sm text-muted-foreground space-y-1.5 ml-1">
               {['Cost codes & categories', 'Specifications', 'Bidding settings', 'Subcategories', 'Estimates'].map((item) => (
                 <li key={item} className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-foreground shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
                   {item}
                 </li>
               ))}
@@ -96,15 +93,15 @@ export function CostCodeTemplateDialog({
               variant="outline"
               onClick={onImportExcel}
               disabled={importing}
-              className="w-full"
+              className="w-full border-foreground"
             >
               Import from Excel
             </Button>
             <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
+              variant="outline"
+              onClick={onAddManually}
               disabled={importing}
-              className="w-full text-muted-foreground"
+              className="w-full border-foreground text-muted-foreground"
             >
               I'll add them manually
             </Button>

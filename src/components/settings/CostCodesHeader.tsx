@@ -16,6 +16,8 @@ interface CostCodesHeaderProps {
   addDialogInitialData?: { parent_group?: string };
   addDialogOpen?: boolean;
   onAddDialogOpenChange?: (open: boolean) => void;
+  excelDialogOpen?: boolean;
+  onExcelDialogOpenChange?: (open: boolean) => void;
 }
 
 export function CostCodesHeader({
@@ -26,7 +28,9 @@ export function CostCodesHeader({
   onAddCostCode,
   addDialogInitialData,
   addDialogOpen,
-  onAddDialogOpenChange
+  onAddDialogOpenChange,
+  excelDialogOpen,
+  onExcelDialogOpenChange,
 }: CostCodesHeaderProps) {
   return (
     <div className="flex justify-between items-center">
@@ -45,7 +49,7 @@ export function CostCodesHeader({
           onBulkDelete={onBulkDeleteCostCodes}
           label="cost codes"
         />
-        <ExcelImportDialog onImportCostCodes={onImportCostCodes} />
+        <ExcelImportDialog onImportCostCodes={onImportCostCodes} externalOpen={excelDialogOpen} onExternalOpenChange={onExcelDialogOpenChange} />
         <AddCostCodeDialog 
           existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
           onAddCostCode={onAddCostCode}

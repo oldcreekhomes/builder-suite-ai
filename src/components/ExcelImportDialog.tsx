@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,12 +16,24 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ExcelImportDialogProps {
   onImportCostCodes: (costCodes: any[]) => void;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
-export function ExcelImportDialog({ onImportCostCodes }: ExcelImportDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ExcelImportDialog({ onImportCostCodes, externalOpen, onExternalOpenChange }: ExcelImportDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const { toast } = useToast();
+
+  const isControlled = externalOpen !== undefined;
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (isControlled) {
+      onExternalOpenChange?.(v);
+    } else {
+      setInternalOpen(v);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -110,12 +121,14 @@ export function ExcelImportDialog({ onImportCostCodes }: ExcelImportDialogProps)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Upload className="h-4 w-4 mr-2" />
-          Import Excel
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Import Excel
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Import Cost Codes from Excel</DialogTitle>
