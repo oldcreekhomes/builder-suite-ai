@@ -1,57 +1,59 @@
 
-## Replicate Cost Code Template Dialog for Chart of Accounts
+
+## Update Chart of Accounts Template and Derrick Russell Homes Data
 
 ### Overview
 
-Copy the exact same "Set Up" dialog pattern from Cost Codes to Chart of Accounts. When a home builder has zero accounts, a dialog automatically appears with three options: Use Our Template, Import from QuickBooks (IIF), or Add Manually. Once any account exists, the dialog disappears. If all accounts are deleted, it reappears.
+Two changes: (1) Replace the edge function to use a hardcoded template instead of copying from Old Creek Homes, and (2) update Derrick Russell Homes' existing accounts in the database to match.
 
-### User Experience
+### Final Template (15 accounts)
 
-Identical to the Cost Codes dialog but with "chart of accounts" language:
-- Title: "Set Up Your Chart of Accounts"
-- Description: "Your chart of accounts is the foundation of your project accounting and financial reporting. Choose how you'd like to get started:"
-- **Use Our Template** (primary) -- copies ~20 accounts from Old Creek Homes template
-- **Import from QuickBooks** -- closes dialog, opens the existing IIF import section (scrolls to it or highlights it)
-- **I'll add them manually** -- closes dialog, opens the Add Account dialog
-- Same green checkmarks, same black borders on secondary buttons
+| Code | Name | Type | Description |
+|------|------|------|-------------|
+| 1010 | XYZ Bank | asset | — |
+| 1020 | Deposits | asset | — |
+| 1060 | Loan to XYZ | asset | — |
+| 1320 | Land - Held For Development | asset | — |
+| 1430 | WIP - Direct Construction Costs | asset | — |
+| 1670 | Deposits | asset | — |
+| 2010 | Accounts Payable | liability | Outstanding amounts owed to vendors and suppliers |
+| 2150 | XYZ Credit Card | liability | — |
+| 2530 | Loan - Land | liability | — |
+| 2540 | Loan Refinance | liability | — |
+| 2905 | Equity | equity | — |
+| 3120 | Construction Management Fees | revenue | — |
+| 32000 | Retained Earnings | equity | Undistributed earnings of the business |
+| 9150 | Ask Owner | asset | — |
 
-The checklist items for "Use Our Template" will be: "Account codes & names", "Account types", "Descriptions", "Ready-to-use structure"
+Deleted from original: 1030 (Clearing), 1040 (Loan to OCH at N. Potomac), 1050 (Loan to OCH at Lexington), 5000 (Office Expenses), 50000 (Cost of Goods Sold), 5100 (Professional Services)
 
-### Technical Details
+### Changes
 
-**1. New Edge Function: `copy-template-accounts`**
+**1. Rewrite `copy-template-accounts` edge function**
 
-- Same authentication pattern as `copy-template-cost-codes`
-- Reads all accounts from Old Creek Homes (`owner_id = '2653aba8-d154-4301-99bf-77d559492e19'`) where `is_active = true`
-- Inserts copies with new UUIDs into the requesting user's account, preserving: `code`, `name`, `type`, `description`, `is_active`
-- Handles `parent_id` remapping (old ID to new ID) for any hierarchical accounts
-- Returns count of imported accounts
+Replace the database-fetch approach with a hardcoded array of 14 template accounts. No more dependency on Old Creek Homes data. The function will still handle authentication, check for existing accounts, and insert with new UUIDs.
 
-**2. New Component: `src/components/settings/ChartOfAccountsTemplateDialog.tsx`**
+**2. Update Derrick Russell Homes accounts in the database**
 
-- Mirrors `CostCodeTemplateDialog.tsx` exactly in structure
-- Props: `open`, `onOpenChange`, `onUseTemplate`, `onImportQuickBooks`, `onAddManually`
-- Same visual design: recommended section with green checkmarks, black-bordered secondary buttons
-- Text adapted: "chart of accounts" instead of "cost codes", benefits list updated for accounting context
+Run SQL to:
+- Rename 1010 to "XYZ Bank"
+- Rename 1060 to "Loan to XYZ"
+- Rename 1670 to "Deposits"
+- Rename 2150 to "XYZ Credit Card"
+- Rename 2540 to "Loan Refinance"
+- Delete 1030, 1040, 1050, 5000, 50000, 5100
 
-**3. Update `src/components/settings/ChartOfAccountsTab.tsx`**
+**3. Update Old Creek Homes template accounts similarly**
 
-- Add `templateDismissed` state (same pattern as CostCodesTab)
-- Compute `templateDialogOpen = accounts.length === 0 && !isLoading && !templateDismissed`
-- "Use Template" calls the new edge function, then invalidates the `['accounts']` query
-- "Import from QuickBooks" dismisses the template dialog (the IIF import card is already visible on the page beneath)
-- "Add Manually" dismisses the template dialog and opens the `AddAccountDialog`
-- Reset `templateDismissed` when the Add dialog closes (so template reappears if user cancels without adding)
+So the source data also reflects the generic template (in case anything else references it).
 
-**4. Config update: `supabase/config.toml`**
+### Files to modify
 
-- Add `[functions.copy-template-accounts]` entry
-
-### Files to create/modify
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `supabase/functions/copy-template-accounts/index.ts` | Create -- edge function to copy Old Creek Homes accounts |
-| `supabase/config.toml` | Modify -- add function config entry |
-| `src/components/settings/ChartOfAccountsTemplateDialog.tsx` | Create -- the welcome/template dialog component |
-| `src/components/settings/ChartOfAccountsTab.tsx` | Modify -- integrate the template dialog |
+| `supabase/functions/copy-template-accounts/index.ts` | Rewrite to use hardcoded template array instead of fetching from Old Creek Homes |
+
+### Database updates (run via SQL)
+
+Renames and deletes for both Derrick Russell Homes and Old Creek Homes accounts to align with the new generic template.
+
