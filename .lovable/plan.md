@@ -1,30 +1,32 @@
 
 
-## Fix Suppliers Sidebar Styling to Match Other Items
+## Fix Suppliers Sidebar: Indentation and Highlighting
 
-### Problem
-The "Suppliers" collapsible trigger uses `text-muted-foreground` (gray, lighter color) while all other sidebar items (Budget, Chart of Accounts, etc.) use the default `TabsTrigger` text color (darker foreground). This makes "Suppliers" visually inconsistent -- wrong font color and weight compared to the other items.
+### Problem 1: Indentation on page load
+The `Collapsible` component sits inside the `TabsList` which has `flex flex-col`. On initial render, the Collapsible's internal layout interacts with the flex container differently than a simple `TabsTrigger`, causing it to appear indented. Once clicked, Radix recalculates and it snaps into place.
 
-### Fix
+**Fix**: Add `w-full` to the `Collapsible` wrapper so it fills the flex container width consistently from the start, matching the behavior of the `TabsTrigger` elements.
 
-**File: `src/pages/Settings.tsx` (line 174)**
+### Problem 2: Highlighting when clicked
+The `CollapsibleTrigger` (a `<button>`) receives default browser focus styles and Radix `data-state="open"` styling, which causes it to appear highlighted after clicking.
 
-Change the `CollapsibleTrigger` className to match the exact same styling as the `TabsTrigger` items:
+**Fix**: Add focus-visible outline suppression and ensure no background is applied on the open state. Update the className to include `focus-visible:outline-none focus-visible:ring-0` and use `data-[state=open]:bg-transparent` to prevent the highlighted appearance.
 
-Current:
+### Changes
+
+**File: `src/pages/Settings.tsx`**
+
+Line 173 -- Add `className="w-full"` to the `Collapsible` component:
+```tsx
+<Collapsible open={suppliersOpen} onOpenChange={setSuppliersOpen} className="w-full">
 ```
-className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+
+Line 174 -- Update `CollapsibleTrigger` className to prevent highlight:
+```tsx
+<CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-0 data-[state=open]:bg-transparent">
 ```
 
-Updated:
-```
-className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-```
-
-Key changes:
-- `text-muted-foreground` changed to `text-foreground` (matches the default text color of TabsTrigger items)
-- Added `font-medium` to match the TabsTrigger font weight
-- Changed `hover:text-foreground` to `hover:bg-muted` to match the hover behavior of the other items
-
-This single line change ensures "Suppliers" looks identical to Budget, Chart of Accounts, Company Profile, etc. in both collapsed and expanded states.
+These two small changes ensure:
+- "Suppliers" aligns flush left on page load (no indentation)
+- Clicking "Suppliers" opens/closes the dropdown without leaving it highlighted
 
