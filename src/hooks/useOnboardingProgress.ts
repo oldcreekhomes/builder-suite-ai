@@ -8,6 +8,7 @@ export interface OnboardingStep {
   label: string;
   completed: boolean;
   link?: string;
+  action?: string;
 }
 
 export interface OnboardingProgress {
@@ -129,11 +130,11 @@ export const useOnboardingProgress = (): OnboardingProgress => {
 
   const steps: OnboardingStep[] = [
     { key: "email_verified", label: "Verify Email", completed: merged.email_verified },
-    { key: "company_profile_completed", label: "Set Up Company Profile", completed: merged.company_profile_completed, link: "/settings" },
-    { key: "cost_codes_imported", label: "Import Cost Codes", completed: merged.cost_codes_imported, link: "/settings" },
-    { key: "chart_of_accounts_imported", label: "Import Chart of Accounts", completed: merged.chart_of_accounts_imported, link: "/settings" },
+    { key: "company_profile_completed", label: "Set Up Company Profile", completed: merged.company_profile_completed, link: "/settings?tab=company-profile" },
+    { key: "cost_codes_imported", label: "Import Cost Codes", completed: merged.cost_codes_imported, link: "/settings?tab=cost-codes" },
+    { key: "chart_of_accounts_imported", label: "Import Chart of Accounts", completed: merged.chart_of_accounts_imported, link: "/settings?tab=chart-of-accounts" },
     { key: "companies_added", label: "Add Subcontractors", completed: merged.companies_added, link: "/companies" },
-    { key: "first_project_created", label: "Create First Project", completed: merged.first_project_created, link: "/" },
+    { key: "first_project_created", label: "Create First Project", completed: merged.first_project_created, action: "new-project" },
     { key: "employees_invited", label: "Invite Employees", completed: merged.employees_invited, link: "/employees" },
   ];
 
