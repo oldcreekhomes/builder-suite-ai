@@ -35,37 +35,37 @@ export function HistoricalOnlyRow({
   };
 
   return (
-    <TableRow className="h-10 hover:bg-muted/50 border-b">
-      <TableCell className="w-12 py-1">
+    <TableRow className="hover:bg-muted/50 border-b">
+      <TableCell className="w-12">
         <Checkbox disabled checked={false} />
       </TableCell>
-      <TableCell className="w-40 py-1 text-sm font-medium pl-12">
+      <TableCell className="w-40 font-medium pl-12">
         {costCode.code}
       </TableCell>
-      <TableCell className="w-[320px] py-1 text-sm">
+      <TableCell className="w-[320px]">
         {costCode.name}
       </TableCell>
-      <TableCell className="w-48 py-1 text-sm">
+      <TableCell className="w-48">
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">
           Missing
         </Badge>
       </TableCell>
-      <TableCell className="w-10 px-0 py-1">
+      <TableCell className="w-10 px-0">
         {/* No warnings column */}
       </TableCell>
-      <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left text-red-600 font-medium">
+      <TableCell className="w-52 text-left text-red-600 font-medium">
         $0
       </TableCell>
-      <TableCell className="w-32 pl-3 pr-3 py-1 text-sm text-muted-foreground">
+      <TableCell className="w-32 text-muted-foreground">
         -
       </TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="w-52 pl-3 py-1 text-sm font-medium">
+        <TableCell className="w-52 font-medium">
           {formatCurrency(historicalAmount)}
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="w-48 py-1 text-sm">
+        <TableCell className="w-48">
           <span className="text-red-600">
             {formatVariance(variance)}
           </span>

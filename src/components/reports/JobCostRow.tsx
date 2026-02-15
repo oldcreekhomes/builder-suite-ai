@@ -34,15 +34,15 @@ export function JobCostRow({ row, onBudgetClick, onActualClick }: JobCostRowProp
   };
 
   return (
-    <TableRow className="h-10 hover:bg-muted/50 transition-colors">
-      <TableCell className="py-1 text-sm font-medium pl-12">
+    <TableRow className="hover:bg-muted/50 transition-colors">
+      <TableCell className="font-medium pl-12">
         {row.costCode}
       </TableCell>
-      <TableCell className="py-1 text-sm">
+      <TableCell>
         {row.costCodeName}
       </TableCell>
       <TableCell 
-        className="text-right py-1 text-sm cursor-pointer hover:underline"
+        className="text-right cursor-pointer hover:underline"
         onClick={(e) => {
           e.stopPropagation();
           onBudgetClick();
@@ -51,7 +51,7 @@ export function JobCostRow({ row, onBudgetClick, onActualClick }: JobCostRowProp
         {formatCurrency(row.budget)}
       </TableCell>
       <TableCell 
-        className="text-right py-1 text-sm cursor-pointer hover:underline"
+        className="text-right cursor-pointer hover:underline"
         onClick={(e) => {
           e.stopPropagation();
           onActualClick();
@@ -59,7 +59,7 @@ export function JobCostRow({ row, onBudgetClick, onActualClick }: JobCostRowProp
       >
         {formatCurrency(row.actual)}
       </TableCell>
-      <TableCell className={`text-right py-1 text-sm font-medium ${getVarianceColor(row.variance)}`}>
+      <TableCell className={`text-right font-medium ${getVarianceColor(row.variance)}`}>
         {formatCurrency(row.variance)}
       </TableCell>
     </TableRow>

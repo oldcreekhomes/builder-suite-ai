@@ -119,9 +119,9 @@ export function POComparisonDialog({
               <Table containerClassName="max-h-[200px] overflow-auto">
                 <TableHeader className="sticky top-0 bg-background">
                   <TableRow>
-                    <TableHead className="text-xs">Date</TableHead>
-                    <TableHead className="text-xs">Reference</TableHead>
-                    <TableHead className="text-xs text-right">Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Reference</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

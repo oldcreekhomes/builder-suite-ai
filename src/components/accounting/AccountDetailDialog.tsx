@@ -1149,16 +1149,16 @@ export function AccountDetailDialog({
           ) : (
             <Table className="text-xs" containerClassName="relative w-full">
               <TableHeader>
-                <TableRow className="h-8">
-                  <TableHead className="h-8 px-2 py-1 w-28">Type</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-24">Date</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-32">Name</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-36">Account</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-40">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-24 text-right">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-24 text-right">Balance</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-16 text-center">Cleared</TableHead>
-                  <TableHead className="h-8 px-2 py-1 w-16 text-center">Actions</TableHead>
+                <TableRow>
+                  <TableHead className="w-28">Type</TableHead>
+                  <TableHead className="w-24">Date</TableHead>
+                  <TableHead className="w-32">Name</TableHead>
+                  <TableHead className="w-36">Account</TableHead>
+                  <TableHead className="w-40">Description</TableHead>
+                  <TableHead className="w-24 text-right">Amount</TableHead>
+                  <TableHead className="w-24 text-right">Balance</TableHead>
+                  <TableHead className="w-16 text-center">Cleared</TableHead>
+                  <TableHead className="w-16 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

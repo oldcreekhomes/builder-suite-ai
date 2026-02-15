@@ -188,12 +188,12 @@ export const ChartOfAccountsTab = () => {
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
-              <TableRow className="h-8">
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Code</TableHead>
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Account Name</TableHead>
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Type</TableHead>
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Description</TableHead>
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium text-right">Actions</TableHead>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Account Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -205,20 +205,20 @@ export const ChartOfAccountsTab = () => {
                 </TableRow>
               ) : (
                 accounts.map((account) => (
-                  <TableRow key={account.id} className="h-10">
-                    <TableCell className="px-2 py-1 text-xs align-middle">
+                  <TableRow key={account.id}>
+                    <TableCell>
                       {account.code}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-xs align-middle">
+                    <TableCell>
                       {account.name}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-xs align-middle">
+                    <TableCell>
                       {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-xs text-muted-foreground align-middle">
+                    <TableCell className="text-muted-foreground">
                       {account.description || '—'}
                     </TableCell>
-                    <TableCell className="px-2 py-1 text-right align-middle">
+                    <TableCell className="text-right">
                       <div className="flex justify-end items-center space-x-1">
                         <Tooltip>
                           <TooltipTrigger asChild>

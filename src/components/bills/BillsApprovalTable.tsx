@@ -597,9 +597,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <div className="overflow-auto flex-1 min-h-0">
             <Table containerClassName="relative w-full" className="table-fixed">
               <TableHeader className="sticky top-0 bg-background z-10">
-                <TableRow className="h-8">
+                <TableRow>
                   {showProjectColumn && (
-                    <TableHead className="h-8 px-2 py-1 text-xs font-medium w-44">
+                    <TableHead className="w-44">
                       {enableSorting ? (
                         <button
                           type="button"
@@ -622,7 +622,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       )}
                     </TableHead>
                   )}
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-36">
+                  <TableHead className="w-36">
                     {enableSorting ? (
                       <button
                         type="button"
@@ -644,8 +644,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       'Vendor'
                     )}
                   </TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-44">Cost Code</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">
+                  <TableHead className="w-44">Cost Code</TableHead>
+                  <TableHead className="w-24">
                     {enableSorting ? (
                       <button
                         type="button"
@@ -667,7 +667,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       'Bill Date'
                     )}
                   </TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">
+                  <TableHead className="w-24">
                     {enableSorting ? (
                       <button
                         type="button"
@@ -689,25 +689,25 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <span className="whitespace-nowrap">Due Date</span>
                     )}
                   </TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-32">Reference</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-12 text-center">Memo</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
+                  <TableHead className="w-24">Amount</TableHead>
+                  <TableHead className="w-32">Reference</TableHead>
+                  <TableHead className="w-12 text-center">Memo</TableHead>
+                  <TableHead className="w-24">Address</TableHead>
                   
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-14 text-center">Files</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-14 text-center">Notes</TableHead>
+                  <TableHead className="w-14 text-center">Files</TableHead>
+                  <TableHead className="w-14 text-center">Notes</TableHead>
                   {showPOStatusColumn && (
-                    <TableHead className="h-8 px-2 py-1 text-xs font-medium w-20 text-center">PO Status</TableHead>
+                    <TableHead className="w-20 text-center">PO Status</TableHead>
                   )}
                   {/* Final column: Actions for draft, Cleared for posted/paid - always renders for consistent layout */}
-                  <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24 text-center">
+                  <TableHead className="w-24 text-center">
                     {isDraftStatus ? 'Actions' : 'Cleared'}
                   </TableHead>
                   {showPayBillButton && (
-                    <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-24">Pay Bill</TableHead>
+                    <TableHead className="text-center w-24">Pay Bill</TableHead>
                   )}
                   {canShowDeleteButton && (
-                    <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">
+                    <TableHead className="text-center w-16">
                       {showEditButton ? 'Edit' : 'Delete'}
                     </TableHead>
                   )}

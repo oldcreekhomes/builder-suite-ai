@@ -41,8 +41,8 @@ export function SpecificationGroupRow({
   onDeleteIndividualFile
 }: SpecificationGroupRowProps) {
   return (
-    <TableRow className="bg-gray-50 border-b-2 border-gray-200 font-medium">
-      <TableCell className="py-2 pl-4">
+    <TableRow className="bg-muted/30 border-b-2 font-medium">
+      <TableCell className="pl-4">
         <button
           onClick={() => onToggleCollapse(groupKey)}
           className="hover:bg-gray-100 rounded p-1 -ml-1"
@@ -54,21 +54,21 @@ export function SpecificationGroupRow({
           )}
         </button>
       </TableCell>
-      <TableCell className="py-2 text-left">
+      <TableCell className="text-left">
         <span className="font-semibold">
           {parentCostCode ? parentCostCode.cost_code.code : groupKey}
         </span>
       </TableCell>
-      <TableCell className="py-2 font-semibold">
+      <TableCell className="font-semibold">
         {parentCostCode ? parentCostCode.cost_code.name : groupKey}
       </TableCell>
-      <TableCell className="py-2">
+      <TableCell>
         {/* Empty description cell */}
       </TableCell>
-      <TableCell className="py-2">
+      <TableCell>
         {/* Empty files cell */}
       </TableCell>
-      <TableCell className="py-2">
+      <TableCell>
         <Button
           variant="ghost"
           size="sm"

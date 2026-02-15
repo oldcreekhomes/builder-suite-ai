@@ -28,8 +28,8 @@ export function PurchaseOrdersGroupHeader({
   hasChildren = false
 }: PurchaseOrdersGroupHeaderProps) {
   return (
-    <TableRow className="bg-gray-50 h-10">
-      <TableCell className="w-12 py-1">
+    <TableRow className="bg-muted/30">
+      <TableCell className="w-12">
         <Checkbox
           checked={isSelected}
           ref={(el) => {
@@ -42,7 +42,7 @@ export function PurchaseOrdersGroupHeader({
       </TableCell>
       <TableCell 
         colSpan={6} 
-        className="font-medium cursor-pointer hover:bg-gray-100 py-1 text-sm"
+        className="font-medium cursor-pointer hover:bg-muted/50"
         onClick={() => onToggle(group)}
       >
         <div className="flex items-center">
@@ -54,7 +54,7 @@ export function PurchaseOrdersGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <div className="flex items-center justify-end space-x-2">
           {!hasChildren && (
             <DeleteButton

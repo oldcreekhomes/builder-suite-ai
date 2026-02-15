@@ -136,9 +136,9 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
       <div className="border rounded-md">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="py-1.5 text-xs">Name / Address</TableHead>
-              <TableHead className="w-20 text-right py-1.5 text-xs">Actions</TableHead>
+            <TableRow>
+              <TableHead>Name / Address</TableHead>
+              <TableHead className="w-20 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
