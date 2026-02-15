@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -16,6 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
 import { CostCodesTab } from "@/components/settings/CostCodesTab";
 import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
@@ -41,7 +43,9 @@ const Settings = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || "company-profile";
-  
+  const [suppliersOpen, setSuppliersOpen] = useState(
+    defaultTab === "companies" || defaultTab === "representatives"
+  );
   const {
     costCodes,
     loading,
@@ -166,9 +170,16 @@ const Settings = () => {
                     <TabsTrigger value="dashboard" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Dashboard</TabsTrigger>
                     <TabsTrigger value="employees" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Employees</TabsTrigger>
                     <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
-                    <div className="text-xs font-medium text-muted-foreground mt-4 mb-1 px-3">Suppliers</div>
-                    <TabsTrigger value="companies" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Companies</TabsTrigger>
-                    <TabsTrigger value="representatives" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Representatives</TabsTrigger>
+                    <Collapsible open={suppliersOpen} onOpenChange={setSuppliersOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        Suppliers
+                        <ChevronRight className={`h-4 w-4 transition-transform ${suppliersOpen ? 'rotate-90' : ''}`} />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <TabsTrigger value="companies" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Companies</TabsTrigger>
+                        <TabsTrigger value="representatives" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Representatives</TabsTrigger>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </TabsList>
                 </div>
                 
