@@ -54,7 +54,7 @@ const SignupForm = ({ onSuccess }: { onSuccess?: (email: string) => void }) => {
         company_name: companyName.trim(),
       };
 
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.signUp({
         email,
