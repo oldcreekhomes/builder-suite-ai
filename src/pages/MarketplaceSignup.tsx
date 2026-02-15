@@ -71,7 +71,7 @@ const MarketplaceSignup = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth`,
           data: {
             user_type: 'marketplace_vendor',
             company_name: companyName,
