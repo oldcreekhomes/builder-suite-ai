@@ -24,6 +24,7 @@ import { DashboardSettingsTab } from "@/components/settings/DashboardSettingsTab
 import { CompanyProfileTab } from "@/components/settings/CompanyProfileTab";
 import { EmployeesTab } from "@/components/settings/EmployeesTab";
 import { CompaniesTab } from "@/components/settings/CompaniesTab";
+import { RepresentativesTab } from "@/components/settings/RepresentativesTab";
 
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
@@ -160,7 +161,9 @@ const Settings = () => {
                   <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
                     <TabsTrigger value="company-profile" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Company Profile</TabsTrigger>
                     <TabsTrigger value="employees" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Employees</TabsTrigger>
-                    <TabsTrigger value="companies" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Companies</TabsTrigger>
+                    <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mt-4 mb-1 px-3">Suppliers</div>
+                    <TabsTrigger value="companies" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Companies</TabsTrigger>
+                    <TabsTrigger value="representatives" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Representatives</TabsTrigger>
                     <TabsTrigger value="cost-codes" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Cost Codes</TabsTrigger>
                     <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
                     <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Chart of Accounts</TabsTrigger>
@@ -180,6 +183,10 @@ const Settings = () => {
 
                   <TabsContent value="companies" className="mt-0">
                     <CompaniesTab />
+                  </TabsContent>
+
+                  <TabsContent value="representatives" className="mt-0">
+                    <RepresentativesTab />
                   </TabsContent>
 
                   <TabsContent value="cost-codes" className="mt-0">
