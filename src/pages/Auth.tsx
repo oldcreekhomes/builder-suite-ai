@@ -24,7 +24,7 @@ const Auth = () => {
 
   if (signupSuccessEmail) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -39,14 +39,6 @@ const Auth = () => {
             <p className="text-sm text-muted-foreground text-center">
               Click the link in your email to verify your account and get started.
             </p>
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <p className="text-sm font-medium mb-2">What happens next?</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Verify your email address</li>
-                <li>• Sign in to your account</li>
-                <li>• Start setting up your company</li>
-              </ul>
-            </div>
             <Button variant="outline" className="w-full" onClick={() => setSignupSuccessEmail(null)}>
               Go to Sign In
             </Button>
