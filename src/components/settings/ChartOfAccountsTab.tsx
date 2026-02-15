@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Plus, FileText, Edit } from "lucide-react";
+import { Upload, Plus, Edit, Search } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { DeleteButton } from "@/components/ui/delete-button";
@@ -20,6 +19,8 @@ export const ChartOfAccountsTab = () => {
   const [editingAccount, setEditingAccount] = useState<any>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [templateDismissed, setTemplateDismissed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   // Show template dialog when no accounts exist and not loading
@@ -63,10 +64,7 @@ export const ChartOfAccountsTab = () => {
     if (!open) setTemplateDismissed(false);
   };
 
-  const handleImportIFF = async (files: File[]) => {
-    if (files.length === 0) return;
-    
-    const file = files[0];
+  const handleImportIFF = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.iif')) {
       toast({
         title: "Invalid File Type",
@@ -118,14 +116,13 @@ export const ChartOfAccountsTab = () => {
     }
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleImportIFF,
-    accept: {
-      'application/octet-stream': ['.iif'],
-      'text/plain': ['.iif']
-    },
-    maxFiles: 1,
-    multiple: false
+  const filteredAccounts = accounts.filter((account) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      account.code.toLowerCase().includes(q) ||
+      account.name.toLowerCase().includes(q)
+    );
   });
 
   if (isLoading) {
@@ -133,59 +130,51 @@ export const ChartOfAccountsTab = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Import Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Import from QuickBooks</CardTitle>
-          <CardDescription>
-            Import your chart of accounts from a QuickBooks IIF file
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              isDragActive 
-                ? 'border-primary bg-primary/5' 
-                : 'border-muted-foreground/25 hover:border-primary hover:bg-primary/5'
-            }`}
-          >
-            <input {...getInputProps()} />
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            {isDragActive ? (
-              <p className="text-primary">Drop the IIF file here...</p>
-            ) : (
-              <div>
-                <p className="text-muted-foreground mb-2">
-                  Drag and drop your QuickBooks IIF file here, or click to select
-                </p>
-                <Button variant="outline" disabled={isImporting}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isImporting ? 'Importing...' : 'Select IIF File'}
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Chart of Accounts Table */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold">Chart of Accounts</h3>
-            <p className="text-sm text-gray-600">
-              Manage your chart of accounts ({accounts.length} accounts)
-            </p>
-          </div>
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">Chart of Accounts</h3>
+          <p className="text-sm text-muted-foreground">
+            Manage your chart of accounts ({accounts.length} accounts)
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".iif"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImportIFF(file);
+              e.target.value = '';
+            }}
+          />
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+            <Upload className="h-4 w-4 mr-2" />
+            {isImporting ? 'Importing...' : 'Import IIF'}
+          </Button>
           <Button size="sm" onClick={() => setAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Account
           </Button>
         </div>
+      </div>
 
-        <div className="border rounded-lg">
+      {/* Search bar */}
+      <div className="relative w-64">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
@@ -197,27 +186,19 @@ export const ChartOfAccountsTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {accounts.length === 0 ? (
+              {filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-xs text-gray-500">
-                    No accounts found. Import from QuickBooks or add accounts manually.
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    {searchQuery ? 'No accounts match your search.' : 'No accounts found. Import from QuickBooks or add accounts manually.'}
                   </TableCell>
                 </TableRow>
               ) : (
-                accounts.map((account) => (
+                filteredAccounts.map((account) => (
                   <TableRow key={account.id}>
-                    <TableCell>
-                      {account.code}
-                    </TableCell>
-                    <TableCell>
-                      {account.name}
-                    </TableCell>
-                    <TableCell>
-                      {account.type.charAt(0).toUpperCase() + account.type.slice(1)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {account.description || '—'}
-                    </TableCell>
+                    <TableCell>{account.code}</TableCell>
+                    <TableCell>{account.name}</TableCell>
+                    <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
+                    <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end items-center space-x-1">
                         <Tooltip>
@@ -249,7 +230,6 @@ export const ChartOfAccountsTab = () => {
             </TableBody>
           </Table>
         </div>
-      </div>
 
       <ChartOfAccountsTemplateDialog
         open={templateDialogOpen}
