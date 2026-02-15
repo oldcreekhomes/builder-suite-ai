@@ -41,7 +41,7 @@ export function CostCodeTemplateDialog({
         <DialogHeader>
           <DialogTitle className="text-xl">Set Up Your Cost Codes</DialogTitle>
           <DialogDescription className="text-base text-muted-foreground">
-            Get started in seconds, not hours. Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:
+            Cost codes are the foundation of your project budgets, bidding, and accounting. Choose how you'd like to get started:
           </DialogDescription>
         </DialogHeader>
 
