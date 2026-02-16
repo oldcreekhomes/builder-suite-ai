@@ -1,9 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { VendorPurchaseOrder } from "@/hooks/useVendorPurchaseOrders";
+import { VendorPurchaseOrder, BilledInvoice } from "@/hooks/useVendorPurchaseOrders";
 import { FileText, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { formatDateSafe } from "@/utils/dateOnly";
 
 interface PODetailsDialogProps {
   open: boolean;
@@ -20,6 +22,45 @@ const formatCurrency = (amount: number) =>
     style: 'currency', currency: 'USD',
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   }).format(amount);
+
+function BilledAmountWithTooltip({ amount, invoices }: { amount: number; invoices: BilledInvoice[] }) {
+  if (invoices.length === 0) {
+    return <>{formatCurrency(amount)}</>;
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="border-b border-dotted border-current cursor-help">
+            {formatCurrency(amount)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs p-0">
+          <div className="p-2">
+            <p className="text-xs font-semibold mb-1.5">Invoices Billed</p>
+            <div className="space-y-1">
+              {invoices.map((inv, i) => (
+                <div key={`${inv.bill_id}-${i}`} className="flex items-center justify-between gap-4 text-xs">
+                  <span className="font-medium">{inv.reference_number}</span>
+                  <span className="text-muted-foreground">{inv.bill_date ? formatDateSafe(inv.bill_date, 'MM/dd/yy') : '—'}</span>
+                  <span className="font-mono">{formatCurrency(inv.amount)}</span>
+                </div>
+              ))}
+            </div>
+            {invoices.length > 1 && (
+              <div className="flex items-center justify-between gap-4 text-xs font-semibold border-t mt-1.5 pt-1.5">
+                <span>Total</span>
+                <span></span>
+                <span className="font-mono">{formatCurrency(invoices.reduce((s, inv) => s + inv.amount, 0))}</span>
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export function PODetailsDialog({
   open,
@@ -112,7 +153,7 @@ export function PODetailsDialog({
                           {formatCurrency(line.amount)}
                         </TableCell>
                         <TableCell className="text-xs text-right">
-                          {formatCurrency(line.total_billed)}
+                          <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} />
                         </TableCell>
                         <TableCell className={cn("text-xs text-right font-medium",
                           lineOver && "text-destructive",
@@ -132,7 +173,7 @@ export function PODetailsDialog({
                       <TableCell></TableCell>
                       <TableCell></TableCell>
                       <TableCell className="text-xs text-right text-amber-700 font-medium">
-                        {formatCurrency(purchaseOrder.unallocated_billed)}
+                        <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
                       </TableCell>
                       <TableCell></TableCell>
                     </TableRow>
