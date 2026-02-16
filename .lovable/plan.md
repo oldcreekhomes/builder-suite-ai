@@ -1,24 +1,39 @@
 
 
-## Fix Table Sizing to Match Current shadcn/ui Defaults
+## Fix Table Headers Color and Row Height
 
 ### Problem
-The previous update used outdated shadcn values (`h-12 px-4` for headers, `p-4` for cells), making rows ~3x taller than they should be. The current shadcn/ui source uses more compact values.
+Two mismatches with the shadcn reference screenshot:
+1. **Header text is gray** -- `text-muted-foreground` on TableHead produces medium gray headers. The shadcn example shows dark/near-black headers.
+2. **Employee rows are too tall** -- The Avatar component defaults to `h-10 w-10` (40px), which bloats rows to ~3x the height of shadcn's compact rows.
 
-### Fix
+### Changes
 
-**Single file change: `src/components/ui/table.tsx`**
+**1. `src/components/ui/table.tsx` -- Remove `text-muted-foreground` from TableHead**
 
-- **TableHead**: Change `h-12 px-4` back to `h-10 px-2`
-- **TableCell**: Change `p-4` back to `p-2`
+Change the TableHead className from:
+`h-10 px-2 text-left align-middle font-medium text-muted-foreground`
 
-Everything else stays the same (no sticky header, no shadow, `text-muted-foreground` on headers, `font-medium`). These two changes will cascade to all tables automatically.
+To:
+`h-10 px-2 text-left align-middle font-medium text-foreground`
 
-### Note on Header Color
-The shadcn default headers use `text-muted-foreground` (medium gray), which is what we have. Looking closely at the shadcn screenshot, the headers ("Invoice", "Status", etc.) are gray too -- the body text ("INV001", "Paid") is the darker color. This matches our current setup. If after seeing the compact sizing you still want darker headers, we can adjust separately.
+This makes headers dark/black, matching the shadcn screenshot exactly. The `font-medium` (500 weight) stays, which gives headers a slightly lighter weight than bold body text -- just like the screenshot.
 
-### Technical Details
-- **Files changed**: 1 (`src/components/ui/table.tsx`)
-- **Lines changed**: 2 class strings
-- **Risk**: None -- this restores the correct compact spacing
+**2. `src/components/employees/EmployeeTable.tsx` -- Shrink the Avatar**
 
+Add `className="h-6 w-6"` to the Avatar and reduce the text wrapper, so the employee row height matches other rows:
+
+```tsx
+<Avatar className="h-6 w-6 text-xs">
+```
+
+This brings the avatar from 40px down to 24px, letting the row stay compact like the shadcn example.
+
+### Files Modified
+1. `src/components/ui/table.tsx` -- 1 class change (header color)
+2. `src/components/employees/EmployeeTable.tsx` -- 1 class addition (avatar size)
+
+### Impact
+- Header color change cascades to ALL tables app-wide (good -- consistent dark headers everywhere)
+- Avatar shrink only affects the Employee table
+- No logic or functionality changes
