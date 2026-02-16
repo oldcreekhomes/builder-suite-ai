@@ -62,7 +62,7 @@ export function OnboardingChecklist() {
   const navigate = useNavigate();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
-  if (isLoading || !isOwner) return null;
+  if (isLoading) return null;
   if (allComplete && dismissed) return null;
 
   if (allComplete && !dismissed) {
