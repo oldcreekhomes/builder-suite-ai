@@ -99,16 +99,32 @@ export const usePurchaseOrders = (projectId: string, lotId?: string | null) => {
       const companyMap = new Map(companies?.map(c => [c.id, c]) || []);
       const costCodeMap = new Map(costCodes?.map(cc => [cc.id, cc]) || []);
 
-      // Fetch line counts per PO
+      // Fetch full line data per PO
       const poIds = pos.map(po => po.id);
       const { data: poLines } = await supabase
         .from('purchase_order_lines')
-        .select('purchase_order_id, cost_code_id')
+        .select('purchase_order_id, cost_code_id, amount, description')
         .in('purchase_order_id', poIds);
 
-      const lineCountMap = new Map<string, number>();
+      // Also fetch cost codes for lines that may differ from the PO header
+      const lineCostCodeIds = [...new Set((poLines || []).map(l => l.cost_code_id).filter(Boolean))];
+      const missingCostCodeIds = lineCostCodeIds.filter(id => !costCodeMap.has(id));
+      if (missingCostCodeIds.length > 0) {
+        const { data: extraCodes } = await supabase
+          .from('cost_codes')
+          .select('id, code, name, parent_group, category')
+          .in('id', missingCostCodeIds);
+        (extraCodes || []).forEach(cc => costCodeMap.set(cc.id, cc));
+      }
+
+      const linesMap = new Map<string, any[]>();
       (poLines || []).forEach(line => {
-        lineCountMap.set(line.purchase_order_id, (lineCountMap.get(line.purchase_order_id) || 0) + 1);
+        const arr = linesMap.get(line.purchase_order_id) || [];
+        arr.push({
+          ...line,
+          cost_codes: line.cost_code_id ? costCodeMap.get(line.cost_code_id) : undefined,
+        });
+        linesMap.set(line.purchase_order_id, arr);
       });
 
       // Merge data and return as PurchaseOrder objects
@@ -116,7 +132,7 @@ export const usePurchaseOrders = (projectId: string, lotId?: string | null) => {
         ...po,
         companies: companyMap.get(po.company_id),
         cost_codes: costCodeMap.get(po.cost_code_id),
-        purchase_order_lines: Array.from({ length: lineCountMap.get(po.id) || 0 }),
+        purchase_order_lines: linesMap.get(po.id) || [],
       }));
 
       // Sort by cost code numerically

@@ -23,7 +23,7 @@ export function PurchaseOrdersTableRowActions({
   isDeleting = false
 }: PurchaseOrdersTableRowActionsProps) {
   return (
-    <TableCell className="py-1">
+    <TableCell className="py-1 text-center">
       <TableRowActions actions={[
         { label: "Send Purchase Order", onClick: onSendClick },
         { label: "Send Test Email", onClick: onTestEmailClick },
