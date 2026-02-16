@@ -1,28 +1,28 @@
 
 
-## Fix: Replace Icon Buttons with TableRowActions Dropdown in Companies and Representatives Tables
-
-### Problem
-Both the Companies and Representatives tables still use inline icon buttons (Edit, Archive/Delete) in the Actions column instead of the standardized `TableRowActions` dropdown (three-dot menu) used across all other tables.
+## Standardize Empty States for Accounting Alerts and Recent Photos
 
 ### Changes
 
-**1. `src/components/companies/CompaniesTable.tsx`**
-- Import `TableRowActions` from `@/components/ui/table-row-actions`
-- Remove `Edit`, `Archive` icon imports (keep `Users`, `Hash` for the cost codes/reps columns)
-- Remove `Tooltip` imports (no longer needed for actions column)
-- Replace the Actions cell content (lines 304-337) -- the Edit button + Archive button with tooltips -- with a single `<TableRowActions>` component containing:
-  - "Edit" action (calls `setEditingCompany(company)`)
-  - "Archive" action (destructive, with confirmation, calls `setArchivingCompany(company)`)
-- The `ArchiveCompanyDialog` can be removed in favor of the built-in confirmation dialog from `TableRowActions`, or kept if it has custom logic (it shows rep/cost code counts). Since `ArchiveCompanyDialog` has custom content showing counts, we keep it and trigger it from the dropdown action without using `requiresConfirmation`.
+**1. `src/components/ProjectWarnings.tsx` (Accounting Alerts)**
+- Replace the plain text "No pending warnings" (lines 69-72) with the same centered layout used by Project Bids and Insurance Alerts:
+  - Green `CheckCircle2` icon (h-8 w-8)
+  - Bold title: **"All Caught Up"**
+  - Subtitle: "No pending accounting alerts"
 
-**2. `src/components/representatives/RepresentativesTable.tsx`**
-- Import `TableRowActions` from `@/components/ui/table-row-actions`
-- Remove `Edit` icon import and `DeleteButton` import
-- Replace the Actions cell content (lines 401-419) -- the Edit button + DeleteButton -- with a single `<TableRowActions>` component containing:
-  - "Edit" action (calls `handleEditClick(rep)`)
-  - "Delete" action (destructive, with confirmation via `requiresConfirmation: true`, calls `deleteRepMutation.mutate(rep.id)`)
+**2. `src/components/RecentPhotos.tsx` (Recent Photos)**
+- Replace the current empty state (lines 23-28) with the same centered layout, but using a red X instead of a green check:
+  - Red `XCircle` icon (h-8 w-8, text-red-500)
+  - Bold title: **"No Photos"**
+  - Subtitle: "Add photos to a project to see them here"
 
-### Result
-Both tables will use the same three-dot dropdown pattern as every other table in the application.
+### Visual Pattern (matching Project Bids / Insurance Alerts)
+```text
++---------------------------+
+|  [icon]                   |
+|  Title (font-medium)      |
+|  subtitle (muted, xs)     |
++---------------------------+
+```
 
+Both empty states will be vertically and horizontally centered within the card body, matching the existing pattern exactly.
