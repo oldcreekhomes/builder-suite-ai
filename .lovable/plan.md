@@ -1,52 +1,63 @@
 
 
-## Fix Three Issues: Memo, PO Line Dropdown, and Confidence Column
+## Fix Confidence Scoring and Incorrect Billed-to-Date
 
-### Issue 1: Memo Field Shows Full Invoice Body Text
+### Problem 1: 72% Confidence on an Exact Match
 
-**Problem**: The previous fix changed `memo: line.memo || ""` to `memo: line.memo || line.description || ""`. But `description` contains the entire invoice body (address + all items), not just the line-specific text. This fills the memo field with "115 E Oceanwatch Ct Nags Head N..." for every line.
+When cost code matches AND the dollar amount is exact, the score should be very high (90%+) regardless of keyword similarity. Currently, weak keyword overlap drags the score down even when the two strongest signals (cost code + exact amount) are perfect.
 
-**Fix**: Revert the memo loading to `memo: line.memo || ""` so the display stays clean. Instead, pass `line.description` as a separate matching-only signal to the auto-match logic. The auto-match effect will use `line.memo || line.description` for matching, but the memo field in the UI will only show `line.memo`.
+**Fix**: Add a "perfect match override" in `matchBillLineToPOLines`. When cost code matches AND amount is within 1% of PO remaining or total, set the confidence floor to 95%. This is a simple post-scoring check that recognizes the strongest possible match signal.
 
-**File**: `src/components/bills/EditExtractedBillDialog.tsx`
-- Lines 231, 244, 254: Revert to `memo: line.memo || ""`
-- Add a new field `matchingText` to the `LineItem` interface (used only for matching, not displayed)
-- In the auto-match effect (~line 397): Use `line.matchingText || line.memo || ''` when calling `getBestPOLineMatch`
+**File**: `src/utils/poLineMatching.ts`
 
-### Issue 2: Two PO Dropdowns on Line Item 1
+In the scoring loop (after line 136), add:
 
-**Problem**: When a PO has multiple line items (e.g., "Decks" and "Ground Floor"), the POSelectionDropdown shows a secondary line-level dropdown. The user sees this as "2 POs" and finds it confusing.
+```text
+// Perfect match override: cost code match + exact amount = 95% minimum
+if (ccMatch === 1 && exactBonus >= 1.0) {
+  confidence = Math.max(confidence, 95);
+}
+// Strong match: cost code match + near-exact amount = 85% minimum
+if (ccMatch === 1 && exactBonus >= 0.7) {
+  confidence = Math.max(confidence, 85);
+}
+```
 
-**Fix**: When the auto-match already selected a specific `purchase_order_line_id`, hide the secondary line dropdown. Only show it when the user manually selects a multi-line PO without a line pre-selected.
+This ensures an exact $720/$720 match with matching cost code always shows 95%+ regardless of keyword overlap.
 
-**File**: `src/components/bills/POSelectionDropdown.tsx`
-- Line 128: Change the condition to also require that `purchaseOrderLineId` is NOT already set:
-  ```
-  const showLineDropdown = selectedPO && selectedPO.line_items.length > 1 && !purchaseOrderLineId;
-  ```
-  Actually that's wrong -- if they manually pick a PO they need the line dropdown. Better approach: always auto-select the best line when a PO is selected. The line dropdown is still useful but the initial auto-match already sets the line. The real issue is that line 128 shows the dropdown when a line IS selected. Let me just keep the dropdown but make the trigger show the selected line name instead of "Select line item", and collapse it visually. Actually the simplest fix: when `purchaseOrderLineId` is already set by auto-match, the dropdown already shows the selected line name -- the user just sees it as a second PO. Let me hide it entirely when auto-matched.
+### Problem 2: $12,885 Billed-to-Date on a $720 PO
 
-  Better approach: Don't show the line-level dropdown at all in the EditExtractedBill context. The auto-match already picks the best line. If the user wants to change it, they change the PO dropdown itself. This simplifies the UI.
+The implicit cost-code billing logic at line 211 in `useVendorPurchaseOrders.ts` attributes ALL unlinked historical bills with the same cost code to this PO. This is wrong because:
+- Old bills were for different work/POs that were never explicitly linked
+- A brand new $720 PO shouldn't inherit $12,885 of prior billing history
 
-  Simplest fix: Set `showLineDropdown = false` when `purchaseOrderLineId` is already set (auto-matched or not). The user can still change the PO header selection.
+**Fix**: Remove the implicit cost-code billing entirely. It was a fallback for before explicit PO linking existed, but now that the system has proper `purchase_order_id` and `purchase_order_line_id` tracking on bill lines, the implicit logic creates false data. Only explicitly linked billing should count.
 
-### Issue 3: Confidence Column Position and Header
+**File**: `src/hooks/useVendorPurchaseOrders.ts`
 
-**Problem**: The confidence badge appears BEFORE the Purchase Order column. User wants it AFTER, with a "Confidence" header.
+Changes:
+1. Remove the implicit billing query (lines 152-172) and the `billedByCostCode` map
+2. Remove the implicit billing calculation at lines 210-213
+3. Simplify `totalBilled` to just `lineLevelBilled + poLevelOnlyBilled`
 
-**Fix in two files**:
+The total billed calculation becomes:
 
-**File**: `src/components/bills/EditExtractedBillDialog.tsx`
-- Line 870: Add a "Confidence" table header AFTER the Purchase Order header
-- Lines 919-938: Move the confidence display to its own TableCell AFTER the PO cell (instead of rendering inside POSelectionDropdown)
+```text
+const totalBilled = lineLevelBilled + poLevelOnlyBilled;
+```
 
-**File**: `src/components/bills/POSelectionDropdown.tsx`
-- Line 144-145: Remove the `confidenceBadge` from inside the dropdown component (it will be rendered externally in the table)
+This means only bills that are explicitly linked to the PO (via `purchase_order_id` or `purchase_order_line_id`) will count toward "Billed to Date". For the $720 PO with no bills linked yet, it will correctly show $0.00 billed and $720.00 remaining.
 
-### Summary of Changes
+### Summary
 
 | File | Change |
 |------|--------|
-| `src/components/bills/EditExtractedBillDialog.tsx` | Revert memo to `line.memo \|\| ""`, add `matchingText` field, add Confidence header after PO, render confidence badge in its own cell |
-| `src/components/bills/POSelectionDropdown.tsx` | Remove internal confidence badge rendering, hide line dropdown when line is already selected |
+| `src/utils/poLineMatching.ts` | Add perfect-match override: cost code + exact amount = 95% confidence minimum |
+| `src/hooks/useVendorPurchaseOrders.ts` | Remove implicit cost-code-based billing; only count explicitly linked bills |
+
+### Expected Results
+
+- **$720 Framing Labor line**: Confidence badge shows 95% (green) instead of 72%
+- **PO 2026-115E-0056 info popup**: Shows $0.00 Billed to Date, $720.00 Remaining (instead of $12,885 billed / -$12,165 remaining)
+- No "Over Budget" warning on a fresh PO that hasn't been billed yet
 
