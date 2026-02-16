@@ -26,7 +26,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { format } from "date-fns";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
-import { POComparisonDialog } from "./POComparisonDialog";
+import { PODetailsDialogWrapper } from "./PODetailsDialogWrapper";
 import { CreditUsageHistoryDialog } from "./CreditUsageHistoryDialog";
 
 interface BillAttachment {
@@ -1183,18 +1183,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
         billId={editingBillId || ''}
       />
 
-      <POComparisonDialog
-        open={poDialogState.open}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPoDialogState({ open: false, poMatch: null, bill: null });
-          }
-        }}
-        poMatch={poDialogState.poMatch}
-        projectId={poDialogState.bill?.project_id || null}
-        vendorId={poDialogState.bill?.vendor_id || null}
-        currentBillAmount={poDialogState.bill?.total_amount}
-        currentBillReference={poDialogState.bill?.reference_number || undefined}
+      <PODetailsDialogWrapper
+        poDialogState={poDialogState}
+        onClose={() => setPoDialogState({ open: false, poMatch: null, bill: null })}
       />
 
       <CreditUsageHistoryDialog

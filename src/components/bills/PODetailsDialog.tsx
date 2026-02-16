@@ -11,6 +11,8 @@ interface PODetailsDialogProps {
   purchaseOrder: VendorPurchaseOrder | null;
   projectId: string | null | undefined;
   vendorId: string | null | undefined;
+  currentBillAmount?: number;
+  currentBillReference?: string;
 }
 
 const formatCurrency = (amount: number) =>
@@ -23,6 +25,8 @@ export function PODetailsDialog({
   open,
   onOpenChange,
   purchaseOrder,
+  currentBillAmount,
+  currentBillReference,
 }: PODetailsDialogProps) {
   if (!purchaseOrder) return null;
 
@@ -166,6 +170,15 @@ export function PODetailsDialog({
             <span className="text-sm text-destructive">
               This PO is over budget by {formatCurrency(Math.abs(purchaseOrder.remaining))}
             </span>
+          </div>
+        )}
+
+        {currentBillAmount !== undefined && (
+          <div className="bg-muted/50 rounded-lg p-3 text-sm">
+            <span className="text-muted-foreground">Current Bill: </span>
+            <span className="font-medium">{currentBillReference || 'No Reference'}</span>
+            <span className="text-muted-foreground"> for </span>
+            <span className="font-medium">{formatCurrency(currentBillAmount)}</span>
           </div>
         )}
       </DialogContent>
