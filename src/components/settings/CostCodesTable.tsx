@@ -6,6 +6,7 @@ import { CostCodeGroupRow } from './CostCodeGroupRow';
 import { PriceHistoryModal } from './PriceHistoryModal';
 import type { Tables } from '@/integrations/supabase/types';
 import { compareCostCodes } from '@/lib/costCodeSort';
+import { SettingsTableWrapper } from '@/components/ui/settings-table-wrapper';
 
 type CostCode = Tables<'cost_codes'>;
 
@@ -70,7 +71,7 @@ export function CostCodesTable({
           skipAutoSync={isEditing}
         />
       )}
-    <div className="border rounded-lg overflow-hidden">
+    <SettingsTableWrapper>
       <Table>
         <TableHeader>
           <TableRow>
@@ -159,7 +160,7 @@ export function CostCodesTable({
           )}
         </TableBody>
       </Table>
-    </div>
+    </SettingsTableWrapper>
     </>
   );
 }

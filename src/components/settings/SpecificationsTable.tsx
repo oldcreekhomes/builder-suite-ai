@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { SpecificationTableRow } from './SpecificationTableRow';
 import { SpecificationGroupRow } from './SpecificationGroupRow';
 import type { Tables } from '@/integrations/supabase/types';
+import { SettingsTableWrapper } from '@/components/ui/settings-table-wrapper';
 
 type CostCode = Tables<'cost_codes'>;
 type CostCodeSpecification = Tables<'cost_code_specifications'>;
@@ -49,7 +50,7 @@ export function SpecificationsTable({
   getParentCostCode
 }: SpecificationsTableProps) {
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <SettingsTableWrapper>
       <Table>
         <TableHeader>
           <TableRow>
@@ -139,6 +140,6 @@ export function SpecificationsTable({
           )}
         </TableBody>
       </Table>
-    </div>
+    </SettingsTableWrapper>
   );
 }

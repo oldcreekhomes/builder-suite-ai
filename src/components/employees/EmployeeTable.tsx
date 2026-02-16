@@ -11,6 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { EditEmployeeDialog } from "./EditEmployeeDialog";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { TableRowActions } from "@/components/ui/table-row-actions";
+import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 
 interface Employee {
   id: string;
@@ -175,7 +176,7 @@ export function EmployeeTable() {
 
   return (
     <>
-      <div className="rounded-md border">
+      <SettingsTableWrapper>
         <Table>
           <TableHeader>
             <TableRow>
@@ -224,7 +225,7 @@ export function EmployeeTable() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </SettingsTableWrapper>
 
       {editingEmployee && (
         <EditEmployeeDialog
