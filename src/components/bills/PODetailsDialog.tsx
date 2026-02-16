@@ -13,6 +13,7 @@ interface PODetailsDialogProps {
   purchaseOrder: VendorPurchaseOrder | null;
   projectId: string | null | undefined;
   vendorId: string | null | undefined;
+  currentBillId?: string;
   currentBillAmount?: number;
   currentBillReference?: string;
 }
@@ -23,7 +24,9 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   }).format(amount);
 
-function BilledAmountWithTooltip({ amount, invoices }: { amount: number; invoices: BilledInvoice[] }) {
+function BilledAmountWithTooltip({ amount, invoices, currentBillId }: { amount: number; invoices: BilledInvoice[]; currentBillId?: string }) {
+  const hasCurrentBillMatch = currentBillId ? invoices.some(inv => inv.bill_id === currentBillId) : false;
+
   if (invoices.length === 0) {
     return <>{formatCurrency(amount)}</>;
   }
@@ -34,7 +37,10 @@ function BilledAmountWithTooltip({ amount, invoices }: { amount: number; invoice
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="border-b border-dotted border-current cursor-help">
+          <span className={cn(
+            "border-b border-dotted border-current cursor-help",
+            hasCurrentBillMatch && "bg-green-100 text-green-700 px-1 rounded"
+          )}>
             {formatCurrency(amount)}
           </span>
         </TooltipTrigger>
@@ -66,6 +72,7 @@ export function PODetailsDialog({
   open,
   onOpenChange,
   purchaseOrder,
+  currentBillId,
   currentBillAmount,
   currentBillReference,
 }: PODetailsDialogProps) {
@@ -133,7 +140,6 @@ export function PODetailsDialog({
                      <TableHead className="text-xs text-right">PO Amount</TableHead>
                      <TableHead className="text-xs text-right">Billed</TableHead>
                      <TableHead className="text-xs text-right">Remaining</TableHead>
-                     <TableHead className="text-xs text-center">Status</TableHead>
                    </TableRow>
                  </TableHeader>
                  <TableBody>
@@ -147,14 +153,14 @@ export function PODetailsDialog({
                          <TableCell className="text-xs">
                           {line.description || '—'}
                         </TableCell>
-                        <TableCell className="text-xs font-mono">
-                          {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
+                         <TableCell className="text-xs">
+                           {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
                         </TableCell>
                         <TableCell className="text-xs text-right">
                           {formatCurrency(line.amount)}
                         </TableCell>
                         <TableCell className="text-xs text-right">
-                          <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} />
+                          <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} currentBillId={currentBillId} />
                         </TableCell>
                         <TableCell className={cn("text-xs text-right font-medium",
                           lineOver && "text-destructive",
@@ -163,18 +169,7 @@ export function PODetailsDialog({
                         )}>
                           {formatCurrency(line.remaining)}
                         </TableCell>
-                        <TableCell className="text-center">
-                          {lineOver ? (
-                            <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 gap-1 text-xs px-2 py-0.5">
-                              <AlertTriangle className="h-3 w-3" />Over
-                            </Badge>
-                          ) : line.total_billed > 0 ? (
-                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 gap-1 text-xs px-2 py-0.5">
-                              <Check className="h-3 w-3" />Matched
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                      </TableRow>
+                       </TableRow>
                     );
                   })}
 
@@ -187,7 +182,6 @@ export function PODetailsDialog({
                       <TableCell className="text-xs text-right text-amber-700 font-medium">
                         <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
                       </TableCell>
-                      <TableCell></TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   )}
@@ -209,7 +203,6 @@ export function PODetailsDialog({
                     )}>
                       {formatCurrency(purchaseOrder.remaining)}
                     </TableCell>
-                    <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
