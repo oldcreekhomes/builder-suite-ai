@@ -43,7 +43,6 @@ interface POSelectionDropdownProps {
   className?: string;
   disabled?: boolean;
   purchaseOrderLineId?: string;
-  confidence?: number;
 }
 
 /**
@@ -59,7 +58,6 @@ export function POSelectionDropdown({
   className,
   disabled = false,
   purchaseOrderLineId,
-  confidence,
 }: POSelectionDropdownProps) {
   const { data: purchaseOrders, isLoading } = useVendorPurchaseOrders(projectId, vendorId);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -125,24 +123,12 @@ export function POSelectionDropdown({
 
   // Get selected PO for line dropdown
   const selectedPO = value ? purchaseOrders?.find(po => po.id === value) : undefined;
-  const showLineDropdown = selectedPO && selectedPO.line_items.length > 1;
+  const showLineDropdown = selectedPO && selectedPO.line_items.length > 1 && !purchaseOrderLineId;
 
   const selectValue = value || (hasPurchaseOrders ? '__auto__' : '__none__');
 
-  const confidenceBadge = confidence !== undefined && confidence > 0 && value ? (
-    <span className={cn(
-      "text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0",
-      confidence >= 80 ? "bg-green-100 text-green-700" :
-      confidence >= 50 ? "bg-yellow-100 text-yellow-700" :
-      "bg-muted text-muted-foreground"
-    )}>
-      {confidence}%
-    </span>
-  ) : null;
-
   return (
     <div className="flex items-center gap-1">
-      {confidenceBadge}
       <div className="flex flex-col gap-1 flex-1">
         <Select
           value={selectValue}
