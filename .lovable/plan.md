@@ -1,33 +1,35 @@
 
 
-## Allocate INV0010 to "2nd Floor" PO Line
+## Add Billing Tooltip to PO Details Dialog
 
-### The Problem
-The bill line for INV0010 ($7,000) has `purchase_order_id` set to the correct PO, but `purchase_order_line_id` is NULL. That is why it shows as "Unallocated" instead of appearing on the "2nd floor" row.
+### What Changes
 
-### The Fix
-This is a one-line database update -- set `purchase_order_line_id` on the bill line to point to the "2nd floor" PO line.
+When a PO line item has billing against it (even just 1 invoice), hovering over the "Billed" amount will show a tooltip listing each invoice with its reference number, date, and amount.
 
-| Field | Current Value | New Value |
-|-------|--------------|-----------|
-| `bill_lines.purchase_order_line_id` | NULL | `202c5f27-2c15-48f5-924f-9e1da3934414` (2nd floor, $11,008) |
+### Changes Required
 
-Bill line ID: `3683d0d0-b56f-425e-ba4c-c3ff60bb5d41`
+**`src/hooks/useVendorPurchaseOrders.ts`**
 
-### SQL to Execute
+- Expand the `bill_lines` query that fetches line-level billing to also join the parent `bill` record: `reference_number`, `bill_date`, and `id`
+- Add a new `billed_invoices` array to the `POLineItem` interface:
+  ```
+  billed_invoices: Array<{ bill_id: string; reference_number: string; bill_date: string; amount: number }>
+  ```
+- Group fetched bill lines by `purchase_order_line_id` and populate each line item's `billed_invoices` array
+- Similarly, for unallocated PO-level billing, add `unallocated_invoices` to the `VendorPurchaseOrder` interface so the Unallocated row can also have a tooltip
 
-```sql
-UPDATE bill_lines
-SET purchase_order_line_id = '202c5f27-2c15-48f5-924f-9e1da3934414'
-WHERE id = '3683d0d0-b56f-425e-ba4c-c3ff60bb5d41';
-```
+**`src/components/bills/PODetailsDialog.tsx`**
 
-### Result After Fix
-- "2nd floor" row: PO Amount $11,008.00 | Billed $7,000.00 | Remaining $4,008.00
-- "Unallocated" row disappears (no more unallocated billing)
-- All other lines remain at $0.00 billed
-- Header totals unchanged: Billed to Date $7,000.00 | Remaining $35,343.00
+- Import `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` from `@/components/ui/tooltip`
+- Wrap the Billed cell content in a `Tooltip` when `line.billed_invoices.length > 0`
+- Tooltip content shows a small table/list:
+  - Header: "Invoices Billed"
+  - Each row: Reference number, date, and amount (e.g., "INV0010 | 02/15/2026 | $7,000.00")
+  - Footer: Total if more than 1 invoice
+- Style the billed amount with a dotted underline (`border-b border-dotted`) to hint it's hoverable
+- Apply the same tooltip pattern to the Unallocated row if it has invoices
 
-### No Code Changes Needed
-The display logic already handles explicit `purchase_order_line_id` links correctly. This is purely a data fix.
-
+### Result
+- Hovering over "$7,000.00" on the "2nd floor" row shows: "INV0010 | 02/15/2026 | $7,000.00"
+- Works for any line with 1 or more invoices billed against it
+- Consistent with existing tooltip patterns used elsewhere in the app (bank register, etc.)
