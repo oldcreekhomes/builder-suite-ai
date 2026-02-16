@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Image, Plus } from "lucide-react";
+import { Image, Plus, XCircle } from "lucide-react";
 import { useRecentPhotos } from "@/hooks/useRecentPhotos";
 import { usePhotoCount } from "@/hooks/usePhotoCount";
 import { CompanyPhotoViewer } from "@/components/CompanyPhotoViewer";
@@ -20,10 +20,11 @@ export function RecentPhotos() {
             <h3 className="text-lg font-semibold text-black">Recent Photos</h3>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center p-3">
-          <div className="text-center py-3">
-            <Image className="h-6 w-6 text-gray-400 mx-auto mb-1.5" />
-            <p className="text-xs text-gray-500">No photos yet</p>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <XCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="font-medium text-sm">No Photos</p>
+            <p className="text-xs text-muted-foreground">Add photos to a project to see them here</p>
           </div>
         </div>
       </Card>
