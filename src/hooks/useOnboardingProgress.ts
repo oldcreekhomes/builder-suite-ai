@@ -133,9 +133,9 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     { key: "company_profile_completed", label: "Set Up Company Profile", completed: merged.company_profile_completed, link: "/settings?tab=company-profile" },
     { key: "cost_codes_imported", label: "Import Cost Codes", completed: merged.cost_codes_imported, link: "/settings?tab=cost-codes" },
     { key: "chart_of_accounts_imported", label: "Import Chart of Accounts", completed: merged.chart_of_accounts_imported, link: "/settings?tab=chart-of-accounts" },
-    { key: "companies_added", label: "Add Subcontractors", completed: merged.companies_added, link: "/companies" },
+    { key: "companies_added", label: "Add Subcontractors", completed: merged.companies_added, link: "/settings?tab=companies" },
     { key: "first_project_created", label: "Create First Project", completed: merged.first_project_created, action: "new-project" },
-    { key: "employees_invited", label: "Invite Employees", completed: merged.employees_invited, link: "/employees" },
+    { key: "employees_invited", label: "Invite Employees", completed: merged.employees_invited, link: "/settings?tab=employees" },
   ];
 
   const completedCount = steps.filter((s) => s.completed).length;
