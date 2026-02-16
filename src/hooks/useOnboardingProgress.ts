@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 export interface OnboardingStep {
   key: string;
@@ -17,6 +17,8 @@ export interface OnboardingProgress {
   totalCount: number;
   allComplete: boolean;
   isLoading: boolean;
+  dismissed: boolean;
+  dismiss: () => void;
 }
 
 export const useOnboardingProgress = (): OnboardingProgress => {
@@ -140,11 +142,24 @@ export const useOnboardingProgress = (): OnboardingProgress => {
 
   const completedCount = steps.filter((s) => s.completed).length;
 
+  const dismissed = progressRow?.dismissed === true;
+
+  const dismiss = useCallback(async () => {
+    if (!userId) return;
+    await supabase
+      .from("onboarding_progress")
+      .update({ dismissed: true } as any)
+      .eq("home_builder_id", userId);
+    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", userId] });
+  }, [userId, queryClient]);
+
   return {
     steps,
     completedCount,
     totalCount: steps.length,
     allComplete: completedCount === steps.length,
     isLoading: isLoadingProgress || isLoadingLive,
+    dismissed,
+    dismiss,
   };
 };
