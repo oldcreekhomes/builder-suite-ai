@@ -192,7 +192,7 @@ export function EmployeeTable() {
             {employees.map((employee) => (
               <TableRow key={employee.id}>
                 <TableCell className="flex items-center space-x-3">
-                  <Avatar>
+                  <Avatar className="h-6 w-6 text-xs">
                     <AvatarImage src={employee.avatar_url || undefined} alt={`${employee.first_name} ${employee.last_name}`} />
                     <AvatarFallback>
                       {getInitials(employee.first_name, employee.last_name)}
