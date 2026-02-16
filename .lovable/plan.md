@@ -1,39 +1,38 @@
 
 
-## Two UI Updates to PO Details Dialog
+## Three UI Changes to PO Details Dialog
 
-### 1. Show Full Cost Code (Number + Name)
-
-Currently the Cost Code column in the PO Details dialog shows only the numeric code (e.g., "4370"). It should display both the code and name (e.g., "4370: Framing Labor") to match the format used in the Manage Bills table.
+### 1. Remove monospace font from Cost Code column
 
 **File: `src/components/bills/PODetailsDialog.tsx`** (line 150)
 
-Change:
-```
-{line.cost_code ? line.cost_code.code : '—'}
-```
-To:
-```
-{line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
-```
+Remove `font-mono` from the Cost Code cell so it matches the Description font.
 
-The `cost_code` object already includes `name` (from `useVendorPurchaseOrders.ts` which fetches `id, code, name`), so no data changes are needed.
+Change: `className="text-xs font-mono"` to `className="text-xs"`
 
 ---
 
-### 2. Add "Matched" Status Indicator to Billed Rows
+### 2. Delete the Status column
 
-For PO line items that have billing allocated against them (`total_billed > 0`), add a green "Matched" badge (with checkmark icon) in a new "Status" column -- matching the same visual style as the `POStatusBadge` used in the Manage Bills table.
+Remove the Status column header (line 136) and all Status cells from line item rows, unallocated row, and totals row.
 
-**File: `src/components/bills/PODetailsDialog.tsx`**
+---
 
-- Import `Check` from lucide-react
-- Add a new "Status" column header after "Remaining"
-- For each line item row:
-  - If `total_billed > 0` and `remaining >= 0`: show a green badge with checkmark and "Matched" text (using `bg-green-100 text-green-700` classes)
-  - If `remaining < 0` (over budget): show a yellow/amber badge with warning icon and "Over" text
-  - If `total_billed === 0`: leave blank (no allocation yet)
-- Empty cells in the Unallocated and Totals rows
+### 3. Highlight billed amounts belonging to the current bill in green
 
-This gives users an instant visual indicator of which PO lines have invoices allocated, directly matching the familiar green "Matched" badge they already see in the bills table.
+When the dialog shows "Current Bill: INV0012 for $4,206.00", the user needs to see which line-item billed amounts make up that total. For example, $3,206 on "First floor" and $1,000 on "Decks" should be visually highlighted in green so the user can trace how the bill total was allocated.
 
+**How it works:**
+- Pass `currentBillId` (the bill's database ID) through the wrapper into the dialog
+- For each PO line item, check if any of its `billed_invoices` have a `bill_id` matching the current bill
+- If matched, render those specific invoice amounts with a green highlight (green background pill/badge style) instead of the plain number
+- The `BilledAmountWithTooltip` component will be updated to accept the `currentBillId` and, when a match exists, render the amount with `bg-green-100 text-green-700 rounded px-1` styling
+
+**Data flow changes:**
+- `PODetailsDialogWrapper`: pass `bill.id` as a new `currentBillId` prop
+- `PODetailsDialog`: accept `currentBillId` prop, pass it to `BilledAmountWithTooltip`
+- `BilledAmountWithTooltip`: if any invoice's `bill_id` matches `currentBillId`, apply green highlight styling to the amount text
+
+**Files to edit:**
+- `src/components/bills/PODetailsDialogWrapper.tsx` -- pass `bill?.id` as `currentBillId`
+- `src/components/bills/PODetailsDialog.tsx` -- accept prop, remove Status column, remove font-mono, update BilledAmountWithTooltip to highlight matching amounts
