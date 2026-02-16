@@ -51,7 +51,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
           supabase.from("users").select("confirmed, hq_address").eq("id", userId).single(),
           supabase.from("cost_codes").select("id", { count: "exact", head: true }).eq("owner_id", userId),
           supabase.from("accounts").select("id", { count: "exact", head: true }).eq("owner_id", userId),
-          supabase.from("companies").select("id", { count: "exact", head: true }).eq("home_builder_id", userId),
+          supabase.from("companies").select("id", { count: "exact", head: true }).eq("home_builder_id", userId).is("archived_at", null),
           supabase.from("projects").select("id", { count: "exact", head: true }).eq("owner_id", userId),
           supabase.from("users").select("id", { count: "exact", head: true }).eq("home_builder_id", userId).eq("user_type", "employee"),
         ]);
