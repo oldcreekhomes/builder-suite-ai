@@ -19,6 +19,7 @@ import { TableRowActions } from "@/components/ui/table-row-actions";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
+import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 
 
 interface Representative {
@@ -287,7 +288,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
 
   return (
     <>
-      <div className="border rounded-lg overflow-hidden">
+      <SettingsTableWrapper>
         <Table>
           <TableHeader>
             <TableRow>
@@ -306,38 +307,38 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
           <TableBody>
             {filteredRepresentatives.length === 0 && searchQuery ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
                   No representatives found matching "{searchQuery}".
                 </TableCell>
               </TableRow>
             ) : representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
             ) : (
               filteredRepresentatives.map((rep) => (
-                <TableRow key={rep.id} className="h-10">
-                  <TableCell className="px-2 py-1 text-xs font-medium align-middle">
+                <TableRow key={rep.id}>
+                  <TableCell className="font-medium">
                     {rep.first_name}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs font-medium align-middle">
+                  <TableCell className="font-medium">
                     {rep.last_name}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs align-middle whitespace-nowrap">{rep.companies?.company_name}</TableCell>
-                  <TableCell className="px-2 py-1 align-middle">
+                  <TableCell className="whitespace-nowrap">{rep.companies?.company_name}</TableCell>
+                  <TableCell>
                     <Select 
                       value={rep.title || ''} 
                       onValueChange={(value) => handleTitleChange(rep.id, value)}
                     >
-                      <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
+                      <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:outline-0 [&>svg]:hidden">
                         {rep.title ? (
-                          <Badge className={`${getTypeColor(rep.title)} text-[10px] px-1 py-0 border-0`}>
+                          <Badge className={`${getTypeColor(rep.title)} px-1.5 py-0.5 border-0`}>
                             {representativeTypes.find(t => t.value === rep.title)?.label || rep.title}
                           </Badge>
                         ) : (
-                          <span className="text-xs text-gray-400">Enter type</span>
+                          <span className="text-muted-foreground">Enter type</span>
                         )}
                       </SelectTrigger>
                       <SelectContent className="bg-background border-border shadow-lg z-50">
@@ -345,7 +346,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                           <SelectItem 
                             key={type.value} 
                             value={type.value}
-                            className="text-xs hover:bg-accent"
+                            className="hover:bg-accent"
                           >
                             {type.label}
                           </SelectItem>
@@ -353,26 +354,26 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="px-2 py-1 align-middle min-w-[200px]">
+                  <TableCell className="min-w-[200px]">
                     <input
                       value={rep.email || ''}
                       onChange={(e) => handleEmailChange(rep.id, e.target.value)}
                       onBlur={(e) => handleEmailChange(rep.id, e.target.value)}
                       placeholder="Enter email"
-                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
+                      className="w-full bg-transparent text-sm border-none outline-none p-0 m-0"
                       type="email"
                     />
                   </TableCell>
-                  <TableCell className="px-2 py-1 align-middle">
+                  <TableCell>
                     <input
                       value={rep.phone_number || ''}
                       onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
                       onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
                       placeholder="Enter phone"
-                      className="w-full bg-transparent text-xs border-none outline-none p-0 m-0"
+                      className="w-full bg-transparent text-sm border-none outline-none p-0 m-0"
                     />
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center align-middle">
+                  <TableCell className="text-center">
                     <div className="flex justify-center">
                       <Checkbox
                         checked={rep.receive_bid_notifications || false}
@@ -381,7 +382,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center align-middle">
+                  <TableCell className="text-center">
                     <div className="flex justify-center">
                       <Checkbox
                         checked={rep.receive_schedule_notifications || false}
@@ -390,7 +391,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center align-middle">
+                  <TableCell className="text-center">
                     <div className="flex justify-center">
                       <Checkbox
                         checked={rep.receive_po_notifications || false}
@@ -399,7 +400,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                       />
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 align-middle">
+                  <TableCell>
                     <div className="flex justify-center">
                       <TableRowActions actions={[
                         {
@@ -423,7 +424,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
             )}
           </TableBody>
         </Table>
-      </div>
+      </SettingsTableWrapper>
 
       <EditRepresentativeDialog
         representative={editingRepresentative}
