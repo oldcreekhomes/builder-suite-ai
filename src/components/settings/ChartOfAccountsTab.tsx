@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { EditAccountDialog } from "./EditAccountDialog";
 import { AddAccountDialog } from "./AddAccountDialog";
 import { TableRowActions } from "@/components/ui/table-row-actions";
+import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { ChartOfAccountsTemplateDialog } from "./ChartOfAccountsTemplateDialog";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -175,7 +176,7 @@ export const ChartOfAccountsTab = () => {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg">
+      <SettingsTableWrapper>
           <Table>
             <TableHeader>
               <TableRow>
@@ -235,7 +236,7 @@ export const ChartOfAccountsTab = () => {
               )}
             </TableBody>
           </Table>
-        </div>
+      </SettingsTableWrapper>
 
       <ChartOfAccountsTemplateDialog
         open={templateDialogOpen}
