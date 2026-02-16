@@ -32,6 +32,8 @@ export function PurchaseOrdersTableRowContent({
   projectId
 }: PurchaseOrdersTableRowContentProps) {
   const costCode = item.cost_codes;
+  const lineCount = (item as any).purchase_order_lines?.length || 0;
+  const hasMultipleLines = lineCount > 1;
 
   return (
     <TableRow>
@@ -51,7 +53,7 @@ export function PurchaseOrdersTableRowContent({
       <TableCell>
         <div className={`${costCode?.parent_group ? 'ml-4' : ''}`}>
           <div className="font-medium">
-            {costCode?.code}: {costCode?.name}
+            {hasMultipleLines ? 'Multiple' : costCode ? `${costCode.code}: ${costCode.name}` : 'N/A'}
           </div>
         </div>
       </TableCell>
@@ -64,7 +66,7 @@ export function PurchaseOrdersTableRowContent({
       
       <TableCell>
         <div className="font-medium">
-          {item.total_amount ? `$${item.total_amount.toLocaleString()}` : 'N/A'}
+          {item.total_amount ? `$${item.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
         </div>
       </TableCell>
       

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { cn } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface PODetailsDialogProps {
   open: boolean;
@@ -25,26 +26,41 @@ export function PODetailsDialog({
   projectId,
   vendorId,
 }: PODetailsDialogProps) {
+  // Fetch PO lines
+  const { data: poLines = [] } = useQuery({
+    queryKey: ['po-detail-lines', purchaseOrder?.id],
+    queryFn: async () => {
+      if (!purchaseOrder?.id) return [];
+      const { data, error } = await supabase
+        .from('purchase_order_lines')
+        .select('*')
+        .eq('purchase_order_id', purchaseOrder.id)
+        .order('line_number', { ascending: true });
+      if (error) throw error;
+
+      // Fetch cost codes
+      const ccIds = [...new Set((data || []).map(l => l.cost_code_id).filter(Boolean))];
+      let ccMap = new Map();
+      if (ccIds.length > 0) {
+        const { data: ccs } = await supabase.from('cost_codes').select('id, code, name').in('id', ccIds);
+        ccMap = new Map(ccs?.map(c => [c.id, c]) || []);
+      }
+      return (data || []).map(l => ({ ...l, cost_codes: ccMap.get(l.cost_code_id) }));
+    },
+    enabled: open && !!purchaseOrder?.id,
+  });
+
   // Fetch related bills for this PO
   const { data: relatedBills } = useQuery({
     queryKey: ['po-related-bills', purchaseOrder?.id, purchaseOrder?.cost_code_id, projectId, vendorId],
     queryFn: async () => {
       if (!purchaseOrder || !projectId || !vendorId) return [];
 
-      // Get bills by explicit PO link or by cost code match
       const { data: bills, error } = await supabase
         .from('bills')
         .select(`
-          id,
-          reference_number,
-          bill_date,
-          total_amount,
-          status,
-          bill_lines!inner (
-            purchase_order_id,
-            cost_code_id,
-            amount
-          )
+          id, reference_number, bill_date, total_amount, status,
+          bill_lines!inner ( purchase_order_id, cost_code_id, amount )
         `)
         .eq('project_id', projectId)
         .eq('vendor_id', vendorId)
@@ -54,9 +70,8 @@ export function PODetailsDialog({
 
       if (error) throw error;
 
-      // Filter bills that match this PO (by explicit link or cost code)
       return (bills || []).filter(bill => {
-        return bill.bill_lines.some((line: { purchase_order_id: string | null; cost_code_id: string | null }) => 
+        return bill.bill_lines.some((line: any) => 
           line.purchase_order_id === purchaseOrder.id ||
           (!line.purchase_order_id && line.cost_code_id === purchaseOrder.cost_code_id)
         );
@@ -67,11 +82,11 @@ export function PODetailsDialog({
         total_amount: bill.total_amount,
         status: bill.status,
         lineAmount: bill.bill_lines
-          .filter((line: { purchase_order_id: string | null; cost_code_id: string | null }) => 
+          .filter((line: any) => 
             line.purchase_order_id === purchaseOrder.id ||
             (!line.purchase_order_id && line.cost_code_id === purchaseOrder.cost_code_id)
           )
-          .reduce((sum: number, line: { amount: number }) => sum + (line.amount || 0), 0)
+          .reduce((sum: number, line: any) => sum + (line.amount || 0), 0)
       }));
     },
     enabled: open && !!purchaseOrder && !!projectId && !!vendorId,
@@ -79,10 +94,8 @@ export function PODetailsDialog({
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      style: 'currency', currency: 'USD',
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -115,23 +128,13 @@ export function PODetailsDialog({
                   {purchaseOrder.po_number}
                 </Badge>
               </div>
-              {/* Status indicator */}
               <div className="text-right">
                 {isOverBudget ? (
-                  <Badge variant="destructive" className="gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Over Budget
-                  </Badge>
+                  <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Over Budget</Badge>
                 ) : isWarning ? (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Near Limit
-                  </Badge>
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    On Track
-                  </Badge>
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><CheckCircle2 className="h-3 w-3" />On Track</Badge>
                 )}
               </div>
             </div>
@@ -146,7 +149,7 @@ export function PODetailsDialog({
             )}
           </div>
 
-          {/* Progress bar with remaining indicator */}
+          {/* Progress bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Budget Utilization</span>
@@ -154,8 +157,7 @@ export function PODetailsDialog({
             </div>
             <Progress 
               value={Math.min(utilizationPercent, 100)} 
-              className={cn(
-                "h-3",
+              className={cn("h-3",
                 isOverBudget && "[&>div]:bg-destructive",
                 isWarning && "[&>div]:bg-amber-500",
                 isHealthy && "[&>div]:bg-green-500"
@@ -185,14 +187,12 @@ export function PODetailsDialog({
               isHealthy && "border-green-500 bg-green-50"
             )}>
               <CardContent className="p-3 text-center">
-                <TrendingDown className={cn(
-                  "h-4 w-4 mx-auto mb-1",
+                <TrendingDown className={cn("h-4 w-4 mx-auto mb-1",
                   isOverBudget && "text-destructive",
                   isWarning && "text-amber-600",
                   isHealthy && "text-green-600"
                 )} />
-                <div className={cn(
-                  "text-lg font-semibold",
+                <div className={cn("text-lg font-semibold",
                   isOverBudget && "text-destructive",
                   isWarning && "text-amber-700",
                   isHealthy && "text-green-700"
@@ -204,13 +204,45 @@ export function PODetailsDialog({
             </Card>
           </div>
 
-          {/* Over budget warning message */}
           {isOverBudget && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
               <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
               <span className="text-sm text-destructive">
                 This PO is over budget by {formatCurrency(Math.abs(purchaseOrder.remaining))}
               </span>
+            </div>
+          )}
+
+          {/* Line Items Breakdown */}
+          {poLines.length > 1 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Line Items</h4>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Cost Code</TableHead>
+                      <TableHead className="text-xs">Description</TableHead>
+                      <TableHead className="text-xs text-right">Qty</TableHead>
+                      <TableHead className="text-xs text-right">Unit Cost</TableHead>
+                      <TableHead className="text-xs text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {poLines.map((line: any) => (
+                      <TableRow key={line.id}>
+                        <TableCell className="text-xs">
+                          {line.cost_codes ? `${line.cost_codes.code}` : '—'}
+                        </TableCell>
+                        <TableCell className="text-xs">{line.description || '—'}</TableCell>
+                        <TableCell className="text-xs text-right">{line.quantity}</TableCell>
+                        <TableCell className="text-xs text-right">{formatCurrency(line.unit_cost)}</TableCell>
+                        <TableCell className="text-xs text-right font-medium">{formatCurrency(line.amount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
 
@@ -226,12 +258,8 @@ export function PODetailsDialog({
                 </div>
                 {relatedBills.map((bill) => (
                   <div key={bill.id} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
-                    <span className="font-mono text-xs">
-                      {bill.reference_number || '—'}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {formatDateSafe(bill.bill_date, 'MM/dd/yy')}
-                    </span>
+                    <span className="font-mono text-xs">{bill.reference_number || '—'}</span>
+                    <span className="text-muted-foreground">{formatDateSafe(bill.bill_date, 'MM/dd/yy')}</span>
                     <span className="font-medium text-right">{formatCurrency(bill.lineAmount)}</span>
                   </div>
                 ))}
