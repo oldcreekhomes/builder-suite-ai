@@ -1,54 +1,38 @@
 
 
-## Per-Project Chart of Accounts Selection
+## Move Profile to Settings Page as "My Profile"
 
 ### Overview
-Add a new "Chart of Accounts" tab inside the Edit Project dialog that lets users check/uncheck which accounts apply to each project. Excluded accounts will be hidden from that project's Balance Sheet and Income Statement.
+Move the profile editing UI (avatar, name, email, phone) from the popup dialog into the Settings page as a new "My Profile" tab. The tab will be placed in alphabetical order between "Dashboards" and "Employees". The sidebar dropdown "Profile" option will navigate to `/settings?tab=my-profile` instead of opening a dialog.
 
-### Database Change
+### Changes
 
-**New table: `project_account_exclusions`**
-- `id` (uuid, PK)
-- `project_id` (uuid, FK to projects, NOT NULL)
-- `account_id` (uuid, FK to accounts, NOT NULL)
-- `created_at` (timestamptz)
-- Unique constraint on (project_id, account_id)
-- RLS enabled with policies matching the projects table access pattern
+**1. New file: `src/components/settings/MyProfileTab.tsx`**
+- Extract the profile form (avatar upload, first/last name, email, phone, save button) from `ProfileDialog.tsx` into a standalone settings tab component
+- Follow the same layout pattern as other settings tabs: header with title (h3) and subtitle, then the form content in a Card
+- Reuse the same hooks (`useAuth`, `useUserProfile`) and Supabase logic
 
-This "exclusion" approach means all accounts are included by default -- users only need to uncheck the ones that don't apply. No data migration needed.
+**2. `src/pages/Settings.tsx`**
+- Import and add `MyProfileTab`
+- Add a new `TabsTrigger` for "My Profile" between "Dashboards" (line 170) and "Employees" (line 171)
+- Add a corresponding `TabsContent` for the `my-profile` value
 
-### UI Changes
+**3. `src/components/sidebar/SidebarUserDropdown.tsx`**
+- Change the "Profile" dropdown item from opening the dialog (`setProfileOpen(true)`) to navigating: `navigate('/settings?tab=my-profile')`
+- Remove the `ProfileDialog` import and usage
+- Remove the `profileOpen` state
 
-**1. Edit Project Dialog (`src/components/EditProjectDialog.tsx`)**
-- Add a Tabs component inside the dialog with two tabs: "Project Details" (existing form) and "Chart of Accounts" (new)
-- Widen the dialog slightly to accommodate the accounts list (`sm:max-w-[650px]`)
+**4. `src/components/ProfileDialog.tsx`**
+- Keep the file for now (in case it's referenced elsewhere), but it will no longer be actively used from the sidebar
 
-**2. New Component: `src/components/ProjectAccountsTab.tsx`**
-- Receives `projectId` as prop
-- Fetches all active accounts grouped by type (Asset, Liability, Equity, Revenue, Expense)
-- Fetches current exclusions from `project_account_exclusions`
-- Displays each group as a collapsible section with account code, name, and a checkbox
-- Checked = account is used in this project (default); Unchecked = excluded
-- On toggle, inserts or deletes from `project_account_exclusions`
-- Changes are saved immediately (no need to hit "Update Project")
-
-### Report Filtering
-
-**3. Balance Sheet (`src/components/reports/BalanceSheetContent.tsx`)**
-- When `projectId` is provided, fetch excluded account IDs from `project_account_exclusions`
-- Filter out excluded accounts before categorizing into assets/liabilities/equity
-- This happens at line ~116 where accounts are iterated
-
-**4. Income Statement (`src/components/reports/IncomeStatementContent.tsx`)**
-- Same filtering: exclude accounts that appear in `project_account_exclusions` for the given project
-
-### Files to Create
-- `supabase/migrations/[timestamp]_create_project_account_exclusions.sql` -- new table + RLS
-- `src/components/ProjectAccountsTab.tsx` -- checkbox UI for account selection
-
-### Files to Modify
-- `src/components/EditProjectDialog.tsx` -- add Tabs with "Project Details" and "Chart of Accounts"
-- `src/components/reports/BalanceSheetContent.tsx` -- filter out excluded accounts
-- `src/components/reports/IncomeStatementContent.tsx` -- filter out excluded accounts
-- `src/integrations/supabase/types.ts` -- auto-updated with new table type
+### Alphabetical Order (updated)
+1. Budget
+2. Chart of Accounts
+3. Company Profile
+4. Cost Codes
+5. Dashboards
+6. **My Profile** (new)
+7. Employees
+8. Specifications
+9. Suppliers (Companies, Representatives)
 
