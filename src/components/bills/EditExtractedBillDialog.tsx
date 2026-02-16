@@ -86,6 +86,7 @@ interface LineItem {
   unit_cost: number;
   amount: number;
   memo?: string;
+  matchingText?: string;
   poConfidence?: number;
 }
 
@@ -228,7 +229,8 @@ export function EditExtractedBillDialog({
                 quantity: qty,
                 unit_cost: unitCost,
                 amount: amt,
-                memo: line.memo || line.description || "",
+                memo: line.memo || "",
+                matchingText: line.description || line.memo || "",
               });
             } else if (line.line_type === 'expense') {
               // If vendor has exactly one cost code and the expense line isn't categorized, promote it to job_cost
@@ -241,7 +243,8 @@ export function EditExtractedBillDialog({
                   quantity: qty,
                   unit_cost: unitCost,
                   amount: amt,
-                  memo: line.memo || line.description || "",
+                  memo: line.memo || "",
+                  matchingText: line.description || line.memo || "",
                 });
               } else {
                 expense.push({
@@ -251,7 +254,8 @@ export function EditExtractedBillDialog({
                   quantity: qty,
                   unit_cost: unitCost,
                   amount: amt,
-                  memo: line.memo || line.description || "",
+                  memo: line.memo || "",
+                  matchingText: line.description || line.memo || "",
                 });
               }
           }
@@ -395,7 +399,7 @@ export function EditExtractedBillDialog({
       if (line.purchase_order_id) return line; // Already assigned
       
       const match = getBestPOLineMatch(
-        line.memo || '',
+        line.matchingText || line.memo || '',
         line.amount,
         line.cost_code_id,
         allPOLines,
@@ -868,6 +872,7 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[120px]">Total</TableHead>
                       {showPOSelection && <TableHead className="w-[200px]">Purchase Order</TableHead>}
+                      {showPOSelection && <TableHead className="w-[80px]">Confidence</TableHead>}
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -933,8 +938,21 @@ export function EditExtractedBillDialog({
                               );
                             }}
                             costCodeId={line.cost_code_id}
-                            confidence={line.poConfidence}
                           />
+                        </TableCell>
+                      )}
+                      {showPOSelection && (
+                        <TableCell>
+                          {line.poConfidence !== undefined && line.poConfidence > 0 && line.purchase_order_id ? (
+                            <span className={cn(
+                              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap",
+                              line.poConfidence >= 80 ? "bg-green-100 text-green-700" :
+                              line.poConfidence >= 50 ? "bg-yellow-100 text-yellow-700" :
+                              "bg-muted text-muted-foreground"
+                            )}>
+                              {line.poConfidence}%
+                            </span>
+                          ) : null}
                         </TableCell>
                       )}
                       <TableCell>

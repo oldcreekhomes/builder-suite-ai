@@ -893,7 +893,6 @@ export function ManualBillEntry() {
                           ));
                         }}
                         costCodeId={row.accountId}
-                        confidence={row.poConfidence}
                       />
                     </div>
                     {showAddressColumn && (
