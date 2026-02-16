@@ -6,7 +6,7 @@ interface PODetailsDialogWrapperProps {
   poDialogState: {
     open: boolean;
     poMatch: POMatch | null;
-    bill: { project_id?: string | null; vendor_id?: string; total_amount?: number; reference_number?: string | null } | null;
+    bill: { id?: string; project_id?: string | null; vendor_id?: string; total_amount?: number; reference_number?: string | null } | null;
   };
   onClose: () => void;
 }
@@ -26,6 +26,7 @@ export function PODetailsDialogWrapper({ poDialogState, onClose }: PODetailsDial
       purchaseOrder={matchedPO}
       projectId={poDialogState.bill?.project_id || null}
       vendorId={poDialogState.bill?.vendor_id || null}
+      currentBillId={poDialogState.bill?.id}
       currentBillAmount={poDialogState.bill?.total_amount}
       currentBillReference={poDialogState.bill?.reference_number || undefined}
     />
