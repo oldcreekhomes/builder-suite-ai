@@ -774,6 +774,17 @@ CRITICAL COST CODE FORMAT RULE:
 - CORRECT: "4020: Project Manager"
 - If vendor has exactly one cost code, ALWAYS use it and ignore description-based suggestions.
 
+MULTI-ITEM INVOICE SPLITTING RULES:
+- When an invoice body contains MULTIPLE items with individual dollar amounts 
+  (e.g., "Deck balance - $1032 / Siding draw - $3500 / Framing - $720"), 
+  you MUST create SEPARATE line_items for EACH item.
+- Each line item gets its own description, quantity, unit_cost, and amount.
+- DO NOT combine multiple items into a single line_items entry.
+- The sum of all line item amounts should equal the total_amount.
+- Common patterns: draw schedules, progress billing, multi-scope invoices.
+- Each line item should be categorized with its own cost_code_name based 
+  on its description (e.g., "Deck" -> framing/carpentry code, "Siding" -> siding code).
+
 🔍 FINAL VALIDATION CHECKLIST (before returning JSON):
 ✓ All field names use snake_case (vendor_name, bill_date, NOT vendorName, billDate)
 ✓ vendor_name is populated

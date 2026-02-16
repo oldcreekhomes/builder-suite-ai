@@ -222,7 +222,7 @@ export function EditExtractedBillDialog({
                 quantity: qty,
                 unit_cost: unitCost,
                 amount: amt,
-                memo: line.memo || "",
+                memo: line.memo || line.description || "",
               });
             } else if (line.line_type === 'expense') {
               // If vendor has exactly one cost code and the expense line isn't categorized, promote it to job_cost
@@ -235,7 +235,7 @@ export function EditExtractedBillDialog({
                   quantity: qty,
                   unit_cost: unitCost,
                   amount: amt,
-                  memo: line.memo || "",
+                  memo: line.memo || line.description || "",
                 });
               } else {
                 expense.push({
@@ -245,7 +245,7 @@ export function EditExtractedBillDialog({
                   quantity: qty,
                   unit_cost: unitCost,
                   amount: amt,
-                  memo: line.memo || "",
+                  memo: line.memo || line.description || "",
                 });
               }
           }
