@@ -25,7 +25,7 @@ import { BillNotesDialog } from "./BillNotesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
-import { POSelectionDropdown, useShouldShowPOSelection, findMatchingPOForCostCode } from "./POSelectionDropdown";
+import { POSelectionDropdown, useShouldShowPOSelection, findMatchingPOForCostCode, findMatchingPOLineForCostCode } from "./POSelectionDropdown";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 
 // Normalize terms from any format to standardized dropdown values
@@ -55,6 +55,7 @@ interface ExpenseRow {
   projectId?: string;
   lotId?: string;
   purchaseOrderId?: string;
+  purchaseOrderLineId?: string;
   quantity: string;
   amount: string;
   memo: string;
@@ -440,6 +441,7 @@ export function ManualBillEntry() {
           project_id: row.projectId || projectId || undefined,
           lot_id: row.lotId || singleLotId || undefined,
           purchase_order_id: row.purchaseOrderId || undefined,
+          purchase_order_line_id: row.purchaseOrderLineId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -452,6 +454,8 @@ export function ManualBillEntry() {
           account_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           lot_id: row.lotId || singleLotId || undefined,
+          purchase_order_id: row.purchaseOrderId || undefined,
+          purchase_order_line_id: row.purchaseOrderLineId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -763,6 +767,10 @@ export function ManualBillEntry() {
                           const matchingPO = findMatchingPOForCostCode(vendorPOs, costCode.id);
                           if (matchingPO) {
                             updateJobCostRow(row.id, 'purchaseOrderId', matchingPO);
+                            const matchingLine = findMatchingPOLineForCostCode(vendorPOs, matchingPO, costCode.id);
+                            if (matchingLine) {
+                              updateJobCostRow(row.id, 'purchaseOrderLineId', matchingLine);
+                            }
                           }
                         }}
                         placeholder="Cost Code"
@@ -829,7 +837,11 @@ export function ManualBillEntry() {
                         projectId={projectId}
                         vendorId={vendorId}
                         value={row.purchaseOrderId}
-                        onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
+                        purchaseOrderLineId={row.purchaseOrderLineId}
+                        onChange={(poId, poLineId) => {
+                          updateJobCostRow(row.id, 'purchaseOrderId', poId || '');
+                          updateJobCostRow(row.id, 'purchaseOrderLineId', poLineId || '');
+                        }}
                         costCodeId={row.accountId}
                       />
                     </div>
@@ -1026,7 +1038,11 @@ export function ManualBillEntry() {
                         projectId={projectId}
                         vendorId={vendorId}
                         value={row.purchaseOrderId}
-                        onChange={(poId) => updateExpenseRow(row.id, 'purchaseOrderId', poId || '')}
+                        purchaseOrderLineId={row.purchaseOrderLineId}
+                        onChange={(poId, poLineId) => {
+                          updateExpenseRow(row.id, 'purchaseOrderId', poId || '');
+                          updateExpenseRow(row.id, 'purchaseOrderLineId', poLineId || '');
+                        }}
                       />
                     </div>
                     {showAddressColumn && (

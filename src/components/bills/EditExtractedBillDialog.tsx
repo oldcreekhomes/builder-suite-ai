@@ -80,6 +80,7 @@ interface LineItem {
   cost_code_id?: string;
   cost_code_display?: string;
   purchase_order_id?: string;
+  purchase_order_line_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -864,11 +865,12 @@ export function EditExtractedBillDialog({
                             projectId={projectId}
                             vendorId={vendorId}
                             value={line.purchase_order_id}
-                            onChange={(poId) => {
+                            purchaseOrderLineId={line.purchase_order_line_id}
+                            onChange={(poId, poLineId) => {
                               setJobCostLines(lines =>
                                 lines.map(l => 
                                   l.id === line.id 
-                                    ? { ...l, purchase_order_id: poId }
+                                    ? { ...l, purchase_order_id: poId, purchase_order_line_id: poLineId }
                                     : l
                                 )
                               );

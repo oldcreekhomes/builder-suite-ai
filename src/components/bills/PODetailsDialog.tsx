@@ -1,13 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { VendorPurchaseOrder } from "@/hooks/useVendorPurchaseOrders";
-import { FileText, AlertTriangle, DollarSign, Receipt, TrendingDown, CheckCircle2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { formatDateSafe } from "@/utils/dateOnly";
+import { FileText, AlertTriangle, CheckCircle2, Circle, CircleDot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -19,260 +13,161 @@ interface PODetailsDialogProps {
   vendorId: string | null | undefined;
 }
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD',
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  }).format(amount);
+
 export function PODetailsDialog({
   open,
   onOpenChange,
   purchaseOrder,
-  projectId,
-  vendorId,
 }: PODetailsDialogProps) {
-  // Fetch PO lines
-  const { data: poLines = [] } = useQuery({
-    queryKey: ['po-detail-lines', purchaseOrder?.id],
-    queryFn: async () => {
-      if (!purchaseOrder?.id) return [];
-      const { data, error } = await supabase
-        .from('purchase_order_lines')
-        .select('*')
-        .eq('purchase_order_id', purchaseOrder.id)
-        .order('line_number', { ascending: true });
-      if (error) throw error;
-
-      // Fetch cost codes
-      const ccIds = [...new Set((data || []).map(l => l.cost_code_id).filter(Boolean))];
-      let ccMap = new Map();
-      if (ccIds.length > 0) {
-        const { data: ccs } = await supabase.from('cost_codes').select('id, code, name').in('id', ccIds);
-        ccMap = new Map(ccs?.map(c => [c.id, c]) || []);
-      }
-      return (data || []).map(l => ({ ...l, cost_codes: ccMap.get(l.cost_code_id) }));
-    },
-    enabled: open && !!purchaseOrder?.id,
-  });
-
-  // Fetch related bills for this PO
-  const { data: relatedBills } = useQuery({
-    queryKey: ['po-related-bills', purchaseOrder?.id, purchaseOrder?.cost_code_id, projectId, vendorId],
-    queryFn: async () => {
-      if (!purchaseOrder || !projectId || !vendorId) return [];
-
-      const { data: bills, error } = await supabase
-        .from('bills')
-        .select(`
-          id, reference_number, bill_date, total_amount, status,
-          bill_lines!inner ( purchase_order_id, cost_code_id, amount )
-        `)
-        .eq('project_id', projectId)
-        .eq('vendor_id', vendorId)
-        .in('status', ['posted', 'paid'])
-        .eq('is_reversal', false)
-        .is('reversed_at', null);
-
-      if (error) throw error;
-
-      return (bills || []).filter(bill => {
-        return bill.bill_lines.some((line: any) => 
-          line.purchase_order_id === purchaseOrder.id ||
-          (!line.purchase_order_id && line.cost_code_id === purchaseOrder.cost_code_id)
-        );
-      }).map(bill => ({
-        id: bill.id,
-        reference_number: bill.reference_number,
-        bill_date: bill.bill_date,
-        total_amount: bill.total_amount,
-        status: bill.status,
-        lineAmount: bill.bill_lines
-          .filter((line: any) => 
-            line.purchase_order_id === purchaseOrder.id ||
-            (!line.purchase_order_id && line.cost_code_id === purchaseOrder.cost_code_id)
-          )
-          .reduce((sum: number, line: any) => sum + (line.amount || 0), 0)
-      }));
-    },
-    enabled: open && !!purchaseOrder && !!projectId && !!vendorId,
-  });
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency', currency: 'USD',
-      minimumFractionDigits: 2, maximumFractionDigits: 2,
-    }).format(amount);
-  };
-
   if (!purchaseOrder) return null;
 
   const isOverBudget = purchaseOrder.remaining < 0;
   const utilizationPercent = purchaseOrder.total_amount > 0
-    ? Math.min(100, Math.round((purchaseOrder.total_billed / purchaseOrder.total_amount) * 100))
+    ? Math.round((purchaseOrder.total_billed / purchaseOrder.total_amount) * 100)
     : 0;
-  const isHealthy = purchaseOrder.remaining > 0 && utilizationPercent < 90;
   const isWarning = utilizationPercent >= 90 && utilizationPercent < 100;
+  const isHealthy = !isOverBudget && !isWarning;
+
+  const lineItems = purchaseOrder.line_items || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Purchase Order Details
+            <span>PO {purchaseOrder.po_number}</span>
+            <div className="ml-auto">
+              {isOverBudget ? (
+                <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Over Budget</Badge>
+              ) : isWarning ? (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><CheckCircle2 className="h-3 w-3" />On Track</Badge>
+              )}
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5">
-          {/* PO Number and Cost Code */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">PO Number</p>
-                <Badge variant="outline" className="text-base font-mono px-3 py-1 mt-1">
-                  {purchaseOrder.po_number}
-                </Badge>
-              </div>
-              <div className="text-right">
-                {isOverBudget ? (
-                  <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Over Budget</Badge>
-                ) : isWarning ? (
-                  <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
-                ) : (
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><CheckCircle2 className="h-3 w-3" />On Track</Badge>
-                )}
-              </div>
-            </div>
-            
-            {purchaseOrder.cost_code && (
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Cost Code</p>
-                <p className="text-sm font-medium mt-1">
-                  {purchaseOrder.cost_code.code} - {purchaseOrder.cost_code.name}
-                </p>
-              </div>
-            )}
+        {/* Summary Row */}
+        <div className="grid grid-cols-3 gap-4 py-3 border-b">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">PO Total</p>
+            <p className="text-sm font-semibold">{formatCurrency(purchaseOrder.total_amount)}</p>
           </div>
-
-          {/* Progress bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Budget Utilization</span>
-              <span className="font-medium">{utilizationPercent}%</span>
-            </div>
-            <Progress 
-              value={Math.min(utilizationPercent, 100)} 
-              className={cn("h-3",
-                isOverBudget && "[&>div]:bg-destructive",
-                isWarning && "[&>div]:bg-amber-500",
-                isHealthy && "[&>div]:bg-green-500"
-              )}
-            />
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Billed to Date</p>
+            <p className="text-sm font-semibold">{formatCurrency(purchaseOrder.total_billed)}</p>
           </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card>
-              <CardContent className="p-3 text-center">
-                <DollarSign className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                <div className="text-lg font-semibold">{formatCurrency(purchaseOrder.total_amount)}</div>
-                <div className="text-xs text-muted-foreground">PO Budget</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <Receipt className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                <div className="text-lg font-semibold">{formatCurrency(purchaseOrder.total_billed)}</div>
-                <div className="text-xs text-muted-foreground">Billed to Date</div>
-              </CardContent>
-            </Card>
-            <Card className={cn(
-              isOverBudget && "border-destructive bg-destructive/5",
-              isWarning && "border-amber-500 bg-amber-50",
-              isHealthy && "border-green-500 bg-green-50"
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Remaining</p>
+            <p className={cn("text-sm font-semibold",
+              isOverBudget && "text-destructive",
+              isWarning && "text-amber-700",
+              isHealthy && "text-green-700"
             )}>
-              <CardContent className="p-3 text-center">
-                <TrendingDown className={cn("h-4 w-4 mx-auto mb-1",
-                  isOverBudget && "text-destructive",
-                  isWarning && "text-amber-600",
-                  isHealthy && "text-green-600"
-                )} />
-                <div className={cn("text-lg font-semibold",
-                  isOverBudget && "text-destructive",
-                  isWarning && "text-amber-700",
-                  isHealthy && "text-green-700"
-                )}>
-                  {formatCurrency(purchaseOrder.remaining)}
-                </div>
-                <div className="text-xs text-muted-foreground">Remaining</div>
-              </CardContent>
-            </Card>
+              {formatCurrency(purchaseOrder.remaining)}
+            </p>
           </div>
+        </div>
 
-          {isOverBudget && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-              <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-              <span className="text-sm text-destructive">
-                This PO is over budget by {formatCurrency(Math.abs(purchaseOrder.remaining))}
-              </span>
-            </div>
-          )}
+        {/* Line Items Table */}
+        <div className="flex-1 overflow-y-auto">
+          {lineItems.length > 0 ? (
+            <div className="border rounded-lg overflow-hidden">
+              <Table containerClassName="relative w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs w-8"></TableHead>
+                    <TableHead className="text-xs">Description</TableHead>
+                    <TableHead className="text-xs">Cost Code</TableHead>
+                    <TableHead className="text-xs text-right">PO Amount</TableHead>
+                    <TableHead className="text-xs text-right">Billed</TableHead>
+                    <TableHead className="text-xs text-right">Remaining</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lineItems.map((line) => {
+                    const lineOver = line.remaining < 0;
+                    const lineComplete = line.total_billed >= line.amount && line.amount > 0;
+                    const linePartial = line.total_billed > 0 && line.total_billed < line.amount;
 
-          {/* Line Items Breakdown */}
-          {poLines.length > 1 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Line Items</h4>
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Cost Code</TableHead>
-                      <TableHead className="text-xs">Description</TableHead>
-                      <TableHead className="text-xs text-right">Qty</TableHead>
-                      <TableHead className="text-xs text-right">Unit Cost</TableHead>
-                      <TableHead className="text-xs text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {poLines.map((line: any) => (
+                    return (
                       <TableRow key={line.id}>
-                        <TableCell className="text-xs">
-                          {line.cost_codes ? `${line.cost_codes.code}` : '—'}
+                        <TableCell className="text-center px-2">
+                          {lineComplete ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : linePartial ? (
+                            <CircleDot className="h-4 w-4 text-amber-500" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-muted-foreground/40" />
+                          )}
                         </TableCell>
-                        <TableCell className="text-xs">{line.description || '—'}</TableCell>
-                        <TableCell className="text-xs text-right">{line.quantity}</TableCell>
-                        <TableCell className="text-xs text-right">{formatCurrency(line.unit_cost)}</TableCell>
-                        <TableCell className="text-xs text-right font-medium">{formatCurrency(line.amount)}</TableCell>
+                        <TableCell className="text-xs">
+                          {line.description || '—'}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {line.cost_code ? line.cost_code.code : '—'}
+                        </TableCell>
+                        <TableCell className="text-xs text-right">
+                          {formatCurrency(line.amount)}
+                        </TableCell>
+                        <TableCell className="text-xs text-right">
+                          {formatCurrency(line.total_billed)}
+                        </TableCell>
+                        <TableCell className={cn("text-xs text-right font-medium",
+                          lineOver && "text-destructive",
+                          lineComplete && "text-green-700",
+                          linePartial && "text-amber-700"
+                        )}>
+                          {formatCurrency(line.remaining)}
+                        </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
+                    );
+                  })}
 
-          {/* Related Bills */}
-          {relatedBills && relatedBills.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Bills Charged to This PO</h4>
-              <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
-                <div className="grid grid-cols-3 gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground">
-                  <span>Reference</span>
-                  <span>Date</span>
-                  <span className="text-right">Amount</span>
-                </div>
-                {relatedBills.map((bill) => (
-                  <div key={bill.id} className="grid grid-cols-3 gap-2 px-3 py-2 text-sm">
-                    <span className="font-mono text-xs">{bill.reference_number || '—'}</span>
-                    <span className="text-muted-foreground">{formatDateSafe(bill.bill_date, 'MM/dd/yy')}</span>
-                    <span className="font-medium text-right">{formatCurrency(bill.lineAmount)}</span>
-                  </div>
-                ))}
-              </div>
+                  {/* Totals Row */}
+                  <TableRow className="bg-muted/50 font-medium">
+                    <TableCell></TableCell>
+                    <TableCell className="text-xs font-semibold">Total</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell className="text-xs text-right font-semibold">
+                      {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-semibold">
+                      {formatCurrency(lineItems.reduce((s, l) => s + l.total_billed, 0))}
+                    </TableCell>
+                    <TableCell className={cn("text-xs text-right font-semibold",
+                      isOverBudget && "text-destructive",
+                      isWarning && "text-amber-700",
+                      isHealthy && "text-green-700"
+                    )}>
+                      {formatCurrency(lineItems.reduce((s, l) => s + l.remaining, 0))}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
-          )}
-
-          {relatedBills && relatedBills.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg bg-muted/30">
-              No bills have been posted against this PO yet.
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6 border rounded-lg bg-muted/30">
+              No line items found for this purchase order.
             </p>
           )}
         </div>
+
+        {isOverBudget && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            <span className="text-sm text-destructive">
+              This PO is over budget by {formatCurrency(Math.abs(purchaseOrder.remaining))}
+            </span>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

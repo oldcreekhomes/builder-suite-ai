@@ -54,6 +54,7 @@ interface ExpenseRow {
   projectId?: string;
   lotId?: string;
   purchaseOrderId?: string;
+  purchaseOrderLineId?: string;
   quantity: string;
   amount: string;
   memo: string;
@@ -165,6 +166,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           projectId: line.project_id || '',
           lotId: line.lot_id || '',
           purchaseOrderId: line.purchase_order_id || undefined,
+          purchaseOrderLineId: line.purchase_order_line_id || undefined,
           quantity: line.quantity?.toString() || '1',
           amount: line.unit_cost?.toString() || '0',
           memo: line.memo || ''
@@ -184,6 +186,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           accountId: line.account_id || '',
           project: '',
           projectId: line.project_id || '',
+          lotId: line.lot_id || '',
+          purchaseOrderId: line.purchase_order_id || undefined,
+          purchaseOrderLineId: line.purchase_order_line_id || undefined,
           quantity: line.quantity?.toString() || '1',
           amount: line.unit_cost?.toString() || '0',
           memo: line.memo || ''
@@ -381,6 +386,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: row.purchaseOrderId || undefined,
+          purchase_order_line_id: row.purchaseOrderLineId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -393,6 +399,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           account_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: row.purchaseOrderId || undefined,
+          purchase_order_line_id: row.purchaseOrderLineId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -450,6 +457,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project_id: row.projectId || billData.project_id || undefined,
           lot_id: row.lotId || undefined,
           purchase_order_id: row.purchaseOrderId || undefined,
+          purchase_order_line_id: row.purchaseOrderLineId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -462,6 +470,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           account_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: row.purchaseOrderId || undefined,
+          purchase_order_line_id: row.purchaseOrderLineId || undefined,
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -490,6 +499,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             cost_code_id: row.accountId || undefined,
             lot_id: row.lotId || undefined,
             purchase_order_id: row.purchaseOrderId || undefined,
+            purchase_order_line_id: row.purchaseOrderLineId || undefined,
             memo: row.memo || undefined
           }));
 
@@ -499,6 +509,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             dbId: row.dbId!,
             lot_id: row.lotId || undefined,
             purchase_order_id: row.purchaseOrderId || undefined,
+            purchase_order_line_id: row.purchaseOrderLineId || undefined,
             memo: row.memo || undefined
           }));
 
@@ -901,7 +912,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           projectId={billData?.project_id}
                           vendorId={vendor}
                           value={row.purchaseOrderId}
-                          onChange={(poId) => updateJobCostRow(row.id, 'purchaseOrderId', poId || '')}
+                          purchaseOrderLineId={row.purchaseOrderLineId}
+                          onChange={(poId, poLineId) => {
+                            updateJobCostRow(row.id, 'purchaseOrderId', poId || '');
+                            updateJobCostRow(row.id, 'purchaseOrderLineId', poLineId || '');
+                          }}
                           costCodeId={row.accountId}
                           className="h-8"
                         />
