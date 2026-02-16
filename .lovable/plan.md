@@ -1,49 +1,33 @@
 
 
-## Fix: Update RLS Policies on `onboarding_progress` for Employee Access
+## Standardize Bank Statements Table to Match Manage Bills
 
-### Problem
-All three RLS policies on `onboarding_progress` require `home_builder_id = auth.uid()`. Employees have a different `auth.uid()` than the owner, so they are blocked from reading the dismissed state or clicking "Close" on the congratulations dialog.
+### Problems Identified
+1. **Row actions** use inline icon buttons (download, edit, delete) instead of the standard `TableRowActions` "..." dropdown menu
+2. **Date format** uses "Jun 30, 2024" (PPP) instead of the standard "06/30/24" (MM/dd/yy) format used in Manage Bills
+3. **Date parsing** uses `new Date()` instead of the project-standard `formatDateSafe` utility, risking timezone bugs
+4. **Table container** doesn't use the standard `SettingsTableWrapper` component
 
-### Solution
-Update the SELECT and UPDATE policies to also allow access for users whose `home_builder_id` in the `users` table matches the record. The INSERT policy stays owner-only (only owners should create the initial row).
+### Changes to `src/components/accounting/BankStatementsDialog.tsx`
 
-### Database Migration
+**1. Replace inline action buttons with `TableRowActions` dropdown**
+- Remove the three separate icon buttons (Download, Edit, Delete) from each row
+- Replace with a single `TableRowActions` component containing:
+  - "Download" action
+  - "Edit" action
+  - "Delete" action (destructive, with confirmation)
 
-```sql
--- Drop existing SELECT and UPDATE policies
-DROP POLICY "Owners can view own onboarding progress" ON onboarding_progress;
-DROP POLICY "Owners can update own onboarding progress" ON onboarding_progress;
+**2. Fix date formatting**
+- Import `formatDateSafe` from `@/utils/dateOnly`
+- Statement End Date: change from `format(new Date(...), 'PPP')` ("Jun 30, 2024") to `formatDateSafe(dateStr, 'MM/dd/yy')` ("06/30/24")
+- Uploaded date: change from `format(new Date(uploaded_at), 'PP')` to `formatDateSafe(uploaded_at, 'MM/dd/yy')`
 
--- Recreate SELECT policy: owner OR employee of that company
-CREATE POLICY "Company members can view onboarding progress"
-ON onboarding_progress FOR SELECT TO authenticated
-USING (
-  home_builder_id = auth.uid()
-  OR home_builder_id IN (
-    SELECT u.home_builder_id FROM users u WHERE u.id = auth.uid()
-  )
-);
+**3. Use `SettingsTableWrapper`**
+- Wrap the table in `SettingsTableWrapper` for consistent border/rounding
+- Pass `containerClassName="relative w-full overflow-visible max-h-none"` to `Table` per dialog-table pattern
 
--- Recreate UPDATE policy: owner OR employee of that company
-CREATE POLICY "Company members can update onboarding progress"
-ON onboarding_progress FOR UPDATE TO authenticated
-USING (
-  home_builder_id = auth.uid()
-  OR home_builder_id IN (
-    SELECT u.home_builder_id FROM users u WHERE u.id = auth.uid()
-  )
-);
-```
+### Files Modified
+- `src/components/accounting/BankStatementsDialog.tsx`
 
-### What This Fixes
-- Employees can now read the `dismissed = true` flag, so the dialog won't appear if the owner already dismissed it
-- Employees can click "Close" on the congratulations dialog and it will actually persist
-- The INSERT policy remains owner-only -- only the owner's first visit creates the progress row
-
-### No Frontend Changes Needed
-The existing `effectiveOwnerId` logic in `useOnboardingProgress.ts` already resolves the correct owner ID for employees. The only blocker was the database refusing the requests.
-
-### Files Changed
-- 1 database migration (RLS policy update on `onboarding_progress`)
-
+### No other files need changes
+The `Table`, `TableRowActions`, `SettingsTableWrapper`, and `formatDateSafe` utilities already exist and are correct.
