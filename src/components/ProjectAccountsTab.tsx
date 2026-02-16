@@ -5,8 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { groupAccountsByParent } from "@/lib/accountHierarchy";
 
 interface ProjectAccountsTabProps {
   projectId: string;
@@ -19,6 +20,7 @@ interface Account {
   code: string;
   name: string;
   type: AccountType;
+  parent_id: string | null;
 }
 
 const TYPE_LABELS: Record<AccountType, string> = {
@@ -43,7 +45,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts')
-        .select('id, code, name, type')
+        .select('id, code, name, type, parent_id')
         .eq('is_active', true)
         .order('code');
       if (error) throw error;
@@ -95,6 +97,15 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
 
   const isLoading = accountsLoading || exclusionsLoading;
 
+  // Group accounts by type, then by hierarchy within each type
+  const grouped = useMemo(() => {
+    if (!accounts) return {} as Record<AccountType, Account[]>;
+    return TYPE_ORDER.reduce((acc, type) => {
+      acc[type] = accounts.filter((a) => a.type === type);
+      return acc;
+    }, {} as Record<AccountType, Account[]>);
+  }, [accounts]);
+
   if (isLoading) {
     return (
       <div className="space-y-3 py-4">
@@ -105,13 +116,34 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     );
   }
 
-  const grouped = TYPE_ORDER.reduce((acc, type) => {
-    acc[type] = (accounts || []).filter((a) => a.type === type);
-    return acc;
-  }, {} as Record<AccountType, Account[]>);
-
   const toggleSection = (type: string) => {
     setOpenSections((prev) => ({ ...prev, [type]: !prev[type] }));
+  };
+
+  const renderAccountRow = (account: Account, depth: number) => {
+    const isExcluded = exclusions?.has(account.id) ?? false;
+    return (
+      <label
+        key={account.id}
+        className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded cursor-pointer text-sm"
+        style={{ paddingLeft: `${(depth + 1) * 16}px` }}
+      >
+        <Checkbox
+          checked={!isExcluded}
+          onCheckedChange={(checked) => {
+            toggleMutation.mutate({
+              accountId: account.id,
+              exclude: !checked,
+            });
+          }}
+          disabled={toggleMutation.isPending}
+        />
+        <span>
+          {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
+          {account.code} - {account.name}
+        </span>
+      </label>
+    );
   };
 
   return (
@@ -120,8 +152,9 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
       </p>
       {TYPE_ORDER.map((type) => {
-        const typeAccounts = grouped[type];
+        const typeAccounts = grouped[type] || [];
         if (typeAccounts.length === 0) return null;
+        const { roots, childrenMap } = groupAccountsByParent(typeAccounts);
         return (
           <Collapsible
             key={type}
@@ -137,28 +170,13 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
               {TYPE_LABELS[type]} ({typeAccounts.length})
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="space-y-1 pl-6">
-                {typeAccounts.map((account) => {
-                  const isExcluded = exclusions?.has(account.id) ?? false;
-                  return (
-                    <label
-                      key={account.id}
-                      className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded cursor-pointer text-sm"
-                    >
-                      <Checkbox
-                        checked={!isExcluded}
-                        onCheckedChange={(checked) => {
-                          toggleMutation.mutate({
-                            accountId: account.id,
-                            exclude: !checked,
-                          });
-                        }}
-                        disabled={toggleMutation.isPending}
-                      />
-                      <span>{account.code} - {account.name}</span>
-                    </label>
-                  );
-                })}
+              <div className="space-y-1">
+                {roots.map((account) => (
+                  <div key={account.id}>
+                    {renderAccountRow(account, 0)}
+                    {childrenMap[account.id]?.map((child) => renderAccountRow(child, 1))}
+                  </div>
+                ))}
               </div>
             </CollapsibleContent>
           </Collapsible>

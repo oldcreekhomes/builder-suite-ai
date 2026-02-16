@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { compareCostCodes } from "@/lib/costCodeSort";
+import { groupAccountsByParent } from "@/lib/accountHierarchy";
 
 interface AccountBalance {
   id: string;
@@ -18,6 +19,7 @@ interface AccountBalance {
   name: string;
   type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
   balance: number;
+  parent_id?: string | null;
 }
 
 interface BalanceSheetData {
@@ -53,7 +55,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
       const [accountsResult, exclusionsResult] = await Promise.all([
         supabase
           .from('accounts')
-          .select('id, code, name, type, is_active')
+          .select('id, code, name, type, is_active, parent_id')
           .eq('is_active', true),
         projectId
           ? supabase
@@ -151,7 +153,8 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
               code: account.code,
               name: account.name,
               type: account.type,
-              balance: displayBalance
+              balance: displayBalance,
+              parent_id: account.parent_id,
             };
             assets.current.push(assetBalance);
             break;
@@ -163,7 +166,8 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
               code: account.code,
               name: account.name,
               type: account.type,
-              balance: displayBalance
+              balance: displayBalance,
+              parent_id: account.parent_id,
             };
             liabilities.current.push(liabilityBalance);
             break;
@@ -175,7 +179,8 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
               code: account.code,
               name: account.name,
               type: account.type,
-              balance: displayBalance
+              balance: displayBalance,
+              parent_id: account.parent_id,
             };
             equity.push(equityBalance);
             break;
@@ -319,6 +324,41 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
     setSelectedAccount(null);
   };
 
+  const renderHierarchicalAccounts = (
+    accountsList: AccountBalance[],
+    onSelect: (account: AccountBalance) => void,
+    fmt: (amount: number) => string
+  ) => {
+    const { roots, childrenMap } = groupAccountsByParent(accountsList);
+    const elements: JSX.Element[] = [];
+    for (const root of roots) {
+      const children = childrenMap[root.id] || [];
+      elements.push(
+        <div
+          key={root.id}
+          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+          onClick={() => onSelect(root)}
+        >
+          <span>{root.code}: {root.name}</span>
+          <span>{fmt(root.balance)}</span>
+        </div>
+      );
+      for (const child of children) {
+        elements.push(
+          <div
+            key={child.id}
+            className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 pl-6 rounded transition-colors"
+            onClick={() => onSelect(child)}
+          >
+            <span className="text-muted-foreground">↳ {child.code}: {child.name}</span>
+            <span>{fmt(child.balance)}</span>
+          </div>
+        );
+      }
+    }
+    return elements;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -381,16 +421,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Current Assets</h4>
                     <div className="space-y-2">
-                      {balanceSheetData.assets.current.map((account) => (
-                        <div 
-                          key={account.id} 
-                          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                          onClick={() => setSelectedAccount(account)}
-                        >
-                          <span>{account.code}: {account.name}</span>
-                          <span>{formatCurrency(account.balance)}</span>
-                        </div>
-                      ))}
+                      {renderHierarchicalAccounts(balanceSheetData.assets.current, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -399,16 +430,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Fixed Assets</h4>
                     <div className="space-y-2">
-                      {balanceSheetData.assets.fixed.map((account) => (
-                        <div 
-                          key={account.id} 
-                          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                          onClick={() => setSelectedAccount(account)}
-                        >
-                          <span>{account.code}: {account.name}</span>
-                          <span>{formatCurrency(account.balance)}</span>
-                        </div>
-                      ))}
+                      {renderHierarchicalAccounts(balanceSheetData.assets.fixed, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -433,16 +455,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Current Liabilities</h4>
                     <div className="space-y-2">
-                      {balanceSheetData.liabilities.current.map((account) => (
-                        <div 
-                          key={account.id} 
-                          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                          onClick={() => setSelectedAccount(account)}
-                        >
-                          <span>{account.code}: {account.name}</span>
-                          <span>{formatCurrency(account.balance)}</span>
-                        </div>
-                      ))}
+                      {renderHierarchicalAccounts(balanceSheetData.liabilities.current, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -451,16 +464,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Long-term Liabilities</h4>
                     <div className="space-y-2">
-                      {balanceSheetData.liabilities.longTerm.map((account) => (
-                        <div 
-                          key={account.id} 
-                          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                          onClick={() => setSelectedAccount(account)}
-                        >
-                          <span>{account.code}: {account.name}</span>
-                          <span>{formatCurrency(account.balance)}</span>
-                        </div>
-                      ))}
+                      {renderHierarchicalAccounts(balanceSheetData.liabilities.longTerm, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -476,16 +480,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Equity</h4>
                     <div className="space-y-2">
-                      {balanceSheetData.equity.map((account) => (
-                        <div 
-                          key={account.id} 
-                          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                          onClick={() => setSelectedAccount(account)}
-                        >
-                          <span>{account.code}: {account.name}</span>
-                          <span>{formatCurrency(account.balance)}</span>
-                        </div>
-                      ))}
+                      {renderHierarchicalAccounts(balanceSheetData.equity, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}

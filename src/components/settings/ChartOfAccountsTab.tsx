@@ -13,6 +13,7 @@ import { TableRowActions } from "@/components/ui/table-row-actions";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { ChartOfAccountsTemplateDialog } from "./ChartOfAccountsTemplateDialog";
 import { useQueryClient } from "@tanstack/react-query";
+import { flattenAccountHierarchy } from "@/lib/accountHierarchy";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
@@ -127,6 +128,11 @@ export const ChartOfAccountsTab = () => {
     );
   });
 
+  const hierarchicalAccounts = useMemo(
+    () => flattenAccountHierarchy(filteredAccounts),
+    [filteredAccounts]
+  );
+
   if (isLoading) {
     return <div className="text-center py-2 text-sm">Loading chart of accounts...</div>;
   }
@@ -194,45 +200,59 @@ export const ChartOfAccountsTab = () => {
                 </TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Account Name</TableHead>
+                <TableHead>Parent</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
+
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAccounts.length === 0 ? (
+              {hierarchicalAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     {searchQuery ? 'No accounts match your search.' : 'No accounts found. Import from QuickBooks or add accounts manually.'}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredAccounts.map((account) => (
-                  <TableRow key={account.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.has(account.id)}
-                        onCheckedChange={(checked) => {
-                          const next = new Set(selectedIds);
-                          if (checked) next.add(account.id); else next.delete(account.id);
-                          setSelectedIds(next);
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{account.code}</TableCell>
-                    <TableCell>{account.name}</TableCell>
-                    <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
-                    <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end">
-                        <TableRowActions actions={[
-                          { label: "Edit", onClick: () => setEditingAccount(account) },
-                          { label: "Delete", onClick: () => deleteAccount.mutate(account.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Account", confirmDescription: `Are you sure you want to delete account ${account.code} - ${account.name}? This action cannot be undone.`, isLoading: deleteAccount.isPending },
-                        ]} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                hierarchicalAccounts.map((account) => {
+                  const parentAccount = account.parent_id ? accounts.find((a) => a.id === account.parent_id) : null;
+                  return (
+                    <TableRow key={account.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(account.id)}
+                          onCheckedChange={(checked) => {
+                            const next = new Set(selectedIds);
+                            if (checked) next.add(account.id); else next.delete(account.id);
+                            setSelectedIds(next);
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {account._depth > 0 && <span className="ml-4" />}
+                        {account.code}
+                      </TableCell>
+                      <TableCell>
+                        {account._depth > 0 && <span className="ml-4 text-muted-foreground">↳ </span>}
+                        {account.name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {parentAccount ? `${parentAccount.code} - ${parentAccount.name}` : '—'}
+                      </TableCell>
+                      <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
+                      <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end">
+                          <TableRowActions actions={[
+                            { label: "Edit", onClick: () => setEditingAccount(account) },
+                            { label: "Delete", onClick: () => deleteAccount.mutate(account.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Account", confirmDescription: `Are you sure you want to delete account ${account.code} - ${account.name}? This action cannot be undone.`, isLoading: deleteAccount.isPending },
+                          ]} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

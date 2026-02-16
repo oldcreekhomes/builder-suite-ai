@@ -10,6 +10,7 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { groupAccountsByParent } from "@/lib/accountHierarchy";
 
 interface AccountBalance {
   id: string;
@@ -17,6 +18,7 @@ interface AccountBalance {
   name: string;
   type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
   balance: number;
+  parent_id?: string | null;
 }
 
 interface IncomeStatementData {
@@ -45,7 +47,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
       const [accountsResult, exclusionsResult] = await Promise.all([
         supabase
           .from('accounts')
-          .select('id, code, name, type, is_active')
+          .select('id, code, name, type, is_active, parent_id')
           .eq('is_active', true)
           .in('type', ['revenue', 'expense']),
         projectId
@@ -121,7 +123,8 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
             code: account.code,
             name: account.name,
             type: account.type,
-            balance: displayBalance
+            balance: displayBalance,
+            parent_id: account.parent_id,
           });
         } else if (account.type === 'expense') {
           const displayBalance = rawBalance;
@@ -130,7 +133,8 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
             code: account.code,
             name: account.name,
             type: account.type,
-            balance: displayBalance
+            balance: displayBalance,
+            parent_id: account.parent_id,
           });
         }
       });
@@ -220,6 +224,41 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
     setSelectedAccount(null);
   };
 
+  const renderHierarchicalAccounts = (
+    accountsList: AccountBalance[],
+    onSelect: (account: AccountBalance) => void,
+    fmt: (amount: number) => string
+  ) => {
+    const { roots, childrenMap } = groupAccountsByParent(accountsList);
+    const elements: JSX.Element[] = [];
+    for (const root of roots) {
+      const children = childrenMap[root.id] || [];
+      elements.push(
+        <div
+          key={root.id}
+          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+          onClick={() => onSelect(root)}
+        >
+          <span>{root.code} - {root.name}</span>
+          <span>{fmt(root.balance)}</span>
+        </div>
+      );
+      for (const child of children) {
+        elements.push(
+          <div
+            key={child.id}
+            className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 pl-6 rounded transition-colors"
+            onClick={() => onSelect(child)}
+          >
+            <span className="text-muted-foreground">↳ {child.code} - {child.name}</span>
+            <span>{fmt(child.balance)}</span>
+          </div>
+        );
+      }
+    }
+    return elements;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -267,16 +306,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Revenue</h4>
                   <div className="space-y-2">
-                    {incomeStatementData.revenue.map((account) => (
-                      <div 
-                        key={account.id} 
-                        className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                        onClick={() => setSelectedAccount(account)}
-                      >
-                        <span>{account.code} - {account.name}</span>
-                        <span>{formatCurrency(account.balance)}</span>
-                      </div>
-                    ))}
+                    {renderHierarchicalAccounts(incomeStatementData.revenue, setSelectedAccount, formatCurrency)}
                   </div>
                   <div className="border-t pt-3 mt-4">
                     <div className="flex justify-between items-center font-semibold">
@@ -291,16 +321,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Expenses</h4>
                   <div className="space-y-2">
-                    {incomeStatementData.expenses.map((account) => (
-                      <div 
-                        key={account.id} 
-                        className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-                        onClick={() => setSelectedAccount(account)}
-                      >
-                        <span>{account.code} - {account.name}</span>
-                        <span>{formatCurrency(account.balance)}</span>
-                      </div>
-                    ))}
+                    {renderHierarchicalAccounts(incomeStatementData.expenses, setSelectedAccount, formatCurrency)}
                   </div>
                   <div className="border-t pt-3 mt-4">
                     <div className="flex justify-between items-center font-semibold">
