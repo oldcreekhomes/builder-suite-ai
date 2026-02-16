@@ -1,22 +1,21 @@
 
 
-## Show Line Count with Tooltip Breakdown on PO Table
+## Match PO Cost Code Column to Bills Pattern
 
-### Changes
+### Change: `src/components/purchaseOrders/components/PurchaseOrdersTableRowContent.tsx`
 
-**1. `src/hooks/usePurchaseOrders.ts`** -- Fetch full line data instead of just counts
-- Change the `purchase_order_lines` query to select `cost_code_id, amount, description` (not just count)
-- Group lines by PO and enrich each line with its cost code info from the existing `costCodeMap`
-- Store full line objects on `purchase_order_lines` instead of empty arrays
+Update the `renderCostCodeCell` function to exactly match the bills table pattern:
 
-**2. `src/components/purchaseOrders/components/PurchaseOrdersTableRowContent.tsx`** -- Replace "Multiple" with `+N` tooltip
-- Import Tooltip components
-- Group PO lines by unique cost code (like bills do)
-- For single cost code: show `code: name` as before
-- For multiple cost codes: show first cost code + `+N` (e.g., "4370: Framing Labor +2")
-- On hover, show tooltip with each cost code and its amount, plus a total row
-- Matches the exact pattern from `PayBillsTable.tsx`
+**Display text:**
+- 1 unique cost code: show `code: name` (no change)
+- Multiple unique cost codes: show just `+N` (e.g., `+3`) instead of `firstCostCode +2`
 
-**3. `src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx`** -- Center the dots
-- Add `text-center` to the `TableCell` so the `mx-auto` on the button properly centers it under the "Actions" header
+**Tooltip content:**
+- Replace the `<table>` markup with the same `div`-based layout used in `BillsApprovalTable`:
+  - Each cost code as a bold heading (`font-medium text-xs`)
+  - Under each, show "Unassigned:" with the amount (since POs don't have lots, use a single "Unassigned" sub-line per cost code)
+  - A `border-t` total row at the bottom with `flex justify-between`
+- Use `max-w-xs` on `TooltipContent` instead of `p-0`
+- Use `space-y-2` container like bills do
 
+This makes the PO table visually identical to the bills table for multi-cost-code display.
