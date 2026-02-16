@@ -598,35 +598,26 @@ export function BatchBillReviewTable({
                 ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
                 : (bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0);
               
-              // Calculate cost code display - prioritize showing single cost code
-              const accountDisplay = (() => {
-                if (!bill.lines || bill.lines.length === 0) return null;
+              // Calculate cost code display with breakdown for tooltip
+              const accountDisplayData = (() => {
+                if (!bill.lines || bill.lines.length === 0) return { display: null as string | null, breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
                 
-                // First, collect all cost codes from job_cost lines
-                const costCodes = bill.lines
-                  .filter(line => line.line_type === 'job_cost' && line.cost_code_name)
-                  .map(line => line.cost_code_name);
-                
-                // If there's exactly one unique cost code, show it
-                if (costCodes.length > 0) {
-                  const uniqueCostCodes = [...new Set(costCodes)];
-                  if (uniqueCostCodes.length === 1) {
-                    return uniqueCostCodes[0];
-                  }
+                // Aggregate amounts by unique cost code / account name
+                const codeMap = new Map<string, number>();
+                for (const line of bill.lines) {
+                  const name = line.line_type === 'job_cost' ? line.cost_code_name : line.line_type === 'expense' ? line.account_name : null;
+                  if (!name) continue;
+                  codeMap.set(name, (codeMap.get(name) || 0) + (line.amount || 0));
                 }
                 
-                // Otherwise, collect all display names (both cost codes and accounts)
-                const displayNames = bill.lines
-                  .map(line => {
-                    if (line.line_type === 'job_cost') return line.cost_code_name;
-                    if (line.line_type === 'expense') return line.account_name;
-                    return null;
-                  })
-                  .filter(Boolean);
+                if (codeMap.size === 0) return { display: null, breakdown: [], total: 0, count: 0 };
                 
-                if (displayNames.length === 0) return null;
-                const uniqueNames = [...new Set(displayNames)];
-                return uniqueNames.length === 1 ? uniqueNames[0] : `${uniqueNames.length} items`;
+                const breakdown = Array.from(codeMap.entries()).map(([name, amount]) => ({ name, amount }));
+                const total = breakdown.reduce((s, b) => s + b.amount, 0);
+                const count = breakdown.length;
+                
+                if (count === 1) return { display: breakdown[0].name, breakdown, total, count };
+                return { display: `${breakdown[0].name} +${count - 1}`, breakdown, total, count };
               })();
               
               const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
@@ -727,16 +718,31 @@ export function BatchBillReviewTable({
                   
                   {/* Cost Code */}
                   <TableCell className="px-2 py-1 w-44">
-                    {accountDisplay === null ? (
+                    {accountDisplayData.display === null ? (
                       <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
                     ) : (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-xs block truncate cursor-default">{accountDisplay}</span>
+                            <span className="text-xs block truncate cursor-default">{accountDisplayData.display}</span>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{accountDisplay}</p>
+                          <TooltipContent className="max-w-xs">
+                            {accountDisplayData.count <= 1 ? (
+                              <p>{accountDisplayData.display}</p>
+                            ) : (
+                              <div className="space-y-1">
+                                {accountDisplayData.breakdown.map((item, i) => (
+                                  <div key={i} className="flex justify-between gap-4 text-xs">
+                                    <span>{item.name}</span>
+                                    <span>${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                                  <span>Total:</span>
+                                  <span>${accountDisplayData.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                              </div>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
