@@ -1,33 +1,30 @@
 
 
-## Standardize Bank Statements Table to Match Manage Bills
+## Center the "..." Actions Button Across All Tables
 
-### Problems Identified
-1. **Row actions** use inline icon buttons (download, edit, delete) instead of the standard `TableRowActions` "..." dropdown menu
-2. **Date format** uses "Jun 30, 2024" (PPP) instead of the standard "06/30/24" (MM/dd/yy) format used in Manage Bills
-3. **Date parsing** uses `new Date()` instead of the project-standard `formatDateSafe` utility, risking timezone bugs
-4. **Table container** doesn't use the standard `SettingsTableWrapper` component
+### Problem
+The three-dot actions button is left-aligned (or right-aligned via wrapper divs) in table cells, appearing off-center in the Actions column.
 
-### Changes to `src/components/accounting/BankStatementsDialog.tsx`
+### Solution
+Add `mx-auto` to the trigger `Button` inside the shared `TableRowActions` component. Since every table uses this single component, this one-line change centers the dots across all 77+ tables at once.
 
-**1. Replace inline action buttons with `TableRowActions` dropdown**
-- Remove the three separate icon buttons (Download, Edit, Delete) from each row
-- Replace with a single `TableRowActions` component containing:
-  - "Download" action
-  - "Edit" action
-  - "Delete" action (destructive, with confirmation)
+### Change
 
-**2. Fix date formatting**
-- Import `formatDateSafe` from `@/utils/dateOnly`
-- Statement End Date: change from `format(new Date(...), 'PPP')` ("Jun 30, 2024") to `formatDateSafe(dateStr, 'MM/dd/yy')` ("06/30/24")
-- Uploaded date: change from `format(new Date(uploaded_at), 'PP')` to `formatDateSafe(uploaded_at, 'MM/dd/yy')`
+**`src/components/ui/table-row-actions.tsx`** (line 59)
 
-**3. Use `SettingsTableWrapper`**
-- Wrap the table in `SettingsTableWrapper` for consistent border/rounding
-- Pass `containerClassName="relative w-full overflow-visible max-h-none"` to `Table` per dialog-table pattern
+Change:
+```tsx
+<Button variant="ghost" className="h-8 w-8 p-0">
+```
+To:
+```tsx
+<Button variant="ghost" className="h-8 w-8 p-0 mx-auto">
+```
+
+This also requires removing any `justify-end` wrapper divs around `TableRowActions` in individual table files (like BankStatementsDialog) so the centering isn't overridden. The Actions `TableHead` already uses `text-right` or similar -- those headers should switch to `text-center` to match.
 
 ### Files Modified
-- `src/components/accounting/BankStatementsDialog.tsx`
+- `src/components/ui/table-row-actions.tsx` -- add `mx-auto` to button
+- `src/components/accounting/BankStatementsDialog.tsx` -- change Actions header to `text-center`, change wrapper div from `justify-end` to `justify-center`
+- Any other table files with `justify-end` wrappers around `TableRowActions` will be updated to `justify-center` for consistency
 
-### No other files need changes
-The `Table`, `TableRowActions`, `SettingsTableWrapper`, and `formatDateSafe` utilities already exist and are correct.
