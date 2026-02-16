@@ -41,16 +41,35 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
     queryFn: async (): Promise<IncomeStatementData> => {
       console.log("🔍 Income Statement: Starting query with user:", user?.email, "project:", projectId || 'Old Creek Homes');
       
-      const { data: accounts, error: accountsError } = await supabase
-        .from('accounts')
-        .select('id, code, name, type, is_active')
-        .eq('is_active', true)
-        .in('type', ['revenue', 'expense']);
+      // Fetch accounts and exclusions in parallel
+      const [accountsResult, exclusionsResult] = await Promise.all([
+        supabase
+          .from('accounts')
+          .select('id, code, name, type, is_active')
+          .eq('is_active', true)
+          .in('type', ['revenue', 'expense']),
+        projectId
+          ? supabase
+              .from('project_account_exclusions')
+              .select('account_id')
+              .eq('project_id', projectId)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
 
+      const { data: accounts, error: accountsError } = accountsResult;
       if (accountsError) {
         console.error("🔍 Income Statement: Accounts query failed:", accountsError);
         throw accountsError;
       }
+      if (exclusionsResult.error) throw exclusionsResult.error;
+
+      const excludedAccountIds = new Set(
+        (exclusionsResult.data || []).map((e: { account_id: string }) => e.account_id)
+      );
+
+      const filteredAccounts = projectId
+        ? accounts?.filter((a) => !excludedAccountIds.has(a.id))
+        : accounts;
 
       console.time('⏱️ Income Statement: Journal lines query');
       
@@ -92,7 +111,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
       const revenue: AccountBalance[] = [];
       const expenses: AccountBalance[] = [];
 
-      accounts?.forEach((account) => {
+      filteredAccounts?.forEach((account) => {
         const rawBalance = accountBalances[account.id] || 0;
         
         if (account.type === 'revenue') {

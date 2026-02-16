@@ -48,10 +48,36 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
     queryKey: ['balance-sheet', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
     queryFn: async (): Promise<BalanceSheetData> => {
       console.log("🔍 Balance Sheet: Starting query with user:", user?.email, "project:", projectId || 'Old Creek Homes');
-      const { data: accounts, error: accountsError } = await supabase
-        .from('accounts')
-        .select('id, code, name, type, is_active')
-        .eq('is_active', true);
+      
+      // Fetch accounts and exclusions in parallel
+      const [accountsResult, exclusionsResult] = await Promise.all([
+        supabase
+          .from('accounts')
+          .select('id, code, name, type, is_active')
+          .eq('is_active', true),
+        projectId
+          ? supabase
+              .from('project_account_exclusions')
+              .select('account_id')
+              .eq('project_id', projectId)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      const { data: accounts, error: accountsError } = accountsResult;
+      if (accountsError) {
+        console.error("🔍 Balance Sheet: Accounts query failed:", accountsError);
+        throw accountsError;
+      }
+      if (exclusionsResult.error) throw exclusionsResult.error;
+
+      const excludedAccountIds = new Set(
+        (exclusionsResult.data || []).map((e: { account_id: string }) => e.account_id)
+      );
+      
+      // Filter out excluded accounts
+      const filteredAccounts = projectId
+        ? accounts?.filter((a) => !excludedAccountIds.has(a.id))
+        : accounts;
 
       if (accountsError) {
         console.error("🔍 Balance Sheet: Accounts query failed:", accountsError);
@@ -113,7 +139,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
       let revenueBalance = 0;
       let expenseBalance = 0;
 
-      accounts?.forEach((account) => {
+      filteredAccounts?.forEach((account) => {
         const rawBalance = accountBalances[account.id] || 0;
         let displayBalance = rawBalance;
         
