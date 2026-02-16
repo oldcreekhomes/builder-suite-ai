@@ -1,13 +1,22 @@
 
 
-## Compact Create/Edit Purchase Order Dialog
+## Show Line Count with Tooltip Breakdown on PO Table
 
-### Changes to `src/components/CreatePurchaseOrderDialog.tsx`
+### Changes
 
-1. **Notes field**: Change from `rows={2}` Textarea to a single-line `Input` field
-2. **Custom Message + Attachments on one row**: Place them side-by-side in a `grid grid-cols-2` layout
-   - Left: Custom Message as a compact Textarea (`rows={2}`)
-   - Right: Attachments dropzone (smaller padding, compact text)
+**1. `src/hooks/usePurchaseOrders.ts`** -- Fetch full line data instead of just counts
+- Change the `purchase_order_lines` query to select `cost_code_id, amount, description` (not just count)
+- Group lines by PO and enrich each line with its cost code info from the existing `costCodeMap`
+- Store full line objects on `purchase_order_lines` instead of empty arrays
 
-This removes significant vertical space from the form while keeping all functionality intact.
+**2. `src/components/purchaseOrders/components/PurchaseOrdersTableRowContent.tsx`** -- Replace "Multiple" with `+N` tooltip
+- Import Tooltip components
+- Group PO lines by unique cost code (like bills do)
+- For single cost code: show `code: name` as before
+- For multiple cost codes: show first cost code + `+N` (e.g., "4370: Framing Labor +2")
+- On hover, show tooltip with each cost code and its amount, plus a total row
+- Matches the exact pattern from `PayBillsTable.tsx`
+
+**3. `src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx`** -- Center the dots
+- Add `text-center` to the `TableCell` so the `mx-auto` on the button properly centers it under the "Actions" header
 
