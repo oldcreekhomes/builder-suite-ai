@@ -334,12 +334,10 @@ export const CreatePurchaseOrderDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Notes</Label>
-              <Textarea
+              <Input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Enter any additional notes..."
-                rows={2}
-                className="resize-none"
               />
             </div>
           </div>
@@ -440,52 +438,50 @@ export const CreatePurchaseOrderDialog = ({
             </Button>
           </div>
 
-          {/* Custom Message */}
-          <div className="space-y-1.5">
-            <Label>Custom Message (Optional)</Label>
-            <Textarea
-              placeholder="Add a custom message to include in the email..."
-              rows={2}
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              className="resize-none"
-            />
-          </div>
-
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label>Attachments</Label>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-4 transition-colors cursor-pointer ${
-                isDragActive ? 'border-primary/50 bg-primary/5' : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <input {...getInputProps()} />
-              <div className="text-center">
-                <Upload className={`mx-auto h-6 w-6 mb-1 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                <p className="text-sm text-muted-foreground">
-                  {isUploading ? "Uploading..." : isDragActive ? "Drop files here..." : "Click or drag files to upload"}
-                </p>
-                <p className="text-xs text-muted-foreground">PDF, DOC, XLS, images up to 10MB</p>
-              </div>
+          {/* Custom Message + Attachments side by side */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>Custom Message (Optional)</Label>
+              <Textarea
+                placeholder="Add a custom message to include in the email..."
+                rows={2}
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                className="resize-none"
+              />
             </div>
-            {uploadedFiles.length > 0 && (
-              <div className="space-y-1">
-                {uploadedFiles.map((file) => (
-                  <div key={file.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{file.name}</span>
-                      <span className="text-xs text-muted-foreground">({Math.round(file.size / 1024)} KB)</span>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => removeFile(file)} className="h-6 w-6 p-0">
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+            <div className="space-y-1.5">
+              <Label>Attachments</Label>
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-3 transition-colors cursor-pointer ${
+                  isDragActive ? 'border-primary/50 bg-primary/5' : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <input {...getInputProps()} />
+                <div className="text-center">
+                  <Upload className={`mx-auto h-5 w-5 mb-0.5 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="text-xs text-muted-foreground">
+                    {isUploading ? "Uploading..." : isDragActive ? "Drop files here..." : "Click or drag to upload"}
+                  </p>
+                </div>
               </div>
-            )}
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-1">
+                  {uploadedFiles.map((file) => (
+                    <div key={file.id} className="flex items-center justify-between p-1.5 bg-muted rounded-md">
+                      <div className="flex items-center space-x-1.5">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium truncate">{file.name}</span>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => removeFile(file)} className="h-5 w-5 p-0">
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
