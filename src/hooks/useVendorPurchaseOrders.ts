@@ -148,29 +148,6 @@ export function useVendorPurchaseOrders(
         }
       });
 
-      // Also fetch implicit cost-code-based billing
-      const { data: implicitBills } = await supabase
-        .from('bills')
-        .select(`
-          id, vendor_id, project_id, status, is_reversal, reversed_at,
-          bill_lines ( cost_code_id, amount, purchase_order_id, purchase_order_line_id )
-        `)
-        .eq('project_id', projectId)
-        .eq('vendor_id', vendorId)
-        .in('status', ['posted', 'paid'])
-        .eq('is_reversal', false)
-        .is('reversed_at', null);
-
-      const billedByCostCode = new Map<string, number>();
-      (implicitBills || []).forEach(bill => {
-        (bill.bill_lines || []).forEach((line: any) => {
-          if (!line.purchase_order_id && !line.purchase_order_line_id && line.cost_code_id) {
-            const current = billedByCostCode.get(line.cost_code_id) || 0;
-            billedByCostCode.set(line.cost_code_id, current + (line.amount || 0));
-          }
-        });
-      });
-
       // Group PO lines by PO
       const linesByPo = new Map<string, typeof poLines>();
       (poLines || []).forEach(line => {
@@ -202,17 +179,10 @@ export function useVendorPurchaseOrders(
           };
         });
 
-        // Total billed = sum of line-level billing + PO-level-only billing + implicit cost code billing
+        // Total billed = sum of line-level billing + PO-level-only billing (explicit links only)
         const lineLevelBilled = lineItems.reduce((s, l) => s + l.total_billed, 0);
         const poLevelOnlyBilled = billedByPoIdOnly.get(po.id) || 0;
-
-        // Add implicit cost code billing only if no explicit links exist
-        let implicitBilled = 0;
-        if (lineLevelBilled === 0 && poLevelOnlyBilled === 0 && po.cost_code_id) {
-          implicitBilled = billedByCostCode.get(po.cost_code_id) || 0;
-        }
-
-        const totalBilled = lineLevelBilled + poLevelOnlyBilled + implicitBilled;
+        const totalBilled = lineLevelBilled + poLevelOnlyBilled;
 
         return {
           id: po.id,
@@ -222,7 +192,7 @@ export function useVendorPurchaseOrders(
           cost_code: costCodeData || undefined,
           total_billed: totalBilled,
           remaining: (po.total_amount || 0) - totalBilled,
-          unallocated_billed: poLevelOnlyBilled + implicitBilled,
+          unallocated_billed: poLevelOnlyBilled,
           unallocated_invoices: unallocatedInvoicesByPoId.get(po.id) || [],
           line_items: lineItems,
         };
