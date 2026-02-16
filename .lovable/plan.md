@@ -1,30 +1,33 @@
 
 
-## Fix: Stop Duplicating Billing Across PO Lines
+## Allocate INV0010 to "2nd Floor" PO Line
 
-### Root Cause
-The bill line for INV0010 ($7,000) has `purchase_order_id` set but `purchase_order_line_id` is NULL. The current code tries to distribute this $7,000 to PO lines by matching on `cost_code_id`. But this PO has **19 lines all sharing cost code 4370**, so the $7,000 gets duplicated to every single one -- showing $133,000 billed instead of $7,000.
+### The Problem
+The bill line for INV0010 ($7,000) has `purchase_order_id` set to the correct PO, but `purchase_order_line_id` is NULL. That is why it shows as "Unallocated" instead of appearing on the "2nd floor" row.
 
-### Fix
+### The Fix
+This is a one-line database update -- set `purchase_order_line_id` on the bill line to point to the "2nd floor" PO line.
 
-**`src/hooks/useVendorPurchaseOrders.ts`** -- Remove the broken cost-code distribution logic
+| Field | Current Value | New Value |
+|-------|--------------|-----------|
+| `bill_lines.purchase_order_line_id` | NULL | `202c5f27-2c15-48f5-924f-9e1da3934414` (2nd floor, $11,008) |
 
-- Remove the `poLevelBilledByCostCodeByPo` map entirely (lines 112-122)
-- For line-level billing, ONLY use `purchase_order_line_id` (explicit link) -- this is the only reliable attribution
-- For PO-level billing (where `purchase_order_id` is set but `purchase_order_line_id` is NULL), aggregate it into the PO header total only, not distributed to individual lines
-- Add a new "Unallocated" summary row in the dialog when there is PO-level billing that couldn't be attributed to a specific line
+Bill line ID: `3683d0d0-b56f-425e-ba4c-c3ff60bb5d41`
 
-**`src/components/bills/PODetailsDialog.tsx`** -- Show unallocated billing clearly
+### SQL to Execute
 
-- Accept a new `unallocatedBilled` field on the `VendorPurchaseOrder` interface
-- If there is unallocated billing, show an "Unallocated" row at the bottom of the line items table (before the totals row) with the amount that hasn't been assigned to a specific PO line
-- This makes it clear that $7,000 is billed against the PO but not yet allocated to a specific line
+```sql
+UPDATE bill_lines
+SET purchase_order_line_id = '202c5f27-2c15-48f5-924f-9e1da3934414'
+WHERE id = '3683d0d0-b56f-425e-ba4c-c3ff60bb5d41';
+```
 
-### Result
-- Each PO line shows $0.00 billed (correct -- nothing is explicitly linked to them)
-- The PO header shows $7,000 Billed to Date (correct -- one bill exists against this PO)
-- An "Unallocated" row shows $7,000 so the user knows it needs to be assigned to a specific line
-- To get the $7,000 to show on "2nd floor" specifically, the user edits the bill and selects the "2nd floor" PO line from the dropdown -- this sets `purchase_order_line_id` and the attribution becomes explicit and correct
+### Result After Fix
+- "2nd floor" row: PO Amount $11,008.00 | Billed $7,000.00 | Remaining $4,008.00
+- "Unallocated" row disappears (no more unallocated billing)
+- All other lines remain at $0.00 billed
+- Header totals unchanged: Billed to Date $7,000.00 | Remaining $35,343.00
 
-### Why This Is the Right Approach
-Cost-code matching fails when multiple PO lines share the same cost code (which is common -- this PO has 19 lines on one cost code). The only reliable way to attribute billing to a specific PO line is through the explicit `purchase_order_line_id` link, which is set when the user selects a PO line in the bill entry/edit form.
+### No Code Changes Needed
+The display logic already handles explicit `purchase_order_line_id` links correctly. This is purely a data fix.
+
