@@ -25,8 +25,9 @@ import { BillNotesDialog } from "./BillNotesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
-import { POSelectionDropdown, useShouldShowPOSelection, findMatchingPOForCostCode, findMatchingPOLineForCostCode } from "./POSelectionDropdown";
+import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
+import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -59,6 +60,7 @@ interface ExpenseRow {
   quantity: string;
   amount: string;
   memo: string;
+  poConfidence?: number;
 }
 
 export function ManualBillEntry() {
@@ -198,6 +200,39 @@ export function ManualBillEntry() {
     setJobCostRows(jobCostRows.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
+  };
+
+  // Build PO line candidates for smart matching
+  const allPOLineCandidates: POLineCandidate[] = (vendorPOs || []).flatMap(po =>
+    po.line_items.map(line => ({
+      id: line.id,
+      purchase_order_id: po.id,
+      description: line.description,
+      cost_code_id: line.cost_code_id,
+      cost_code_name: line.cost_code?.name || null,
+      amount: line.amount,
+      remaining: line.remaining,
+    }))
+  );
+
+  // Smart match a job cost row to the best PO line
+  const smartMatchRow = (row: ExpenseRow, costCodeId?: string): Partial<ExpenseRow> => {
+    if (allPOLineCandidates.length === 0) return {};
+    const match = getBestPOLineMatch(
+      row.memo || '',
+      parseFloat(row.amount) || 0,
+      costCodeId || row.accountId,
+      allPOLineCandidates,
+      30
+    );
+    if (match) {
+      return {
+        purchaseOrderId: match.poId,
+        purchaseOrderLineId: match.poLineId,
+        poConfidence: match.confidence,
+      };
+    }
+    return {};
   };
 
   const addExpenseRow = () => {
@@ -760,18 +795,13 @@ export function ManualBillEntry() {
                         value={row.account}
                         onChange={(value) => updateJobCostRow(row.id, 'account', value)}
                         onCostCodeSelect={(costCode) => {
-                          updateJobCostRow(row.id, 'accountId', costCode.id);
-                          updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
-                          
-                          // Auto-select matching PO if one exists for this cost code
-                          const matchingPO = findMatchingPOForCostCode(vendorPOs, costCode.id);
-                          if (matchingPO) {
-                            updateJobCostRow(row.id, 'purchaseOrderId', matchingPO);
-                            const matchingLine = findMatchingPOLineForCostCode(vendorPOs, matchingPO, costCode.id);
-                            if (matchingLine) {
-                              updateJobCostRow(row.id, 'purchaseOrderLineId', matchingLine);
-                            }
-                          }
+                          const updatedRow = { ...row, accountId: costCode.id, account: `${costCode.code} - ${costCode.name}` };
+                          const poMatch = smartMatchRow(updatedRow, costCode.id);
+                          setJobCostRows(prev => prev.map(r => 
+                            r.id === row.id 
+                              ? { ...r, accountId: costCode.id, account: `${costCode.code} - ${costCode.name}`, ...poMatch }
+                              : r
+                          ));
                         }}
                         placeholder="Cost Code"
                         className="h-8"
@@ -782,6 +812,15 @@ export function ManualBillEntry() {
                         placeholder="Job cost memo"
                         value={row.memo}
                         onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
+                        onBlur={() => {
+                          // Re-run smart matching when memo changes
+                          if (!row.purchaseOrderId && allPOLineCandidates.length > 0) {
+                            const poMatch = smartMatchRow(row);
+                            if (poMatch.purchaseOrderId) {
+                              setJobCostRows(prev => prev.map(r => r.id === row.id ? { ...r, ...poMatch } : r));
+                            }
+                          }
+                        }}
                         className="h-8"
                       />
                     </div>
@@ -804,6 +843,14 @@ export function ManualBillEntry() {
                           placeholder="0.00"
                           value={row.amount}
                           onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
+                          onBlur={() => {
+                            if (!row.purchaseOrderId && allPOLineCandidates.length > 0) {
+                              const poMatch = smartMatchRow(row);
+                              if (poMatch.purchaseOrderId) {
+                                setJobCostRows(prev => prev.map(r => r.id === row.id ? { ...r, ...poMatch } : r));
+                              }
+                            }
+                          }}
                           className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
@@ -839,10 +886,14 @@ export function ManualBillEntry() {
                         value={row.purchaseOrderId}
                         purchaseOrderLineId={row.purchaseOrderLineId}
                         onChange={(poId, poLineId) => {
-                          updateJobCostRow(row.id, 'purchaseOrderId', poId || '');
-                          updateJobCostRow(row.id, 'purchaseOrderLineId', poLineId || '');
+                          setJobCostRows(prev => prev.map(r => 
+                            r.id === row.id 
+                              ? { ...r, purchaseOrderId: poId || '', purchaseOrderLineId: poLineId || '', poConfidence: undefined }
+                              : r
+                          ));
                         }}
                         costCodeId={row.accountId}
+                        confidence={row.poConfidence}
                       />
                     </div>
                     {showAddressColumn && (

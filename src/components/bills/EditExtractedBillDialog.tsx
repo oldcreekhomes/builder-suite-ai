@@ -24,7 +24,8 @@ import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bi
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
-
+import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
+import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
   if (!terms) return 'net-30';
@@ -85,6 +86,7 @@ interface LineItem {
   unit_cost: number;
   amount: number;
   memo?: string;
+  poConfidence?: number;
 }
 
 export function EditExtractedBillDialog({
@@ -109,6 +111,7 @@ export function EditExtractedBillDialog({
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
+  const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
 
   // Load bill data
   useEffect(() => {
@@ -356,6 +359,52 @@ export function EditExtractedBillDialog({
     const newDueDate = computeDueDate(billDate, terms);
     setDueDate(newDueDate);
   }, [billDate, isDueAuto, terms, open]);
+
+  // Auto-match job cost lines to PO lines when PO data loads
+  useEffect(() => {
+    if (!vendorPOs || vendorPOs.length === 0 || jobCostLines.length === 0) return;
+    
+    // Build flat list of PO line candidates
+    const allPOLines: POLineCandidate[] = vendorPOs.flatMap(po =>
+      po.line_items.map(line => ({
+        id: line.id,
+        purchase_order_id: po.id,
+        description: line.description,
+        cost_code_id: line.cost_code_id,
+        cost_code_name: line.cost_code?.name || null,
+        amount: line.amount,
+        remaining: line.remaining,
+      }))
+    );
+
+    if (allPOLines.length === 0) return;
+
+    // Only run matching on lines that don't already have a PO assigned
+    const needsMatching = jobCostLines.some(l => !l.purchase_order_id);
+    if (!needsMatching) return;
+
+    setJobCostLines(prev => prev.map(line => {
+      if (line.purchase_order_id) return line; // Already assigned
+      
+      const match = getBestPOLineMatch(
+        line.memo || '',
+        line.amount,
+        line.cost_code_id,
+        allPOLines,
+        30 // Show matches from 30%+ but user sees confidence
+      );
+
+      if (match) {
+        return {
+          ...line,
+          purchase_order_id: match.poId,
+          purchase_order_line_id: match.poLineId,
+          poConfidence: match.confidence,
+        };
+      }
+      return line;
+    }));
+  }, [vendorPOs]); // Only run when PO data loads
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
@@ -870,12 +919,13 @@ export function EditExtractedBillDialog({
                               setJobCostLines(lines =>
                                 lines.map(l => 
                                   l.id === line.id 
-                                    ? { ...l, purchase_order_id: poId, purchase_order_line_id: poLineId }
+                                    ? { ...l, purchase_order_id: poId, purchase_order_line_id: poLineId, poConfidence: undefined }
                                     : l
                                 )
                               );
                             }}
                             costCodeId={line.cost_code_id}
+                            confidence={line.poConfidence}
                           />
                         </TableCell>
                       )}
