@@ -20,6 +20,7 @@ import { CompanyCostCodesModal } from "./CompanyCostCodesModal";
 import { ArchiveCompanyDialog } from "./ArchiveCompanyDialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 
 
 type CostCode = {
@@ -217,7 +218,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
   return (
     <>      
-      <div className="border rounded-lg overflow-hidden">
+      <SettingsTableWrapper>
         <Table>
           <TableHeader>
             <TableRow>
@@ -232,36 +233,34 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           </TableHeader>
           <TableBody>
             {filteredCompanies.map((company) => (
-              <TableRow key={company.id} className="h-10">
-                <TableCell className="px-2 py-1 whitespace-nowrap">
-                  <div className="text-xs font-medium">
-                    {company.company_name}
-                  </div>
+              <TableRow key={company.id}>
+                <TableCell className="font-medium">
+                  {company.company_name}
                 </TableCell>
-                <TableCell className="px-2 py-1">
-                  <Badge className={`text-xs ${getTypeColor(company.company_type)}`}>
+                <TableCell>
+                  <Badge className={getTypeColor(company.company_type)}>
                     {company.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell>
                   {company.address ? (
-                    <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                    <span className="text-muted-foreground truncate max-w-[200px]">
                       {company.address.replace(/, United States$/, '')}
                     </span>
                   ) : (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell>
                   {company.cost_codes && company.cost_codes.length > 0 ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => setShowingCostCodes(company)}
-                          className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                          className="flex items-center space-x-1 hover:bg-muted rounded px-1 py-0.5 transition-colors"
                         >
-                          <Hash className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs">{company.cost_codes.length}</span>
+                          <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>{company.cost_codes.length}</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -269,32 +268,32 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                       </TooltipContent>
                     </Tooltip>
                   ) : (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell>
                   {company.website ? (
                     <a 
                       href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-gray-600"
+                      className="text-muted-foreground hover:underline"
                     >
                       Website
                     </a>
                   ) : (
-                    <span className="text-gray-400 text-xs">-</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         onClick={() => setShowingReps(company)}
-                        className="flex items-center space-x-1 hover:bg-gray-100 rounded px-1 py-0.5 transition-colors"
+                        className="flex items-center space-x-1 hover:bg-muted rounded px-1 py-0.5 transition-colors"
                       >
-                        <Users className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs">{company.representatives_count || 0}</span>
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{company.representatives_count || 0}</span>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -302,7 +301,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     </TooltipContent>
                   </Tooltip>
                 </TableCell>
-                <TableCell className="px-2 py-1">
+                <TableCell>
                   <div className="flex justify-center">
                     <TableRowActions actions={[
                       {
@@ -323,7 +322,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {filteredCompanies.length === 0 && searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                   No companies found matching "{searchQuery}"
                 </TableCell>
               </TableRow>
@@ -331,14 +330,14 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
 
             {companies.length === 0 && !searchQuery && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-4 text-xs text-gray-500">
+                <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                   No companies found. Start by adding your first company.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
+      </SettingsTableWrapper>
 
       <EditCompanyDialog
         company={editingCompany}
