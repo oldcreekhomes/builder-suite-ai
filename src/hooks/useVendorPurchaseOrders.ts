@@ -30,6 +30,7 @@ export interface VendorPurchaseOrder {
   };
   total_billed: number;
   remaining: number;
+  unallocated_billed: number;
   line_items: POLineItem[];
 }
 
@@ -109,22 +110,10 @@ export function useVendorPurchaseOrders(
         .in('purchase_order_id', poIds)
         .is('purchase_order_line_id', null);
 
-      // Distribute PO-level-only billing to PO lines by matching cost_code_id
-      const poLevelBilledByCostCodeByPo = new Map<string, Map<string, number>>();
-      (poBilled || []).forEach(bl => {
-        if (bl.purchase_order_id && bl.cost_code_id) {
-          if (!poLevelBilledByCostCodeByPo.has(bl.purchase_order_id)) {
-            poLevelBilledByCostCodeByPo.set(bl.purchase_order_id, new Map());
-          }
-          const ccMap = poLevelBilledByCostCodeByPo.get(bl.purchase_order_id)!;
-          ccMap.set(bl.cost_code_id, (ccMap.get(bl.cost_code_id) || 0) + (bl.amount || 0));
-        }
-      });
-
-      // Track PO-level billing that couldn't be attributed to any line
+      // Track ALL PO-level billing (purchase_order_id set, purchase_order_line_id NULL)
       const billedByPoIdOnly = new Map<string, number>();
       (poBilled || []).forEach(bl => {
-        if (bl.purchase_order_id && !bl.cost_code_id) {
+        if (bl.purchase_order_id) {
           const current = billedByPoIdOnly.get(bl.purchase_order_id) || 0;
           billedByPoIdOnly.set(bl.purchase_order_id, current + (bl.amount || 0));
         }
@@ -168,11 +157,7 @@ export function useVendorPurchaseOrders(
 
         const lineItems: POLineItem[] = lines.map(line => {
           const lineCostCode = line.cost_code_id ? costCodeMap.get(line.cost_code_id) : null;
-          const lineBilled = billedByLineId.get(line.id) || 0;
-          // Add PO-level billing attributed by cost code match
-          const poLevelCcMap = poLevelBilledByCostCodeByPo.get(po.id);
-          const poLevelCcBilled = (poLevelCcMap && line.cost_code_id) ? (poLevelCcMap.get(line.cost_code_id) || 0) : 0;
-          const totalLineBilled = lineBilled + poLevelCcBilled;
+          const totalLineBilled = billedByLineId.get(line.id) || 0;
           return {
             id: line.id,
             line_number: line.line_number,
@@ -207,6 +192,7 @@ export function useVendorPurchaseOrders(
           cost_code: costCodeData || undefined,
           total_billed: totalBilled,
           remaining: (po.total_amount || 0) - totalBilled,
+          unallocated_billed: poLevelOnlyBilled + implicitBilled,
           line_items: lineItems,
         };
       });

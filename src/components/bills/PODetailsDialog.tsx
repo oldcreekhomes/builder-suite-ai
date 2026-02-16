@@ -125,6 +125,19 @@ export function PODetailsDialog({
                     );
                   })}
 
+                  {/* Unallocated Row */}
+                  {purchaseOrder.unallocated_billed > 0 && (
+                    <TableRow className="border-t border-dashed">
+                      <TableCell className="text-xs italic text-muted-foreground">Unallocated</TableCell>
+                      <TableCell></TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="text-xs text-right text-amber-700 font-medium">
+                        {formatCurrency(purchaseOrder.unallocated_billed)}
+                      </TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  )}
+
                   {/* Totals Row */}
                   <TableRow className="bg-muted/50 font-medium">
                      <TableCell className="text-xs font-semibold">Total</TableCell>
@@ -133,14 +146,14 @@ export function PODetailsDialog({
                       {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
                     </TableCell>
                     <TableCell className="text-xs text-right font-semibold">
-                      {formatCurrency(lineItems.reduce((s, l) => s + l.total_billed, 0))}
+                      {formatCurrency(purchaseOrder.total_billed)}
                     </TableCell>
                     <TableCell className={cn("text-xs text-right font-semibold",
                       isOverBudget && "text-destructive",
                       isWarning && "text-amber-700",
                       isHealthy && "text-green-700"
                     )}>
-                      {formatCurrency(lineItems.reduce((s, l) => s + l.remaining, 0))}
+                      {formatCurrency(purchaseOrder.remaining)}
                     </TableCell>
                   </TableRow>
                 </TableBody>
