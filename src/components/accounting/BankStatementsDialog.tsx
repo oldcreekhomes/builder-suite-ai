@@ -331,7 +331,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                 <TableHead>Statement End Date</TableHead>
                 <TableHead>Uploaded</TableHead>
                 <TableHead>Size</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -358,8 +358,8 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                   <TableCell>
                     {statement.file_size ? formatFileSize(statement.file_size) : '-'}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
                       <TableRowActions
                         actions={[
                           {

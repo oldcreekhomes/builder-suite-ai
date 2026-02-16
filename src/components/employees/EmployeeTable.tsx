@@ -185,7 +185,7 @@ export function EmployeeTable() {
               <TableHead>Phone</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -212,8 +212,8 @@ export function EmployeeTable() {
                   {employee.role.replace('_', ' ')}
                 </TableCell>
                 <TableCell>{getStatusBadge(employee)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end">
+                <TableCell className="text-center">
+                  <div className="flex justify-center">
                     <TableRowActions actions={[
                       { label: "View as User", onClick: () => handleViewAsUser(employee), hidden: !isOwner, disabled: !employee.confirmed || employee.id === realUser?.id },
                       { label: "Edit", onClick: () => handleEditEmployee(employee) },

@@ -138,7 +138,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Name / Address</TableHead>
-              <TableHead className="w-20 text-right">Actions</TableHead>
+              <TableHead className="w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

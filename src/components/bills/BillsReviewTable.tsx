@@ -45,7 +45,7 @@ export const BillsReviewTable = () => {
             <TableHead>File Name</TableHead>
             <TableHead>Uploaded</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

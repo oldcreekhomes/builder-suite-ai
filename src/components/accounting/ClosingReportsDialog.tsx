@@ -304,7 +304,7 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
                 <TableHead>File Name</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead>Uploaded</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
