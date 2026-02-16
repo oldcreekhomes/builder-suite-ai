@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
 
 // Helper function to get street address only (before first comma)
@@ -67,8 +67,12 @@ export function ProjectWarnings() {
       </div>
       <CardContent className="p-0 flex-1 overflow-hidden">
         {!hasAlerts ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            No pending warnings
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="text-center">
+              <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <p className="font-medium text-sm">All Caught Up</p>
+              <p className="text-xs text-muted-foreground">No pending accounting alerts</p>
+            </div>
           </div>
         ) : (
           <ScrollArea className="h-full">
