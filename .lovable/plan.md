@@ -1,30 +1,54 @@
 
 
-## Center the "..." Actions Button Across All Tables
+## Per-Project Chart of Accounts Selection
 
-### Problem
-The three-dot actions button is left-aligned (or right-aligned via wrapper divs) in table cells, appearing off-center in the Actions column.
+### Overview
+Add a new "Chart of Accounts" tab inside the Edit Project dialog that lets users check/uncheck which accounts apply to each project. Excluded accounts will be hidden from that project's Balance Sheet and Income Statement.
 
-### Solution
-Add `mx-auto` to the trigger `Button` inside the shared `TableRowActions` component. Since every table uses this single component, this one-line change centers the dots across all 77+ tables at once.
+### Database Change
 
-### Change
+**New table: `project_account_exclusions`**
+- `id` (uuid, PK)
+- `project_id` (uuid, FK to projects, NOT NULL)
+- `account_id` (uuid, FK to accounts, NOT NULL)
+- `created_at` (timestamptz)
+- Unique constraint on (project_id, account_id)
+- RLS enabled with policies matching the projects table access pattern
 
-**`src/components/ui/table-row-actions.tsx`** (line 59)
+This "exclusion" approach means all accounts are included by default -- users only need to uncheck the ones that don't apply. No data migration needed.
 
-Change:
-```tsx
-<Button variant="ghost" className="h-8 w-8 p-0">
-```
-To:
-```tsx
-<Button variant="ghost" className="h-8 w-8 p-0 mx-auto">
-```
+### UI Changes
 
-This also requires removing any `justify-end` wrapper divs around `TableRowActions` in individual table files (like BankStatementsDialog) so the centering isn't overridden. The Actions `TableHead` already uses `text-right` or similar -- those headers should switch to `text-center` to match.
+**1. Edit Project Dialog (`src/components/EditProjectDialog.tsx`)**
+- Add a Tabs component inside the dialog with two tabs: "Project Details" (existing form) and "Chart of Accounts" (new)
+- Widen the dialog slightly to accommodate the accounts list (`sm:max-w-[650px]`)
 
-### Files Modified
-- `src/components/ui/table-row-actions.tsx` -- add `mx-auto` to button
-- `src/components/accounting/BankStatementsDialog.tsx` -- change Actions header to `text-center`, change wrapper div from `justify-end` to `justify-center`
-- Any other table files with `justify-end` wrappers around `TableRowActions` will be updated to `justify-center` for consistency
+**2. New Component: `src/components/ProjectAccountsTab.tsx`**
+- Receives `projectId` as prop
+- Fetches all active accounts grouped by type (Asset, Liability, Equity, Revenue, Expense)
+- Fetches current exclusions from `project_account_exclusions`
+- Displays each group as a collapsible section with account code, name, and a checkbox
+- Checked = account is used in this project (default); Unchecked = excluded
+- On toggle, inserts or deletes from `project_account_exclusions`
+- Changes are saved immediately (no need to hit "Update Project")
+
+### Report Filtering
+
+**3. Balance Sheet (`src/components/reports/BalanceSheetContent.tsx`)**
+- When `projectId` is provided, fetch excluded account IDs from `project_account_exclusions`
+- Filter out excluded accounts before categorizing into assets/liabilities/equity
+- This happens at line ~116 where accounts are iterated
+
+**4. Income Statement (`src/components/reports/IncomeStatementContent.tsx`)**
+- Same filtering: exclude accounts that appear in `project_account_exclusions` for the given project
+
+### Files to Create
+- `supabase/migrations/[timestamp]_create_project_account_exclusions.sql` -- new table + RLS
+- `src/components/ProjectAccountsTab.tsx` -- checkbox UI for account selection
+
+### Files to Modify
+- `src/components/EditProjectDialog.tsx` -- add Tabs with "Project Details" and "Chart of Accounts"
+- `src/components/reports/BalanceSheetContent.tsx` -- filter out excluded accounts
+- `src/components/reports/IncomeStatementContent.tsx` -- filter out excluded accounts
+- `src/integrations/supabase/types.ts` -- auto-updated with new table type
 
