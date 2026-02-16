@@ -134,7 +134,16 @@ export function matchBillLineToPOLines(
     const exactBonus = exactAmountBonus(billAmount, line.amount, line.remaining);
 
     const raw = (kw * 35) + (ccMatch * 25) + (amt * 15) + (exactBonus * 25);
-    const confidence = Math.min(100, Math.round(raw));
+    let confidence = Math.min(100, Math.round(raw));
+
+    // Perfect match override: cost code match + exact amount = 95% minimum
+    if (ccMatch === 1 && exactBonus >= 1.0) {
+      confidence = Math.max(confidence, 95);
+    }
+    // Strong match: cost code match + near-exact amount = 85% minimum
+    if (ccMatch === 1 && exactBonus >= 0.7) {
+      confidence = Math.max(confidence, 85);
+    }
 
     return { poLineId: line.id, poId: line.purchase_order_id, confidence };
   });
