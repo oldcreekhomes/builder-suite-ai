@@ -43,6 +43,9 @@ interface POSelectionDropdownProps {
   className?: string;
   disabled?: boolean;
   purchaseOrderLineId?: string;
+  currentBillId?: string;
+  currentBillAmount?: number;
+  currentBillReference?: string;
 }
 
 /**
@@ -58,6 +61,9 @@ export function POSelectionDropdown({
   className,
   disabled = false,
   purchaseOrderLineId,
+  currentBillId,
+  currentBillAmount,
+  currentBillReference,
 }: POSelectionDropdownProps) {
   const { data: purchaseOrders, isLoading } = useVendorPurchaseOrders(projectId, vendorId);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -220,6 +226,9 @@ export function POSelectionDropdown({
         purchaseOrder={selectedPOForDialog}
         projectId={projectId}
         vendorId={vendorId}
+        currentBillId={currentBillId}
+        currentBillAmount={currentBillAmount}
+        currentBillReference={currentBillReference}
       />
     </div>
   );

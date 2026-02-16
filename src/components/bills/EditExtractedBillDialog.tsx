@@ -938,6 +938,9 @@ export function EditExtractedBillDialog({
                               );
                             }}
                             costCodeId={line.cost_code_id}
+                            currentBillId={undefined}
+                            currentBillAmount={jobCostLines.reduce((sum, l) => sum + l.amount, 0)}
+                            currentBillReference={refNo}
                           />
                         </TableCell>
                       )}
