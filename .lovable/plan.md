@@ -1,28 +1,34 @@
 
 
-## Replace Old PO Dialog with New Line-Item Breakdown
+## Fix PO Details Dialog: Remove Circles + Show Billed Amounts Per Line
 
-### What Happened
-The redesigned `PODetailsDialog` (with line-item breakdown) was only wired into the `POSelectionDropdown` component -- the dropdown inside the bill editing forms. It was never connected to the **PO Status badge** on the Manage Bills page, which is what you actually click. Those badges still open the old `POComparisonDialog` showing useless aggregate numbers.
+### Two Issues
 
-### What This Plan Does
+**1. Remove the status circles column**
+The circles (empty, partial, checkmark) on the left side of each row add no value -- they're redundant with the Billed/Remaining columns. Remove that entire column.
 
-**1. `BillsApprovalTable.tsx`** -- Swap `POComparisonDialog` for `PODetailsDialog`
-- Import `PODetailsDialog` and `useVendorPurchaseOrders`
-- When the PO Status badge is clicked, store the bill's `projectId` and `vendorId` (already available) and the specific PO ID
-- Fetch the full PO data with line items using `useVendorPurchaseOrders`
-- Find the matching PO from the results and pass it to `PODetailsDialog`
-- Add current bill amount/reference as context footer
+**2. Distribute PO-level billing to line items by cost code**
+Right now, the bill line for INV0010 ($7,000) has `purchase_order_id` set but `purchase_order_line_id` is NULL. The hook puts this into a PO-level bucket that only updates the header total, not individual line items. The "2nd floor" row shows $0.00 billed even though it shares the same cost code as the $7,000 bill line.
 
-**2. `PayBillsTable.tsx`** -- Same swap as above
-- Identical changes: replace `POComparisonDialog` with `PODetailsDialog`
+**Fix**: When bill lines are linked to a PO but NOT to a specific PO line, distribute them to matching PO lines by cost code. If the bill line's cost code matches a PO line's cost code, attribute that billing to that PO line.
 
-**3. `PODetailsDialog.tsx`** -- Add current bill context
-- Add optional `currentBillAmount` and `currentBillReference` props
-- Show a small footer: "Current Bill: [reference] for $7,000"
+### Changes
 
-**4. Delete `POComparisonDialog.tsx`**
-- No longer used anywhere after the swap -- remove it entirely
+**`src/components/bills/PODetailsDialog.tsx`**
+- Remove the status icon column (Circle, CircleDot, CheckCircle2) from the table
+- Remove the empty first `TableHead` and `TableCell` with the icons
+- Remove the imports for Circle, CircleDot, CheckCircle2
+
+**`src/hooks/useVendorPurchaseOrders.ts`**
+- After computing `billedByPoIdOnly` (bill lines with `purchase_order_id` but no `purchase_order_line_id`), distribute those amounts to PO line items by matching on `cost_code_id`
+- For each such bill line, find the PO line(s) with the same cost code and attribute the billing there
+- This way the "2nd floor" line (cost code 4370) picks up the $7,000 from INV0010
+- If multiple PO lines share the same cost code, distribute proportionally or to the first match
+- Update line-level `total_billed` and `remaining` accordingly
+- Also fetch cost_code_id from the PO-level bill lines query so we can do the matching
 
 ### Result
-When you click the "Matched" or "Over" badge on the bills approval page, you will see the full PO with all 22 line items, each showing description, cost code, PO amount, billed amount, and remaining. For the Four Seasons example, the "2nd floor" row will show $11,008 PO amount, $7,000 billed, $4,008 remaining.
+After this fix:
+- No circles cluttering the left side
+- The "2nd floor" row will show: PO Amount $11,008.00 | Billed $7,000.00 | Remaining $4,008.00
+- The header will continue showing: Billed to Date $7,000.00 | Remaining $35,343.00
