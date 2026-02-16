@@ -2886,6 +2886,42 @@ export type Database = {
           },
         ]
       }
+      project_account_exclusions: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_account_exclusions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_account_exclusions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_bid_packages: {
         Row: {
           cost_code_id: string

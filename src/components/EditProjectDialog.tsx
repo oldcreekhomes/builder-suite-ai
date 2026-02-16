@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { Project } from "@/hooks/useProjects";
 import { LotManagementSection } from "@/components/LotManagementSection";
 import { useUserRole } from "@/hooks/useUserRole";
+import { ProjectAccountsTab } from "@/components/ProjectAccountsTab";
 
 interface EditProjectDialogProps {
   project: Project | null;
@@ -38,7 +40,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     accounting_software: "quickbooks",
   });
 
-  // Update form data when project changes
   useEffect(() => {
     if (project) {
       setFormData({
@@ -98,123 +99,135 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleChange('address', e.target.value)}
-              required
-            />
-          </div>
+        <Tabs defaultValue="details">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">Project Details</TabsTrigger>
+            <TabsTrigger value="accounts">Chart of Accounts</TabsTrigger>
+          </TabsList>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="constructionManager">Construction Manager</Label>
-              <Select
-                value={formData.construction_manager}
-                onValueChange={(value) => handleChange("construction_manager", value)}
-                disabled={updateProjectMutation.isPending || usersLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no-manager">No Construction Manager</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <TabsContent value="details">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="accountingManager">Accounting Manager</Label>
-              <Select
-                value={formData.accounting_manager}
-                onValueChange={(value) => handleChange("accounting_manager", value)}
-                disabled={updateProjectMutation.isPending || usersLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no-manager">No Accounting Manager</SelectItem>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="constructionManager">Construction Manager</Label>
+                  <Select
+                    value={formData.construction_manager}
+                    onValueChange={(value) => handleChange("construction_manager", value)}
+                    disabled={updateProjectMutation.isPending || usersLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-manager">No Construction Manager</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="In Design">In Design</SelectItem>
-                  <SelectItem value="Permitting">Permitting</SelectItem>
-                  <SelectItem value="Under Construction">Under Construction</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  {isOwner && (
-                    <SelectItem value="Permanently Closed">Permanently Closed</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accountingManager">Accounting Manager</Label>
+                  <Select
+                    value={formData.accounting_manager}
+                    onValueChange={(value) => handleChange("accounting_manager", value)}
+                    disabled={updateProjectMutation.isPending || usersLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-manager">No Accounting Manager</SelectItem>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="accountingSoftware">Accounting Software</Label>
-              <Select 
-                value={formData.accounting_software} 
-                onValueChange={(value) => handleChange('accounting_software', value)}
-                disabled={updateProjectMutation.isPending}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="quickbooks">QuickBooks</SelectItem>
-                  <SelectItem value="builder_suite">Builder Suite</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="In Design">In Design</SelectItem>
+                      <SelectItem value="Permitting">Permitting</SelectItem>
+                      <SelectItem value="Under Construction">Under Construction</SelectItem>
+                      <SelectItem value="Completed">Completed</SelectItem>
+                      {isOwner && (
+                        <SelectItem value="Permanently Closed">Permanently Closed</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          {/* Lot Management Section */}
-          {project && <LotManagementSection projectId={project.id} />}
+                <div className="space-y-2">
+                  <Label htmlFor="accountingSoftware">Accounting Software</Label>
+                  <Select 
+                    value={formData.accounting_software} 
+                    onValueChange={(value) => handleChange('accounting_software', value)}
+                    disabled={updateProjectMutation.isPending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="quickbooks">QuickBooks</SelectItem>
+                      <SelectItem value="builder_suite">Builder Suite</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          <div className="flex justify-end space-x-2 pt-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={updateProjectMutation.isPending}
-            >
-              {updateProjectMutation.isPending ? "Updating..." : "Update Project"}
-            </Button>
-          </div>
-        </form>
+              {project && <LotManagementSection projectId={project.id} />}
+
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateProjectMutation.isPending}
+                >
+                  {updateProjectMutation.isPending ? "Updating..." : "Update Project"}
+                </Button>
+              </div>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="accounts">
+            {project && <ProjectAccountsTab projectId={project.id} />}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
