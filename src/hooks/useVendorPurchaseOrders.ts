@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface BilledInvoice {
+  bill_id: string;
+  reference_number: string;
+  bill_date: string;
+  amount: number;
+}
+
 export interface POLineItem {
   id: string;
   line_number: number;
@@ -16,6 +23,7 @@ export interface POLineItem {
   amount: number;
   total_billed: number;
   remaining: number;
+  billed_invoices: BilledInvoice[];
 }
 
 export interface VendorPurchaseOrder {
@@ -31,6 +39,7 @@ export interface VendorPurchaseOrder {
   total_billed: number;
   remaining: number;
   unallocated_billed: number;
+  unallocated_invoices: BilledInvoice[];
   line_items: POLineItem[];
 }
 
@@ -88,17 +97,27 @@ export function useVendorPurchaseOrders(
       // Fetch billed amounts per PO line (using purchase_order_line_id)
       const poLineIds = (poLines || []).map(l => l.id);
       let billedByLineId = new Map<string, number>();
+      let invoicesByLineId = new Map<string, BilledInvoice[]>();
 
       if (poLineIds.length > 0) {
         const { data: lineBilled } = await supabase
           .from('bill_lines')
-          .select('purchase_order_line_id, amount')
+          .select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date)')
           .in('purchase_order_line_id', poLineIds);
 
-        (lineBilled || []).forEach(bl => {
+        (lineBilled || []).forEach((bl: any) => {
           if (bl.purchase_order_line_id) {
             const current = billedByLineId.get(bl.purchase_order_line_id) || 0;
             billedByLineId.set(bl.purchase_order_line_id, current + (bl.amount || 0));
+
+            const invoices = invoicesByLineId.get(bl.purchase_order_line_id) || [];
+            invoices.push({
+              bill_id: bl.bill_id,
+              reference_number: bl.bills?.reference_number || 'No Ref',
+              bill_date: bl.bills?.bill_date || '',
+              amount: bl.amount || 0,
+            });
+            invoicesByLineId.set(bl.purchase_order_line_id, invoices);
           }
         });
       }
@@ -106,16 +125,26 @@ export function useVendorPurchaseOrders(
       // Also fetch billed amounts at PO level (for lines linked by purchase_order_id but not purchase_order_line_id)
       const { data: poBilled } = await supabase
         .from('bill_lines')
-        .select('purchase_order_id, purchase_order_line_id, cost_code_id, amount')
+        .select('purchase_order_id, purchase_order_line_id, cost_code_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date)')
         .in('purchase_order_id', poIds)
         .is('purchase_order_line_id', null);
 
       // Track ALL PO-level billing (purchase_order_id set, purchase_order_line_id NULL)
       const billedByPoIdOnly = new Map<string, number>();
-      (poBilled || []).forEach(bl => {
+      const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
+      (poBilled || []).forEach((bl: any) => {
         if (bl.purchase_order_id) {
           const current = billedByPoIdOnly.get(bl.purchase_order_id) || 0;
           billedByPoIdOnly.set(bl.purchase_order_id, current + (bl.amount || 0));
+
+          const invoices = unallocatedInvoicesByPoId.get(bl.purchase_order_id) || [];
+          invoices.push({
+            bill_id: bl.bill_id,
+            reference_number: bl.bills?.reference_number || 'No Ref',
+            bill_date: bl.bills?.bill_date || '',
+            amount: bl.amount || 0,
+          });
+          unallocatedInvoicesByPoId.set(bl.purchase_order_id, invoices);
         }
       });
 
@@ -169,6 +198,7 @@ export function useVendorPurchaseOrders(
             amount: line.amount || 0,
             total_billed: totalLineBilled,
             remaining: (line.amount || 0) - totalLineBilled,
+            billed_invoices: invoicesByLineId.get(line.id) || [],
           };
         });
 
@@ -193,6 +223,7 @@ export function useVendorPurchaseOrders(
           total_billed: totalBilled,
           remaining: (po.total_amount || 0) - totalBilled,
           unallocated_billed: poLevelOnlyBilled + implicitBilled,
+          unallocated_invoices: unallocatedInvoicesByPoId.get(po.id) || [],
           line_items: lineItems,
         };
       });
