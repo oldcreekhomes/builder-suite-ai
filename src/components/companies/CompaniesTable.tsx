@@ -9,7 +9,8 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Archive, Users, Hash } from "lucide-react";
+import { Users, Hash } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditCompanyDialog } from "./EditCompanyDialog";
@@ -302,38 +303,19 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                   </Tooltip>
                 </TableCell>
                 <TableCell className="px-2 py-1">
-                  <div className="flex justify-center items-center space-x-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingCompany(company)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Edit company</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setArchivingCompany(company)}
-                          disabled={archiveCompanyMutation.isPending}
-                          className="h-6 w-6 p-0 text-orange-600 hover:text-orange-700"
-                        >
-                          <Archive className="h-3 w-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Archive company</p>
-                      </TooltipContent>
-                    </Tooltip>
+                  <div className="flex justify-center">
+                    <TableRowActions actions={[
+                      {
+                        label: "Edit",
+                        onClick: () => setEditingCompany(company),
+                      },
+                      {
+                        label: "Archive",
+                        variant: "destructive",
+                        onClick: () => setArchivingCompany(company),
+                        disabled: archiveCompanyMutation.isPending,
+                      },
+                    ]} />
                   </div>
                 </TableCell>
               </TableRow>
