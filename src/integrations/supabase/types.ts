@@ -3379,7 +3379,7 @@ export type Database = {
         Row: {
           bid_package_id: string | null
           company_id: string
-          cost_code_id: string
+          cost_code_id: string | null
           created_at: string
           created_by: string
           extra: boolean
@@ -3396,7 +3396,7 @@ export type Database = {
         Insert: {
           bid_package_id?: string | null
           company_id: string
-          cost_code_id: string
+          cost_code_id?: string | null
           created_at?: string
           created_by?: string
           extra?: boolean
@@ -3413,7 +3413,7 @@ export type Database = {
         Update: {
           bid_package_id?: string | null
           company_id?: string
-          cost_code_id?: string
+          cost_code_id?: string | null
           created_at?: string
           created_by?: string
           extra?: boolean
@@ -3576,6 +3576,63 @@ export type Database = {
             columns: ["construction_manager"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_lines: {
+        Row: {
+          amount: number
+          cost_code_id: string | null
+          created_at: string
+          description: string | null
+          extra: boolean
+          id: string
+          line_number: number
+          purchase_order_id: string
+          quantity: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          cost_code_id?: string | null
+          created_at?: string
+          description?: string | null
+          extra?: boolean
+          id?: string
+          line_number?: number
+          purchase_order_id: string
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          cost_code_id?: string | null
+          created_at?: string
+          description?: string | null
+          extra?: boolean
+          id?: string
+          line_number?: number
+          purchase_order_id?: string
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "project_purchase_orders"
             referencedColumns: ["id"]
           },
         ]

@@ -39,6 +39,13 @@ interface POEmailRequest {
   files?: any[];
   isCancellation?: boolean;
   isUpdate?: boolean;
+  lineItems?: Array<{
+    description: string;
+    costCode: { code: string; name: string } | null;
+    quantity: number;
+    unitCost: number;
+    amount: number;
+  }>;
 }
 
 const generateFileDownloadLinks = (files: any[]) => {
@@ -98,6 +105,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const contractFiles = data.contractFiles || [];
   const isCancellation = data.isCancellation || false;
   const isUpdate = data.isUpdate || false;
+  const lineItems = data.lineItems || [];
   
   // Email title changes based on status
   let emailTitle = 'Purchase Order';
@@ -200,37 +208,63 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${companyName}</span>
                                                             </td>
                                                         </tr>
+                                                         ${lineItems.length > 1 ? `
                                                          <tr>
-                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
-                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName}</span>
-                                                             </td>
-                                                         </tr>
-                                                         ${contractFiles.length > 0 ? `
-                                                         <tr>
-                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contract:</span>
-                                                                 <span style="display: inline-block; vertical-align: top;">
-                                                                     ${contractFiles.map((file: any) => `
-                                                                          <a href="${file.url}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 4px;" target="_blank">
-                                                                              ${getSimpleFilename(file.name)}
-                                                                          </a>
-                                                                         <span style="background-color: #3B82F6; color: #ffffff; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                                                             CONTRACT
-                                                                         </span><br>
+                                                             <td style="margin: 0; padding: 8px 0;">
+                                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse; border: 1px solid #e5e5e5;">
+                                                                     <tr style="background-color: #f5f5f5;">
+                                                                         <td style="padding: 8px 10px; font-size: 12px; font-weight: 600; color: #666666; border-bottom: 1px solid #e5e5e5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code</td>
+                                                                         <td style="padding: 8px 10px; font-size: 12px; font-weight: 600; color: #666666; border-bottom: 1px solid #e5e5e5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Description</td>
+                                                                         <td style="padding: 8px 10px; font-size: 12px; font-weight: 600; color: #666666; border-bottom: 1px solid #e5e5e5; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Qty</td>
+                                                                         <td style="padding: 8px 10px; font-size: 12px; font-weight: 600; color: #666666; border-bottom: 1px solid #e5e5e5; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Unit Cost</td>
+                                                                         <td style="padding: 8px 10px; font-size: 12px; font-weight: 600; color: #666666; border-bottom: 1px solid #e5e5e5; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Amount</td>
+                                                                     </tr>
+                                                                     ${lineItems.map((line: any) => `
+                                                                     <tr>
+                                                                         <td style="padding: 6px 10px; font-size: 13px; color: #000000; border-bottom: 1px solid #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${line.costCode ? line.costCode.code : '—'}</td>
+                                                                         <td style="padding: 6px 10px; font-size: 13px; color: #000000; border-bottom: 1px solid #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${line.description || '—'}</td>
+                                                                         <td style="padding: 6px 10px; font-size: 13px; color: #000000; border-bottom: 1px solid #f0f0f0; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${line.quantity}</td>
+                                                                         <td style="padding: 6px 10px; font-size: 13px; color: #000000; border-bottom: 1px solid #f0f0f0; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(line.unitCost).toLocaleString()}</td>
+                                                                         <td style="padding: 6px 10px; font-size: 13px; color: #000000; border-bottom: 1px solid #f0f0f0; text-align: right; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(line.amount).toLocaleString()}</td>
+                                                                     </tr>
                                                                      `).join('')}
-                                                                 </span>
+                                                                     <tr style="background-color: #f9f9f9;">
+                                                                         <td colspan="4" style="padding: 8px 10px; font-size: 13px; font-weight: 600; color: #000000; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Total:</td>
+                                                                         <td style="padding: 8px 10px; font-size: 13px; font-weight: 700; color: #000000; text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(totalAmount).toLocaleString()}</td>
+                                                                     </tr>
+                                                                 </table>
                                                              </td>
                                                          </tr>
-                                                         ` : ''}
-                                                         ${totalAmount ? `
+                                                         ` : `
                                                          <tr>
-                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                 <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Amount:</span>
-                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(totalAmount).toLocaleString()}</span>
-                                                             </td>
-                                                         </tr>
-                                                         ` : ''}
+                                                              <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
+                                                                  <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${costCodeName}</span>
+                                                              </td>
+                                                          </tr>
+                                                          ${totalAmount ? `
+                                                          <tr>
+                                                              <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Amount:</span>
+                                                                  <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">$${Number(totalAmount).toLocaleString()}</span>
+                                                              </td>
+                                                          </tr>
+                                                          ` : ''}
+                                                         `}
+                                                          ${contractFiles.length > 0 ? `
+                                                          <tr>
+                                                              <td style="margin: 0; padding: 0 0 8px 0;">
+                                                                  <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contract:</span>
+                                                                  <span style="display: inline-block; vertical-align: top;">
+                                                                      ${contractFiles.map((file: any) => `
+                                                                           <a href="${file.url}" style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; text-decoration: none; display: inline-block; margin-bottom: 4px;" target="_blank">
+                                                                               ${getSimpleFilename(file.name)}
+                                                                           </a>
+                                                                      `).join('')}
+                                                                  </span>
+                                                              </td>
+                                                          </tr>
+                                                          ` : ''}
                                                           ${files.length > 0 ? `
                                                           <tr>
                                                               <td style="margin: 0; padding: 0 0 8px 0;">
@@ -611,6 +645,32 @@ const handler = async (req: Request): Promise<Response> => {
       emailSubject = `UPDATED - Purchase Order - ${finalProjectAddress || 'Project'}`;
     }
 
+    // Fetch line items from DB if not provided in request
+    let emailLineItems = requestData.lineItems || [];
+    if (emailLineItems.length === 0 && purchaseOrderId) {
+      const { data: dbLines } = await supabase
+        .from('purchase_order_lines')
+        .select('cost_code_id, description, quantity, unit_cost, amount')
+        .eq('purchase_order_id', purchaseOrderId)
+        .order('line_number', { ascending: true });
+      
+      if (dbLines && dbLines.length > 0) {
+        const ccIds = [...new Set(dbLines.map(l => l.cost_code_id).filter(Boolean))];
+        let ccMap = new Map();
+        if (ccIds.length > 0) {
+          const { data: ccs } = await supabase.from('cost_codes').select('id, code, name').in('id', ccIds);
+          ccMap = new Map(ccs?.map(c => [c.id, c]) || []);
+        }
+        emailLineItems = dbLines.map(l => ({
+          description: l.description || '',
+          costCode: l.cost_code_id ? ccMap.get(l.cost_code_id) || null : null,
+          quantity: l.quantity,
+          unitCost: l.unit_cost,
+          amount: l.amount,
+        }));
+      }
+    }
+
     const emailHTML = generatePOEmailHTML({
       projectAddress: finalProjectAddress,
       companyName: fetchedCompanyName || 'Unknown Company',
@@ -619,13 +679,14 @@ const handler = async (req: Request): Promise<Response> => {
       projectManager,
       costCode: costCodeInfo,
       totalAmount,
-      files: finalFiles, // Use the already calculated final files
+      files: finalFiles,
       projectId: projectDetails?.id,
       customMessage,
-      contractFiles: [], // Clear contract files since we're using proposal files as approved files
-      poNumber: poNumber || requestData.poNumber, // Use DB value first, fallback to request
+      contractFiles: [],
+      poNumber: poNumber || requestData.poNumber,
       isCancellation,
-      isUpdate
+      isUpdate,
+      lineItems: emailLineItems,
     }, purchaseOrderId, companyId);
 
     // Send emails to all recipients

@@ -99,11 +99,24 @@ export const usePurchaseOrders = (projectId: string, lotId?: string | null) => {
       const companyMap = new Map(companies?.map(c => [c.id, c]) || []);
       const costCodeMap = new Map(costCodes?.map(cc => [cc.id, cc]) || []);
 
+      // Fetch line counts per PO
+      const poIds = pos.map(po => po.id);
+      const { data: poLines } = await supabase
+        .from('purchase_order_lines')
+        .select('purchase_order_id, cost_code_id')
+        .in('purchase_order_id', poIds);
+
+      const lineCountMap = new Map<string, number>();
+      (poLines || []).forEach(line => {
+        lineCountMap.set(line.purchase_order_id, (lineCountMap.get(line.purchase_order_id) || 0) + 1);
+      });
+
       // Merge data and return as PurchaseOrder objects
       const enrichedPOs: PurchaseOrder[] = pos.map(po => ({
         ...po,
         companies: companyMap.get(po.company_id),
-        cost_codes: costCodeMap.get(po.cost_code_id)
+        cost_codes: costCodeMap.get(po.cost_code_id),
+        purchase_order_lines: Array.from({ length: lineCountMap.get(po.id) || 0 }),
       }));
 
       // Sort by cost code numerically
