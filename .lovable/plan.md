@@ -1,101 +1,52 @@
 
 
-## Fix PO Matching Confidence Scores
+## Fix Three Issues: Memo, PO Line Dropdown, and Confidence Column
 
-### Problem
+### Issue 1: Memo Field Shows Full Invoice Body Text
 
-The scoring algorithm in `poLineMatching.ts` has three fundamental flaws producing artificially low confidence scores:
+**Problem**: The previous fix changed `memo: line.memo || ""` to `memo: line.memo || line.description || ""`. But `description` contains the entire invoice body (address + all items), not just the line-specific text. This fills the memo field with "115 E Oceanwatch Ct Nags Head N..." for every line.
 
-1. **One-directional keyword scoring** penalizes verbose bill memos. "Siding draw" vs "Siding" scores 50% keyword match (1/2 bill tokens matched) when it should be 100% (all PO tokens found in bill).
+**Fix**: Revert the memo loading to `memo: line.memo || ""` so the display stays clean. Instead, pass `line.description` as a separate matching-only signal to the auto-match logic. The auto-match effect will use `line.memo || line.description` for matching, but the memo field in the UI will only show `line.memo`.
 
-2. **No word stemming**. "deck" does not exact-match "decks" -- it only matches via substring which still counts, but a simple stem strip would improve clarity and edge cases.
+**File**: `src/components/bills/EditExtractedBillDialog.tsx`
+- Lines 231, 244, 254: Revert to `memo: line.memo || ""`
+- Add a new field `matchingText` to the `LineItem` interface (used only for matching, not displayed)
+- In the auto-match effect (~line 397): Use `line.matchingText || line.memo || ''` when calling `getBestPOLineMatch`
 
-3. **No exact-amount bonus**. A $720 bill matching a $720 PO gets the same 25 points as any close amount. An exact or near-exact match should be a strong additional signal.
+### Issue 2: Two PO Dropdowns on Line Item 1
 
-### Solution: Rewrite Scoring in `poLineMatching.ts`
+**Problem**: When a PO has multiple line items (e.g., "Decks" and "Ground Floor"), the POSelectionDropdown shows a secondary line-level dropdown. The user sees this as "2 POs" and finds it confusing.
 
-**Change 1: Bidirectional keyword scoring**
+**Fix**: When the auto-match already selected a specific `purchase_order_line_id`, hide the secondary line dropdown. Only show it when the user manually selects a multi-line PO without a line pre-selected.
 
-Instead of only measuring "what % of bill tokens matched PO tokens", take the MAX of both directions:
-- bill-to-PO ratio: what fraction of bill tokens found in PO (current approach)
-- PO-to-bill ratio: what fraction of PO tokens found in bill (NEW)
+**File**: `src/components/bills/POSelectionDropdown.tsx`
+- Line 128: Change the condition to also require that `purchaseOrderLineId` is NOT already set:
+  ```
+  const showLineDropdown = selectedPO && selectedPO.line_items.length > 1 && !purchaseOrderLineId;
+  ```
+  Actually that's wrong -- if they manually pick a PO they need the line dropdown. Better approach: always auto-select the best line when a PO is selected. The line dropdown is still useful but the initial auto-match already sets the line. The real issue is that line 128 shows the dropdown when a line IS selected. Let me just keep the dropdown but make the trigger show the selected line name instead of "Select line item", and collapse it visually. Actually the simplest fix: when `purchaseOrderLineId` is already set by auto-match, the dropdown already shows the selected line name -- the user just sees it as a second PO. Let me hide it entirely when auto-matched.
 
-This means "Siding draw" vs "Siding" = max(0.5, 1.0) = 1.0 because 100% of PO tokens ("siding") appear in the bill.
+  Better approach: Don't show the line-level dropdown at all in the EditExtractedBill context. The auto-match already picks the best line. If the user wants to change it, they change the PO dropdown itself. This simplifies the UI.
 
-**Change 2: Simple stemming**
+  Simplest fix: Set `showLineDropdown = false` when `purchaseOrderLineId` is already set (auto-matched or not). The user can still change the PO header selection.
 
-Strip common suffixes (trailing 's', 'ing', 'ed') before comparison so "deck" = "decks", "framing" = "frame", etc. This is lightweight and avoids a dependency.
+### Issue 3: Confidence Column Position and Header
 
-**Change 3: Exact/near-exact amount bonus**
+**Problem**: The confidence badge appears BEFORE the Purchase Order column. User wants it AFTER, with a "Confidence" header.
 
-Add a bonus component (up to 15 points) when the bill amount is within 5% of the PO line's remaining or total amount. An exact dollar match (like $720 = $720) gets the full 15 points.
+**Fix in two files**:
 
-**Change 4: Rebalanced weights**
+**File**: `src/components/bills/EditExtractedBillDialog.tsx`
+- Line 870: Add a "Confidence" table header AFTER the Purchase Order header
+- Lines 919-938: Move the confidence display to its own TableCell AFTER the PO cell (instead of rendering inside POSelectionDropdown)
 
-| Signal | Old Weight | New Weight |
-|--------|-----------|------------|
-| Keyword match | 45 | 40 |
-| Cost code match | 30 | 25 |
-| Amount proximity | 25 | 20 |
-| Exact amount bonus | 0 | 15 |
-| **Total possible** | **100** | **100** |
+**File**: `src/components/bills/POSelectionDropdown.tsx`
+- Line 144-145: Remove the `confidenceBadge` from inside the dropdown component (it will be rendered externally in the table)
 
-### Expected Scores After Fix
-
-**"Deck balance" vs PO "Decks":**
-- Keyword: max(1/2, 1/1) = 1.0 (all PO tokens found) -> 40 pts
-- Cost code: mismatch -> 0 pts
-- Amount proximity: ~0.9 -> 18 pts
-- Near-exact bonus: ~10 pts
-- **Total: ~68%** (up from 45%) -- yellow badge, reasonable
-
-**"Siding draw" vs PO "Siding":**
-- Keyword: max(1/2, 1/1) = 1.0 -> 40 pts
-- Cost code: match -> 25 pts
-- Amount proximity: ~0.3 -> 6 pts
-- Exact bonus: 0
-- **Total: ~71%** (up from 60%) -- but wait, if "siding" PO has remaining = $11,220 it won't get exact bonus. Still solid yellow.
-
-Actually with cost code match + perfect keyword, that's already 65 pts minimum. Good.
-
-**"$720 framing" vs PO $720:**
-- Keyword: After stemming, "framing" stems to "frame". Bill memo tokens include "wall", "ground", "floor" etc. Still 0 keyword match (no "frame" in bill tokens... unless we also stem bill tokens).
-- Actually with stemming: billTokens would include "add" (from "added"), "wall", "around", "pile" (from "piles"), "ground", "floor", "men", "8hrs", "30". poTokens = ["frame"]. Still no match.
-- Cost code: match -> 25 pts
-- Amount: exact -> 20 pts
-- Exact bonus: 15 pts
-- **Total: ~60%** (similar to before but more honest)
-
-Hmm, the $720 line is tricky because "Added wall around piles ground floor 3 men 8hrs at $30" has NO keyword overlap with "Framing Labor". But the exact amount + cost code match should signal high confidence. Let me adjust: when amount is an EXACT match AND cost code matches, add an additional boost. Or simply increase the exact-amount bonus weight.
-
-**Revised weights for better exact-match handling:**
-
-| Signal | Weight |
-|--------|--------|
-| Keyword match (bidirectional) | 35 |
-| Cost code match | 25 |
-| Amount proximity | 15 |
-| Exact/near-exact amount bonus | 25 |
-| **Total** | **100** |
-
-This way $720 exact + cost code = 25 + 15 + 25 = **65%** minimum. With the exact proximity score being 1.0 that's 25 + 15 + 25 = **65%**. Still yellow but much more meaningful.
-
-### Technical Details
-
-**File: `src/utils/poLineMatching.ts`**
-
-Changes to the matching function:
-
-1. Add `stem()` helper that strips trailing 's', 'es', 'ing', 'ed', 'tion' from words
-2. Apply stemming in `tokenize()`
-3. Change `keywordScore()` to be bidirectional: `Math.max(billToPoRatio, poToBillRatio)`
-4. Add `exactAmountBonus()` function: returns 0-1 based on how close bill amount is to PO remaining/total (1.0 = within 1%, 0.5 = within 10%, 0 = beyond 20%)
-5. Update weight constants: keyword=35, costCode=25, amountProximity=15, exactBonus=25
-6. Remove "balance", "draw", "added" and similar billing verbs from stop words or add them
-
-### File Summary
+### Summary of Changes
 
 | File | Change |
 |------|--------|
-| `src/utils/poLineMatching.ts` | Bidirectional keyword scoring, stemming, exact-amount bonus, rebalanced weights |
+| `src/components/bills/EditExtractedBillDialog.tsx` | Revert memo to `line.memo \|\| ""`, add `matchingText` field, add Confidence header after PO, render confidence badge in its own cell |
+| `src/components/bills/POSelectionDropdown.tsx` | Remove internal confidence badge rendering, hide line dropdown when line is already selected |
 
