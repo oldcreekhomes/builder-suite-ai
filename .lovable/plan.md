@@ -1,33 +1,33 @@
 
 
-## Fix: Employee Invitation Failing Due to Database Constraint
+## Add Onboarding Completion Congratulations Dialog
 
-### Root Cause
+### Overview
+When all 7 onboarding steps are completed, instead of silently hiding the checklist, show a congratulations dialog. The user must dismiss it manually, and once dismissed, the checklist disappears for good.
 
-The `send-employee-invitation` edge function creates an auth user with `user_type: "employee"` in metadata. The `handle_new_user()` database trigger then inserts that value into `public.users.user_type`. However, the `users_user_type_check` constraint only allows two values:
+### Changes
 
-```
-CHECK (user_type IN ('home_builder', 'marketplace_vendor'))
-```
+**1. Add a `dismissed` flag to `onboarding_progress` table (database migration)**
+- Add column `dismissed BOOLEAN DEFAULT FALSE` to `onboarding_progress`
+- This ensures the congratulations dialog only shows once -- after dismissal, the checklist never reappears
 
-Since `'employee'` is not in that list, the INSERT fails, which causes the entire `auth.admin.createUser()` call to fail with "Database error creating new user".
+**2. Update `useOnboardingProgress` hook (`src/hooks/useOnboardingProgress.ts`)**
+- Expose `dismissed` (from the progress row) and a `dismiss()` mutation that sets `dismissed = true` in the database
+- Return these in the hook's result so the checklist component can use them
 
-### Fix
+**3. Update `OnboardingChecklist` (`src/components/OnboardingChecklist.tsx`)**
+- Current behavior: `if (allComplete) return null` -- silently hides
+- New behavior:
+  - If `allComplete` and NOT `dismissed`: show a congratulations Dialog
+  - If `allComplete` and `dismissed`: return null (hide permanently)
+- The congratulations dialog will contain:
+  - A party/confetti icon (PartyPopper from lucide-react)
+  - Title: **"Congratulations!"**
+  - Body text: "You've completed all the setup steps for BuilderSuite. You're all set to start managing your projects. If you ever need help, don't hesitate to reach out to our support team."
+  - A single "Close" button that calls the `dismiss()` mutation
 
-**Single database migration** to update the check constraint:
-
-```sql
-ALTER TABLE public.users DROP CONSTRAINT users_user_type_check;
-ALTER TABLE public.users ADD CONSTRAINT users_user_type_check 
-  CHECK (user_type = ANY (ARRAY['home_builder', 'marketplace_vendor', 'employee']));
-```
-
-No code changes needed -- the edge function and trigger are correct. The constraint just needs to accept `'employee'` as a valid value.
-
-### Technical Details
-
-- **Error location**: `handle_new_user()` trigger on `auth.users` INSERT, which inserts into `public.users`
-- **Constraint**: `users_user_type_check` on `public.users.user_type`
-- **Current allowed values**: `home_builder`, `marketplace_vendor`
-- **Required allowed values**: `home_builder`, `marketplace_vendor`, `employee`
-
+### User Experience
+1. User completes the final onboarding step
+2. On returning to the dashboard, a dialog pops up congratulating them
+3. They read the message, click "Close"
+4. The dialog and checklist are permanently hidden
