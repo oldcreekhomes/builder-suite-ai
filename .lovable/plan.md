@@ -1,68 +1,28 @@
 
 
-## Redesign PO Details Dialog -- Line-Item Level Tracking
+## Replace Old PO Dialog with New Line-Item Breakdown
 
-### The Problem
+### What Happened
+The redesigned `PODetailsDialog` (with line-item breakdown) was only wired into the `POSelectionDropdown` component -- the dropdown inside the bill editing forms. It was never connected to the **PO Status badge** on the Manage Bills page, which is what you actually click. Those badges still open the old `POComparisonDialog` showing useless aggregate numbers.
 
-The current PO Details Dialog shows aggregate numbers (total PO amount, total billed, total remaining) and a flat list of "Related Bills." It does not show what each line item on the PO is, how much has been billed against each specific line, or what remains per line. For a PO with 22 line items like this one ($42,343 total), the dialog is essentially useless.
+### What This Plan Does
 
-Additionally, there is no database column to link a bill line to a specific PO **line item** -- only to the PO itself. So the system currently cannot track billing at the line-item level.
+**1. `BillsApprovalTable.tsx`** -- Swap `POComparisonDialog` for `PODetailsDialog`
+- Import `PODetailsDialog` and `useVendorPurchaseOrders`
+- When the PO Status badge is clicked, store the bill's `projectId` and `vendorId` (already available) and the specific PO ID
+- Fetch the full PO data with line items using `useVendorPurchaseOrders`
+- Find the matching PO from the results and pass it to `PODetailsDialog`
+- Add current bill amount/reference as context footer
 
-### What Changes
+**2. `PayBillsTable.tsx`** -- Same swap as above
+- Identical changes: replace `POComparisonDialog` with `PODetailsDialog`
 
-**1. Database: Add `purchase_order_line_id` column to `bill_lines`**
+**3. `PODetailsDialog.tsx`** -- Add current bill context
+- Add optional `currentBillAmount` and `currentBillReference` props
+- Show a small footer: "Current Bill: [reference] for $7,000"
 
-Add a nullable foreign key `purchase_order_line_id` referencing `purchase_order_lines(id)` on the `bill_lines` table. This allows each bill line to be linked to a specific PO line item (e.g., "2nd floor" on PO 2025-115E-0006), not just the PO as a whole.
+**4. Delete `POComparisonDialog.tsx`**
+- No longer used anywhere after the swap -- remove it entirely
 
-**2. Redesign `PODetailsDialog.tsx` -- Line-Item Focused Layout**
-
-Replace the current layout (3 summary cards + progress bar + related bills list) with:
-
-- **Header**: PO number badge + status badge (On Track / Near Limit / Over Budget)
-- **Summary row**: Three compact values inline -- PO Total | Billed to Date | Remaining
-- **Main table**: Every PO line item as a row with these columns:
-  - **Description** (e.g., "Ground floor", "2nd floor", "Windows")
-  - **Cost Code** (e.g., 4370, 4395)
-  - **PO Amount** (the line's budgeted amount)
-  - **Billed** (sum of bill_lines linked to this specific PO line)
-  - **Remaining** (PO Amount minus Billed)
-- Each line shows a visual indicator: checkmark if fully billed, partial indicator if partially billed, empty if untouched
-- **Totals row** at the bottom summing all columns
-
-The "Related Bills" section is removed entirely from this dialog. The line-item table tells the full story.
-
-**3. Update `POSelectionDropdown.tsx` -- Add PO Line Selection**
-
-When a user selects a PO, if that PO has multiple line items, show a secondary dropdown or sub-menu allowing them to pick the specific line item (e.g., "2nd floor - $11,008"). This sets both `purchase_order_id` and `purchase_order_line_id` on the bill line.
-
-For POs with a single line item, auto-assign the line without an extra step.
-
-**4. Update bill save logic in `useBills.ts`**
-
-When saving/updating bill lines, persist the `purchase_order_line_id` alongside the existing `purchase_order_id`. The `updateApprovedBill` mutation already handles safe field updates -- this adds one more safe field.
-
-**5. Update `useVendorPurchaseOrders.ts`**
-
-Extend the hook to also fetch PO line items and calculate per-line billed amounts using the new `purchase_order_line_id` column, so the dialog has all the data it needs.
-
-### Technical Details
-
-```text
-bill_lines table change:
-+---------------------------+------+-------------------------------------+
-| Column                    | Type | Reference                           |
-+---------------------------+------+-------------------------------------+
-| purchase_order_line_id    | uuid | purchase_order_lines(id) ON DELETE SET NULL |
-+---------------------------+------+-------------------------------------+
-```
-
-Files to modify:
-- `src/components/bills/PODetailsDialog.tsx` -- full redesign
-- `src/components/bills/POSelectionDropdown.tsx` -- add line-level selection
-- `src/hooks/useVendorPurchaseOrders.ts` -- fetch line-level billing data
-- `src/hooks/useBills.ts` -- persist `purchase_order_line_id`
-- `src/components/bills/ManualBillEntry.tsx` -- pass line ID through
-- `src/components/bills/EditBillDialog.tsx` -- pass line ID through
-- `src/components/bills/EditExtractedBillDialog.tsx` -- pass line ID through
-- Database migration: add column + foreign key
-
+### Result
+When you click the "Matched" or "Over" badge on the bills approval page, you will see the full PO with all 22 line items, each showing description, cost code, PO amount, billed amount, and remaining. For the Four Seasons example, the "2nd floor" row will show $11,008 PO amount, $7,000 billed, $4,008 remaining.
