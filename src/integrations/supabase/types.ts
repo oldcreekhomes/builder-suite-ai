@@ -304,6 +304,7 @@ export type Database = {
           owner_id: string
           project_id: string | null
           purchase_order_id: string | null
+          purchase_order_line_id: string | null
           quantity: number
           reverses_line_id: string | null
           unit_cost: number
@@ -324,6 +325,7 @@ export type Database = {
           owner_id: string
           project_id?: string | null
           purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
           quantity?: number
           reverses_line_id?: string | null
           unit_cost?: number
@@ -344,6 +346,7 @@ export type Database = {
           owner_id?: string
           project_id?: string | null
           purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
           quantity?: number
           reverses_line_id?: string | null
           unit_cost?: number
@@ -390,6 +393,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "project_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
             referencedColumns: ["id"]
           },
           {
