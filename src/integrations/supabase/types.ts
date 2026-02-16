@@ -2618,6 +2618,7 @@ export type Database = {
           company_profile_completed: boolean
           cost_codes_imported: boolean
           created_at: string
+          dismissed: boolean
           email_verified: boolean
           employees_invited: boolean
           first_project_created: boolean
@@ -2631,6 +2632,7 @@ export type Database = {
           company_profile_completed?: boolean
           cost_codes_imported?: boolean
           created_at?: string
+          dismissed?: boolean
           email_verified?: boolean
           employees_invited?: boolean
           first_project_created?: boolean
@@ -2644,6 +2646,7 @@ export type Database = {
           company_profile_completed?: boolean
           cost_codes_imported?: boolean
           created_at?: string
+          dismissed?: boolean
           email_verified?: boolean
           employees_invited?: boolean
           first_project_created?: boolean

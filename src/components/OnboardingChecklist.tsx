@@ -4,9 +4,17 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight, Rocket } from "lucide-react";
+import { Check, ArrowRight, Rocket, PartyPopper } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: string) => void; onAction?: (action: string) => void }) {
   return (
@@ -49,12 +57,34 @@ function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: st
 }
 
 export function OnboardingChecklist() {
-  const { steps, completedCount, totalCount, allComplete, isLoading } = useOnboardingProgress();
+  const { steps, completedCount, totalCount, allComplete, isLoading, dismissed, dismiss } = useOnboardingProgress();
   const { isOwner } = useUserRole();
   const navigate = useNavigate();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
-  if (isLoading || !isOwner || allComplete) return null;
+  if (isLoading || !isOwner) return null;
+  if (allComplete && dismissed) return null;
+
+  if (allComplete && !dismissed) {
+    return (
+      <Dialog open onOpenChange={(open) => { if (!open) dismiss(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <PartyPopper className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-xl">Congratulations!</DialogTitle>
+            <DialogDescription className="text-center">
+              You've completed all the setup steps for BuilderSuite. You're all set to start managing your projects. If you ever need help, don't hesitate to reach out to our support team.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={dismiss}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const percentage = Math.round((completedCount / totalCount) * 100);
   const leftSteps = steps.slice(0, 4);

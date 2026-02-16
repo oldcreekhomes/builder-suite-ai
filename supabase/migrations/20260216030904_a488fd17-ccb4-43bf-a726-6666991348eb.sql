@@ -1,0 +1,1 @@
+ALTER TABLE public.onboarding_progress ADD COLUMN dismissed BOOLEAN NOT NULL DEFAULT FALSE;
