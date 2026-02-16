@@ -28,6 +28,8 @@ function BilledAmountWithTooltip({ amount, invoices }: { amount: number; invoice
     return <>{formatCurrency(amount)}</>;
   }
 
+  const totalAmount = invoices.reduce((s, inv) => s + inv.amount, 0);
+
   return (
     <TooltipProvider delayDuration={200}>
       <Tooltip>
@@ -36,25 +38,23 @@ function BilledAmountWithTooltip({ amount, invoices }: { amount: number; invoice
             {formatCurrency(amount)}
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs p-0">
-          <div className="p-2">
-            <p className="text-xs font-semibold mb-1.5">Invoices Billed</p>
-            <div className="space-y-1">
-              {invoices.map((inv, i) => (
-                <div key={`${inv.bill_id}-${i}`} className="flex items-center justify-between gap-4 text-xs">
-                  <span className="font-medium">{inv.reference_number}</span>
-                  <span className="text-muted-foreground">{inv.bill_date ? formatDateSafe(inv.bill_date, 'MM/dd/yy') : '—'}</span>
-                  <span className="font-mono">{formatCurrency(inv.amount)}</span>
+        <TooltipContent className="max-w-xs">
+          <div className="space-y-2">
+            {invoices.map((inv, i) => (
+              <div key={`${inv.bill_id}-${i}`}>
+                <div className="font-medium text-xs">{inv.reference_number || 'No Reference'}</div>
+                <div className="pl-2 space-y-0.5">
+                  <div className="flex justify-between gap-4 text-xs">
+                    <span className="text-muted-foreground">{inv.bill_date ? formatDateSafe(inv.bill_date, 'MM/dd/yy') : '—'}:</span>
+                    <span>${inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            {invoices.length > 1 && (
-              <div className="flex items-center justify-between gap-4 text-xs font-semibold border-t mt-1.5 pt-1.5">
-                <span>Total</span>
-                <span></span>
-                <span className="font-mono">{formatCurrency(invoices.reduce((s, inv) => s + inv.amount, 0))}</span>
               </div>
-            )}
+            ))}
+            <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+              <span>Total:</span>
+              <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
           </div>
         </TooltipContent>
       </Tooltip>
