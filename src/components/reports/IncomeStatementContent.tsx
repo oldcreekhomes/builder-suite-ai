@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronRight, ChevronDown } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
+  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   
   const { data: incomeStatementData, isLoading, error } = useQuery({
     queryKey: ['income-statement', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
@@ -224,6 +225,14 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
     setSelectedAccount(null);
   };
 
+  const toggleExpanded = (id: string) => {
+    setExpandedAccounts(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const renderHierarchicalAccounts = (
     accountsList: AccountBalance[],
     onSelect: (account: AccountBalance) => void,
@@ -233,27 +242,38 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
     const elements: JSX.Element[] = [];
     for (const root of roots) {
       const children = childrenMap[root.id] || [];
+      const hasChildren = children.length > 0;
+      const isExpanded = expandedAccounts.has(root.id);
+      const rolledUpBalance = hasChildren
+        ? root.balance + children.reduce((sum, c) => sum + c.balance, 0)
+        : root.balance;
+
       elements.push(
         <div
           key={root.id}
           className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-          onClick={() => onSelect(root)}
+          onClick={() => hasChildren ? toggleExpanded(root.id) : onSelect(root)}
         >
-          <span>{root.code} - {root.name}</span>
-          <span>{fmt(root.balance)}</span>
+          <span className="flex items-center gap-1">
+            {hasChildren && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
+            {root.code} - {root.name}
+          </span>
+          <span>{fmt(isExpanded ? root.balance : rolledUpBalance)}</span>
         </div>
       );
-      for (const child of children) {
-        elements.push(
-          <div
-            key={child.id}
-            className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 pl-6 rounded transition-colors"
-            onClick={() => onSelect(child)}
-          >
-            <span className="text-muted-foreground">↳ {child.code} - {child.name}</span>
-            <span>{fmt(child.balance)}</span>
-          </div>
-        );
+      if (hasChildren && isExpanded) {
+        for (const child of children) {
+          elements.push(
+            <div
+              key={child.id}
+              className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 pl-8 rounded transition-colors"
+              onClick={() => onSelect(child)}
+            >
+              <span className="text-muted-foreground">↳ {child.code} - {child.name}</span>
+              <span>{fmt(child.balance)}</span>
+            </div>
+          );
+        }
       }
     }
     return elements;
