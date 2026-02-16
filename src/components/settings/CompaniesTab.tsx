@@ -19,7 +19,7 @@ export function CompaniesTab() {
 
   // Query company count to determine if template dialog should show
   const { data: companyCount, isLoading } = useQuery({
-    queryKey: ["companies-count", user?.id],
+    queryKey: ["companies", "count", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
       const { count, error } = await supabase

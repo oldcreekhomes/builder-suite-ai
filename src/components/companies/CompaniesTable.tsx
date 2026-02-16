@@ -163,6 +163,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
       // Invalidate instead of refetch - let React Query handle when to fetch
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       queryClient.invalidateQueries({ queryKey: ['representatives'] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-live-checks"] });
       
       setArchivingCompany(null);
       toast({
