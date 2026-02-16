@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,12 @@ export function EditExtractedBillDialog({
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
+  const hasAutoMatched = useRef(false);
+
+  // Reset auto-match flag when dialog opens
+  useEffect(() => {
+    if (open) hasAutoMatched.current = false;
+  }, [open]);
 
   // Load bill data
   useEffect(() => {
@@ -360,18 +366,20 @@ export function EditExtractedBillDialog({
     setDueDate(newDueDate);
   }, [billDate, isDueAuto, terms, open]);
 
-  // Auto-match job cost lines to PO lines when PO data loads
+  // Auto-match job cost lines to PO lines when both PO data AND lines are ready
   useEffect(() => {
+    if (hasAutoMatched.current) return;
     if (!vendorPOs || vendorPOs.length === 0 || jobCostLines.length === 0) return;
+    hasAutoMatched.current = true;
     
-    // Build flat list of PO line candidates
+    // Build flat list of PO line candidates, using PO header cost code as fallback
     const allPOLines: POLineCandidate[] = vendorPOs.flatMap(po =>
       po.line_items.map(line => ({
         id: line.id,
         purchase_order_id: po.id,
         description: line.description,
         cost_code_id: line.cost_code_id,
-        cost_code_name: line.cost_code?.name || null,
+        cost_code_name: line.cost_code?.name || po.cost_code?.name || null,
         amount: line.amount,
         remaining: line.remaining,
       }))
@@ -404,7 +412,7 @@ export function EditExtractedBillDialog({
       }
       return line;
     }));
-  }, [vendorPOs]); // Only run when PO data loads
+  }, [vendorPOs, jobCostLines]); // Re-fire when EITHER dataset arrives
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
