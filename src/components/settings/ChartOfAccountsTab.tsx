@@ -200,7 +200,7 @@ export const ChartOfAccountsTab = () => {
                 </TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Account Name</TableHead>
-                <TableHead>Parent</TableHead>
+                
                 <TableHead>Type</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
@@ -210,13 +210,12 @@ export const ChartOfAccountsTab = () => {
             <TableBody>
               {hierarchicalAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     {searchQuery ? 'No accounts match your search.' : 'No accounts found. Import from QuickBooks or add accounts manually.'}
                   </TableCell>
                 </TableRow>
               ) : (
                 hierarchicalAccounts.map((account) => {
-                  const parentAccount = account.parent_id ? accounts.find((a) => a.id === account.parent_id) : null;
                   return (
                     <TableRow key={account.id}>
                       <TableCell>
@@ -236,9 +235,6 @@ export const ChartOfAccountsTab = () => {
                       <TableCell>
                         {account._depth > 0 && <span className="ml-4 text-muted-foreground">↳ </span>}
                         {account.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {parentAccount ? `${parentAccount.code} - ${parentAccount.name}` : '—'}
                       </TableCell>
                       <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
                       <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
