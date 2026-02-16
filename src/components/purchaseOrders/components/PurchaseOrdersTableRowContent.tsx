@@ -61,33 +61,43 @@ export function PurchaseOrdersTableRowContent({
     }
 
     const firstLine = lines[0]?.cost_codes;
-    const extraCount = lines.length - 1;
     const total = groupedLines.reduce((sum, g) => sum + g.total, 0);
+    const count = groupedLines.length;
+
+    if (count <= 1) {
+      return (
+        <div className="font-medium">
+          {firstLine ? `${firstLine.code}: ${firstLine.name}` : 'N/A'}
+        </div>
+      );
+    }
+
+    const display = `${groupedLines[0].code}: ${groupedLines[0].name} +${count - 1}`;
 
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="font-medium cursor-default">
-              {firstLine ? `${firstLine.code}: ${firstLine.name}` : 'N/A'}
-              <span className="ml-1 text-muted-foreground">+{extraCount}</span>
-            </div>
+          <TooltipTrigger className="cursor-default">
+            {display}
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="p-0">
-            <table className="text-xs">
-              <tbody>
-                {groupedLines.map((g, i) => (
-                  <tr key={i} className="border-b last:border-b-0">
-                    <td className="px-2 py-1 font-medium whitespace-nowrap">{g.code}: {g.name}</td>
-                    <td className="px-2 py-1 text-right whitespace-nowrap">${g.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                  </tr>
-                ))}
-                <tr className="border-t font-semibold">
-                  <td className="px-2 py-1">Total</td>
-                  <td className="px-2 py-1 text-right">${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-              </tbody>
-            </table>
+          <TooltipContent className="max-w-xs">
+            <div className="space-y-2">
+              {groupedLines.map((g, i) => (
+                <div key={i}>
+                  <div className="font-medium text-xs">{g.code}: {g.name}</div>
+                  <div className="pl-2 space-y-0.5">
+                    <div className="flex justify-between gap-4 text-xs">
+                      <span className="text-muted-foreground">Unassigned:</span>
+                      <span>${g.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                <span>Total:</span>
+                <span>${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
