@@ -27,6 +27,7 @@ import { CompanyProfileTab } from "@/components/settings/CompanyProfileTab";
 import { EmployeesTab } from "@/components/settings/EmployeesTab";
 import { CompaniesTab } from "@/components/settings/CompaniesTab";
 import { RepresentativesTab } from "@/components/settings/RepresentativesTab";
+import { MyProfileTab } from "@/components/settings/MyProfileTab";
 
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
@@ -168,6 +169,7 @@ const Settings = () => {
                     <TabsTrigger value="company-profile" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Company Profile</TabsTrigger>
                     <TabsTrigger value="cost-codes" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Cost Codes</TabsTrigger>
                     <TabsTrigger value="dashboard" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Dashboards</TabsTrigger>
+                    <TabsTrigger value="my-profile" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">My Profile</TabsTrigger>
                     <TabsTrigger value="employees" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Employees</TabsTrigger>
                     <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
                     <Collapsible open={suppliersOpen} onOpenChange={setSuppliersOpen} className="w-full">
@@ -251,6 +253,10 @@ const Settings = () => {
 
                   <TabsContent value="dashboard" className="mt-0">
                     <DashboardSettingsTab />
+                  </TabsContent>
+
+                  <TabsContent value="my-profile" className="mt-0">
+                    <MyProfileTab />
                   </TabsContent>
 
                 </div>

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,13 +13,11 @@ import { SidebarFooter } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
-import { ProfileDialog } from "@/components/ProfileDialog";
 
 export function SidebarUserDropdown() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const navigate = useNavigate();
-  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = async () => {
     console.log("Logout initiated...");
@@ -87,7 +84,7 @@ export function SidebarUserDropdown() {
           <DropdownMenuContent className="w-56 bg-popover" align="end" forceMount>
             <DropdownMenuItem 
               className="cursor-pointer"
-              onClick={() => setProfileOpen(true)}
+              onClick={() => navigate('/settings?tab=my-profile')}
             >
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
@@ -110,11 +107,6 @@ export function SidebarUserDropdown() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
-      
-      <ProfileDialog 
-        open={profileOpen} 
-        onOpenChange={setProfileOpen} 
-      />
     </>
   );
 }
