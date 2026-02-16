@@ -26,36 +26,57 @@ export const useOnboardingProgress = (): OnboardingProgress => {
   const queryClient = useQueryClient();
   const userId = user?.id;
 
-  // Query the onboarding_progress row
-  const { data: progressRow, isLoading: isLoadingProgress } = useQuery({
-    queryKey: ["onboarding-progress", userId],
+  // Resolve effective owner ID (for employees, use their home_builder_id)
+  const { data: userProfile } = useQuery({
+    queryKey: ["onboarding-user-profile", userId],
     queryFn: async () => {
       if (!userId) return null;
+      const { data } = await supabase
+        .from("users")
+        .select("id, role, home_builder_id")
+        .eq("id", userId)
+        .single();
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // For employees, use home_builder_id; for owners, use their own id
+  const effectiveOwnerId = userProfile?.role === 'owner'
+    ? userId
+    : userProfile?.home_builder_id ?? userId;
+
+  // Query the onboarding_progress row
+  const { data: progressRow, isLoading: isLoadingProgress } = useQuery({
+    queryKey: ["onboarding-progress", effectiveOwnerId],
+    queryFn: async () => {
+      if (!effectiveOwnerId) return null;
       const { data, error } = await supabase
         .from("onboarding_progress")
         .select("*")
-        .eq("home_builder_id", userId)
+        .eq("home_builder_id", effectiveOwnerId)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!userId,
+    enabled: !!effectiveOwnerId,
   });
 
   // Check live milestone data
   const { data: liveChecks, isLoading: isLoadingLive } = useQuery({
-    queryKey: ["onboarding-live-checks", userId],
+    queryKey: ["onboarding-live-checks", effectiveOwnerId],
     queryFn: async () => {
-      if (!userId) return null;
+      if (!effectiveOwnerId) return null;
 
       const [userRes, costCodesRes, accountsRes, companiesRes, projectsRes, employeesRes] =
         await Promise.all([
-          supabase.from("users").select("confirmed, hq_address").eq("id", userId).single(),
-          supabase.from("cost_codes").select("id", { count: "exact", head: true }).eq("owner_id", userId),
-          supabase.from("accounts").select("id", { count: "exact", head: true }).eq("owner_id", userId),
-          supabase.from("companies").select("id", { count: "exact", head: true }).eq("home_builder_id", userId).is("archived_at", null),
-          supabase.from("projects").select("id", { count: "exact", head: true }).eq("owner_id", userId),
-          supabase.from("users").select("id", { count: "exact", head: true }).eq("home_builder_id", userId),
+          supabase.from("users").select("confirmed, hq_address").eq("id", effectiveOwnerId).single(),
+          supabase.from("cost_codes").select("id", { count: "exact", head: true }).eq("owner_id", effectiveOwnerId),
+          supabase.from("accounts").select("id", { count: "exact", head: true }).eq("owner_id", effectiveOwnerId),
+          supabase.from("companies").select("id", { count: "exact", head: true }).eq("home_builder_id", effectiveOwnerId).is("archived_at", null),
+          supabase.from("projects").select("id", { count: "exact", head: true }).eq("owner_id", effectiveOwnerId),
+          supabase.from("users").select("id", { count: "exact", head: true }).eq("home_builder_id", effectiveOwnerId),
         ]);
 
       return {
@@ -68,22 +89,22 @@ export const useOnboardingProgress = (): OnboardingProgress => {
         employees_invited: (employeesRes.count ?? 0) > 0,
       };
     },
-    enabled: !!userId,
+    enabled: !!effectiveOwnerId,
     staleTime: 30_000,
   });
 
   // Upsert / sync progress row
   useEffect(() => {
-    if (!userId || !liveChecks) return;
+    if (!effectiveOwnerId || !liveChecks) return;
 
     const syncProgress = async () => {
       if (!progressRow) {
         // Create new row
         await supabase.from("onboarding_progress").insert({
-          home_builder_id: userId,
+          home_builder_id: effectiveOwnerId,
           ...liveChecks,
         });
-        queryClient.invalidateQueries({ queryKey: ["onboarding-progress", userId] });
+        queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
         return;
       }
 
@@ -112,13 +133,13 @@ export const useOnboardingProgress = (): OnboardingProgress => {
         await supabase
           .from("onboarding_progress")
           .update(updates)
-          .eq("home_builder_id", userId);
-        queryClient.invalidateQueries({ queryKey: ["onboarding-progress", userId] });
+          .eq("home_builder_id", effectiveOwnerId);
+        queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
       }
     };
 
     syncProgress();
-  }, [userId, liveChecks, progressRow, queryClient]);
+  }, [effectiveOwnerId, liveChecks, progressRow, queryClient]);
 
   const merged = liveChecks ?? {
     email_verified: false,
@@ -145,13 +166,13 @@ export const useOnboardingProgress = (): OnboardingProgress => {
   const dismissed = progressRow?.dismissed === true;
 
   const dismiss = useCallback(async () => {
-    if (!userId) return;
+    if (!effectiveOwnerId) return;
     await supabase
       .from("onboarding_progress")
       .update({ dismissed: true } as any)
-      .eq("home_builder_id", userId);
-    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", userId] });
-  }, [userId, queryClient]);
+      .eq("home_builder_id", effectiveOwnerId);
+    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
+  }, [effectiveOwnerId, queryClient]);
 
   return {
     steps,
