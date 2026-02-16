@@ -1,63 +1,48 @@
 
 
-## Fix Confidence Scoring and Incorrect Billed-to-Date
+## Fix Empty Memo Fields
 
-### Problem 1: 72% Confidence on an Exact Match
+### Problem
 
-When cost code matches AND the dollar amount is exact, the score should be very high (90%+) regardless of keyword similarity. Currently, weak keyword overlap drags the score down even when the two strongest signals (cost code + exact amount) are perfect.
+The memo column is blank for all line items. The AI extraction puts meaningful line-specific text (e.g., "Frame basement walls", "Deck balance", "Siding draw") into the `description` field of extracted bill lines, while `memo` is typically `null`.
 
-**Fix**: Add a "perfect match override" in `matchBillLineToPOLines`. When cost code matches AND amount is within 1% of PO remaining or total, set the confidence floor to 95%. This is a simple post-scoring check that recognizes the strongest possible match signal.
+The previous fix over-corrected by reverting to `memo: line.memo || ""`, which drops the description entirely from the UI. Before that, `memo: line.memo || line.description || ""` worked for most cases but sometimes showed the full invoice body text for single-line invoices.
 
-**File**: `src/utils/poLineMatching.ts`
+### Root Cause
 
-In the scoring loop (after line 136), add:
+When the AI extracts a multi-line invoice, each line's `description` is line-specific (e.g., "Frame basement walls"). When it extracts a single-line invoice, the `description` can sometimes be the entire invoice body. The code needs to handle both cases.
 
-```text
-// Perfect match override: cost code match + exact amount = 95% minimum
-if (ccMatch === 1 && exactBonus >= 1.0) {
-  confidence = Math.max(confidence, 95);
-}
-// Strong match: cost code match + near-exact amount = 85% minimum
-if (ccMatch === 1 && exactBonus >= 0.7) {
-  confidence = Math.max(confidence, 85);
-}
+### Solution
+
+**File: `src/components/bills/EditExtractedBillDialog.tsx`**
+
+Restore the fallback to `description` for the memo display, but with a length guard to avoid showing the full invoice body:
+
+```
+memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
 ```
 
-This ensures an exact $720/$720 match with matching cost code always shows 95%+ regardless of keyword overlap.
+This means:
+- If `memo` exists, use it (best case)
+- If `memo` is null but `description` is short (120 chars or less), it's a real line description like "Frame basement walls" -- use it as memo
+- If `description` is longer than 120 chars, it's likely the full invoice body -- skip it
 
-### Problem 2: $12,885 Billed-to-Date on a $720 PO
+The `matchingText` field remains unchanged and always uses the full `description` for matching purposes.
 
-The implicit cost-code billing logic at line 211 in `useVendorPurchaseOrders.ts` attributes ALL unlinked historical bills with the same cost code to this PO. This is wrong because:
-- Old bills were for different work/POs that were never explicitly linked
-- A brand new $720 PO shouldn't inherit $12,885 of prior billing history
+### Changes
 
-**Fix**: Remove the implicit cost-code billing entirely. It was a fallback for before explicit PO linking existed, but now that the system has proper `purchase_order_id` and `purchase_order_line_id` tracking on bill lines, the implicit logic creates false data. Only explicitly linked billing should count.
-
-**File**: `src/hooks/useVendorPurchaseOrders.ts`
-
-Changes:
-1. Remove the implicit billing query (lines 152-172) and the `billedByCostCode` map
-2. Remove the implicit billing calculation at lines 210-213
-3. Simplify `totalBilled` to just `lineLevelBilled + poLevelOnlyBilled`
-
-The total billed calculation becomes:
-
-```text
-const totalBilled = lineLevelBilled + poLevelOnlyBilled;
+Three lines need updating (lines 232, 246, 257) from:
+```
+memo: line.memo || "",
+```
+to:
+```
+memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
 ```
 
-This means only bills that are explicitly linked to the PO (via `purchase_order_id` or `purchase_order_line_id`) will count toward "Billed to Date". For the $720 PO with no bills linked yet, it will correctly show $0.00 billed and $720.00 remaining.
+### Expected Result
 
-### Summary
-
-| File | Change |
-|------|--------|
-| `src/utils/poLineMatching.ts` | Add perfect-match override: cost code + exact amount = 95% confidence minimum |
-| `src/hooks/useVendorPurchaseOrders.ts` | Remove implicit cost-code-based billing; only count explicitly linked bills |
-
-### Expected Results
-
-- **$720 Framing Labor line**: Confidence badge shows 95% (green) instead of 72%
-- **PO 2026-115E-0056 info popup**: Shows $0.00 Billed to Date, $720.00 Remaining (instead of $12,885 billed / -$12,165 remaining)
-- No "Over Budget" warning on a fresh PO that hasn't been billed yet
+- Line items will again show descriptive memos like "Frame basement walls", "Deck balance", "Siding draw"
+- Full invoice body text will NOT leak into the memo field
+- PO matching logic (using `matchingText`) remains unaffected
 
