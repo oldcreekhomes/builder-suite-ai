@@ -17,19 +17,39 @@ export function CompaniesTab() {
   const [templateDismissed, setTemplateDismissed] = useState(false);
   const { user } = useAuth();
 
+  // Resolve effective owner ID (for employees, use their home_builder_id)
+  const { data: userProfile } = useQuery({
+    queryKey: ["companies-tab-user-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("users")
+        .select("id, role, home_builder_id")
+        .eq("id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const effectiveOwnerId = userProfile?.role === 'owner'
+    ? user?.id
+    : userProfile?.home_builder_id ?? user?.id;
+
   // Query company count to determine if template dialog should show
   const { data: companyCount, isLoading } = useQuery({
-    queryKey: ["companies", "count", user?.id],
+    queryKey: ["companies", "count", effectiveOwnerId],
     queryFn: async () => {
-      if (!user?.id) return 0;
+      if (!effectiveOwnerId) return 0;
       const { count, error } = await supabase
         .from("companies")
         .select("id", { count: "exact", head: true })
-        .eq("home_builder_id", user.id);
+        .eq("home_builder_id", effectiveOwnerId);
       if (error) throw error;
       return count ?? 0;
     },
-    enabled: !!user?.id,
+    enabled: !!effectiveOwnerId,
   });
 
   const templateDialogOpen = companyCount === 0 && !isLoading && !templateDismissed;
