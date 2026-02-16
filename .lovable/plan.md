@@ -1,32 +1,38 @@
 
 
-## Fix: Onboarding Checklist Incorrectly Shows "Invite Employees" as Incomplete
+## Show Onboarding Checklist to All Company Members (Owners + Employees)
 
-### Root Cause
-The employee check in `useOnboardingProgress.ts` (line 58) queries:
-```sql
-SELECT id FROM users WHERE home_builder_id = :userId AND user_type = 'employee'
-```
+### Problem
+Currently the onboarding checklist is only visible to owners. Two blockers prevent employees from seeing it:
+1. `OnboardingChecklist.tsx` line 65 returns `null` if the user is not an owner
+2. `useOnboardingProgress.ts` uses the logged-in user's own ID for all queries -- for employees, this is wrong since their milestones should reflect the owner's company data
 
-But Old Creek Homes' employees all have `user_type = 'home_builder'` -- the distinction is in the `role` column (`employee`, `accountant`, etc.), not `user_type`. So the query returns 0 results, making the checklist think no employees have been invited.
+### Changes
 
-### Fix
-**File: `src/hooks/useOnboardingProgress.ts`** (line 58)
+**1. `src/hooks/useOnboardingProgress.ts`** -- Resolve the correct company owner ID
 
-Change the employee count query from filtering on `user_type = 'employee'` to simply counting all users with `home_builder_id = userId`. Any user linked via `home_builder_id` is an invited team member, regardless of their `role` or `user_type`.
+- Query the `users` table to get the current user's profile
+- If the user is an owner, use their own ID (as today)
+- If the user is an employee, use their `home_builder_id` (the owner's ID) for all milestone queries
+- This ensures employees see the same checklist progress as the owner
 
-```
-// Before
-.eq("user_type", "employee")
+**2. `src/components/OnboardingChecklist.tsx`** -- Remove owner-only gate
 
-// After — remove the user_type filter entirely
-```
+- Change `if (isLoading || !isOwner) return null;` to `if (isLoading) return null;`
+- This lets employees (and accountants, PMs, etc.) see the checklist too
+- The dismiss behavior and completion dialog will work the same for all users
 
-This single filter removal fixes the issue for Old Creek Homes and any other company whose employees have `user_type = 'home_builder'`.
+### How It Will Work
 
-### Files Changed
-1. `src/hooks/useOnboardingProgress.ts` -- Remove `.eq("user_type", "employee")` from the employees query (1 line)
+- All company members (owner, employees, accountants) see the same checklist on the dashboard
+- Progress reflects the owner's company data (cost codes, projects, etc.) regardless of who is viewing
+- Any team member can click "Go" to navigate to the relevant settings page and help complete a step
+- The dismiss/completion state is still per-user via the `onboarding_progress` table
+
+### Files Modified
+1. `src/hooks/useOnboardingProgress.ts` -- Add query to resolve company owner ID; use it for all milestone queries
+2. `src/components/OnboardingChecklist.tsx` -- Remove `!isOwner` visibility check
 
 ### Risk
-None. The `home_builder_id` filter already scopes the query to the correct company's team members. Removing the `user_type` filter just makes it count all invited users (employees, accountants, etc.) which is the correct behavior.
+Low. The milestone queries already use `owner_id` / `home_builder_id` filters, so using the correct owner ID will return the same data the owner sees. No RLS changes needed since employees already have read access to these tables via their `home_builder_id`.
 
