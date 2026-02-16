@@ -454,8 +454,8 @@ export const CreatePurchaseOrderDialog = ({
               <Label>Attachments</Label>
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-3 transition-colors cursor-pointer ${
-                  isDragActive ? 'border-primary/50 bg-primary/5' : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                className={`border rounded-md p-3 transition-colors cursor-pointer min-h-[80px] flex items-center justify-center ${
+                  isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
                 } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <input {...getInputProps()} />
