@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface Account {
   id: string;
@@ -14,6 +15,7 @@ interface Account {
   name: string;
   type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
   description?: string;
+  parent_id?: string | null;
 }
 
 interface EditAccountDialogProps {
@@ -24,11 +26,13 @@ interface EditAccountDialogProps {
 
 export function EditAccountDialog({ account, open, onOpenChange }: EditAccountDialogProps) {
   const queryClient = useQueryClient();
+  const { accounts } = useAccounts();
   const [formData, setFormData] = useState({
     code: "",
     name: "",
     type: "asset" as 'asset' | 'liability' | 'equity' | 'revenue' | 'expense',
-    description: ""
+    description: "",
+    parent_id: "" as string,
   });
 
   useEffect(() => {
@@ -37,10 +41,39 @@ export function EditAccountDialog({ account, open, onOpenChange }: EditAccountDi
         code: account.code || "",
         name: account.name || "",
         type: account.type || "asset",
-        description: account.description || ""
+        description: account.description || "",
+        parent_id: account.parent_id || "",
       });
     }
   }, [account]);
+
+  // Filter potential parents: root accounts of matching type, excluding self
+  const potentialParents = accounts.filter(
+    (a) => !a.parent_id && a.type === formData.type && a.id !== account?.id
+  );
+
+  const selectedParent = formData.parent_id ? accounts.find((a) => a.id === formData.parent_id) : null;
+
+  const handleParentChange = (value: string) => {
+    const newParentId = value === "none" ? "" : value;
+    setFormData((prev) => ({ ...prev, parent_id: newParentId }));
+    if (newParentId) {
+      const parent = accounts.find((a) => a.id === newParentId);
+      if (parent) setFormData((prev) => ({ ...prev, parent_id: newParentId, type: parent.type as any }));
+    }
+  };
+
+  const handleTypeChange = (value: string) => {
+    setFormData((prev) => {
+      const newState = { ...prev, type: value as any };
+      // Clear parent if type no longer matches
+      if (prev.parent_id) {
+        const parent = accounts.find((a) => a.id === prev.parent_id);
+        if (parent && parent.type !== value) newState.parent_id = "";
+      }
+      return newState;
+    });
+  };
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -50,7 +83,8 @@ export function EditAccountDialog({ account, open, onOpenChange }: EditAccountDi
           code: data.code,
           name: data.name,
           type: data.type,
-          description: data.description || null
+          description: data.description || null,
+          parent_id: data.parent_id || null,
         })
         .eq('id', account!.id);
       
@@ -119,7 +153,7 @@ export function EditAccountDialog({ account, open, onOpenChange }: EditAccountDi
 
           <div className="space-y-2">
             <Label htmlFor="type">Account Type</Label>
-            <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as any })}>
+            <Select value={formData.type} onValueChange={handleTypeChange} disabled={!!selectedParent}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -129,6 +163,26 @@ export function EditAccountDialog({ account, open, onOpenChange }: EditAccountDi
                 <SelectItem value="equity">Equity</SelectItem>
                 <SelectItem value="revenue">Revenue</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedParent && (
+              <p className="text-xs text-muted-foreground">Type inherited from parent account</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="parent">Parent Account (Optional)</Label>
+            <Select value={formData.parent_id || "none"} onValueChange={handleParentChange}>
+              <SelectTrigger id="parent">
+                <SelectValue placeholder="None (root account)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None (root account)</SelectItem>
+                {potentialParents.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.code} - {a.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
