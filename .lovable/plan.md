@@ -1,48 +1,52 @@
 
 
-## Fix Empty Memo Fields
+## Boost Confidence for Cost Code Match When Bill Fits Within PO Remaining
 
 ### Problem
 
-The memo column is blank for all line items. The AI extraction puts meaningful line-specific text (e.g., "Frame basement walls", "Deck balance", "Siding draw") into the `description` field of extracted bill lines, while `memo` is typically `null`.
+The siding line has a matching cost code (4470 - Siding) and the $3,500 bill amount fits within the PO's remaining balance. Yet the confidence is only 65% because the existing overrides only trigger on near-exact amounts (within 1-20% of PO total/remaining). For progress billing (draws), the bill is intentionally less than the PO -- this is normal and should still be high confidence.
 
-The previous fix over-corrected by reverting to `memo: line.memo || ""`, which drops the description entirely from the UI. Before that, `memo: line.memo || line.description || ""` worked for most cases but sometimes showed the full invoice body text for single-line invoices.
+### User's Rule (makes perfect sense)
 
-### Root Cause
-
-When the AI extracts a multi-line invoice, each line's `description` is line-specific (e.g., "Frame basement walls"). When it extracts a single-line invoice, the `description` can sometimes be the entire invoice body. The code needs to handle both cases.
+- Cost code matches + bill amount fits within remaining PO balance = HIGH confidence (85%+)
+- Cost code matches + bill amount EXCEEDS PO total = LOW confidence (penalize)
 
 ### Solution
 
-**File: `src/components/bills/EditExtractedBillDialog.tsx`**
+**File: `src/utils/poLineMatching.ts`**
 
-Restore the fallback to `description` for the memo display, but with a length guard to avoid showing the full invoice body:
+Add two new overrides after the existing ones (after line 146):
 
 ```
-memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+// Progress billing: cost code match + bill fits within remaining = 85% minimum
+if (ccMatch === 1 && billAmount > 0 && billAmount <= line.remaining) {
+  confidence = Math.max(confidence, 85);
+}
+
+// Over-PO penalty: cost code match but bill exceeds PO total = cap at 40%
+if (ccMatch === 1 && billAmount > 0 && billAmount > line.amount && line.amount > 0) {
+  confidence = Math.min(confidence, 40);
+}
 ```
 
 This means:
-- If `memo` exists, use it (best case)
-- If `memo` is null but `description` is short (120 chars or less), it's a real line description like "Frame basement walls" -- use it as memo
-- If `description` is longer than 120 chars, it's likely the full invoice body -- skip it
+- **Siding $3,500 draw against PO with remaining balance >= $3,500**: Confidence jumps to 85%+ (green badge)
+- **Framing $720 exact match**: Still 95% from the existing override
+- **$11,000 bill against $10,000 PO**: Capped at 40% (yellow/low), flagging the over-billing
+- If cost codes don't match, none of these overrides apply -- the base scoring handles it
 
-The `matchingText` field remains unchanged and always uses the full `description` for matching purposes.
+### Priority Order of Overrides
 
-### Changes
+1. Cost code + exact amount (within 1%) = 95% minimum (existing)
+2. Cost code + near-exact (within 5%) = 85% minimum (existing)
+3. Cost code + bill fits within remaining = 85% minimum (new)
+4. Cost code + bill exceeds PO total = capped at 40% (new penalty)
 
-Three lines need updating (lines 232, 246, 257) from:
-```
-memo: line.memo || "",
-```
-to:
-```
-memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
-```
+Override 1 and 2 run first, so an exact match still gets 95%. Override 3 catches the progress billing case. Override 4 runs last and can pull the score down if the bill exceeds the PO.
 
-### Expected Result
+### Files Changed
 
-- Line items will again show descriptive memos like "Frame basement walls", "Deck balance", "Siding draw"
-- Full invoice body text will NOT leak into the memo field
-- PO matching logic (using `matchingText`) remains unaffected
+| File | Change |
+|------|--------|
+| `src/utils/poLineMatching.ts` | Add "fits within remaining" boost (85%) and "over PO" penalty (cap 40%) |
 
