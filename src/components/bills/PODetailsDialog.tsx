@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { VendorPurchaseOrder } from "@/hooks/useVendorPurchaseOrders";
-import { FileText, AlertTriangle, CheckCircle2, Circle, CircleDot } from "lucide-react";
+import { FileText, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -52,7 +52,7 @@ export function PODetailsDialog({
               ) : isWarning ? (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
               ) : (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><CheckCircle2 className="h-3 w-3" />On Track</Badge>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1">On Track</Badge>
               )}
             </div>
           </DialogTitle>
@@ -87,32 +87,22 @@ export function PODetailsDialog({
               <Table containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs w-8"></TableHead>
-                    <TableHead className="text-xs">Description</TableHead>
-                    <TableHead className="text-xs">Cost Code</TableHead>
-                    <TableHead className="text-xs text-right">PO Amount</TableHead>
-                    <TableHead className="text-xs text-right">Billed</TableHead>
-                    <TableHead className="text-xs text-right">Remaining</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lineItems.map((line) => {
-                    const lineOver = line.remaining < 0;
-                    const lineComplete = line.total_billed >= line.amount && line.amount > 0;
-                    const linePartial = line.total_billed > 0 && line.total_billed < line.amount;
+                     <TableHead className="text-xs">Description</TableHead>
+                     <TableHead className="text-xs">Cost Code</TableHead>
+                     <TableHead className="text-xs text-right">PO Amount</TableHead>
+                     <TableHead className="text-xs text-right">Billed</TableHead>
+                     <TableHead className="text-xs text-right">Remaining</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {lineItems.map((line) => {
+                     const lineOver = line.remaining < 0;
+                     const lineComplete = line.total_billed >= line.amount && line.amount > 0;
+                     const linePartial = line.total_billed > 0 && line.total_billed < line.amount;
 
-                    return (
-                      <TableRow key={line.id}>
-                        <TableCell className="text-center px-2">
-                          {lineComplete ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          ) : linePartial ? (
-                            <CircleDot className="h-4 w-4 text-amber-500" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground/40" />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs">
+                     return (
+                       <TableRow key={line.id}>
+                         <TableCell className="text-xs">
                           {line.description || '—'}
                         </TableCell>
                         <TableCell className="text-xs font-mono">
@@ -137,8 +127,7 @@ export function PODetailsDialog({
 
                   {/* Totals Row */}
                   <TableRow className="bg-muted/50 font-medium">
-                    <TableCell></TableCell>
-                    <TableCell className="text-xs font-semibold">Total</TableCell>
+                     <TableCell className="text-xs font-semibold">Total</TableCell>
                     <TableCell></TableCell>
                     <TableCell className="text-xs text-right font-semibold">
                       {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
