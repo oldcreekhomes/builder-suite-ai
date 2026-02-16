@@ -1,69 +1,101 @@
 
 
-## Fix PO Auto-Matching Race Condition + Confidence Display
+## Fix PO Matching Confidence Scores
 
-### Root Cause
+### Problem
 
-The auto-match effect at line 363 depends only on `[vendorPOs]`. But bill lines (`jobCostLines`) are loaded asynchronously in `loadBillData()`. The typical sequence is:
+The scoring algorithm in `poLineMatching.ts` has three fundamental flaws producing artificially low confidence scores:
 
-1. Dialog opens, `loadBillData()` starts fetching from DB
-2. `useVendorPurchaseOrders` hook fetches PO data
-3. `vendorPOs` arrives first, effect fires -- but `jobCostLines` is still empty, so `jobCostLines.length === 0` exits early
-4. `loadBillData()` finishes, `setJobCostLines(...)` populates lines
-5. Effect never re-runs because `jobCostLines` is not in the dependency array
+1. **One-directional keyword scoring** penalizes verbose bill memos. "Siding draw" vs "Siding" scores 50% keyword match (1/2 bill tokens matched) when it should be 100% (all PO tokens found in bill).
 
-The matching utility itself works fine -- it never gets a chance to run.
+2. **No word stemming**. "deck" does not exact-match "decks" -- it only matches via substring which still counts, but a simple stem strip would improve clarity and edge cases.
 
-### Fix
+3. **No exact-amount bonus**. A $720 bill matching a $720 PO gets the same 25 points as any close amount. An exact or near-exact match should be a strong additional signal.
 
-**File: `src/components/bills/EditExtractedBillDialog.tsx`**
+### Solution: Rewrite Scoring in `poLineMatching.ts`
 
-**Change 1: Add `jobCostLines` to the effect dependency array with a "ran once" guard**
+**Change 1: Bidirectional keyword scoring**
 
-Add a `useRef` flag (`hasAutoMatched`) to track whether auto-matching has already run. Add `jobCostLines` to the dependency array so the effect re-fires when lines load. The guard ensures it only runs once (so user edits to PO selections aren't overwritten).
+Instead of only measuring "what % of bill tokens matched PO tokens", take the MAX of both directions:
+- bill-to-PO ratio: what fraction of bill tokens found in PO (current approach)
+- PO-to-bill ratio: what fraction of PO tokens found in bill (NEW)
 
-```text
-const hasAutoMatched = useRef(false);
+This means "Siding draw" vs "Siding" = max(0.5, 1.0) = 1.0 because 100% of PO tokens ("siding") appear in the bill.
 
-// Reset on dialog open
-useEffect(() => {
-  if (open) hasAutoMatched.current = false;
-}, [open]);
+**Change 2: Simple stemming**
 
-// Auto-match effect
-useEffect(() => {
-  if (hasAutoMatched.current) return;
-  if (!vendorPOs || vendorPOs.length === 0 || jobCostLines.length === 0) return;
-  hasAutoMatched.current = true;
-  
-  // ... existing matching logic ...
-}, [vendorPOs, jobCostLines]);
-```
+Strip common suffixes (trailing 's', 'ing', 'ed') before comparison so "deck" = "decks", "framing" = "frame", etc. This is lightweight and avoids a dependency.
 
-This ensures the effect waits until BOTH vendorPOs AND jobCostLines are populated before running.
+**Change 3: Exact/near-exact amount bonus**
 
-**Change 2: Also include the PO header-level cost code as a matching signal**
+Add a bonus component (up to 15 points) when the bill amount is within 5% of the PO line's remaining or total amount. An exact dollar match (like $720 = $720) gets the full 15 points.
 
-Currently PO lines are the candidates. But the screenshot shows POs like "2025-115E-0003 | 4470 - Siding" which is a **single-line PO** where the PO header cost code (4470 Siding) matches the bill line cost code (4470 Siding). The matching utility should also consider the PO header's cost code name (e.g., "Siding") as a keyword source for PO lines that lack their own description.
+**Change 4: Rebalanced weights**
 
-In the candidate building loop, when a PO line has no description, fall back to the PO header's cost code name:
+| Signal | Old Weight | New Weight |
+|--------|-----------|------------|
+| Keyword match | 45 | 40 |
+| Cost code match | 30 | 25 |
+| Amount proximity | 25 | 20 |
+| Exact amount bonus | 0 | 15 |
+| **Total possible** | **100** | **100** |
 
-```text
-cost_code_name: line.cost_code?.name || po.cost_code?.name || null,
-```
+### Expected Scores After Fix
+
+**"Deck balance" vs PO "Decks":**
+- Keyword: max(1/2, 1/1) = 1.0 (all PO tokens found) -> 40 pts
+- Cost code: mismatch -> 0 pts
+- Amount proximity: ~0.9 -> 18 pts
+- Near-exact bonus: ~10 pts
+- **Total: ~68%** (up from 45%) -- yellow badge, reasonable
+
+**"Siding draw" vs PO "Siding":**
+- Keyword: max(1/2, 1/1) = 1.0 -> 40 pts
+- Cost code: match -> 25 pts
+- Amount proximity: ~0.3 -> 6 pts
+- Exact bonus: 0
+- **Total: ~71%** (up from 60%) -- but wait, if "siding" PO has remaining = $11,220 it won't get exact bonus. Still solid yellow.
+
+Actually with cost code match + perfect keyword, that's already 65 pts minimum. Good.
+
+**"$720 framing" vs PO $720:**
+- Keyword: After stemming, "framing" stems to "frame". Bill memo tokens include "wall", "ground", "floor" etc. Still 0 keyword match (no "frame" in bill tokens... unless we also stem bill tokens).
+- Actually with stemming: billTokens would include "add" (from "added"), "wall", "around", "pile" (from "piles"), "ground", "floor", "men", "8hrs", "30". poTokens = ["frame"]. Still no match.
+- Cost code: match -> 25 pts
+- Amount: exact -> 20 pts
+- Exact bonus: 15 pts
+- **Total: ~60%** (similar to before but more honest)
+
+Hmm, the $720 line is tricky because "Added wall around piles ground floor 3 men 8hrs at $30" has NO keyword overlap with "Framing Labor". But the exact amount + cost code match should signal high confidence. Let me adjust: when amount is an EXACT match AND cost code matches, add an additional boost. Or simply increase the exact-amount bonus weight.
+
+**Revised weights for better exact-match handling:**
+
+| Signal | Weight |
+|--------|--------|
+| Keyword match (bidirectional) | 35 |
+| Cost code match | 25 |
+| Amount proximity | 15 |
+| Exact/near-exact amount bonus | 25 |
+| **Total** | **100** |
+
+This way $720 exact + cost code = 25 + 15 + 25 = **65%** minimum. With the exact proximity score being 1.0 that's 25 + 15 + 25 = **65%**. Still yellow but much more meaningful.
 
 ### Technical Details
 
+**File: `src/utils/poLineMatching.ts`**
+
+Changes to the matching function:
+
+1. Add `stem()` helper that strips trailing 's', 'es', 'ing', 'ed', 'tion' from words
+2. Apply stemming in `tokenize()`
+3. Change `keywordScore()` to be bidirectional: `Math.max(billToPoRatio, poToBillRatio)`
+4. Add `exactAmountBonus()` function: returns 0-1 based on how close bill amount is to PO remaining/total (1.0 = within 1%, 0.5 = within 10%, 0 = beyond 20%)
+5. Update weight constants: keyword=35, costCode=25, amountProximity=15, exactBonus=25
+6. Remove "balance", "draw", "added" and similar billing verbs from stop words or add them
+
+### File Summary
+
 | File | Change |
 |------|--------|
-| `src/components/bills/EditExtractedBillDialog.tsx` | Add `useRef` guard for auto-match, add `jobCostLines` to dependency array, improve PO line candidate building with header cost code fallback |
+| `src/utils/poLineMatching.ts` | Bidirectional keyword scoring, stemming, exact-amount bonus, rebalanced weights |
 
-### Expected Result
-
-When user opens Edit Extracted Bill for INV0021:
-- Lines load with memos "Deck balance", "Siding draw", "Added wall around piles..."
-- vendorPOs loads with PO lines including "Decks", "Siding", etc.
-- Auto-match effect fires (both data sets ready)
-- "Deck balance" matches PO line "Decks" with green confidence badge
-- "Siding draw" matches PO "Siding" with green confidence badge
-- "$720 framing" matches the closest PO line with confidence badge
