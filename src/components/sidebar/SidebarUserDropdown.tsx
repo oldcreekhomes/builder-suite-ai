@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -82,13 +82,6 @@ export function SidebarUserDropdown() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-popover" align="end" forceMount>
-            <DropdownMenuItem 
-              className="cursor-pointer"
-              onClick={() => navigate('/settings?tab=my-profile')}
-            >
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
               onClick={() => navigate('/settings')}
