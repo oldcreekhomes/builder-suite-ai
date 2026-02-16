@@ -1,38 +1,49 @@
 
 
-## Show Onboarding Checklist to All Company Members (Owners + Employees)
+## Fix: Update RLS Policies on `onboarding_progress` for Employee Access
 
 ### Problem
-Currently the onboarding checklist is only visible to owners. Two blockers prevent employees from seeing it:
-1. `OnboardingChecklist.tsx` line 65 returns `null` if the user is not an owner
-2. `useOnboardingProgress.ts` uses the logged-in user's own ID for all queries -- for employees, this is wrong since their milestones should reflect the owner's company data
+All three RLS policies on `onboarding_progress` require `home_builder_id = auth.uid()`. Employees have a different `auth.uid()` than the owner, so they are blocked from reading the dismissed state or clicking "Close" on the congratulations dialog.
 
-### Changes
+### Solution
+Update the SELECT and UPDATE policies to also allow access for users whose `home_builder_id` in the `users` table matches the record. The INSERT policy stays owner-only (only owners should create the initial row).
 
-**1. `src/hooks/useOnboardingProgress.ts`** -- Resolve the correct company owner ID
+### Database Migration
 
-- Query the `users` table to get the current user's profile
-- If the user is an owner, use their own ID (as today)
-- If the user is an employee, use their `home_builder_id` (the owner's ID) for all milestone queries
-- This ensures employees see the same checklist progress as the owner
+```sql
+-- Drop existing SELECT and UPDATE policies
+DROP POLICY "Owners can view own onboarding progress" ON onboarding_progress;
+DROP POLICY "Owners can update own onboarding progress" ON onboarding_progress;
 
-**2. `src/components/OnboardingChecklist.tsx`** -- Remove owner-only gate
+-- Recreate SELECT policy: owner OR employee of that company
+CREATE POLICY "Company members can view onboarding progress"
+ON onboarding_progress FOR SELECT TO authenticated
+USING (
+  home_builder_id = auth.uid()
+  OR home_builder_id IN (
+    SELECT u.home_builder_id FROM users u WHERE u.id = auth.uid()
+  )
+);
 
-- Change `if (isLoading || !isOwner) return null;` to `if (isLoading) return null;`
-- This lets employees (and accountants, PMs, etc.) see the checklist too
-- The dismiss behavior and completion dialog will work the same for all users
+-- Recreate UPDATE policy: owner OR employee of that company
+CREATE POLICY "Company members can update onboarding progress"
+ON onboarding_progress FOR UPDATE TO authenticated
+USING (
+  home_builder_id = auth.uid()
+  OR home_builder_id IN (
+    SELECT u.home_builder_id FROM users u WHERE u.id = auth.uid()
+  )
+);
+```
 
-### How It Will Work
+### What This Fixes
+- Employees can now read the `dismissed = true` flag, so the dialog won't appear if the owner already dismissed it
+- Employees can click "Close" on the congratulations dialog and it will actually persist
+- The INSERT policy remains owner-only -- only the owner's first visit creates the progress row
 
-- All company members (owner, employees, accountants) see the same checklist on the dashboard
-- Progress reflects the owner's company data (cost codes, projects, etc.) regardless of who is viewing
-- Any team member can click "Go" to navigate to the relevant settings page and help complete a step
-- The dismiss/completion state is still per-user via the `onboarding_progress` table
+### No Frontend Changes Needed
+The existing `effectiveOwnerId` logic in `useOnboardingProgress.ts` already resolves the correct owner ID for employees. The only blocker was the database refusing the requests.
 
-### Files Modified
-1. `src/hooks/useOnboardingProgress.ts` -- Add query to resolve company owner ID; use it for all milestone queries
-2. `src/components/OnboardingChecklist.tsx` -- Remove `!isOwner` visibility check
-
-### Risk
-Low. The milestone queries already use `owner_id` / `home_builder_id` filters, so using the correct owner ID will return the same data the owner sees. No RLS changes needed since employees already have read access to these tables via their `home_builder_id`.
+### Files Changed
+- 1 database migration (RLS policy update on `onboarding_progress`)
 
