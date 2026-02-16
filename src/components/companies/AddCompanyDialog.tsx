@@ -375,6 +375,7 @@ export function AddCompanyDialog({
       await queryClient.refetchQueries({ queryKey: ['companies'] });
       await queryClient.refetchQueries({ queryKey: ['representatives'] });
       await queryClient.refetchQueries({ queryKey: ['company-representatives'] });
+      queryClient.invalidateQueries({ queryKey: ["onboarding-live-checks"] });
       
       toast({
         title: "Success",

@@ -97,14 +97,14 @@ export const useOnboardingProgress = (): OnboardingProgress => {
       ] as const;
 
       const needsUpdate = fields.some(
-        (f) => liveChecks[f] && !progressRow[f]
+        (f) => liveChecks[f] !== progressRow[f]
       );
 
       if (needsUpdate) {
         const updates: Record<string, boolean> = {};
         for (const f of fields) {
-          if (liveChecks[f] && !progressRow[f]) {
-            updates[f] = true;
+          if (liveChecks[f] !== progressRow[f]) {
+            updates[f] = liveChecks[f];
           }
         }
         await supabase
