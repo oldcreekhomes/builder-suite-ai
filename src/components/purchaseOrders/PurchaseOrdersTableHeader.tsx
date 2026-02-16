@@ -12,7 +12,7 @@ export function PurchaseOrdersTableHeader() {
         <TableHead>Amount</TableHead>
         <TableHead>Notes</TableHead>
         <TableHead>Files</TableHead>
-        <TableHead className="text-right">Actions</TableHead>
+        <TableHead className="text-center">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );

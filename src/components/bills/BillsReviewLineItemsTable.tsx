@@ -92,7 +92,7 @@ export const BillsReviewLineItemsTable = ({
             <TableHead>Qty</TableHead>
             <TableHead>Unit Cost</TableHead>
             <TableHead>Amount</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

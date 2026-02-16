@@ -283,7 +283,7 @@ const handleEdit = (fileId: string, currentName: string) => {
                 <th className="text-left p-3 font-medium">Name</th>
                 <th className="text-left p-3 font-medium">Size</th>
                 <th className="text-left p-3 font-medium">Uploaded</th>
-                <th className="text-right p-3 font-medium">Actions</th>
+                <th className="text-center p-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>

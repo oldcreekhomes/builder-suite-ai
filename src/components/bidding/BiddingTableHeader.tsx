@@ -14,7 +14,7 @@ export function BiddingTableHeader() {
         <TableHead className="w-32">Reminder Date</TableHead>
         <TableHead>Specifications</TableHead>
         <TableHead>Files</TableHead>
-        <TableHead>Actions</TableHead>
+        <TableHead className="text-center">Actions</TableHead>
       </TableRow>
     </TableHeader>
   );
