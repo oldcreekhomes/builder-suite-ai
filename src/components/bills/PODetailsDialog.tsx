@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { VendorPurchaseOrder, BilledInvoice } from "@/hooks/useVendorPurchaseOrders";
-import { FileText, AlertTriangle } from "lucide-react";
+import { FileText, AlertTriangle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -133,6 +133,7 @@ export function PODetailsDialog({
                      <TableHead className="text-xs text-right">PO Amount</TableHead>
                      <TableHead className="text-xs text-right">Billed</TableHead>
                      <TableHead className="text-xs text-right">Remaining</TableHead>
+                     <TableHead className="text-xs text-center">Status</TableHead>
                    </TableRow>
                  </TableHeader>
                  <TableBody>
@@ -147,7 +148,7 @@ export function PODetailsDialog({
                           {line.description || '—'}
                         </TableCell>
                         <TableCell className="text-xs font-mono">
-                          {line.cost_code ? line.cost_code.code : '—'}
+                          {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
                         </TableCell>
                         <TableCell className="text-xs text-right">
                           {formatCurrency(line.amount)}
@@ -162,6 +163,17 @@ export function PODetailsDialog({
                         )}>
                           {formatCurrency(line.remaining)}
                         </TableCell>
+                        <TableCell className="text-center">
+                          {lineOver ? (
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 gap-1 text-xs px-2 py-0.5">
+                              <AlertTriangle className="h-3 w-3" />Over
+                            </Badge>
+                          ) : line.total_billed > 0 ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 gap-1 text-xs px-2 py-0.5">
+                              <Check className="h-3 w-3" />Matched
+                            </Badge>
+                          ) : null}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -175,6 +187,7 @@ export function PODetailsDialog({
                       <TableCell className="text-xs text-right text-amber-700 font-medium">
                         <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
                       </TableCell>
+                      <TableCell></TableCell>
                       <TableCell></TableCell>
                     </TableRow>
                   )}
@@ -196,6 +209,7 @@ export function PODetailsDialog({
                     )}>
                       {formatCurrency(purchaseOrder.remaining)}
                     </TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
