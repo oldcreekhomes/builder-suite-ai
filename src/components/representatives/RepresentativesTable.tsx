@@ -14,11 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
-import { DeleteButton } from "@/components/ui/delete-button";
+
 
 interface Representative {
   id: string;
@@ -399,23 +400,22 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                     </div>
                   </TableCell>
                   <TableCell className="px-2 py-1 align-middle">
-                    <div className="flex justify-center items-center space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEditClick(rep)}
-                        className="h-6 w-6 p-0 flex items-center justify-center"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <DeleteButton
-                        onDelete={() => deleteRepMutation.mutate(rep.id)}
-                        title="Delete Representative"
-                        description={`Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`}
-                        isLoading={deleteRepMutation.isPending}
-                        size="icon"
-                        className="h-6 w-6 p-0"
-                      />
+                    <div className="flex justify-center">
+                      <TableRowActions actions={[
+                        {
+                          label: "Edit",
+                          onClick: () => handleEditClick(rep),
+                        },
+                        {
+                          label: "Delete",
+                          variant: "destructive",
+                          requiresConfirmation: true,
+                          confirmTitle: "Delete Representative",
+                          confirmDescription: `Are you sure you want to delete ${rep.first_name} ${rep.last_name}? This action cannot be undone.`,
+                          onClick: () => deleteRepMutation.mutate(rep.id),
+                          isLoading: deleteRepMutation.isPending,
+                        },
+                      ]} />
                     </div>
                   </TableCell>
                 </TableRow>
