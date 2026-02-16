@@ -1,43 +1,29 @@
 
 
-## Match PO Details Billed Tooltip to Bills Table Style
+## Reallocate INV0012 ($4,206) to Four Seasons PO Lines
 
-### What's Wrong
-The current tooltip in the PO Details Dialog uses a custom layout ("Invoices Billed" header, then a 3-column row per invoice). The user wants it to match the existing bills table tooltip pattern -- which uses grouped entries with bold labels, indented "label: $amount" rows, and a "Total:" footer separated by a border-top.
+### Data Changes (via migration)
 
-### Changes
+Since the read-query tool is read-only, I'll use a database migration to perform these data operations:
 
-**`src/components/bills/PODetailsDialog.tsx`** -- Update the `BilledAmountWithTooltip` component
+**Step 1 -- Update existing bill line** (`1fe171b1-...`)
+- Change amount from $4,206 to $3,206
+- Link to "First floor" PO line (`d6032fa3-...`, $10,206 budget)
+- Link to PO `1442c768-...`
+- Update memo to "First floor balance"
 
-Rewrite the tooltip content to match the bills table pattern (lines 862-880 of `BillsApprovalTable.tsx`):
+**Step 2 -- Insert new bill line**
+- Amount: $1,000
+- Link to "Decks" PO line (`15e25b7a-...`, $2,232 budget)
+- Same bill, owner, project, cost code as original
+- Memo: "Deck framing draw"
 
-- Group invoices by reference number (each invoice becomes a "group")
-- For each invoice, show the reference number as a bold label (like the cost code name in the bills tooltip)
-- Below each label, show an indented row with the date as the label and the amount as the value (matching the "Unassigned: $amount" pattern)
-- At the bottom, add a `border-t pt-1` separator with "Total:" and the sum, matching the exact same classes used in the bills table tooltip
-- Use `space-y-2` for the outer container, `font-medium text-xs` for headers, `pl-2 space-y-0.5` for indented rows, and `text-muted-foreground` for labels -- all identical to the bills table pattern
-- Use `toLocaleString('en-US', { minimumFractionDigits: 2 })` for currency formatting to match the bills tooltip (instead of `Intl.NumberFormat`)
+### Result
+- "First floor" row: $3,206 billed of $10,206 budget ($7,000 remaining)
+- "Decks" row: $1,000 billed of $2,232 budget ($1,232 remaining)
+- Bill total unchanged at $4,206 ($3,206 + $1,000)
+- No unallocated billing on this PO
 
-### Visual Result
+### No Code Changes Needed
+The existing display logic already handles multiple bill lines and PO allocations correctly.
 
-Hovering over "$7,000.00" will show:
-
-```text
-INV0010
-  11/19/25:    $7,000.00
-
-Total:         $7,000.00
-```
-
-For multiple invoices it would show:
-
-```text
-INV0010
-  11/19/25:    $4,000.00
-INV0011
-  12/01/25:    $3,000.00
----
-Total:         $7,000.00
-```
-
-This exactly matches the grouped cost code tooltip style from the bills table.
