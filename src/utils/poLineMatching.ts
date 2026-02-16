@@ -145,6 +145,16 @@ export function matchBillLineToPOLines(
       confidence = Math.max(confidence, 85);
     }
 
+    // Progress billing: cost code match + bill fits within remaining = 85% minimum
+    if (ccMatch === 1 && billAmount > 0 && billAmount <= line.remaining) {
+      confidence = Math.max(confidence, 85);
+    }
+
+    // Over-PO penalty: cost code match but bill exceeds PO total = cap at 40%
+    if (ccMatch === 1 && billAmount > 0 && billAmount > line.amount && line.amount > 0) {
+      confidence = Math.min(confidence, 40);
+    }
+
     return { poLineId: line.id, poId: line.purchase_order_id, confidence };
   });
 
