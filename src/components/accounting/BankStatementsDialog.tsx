@@ -18,15 +18,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, Download, Pencil, CalendarIcon } from "lucide-react";
+import { Upload, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { TableRowActions } from "@/components/ui/table-row-actions";
+import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
+import { formatDateSafe } from "@/utils/dateOnly";
 
 interface BankStatementsDialogProps {
   projectId: string;
@@ -288,8 +290,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
 
   const formatStatementDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return format(new Date(year, month - 1, day), 'MMM d, yyyy');
+    return formatDateSafe(dateStr, 'MM/dd/yy');
   };
 
   return (
@@ -318,10 +319,11 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto border rounded-md">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Loading...</div>
         ) : statements && statements.length > 0 ? (
+          <SettingsTableWrapper>
           <Table containerClassName="relative w-full overflow-visible max-h-none">
             <TableHeader>
               <TableRow>
@@ -351,53 +353,44 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                     {formatStatementDate(statement.statement_date)}
                   </TableCell>
                   <TableCell>
-                    {statement.uploaded_at ? format(new Date(statement.uploaded_at), 'PP') : '-'}
+                    {statement.uploaded_at ? formatDateSafe(statement.uploaded_at, 'MM/dd/yy') : '-'}
                   </TableCell>
                   <TableCell>
                     {statement.file_size ? formatFileSize(statement.file_size) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(
-                            statement.storage_path,
-                            cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'statement.pdf')
-                          );
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(statement.id, statement.original_filename || '', statement.statement_date);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <DeleteButton
-                          onDelete={() => deleteMutation.mutate(statement.id)}
-                          title="Delete Bank Statement"
-                          description="Are you sure you want to delete this bank statement? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteMutation.isPending}
-                          showIcon={true}
-                        />
-                      </div>
+                    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                      <TableRowActions
+                        actions={[
+                          {
+                            label: "Download",
+                            onClick: () => handleDownload(
+                              statement.storage_path,
+                              cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'statement.pdf')
+                            ),
+                          },
+                          {
+                            label: "Edit",
+                            onClick: () => handleEdit(statement.id, statement.original_filename || '', statement.statement_date),
+                          },
+                          {
+                            label: "Delete",
+                            variant: "destructive",
+                            requiresConfirmation: true,
+                            confirmTitle: "Delete Bank Statement",
+                            confirmDescription: "Are you sure you want to delete this bank statement? This action cannot be undone.",
+                            onClick: () => deleteMutation.mutate(statement.id),
+                            isLoading: deleteMutation.isPending,
+                          },
+                        ]}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </SettingsTableWrapper>
         ) : (
           <div className="p-8 text-center text-muted-foreground">
             <p>No bank statements yet.</p>
