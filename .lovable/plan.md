@@ -1,36 +1,26 @@
 
 
-## UI Refinement: Cleaner Pending Column and Smarter Remaining Colors
-
-### What changes
-
-All changes are scoped to **content styling within `src/components/bills/PODetailsDialog.tsx`** only. No base table components (`table.tsx`, `TableHead`, `TableCell`, etc.) are modified. The `SettingsTableWrapper` pattern and all other 77+ tables remain untouched.
+## Three UI Tweaks to PO Details Dialog
 
 ### Changes
 
 **File: `src/components/bills/PODetailsDialog.tsx`**
 
-1. **Rename column header** (line 174): "This Bill" becomes "Pending"
-2. **Rename summary header label** (line 143): "This Bill" becomes "Pending (REF)" using `currentBillReference` so the user knows exactly which bill these amounts are from
-3. **Summary pending amount** (line 145): Remove `text-green-700`, use default text color
-4. **Summary remaining** (lines 150-156): Only apply `text-destructive` when `projectedRemaining < 0` (actually over budget). Otherwise use default text -- no green, no amber
-5. **Line item pending cells** (line 206): Remove `text-green-700 bg-green-100` background highlight. Use plain `font-medium` (same as already used on remaining values in this dialog)
-6. **Line item remaining cells** (lines 212-216): Only `text-destructive` when `lineProjectedRemaining < 0`. Remove green/amber coloring for the pending case
-7. **Totals row pending** (line 248): Remove `text-green-700`
-8. **Totals row remaining** (lines 252-257): Only red when negative, otherwise default
+1. **Rename "Pending" back to "This Bill"** in both places:
+   - Summary header label (line 144): `Pending` back to `This Bill`
+   - Column header (line 171): `Pending` back to `This Bill`
+
+2. **Remove dotted underlines from Billed column values**: In the `BilledAmountWithTooltip` component (line 48), remove `border-b border-dotted border-current cursor-help` classes. The tooltip still works on hover -- users can discover it naturally without the visual indicator.
+
+3. **Make Remaining green when positive, red when negative** (for the pending case too):
+   - Line item remaining (lines 210-213): When pending, use `text-green-700` if remaining > 0, `text-destructive` if < 0
+   - Summary header remaining (lines 150-153): Same logic -- green if positive, red if negative
+   - Totals row remaining (lines 250-253): Same logic
 
 ### What stays the same
 
-- All base table components (table.tsx, TableHead, TableCell, etc.)
-- SettingsTableWrapper pattern
-- Every other table in the application
-- The green highlighting on "Billed" column tooltips (existing approved bill indicators)
-- Dialog width (already set to max-w-4xl)
-
-### Result
-
-- Red only appears as a genuine warning when the PO would go over budget
-- "Pending (INV0021)" label immediately tells the user what bill these amounts belong to
-- Clean, professional look with less color noise
-- Zero impact on any other table in the application
+- All other styling and layout
+- Dialog width (max-w-4xl)
+- Tooltip content still appears on hover (just no dotted underline hint)
+- The green highlight on billed amounts that match the current bill (`bg-green-100 text-green-700`) stays
 
