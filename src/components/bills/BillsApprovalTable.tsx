@@ -39,7 +39,7 @@ import { BillNotesDialog } from './BillNotesDialog';
 import { toast } from "@/hooks/use-toast";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
-import { PODetailsDialogWrapper } from "./PODetailsDialogWrapper";
+import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
 
 interface BillForApproval {
   id: string;
@@ -145,11 +145,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const [actionValue, setActionValue] = useState<Record<string, string>>({});
   const [poDialogState, setPoDialogState] = useState<{
     open: boolean;
-    poMatch: POMatch | null;
+    matches: POMatch[];
     bill: BillForApproval | null;
   }>({
     open: false,
-    poMatch: null,
+    matches: [],
     bill: null,
   });
   const updateNotesMutation = useMutation({
@@ -924,16 +924,16 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       {(() => {
                         const matchResult = poMatchingData?.get(bill.id);
                         const status = matchResult?.overall_status || 'no_po';
-                        const firstMatch = matchResult?.matches?.[0] || null;
+                        const allMatches = matchResult?.matches || [];
                         
                         return (
                           <POStatusBadge
                             status={status}
                             onClick={() => {
-                              if (firstMatch) {
+                              if (allMatches.length > 0) {
                                 setPoDialogState({
                                   open: true,
-                                  poMatch: firstMatch,
+                                  matches: allMatches,
                                   bill: bill
                                 });
                               }
@@ -1120,9 +1120,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         billId={editingBillId || ''}
       />
 
-      <PODetailsDialogWrapper
-        poDialogState={poDialogState}
-        onClose={() => setPoDialogState({ open: false, poMatch: null, bill: null })}
+      <BillPOSummaryDialog
+        open={poDialogState.open}
+        onOpenChange={(open) => { if (!open) setPoDialogState({ open: false, matches: [], bill: null }); }}
+        matches={poDialogState.matches}
+        bill={poDialogState.bill}
       />
     </>
   );

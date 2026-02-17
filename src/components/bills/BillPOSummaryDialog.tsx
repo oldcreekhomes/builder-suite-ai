@@ -1,0 +1,147 @@
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { POMatch } from "@/hooks/useBillPOMatching";
+import { PODetailsDialog } from "./PODetailsDialog";
+import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
+import { cn } from "@/lib/utils";
+
+interface BillPOSummaryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  matches: POMatch[];
+  bill: {
+    id?: string;
+    project_id?: string | null;
+    vendor_id?: string;
+    total_amount?: number;
+    reference_number?: string | null;
+  } | null;
+}
+
+export function BillPOSummaryDialog({
+  open,
+  onOpenChange,
+  matches,
+  bill,
+}: BillPOSummaryDialogProps) {
+  const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
+
+  const { data: vendorPOs } = useVendorPurchaseOrders(
+    bill?.project_id,
+    bill?.vendor_id
+  );
+
+  const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+  // If only one match, go directly to the detail dialog
+  if (matches.length === 1 && open) {
+    const singlePO = vendorPOs?.find(po => po.id === matches[0].po_id) || null;
+    return (
+      <PODetailsDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        purchaseOrder={singlePO}
+        projectId={bill?.project_id || null}
+        vendorId={bill?.vendor_id || null}
+        currentBillId={bill?.id}
+        currentBillAmount={bill?.total_amount}
+        currentBillReference={bill?.reference_number || undefined}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Dialog open={open && !selectedPoId} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>PO Status Summary</DialogTitle>
+            <DialogDescription>
+              {bill?.reference_number
+                ? `Bill ${bill.reference_number} — ${matches.length} matched POs`
+                : `${matches.length} matched POs`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>PO Number</TableHead>
+                <TableHead>Cost Code</TableHead>
+                <TableHead className="text-right">PO Amount</TableHead>
+                <TableHead className="text-right">Billed to Date</TableHead>
+                <TableHead className="text-right">Remaining</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {matches.map((match) => (
+                <TableRow
+                  key={match.po_id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedPoId(match.po_id)}
+                >
+                  <TableCell className="font-medium">{match.po_number}</TableCell>
+                  <TableCell>{match.cost_code_display}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(match.po_amount)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(match.total_billed)}</TableCell>
+                  <TableCell
+                    className={cn(
+                      "text-right font-medium",
+                      match.remaining >= 0 ? "text-green-600" : "text-red-600"
+                    )}
+                  >
+                    {formatCurrency(match.remaining)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                        match.status === "matched"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      )}
+                    >
+                      {match.status === "matched" ? "Matched" : "Over"}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+
+      {/* Drill-down into single PO detail */}
+      <PODetailsDialog
+        open={!!selectedPoId}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setSelectedPoId(null);
+        }}
+        purchaseOrder={selectedPO}
+        projectId={bill?.project_id || null}
+        vendorId={bill?.vendor_id || null}
+        currentBillId={bill?.id}
+        currentBillAmount={bill?.total_amount}
+        currentBillReference={bill?.reference_number || undefined}
+      />
+    </>
+  );
+}

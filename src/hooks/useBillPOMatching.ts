@@ -129,30 +129,52 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         costCodeLookup.set(cc.id, { code: cc.code, name: cc.name });
       });
 
-      // Fetch all posted/paid bills for the same project+vendor+cost_code combinations
-      // to calculate cumulative billed amounts
-      const { data: allBills, error: billsError } = await supabase
-        .from('bills')
-        .select(`
-          id,
-          vendor_id,
-          project_id,
-          total_amount,
-          status,
-          bill_lines (
-            cost_code_id,
-            amount
-          )
-        `)
-        .in('project_id', projectIds)
-        .in('vendor_id', vendorIds)
-        .in('status', ['posted', 'paid'])
-        .eq('is_reversal', false)
-        .is('reversed_at', null);
+      // Fetch all posted/paid bill lines explicitly linked to the relevant POs
+      // to calculate cumulative billed amounts per PO
+      const poIds = pos.map(po => po.id);
+      const billedLookup = new Map<string, number>();
 
-      if (billsError) throw billsError;
+      if (poIds.length) {
+        const { data: linkedLines, error: linkedError } = await supabase
+          .from('bill_lines')
+          .select(`
+            purchase_order_id,
+            amount,
+            is_reversal,
+            bills!inner (
+              status,
+              is_reversal,
+              reversed_at
+            )
+          `)
+          .in('purchase_order_id', poIds)
+          .not('purchase_order_id', 'is', null);
 
-      // Build a lookup: project_id + vendor_id + cost_code_id -> { po, total_billed }
+        if (linkedError) throw linkedError;
+
+        (linkedLines || []).forEach(line => {
+          const billData = line.bills as unknown as { status: string; is_reversal: boolean; reversed_at: string | null };
+          // Only count posted/paid, non-reversal, non-reversed bills
+          if (
+            billData &&
+            ['posted', 'paid'].includes(billData.status) &&
+            !billData.is_reversal &&
+            !billData.reversed_at &&
+            line.purchase_order_id
+          ) {
+            const current = billedLookup.get(line.purchase_order_id) || 0;
+            billedLookup.set(line.purchase_order_id, current + (line.amount || 0));
+          }
+        });
+      }
+
+      // Now build the result map for each bill
+      const resultMap = new Map<string, BillPOMatchResult>();
+
+      bills.forEach(bill => {
+        const matches: POMatch[] = [];
+
+      // Build a lookup: project_id + vendor_id + cost_code_id -> PO data (for auto-matching)
       const poLookup = new Map<string, {
         po_id: string;
         po_number: string;
@@ -173,25 +195,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         });
       });
 
-      // Calculate total billed per project+vendor+cost_code
-      const billedLookup = new Map<string, number>();
-      (allBills || []).forEach(bill => {
-        (bill.bill_lines || []).forEach(line => {
-          if (line.cost_code_id) {
-            const key = `${bill.project_id}|${bill.vendor_id}|${line.cost_code_id}`;
-            const current = billedLookup.get(key) || 0;
-            billedLookup.set(key, current + (line.amount || 0));
-          }
-        });
-      });
 
-      // Now build the result map for each bill
-      const resultMap = new Map<string, BillPOMatchResult>();
-
-      bills.forEach(bill => {
-        const matches: POMatch[] = [];
-        
-        
         // Also check lines with explicit purchase_order_id
         const allLines = bill.bill_lines || [];
         
@@ -216,16 +220,13 @@ export function useBillPOMatching(bills: BillForMatching[]) {
                 cost_code_id: explicitPo.cost_code_id || '',
                 cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
               };
-              // Use the PO's cost code for billed lookup
-              if (explicitPo.project_id && explicitPo.company_id && explicitPo.cost_code_id) {
-                billedKey = `${explicitPo.project_id}|${explicitPo.company_id}|${explicitPo.cost_code_id}`;
-              }
+              billedKey = explicitPo.id;
             }
           } else if (line.cost_code_id && bill.project_id) {
             // Priority 2: Auto-match by composite key
             const key = `${bill.project_id}|${bill.vendor_id}|${line.cost_code_id}`;
             poData = poLookup.get(key);
-            billedKey = key;
+            if (poData) billedKey = poData.po_id;
           }
           
           if (poData && !matches.find(m => m.po_id === poData!.po_id)) {
