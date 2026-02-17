@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { POStatusBadge } from "./POStatusBadge";
 import { usePendingBillPOStatus } from "@/hooks/usePendingBillPOStatus";
+import { PODetailsDialog } from "./PODetailsDialog";
+import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
 const formatTerms = (terms: string | null | undefined): string => {
@@ -134,6 +136,7 @@ export function BatchBillReviewTable({
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
   const [addingVendorName, setAddingVendorName] = useState<string>("");
   const [rematchingBillId, setRematchingBillId] = useState<string | null>(null);
+  const [poDialogBillId, setPoDialogBillId] = useState<string | null>(null);
   const [vendorInitialData, setVendorInitialData] = useState<{
     phone_number?: string;
     address_line_1?: string;
@@ -148,6 +151,15 @@ export function BatchBillReviewTable({
 
   // Auto-match PO status by looking up project_purchase_orders
   const { data: poStatusMap } = usePendingBillPOStatus(bills, projectId);
+
+  // For PO dialog: determine vendor for selected bill and fetch full PO data
+  const poDialogBill = poDialogBillId ? bills.find(b => b.id === poDialogBillId) : null;
+  const poDialogVendorId = poDialogBill
+    ? (poDialogBill.vendor_id || poDialogBill.extracted_data?.vendor_id || poDialogBill.extracted_data?.vendorId) as string | undefined
+    : undefined;
+  const poDialogPoIds = poDialogBillId ? (poStatusMap?.get(poDialogBillId)?.poIds || []) : [];
+  const { data: vendorPOs } = useVendorPurchaseOrders(projectId, poDialogVendorId);
+  const matchedPO = vendorPOs?.find(po => poDialogPoIds.includes(po.id)) || null;
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
@@ -861,7 +873,16 @@ export function BatchBillReviewTable({
                   
                   {/* PO Status */}
                   <TableCell className="px-2 py-1 w-20 text-center">
-                    <POStatusBadge status={poStatusMap?.get(bill.id) || 'no_po'} />
+                    {(() => {
+                      const poResult = poStatusMap?.get(bill.id);
+                      const status = poResult?.status || 'no_po';
+                      return (
+                        <POStatusBadge
+                          status={status}
+                          onClick={status !== 'no_po' ? () => setPoDialogBillId(bill.id) : undefined}
+                        />
+                      );
+                    })()}
                   </TableCell>
                   
                   {/* Actions */}
@@ -923,6 +944,34 @@ export function BatchBillReviewTable({
           initialCompanyName={addingVendorName}
           initialData={vendorInitialData}
           onCompanyCreated={handleVendorCreated}
+        />
+      )}
+
+      {poDialogBillId && matchedPO && (
+        <PODetailsDialog
+          open={!!poDialogBillId}
+          onOpenChange={(open) => { if (!open) setPoDialogBillId(null); }}
+          purchaseOrder={matchedPO}
+          projectId={projectId || null}
+          vendorId={poDialogVendorId || null}
+          currentBillAmount={(() => {
+            const bill = bills.find(b => b.id === poDialogBillId);
+            const ext = bill?.extracted_data;
+            const total = ext?.total_amount || ext?.totalAmount;
+            return total ? (typeof total === 'string' ? parseFloat(total) : total) : 
+              (bill?.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+          })()}
+          currentBillReference={(() => {
+            const bill = bills.find(b => b.id === poDialogBillId);
+            return bill?.reference_number || bill?.extracted_data?.reference_number || bill?.extracted_data?.referenceNumber || undefined;
+          })()}
+          pendingBillLines={(() => {
+            const bill = bills.find(b => b.id === poDialogBillId);
+            return (bill?.lines || []).map(l => ({
+              cost_code_id: l.cost_code_id,
+              amount: l.amount || 0,
+            }));
+          })()}
         />
       )}
     </div>

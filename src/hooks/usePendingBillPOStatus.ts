@@ -14,12 +14,17 @@ interface PendingBillForStatus {
   lines?: PendingBillLine[];
 }
 
+export interface POStatusResult {
+  status: POStatus;
+  poIds: string[];
+}
+
 /**
  * Hook that determines PO status for pending/extracted bills by checking:
  * 1. Explicit purchase_order_id on pending_bill_lines (set via Edit dialog)
  * 2. Auto-match against project_purchase_orders using vendor + project + cost_code
  *
- * Returns a Map of bill_id -> POStatus
+ * Returns a Map of bill_id -> POStatusResult (status + matched PO IDs)
  */
 export function usePendingBillPOStatus(
   bills: PendingBillForStatus[],
@@ -35,7 +40,7 @@ export function usePendingBillPOStatus(
     queryKey: ['pending-bill-po-status', projectId, vendorIds.sort().join(','), costCodeIds.sort().join(',')],
     queryFn: async () => {
       if (!projectId || !vendorIds.length || !costCodeIds.length) {
-        return new Map<string, POStatus>();
+        return new Map<string, POStatusResult>();
       }
 
       // Fetch POs matching vendor + project + cost_code
@@ -48,57 +53,70 @@ export function usePendingBillPOStatus(
 
       if (error) throw error;
 
-      // Build a Set of "vendor_id|cost_code_id" keys that have a PO
-      const poKeys = new Set(
-        (pos || []).map(po => `${po.company_id}|${po.cost_code_id}`)
-      );
+      // Build a map of "vendor_id|cost_code_id" -> PO IDs
+      const poKeyMap = new Map<string, string[]>();
+      (pos || []).forEach(po => {
+        const key = `${po.company_id}|${po.cost_code_id}`;
+        const existing = poKeyMap.get(key) || [];
+        existing.push(po.id);
+        poKeyMap.set(key, existing);
+      });
 
       // Now determine status for each bill
-      const resultMap = new Map<string, POStatus>();
+      const resultMap = new Map<string, POStatusResult>();
 
       bills.forEach(bill => {
         const lines = bill.lines || [];
         if (lines.length === 0) {
-          resultMap.set(bill.id, 'no_po');
+          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
           return;
         }
 
         // Check explicit links first
+        const explicitPoIds = [...new Set(lines.map(l => l.purchase_order_id).filter(Boolean))] as string[];
         const hasExplicitAll = lines.every(l => l.purchase_order_id);
         const hasExplicitAny = lines.some(l => l.purchase_order_id);
 
         if (hasExplicitAll) {
-          resultMap.set(bill.id, 'matched');
+          resultMap.set(bill.id, { status: 'matched', poIds: explicitPoIds });
           return;
         }
         if (hasExplicitAny) {
-          resultMap.set(bill.id, 'partial');
+          resultMap.set(bill.id, { status: 'partial', poIds: explicitPoIds });
           return;
         }
 
         // Auto-match: check if cost codes have matching POs for this vendor
         const effectiveVendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         if (!effectiveVendorId) {
-          resultMap.set(bill.id, 'no_po');
+          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
           return;
         }
 
         const linesWithCostCode = lines.filter(l => l.cost_code_id);
         if (linesWithCostCode.length === 0) {
-          resultMap.set(bill.id, 'no_po');
+          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
           return;
         }
 
-        const matchedCount = linesWithCostCode.filter(l =>
-          poKeys.has(`${effectiveVendorId}|${l.cost_code_id}`)
-        ).length;
+        const matchedPoIds = new Set<string>();
+        let matchedCount = 0;
+        linesWithCostCode.forEach(l => {
+          const key = `${effectiveVendorId}|${l.cost_code_id}`;
+          const ids = poKeyMap.get(key);
+          if (ids && ids.length > 0) {
+            matchedCount++;
+            ids.forEach(id => matchedPoIds.add(id));
+          }
+        });
 
+        const poIdArray = [...matchedPoIds];
         if (matchedCount === linesWithCostCode.length) {
-          resultMap.set(bill.id, 'matched');
+          resultMap.set(bill.id, { status: 'matched', poIds: poIdArray });
         } else if (matchedCount > 0) {
-          resultMap.set(bill.id, 'partial');
+          resultMap.set(bill.id, { status: 'partial', poIds: poIdArray });
         } else {
-          resultMap.set(bill.id, 'no_po');
+          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
         }
       });
 
