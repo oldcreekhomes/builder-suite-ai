@@ -1,43 +1,29 @@
 
-## Fix: Exclude Draft Bills from "Billed to Date" in PO Details
+
+## Fix: Exclude Current Bill from "Billed to Date" in PO Details
 
 ### Problem
-The `useVendorPurchaseOrders` hook fetches ALL `bill_lines` to calculate "Billed to Date" without filtering by bill status. Draft bills (those sitting on the Review tab) already have rows in `bill_lines`, so the $720 gets counted in "Billed to Date" AND shown in "This Bill" -- double-counting.
+When a bill moves from Review (draft) to Approved, it's no longer filtered out by the `status !== 'draft'` check. So it appears in **both** "Billed to Date" and "This Bill" -- double-counting again.
 
-The other two POs work fine because they have no draft bills linked to them.
+The Enter with AI tab is unaffected because pending bills are still `draft`.
 
-### Fix (single file: `src/hooks/useVendorPurchaseOrders.ts`)
+### Solution
+Add an optional `excludeBillId` parameter to `useVendorPurchaseOrders`. When provided, bill lines belonging to that bill are excluded from the "Billed to Date" totals. This way the current bill only shows in the "This Bill" column.
 
-**Change 1: Line-level billing query (~line 103-106)**
+### Changes
 
-Add `bills.status` to the select and filter out drafts in JS:
+**1. `src/hooks/useVendorPurchaseOrders.ts`**
+- Add optional `excludeBillId` parameter to the function signature
+- Add it to the query key so caching works correctly
+- Filter out bill lines where `bill_id === excludeBillId` in both the line-level and PO-level billing loops (after the existing draft filter)
 
-```typescript
-// Add status to the join
-.select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
+**2. `src/components/bills/BillPOSummaryDialog.tsx`**
+- Pass `bill?.id` as `excludeBillId` to `useVendorPurchaseOrders`
 
-// Then filter before processing
-const activeBilled = (lineBilled || []).filter((bl: any) =>
-  bl.bills?.status && !['draft'].includes(bl.bills.status)
-);
-```
+**3. `src/components/bills/PODetailsDialogWrapper.tsx`**
+- Pass `poDialogState.bill?.id` as `excludeBillId` to `useVendorPurchaseOrders`
 
-**Change 2: PO-level billing query (~line 134-138)**
+### Why This Is Safe
+- The parameter is optional and defaults to undefined (no filtering), so all other callers (ManualBillEntry, VendorPOInfo, POSelectionDropdown, EditExtractedBillDialog, BatchBillReviewTable) are completely unaffected
+- Only the two components that display "This Bill" alongside "Billed to Date" will pass the exclude parameter
 
-Same pattern -- add `status` to the bills join and filter out drafts:
-
-```typescript
-// Add status to the join
-.select('purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
-
-// Then filter
-const activePoBilled = (poBilled || []).filter((bl: any) =>
-  bl.bills?.status && !['draft'].includes(bl.bills.status)
-);
-```
-
-### Why the Other POs Work
-They simply don't have any draft bills linked to them. Once we exclude drafts, this PO will match too.
-
-### Files Changed
-- `src/hooks/useVendorPurchaseOrders.ts` (add status to both selects, filter out draft bills)
