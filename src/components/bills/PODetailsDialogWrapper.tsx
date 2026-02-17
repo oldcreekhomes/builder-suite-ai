@@ -14,7 +14,8 @@ interface PODetailsDialogWrapperProps {
 export function PODetailsDialogWrapper({ poDialogState, onClose }: PODetailsDialogWrapperProps) {
   const { data: vendorPOs } = useVendorPurchaseOrders(
     poDialogState.bill?.project_id,
-    poDialogState.bill?.vendor_id
+    poDialogState.bill?.vendor_id,
+    poDialogState.bill?.id
   );
 
   const matchedPO = vendorPOs?.find(po => po.id === poDialogState.poMatch?.po_id) || null;

@@ -49,10 +49,11 @@ export interface VendorPurchaseOrder {
  */
 export function useVendorPurchaseOrders(
   projectId: string | null | undefined,
-  vendorId: string | null | undefined
+  vendorId: string | null | undefined,
+  excludeBillId?: string
 ) {
   return useQuery({
-    queryKey: ['vendor-pos', projectId, vendorId],
+    queryKey: ['vendor-pos', projectId, vendorId, excludeBillId],
     queryFn: async (): Promise<VendorPurchaseOrder[]> => {
       if (!projectId || !vendorId) return [];
 
@@ -109,7 +110,7 @@ export function useVendorPurchaseOrders(
           bl.bills?.status && bl.bills.status !== 'draft'
         );
 
-        activeBilled.forEach((bl: any) => {
+        activeBilled.filter((bl: any) => bl.bill_id !== excludeBillId).forEach((bl: any) => {
           if (bl.purchase_order_line_id) {
             const current = billedByLineId.get(bl.purchase_order_line_id) || 0;
             billedByLineId.set(bl.purchase_order_line_id, current + (bl.amount || 0));
@@ -176,7 +177,7 @@ export function useVendorPurchaseOrders(
       // Distribute PO-level billing to line items by cost_code + memo match, or keep as unallocated
       const billedByPoIdOnly = new Map<string, number>();
       const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
-      activePoBilled.forEach((bl: any) => {
+      activePoBilled.filter((bl: any) => bl.bill_id !== excludeBillId).forEach((bl: any) => {
         if (!bl.purchase_order_id) return;
 
         const invoice: BilledInvoice = {
