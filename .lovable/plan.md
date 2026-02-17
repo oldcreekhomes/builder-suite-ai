@@ -1,33 +1,29 @@
 
 
-## Remove All `text-xs` Overrides from BatchBillReviewTable (Enter with AI)
+## Fix Table Styling to Match shadcn/ui Default Exactly
 
 ### Problem
-The "Enter with AI" tab (`BatchBillReviewTable.tsx`) has `text-xs` (12px) classes on the content inside nearly every `TableCell` -- on `<span>`, `<Badge>`, and other elements. The other tabs (Rejected, Approved, Paid) do not have these overrides, so they inherit the default `text-sm` (14px) from the shadcn/ui `<Table>` component. This is why the font sizes look different between tabs.
+Two deviations from the shadcn/ui default table remain:
 
-### Fix
-Remove `text-xs` from all cell content elements inside `BatchBillReviewTable.tsx` so it inherits the same default `text-sm` as every other table. This is approximately 15-20 instances across the file.
+1. **TableHead component** (`src/components/ui/table.tsx`): Uses `text-foreground` (dark/black headers) instead of the shadcn default `text-muted-foreground` (muted gray headers). This is why the headers look bold compared to the reference screenshot.
 
-### Specific removals (all in `BatchBillReviewTable.tsx`)
+2. **`font-medium` on cell data**: The shadcn default table has NO `font-medium` on any body cell -- only headers use it. But our tables add `font-medium` to amount values:
+   - `BatchBillReviewTable.tsx` line 785: Amount span has `font-medium`
+   - `BatchBillReviewTable.tsx` line 700: Unmatched vendor name has `font-medium`
+   - `PayBillsTable.tsx` line 986: Amount TableCell has `className="font-medium"`
 
-**Vendor column:**
-- Line 700: `text-xs text-destructive font-medium` -> `text-destructive font-medium`
-- Line 704: `h-5 px-1.5 text-xs font-normal ...` -> `h-5 px-1.5 font-normal ...`
-- Line 718: `h-5 px-1.5 text-xs font-normal ...` -> `h-5 px-1.5 font-normal ...`
-- Line 729: `text-xs block truncate` -> `block truncate`
+### Changes
 
-**Cost Code column:**
-- Line 742: `text-xs h-5` -> `h-5` (Badge)
-- Line 747: `text-xs block truncate cursor-default` -> `block truncate cursor-default`
+#### 1. `src/components/ui/table.tsx` -- Fix TableHead globally
+- Change `text-foreground` to `text-muted-foreground` in the TableHead component (line 86)
+- This single change fixes headers across the entire application to match shadcn default
 
-**Amount column:**
-- Line 785: `text-xs font-medium` -> `font-medium`
-- Line 787: `text-xs h-5` -> `h-5` (Badge)
+#### 2. `src/components/bills/BatchBillReviewTable.tsx` -- Remove font-medium from cells
+- Line 785: Change `font-medium` to nothing on amount span (keep just the tag)
+- Line 700: Remove `font-medium` from unmatched vendor name span (keep `text-destructive truncate max-w-20`)
 
-**Reference column:**
-- Line 793: `text-xs block truncate` -> `block truncate`
-
-**Note:** `text-xs` inside TooltipContent (lines 755, 760, 823) and the tiny delete button (line 869) will be left as-is -- those are tooltip/decorative elements, not table cell content.
+#### 3. `src/components/bills/PayBillsTable.tsx` -- Remove font-medium from Amount cell
+- Line 986: Remove `font-medium` from the Amount TableCell className
 
 ### Result
-All bill tabs will render cell text at the same default `text-sm` size, producing identical font rendering across Enter with AI, Rejected, Approved, Paid, and Review.
+Headers will be muted gray (matching the shadcn reference screenshot exactly), and all body cell text will be regular weight -- no bold anywhere in cell data, just like the default shadcn/ui table.
