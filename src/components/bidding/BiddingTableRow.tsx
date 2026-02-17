@@ -92,6 +92,7 @@ export function BiddingTableRow({
   removeUpload
 }: BiddingTableRowProps) {
   const [showSendModal, setShowSendModal] = useState(false);
+  const [filteredCompanyIds, setFilteredCompanyIds] = useState<string[]>([]);
   const [showSingleCompanyModal, setShowSingleCompanyModal] = useState(false);
   const [showTestEmailModal, setShowTestEmailModal] = useState(false);
   const [showAddCompaniesModal, setShowAddCompaniesModal] = useState(false);
@@ -136,7 +137,7 @@ export function BiddingTableRow({
         onUpdateReminderDate={onUpdateReminderDate}
         onUpdateSpecifications={onUpdateSpecifications}
         onDelete={onDelete}
-        onSendClick={() => setShowSendModal(true)}
+        onSendClick={() => setShowSendModal(true)}  // Main table row send - no filter
         onTestEmailClick={() => setShowTestEmailModal(true)}
         onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
         onFileUpload={onFileUpload}
@@ -149,6 +150,7 @@ export function BiddingTableRow({
         open={showSendModal}
         onOpenChange={setShowSendModal}
         bidPackage={item}
+        filteredCompanyIds={filteredCompanyIds}
       />
       
       <SendSingleCompanyEmailModal
@@ -179,7 +181,10 @@ export function BiddingTableRow({
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
         onLinkProjectFiles={onLinkProjectFiles}
-        onSendClick={() => setShowSendModal(true)}
+        onSendClick={(ids: string[]) => {
+          setFilteredCompanyIds(ids);
+          setShowSendModal(true);
+        }}
         onTestEmailClick={() => setShowTestEmailModal(true)}
         onCloseWithPO={handleCloseWithPO}
         onAddCompaniesClick={() => setShowAddCompaniesModal(true)}
