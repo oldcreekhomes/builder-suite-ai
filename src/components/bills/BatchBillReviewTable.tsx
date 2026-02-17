@@ -697,7 +697,7 @@ export function BatchBillReviewTable({
                   <TableCell className="w-36">
                     {!vendorId && vendorName ? (
                       <div className="flex items-center gap-1">
-                        <span className="text-destructive font-medium truncate max-w-20">{vendorName}</span>
+                        <span className="text-destructive truncate max-w-20">{vendorName}</span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -782,7 +782,7 @@ export function BatchBillReviewTable({
                   {/* Amount */}
                   <TableCell className="w-24">
                     {totalAmount > 0 ? (
-                      <span className="font-medium">{formatCurrency(totalAmount)}</span>
+                      <span>{formatCurrency(totalAmount)}</span>
                     ) : (
                       <Badge variant="destructive" className="h-5">Missing</Badge>
                     )}
