@@ -1,54 +1,41 @@
 
 
-## Replace Distance Filter Toggle with Radius Slider
+## Bid Package Details Modal Cleanup
 
-### What Changes
-Replace the current toggle + dropdown ("Filter by Distance: ON | Within [50] miles") with a clean radius slider that defaults to 25 miles. The slider will range from 0 to 50 miles in increments of 5 miles (close enough to 10-mile feel while keeping it smooth). The "Access MarketPlace" box stays as-is.
+Three changes to the bid package detail view:
 
-### How It Works
-- Slider defaults to **25 miles** when the modal opens
-- Range: **0 to 50 miles** in **5-mile increments**
-- Always active (no toggle needed) -- the slider IS the filter
-- Shows count: "Showing X of Y suppliers within 25 miles"
-- Distance calculation uses the existing `calculate-distances` edge function (already uses Google Maps API -- no new API setup needed)
-- Companies without addresses are excluded (existing behavior)
+### 1. Slider: Increase Range and Default
+- **DistanceFilterBar.tsx**: Change `max={50}` to `max={75}`, update "50 mi" label to "75 mi"
+- **BidPackageDetailsModal.tsx**: Change default `distanceRadius` from `25` to `50`
 
-### Google Maps
-**No new setup required.** The existing `calculate-distances` edge function already calls Google Distance Matrix API with a configured `GOOGLE_MAPS_API_KEY` secret. This slider just changes the radius value passed to the existing `useDistanceFilter` hook.
+### 2. Remove "Access MarketPlace" Card
+- **DistanceFilterBar.tsx**: Delete the entire MarketPlace box (lines 71-92), remove `Store` and `HelpCircle` imports, remove the `flex gap-4` wrapper since only one box remains, and remove unused `Tooltip`/`TooltipProvider`/`TooltipContent`/`TooltipTrigger` imports if no longer needed
+
+### 3. Standardize Tables to shadcn Defaults
+
+**Top table (bid package info) -- BidPackageDetailsModal.tsx:**
+- Change the Actions `<th>` from `text-left` to `text-center` (line 222) so the 3-dot button aligns with the centered header
+
+**Bottom table (companies) -- BiddingCompanyRow.tsx:**
+- Replace the separate "Send Email" button, "Delete" button, and "Send PO" button with a single `TableRowActions` 3-dot dropdown containing:
+  - "Send Email" (calls `onSendEmail`)
+  - "Send PO" (opens the ConfirmPODialog)
+  - Separator
+  - "Delete" (destructive, with confirmation)
+- Remove the separate "Status" column entirely -- the "Send PO" action moves into the dropdown
+- Center the Actions cell with `text-center`
+
+**BiddingCompanyList.tsx (header row):**
+- Remove the "Status" column header (line 158)
+- Change "Actions" header to `text-center`
+- Remove `font-bold` from headers (use default `font-medium` per shadcn standard)
+- Remove `py-2` overrides (use default `p-2`)
+- Remove `pl-8` from Company header
+- Remove `w-12` from checkbox cell
 
 ### Files Changed
+1. `src/components/bidding/components/DistanceFilterBar.tsx` -- slider max, remove MarketPlace
+2. `src/components/bidding/BidPackageDetailsModal.tsx` -- default radius, center Actions header
+3. `src/components/bidding/components/BiddingCompanyRow.tsx` -- consolidate actions into 3-dot dropdown
+4. `src/components/bidding/BiddingCompanyList.tsx` -- remove Status column, standardize header
 
-**1. `src/components/bidding/components/DistanceFilterBar.tsx`**
-- Remove the toggle switch and dropdown select
-- Add a `Slider` component (already installed via shadcn) with range 0-50, step 5, default 25
-- Show current radius value and filtered count
-- Keep the "Access MarketPlace" box on the right side
-- Show "Calculating distances..." indicator when computing
-
-**2. `src/components/bidding/BidPackageDetailsModal.tsx`**
-- Change default `distanceRadius` from `50` to `25`
-- Remove `distanceFilterEnabled` state (slider is always active)
-- Pass `enabled: true` always to `useDistanceFilter`
-- Remove the `onEnabledChange` prop from `DistanceFilterBar`
-
-### Technical Details
-
-The `DistanceFilterBar` props simplify:
-```text
-Before:
-  enabled, onEnabledChange, radiusMiles, onRadiusChange, projectAddress, companies, isCalculating
-
-After:
-  radiusMiles, onRadiusChange, projectAddress, filteredCount, totalCount, isCalculating
-```
-
-The slider UI will look like:
-```text
-+------------------------------------------+  +---------------------------+
-| [pin] Distance: 25 miles                 |  | [store] Access MarketPlace |
-| [========|===========] 0 mi ---- 50 mi   |  |  What is MarketPlace? (?) |
-| Showing 3 of 8 suppliers within 25 miles |  |                           |
-+------------------------------------------+  +---------------------------+
-```
-
-No database changes needed. No new edge functions. No new API keys.
