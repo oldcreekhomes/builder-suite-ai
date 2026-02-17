@@ -140,8 +140,8 @@ export function BiddingCompanyList({
   return (
     <>
       {/* Company header row */}
-      <TableRow className="bg-gray-100">
-        <TableCell className="w-12 py-2">
+      <TableRow>
+        <TableCell>
           {!isReadOnly && onSelectAllCompanies && (
             <Checkbox
               checked={allCompaniesSelected}
@@ -150,12 +150,11 @@ export function BiddingCompanyList({
             />
           )}
         </TableCell>
-        <TableCell className="font-bold py-2 text-sm pl-8">Company</TableCell>
-        <TableCell className="font-bold py-2 text-sm">Will Bid</TableCell>
-        <TableCell className="font-bold py-2 text-sm">Price</TableCell>
-        <TableCell className="font-bold py-2 text-sm">Proposals</TableCell>
-        <TableCell className="font-bold py-2 text-sm">Actions</TableCell>
-        <TableCell className="font-bold py-2 text-sm">Status</TableCell>
+        <TableCell className="font-medium text-muted-foreground">Company</TableCell>
+        <TableCell className="font-medium text-muted-foreground">Will Bid</TableCell>
+        <TableCell className="font-medium text-muted-foreground">Price</TableCell>
+        <TableCell className="font-medium text-muted-foreground">Proposals</TableCell>
+        <TableCell className="font-medium text-muted-foreground text-center">Actions</TableCell>
       </TableRow>
       
       {companies.map((biddingCompany) => (

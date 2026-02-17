@@ -98,7 +98,7 @@ export function BidPackageDetailsModal({
   removeUpload
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [distanceRadius, setDistanceRadius] = useState(25);
+  const [distanceRadius, setDistanceRadius] = useState(50);
 
   const handleStatusChange = (value: string) => {
     if (value === 'closed') {
@@ -219,7 +219,7 @@ export function BidPackageDetailsModal({
                   <th className="text-left p-3 text-sm font-medium">Reminder</th>
                   <th className="text-left p-3 text-sm font-medium">Specifications</th>
                   <th className="text-left p-3 text-sm font-medium">Files</th>
-                  <th className="text-left p-3 text-sm font-medium">Actions</th>
+                  <th className="text-center p-3 text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
