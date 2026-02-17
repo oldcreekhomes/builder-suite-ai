@@ -1,59 +1,40 @@
 
 
-## Fix: Smart Memo-Based Matching for PO-Level Billing Distribution
+## Fix: Reallocate INV0012 Bill Line to Correct Cost Code
 
 ### Problem
 
-The cost_code matching we added lumps all billing onto the first PO line when multiple lines share the same cost code. For PO 2025-115E-0006, 14 out of 17 lines share cost code 4370 (Framing Labor), so all $11,206 in billing gets attributed to "Ground floor" (the first 4370 line).
+The $4,206 invoice (INV0012) has two bill lines:
+- **$3,206** "First floor balance" with cost code 4370 (Framing Labor) -- this correctly matches the "First floor" PO line (shown in green)
+- **$1,000** "Deck framing draw" with cost code 4370 (Framing Labor) -- this INCORRECTLY matches "Beauty bands at decks" because that PO line also has cost code 4370 and contains the word "deck"
 
-The bill lines have descriptive memos that should guide the matching:
-- "Second floor framing draw" ($7,000) should match "2nd floor" PO line
-- "First floor balance" ($3,206) should match "First floor" PO line
-- "Deck framing draw" ($1,000) should match "Decks" PO line
+The $1,000 bill line should have cost code **4810: Decks**, not 4370. Once corrected, the three-tier matching logic will:
+1. Find two PO lines with cost code 4810: "Decks" ($2,232) and "Rear deck and roof" ($1,500)
+2. Compare memo "Deck framing draw" against both descriptions
+3. Match to "Decks" (higher keyword overlap) and display it in green
 
 ### Solution
 
-**File: `src/hooks/useVendorPurchaseOrders.ts`**
+**Data fix** -- Update the cost_code_id on the $1,000 bill line from 4370 (Framing Labor) to 4810 (Decks):
 
-Update the PO-level billing distribution logic (lines 140-172) with a three-tier matching strategy:
+| Field | Current Value | New Value |
+|-------|--------------|-----------|
+| Bill line ID | a2c39cb4-76ae-42eb-981e-f4225577ffe4 | (unchanged) |
+| Memo | Deck framing draw | (unchanged) |
+| Amount | $1,000.00 | (unchanged) |
+| cost_code_id | d576bac6 (4370: Framing Labor) | dae802c0 (4810: Decks) |
 
-1. **Unique cost code match**: If exactly ONE PO line has the matching cost_code_id, attribute to it (current behavior, but only when unique)
-2. **Memo-to-description keyword match**: When multiple PO lines share the same cost code, compare the bill line's memo against each PO line's description using keyword overlap to find the best match
-3. **Unallocated fallback**: If no confident match is found, keep as unallocated
-
-### Technical Details
-
-**Add `memo` to the poBilled query** (line 136) so it's available for matching.
-
-**Matching function** - simple keyword overlap scorer:
-- Tokenize bill line memo and PO line description into lowercase words
-- Count matching tokens (with basic normalization: "2nd" matches "second", "deck" matches "decks")
-- Select the PO line with the highest overlap score, requiring at least 1 keyword match
-
-```text
-Example matches:
-  memo "Second floor framing draw" vs description "2nd floor" -> 2 matches ("second/2nd", "floor")
-  memo "Second floor framing draw" vs description "Ground floor" -> 1 match ("floor")
-  -> Best match: "2nd floor" (score 2 vs 1)
-
-  memo "Deck framing draw" vs description "Decks" -> 1 match ("deck/decks")
-  memo "Deck framing draw" vs description "Ground floor" -> 0 matches
-  -> Best match: "Decks"
-```
-
-**Scoring priority**: Among PO lines with the same cost code, pick the one with the highest keyword overlap. If tied or no keywords match, keep as unallocated.
+No code changes are needed -- the matching logic already handles this correctly when the cost code is accurate.
 
 ### Expected Result
 
-- "2nd floor" shows $7,000 billed (green for INV0010)
-- "First floor" shows $3,206 billed
-- "Decks" shows $1,000 billed
-- "Ground floor" shows $0.00 billed
-- Unallocated drops to $0
+After the data fix, the PO Details dialog for PO 2025-115E-0006 will show:
+- **First floor**: $3,206 billed (green, from INV0012)
+- **Decks**: $1,000 billed (green, from INV0012)
+- **Beauty bands at decks**: $0.00 billed
+- **Unallocated**: $0.00
 
-### Files Changed
+### Technical Details
 
-| File | Change |
-|------|--------|
-| `src/hooks/useVendorPurchaseOrders.ts` | Add memo to query; implement three-tier matching (unique cost code, memo keyword overlap, unallocated fallback) |
+One SQL update statement to change the cost_code_id on the affected bill line. This also corrects the job cost reporting so the $1,000 is categorized under Decks rather than Framing Labor.
 
