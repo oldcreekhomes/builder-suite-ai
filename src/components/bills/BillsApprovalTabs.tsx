@@ -22,6 +22,7 @@ import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidati
 import { useBillCounts } from "@/hooks/useBillCounts";
 import { useLots } from "@/hooks/useLots";
 import { supabase } from "@/integrations/supabase/client";
+import { getBestPOLineMatch, type POLineCandidate } from "@/utils/poLineMatching";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -188,6 +189,132 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           }
         }
       }
+
+      // --- PO Auto-Matching on initial load ---
+      // Collect unique vendor IDs from extracted data
+      const vendorMap = new Map<string, BatchBill[]>();
+      for (const bill of billsWithLines) {
+        const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        if (vendorId) {
+          const arr = vendorMap.get(vendorId) || [];
+          arr.push(bill);
+          vendorMap.set(vendorId, arr);
+        }
+      }
+
+      // For each vendor, fetch POs and run matching on unmatched lines
+      if (vendorMap.size > 0 && effectiveProjectId) {
+        const vendorIds = [...vendorMap.keys()];
+
+        // Fetch approved POs for all vendors at once
+        const { data: allPOs } = await supabase
+          .from('project_purchase_orders')
+          .select('id, po_number, total_amount, cost_code_id, company_id')
+          .eq('project_id', effectiveProjectId)
+          .in('company_id', vendorIds)
+          .eq('status', 'approved');
+
+        if (allPOs && allPOs.length > 0) {
+          const poIds = allPOs.map(po => po.id);
+
+          // Fetch PO line items and cost codes in parallel
+          const [poLinesResult, billedResult] = await Promise.all([
+            supabase
+              .from('purchase_order_lines')
+              .select('id, purchase_order_id, description, cost_code_id, amount')
+              .in('purchase_order_id', poIds),
+            supabase
+              .from('bill_lines')
+              .select('purchase_order_line_id, amount')
+              .in('purchase_order_line_id', poIds.length > 0 ? poIds : ['__none__'])
+              .not('purchase_order_line_id', 'is', null),
+          ]);
+
+          const poLines = poLinesResult.data || [];
+
+          // Fetch cost code names for PO lines
+          const ccIds = [...new Set(poLines.map(l => l.cost_code_id).filter(Boolean))] as string[];
+          let ccMap = new Map<string, string>();
+          if (ccIds.length > 0) {
+            const { data: ccs } = await supabase
+              .from('cost_codes')
+              .select('id, name')
+              .in('id', ccIds);
+            if (ccs) ccMap = new Map(ccs.map(c => [c.id, c.name]));
+          }
+
+          // Build billed-per-line map from actual bill_lines
+          const billedByLineId = new Map<string, number>();
+          (billedResult.data || []).forEach((bl: any) => {
+            if (bl.purchase_order_line_id) {
+              billedByLineId.set(bl.purchase_order_line_id, (billedByLineId.get(bl.purchase_order_line_id) || 0) + (bl.amount || 0));
+            }
+          });
+
+          // Group PO lines by vendor (via PO's company_id)
+          const poByVendor = new Map<string, typeof allPOs>();
+          allPOs.forEach(po => {
+            const arr = poByVendor.get(po.company_id) || [];
+            arr.push(po);
+            poByVendor.set(po.company_id, arr);
+          });
+
+          // Run matching for each bill's unmatched lines
+          const dbUpdates: { id: string; purchase_order_id: string }[] = [];
+
+          for (const [vendorId, bills] of vendorMap) {
+            const vendorPOs = poByVendor.get(vendorId) || [];
+            if (vendorPOs.length === 0) continue;
+
+            const vendorPOIds = new Set(vendorPOs.map(p => p.id));
+            const vendorPOLines: POLineCandidate[] = poLines
+              .filter(l => vendorPOIds.has(l.purchase_order_id))
+              .map(l => ({
+                id: l.id,
+                purchase_order_id: l.purchase_order_id,
+                description: l.description,
+                cost_code_id: l.cost_code_id,
+                cost_code_name: l.cost_code_id ? ccMap.get(l.cost_code_id) || null : null,
+                amount: l.amount || 0,
+                remaining: (l.amount || 0) - (billedByLineId.get(l.id) || 0),
+              }));
+
+            if (vendorPOLines.length === 0) continue;
+
+            for (const bill of bills) {
+              for (const line of bill.lines || []) {
+                if (line.purchase_order_id) continue; // already matched
+
+                const match = getBestPOLineMatch(
+                  line.memo || line.description || '',
+                  line.amount || 0,
+                  line.cost_code_id || undefined,
+                  vendorPOLines,
+                  50
+                );
+
+                if (match) {
+                  line.purchase_order_id = match.poId;
+                  dbUpdates.push({ id: line.id, purchase_order_id: match.poId });
+                }
+              }
+            }
+          }
+
+          // Batch-persist matches to DB
+          if (dbUpdates.length > 0) {
+            await Promise.all(
+              dbUpdates.map(u =>
+                supabase
+                  .from('pending_bill_lines')
+                  .update({ purchase_order_id: u.purchase_order_id })
+                  .eq('id', u.id)
+              )
+            );
+          }
+        }
+      }
+      // --- End PO Auto-Matching ---
 
       // Only update state if not cancelled
       if (!cancelled) {
