@@ -164,8 +164,8 @@ export function PODetailsDialog({
               <Table containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
-                     <TableHead className="text-xs">Description</TableHead>
                      <TableHead className="text-xs">Cost Code</TableHead>
+                     <TableHead className="text-xs">Description</TableHead>
                      <TableHead className="text-xs text-right">PO Amount</TableHead>
                      <TableHead className="text-xs text-right">Billed</TableHead>
                      {hasPending && <TableHead className="text-xs text-right">This Bill</TableHead>}
@@ -187,10 +187,10 @@ export function PODetailsDialog({
                       return (
                         <TableRow key={line.id}>
                           <TableCell className="text-xs">
-                           {line.description || '—'}
-                         </TableCell>
-                          <TableCell className="text-xs">
                             {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
+                         </TableCell>
+                         <TableCell className="text-xs">
+                           {line.description || '—'}
                          </TableCell>
                          <TableCell className="text-xs text-right">
                            {formatCurrency(line.amount)}
