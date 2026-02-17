@@ -2,40 +2,40 @@
 
 ## Bid Package Details Modal Cleanup
 
-Three changes to the bid package detail view:
+### 1. Remove Duplicate Trash Can in Proposals Column
+The `ProposalCell` component (lines 82-93) renders a standalone red trash can icon (via `DeleteButton`) to the right of proposal files for "Delete All Proposals." This is redundant since each file already has its own delete "x" badge, and "Remove Company" (which removes all proposals with the company) is already in the 3-dot Actions menu. Remove the `DeleteButton` from `ProposalCell.tsx`.
 
-### 1. Slider: Increase Range and Default
-- **DistanceFilterBar.tsx**: Change `max={50}` to `max={75}`, update "50 mi" label to "75 mi"
-- **BidPackageDetailsModal.tsx**: Change default `distanceRadius` from `25` to `50`
+**File: `src/components/bidding/components/ProposalCell.tsx`**
+- Remove the `DeleteButton` block (lines 82-93) that renders the standalone trash icon
+- Remove the `DeleteButton` import
+- Simplify the wrapper div since we no longer need `justify-between`
 
-### 2. Remove "Access MarketPlace" Card
-- **DistanceFilterBar.tsx**: Delete the entire MarketPlace box (lines 71-92), remove `Store` and `HelpCircle` imports, remove the `flex gap-4` wrapper since only one box remains, and remove unused `Tooltip`/`TooltipProvider`/`TooltipContent`/`TooltipTrigger` imports if no longer needed
+### 2. Move Distance Slider Into the Top Table Row
+Instead of a separate card between the two tables, add a "Distance" column to the top bid package table. The slider will be compact inside a table cell, right after the "Files" column.
 
-### 3. Standardize Tables to shadcn Defaults
+**File: `src/components/bidding/BidPackageDetailsModal.tsx`**
+- Add a `<th>` for "Distance" between "Files" and "Actions" in the header row (line 221)
+- Add a `<td>` containing a compact inline slider with the label "X mi from job site" and the "Showing X of Y" count
+- Remove the standalone `<DistanceFilterBar>` section (lines 298-306)
+- Remove the `DistanceFilterBar` import
 
-**Top table (bid package info) -- BidPackageDetailsModal.tsx:**
-- Change the Actions `<th>` from `text-left` to `text-center` (line 222) so the 3-dot button aligns with the centered header
+**File: `src/components/bidding/components/DistanceFilterBar.tsx`**
+- This file can be deleted since the slider will be inline in the table cell. Alternatively, we can create a compact inline version. Given simplicity, we will inline the slider directly in the modal.
 
-**Bottom table (companies) -- BiddingCompanyRow.tsx:**
-- Replace the separate "Send Email" button, "Delete" button, and "Send PO" button with a single `TableRowActions` 3-dot dropdown containing:
-  - "Send Email" (calls `onSendEmail`)
-  - "Send PO" (opens the ConfirmPODialog)
-  - Separator
-  - "Delete" (destructive, with confirmation)
-- Remove the separate "Status" column entirely -- the "Send PO" action moves into the dropdown
-- Center the Actions cell with `text-center`
+### 3. Update Label to Say "from job site"
+The slider label will read: **"50 mi from job site"** instead of just "Distance: 50 miles." The count text will say: "Showing 3 of 8 within 50 mi."
 
-**BiddingCompanyList.tsx (header row):**
-- Remove the "Status" column header (line 158)
-- Change "Actions" header to `text-center`
-- Remove `font-bold` from headers (use default `font-medium` per shadcn standard)
-- Remove `py-2` overrides (use default `p-2`)
-- Remove `pl-8` from Company header
-- Remove `w-12` from checkbox cell
+### 4. Standardize Both Tables to Match shadcn/ui Defaults
+The top table currently uses raw HTML `<table>`, `<thead>`, `<tr>`, `<th>`, `<td>` with custom `p-3` styling and dark black headers. The bottom table uses shadcn `TableRow`/`TableCell` with muted-foreground headers. They need to match.
 
-### Files Changed
-1. `src/components/bidding/components/DistanceFilterBar.tsx` -- slider max, remove MarketPlace
-2. `src/components/bidding/BidPackageDetailsModal.tsx` -- default radius, center Actions header
-3. `src/components/bidding/components/BiddingCompanyRow.tsx` -- consolidate actions into 3-dot dropdown
-4. `src/components/bidding/BiddingCompanyList.tsx` -- remove Status column, standardize header
+**File: `src/components/bidding/BidPackageDetailsModal.tsx`**
+- Convert the top table from raw HTML (`<table>`, `<thead>`, `<tr>`, `<th>`, `<td>`) to shadcn components (`Table`, `TableHeader`, `TableHead`, `TableRow`, `TableBody`, `TableCell`)
+- Remove `p-3 text-sm font-medium` from `<th>` elements -- shadcn `TableHead` already provides the correct muted-foreground styling with `h-10`, `px-2`, `font-medium`, `text-muted-foreground`
+- Remove `p-3` from `<td>` elements -- shadcn `TableCell` provides default `p-2`
+- Both tables will now use the same shadcn component set with identical header styling (muted gray, not black)
+
+### Summary of Files Changed
+1. **`src/components/bidding/components/ProposalCell.tsx`** -- Remove duplicate trash can
+2. **`src/components/bidding/BidPackageDetailsModal.tsx`** -- Move slider into top table as "Distance" column, convert top table to shadcn components, remove standalone DistanceFilterBar
+3. **`src/components/bidding/components/DistanceFilterBar.tsx`** -- Delete file (no longer needed)
 
