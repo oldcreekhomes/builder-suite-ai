@@ -1,41 +1,39 @@
 
 
-## Bid Package Details Modal Cleanup
+## Fix: Send Bid Package Must Respect Distance Filter
 
-### 1. Remove Duplicate Trash Can in Proposals Column
-The `ProposalCell` component (lines 82-93) renders a standalone red trash can icon (via `DeleteButton`) to the right of proposal files for "Delete All Proposals." This is redundant since each file already has its own delete "x" badge, and "Remove Company" (which removes all proposals with the company) is already in the 3-dot Actions menu. Remove the `DeleteButton` from `ProposalCell.tsx`.
+### The Problem
+When you click "Send Bid Package," the system runs a fresh database query that pulls ALL companies linked to the bid package (line 61 of SendBidPackageModal.tsx: `WHERE bid_package_id = [id]`). It completely ignores the distance slider. So if you have 8 companies on the bid package and filter down to 3 using the slider, all 8 still receive the email.
 
-**File: `src/components/bidding/components/ProposalCell.tsx`**
-- Remove the `DeleteButton` block (lines 82-93) that renders the standalone trash icon
-- Remove the `DeleteButton` import
-- Simplify the wrapper div since we no longer need `justify-between`
+### The Fix
+Pass the filtered company IDs from the distance filter into the SendBidPackageModal so it only sends to companies visible on screen.
 
-### 2. Move Distance Slider Into the Top Table Row
-Instead of a separate card between the two tables, add a "Distance" column to the top bid package table. The slider will be compact inside a table cell, right after the "Files" column.
+### Files Changed
 
-**File: `src/components/bidding/BidPackageDetailsModal.tsx`**
-- Add a `<th>` for "Distance" between "Files" and "Actions" in the header row (line 221)
-- Add a `<td>` containing a compact inline slider with the label "X mi from job site" and the "Showing X of Y" count
-- Remove the standalone `<DistanceFilterBar>` section (lines 298-306)
-- Remove the `DistanceFilterBar` import
+**1. `src/components/bidding/BidPackageDetailsModal.tsx`**
+- When the "Send" action is triggered, capture the current `distanceFilter.filteredCompanies` and extract their `company_id` values
+- Pass these IDs up via a new callback (or store in state) so BiddingTableRow can forward them to SendBidPackageModal
 
-**File: `src/components/bidding/components/DistanceFilterBar.tsx`**
-- This file can be deleted since the slider will be inline in the table cell. Alternatively, we can create a compact inline version. Given simplicity, we will inline the slider directly in the modal.
+**2. `src/components/bidding/BiddingTableRow.tsx`**
+- Accept `filteredCompanyIds` from BidPackageDetailsModal
+- Forward to SendBidPackageModal as a prop
 
-### 3. Update Label to Say "from job site"
-The slider label will read: **"50 mi from job site"** instead of just "Distance: 50 miles." The count text will say: "Showing 3 of 8 within 50 mi."
+**3. `src/components/bidding/SendBidPackageModal.tsx`**
+- Accept an optional `filteredCompanyIds?: string[]` prop
+- After fetching all companies from the database (lines 41-68), filter the results:
+  ```
+  const filtered = data.filter(bid => filteredCompanyIds.includes(bid.company_id))
+  ```
+- Only display and email the filtered subset
+- The recipient count and "Send to X Recipients" button will reflect only the visible companies
 
-### 4. Standardize Both Tables to Match shadcn/ui Defaults
-The top table currently uses raw HTML `<table>`, `<thead>`, `<tr>`, `<th>`, `<td>` with custom `p-3` styling and dark black headers. The bottom table uses shadcn `TableRow`/`TableCell` with muted-foreground headers. They need to match.
+### How It Works After the Fix
+1. You open the bid package and set the distance to 40 miles -- 3 companies show
+2. You click "Send Bid Package"
+3. The modal receives those 3 company IDs
+4. Only those 3 companies (and their reps) appear as recipients
+5. Only those 3 get the email
 
-**File: `src/components/bidding/BidPackageDetailsModal.tsx`**
-- Convert the top table from raw HTML (`<table>`, `<thead>`, `<tr>`, `<th>`, `<td>`) to shadcn components (`Table`, `TableHeader`, `TableHead`, `TableRow`, `TableBody`, `TableCell`)
-- Remove `p-3 text-sm font-medium` from `<th>` elements -- shadcn `TableHead` already provides the correct muted-foreground styling with `h-10`, `px-2`, `font-medium`, `text-muted-foreground`
-- Remove `p-3` from `<td>` elements -- shadcn `TableCell` provides default `p-2`
-- Both tables will now use the same shadcn component set with identical header styling (muted gray, not black)
-
-### Summary of Files Changed
-1. **`src/components/bidding/components/ProposalCell.tsx`** -- Remove duplicate trash can
-2. **`src/components/bidding/BidPackageDetailsModal.tsx`** -- Move slider into top table as "Distance" column, convert top table to shadcn components, remove standalone DistanceFilterBar
-3. **`src/components/bidding/components/DistanceFilterBar.tsx`** -- Delete file (no longer needed)
-
+### Additional Safety
+- If no `filteredCompanyIds` prop is provided (e.g., sending from the main table row), it falls back to sending to all companies (current behavior)
+- The modal will clearly show which companies will receive the email so the user can verify before clicking Send
