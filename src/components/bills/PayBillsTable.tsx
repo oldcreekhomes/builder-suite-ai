@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
-import { DeleteButton } from "@/components/ui/delete-button";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, StickyNote, Edit } from "lucide-react";
+import { Check, ArrowUpDown, ArrowUp, ArrowDown, X, StickyNote } from "lucide-react";
 import { EditBillDialog } from "./EditBillDialog";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -825,15 +825,15 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-10">
+            <TableRow>
+              <TableHead className="w-10">
                 <MinimalCheckbox
                   checked={isHeaderChecked}
                   indeterminate={isHeaderIndeterminate}
                   onChange={handleHeaderCheckboxChange}
                 />
               </TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+              <TableHead>
                 <button
                   type="button"
                   onClick={() => handleSort('vendor')}
@@ -851,11 +851,11 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   )}
                 </button>
               </TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Cost Code</TableHead>
+              <TableHead>Cost Code</TableHead>
               {showProjectColumn && (
-                <TableHead className="h-8 px-2 py-1 text-xs font-medium">Project</TableHead>
+                <TableHead>Project</TableHead>
               )}
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+              <TableHead>
                 <button
                   type="button"
                   onClick={() => handleSort('bill_date')}
@@ -873,7 +873,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   )}
                 </button>
               </TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">
+              <TableHead>
                 <button
                   type="button"
                   onClick={() => handleSort('due_date')}
@@ -891,14 +891,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   )}
                 </button>
               </TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium">Amount</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-40">Reference</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-24">Address</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead className="w-40">Reference</TableHead>
+              <TableHead className="w-24">Address</TableHead>
               
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-16">Files</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-16">Notes</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium text-center w-20">PO Status</TableHead>
-              <TableHead className="h-8 px-2 py-1 text-xs font-medium w-28">Actions</TableHead>
+              <TableHead className="w-16">Files</TableHead>
+              <TableHead className="text-center w-16">Notes</TableHead>
+              <TableHead className="text-center w-20">PO Status</TableHead>
+              <TableHead className="text-center w-16">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1103,44 +1103,28 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      {showEditButton && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-muted"
-                          onClick={() => setEditingBillId(bill.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        onClick={() => handlePayBill(bill)}
-                        disabled={payBill.isPending}
-                        className="h-7 text-xs px-3"
-                      >
-                        {payBill.isPending ? "Processing..." : "Pay Bill"}
-                      </Button>
-                      {!isDateLocked(bill.bill_date) ? (
-                        <DeleteButton
-                          onDelete={() => deleteBill.mutate(bill.id)}
-                          title="Delete Bill"
-                          description={`Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`}
-                          size="icon"
-                          variant="ghost"
-                          isLoading={deleteBill.isPending}
-                        />
-                      ) : (
-                        <div
-                          className="h-8 w-8 inline-flex items-center justify-center rounded-md"
-                          aria-label="Bill is in a closed accounting period"
-                        >
-                          <span className="text-lg">🔒</span>
-                        </div>
-                      )}
-                    </div>
+                  <TableCell className="text-center w-16">
+                    <TableRowActions actions={[
+                      {
+                        label: "Edit",
+                        onClick: () => setEditingBillId(bill.id),
+                      },
+                      {
+                        label: "Pay Bill",
+                        onClick: () => handlePayBill(bill),
+                        disabled: payBill.isPending,
+                      },
+                      {
+                        label: "Delete Bill",
+                        onClick: () => deleteBill.mutate(bill.id),
+                        variant: "destructive",
+                        requiresConfirmation: true,
+                        confirmTitle: "Delete Bill",
+                        confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`,
+                        isLoading: deleteBill.isPending,
+                        disabled: isDateLocked(bill.bill_date),
+                      },
+                    ]} />
                   </TableCell>
                 </TableRow>
               ))
