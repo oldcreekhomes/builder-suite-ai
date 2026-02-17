@@ -1,21 +1,20 @@
 
 
-## Unify PO Status Dialog Across All Bill Tabs
+## Fix: PO Matching Shows Wrong PO When Multiple POs Share Same Cost Code
 
-### Problem
-The Paid/Approved tabs (`PayBillsTable`) use `PODetailsDialogWrapper` which opens a single `PODetailsDialog` with only the first PO match. This shows incorrect/incomplete information (e.g., $720 from a single PO line instead of the full $7,000 bill context). Meanwhile, the Review tab (`BillsApprovalTable`) uses the `BillPOSummaryDialog` which correctly shows all matched POs with the "This Bill" column.
+### Root Cause
+The `useBillPOMatching` hook builds a lookup Map keyed by `project_id|company_id|cost_code_id`. When two POs exist for the same vendor, project, and cost code (e.g., PO 2025-115E-0006 for $37,593 and PO 2026-115E-0056 for $720), the second one overwrites the first. The bill then incorrectly matches to the $720 PO instead of the $37,593 one.
 
 ### Solution
-Replace `PODetailsDialogWrapper` usage in `PayBillsTable` with `BillPOSummaryDialog` -- the same component used on the Review tab.
+Change the `poLookup` Map from storing a single PO per composite key to storing an **array of POs**. When auto-matching a bill line, add **all** POs that share the composite key as matches (deduplicating by `po_id`).
 
-### Technical Changes
+### Technical Details
 
-**File: `src/components/bills/PayBillsTable.tsx`**
+**File: `src/hooks/useBillPOMatching.ts`** (lines ~178-248)
 
-1. Replace import of `PODetailsDialogWrapper` with `BillPOSummaryDialog`
-2. Change `poDialogState` shape from `{ open, poMatch, bill }` (single match) to `{ open, matches, bill }` (all matches) -- matching the pattern in `BillsApprovalTable`
-3. Update the PO Status badge click handler to pass all matches (`matchResult?.matches`) instead of just `firstMatch`
-4. Replace the `<PODetailsDialogWrapper>` component at the bottom with `<BillPOSummaryDialog>`, passing the same props as the Review tab does
+1. Change `poLookup` value type from a single object to an **array** of objects
+2. In the `pos.forEach` loop, push to the array instead of overwriting
+3. In the `allLines.forEach` matching logic, when a line has no explicit `purchase_order_id`, look up the array of POs for the composite key and add **all** of them as matches (skipping duplicates)
 
-This ensures every tab shows the same PO Status Summary dialog with the "This Bill" column and correct amounts.
+This ensures that when a bill line for "4370: Framing Labor" is auto-matched, both PO 2025-115E-0006 ($37,593) and PO 2026-115E-0056 ($720) appear in the summary dialog, giving the user full visibility into all relevant POs.
 
