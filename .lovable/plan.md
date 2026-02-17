@@ -1,35 +1,29 @@
 
-## Fix PO Status and PO Details Dialog on Review Tab
 
-### Problem 1: "Over" Status Is Incorrect
-The `useBillPOMatching` hook calculates cumulative billing by summing ALL posted/paid bills for the same project + vendor + cost code combination. This means unrelated historical bills for the same cost code inflate the "Billed to Date" figure, pushing the remaining below zero and triggering the "Over" status -- even when the bill's own PO has plenty of budget remaining.
+## Fix Missing PO on Approval + Replace Actions Dropdown with Three Dots
 
-The root cause is in `useBillPOMatching.ts` (lines 176-186): it aggregates billing by `project_id|vendor_id|cost_code_id` without filtering to bills that are actually linked to the specific PO. Per the project memory, "Billed to Date totals strictly include transactions explicitly linked to the PO or PO line (via purchase_order_id or purchase_order_line_id)."
+### Problem 1: Missing "Decks" PO (and all POs lost on approval)
 
-### Problem 2: Clicking PO Status Only Shows One PO
-In `BillsApprovalTable.tsx` line 927, only `matchResult?.matches?.[0]` (the first match) is passed to the dialog. Since the bill has 3 cost codes with 3 different POs, the user should see all 3, not just siding.
+The `approve_pending_bill` database function copies lines from `pending_bill_lines` to `bill_lines` but **does not include `purchase_order_id`** or `purchase_order_line_id` in the INSERT statement. This means all PO assignments made during the "Enter with AI" stage are silently dropped when a bill is approved. The matching on the Review tab then falls back to composite key lookup (project + vendor + cost code), which only finds POs where those three fields happen to match -- missing any PO that was explicitly assigned to a different cost code.
 
-The current `PODetailsDialog` only supports displaying a single PO. We need a new summary dialog that lists all matched POs for a bill.
+**Fix**: Add a new migration that updates the `approve_pending_bill` function to include `purchase_order_id` and `purchase_order_line_id` in the `bill_lines` INSERT. Then backfill the existing Four Seasons bill so you don't need to re-approve it.
+
+### Problem 2: Actions column uses a Select dropdown instead of three dots
+
+The Review tab currently uses a `<Select>` dropdown with "Actions" placeholder. Per the project's standardization philosophy, this should use the `TableRowActions` component (three dots / `MoreHorizontal` icon) with Approve, Edit, and Reject as menu items.
 
 ---
 
 ### Technical Changes
 
-**File 1: `src/hooks/useBillPOMatching.ts`**
-- Update the cumulative billing calculation (lines 132-186) to only count bill lines that are explicitly linked to the PO via `purchase_order_id` or `purchase_order_line_id`.
-- Add `purchase_order_id` and `purchase_order_line_id` to the `bill_lines` select query (line 143).
-- Change the `billedLookup` to be keyed by PO ID instead of the composite key, summing only lines where `purchase_order_id` matches.
-- For the status check (line 234), use the PO-specific billed total instead of the composite total.
+**New Migration File**: `supabase/migrations/fix_approve_pending_bill_purchase_order.sql`
+- `CREATE OR REPLACE FUNCTION public.approve_pending_bill(...)` adding `purchase_order_id` and `purchase_order_line_id` to the INSERT into `bill_lines` (copying from `line_record.purchase_order_id` and `line_record.purchase_order_line_id`).
 
-**File 2: `src/components/bills/BillPOSummaryDialog.tsx` (new file)**
-- Create a new dialog component that displays all matched POs for a bill in a summary table.
-- Show columns: PO Number, Cost Code, PO Amount, Billed to Date, Remaining, Status.
-- Each row represents one matched PO from the `matches` array.
-- Color-code remaining (green = positive, red = negative).
-- Allow clicking a row to drill into the existing single-PO `PODetailsDialog`.
+**File: `src/components/bills/BillsApprovalTable.tsx`**
+- Replace the `<Select>` dropdown in the Actions column (lines 948-967) with `<TableRowActions>` using three actions:
+  - "Approve" (default variant, triggers handleActionChange with 'approve')
+  - "Edit" (default variant, triggers handleActionChange with 'edit')
+  - "Reject" (destructive variant, triggers handleActionChange with 'reject')
+- Remove the `actionValue` state and `SelectTrigger`/`SelectContent` imports if no longer needed elsewhere.
+- Keep the existing non-draft logic (reconciled check mark / dash) unchanged.
 
-**File 3: `src/components/bills/BillsApprovalTable.tsx`**
-- Replace `PODetailsDialogWrapper` usage with the new `BillPOSummaryDialog`.
-- Pass all matches (`matchResult?.matches`) instead of just the first one (line 927).
-- Pass the bill reference info for context in the dialog header.
-- Update the dialog state to hold the full matches array instead of a single `poMatch`.
