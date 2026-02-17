@@ -991,6 +991,7 @@ export function BatchBillReviewTable({
                 cost_code_id: l.cost_code_id,
                 amount: l.amount || 0,
                 purchase_order_id: l.purchase_order_id,
+                memo: l.memo || l.description || undefined,
               }));
             })(),
           }}

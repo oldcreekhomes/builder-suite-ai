@@ -11,6 +11,7 @@ export interface PendingBillLine {
   purchase_order_line_id?: string;
   cost_code_id?: string;
   amount: number;
+  memo?: string;
 }
 
 interface PODetailsDialogProps {
@@ -96,12 +97,58 @@ export function PODetailsDialog({
   const lineItems = purchaseOrder.line_items || [];
   const hasPending = pendingBillLines && pendingBillLines.length > 0;
 
+  // Keyword matching helpers (mirrors useVendorPurchaseOrders.ts logic)
+  const normToken = (t: string) => {
+    const low = t.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!low) return '';
+    if (low.endsWith('s') && low.length > 3 && !low.endsWith('ss')) return low.slice(0, -1);
+    return low;
+  };
+  const tokenize = (text: string | null | undefined) =>
+    (text || '').split(/\s+/).map(normToken).filter(t => t.length > 1);
+
+  const memoMatchScore = (memo: string | null | undefined, description: string | null | undefined): number => {
+    const memoTokens = tokenize(memo);
+    const descTokens = tokenize(description);
+    if (memoTokens.length === 0 || descTokens.length === 0) return 0;
+    let hits = 0;
+    for (const dt of descTokens) {
+      if (memoTokens.some(mt => mt === dt || mt.includes(dt) || dt.includes(mt))) hits++;
+    }
+    return hits;
+  };
+
   // Helper to find pending amount for a PO line
-  const getPendingForLine = (lineId: string, lineCostCodeId?: string): number => {
+  const getPendingForLine = (lineId: string, lineCostCodeId?: string, lineDescription?: string): number => {
     if (!hasPending) return 0;
     return pendingBillLines.reduce((sum, pbl) => {
+      // Tier 1: explicit line match
       if (pbl.purchase_order_line_id === lineId) return sum + pbl.amount;
-      if (!pbl.purchase_order_line_id && pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) return sum + pbl.amount;
+      // Tier 2: cost code fallback (only if no explicit line id on pending line)
+      if (!pbl.purchase_order_line_id && pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
+        // Check if multiple PO lines share this cost code
+        const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
+        if (sameCCLines.length <= 1) {
+          // Unique cost code — attribute directly
+          return sum + pbl.amount;
+        }
+        // Multiple lines share cost code — use memo keyword matching
+        let bestScore = 0;
+        let bestLineId: string | null = null;
+        for (const candidate of sameCCLines) {
+          const score = memoMatchScore(pbl.memo, candidate.description);
+          if (score > bestScore) {
+            bestScore = score;
+            bestLineId = candidate.id;
+          }
+        }
+        // Only allocate to THIS line if it won the keyword match
+        if (bestScore >= 1 && bestLineId === lineId) {
+          return sum + pbl.amount;
+        }
+        // No winner or different winner — don't allocate here
+        return sum;
+      }
       return sum;
     }, 0);
   };
@@ -146,7 +193,7 @@ export function PODetailsDialog({
                  </TableHeader>
                  <TableBody>
                    {lineItems.map((line) => {
-                      const linePending = getPendingForLine(line.id, line.cost_code_id);
+                      const linePending = getPendingForLine(line.id, line.cost_code_id, line.description);
                       const lineProjectedRemaining = Math.round((line.remaining - linePending) * 100) / 100;
                       const lineOver = hasPending ? lineProjectedRemaining < 0 : line.remaining < 0;
                       const lineComplete = hasPending
