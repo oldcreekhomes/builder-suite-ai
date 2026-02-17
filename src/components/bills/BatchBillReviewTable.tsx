@@ -884,7 +884,31 @@ export function BatchBillReviewTable({
       {editingBillId && (
         <EditExtractedBillDialog
           open={!!editingBillId}
-          onOpenChange={(open) => !open && setEditingBillId(null)}
+          onOpenChange={async (open) => {
+            if (!open) {
+              // Re-fetch lines for this bill to get updated purchase_order_id values
+              const closingBillId = editingBillId;
+              setEditingBillId(null);
+              try {
+                const { data: lines } = await supabase
+                  .from('pending_bill_lines')
+                  .select('*, project_lots(id, lot_number, lot_name)')
+                  .eq('pending_upload_id', closingBillId)
+                  .order('line_number');
+                
+                if (lines) {
+                  const processedLines = lines.map((line: any) => ({
+                    ...line,
+                    lot_name: line.project_lots?.lot_name || 
+                              (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
+                  }));
+                  onLinesUpdate(closingBillId, processedLines);
+                }
+              } catch (err) {
+                console.error('Failed to refresh lines after edit:', err);
+              }
+            }
+          }}
           pendingUploadId={editingBillId}
         />
       )}
