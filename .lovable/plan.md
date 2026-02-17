@@ -1,31 +1,43 @@
 
-## Fix: Sort PO Summary by PO Number + Fix Missing Data in Review/Paid Tabs
+## Fix: Exclude Draft Bills from "Billed to Date" in PO Details
 
-### Problem 1: PO Summary not sorted
-The matches in the PO Summary dialog appear in arbitrary order. They should be sorted by PO number.
+### Problem
+The `useVendorPurchaseOrders` hook fetches ALL `bill_lines` to calculate "Billed to Date" without filtering by bill status. Draft bills (those sitting on the Review tab) already have rows in `bill_lines`, so the $720 gets counted in "Billed to Date" AND shown in "This Bill" -- double-counting.
 
-### Problem 2: Review/Paid tabs show wrong "This Bill" in detail view
-The BillsApprovalTable and PayBillsTable queries do NOT fetch `purchase_order_line_id` or `memo` from `bill_lines`. Without these fields, the PODetailsDialog can't disambiguate which PO line a bill amount belongs to -- so the cost-code fallback causes incorrect allocation (e.g., $720 appearing on "Billed To Date" as $720 and "This Bill" as $720, showing -$720 remaining).
+The other two POs work fine because they have no draft bills linked to them.
 
-The Enter with AI tab works because BatchBillReviewTable constructs these fields from the pending bill state.
+### Fix (single file: `src/hooks/useVendorPurchaseOrders.ts`)
 
-### Changes
+**Change 1: Line-level billing query (~line 103-106)**
 
-**1. `src/components/bills/BillPOSummaryDialog.tsx` -- Sort matches by PO number**
+Add `bills.status` to the select and filter out drafts in JS:
 
-Sort the `matches` array by `po_number` before rendering the table rows.
+```typescript
+// Add status to the join
+.select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
 
-**2. `src/components/bills/BillsApprovalTable.tsx` -- Add missing fields to query and interface**
+// Then filter before processing
+const activeBilled = (lineBilled || []).filter((bl: any) =>
+  bl.bills?.status && !['draft'].includes(bl.bills.status)
+);
+```
 
-- Add `purchase_order_line_id` to the Supabase `bill_lines` select query (line 253-274)
-- Add `purchase_order_line_id` to the `BillForApproval` interface's `bill_lines` array type (line 69-90)
+**Change 2: PO-level billing query (~line 134-138)**
 
-**3. `src/components/bills/PayBillsTable.tsx` -- Add missing fields to all 3 queries**
+Same pattern -- add `status` to the bills join and filter out drafts:
 
-- Add `purchase_order_line_id` and `memo` to all three Supabase `bill_lines` select queries (there are 3 separate queries in this file)
-- Update the bill interface to include these fields
+```typescript
+// Add status to the join
+.select('purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
+
+// Then filter
+const activePoBilled = (poBilled || []).filter((bl: any) =>
+  bl.bills?.status && !['draft'].includes(bl.bills.status)
+);
+```
+
+### Why the Other POs Work
+They simply don't have any draft bills linked to them. Once we exclude drafts, this PO will match too.
 
 ### Files Changed
-- `src/components/bills/BillPOSummaryDialog.tsx` (sort matches)
-- `src/components/bills/BillsApprovalTable.tsx` (add `purchase_order_line_id` to query + interface)
-- `src/components/bills/PayBillsTable.tsx` (add `purchase_order_line_id` + `memo` to queries + interface)
+- `src/hooks/useVendorPurchaseOrders.ts` (add status to both selects, filter out draft bills)
