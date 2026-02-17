@@ -1,29 +1,46 @@
 
 
-## Fix: Exclude Current Bill from "Billed to Date" in PO Details
+## Fix: Exclude Current Bill from Summary "Billed to Date"
 
 ### Problem
-When a bill moves from Review (draft) to Approved, it's no longer filtered out by the `status !== 'draft'` check. So it appears in **both** "Billed to Date" and "This Bill" -- double-counting again.
+The PO Summary dialog uses the `useBillPOMatching` hook to calculate "Billed to Date". This hook counts ALL posted/paid bills -- including the bill you're currently looking at. So the $720 shows up in both "Billed to Date" and "This Bill", making Remaining show -$720.
 
-The Enter with AI tab is unaffected because pending bills are still `draft`.
+The PO Detail view works correctly because it uses a different hook (`useVendorPurchaseOrders`) that already has the `excludeBillId` fix.
 
-### Solution
-Add an optional `excludeBillId` parameter to `useVendorPurchaseOrders`. When provided, bill lines belonging to that bill are excluded from the "Billed to Date" totals. This way the current bill only shows in the "This Bill" column.
+### Fix (single file: `src/hooks/useBillPOMatching.ts`)
 
-### Changes
+**Add `bill_id` to the query select and exclude current bills from the totals.**
 
-**1. `src/hooks/useVendorPurchaseOrders.ts`**
-- Add optional `excludeBillId` parameter to the function signature
-- Add it to the query key so caching works correctly
-- Filter out bill lines where `bill_id === excludeBillId` in both the line-level and PO-level billing loops (after the existing draft filter)
+The query at ~line 138-168 fetches bill_lines linked to the matched POs to build `billedLookup`. Currently it does not select `bill_id`, so there's no way to filter out the current bill. The fix:
 
-**2. `src/components/bills/BillPOSummaryDialog.tsx`**
-- Pass `bill?.id` as `excludeBillId` to `useVendorPurchaseOrders`
+1. Add `bill_id` to the select clause (line 140)
+2. Create a set of bill IDs from the input bills array
+3. Skip any bill_lines belonging to those bills when building the `billedLookup` totals
 
-**3. `src/components/bills/PODetailsDialogWrapper.tsx`**
-- Pass `poDialogState.bill?.id` as `excludeBillId` to `useVendorPurchaseOrders`
+```typescript
+// Add bill_id to select
+.select(`
+  bill_id,
+  purchase_order_id,
+  amount,
+  ...
+`)
+
+// Skip lines from the current bills
+const billIdsToExclude = new Set(bills.map(b => b.id));
+
+(linkedLines || []).forEach(line => {
+  if (billIdsToExclude.has(line.bill_id)) return; // exclude current bills
+  // ... rest of existing logic
+});
+```
 
 ### Why This Is Safe
-- The parameter is optional and defaults to undefined (no filtering), so all other callers (ManualBillEntry, VendorPOInfo, POSelectionDropdown, EditExtractedBillDialog, BatchBillReviewTable) are completely unaffected
-- Only the two components that display "This Bill" alongside "Billed to Date" will pass the exclude parameter
+- This only affects the summary table's "Billed to Date" column
+- Each bill's own amount still appears in "This Bill" (computed separately in `BillPOSummaryDialog`)
+- The "Remaining" column will now correctly show: PO Amount - (historical billed) - (this bill)
+- No other callers or tabs are affected
+
+### Files Changed
+- `src/hooks/useBillPOMatching.ts` (add `bill_id` to select, exclude current bills from totals)
 
