@@ -1,43 +1,54 @@
 
 
-## Standardize Bidding Tables to Match shadcn/ui Defaults
+## Replace Distance Filter Toggle with Radius Slider
 
-### Problem
-The bidding table (Draft, Bidding, Closed tabs) has inconsistent styling compared to the rest of the application's standardized shadcn/ui tables. Specifically:
-- Actions column "..." button is not centered
-- Multiple cells use custom `py-1` padding instead of default `p-2`
-- Group header rows use custom height/padding overrides
-- The `font-medium` on the Cost Code data cell should be removed (reserved for headers only)
+### What Changes
+Replace the current toggle + dropdown ("Filter by Distance: ON | Within [50] miles") with a clean radius slider that defaults to 25 miles. The slider will range from 0 to 50 miles in increments of 5 miles (close enough to 10-mile feel while keeping it smooth). The "Access MarketPlace" box stays as-is.
 
-### Changes
+### How It Works
+- Slider defaults to **25 miles** when the modal opens
+- Range: **0 to 50 miles** in **5-mile increments**
+- Always active (no toggle needed) -- the slider IS the filter
+- Shows count: "Showing X of Y suppliers within 25 miles"
+- Distance calculation uses the existing `calculate-distances` edge function (already uses Google Maps API -- no new API setup needed)
+- Companies without addresses are excluded (existing behavior)
 
-**1. `src/components/bidding/components/BiddingTableRowActions.tsx`**
-- Change `className="py-1"` to no custom class (use default `p-2`)
-- Add `text-center` to ensure the "..." button is centered
+### Google Maps
+**No new setup required.** The existing `calculate-distances` edge function already calls Google Distance Matrix API with a configured `GOOGLE_MAPS_API_KEY` secret. This slider just changes the radius value passed to the existing `useDistanceFilter` hook.
 
-**2. `src/components/bidding/components/BiddingTableRowContent.tsx`**
-- Remove `font-medium` from the Cost Code TableCell (line 88) -- data cells should use default weight
-- Remove `w-12` from the checkbox TableCell (let it use default sizing)
+### Files Changed
 
-**3. `src/components/bidding/components/BiddingTableRowSpecs.tsx`**
-- Remove `py-1` from the TableCell (line 25) -- use default `p-2`
+**1. `src/components/bidding/components/DistanceFilterBar.tsx`**
+- Remove the toggle switch and dropdown select
+- Add a `Slider` component (already installed via shadcn) with range 0-50, step 5, default 25
+- Show current radius value and filtered count
+- Keep the "Access MarketPlace" box on the right side
+- Show "Calculating distances..." indicator when computing
 
-**4. `src/components/bidding/components/BiddingTableRowFiles.tsx`**
-- Remove `py-1` from the TableCell (line 86) -- use default `p-2`
+**2. `src/components/bidding/BidPackageDetailsModal.tsx`**
+- Change default `distanceRadius` from `50` to `25`
+- Remove `distanceFilterEnabled` state (slider is always active)
+- Pass `enabled: true` always to `useDistanceFilter`
+- Remove the `onEnabledChange` prop from `DistanceFilterBar`
 
-**5. `src/components/bidding/BiddingGroupHeader.tsx`**
-- Remove `h-10` from the TableRow (line 33) -- use default row height
-- Remove `py-1` from all TableCells (lines 34, 42, 54) -- use default `p-2`
-- Remove custom `text-sm` from the group name cell (already default)
+### Technical Details
 
-**6. `src/components/bidding/BiddingTableHeader.tsx`**
-- Add `text-center` to the Actions TableHead (already present, confirmed)
+The `DistanceFilterBar` props simplify:
+```text
+Before:
+  enabled, onEnabledChange, radiusMiles, onRadiusChange, projectAddress, companies, isCalculating
 
-### What stays the same
-- All functionality (date pickers, file uploads, specs editing, status changes, actions dropdown)
-- The 3-dot dropdown menu pattern via `TableRowActions`
-- Calendar component usage
-- Column order and content
+After:
+  radiusMiles, onRadiusChange, projectAddress, filteredCount, totalCount, isCalculating
+```
 
-### Scope
-This affects all three bidding tabs (Draft, Bidding, Closed) since they all use the same `BiddingTable` component.
+The slider UI will look like:
+```text
++------------------------------------------+  +---------------------------+
+| [pin] Distance: 25 miles                 |  | [store] Access MarketPlace |
+| [========|===========] 0 mi ---- 50 mi   |  |  What is MarketPlace? (?) |
+| Showing 3 of 8 suppliers within 25 miles |  |                           |
++------------------------------------------+  +---------------------------+
+```
+
+No database changes needed. No new edge functions. No new API keys.
