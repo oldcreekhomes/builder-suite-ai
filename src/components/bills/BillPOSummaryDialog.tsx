@@ -126,7 +126,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {matches.map((match) => {
+                {[...matches].sort((a, b) => (a.po_number || '').localeCompare(b.po_number || '')).map((match) => {
                   const thisBillAmount = getThisBillAmount(match);
                   const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
                   return (
