@@ -112,7 +112,7 @@ export function PODetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
@@ -142,7 +142,7 @@ export function PODetailsDialog({
           {hasPending && (
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide">This Bill</p>
-              <p className="text-sm font-semibold text-blue-600">{formatCurrency(totalPending)}</p>
+              <p className="text-sm font-semibold text-green-700">{formatCurrency(totalPending)}</p>
             </div>
           )}
           <div>
@@ -203,7 +203,7 @@ export function PODetailsDialog({
                          {hasPending && (
                            <TableCell className="text-xs text-right">
                              {linePending > 0 ? (
-                               <span className="text-blue-600 bg-blue-50 px-1 rounded font-medium">
+                               <span className="text-green-700 bg-green-100 px-1 rounded font-medium">
                                  {formatCurrency(linePending)}
                                </span>
                              ) : '—'}
@@ -245,7 +245,7 @@ export function PODetailsDialog({
                        {formatCurrency(purchaseOrder.total_billed)}
                      </TableCell>
                      {hasPending && (
-                       <TableCell className="text-xs text-right font-semibold text-blue-600">
+                       <TableCell className="text-xs text-right font-semibold text-green-700">
                          {formatCurrency(totalPending)}
                        </TableCell>
                      )}
