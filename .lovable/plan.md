@@ -1,28 +1,25 @@
 
 
-## Fix: PO Status on Extracted Bills Table Should Auto-Match Against Existing POs
+## Fix: PO Status Shows "No PO" Because vendor_id Is Not Available to the Hook
 
-### Problem
-The "PO Status" column in the "Enter with AI" (extracted bills) table only checks whether `purchase_order_id` is already set on `pending_bill_lines`. Since the AI extraction does not pre-populate this field, the status always shows "No PO" -- even when a matching PO clearly exists for that vendor, project, and cost code.
+### Root Cause
 
-The auto-matching logic only runs inside the Edit dialog (`EditExtractedBillDialog`), so the user has to open every bill to trigger matching. The table itself shows stale/missing data.
+The `usePendingBillPOStatus` hook reads `bill.vendor_id` to look up matching POs. However, when bills are first loaded from `pending_bill_uploads`, there is no `vendor_id` column on that table -- the vendor information lives inside `extracted_data` (as `extracted_data.vendor_id` or `extracted_data.vendorId`).
+
+The `vendor_id` only gets set at the top level of the bill object later, after a vendor-matching RPC call completes (line 334-339 in BillsApprovalTabs). But the PO status hook runs immediately on render with the initial data, where `vendor_id` is undefined. Since all vendor IDs are empty, the hook short-circuits and returns "No PO" for everything.
 
 ### Solution
-Replace the inline PO status check in `BatchBillReviewTable` with a real-time lookup against the `project_purchase_orders` table, using the same vendor + project + cost code composite key approach already used elsewhere.
+
+Update the `usePendingBillPOStatus` hook to also check `bill.extracted_data?.vendor_id` as a fallback when `bill.vendor_id` is not set. This mirrors what the auto-matching code in BillsApprovalTabs already does (line 197).
 
 ### Technical Details
 
-**File: `src/components/bills/BatchBillReviewTable.tsx`**
+**File: `src/hooks/usePendingBillPOStatus.ts`**
 
-1. Add a query (or inline logic using the existing `supabase` client) that fetches POs for the vendor/project combinations present in the current batch of bills.
+1. Expand the `PendingBillForStatus` interface to include an optional `extracted_data` field.
+2. When collecting vendor IDs, check `bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId` to handle all naming conventions.
+3. When determining per-bill status, use the same fallback to get the effective vendor ID.
 
-2. For each bill row, determine PO status by checking:
-   - First: Does any `pending_bill_line` already have an explicit `purchase_order_id`? (current logic -- keeps working for lines matched in the Edit dialog)
-   - Second (new): If not, does a PO exist in `project_purchase_orders` matching the bill's `vendor_id` + `project_id` + line's `cost_code_id`? If so, treat it as "matched".
+This is a small, targeted change -- just 3-4 lines modified. No new queries, no schema changes.
 
-3. Replace the current inline status calculation (lines 858-867) with this enhanced logic.
-
-**Implementation approach**: Create a small helper hook (e.g., `usePendingBillPOStatus`) or add a `useQuery` inside `BatchBillReviewTable` that fetches all POs for the relevant vendor+project pairs. Then for each bill, check if its cost codes have matching POs.
-
-This avoids any changes to the data model or edge functions -- it is purely a display-time lookup using existing data.
-
+**Why this fixes the screenshot:** The Contractors Unlimited bill has a `vendor_id` in `extracted_data` and a cost code on its line. The PO exists for that vendor + project + cost code combination. Once the hook can read the vendor ID from `extracted_data`, it will find the match and show "Matched" instead of "No PO".
