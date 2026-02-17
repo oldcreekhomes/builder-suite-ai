@@ -138,6 +138,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         const { data: linkedLines, error: linkedError } = await supabase
           .from('bill_lines')
           .select(`
+            bill_id,
             purchase_order_id,
             amount,
             is_reversal,
@@ -152,7 +153,12 @@ export function useBillPOMatching(bills: BillForMatching[]) {
 
         if (linkedError) throw linkedError;
 
+        const billIdsToExclude = new Set(bills.map(b => b.id));
+
         (linkedLines || []).forEach(line => {
+          // Exclude lines from the current bill(s) being viewed
+          if (billIdsToExclude.has(line.bill_id)) return;
+
           const billData = line.bills as unknown as { status: string; is_reversal: boolean; reversed_at: string | null };
           // Only count posted/paid, non-reversal, non-reversed bills
           if (
