@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useVendorPurchaseOrders, VendorPurchaseOrder } from "@/hooks/useVendorPurchaseOrders";
-import { PODetailsDialog } from "./PODetailsDialog";
+import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +46,7 @@ interface POSelectionDropdownProps {
   currentBillId?: string;
   currentBillAmount?: number;
   currentBillReference?: string;
+  pendingBillLines?: PendingBillLine[];
 }
 
 /**
@@ -64,6 +65,7 @@ export function POSelectionDropdown({
   currentBillId,
   currentBillAmount,
   currentBillReference,
+  pendingBillLines,
 }: POSelectionDropdownProps) {
   const { data: purchaseOrders, isLoading } = useVendorPurchaseOrders(projectId, vendorId);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -229,6 +231,7 @@ export function POSelectionDropdown({
         currentBillId={currentBillId}
         currentBillAmount={currentBillAmount}
         currentBillReference={currentBillReference}
+        pendingBillLines={pendingBillLines}
       />
     </div>
   );

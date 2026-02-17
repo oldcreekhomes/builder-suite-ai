@@ -941,6 +941,17 @@ export function EditExtractedBillDialog({
                             currentBillId={undefined}
                             currentBillAmount={jobCostLines.reduce((sum, l) => sum + l.amount, 0)}
                             currentBillReference={refNo}
+                            pendingBillLines={
+                              line.purchase_order_id
+                                ? jobCostLines
+                                    .filter(l => l.purchase_order_id === line.purchase_order_id)
+                                    .map(l => ({
+                                      purchase_order_line_id: l.purchase_order_line_id || undefined,
+                                      cost_code_id: l.cost_code_id || undefined,
+                                      amount: l.amount,
+                                    }))
+                                : undefined
+                            }
                           />
                         </TableCell>
                       )}

@@ -7,6 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { formatDateSafe } from "@/utils/dateOnly";
 
+export interface PendingBillLine {
+  purchase_order_line_id?: string;
+  cost_code_id?: string;
+  amount: number;
+}
+
 interface PODetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -16,6 +22,7 @@ interface PODetailsDialogProps {
   currentBillId?: string;
   currentBillAmount?: number;
   currentBillReference?: string;
+  pendingBillLines?: PendingBillLine[];
 }
 
 const formatCurrency = (amount: number) =>
@@ -75,6 +82,7 @@ export function PODetailsDialog({
   currentBillId,
   currentBillAmount,
   currentBillReference,
+  pendingBillLines,
 }: PODetailsDialogProps) {
   if (!purchaseOrder) return null;
 
@@ -86,6 +94,21 @@ export function PODetailsDialog({
   const isHealthy = !isOverBudget && !isWarning;
 
   const lineItems = purchaseOrder.line_items || [];
+  const hasPending = pendingBillLines && pendingBillLines.length > 0;
+
+  // Helper to find pending amount for a PO line
+  const getPendingForLine = (lineId: string, lineCostCodeId?: string): number => {
+    if (!hasPending) return 0;
+    return pendingBillLines.reduce((sum, pbl) => {
+      if (pbl.purchase_order_line_id === lineId) return sum + pbl.amount;
+      if (!pbl.purchase_order_line_id && pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) return sum + pbl.amount;
+      return sum;
+    }, 0);
+  };
+
+  const totalPending = hasPending ? pendingBillLines.reduce((s, l) => s + l.amount, 0) : 0;
+  const projectedRemaining = purchaseOrder.remaining - totalPending;
+  const projectedOverBudget = projectedRemaining < 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,7 +130,7 @@ export function PODetailsDialog({
         </DialogHeader>
 
         {/* Summary Row */}
-        <div className="grid grid-cols-3 gap-4 py-3 border-b">
+        <div className={cn("grid gap-4 py-3 border-b", hasPending ? "grid-cols-4" : "grid-cols-3")}>
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">PO Total</p>
             <p className="text-sm font-semibold">{formatCurrency(purchaseOrder.total_amount)}</p>
@@ -116,14 +139,22 @@ export function PODetailsDialog({
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Billed to Date</p>
             <p className="text-sm font-semibold">{formatCurrency(purchaseOrder.total_billed)}</p>
           </div>
+          {hasPending && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">This Bill</p>
+              <p className="text-sm font-semibold text-blue-600">{formatCurrency(totalPending)}</p>
+            </div>
+          )}
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Remaining</p>
             <p className={cn("text-sm font-semibold",
-              isOverBudget && "text-destructive",
-              isWarning && "text-amber-700",
-              isHealthy && "text-green-700"
+              hasPending ? (
+                projectedOverBudget ? "text-destructive" : projectedRemaining < purchaseOrder.total_amount * 0.1 ? "text-amber-700" : "text-green-700"
+              ) : (
+                isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : "text-green-700"
+              )
             )}>
-              {formatCurrency(purchaseOrder.remaining)}
+              {formatCurrency(hasPending ? projectedRemaining : purchaseOrder.remaining)}
             </p>
           </div>
         </div>
@@ -139,71 +170,95 @@ export function PODetailsDialog({
                      <TableHead className="text-xs">Cost Code</TableHead>
                      <TableHead className="text-xs text-right">PO Amount</TableHead>
                      <TableHead className="text-xs text-right">Billed</TableHead>
+                     {hasPending && <TableHead className="text-xs text-right">This Bill</TableHead>}
                      <TableHead className="text-xs text-right">Remaining</TableHead>
                    </TableRow>
                  </TableHeader>
                  <TableBody>
                    {lineItems.map((line) => {
-                     const lineOver = line.remaining < 0;
-                     const lineComplete = line.total_billed >= line.amount && line.amount > 0;
-                     const linePartial = line.total_billed > 0 && line.total_billed < line.amount;
+                      const linePending = getPendingForLine(line.id, line.cost_code_id);
+                      const lineProjectedRemaining = line.remaining - linePending;
+                      const lineOver = hasPending ? lineProjectedRemaining < 0 : line.remaining < 0;
+                      const lineComplete = hasPending
+                        ? (line.total_billed + linePending >= line.amount && line.amount > 0)
+                        : (line.total_billed >= line.amount && line.amount > 0);
+                      const linePartial = hasPending
+                        ? ((line.total_billed + linePending > 0) && (line.total_billed + linePending < line.amount))
+                        : (line.total_billed > 0 && line.total_billed < line.amount);
 
-                     return (
-                       <TableRow key={line.id}>
-                         <TableCell className="text-xs">
-                          {line.description || '—'}
-                        </TableCell>
-                         <TableCell className="text-xs">
-                           {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
-                        </TableCell>
-                        <TableCell className="text-xs text-right">
-                          {formatCurrency(line.amount)}
-                        </TableCell>
-                        <TableCell className="text-xs text-right">
-                          <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} currentBillId={currentBillId} />
-                        </TableCell>
-                        <TableCell className={cn("text-xs text-right font-medium",
-                          lineOver && "text-destructive",
-                          lineComplete && "text-green-700",
-                          linePartial && "text-amber-700"
-                        )}>
-                          {formatCurrency(line.remaining)}
-                        </TableCell>
-                       </TableRow>
-                    );
-                  })}
+                      return (
+                        <TableRow key={line.id}>
+                          <TableCell className="text-xs">
+                           {line.description || '—'}
+                         </TableCell>
+                          <TableCell className="text-xs">
+                            {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
+                         </TableCell>
+                         <TableCell className="text-xs text-right">
+                           {formatCurrency(line.amount)}
+                         </TableCell>
+                         <TableCell className="text-xs text-right">
+                           <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} currentBillId={currentBillId} />
+                         </TableCell>
+                         {hasPending && (
+                           <TableCell className="text-xs text-right">
+                             {linePending > 0 ? (
+                               <span className="text-blue-600 bg-blue-50 px-1 rounded font-medium">
+                                 {formatCurrency(linePending)}
+                               </span>
+                             ) : '—'}
+                           </TableCell>
+                         )}
+                         <TableCell className={cn("text-xs text-right font-medium",
+                           lineOver && "text-destructive",
+                           lineComplete && "text-green-700",
+                           linePartial && "text-amber-700"
+                         )}>
+                           {formatCurrency(hasPending ? lineProjectedRemaining : line.remaining)}
+                         </TableCell>
+                        </TableRow>
+                     );
+                   })}
 
-                  {/* Unallocated Row */}
-                  {purchaseOrder.unallocated_billed > 0 && (
-                    <TableRow className="border-t border-dashed">
-                      <TableCell className="text-xs italic text-muted-foreground">Unallocated</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-xs text-right text-amber-700 font-medium">
-                        <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
-                      </TableCell>
-                      <TableCell></TableCell>
-                    </TableRow>
-                  )}
+                   {/* Unallocated Row */}
+                   {purchaseOrder.unallocated_billed > 0 && (
+                     <TableRow className="border-t border-dashed">
+                       <TableCell className="text-xs italic text-muted-foreground">Unallocated</TableCell>
+                       <TableCell></TableCell>
+                       <TableCell></TableCell>
+                       <TableCell className="text-xs text-right text-amber-700 font-medium">
+                         <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
+                       </TableCell>
+                       {hasPending && <TableCell></TableCell>}
+                       <TableCell></TableCell>
+                     </TableRow>
+                   )}
 
-                  {/* Totals Row */}
-                  <TableRow className="bg-muted/50 font-medium">
-                     <TableCell className="text-xs font-semibold">Total</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell className="text-xs text-right font-semibold">
-                      {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
-                    </TableCell>
-                    <TableCell className="text-xs text-right font-semibold">
-                      {formatCurrency(purchaseOrder.total_billed)}
-                    </TableCell>
-                    <TableCell className={cn("text-xs text-right font-semibold",
-                      isOverBudget && "text-destructive",
-                      isWarning && "text-amber-700",
-                      isHealthy && "text-green-700"
-                    )}>
-                      {formatCurrency(purchaseOrder.remaining)}
-                    </TableCell>
-                  </TableRow>
+                   {/* Totals Row */}
+                   <TableRow className="bg-muted/50 font-medium">
+                      <TableCell className="text-xs font-semibold">Total</TableCell>
+                     <TableCell></TableCell>
+                     <TableCell className="text-xs text-right font-semibold">
+                       {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
+                     </TableCell>
+                     <TableCell className="text-xs text-right font-semibold">
+                       {formatCurrency(purchaseOrder.total_billed)}
+                     </TableCell>
+                     {hasPending && (
+                       <TableCell className="text-xs text-right font-semibold text-blue-600">
+                         {formatCurrency(totalPending)}
+                       </TableCell>
+                     )}
+                     <TableCell className={cn("text-xs text-right font-semibold",
+                       hasPending ? (
+                         projectedOverBudget ? "text-destructive" : projectedRemaining < purchaseOrder.total_amount * 0.1 ? "text-amber-700" : "text-green-700"
+                       ) : (
+                         isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : isHealthy ? "text-green-700" : ""
+                       )
+                     )}>
+                       {formatCurrency(hasPending ? projectedRemaining : purchaseOrder.remaining)}
+                     </TableCell>
+                   </TableRow>
                 </TableBody>
               </Table>
             </div>
@@ -214,11 +269,14 @@ export function PODetailsDialog({
           )}
         </div>
 
-        {isOverBudget && (
+        {(isOverBudget || (hasPending && projectedOverBudget)) && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             <span className="text-sm text-destructive">
-              This PO is over budget by {formatCurrency(Math.abs(purchaseOrder.remaining))}
+              {hasPending && projectedOverBudget && !isOverBudget
+                ? `This bill will put the PO over budget by ${formatCurrency(Math.abs(projectedRemaining))}`
+                : `This PO is over budget by ${formatCurrency(Math.abs(hasPending ? projectedRemaining : purchaseOrder.remaining))}`
+              }
             </span>
           </div>
         )}
