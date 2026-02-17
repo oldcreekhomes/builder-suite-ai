@@ -1,21 +1,22 @@
 
 
-## Fix Insurance Alerts: Company Name Truncation
+## Fix Insurance Alerts: Company Name Overflow
 
-### Problem
-The `truncate` CSS class on the company name requires its parent flex container to also prevent overflow. Currently the alert row div (line 53) doesn't have `overflow-hidden`, so the text can still expand beyond the card boundary.
+### Root Cause
+The `Card` component itself doesn't have `overflow-hidden`, so even though child elements have `truncate`, the card's boundary isn't enforced as a clipping boundary. The grid column gives the card a width, but without `overflow-hidden` on the Card, content can visually overflow.
 
-### Fix (single file: `src/components/InsuranceAlertsCard.tsx`)
+### Fix (single file)
 
-Add `overflow-hidden` to the flex row container so the child `truncate` class works correctly:
+**`src/components/InsuranceAlertsCard.tsx` -- Line 13**
+
+Add `overflow-hidden` to the Card element itself:
 
 ```
-Line 53: "flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50"
-      -> "flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 overflow-hidden"
+Before: <Card className="h-full flex flex-col">
+After:  <Card className="h-full flex flex-col overflow-hidden">
 ```
 
-This ensures the row itself is bounded by the card width, which allows `truncate` on the company name `<p>` to properly clip with an ellipsis. The `title` attribute already added will let users hover to see the full name.
+This is the missing piece -- the outermost container (the Card) must clip overflow for all descendant `truncate` classes to work within the card's boundaries.
 
-### Files Changed
-- `src/components/InsuranceAlertsCard.tsx` -- add `overflow-hidden` to alert row div
-
+### Why previous attempts failed
+We kept adding `overflow-hidden` to inner containers (the row div, the list wrapper), but the Card itself -- the element that gets its width from the grid column -- was never set to clip its overflow. The inner elements inherit their available width from the Card, so the Card is where the constraint must be enforced.
