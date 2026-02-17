@@ -1,41 +1,43 @@
 
 
-## Fix "This Bill" Column Missing on First Load in PO Dialog
+## Fix "This Bill" Column Missing on First Load — All Tabs
 
 ### Problem
-When opening the PO details dialog from the "Enter with AI" tab immediately after extraction, the "This Bill" column is missing. It only appears after a page refresh because:
+The "This Bill" column is missing when first opening the PO dialog from the Review, Rejected, Approved, and Paid tabs. It only appears after a page refresh. 
 
-1. Freshly extracted bill lines don't have `purchase_order_id` set on them
-2. The PO matching is auto-detected separately (via `usePendingBillPOStatus`) using vendor + cost code lookup, but that result is never written back onto the bill lines
-3. In `BillPOSummaryDialog`, `derivedPendingBillLines` is filtered by `l.purchase_order_id === po_id` -- which returns nothing when `purchase_order_id` is undefined
-4. Empty `pendingBillLines` means `hasPending = false`, so the "This Bill" column is hidden
+Root cause: 106 out of 107 draft bill lines have `purchase_order_id = NULL` in the database. The approved/paid bills may also lack this field in some cases. The dialog filters pending bill lines by `purchase_order_id`, finds nothing, and hides the column.
 
-### Fix
+The previous fix only addressed the "Enter with AI" tab (BatchBillReviewTable). The same enrichment logic is needed for all other tabs.
 
-**File: `src/components/bills/BatchBillReviewTable.tsx`** (lines ~988-996)
+### Solution
+Instead of fixing each tab individually, fix it once in `BillPOSummaryDialog.tsx` itself. This component already has access to `vendorPOs` (which contains PO line items with cost codes) and `matches` (which maps cost codes to PO IDs). 
 
-When building the `bill_lines` object for the `BillPOSummaryDialog`, enrich each line by inferring `purchase_order_id` from the auto-matched PO data when it's not explicitly set:
+When building `derivedPendingBillLines`, if a bill line has no `purchase_order_id`, infer it by:
+1. Finding a matching PO from `matches` that shares the same `cost_code_id`
+2. If no match by cost code, check `vendorPOs` line items for a cost code match
 
-- For each bill line that lacks `purchase_order_id`, look up the auto-matched POs (from `vendorPOs`) by matching the line's `cost_code_id` against PO line items' `cost_code_id`
-- If a match is found among the `poDialogPoIds`, assign that PO's ID as `purchase_order_id`
-- This ensures the filter in `BillPOSummaryDialog` finds the lines and shows the "This Bill" column on first load
+This mirrors exactly what `useBillPOMatching` does to detect PO matches in the first place.
 
-The logic mirrors what already happens in `usePendingBillPOStatus` (vendor + cost code matching), just applied at the point where bill lines are passed to the dialog.
+### Files Changed
+- `src/components/bills/BillPOSummaryDialog.tsx` — enrich `derivedPendingBillLines` with inferred `purchase_order_id` when it's missing, using the `matches` array and `vendorPOs` data
 
 ### Technical Detail
 
 ```text
-Current flow (broken on first load):
-  bill.lines[].purchase_order_id = undefined
-  --> BillPOSummaryDialog filters by purchase_order_id
-  --> empty result --> no "This Bill" column
+Current flow (broken):
+  bill_lines[].purchase_order_id = null/undefined
+  --> derivedPendingBillLines has no purchase_order_id
+  --> filter by po_id returns empty
+  --> hasPending = false
+  --> "This Bill" column hidden
 
 Fixed flow:
-  bill.lines[].purchase_order_id = inferred from vendorPOs cost_code match
-  --> BillPOSummaryDialog filters by purchase_order_id
-  --> finds lines --> "This Bill" column shows
+  bill_lines[].purchase_order_id = null/undefined
+  --> infer from matches (cost_code_id -> po_id) or vendorPOs
+  --> derivedPendingBillLines has inferred purchase_order_id
+  --> filter by po_id finds lines
+  --> hasPending = true
+  --> "This Bill" column visible
 ```
 
-### Files Changed
-- `src/components/bills/BatchBillReviewTable.tsx` -- enrich bill_lines with inferred purchase_order_id when building the PO dialog payload
-
+This single fix covers Review, Rejected, Approved, Paid, and even the Enter with AI tab (making the previous BatchBillReviewTable enrichment redundant but harmless).
