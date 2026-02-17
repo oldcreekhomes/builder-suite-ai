@@ -987,12 +987,23 @@ export function BatchBillReviewTable({
             })(),
             bill_lines: (() => {
               const bill = bills.find(b => b.id === poDialogBillId);
-              return (bill?.lines || []).map(l => ({
-                cost_code_id: l.cost_code_id,
-                amount: l.amount || 0,
-                purchase_order_id: l.purchase_order_id,
-                memo: l.memo || l.description || undefined,
-              }));
+              return (bill?.lines || []).map(l => {
+                let poId = l.purchase_order_id;
+                // Infer purchase_order_id from vendorPOs cost_code match when not explicitly set
+                if (!poId && l.cost_code_id && vendorPOs) {
+                  const matchedPO = vendorPOs.find(po =>
+                    poDialogPoIds.includes(po.id) &&
+                    po.line_items.some(pli => pli.cost_code_id === l.cost_code_id)
+                  );
+                  if (matchedPO) poId = matchedPO.id;
+                }
+                return {
+                  cost_code_id: l.cost_code_id,
+                  amount: l.amount || 0,
+                  purchase_order_id: poId,
+                  memo: l.memo || l.description || undefined,
+                };
+              });
             })(),
           }}
         />
