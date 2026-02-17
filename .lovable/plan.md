@@ -1,40 +1,69 @@
 
 
-## Fix: Reallocate INV0012 Bill Line to Correct Cost Code
+## Add "This Bill" Column to PO Details Dialog
 
 ### Problem
-
-The $4,206 invoice (INV0012) has two bill lines:
-- **$3,206** "First floor balance" with cost code 4370 (Framing Labor) -- this correctly matches the "First floor" PO line (shown in green)
-- **$1,000** "Deck framing draw" with cost code 4370 (Framing Labor) -- this INCORRECTLY matches "Beauty bands at decks" because that PO line also has cost code 4370 and contains the word "deck"
-
-The $1,000 bill line should have cost code **4810: Decks**, not 4370. Once corrected, the three-tier matching logic will:
-1. Find two PO lines with cost code 4810: "Decks" ($2,232) and "Rear deck and roof" ($1,500)
-2. Compare memo "Deck framing draw" against both descriptions
-3. Match to "Decks" (higher keyword overlap) and display it in green
+When reviewing an extracted bill (e.g., INV0021 for $5,252), clicking the PO info button shows historical billing correctly but doesn't show what the current bill is about to allocate. The user can't see that they're about to bill $1,032 against "Decks" or $720 against "Frame basement walls" -- they only see historical data and have to mentally track the new amounts.
 
 ### Solution
+Add a "This Bill" column to the PO Details Dialog that shows the proposed billing amounts from the current bill being edited, and adjust the "Remaining" column to reflect what it would be after the current bill is accepted.
 
-**Data fix** -- Update the cost_code_id on the $1,000 bill line from 4370 (Framing Labor) to 4810 (Decks):
+### How It Works
 
-| Field | Current Value | New Value |
-|-------|--------------|-----------|
-| Bill line ID | a2c39cb4-76ae-42eb-981e-f4225577ffe4 | (unchanged) |
-| Memo | Deck framing draw | (unchanged) |
-| Amount | $1,000.00 | (unchanged) |
-| cost_code_id | d576bac6 (4370: Framing Labor) | dae802c0 (4810: Decks) |
+The table currently shows: Description | Cost Code | PO Amount | Billed | Remaining
 
-No code changes are needed -- the matching logic already handles this correctly when the cost code is accurate.
+It will become: Description | Cost Code | PO Amount | Billed | This Bill | Remaining
 
-### Expected Result
-
-After the data fix, the PO Details dialog for PO 2025-115E-0006 will show:
-- **First floor**: $3,206 billed (green, from INV0012)
-- **Decks**: $1,000 billed (green, from INV0012)
-- **Beauty bands at decks**: $0.00 billed
-- **Unallocated**: $0.00
+- **This Bill** column shows the amount from the current bill's line items that match each PO line (by `purchase_order_id` + `purchase_order_line_id`, or by cost code fallback)
+- Amounts in "This Bill" are displayed in blue to distinguish from historical (green) billing
+- **Remaining** is recalculated as: PO Amount - Billed - This Bill
+- The summary header also updates: adds a "This Bill" total and adjusts "Remaining" to reflect projected remaining
 
 ### Technical Details
 
-One SQL update statement to change the cost_code_id on the affected bill line. This also corrects the job cost reporting so the $1,000 is categorized under Decks rather than Framing Labor.
+**New interface for pending allocations:**
+```typescript
+interface PendingBillLine {
+  purchase_order_line_id?: string;
+  cost_code_id?: string;
+  amount: number;
+}
+```
 
+**File: `src/components/bills/PODetailsDialog.tsx`**
+1. Add optional `pendingBillLines?: PendingBillLine[]` prop
+2. Add "This Bill" column header between "Billed" and "Remaining"
+3. For each PO line, find matching pending bill lines (by `purchase_order_line_id` first, then cost code fallback)
+4. Display pending amounts in blue (`text-blue-600 bg-blue-50`)
+5. Subtract pending amounts from remaining calculation
+6. Update summary row with pending total
+7. Update header summary to show "This Bill" total
+
+**File: `src/components/bills/POSelectionDropdown.tsx`**
+1. Add optional `pendingBillLines` prop
+2. Pass it through to `PODetailsDialog`
+
+**File: `src/components/bills/EditExtractedBillDialog.tsx`**
+1. When rendering `POSelectionDropdown`, compute and pass `pendingBillLines` from the current `jobCostLines` state that are allocated to the same PO
+
+**File: `src/components/bills/PODetailsDialogWrapper.tsx`**
+1. No changes needed -- approved bills already show via `currentBillId` green highlighting since they're in the database
+
+### Visual Result
+
+For PO 2025-115E-0006 when viewing INV0021:
+```
+Description     | PO Amount  | Billed     | This Bill  | Remaining
+Decks           | $2,232.00  | $1,000.00  | $1,032.00  | $200.00
+Frame basement  | $720.00    | $0.00      | $720.00    | $0.00
+```
+
+The "This Bill" column only appears when there are pending allocations (i.e., when opened from the extracted bill editor). For approved bills, the dialog stays as-is with the green highlighting.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/bills/PODetailsDialog.tsx` | Add `pendingBillLines` prop, "This Bill" column, adjusted remaining calculation |
+| `src/components/bills/POSelectionDropdown.tsx` | Pass `pendingBillLines` through to dialog |
+| `src/components/bills/EditExtractedBillDialog.tsx` | Compute and pass `pendingBillLines` from current job cost lines |
