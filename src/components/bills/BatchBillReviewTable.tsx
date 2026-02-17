@@ -770,7 +770,7 @@ export function BatchBillReviewTable({
                   {/* Amount */}
                   <TableCell className="px-2 py-1 w-24">
                     {totalAmount > 0 ? (
-                      <span className="text-xs font-medium">${totalAmount.toFixed(2)}</span>
+                      <span className="text-xs font-medium">{formatCurrency(totalAmount)}</span>
                     ) : (
                       <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
                     )}
