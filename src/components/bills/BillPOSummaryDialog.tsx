@@ -18,6 +18,7 @@ import { POMatch } from "@/hooks/useBillPOMatching";
 import { PODetailsDialog } from "./PODetailsDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
+import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 
 interface BillLine {
   cost_code_id?: string | null;
@@ -90,7 +91,7 @@ export function BillPOSummaryDialog({
   return (
     <>
       <Dialog open={open && !selectedPoId} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>PO Status Summary</DialogTitle>
             <DialogDescription>
@@ -100,62 +101,64 @@ export function BillPOSummaryDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>PO Number</TableHead>
-                <TableHead>Cost Code</TableHead>
-                <TableHead className="text-right">PO Amount</TableHead>
-                <TableHead className="text-right">Billed to Date</TableHead>
-                <TableHead className="text-right">This Bill</TableHead>
-                <TableHead className="text-right">Remaining</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {matches.map((match) => {
-                const thisBillAmount = getThisBillAmount(match);
-                const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
-                return (
-                <TableRow
-                  key={match.po_id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedPoId(match.po_id)}
-                >
-                  <TableCell className="font-medium">{match.po_number}</TableCell>
-                  <TableCell>{match.cost_code_display}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(match.po_amount)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(match.total_billed)}</TableCell>
-                  <TableCell className="text-right">
-                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
-                      {formatCurrency(thisBillAmount)}
-                    </span>
-                  </TableCell>
-                  <TableCell
-                    className={cn(
-                      "text-right font-medium",
-                      adjustedRemaining >= 0 ? "text-green-600" : "text-red-600"
-                    )}
+          <SettingsTableWrapper>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">PO Number</TableHead>
+                  <TableHead className="whitespace-nowrap">Cost Code</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">PO Amount</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Billed to Date</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">This Bill</TableHead>
+                  <TableHead className="whitespace-nowrap text-right">Remaining</TableHead>
+                  <TableHead className="whitespace-nowrap text-center">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {matches.map((match) => {
+                  const thisBillAmount = getThisBillAmount(match);
+                  const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
+                  return (
+                  <TableRow
+                    key={match.po_id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedPoId(match.po_id)}
                   >
-                    {formatCurrency(adjustedRemaining)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span
+                    <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
+                    <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right">{formatCurrency(match.po_amount)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right">{formatCurrency(match.total_billed)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right">
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                        {formatCurrency(thisBillAmount)}
+                      </span>
+                    </TableCell>
+                    <TableCell
                       className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                        match.status === "matched"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                        "whitespace-nowrap text-right font-medium",
+                        adjustedRemaining >= 0 ? "text-green-600" : "text-red-600"
                       )}
                     >
-                      {match.status === "matched" ? "Matched" : "Over"}
-                    </span>
-                  </TableCell>
-                </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      {formatCurrency(adjustedRemaining)}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-center">
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                          match.status === "matched"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        )}
+                      >
+                        {match.status === "matched" ? "Matched" : "Over"}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </SettingsTableWrapper>
         </DialogContent>
       </Dialog>
 
