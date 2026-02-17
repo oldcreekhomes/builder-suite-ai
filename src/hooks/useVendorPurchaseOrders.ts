@@ -122,6 +122,14 @@ export function useVendorPurchaseOrders(
         });
       }
 
+      // Group PO lines by PO (needed before PO-level billing distribution)
+      const linesByPo = new Map<string, typeof poLines>();
+      (poLines || []).forEach(line => {
+        const arr = linesByPo.get(line.purchase_order_id) || [];
+        arr.push(line);
+        linesByPo.set(line.purchase_order_id, arr);
+      });
+
       // Also fetch billed amounts at PO level (for lines linked by purchase_order_id but not purchase_order_line_id)
       const { data: poBilled } = await supabase
         .from('bill_lines')
@@ -129,31 +137,38 @@ export function useVendorPurchaseOrders(
         .in('purchase_order_id', poIds)
         .is('purchase_order_line_id', null);
 
-      // Track ALL PO-level billing (purchase_order_id set, purchase_order_line_id NULL)
+      // Distribute PO-level billing to line items by cost_code match, or keep as unallocated
       const billedByPoIdOnly = new Map<string, number>();
       const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
       (poBilled || []).forEach((bl: any) => {
-        if (bl.purchase_order_id) {
-          const current = billedByPoIdOnly.get(bl.purchase_order_id) || 0;
-          billedByPoIdOnly.set(bl.purchase_order_id, current + (bl.amount || 0));
+        if (!bl.purchase_order_id) return;
 
+        const invoice: BilledInvoice = {
+          bill_id: bl.bill_id,
+          reference_number: bl.bills?.reference_number || 'No Ref',
+          bill_date: bl.bills?.bill_date || '',
+          amount: bl.amount || 0,
+        };
+
+        // Try to match to a PO line by cost_code_id
+        const poLineList = linesByPo.get(bl.purchase_order_id) || [];
+        const matchingLine = bl.cost_code_id
+          ? poLineList.find(l => l.cost_code_id && l.cost_code_id === bl.cost_code_id)
+          : null;
+
+        if (matchingLine) {
+          // Attribute to the matched PO line
+          billedByLineId.set(matchingLine.id, (billedByLineId.get(matchingLine.id) || 0) + (bl.amount || 0));
+          const invoices = invoicesByLineId.get(matchingLine.id) || [];
+          invoices.push(invoice);
+          invoicesByLineId.set(matchingLine.id, invoices);
+        } else {
+          // No cost_code match -- keep as unallocated
+          billedByPoIdOnly.set(bl.purchase_order_id, (billedByPoIdOnly.get(bl.purchase_order_id) || 0) + (bl.amount || 0));
           const invoices = unallocatedInvoicesByPoId.get(bl.purchase_order_id) || [];
-          invoices.push({
-            bill_id: bl.bill_id,
-            reference_number: bl.bills?.reference_number || 'No Ref',
-            bill_date: bl.bills?.bill_date || '',
-            amount: bl.amount || 0,
-          });
+          invoices.push(invoice);
           unallocatedInvoicesByPoId.set(bl.purchase_order_id, invoices);
         }
-      });
-
-      // Group PO lines by PO
-      const linesByPo = new Map<string, typeof poLines>();
-      (poLines || []).forEach(line => {
-        const arr = linesByPo.get(line.purchase_order_id) || [];
-        arr.push(line);
-        linesByPo.set(line.purchase_order_id, arr);
       });
 
       // Build result
