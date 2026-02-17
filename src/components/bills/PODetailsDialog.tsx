@@ -201,8 +201,8 @@ export function PODetailsDialog({
                          {hasPending && (
                            <TableCell className="text-xs text-right">
                               {linePending > 0 ? (
-                                <span className="font-medium">
-                                  {formatCurrency(linePending)}
+                                 <span className="bg-green-100 text-green-700 px-1 rounded font-medium">
+                                   {formatCurrency(linePending)}
                                 </span>
                               ) : '—'}
                            </TableCell>
@@ -243,9 +243,9 @@ export function PODetailsDialog({
                        {formatCurrency(purchaseOrder.total_billed)}
                      </TableCell>
                      {hasPending && (
-                       <TableCell className="text-xs text-right font-semibold">
-                         {formatCurrency(totalPending)}
-                       </TableCell>
+                        <TableCell className="text-xs text-right font-semibold text-green-700">
+                          {formatCurrency(totalPending)}
+                        </TableCell>
                      )}
                        <TableCell className={cn("text-xs text-right font-semibold",
                          hasPending
