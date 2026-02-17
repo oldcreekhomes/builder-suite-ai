@@ -708,7 +708,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   )}
                   {canShowDeleteButton && (
                     <TableHead className="text-center w-16">
-                      {showEditButton ? 'Edit' : 'Delete'}
+                      {showEditButton ? 'Actions' : 'Delete'}
                     </TableHead>
                   )}
                 </TableRow>
@@ -969,37 +969,47 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   )}
                   {canShowDeleteButton && (
                     <TableCell className="py-1 text-center w-16">
-                      <div className="flex items-center justify-center gap-1">
-                        {isPaidOrPostedStatus && bill.reconciled ? (
-                          <span className="text-lg">🔒</span>
-                        ) : !bill.reconciled && (
-                          <>
-                            {showEditButton && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-muted"
-                                onClick={() => setEditingBillId(bill.id)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {!isDateLocked(bill.bill_date) ? (
-                              <DeleteButton
-                                onDelete={() => deleteBill.mutate(bill.id)}
-                                title="Delete Bill"
-                                description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
-                                size="icon"
-                                variant="ghost"
-                                isLoading={deleteBill.isPending}
-                                className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                              />
-                            ) : (
-                              <span className="text-lg">🔒</span>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      {showEditButton ? (
+                        <TableRowActions actions={[
+                          {
+                            label: "Edit",
+                            onClick: () => setEditingBillId(bill.id),
+                            disabled: bill.reconciled,
+                          },
+                          {
+                            label: "Delete Bill",
+                            onClick: () => deleteBill.mutate(bill.id),
+                            variant: "destructive",
+                            requiresConfirmation: true,
+                            confirmTitle: "Delete Bill",
+                            confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                            isLoading: deleteBill.isPending,
+                            disabled: isDateLocked(bill.bill_date) || bill.reconciled,
+                          },
+                        ]} />
+                      ) : (
+                        <div className="flex items-center justify-center gap-1">
+                          {isPaidOrPostedStatus && bill.reconciled ? (
+                            <span className="text-lg">🔒</span>
+                          ) : !bill.reconciled && (
+                            <>
+                              {!isDateLocked(bill.bill_date) ? (
+                                <DeleteButton
+                                  onDelete={() => deleteBill.mutate(bill.id)}
+                                  title="Delete Bill"
+                                  description={`Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`}
+                                  size="icon"
+                                  variant="ghost"
+                                  isLoading={deleteBill.isPending}
+                                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                />
+                              ) : (
+                                <span className="text-lg">🔒</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
