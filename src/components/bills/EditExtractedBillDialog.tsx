@@ -395,7 +395,7 @@ export function EditExtractedBillDialog({
     const needsMatching = jobCostLines.some(l => !l.purchase_order_id);
     if (!needsMatching) return;
 
-    setJobCostLines(prev => prev.map(line => {
+    const updatedLines = jobCostLines.map(line => {
       if (line.purchase_order_id) return line; // Already assigned
       
       const match = getBestPOLineMatch(
@@ -415,7 +415,26 @@ export function EditExtractedBillDialog({
         };
       }
       return line;
-    }));
+    });
+
+    setJobCostLines(updatedLines);
+
+    // Fire-and-forget: persist PO matches to DB so the table badge updates
+    const matchedLines = updatedLines.filter(l => l.purchase_order_id && !l.id.startsWith('new-'));
+    if (matchedLines.length > 0) {
+      Promise.all(
+        matchedLines.map(l =>
+          supabase
+            .from('pending_bill_lines')
+            .update({ purchase_order_id: l.purchase_order_id })
+            .eq('id', l.id)
+        )
+      ).then(() => {
+        console.log(`Auto-persisted PO matches for ${matchedLines.length} lines`);
+      }).catch(err => {
+        console.error('Failed to auto-persist PO matches:', err);
+      });
+    }
   }, [vendorPOs, jobCostLines]); // Re-fire when EITHER dataset arrives
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
