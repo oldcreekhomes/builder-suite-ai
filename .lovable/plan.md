@@ -1,19 +1,21 @@
 
 
-## Fix Insurance Alerts Card: Truncation + Scroll
+## Fix Insurance Alerts: Company Name Truncation
 
 ### Problem
-1. Long company names like "Airtron Heating & Air Conditioning/Masters Inc..." run off the card edge
-2. When there are many alerts, the list overflows the card instead of scrolling
+The `truncate` CSS class on the company name requires its parent flex container to also prevent overflow. Currently the alert row div (line 53) doesn't have `overflow-hidden`, so the text can still expand beyond the card boundary.
 
-### Changes (single file: `src/components/InsuranceAlertsCard.tsx`)
+### Fix (single file: `src/components/InsuranceAlertsCard.tsx`)
 
-**1. Truncate company names with hover tooltip**
-- Wrap the company name text in a `title` attribute so users can hover to see the full name
-- The `truncate` class is already applied, but the flex layout may not be constraining it properly -- ensure `min-w-0` is on the parent flex container
+Add `overflow-hidden` to the flex row container so the child `truncate` class works correctly:
 
-**2. Ensure scroll works within the fixed card height**
-- The card is inside a grid with a fixed height (`calc(100vh - 220px)`) on the dashboard, and the card has `h-full flex flex-col`
-- The `ScrollArea` needs its parent `CardContent` to enforce a bounded height so overflow triggers scrolling
-- Add `min-h-0` to the `CardContent` so flex shrinking works and the ScrollArea can scroll
+```
+Line 53: "flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50"
+      -> "flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 overflow-hidden"
+```
+
+This ensures the row itself is bounded by the card width, which allows `truncate` on the company name `<p>` to properly clip with an ellipsis. The `title` attribute already added will let users hover to see the full name.
+
+### Files Changed
+- `src/components/InsuranceAlertsCard.tsx` -- add `overflow-hidden` to alert row div
 
