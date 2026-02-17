@@ -83,7 +83,7 @@ export function BiddingTableRowFiles({
   const existingFilePaths = (item.files || []).map((f: string) => getProjectFileStoragePath(f));
 
   return (
-    <TableCell className="py-1">
+    <TableCell>
       <div className="flex items-center space-x-2">
         {/* Show specification files if they exist */}
         {item.files && item.files.length > 0 && (

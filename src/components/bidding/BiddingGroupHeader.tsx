@@ -30,8 +30,8 @@ export function BiddingGroupHeader({
   hasChildren = false
 }: BiddingGroupHeaderProps) {
   return (
-    <TableRow className="bg-gray-50 h-10">
-      <TableCell className="w-12 py-1">
+    <TableRow className="bg-gray-50">
+      <TableCell>
         <Checkbox
           checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
           onCheckedChange={(checked) => onCheckboxChange(group, checked === true)}
@@ -39,7 +39,7 @@ export function BiddingGroupHeader({
       </TableCell>
       <TableCell 
         colSpan={7} 
-        className="font-medium cursor-pointer hover:bg-gray-100 py-1 text-sm"
+        className="font-medium cursor-pointer hover:bg-gray-100"
         onClick={() => onToggle(group)}
       >
         <div className="flex items-center">
@@ -51,7 +51,7 @@ export function BiddingGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <div className="flex items-center justify-end space-x-2">
           {!hasChildren && (
             <DeleteButton

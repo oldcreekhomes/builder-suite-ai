@@ -24,7 +24,7 @@ export function BiddingTableRowActions({
   isReadOnly = false 
 }: BiddingTableRowActionsProps) {
   return (
-    <TableCell className="py-1">
+    <TableCell className="text-center">
       <TableRowActions actions={[
         { label: "Send Bid Package", onClick: onSendClick, hidden: isReadOnly },
         { label: "Send Test Email", onClick: onTestEmailClick || (() => {}), hidden: isReadOnly || !onTestEmailClick },
