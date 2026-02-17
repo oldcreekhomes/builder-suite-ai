@@ -1,25 +1,18 @@
 
 
-## Add "This Bill" Column to PO Status Summary Dialog
+## Fix PO Status Summary Dialog: Single-Line Rows with Standard Table UI
 
-### What Changes
-Add a "This Bill" column (in green) between "Billed to Date" and "Remaining" in the PO Status Summary dialog, matching the pattern already used in the PODetailsDialog.
+### Problem
+The PO Status Summary dialog is too narrow, causing column headers ("PO Amount", "Billed to Date") and cell content to wrap onto multiple lines. It also lacks the standard `SettingsTableWrapper` used across all other tables in the application.
 
-### How It Works
-- The `BillPOSummaryDialog` already receives the `bill` object, which includes `bill_lines` with `cost_code_id` and `amount` per line
-- Each `POMatch` has a `cost_code_id` -- we match bill lines to POs by cost code to compute per-PO "this bill" amounts
-- The "Remaining" column will be recalculated as `PO Amount - Billed to Date - This Bill`
-
-### Technical Details
+### Changes
 
 **File: `src/components/bills/BillPOSummaryDialog.tsx`**
 
-1. Expand the `bill` prop interface to include `bill_lines` (already available from the parent `BillsApprovalTable`)
-2. For each PO match row, compute the "this bill" amount by summing `bill.bill_lines` where `cost_code_id` matches the PO's `cost_code_id`
-3. Add a new `<TableHead>` for "This Bill" between "Billed to Date" and "Remaining"
-4. Add a new `<TableCell>` showing the amount in green (`text-green-700 bg-green-100`) -- matching the PODetailsDialog style
-5. Recalculate "Remaining" as `po_amount - total_billed - thisBillAmount` so the user sees the projected remaining after this bill
+1. Widen the dialog from `max-w-2xl` to `max-w-4xl` to give columns enough room
+2. Wrap the `<Table>` in a `<SettingsTableWrapper>` (the `border rounded-lg overflow-hidden` container used everywhere else)
+3. Add `whitespace-nowrap` to all `<TableHead>` and `<TableCell>` elements so nothing wraps to a second line
+4. Import `SettingsTableWrapper` from `@/components/ui/settings-table-wrapper`
 
-**File: `src/components/bills/BillsApprovalTable.tsx`**
-- No changes needed -- the `bill` object passed to `BillPOSummaryDialog` already contains `bill_lines` from the query data
+These changes bring this dialog in line with the standardization philosophy -- same table wrapper, same single-line row height, same visual consistency as every other table in the app.
 
