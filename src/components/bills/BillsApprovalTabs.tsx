@@ -750,6 +750,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
                   onBillSelect={handleBillSelect}
                   onSelectAll={handleSelectAll}
                   showProjectColumn={!effectiveProjectId}
+                  projectId={effectiveProjectId}
                 />
               </CardContent>
             </Card>

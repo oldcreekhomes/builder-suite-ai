@@ -15,6 +15,7 @@ import { useUniversalFilePreviewContext } from "@/components/files/UniversalFile
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { POStatusBadge } from "./POStatusBadge";
+import { usePendingBillPOStatus } from "@/hooks/usePendingBillPOStatus";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
 const formatTerms = (terms: string | null | undefined): string => {
@@ -115,6 +116,7 @@ interface BatchBillReviewTableProps {
   onBillSelect: (billId: string) => void;
   onSelectAll: (selectAll: boolean) => void;
   showProjectColumn?: boolean;
+  projectId?: string;
 }
 
 export function BatchBillReviewTable({ 
@@ -126,6 +128,7 @@ export function BatchBillReviewTable({
   onBillSelect,
   onSelectAll,
   showProjectColumn = true,
+  projectId,
 }: BatchBillReviewTableProps) {
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
@@ -142,6 +145,9 @@ export function BatchBillReviewTable({
   } | undefined>(undefined);
   const { toast } = useToast();
   const { openBillAttachment } = useUniversalFilePreviewContext();
+
+  // Auto-match PO status by looking up project_purchase_orders
+  const { data: poStatusMap } = usePendingBillPOStatus(bills, projectId);
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
@@ -855,16 +861,7 @@ export function BatchBillReviewTable({
                   
                   {/* PO Status */}
                   <TableCell className="px-2 py-1 w-20 text-center">
-                    <POStatusBadge status={
-                      (() => {
-                        const lines = bill.lines || [];
-                        const hasAny = lines.some(line => line.purchase_order_id);
-                        const hasAll = lines.length > 0 && lines.every(line => line.purchase_order_id);
-                        if (hasAll) return 'matched';
-                        if (hasAny) return 'partial';
-                        return 'no_po';
-                      })()
-                    } />
+                    <POStatusBadge status={poStatusMap?.get(bill.id) || 'no_po'} />
                   </TableCell>
                   
                   {/* Actions */}
