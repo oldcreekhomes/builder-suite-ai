@@ -25,6 +25,7 @@ interface BillLine {
   amount?: number;
   purchase_order_id?: string | null;
   purchase_order_line_id?: string | null;
+  memo?: string | null;
 }
 
 interface BillPOSummaryDialogProps {
@@ -77,6 +78,7 @@ export function BillPOSummaryDialog({
     amount: l.amount || 0,
     purchase_order_line_id: l.purchase_order_line_id || undefined,
     purchase_order_id: l.purchase_order_id || undefined,
+    memo: l.memo || undefined,
   }));
 
   // If only one match, go directly to the detail dialog
