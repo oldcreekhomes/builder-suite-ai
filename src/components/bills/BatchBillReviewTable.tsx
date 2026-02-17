@@ -856,9 +856,14 @@ export function BatchBillReviewTable({
                   {/* PO Status */}
                   <TableCell className="px-2 py-1 w-20 text-center">
                     <POStatusBadge status={
-                      bill.extracted_data?.line_items?.some((line: PendingBillLine) => line.purchase_order_id)
-                        ? 'matched'
-                        : 'no_po'
+                      (() => {
+                        const lines = bill.lines || [];
+                        const hasAny = lines.some(line => line.purchase_order_id);
+                        const hasAll = lines.length > 0 && lines.every(line => line.purchase_order_id);
+                        if (hasAll) return 'matched';
+                        if (hasAny) return 'partial';
+                        return 'no_po';
+                      })()
                     } />
                   </TableCell>
                   
