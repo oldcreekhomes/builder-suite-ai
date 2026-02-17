@@ -1,20 +1,28 @@
 
 
-## Fix: PO Matching Shows Wrong PO When Multiple POs Share Same Cost Code
+## Fix: PO Status on Extracted Bills Table Should Auto-Match Against Existing POs
 
-### Root Cause
-The `useBillPOMatching` hook builds a lookup Map keyed by `project_id|company_id|cost_code_id`. When two POs exist for the same vendor, project, and cost code (e.g., PO 2025-115E-0006 for $37,593 and PO 2026-115E-0056 for $720), the second one overwrites the first. The bill then incorrectly matches to the $720 PO instead of the $37,593 one.
+### Problem
+The "PO Status" column in the "Enter with AI" (extracted bills) table only checks whether `purchase_order_id` is already set on `pending_bill_lines`. Since the AI extraction does not pre-populate this field, the status always shows "No PO" -- even when a matching PO clearly exists for that vendor, project, and cost code.
+
+The auto-matching logic only runs inside the Edit dialog (`EditExtractedBillDialog`), so the user has to open every bill to trigger matching. The table itself shows stale/missing data.
 
 ### Solution
-Change the `poLookup` Map from storing a single PO per composite key to storing an **array of POs**. When auto-matching a bill line, add **all** POs that share the composite key as matches (deduplicating by `po_id`).
+Replace the inline PO status check in `BatchBillReviewTable` with a real-time lookup against the `project_purchase_orders` table, using the same vendor + project + cost code composite key approach already used elsewhere.
 
 ### Technical Details
 
-**File: `src/hooks/useBillPOMatching.ts`** (lines ~178-248)
+**File: `src/components/bills/BatchBillReviewTable.tsx`**
 
-1. Change `poLookup` value type from a single object to an **array** of objects
-2. In the `pos.forEach` loop, push to the array instead of overwriting
-3. In the `allLines.forEach` matching logic, when a line has no explicit `purchase_order_id`, look up the array of POs for the composite key and add **all** of them as matches (skipping duplicates)
+1. Add a query (or inline logic using the existing `supabase` client) that fetches POs for the vendor/project combinations present in the current batch of bills.
 
-This ensures that when a bill line for "4370: Framing Labor" is auto-matched, both PO 2025-115E-0006 ($37,593) and PO 2026-115E-0056 ($720) appear in the summary dialog, giving the user full visibility into all relevant POs.
+2. For each bill row, determine PO status by checking:
+   - First: Does any `pending_bill_line` already have an explicit `purchase_order_id`? (current logic -- keeps working for lines matched in the Edit dialog)
+   - Second (new): If not, does a PO exist in `project_purchase_orders` matching the bill's `vendor_id` + `project_id` + line's `cost_code_id`? If so, treat it as "matched".
+
+3. Replace the current inline status calculation (lines 858-867) with this enhanced logic.
+
+**Implementation approach**: Create a small helper hook (e.g., `usePendingBillPOStatus`) or add a `useQuery` inside `BatchBillReviewTable` that fetches all POs for the relevant vendor+project pairs. Then for each bill, check if its cost codes have matching POs.
+
+This avoids any changes to the data model or edge functions -- it is purely a display-time lookup using existing data.
 
