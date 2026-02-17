@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Send, Mail } from 'lucide-react';
 import { ProposalCell } from './ProposalCell';
 import { ConfirmPODialog } from '../ConfirmPODialog';
 import { usePOStatus } from '@/hooks/usePOStatus';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 
 interface Company {
   id: string;
@@ -83,9 +80,31 @@ export function BiddingCompanyRow({
     console.log('Send PO confirmed for company:', biddingCompany.company_id);
     // TODO: Implement PO sending logic
   };
+
+  const actions = [
+    ...(onSendEmail ? [{
+      label: "Send Email",
+      onClick: () => onSendEmail(biddingCompany.company_id),
+      hidden: isReadOnly,
+    }] : []),
+    {
+      label: isReadOnly ? "Resend PO Email" : "Send PO",
+      onClick: () => setShowConfirmPODialog(true),
+    },
+    {
+      label: "Remove Company",
+      onClick: () => onDeleteCompany(biddingItemId, biddingCompany.id),
+      variant: 'destructive' as const,
+      requiresConfirmation: true,
+      confirmTitle: "Remove Company",
+      confirmDescription: `Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`,
+      hidden: isReadOnly,
+    },
+  ];
+
   return (
-    <TableRow className="bg-gray-50/50">
-      <TableCell className="w-12 py-1">
+    <TableRow>
+      <TableCell>
         {!isReadOnly && onCheckboxChange && (
           <Checkbox
             checked={isSelected}
@@ -93,14 +112,12 @@ export function BiddingCompanyRow({
           />
         )}
       </TableCell>
-        <TableCell className="py-1 text-sm">
-        <div className="ml-8">
-          <div className="font-medium text-sm whitespace-nowrap">
-            {biddingCompany.companies.company_name}
-          </div>
-        </div>
+      <TableCell>
+        <span className="font-medium whitespace-nowrap">
+          {biddingCompany.companies.company_name}
+        </span>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <Select 
           value={biddingCompany.bid_status || "no_choice"} 
           onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
@@ -116,7 +133,7 @@ export function BiddingCompanyRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <Input
           type="text"
           placeholder="$0.00"
@@ -127,7 +144,7 @@ export function BiddingCompanyRow({
           disabled={isReadOnly}
         />
       </TableCell>
-      <TableCell className="py-1">
+      <TableCell>
         <ProposalCell
           proposals={biddingCompany.proposals}
           companyId={biddingCompany.id}
@@ -137,82 +154,8 @@ export function BiddingCompanyRow({
           isReadOnly={isReadOnly}
         />
       </TableCell>
-      <TableCell className="py-1">
-        <div className="flex items-center gap-1">
-          {!isReadOnly && onSendEmail && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => onSendEmail(biddingCompany.company_id)}
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                >
-                  <Send className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Send Email to Company</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {isReadOnly && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => setShowConfirmPODialog(true)}
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                >
-                  <Send className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Resend PO Email</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {!isReadOnly && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <DeleteButton
-                      onDelete={() => onDeleteCompany(biddingItemId, biddingCompany.id)}
-                      title="Remove Company"
-                      description={`Are you sure you want to remove "${biddingCompany.companies.company_name}" from this bidding item?`}
-                      size="sm"
-                      variant="ghost"
-                      showIcon={true}
-                    />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Delete</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="py-1">
-        {!isReadOnly && (
-          <Button
-            onClick={() => setShowConfirmPODialog(true)}
-            size="sm"
-            variant="outline"
-            className="h-8 px-3 text-sm bg-background border border-border hover:bg-accent"
-          >
-            <Mail className="h-3 w-3 mr-1" />
-            Send PO
-          </Button>
-        )}
-        {isReadOnly && (
-          <span className="text-sm font-medium">
-            {getPOStatusForCompany(biddingCompany.company_id)}
-          </span>
-        )}
+      <TableCell className="text-center">
+        <TableRowActions actions={actions} />
       </TableCell>
 
       <ConfirmPODialog
