@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Building2, Edit } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { usePendingBills, PendingBill } from "@/hooks/usePendingBills";
 import { ApproveBillDialog } from "./ApproveBillDialog";
@@ -10,7 +9,7 @@ import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
 import { RejectBillDialog } from "./RejectBillDialog";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
-import { DeleteButton } from "@/components/ui/delete-button";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ExtractedData {
@@ -91,55 +90,36 @@ export const BillsReviewTableRow = ({
           </span>
         </TableCell>
         <TableCell>{getStatusBadge(bill.status)}</TableCell>
-        <TableCell className="text-right">
-          <div className="flex justify-end gap-2">
-            {(bill.status === 'completed' || bill.status === 'reviewing') && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setShowEditDialog(true)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit bill</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {bill.status === 'reviewing' && (
-              <>
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={() => setShowApproveDialog(true)}
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setShowRejectDialog(true)}
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Reject
-                </Button>
-              </>
-            )}
-            <DeleteButton
-              onDelete={async () => {
+        <TableCell className="text-center">
+          <TableRowActions actions={[
+            {
+              label: "Edit",
+              onClick: () => setShowEditDialog(true),
+              hidden: !(bill.status === 'completed' || bill.status === 'reviewing'),
+            },
+            {
+              label: "Approve",
+              onClick: () => setShowApproveDialog(true),
+              hidden: bill.status !== 'reviewing',
+            },
+            {
+              label: "Reject",
+              onClick: () => setShowRejectDialog(true),
+              variant: "destructive",
+              hidden: bill.status !== 'reviewing',
+            },
+            {
+              label: "Delete",
+              onClick: async () => {
                 await deletePendingUpload.mutateAsync(bill.id);
-              }}
-              title="Delete Pending Bill"
-              description="This will permanently delete this pending bill upload and all associated line items. This action cannot be undone."
-              isLoading={deletePendingUpload.isPending}
-              size="sm"
-            />
-          </div>
+              },
+              variant: "destructive",
+              requiresConfirmation: true,
+              confirmTitle: "Delete Pending Bill",
+              confirmDescription: "This will permanently delete this pending bill upload and all associated line items. This action cannot be undone.",
+              isLoading: deletePendingUpload.isPending,
+            },
+          ]} />
         </TableCell>
       </TableRow>
       
