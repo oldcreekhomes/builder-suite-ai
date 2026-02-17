@@ -288,7 +288,7 @@ export function PayBillDialog({
                 <p className="text-sm text-destructive">{paymentAmountError}</p>
               )}
               {!paymentAmountError && !isNaN(parsedPaymentAmount) && parsedPaymentAmount > 0 && (
-              <div className={`text-sm ${newRemainingBalance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-sm ${newRemainingBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   After payment: <span className="font-medium">{formatCurrency(newRemainingBalance)}</span> remaining
                 </div>
               )}
