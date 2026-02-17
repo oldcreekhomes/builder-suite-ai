@@ -3,7 +3,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, FileText, Loader2, Plus } from "lucide-react";
+import { Trash2, FileText, Loader2, Plus } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
@@ -74,6 +75,7 @@ interface PendingBillLine {
   description?: string;
   lot_id?: string;
   lot_name?: string;
+  purchase_order_id?: string;
 }
 
 interface PendingBill {
@@ -508,7 +510,7 @@ export function BatchBillReviewTable({
               <TableHead className="px-2 py-0 text-xs font-medium w-24">Address</TableHead>
               <TableHead className="px-2 py-0 text-xs font-medium w-14 text-center">Files</TableHead>
               <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">PO Status</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-20">Actions</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -559,7 +561,7 @@ export function BatchBillReviewTable({
               <TableHead className="px-2 py-0 text-xs font-medium w-24">Address</TableHead>
               <TableHead className="px-2 py-0 text-xs font-medium w-14 text-center">Files</TableHead>
               <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">PO Status</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-20">Actions</TableHead>
+              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -853,31 +855,19 @@ export function BatchBillReviewTable({
                   
                   {/* PO Status */}
                   <TableCell className="px-2 py-1 w-20 text-center">
-                    <POStatusBadge status="no_po" />
+                    <POStatusBadge status={
+                      bill.extracted_data?.line_items?.some((line: PendingBillLine) => line.purchase_order_id)
+                        ? 'matched'
+                        : 'no_po'
+                    } />
                   </TableCell>
                   
                   {/* Actions */}
-                  <TableCell className="px-2 py-1 w-20">
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => setEditingBillId(bill.id)}
-                        title="Edit bill"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => onBillDelete(bill.id)}
-                        title="Delete bill"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                  <TableCell className="px-2 py-1 w-20 text-center">
+                    <TableRowActions actions={[
+                      { label: "Edit", onClick: () => setEditingBillId(bill.id) },
+                      { label: "Delete", onClick: () => onBillDelete(bill.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Bill", confirmDescription: "Are you sure you want to delete this extracted bill? This action cannot be undone." },
+                    ]} />
                   </TableCell>
               </TableRow>
             );
