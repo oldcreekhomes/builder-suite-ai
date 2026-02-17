@@ -983,7 +983,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       })()
                     ) : '-'}
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       {formatCurrency(
                         bill.total_amount < 0
