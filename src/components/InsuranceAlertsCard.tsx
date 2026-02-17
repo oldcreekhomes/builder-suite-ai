@@ -33,7 +33,7 @@ export const InsuranceAlertsCard = () => {
           )}
         </div>
       </div>
-      <CardContent className="flex-1 overflow-hidden p-0">
+      <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading alerts...</p>
         ) : alerts.length === 0 ? (
@@ -57,7 +57,7 @@ export const InsuranceAlertsCard = () => {
                   ) : (
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                   )}
-                  <p className="text-sm text-foreground truncate flex-1 min-w-0">
+                  <p className="text-sm text-foreground truncate flex-1 min-w-0" title={alert.companyName}>
                     {alert.companyName}
                   </p>
                   <p className="text-xs text-muted-foreground truncate max-w-[140px] flex-shrink-0">
