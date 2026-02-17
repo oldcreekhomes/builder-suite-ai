@@ -36,7 +36,7 @@ interface BidPackageDetailsModalProps {
   onFileUpload?: (itemId: string, files: File[]) => void;
   onDeleteIndividualFile?: (itemId: string, fileName: string) => void;
   onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
-  onSendClick?: () => void;
+  onSendClick?: (filteredCompanyIds: string[]) => void;
   onTestEmailClick?: () => void;
   onAddCompaniesClick?: () => void;
   onCloseWithPO?: () => void;
@@ -296,7 +296,10 @@ export function BidPackageDetailsModal({
                     item={item}
                     costCode={costCode}
                     onDelete={(itemId) => onDelete?.(itemId)}
-                    onSendClick={() => onSendClick?.()}
+                    onSendClick={() => {
+                      const ids = distanceFilter.filteredCompanies.map((c: any) => c.company_id);
+                      onSendClick?.(ids);
+                    }}
                     onTestEmailClick={() => onTestEmailClick?.()}
                     onAddCompaniesClick={() => onAddCompaniesClick?.()}
                     isDeleting={false}

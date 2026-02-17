@@ -23,9 +23,10 @@ interface SendBidPackageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bidPackage: any;
+  filteredCompanyIds?: string[];
 }
 
-export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidPackageModalProps) {
+export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCompanyIds }: SendBidPackageModalProps) {
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -65,7 +66,12 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage }: SendBidP
         return [];
       }
 
-      return data || [];
+      const results = data || [];
+      // If filteredCompanyIds is provided, only include those companies
+      if (filteredCompanyIds && filteredCompanyIds.length > 0) {
+        return results.filter(bid => filteredCompanyIds.includes(bid.company_id));
+      }
+      return results;
     },
     enabled: !!bidPackage?.id && open,
   });
