@@ -98,8 +98,7 @@ export function BidPackageDetailsModal({
   removeUpload
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [distanceFilterEnabled, setDistanceFilterEnabled] = useState(true);
-  const [distanceRadius, setDistanceRadius] = useState(50);
+  const [distanceRadius, setDistanceRadius] = useState(25);
 
   const handleStatusChange = (value: string) => {
     if (value === 'closed') {
@@ -118,7 +117,7 @@ export function BidPackageDetailsModal({
   };
 
   const distanceFilter = useDistanceFilter({
-    enabled: distanceFilterEnabled,
+    enabled: true,
     radiusMiles: distanceRadius,
     projectAddress: projectAddress || '',
     companies: item.project_bids || []
@@ -298,12 +297,11 @@ export function BidPackageDetailsModal({
 
           {/* Distance Filter Bar */}
           <DistanceFilterBar
-            enabled={distanceFilterEnabled}
-            onEnabledChange={setDistanceFilterEnabled}
             radiusMiles={distanceRadius}
             onRadiusChange={setDistanceRadius}
             projectAddress={projectAddress}
-            companies={item.project_bids || []}
+            filteredCount={distanceFilter.filteredCompanies.length}
+            totalCount={(item.project_bids || []).length}
             isCalculating={distanceFilter.isCalculating}
           />
 
