@@ -102,10 +102,14 @@ export function useVendorPurchaseOrders(
       if (poLineIds.length > 0) {
         const { data: lineBilled } = await supabase
           .from('bill_lines')
-          .select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date)')
-          .in('purchase_order_line_id', poLineIds);
+        .select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
+        .in('purchase_order_line_id', poLineIds);
 
-        (lineBilled || []).forEach((bl: any) => {
+        const activeBilled = (lineBilled || []).filter((bl: any) =>
+          bl.bills?.status && bl.bills.status !== 'draft'
+        );
+
+        activeBilled.forEach((bl: any) => {
           if (bl.purchase_order_line_id) {
             const current = billedByLineId.get(bl.purchase_order_line_id) || 0;
             billedByLineId.set(bl.purchase_order_line_id, current + (bl.amount || 0));
@@ -133,9 +137,13 @@ export function useVendorPurchaseOrders(
       // Also fetch billed amounts at PO level (for lines linked by purchase_order_id but not purchase_order_line_id)
       const { data: poBilled } = await supabase
         .from('bill_lines')
-        .select('purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date)')
+        .select('purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
         .in('purchase_order_id', poIds)
         .is('purchase_order_line_id', null);
+
+      const activePoBilled = (poBilled || []).filter((bl: any) =>
+        bl.bills?.status && bl.bills.status !== 'draft'
+      );
 
       // --- Helper: simple keyword overlap for memo-to-description matching ---
       const ORDINAL_MAP: Record<string, string> = {
@@ -168,7 +176,7 @@ export function useVendorPurchaseOrders(
       // Distribute PO-level billing to line items by cost_code + memo match, or keep as unallocated
       const billedByPoIdOnly = new Map<string, number>();
       const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
-      (poBilled || []).forEach((bl: any) => {
+      activePoBilled.forEach((bl: any) => {
         if (!bl.purchase_order_id) return;
 
         const invoice: BilledInvoice = {
