@@ -697,11 +697,11 @@ export function BatchBillReviewTable({
                   <TableCell className="w-36">
                     {!vendorId && vendorName ? (
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-destructive font-medium truncate max-w-20">{vendorName}</span>
+                        <span className="text-destructive font-medium truncate max-w-20">{vendorName}</span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 px-1.5 text-xs font-normal text-primary hover:text-primary hover:bg-primary/10"
+                          className="h-5 px-1.5 font-normal text-primary hover:text-primary hover:bg-primary/10"
                           onClick={() => handleRematchVendor(bill.id)}
                           disabled={rematchingBillId === bill.id}
                           title="Try to match vendor again"
@@ -715,7 +715,7 @@ export function BatchBillReviewTable({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 px-1.5 text-xs font-normal text-primary hover:text-primary hover:bg-primary/10"
+                          className="h-5 px-1.5 font-normal text-primary hover:text-primary hover:bg-primary/10"
                           onClick={() => handleAddVendor(bill.id, vendorName as string)}
                           title="Add vendor to database"
                         >
@@ -726,7 +726,7 @@ export function BatchBillReviewTable({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-xs block truncate">{vendorName || '-'}</span>
+                            <span className="block truncate">{vendorName || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{vendorName || '-'}</p>
@@ -739,12 +739,12 @@ export function BatchBillReviewTable({
                   {/* Cost Code */}
                   <TableCell className="w-44">
                     {accountDisplayData.display === null ? (
-                      <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
+                      <Badge variant="destructive" className="h-5">Missing</Badge>
                     ) : (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-xs block truncate cursor-default">{accountDisplayData.display}</span>
+                            <span className="block truncate cursor-default">{accountDisplayData.display}</span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             {accountDisplayData.count <= 1 ? (
@@ -782,15 +782,15 @@ export function BatchBillReviewTable({
                   {/* Amount */}
                   <TableCell className="w-24">
                     {totalAmount > 0 ? (
-                      <span className="text-xs font-medium">{formatCurrency(totalAmount)}</span>
+                      <span className="font-medium">{formatCurrency(totalAmount)}</span>
                     ) : (
-                      <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
+                      <Badge variant="destructive" className="h-5">Missing</Badge>
                     )}
                   </TableCell>
                   
                   {/* Reference */}
                   <TableCell className="w-32">
-                    <span className="text-xs block truncate">{referenceNumber || '-'}</span>
+                    <span className="block truncate">{referenceNumber || '-'}</span>
                   </TableCell>
                   
                   {/* Memo */}
