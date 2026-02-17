@@ -833,7 +833,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   onChange={handleHeaderCheckboxChange}
                 />
               </TableHead>
-              <TableHead>
+              <TableHead className="w-36">
                 <button
                   type="button"
                   onClick={() => handleSort('vendor')}
@@ -851,11 +851,11 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   )}
                 </button>
               </TableHead>
-              <TableHead>Cost Code</TableHead>
+              <TableHead className="w-44">Cost Code</TableHead>
               {showProjectColumn && (
-                <TableHead>Project</TableHead>
+                <TableHead className="w-44">Project</TableHead>
               )}
-              <TableHead>
+              <TableHead className="w-24">
                 <button
                   type="button"
                   onClick={() => handleSort('bill_date')}
@@ -873,7 +873,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   )}
                 </button>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-24">
                 <button
                   type="button"
                   onClick={() => handleSort('due_date')}
@@ -891,7 +891,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   )}
                 </button>
               </TableHead>
-              <TableHead>Amount</TableHead>
+              <TableHead className="w-24">Amount</TableHead>
               <TableHead className="w-40">Reference</TableHead>
               <TableHead className="w-24">Address</TableHead>
               

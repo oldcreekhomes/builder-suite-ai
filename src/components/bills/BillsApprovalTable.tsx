@@ -593,9 +593,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     <>
       <div className="flex flex-col h-full">
         {/* Scrollable table container */}
-        <div className="border rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
-          <div className="overflow-auto flex-1 min-h-0">
-            <Table containerClassName="relative w-full" className="table-fixed">
+        <div className="border rounded-lg">
+            <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   {showProjectColumn && (
@@ -1014,7 +1013,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             )}
               </TableBody>
             </Table>
-          </div>
         </div>
 
         {/* Footer - always visible, never scrolls */}
