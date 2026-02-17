@@ -1,80 +1,91 @@
 
 
-## Fix: Pass Current Bill Context to PO Details Dialog
+## Fix: Distribute PO-Level Billing to Line Items by Cost Code
 
 ### Problem
 
-When clicking the info (i) button on a PO in the Edit Extracted Bill dialog, the PO Details dialog opens but:
-1. **No green highlighting** showing which billed amounts belong to the current bill
-2. The current bill reference and amount aren't displayed at the bottom
+Bills from Four Seasons Construction were linked to the PO at the header level (`purchase_order_id` set, `purchase_order_line_id` NULL). The current code correctly fetches these but dumps them all into "Unallocated" ($11,206). Instead, it should match them to the correct PO line items using cost_code_id, so that the "Decks" line shows $1,032 billed (from INV0021's deck line), framing labor lines show their billed amounts, etc.
 
-This is because `POSelectionDropdown` renders `PODetailsDialog` without passing `currentBillId`, `currentBillAmount`, or `currentBillReference` props (line 217-223 of POSelectionDropdown.tsx). The approval table's wrapper correctly passes these, but the extraction dialog's dropdown does not.
+### Root Cause
+
+In `src/hooks/useVendorPurchaseOrders.ts`, lines 125-149 fetch bill_lines where `purchase_order_id` is set but `purchase_order_line_id` is NULL. All of these are lumped into `billedByPoIdOnly` and `unallocatedInvoicesByPoId` maps, which feed directly into the "Unallocated" row. There is no attempt to match them to PO lines by cost code.
 
 ### Solution
 
-**File: `src/components/bills/POSelectionDropdown.tsx`**
+**File: `src/hooks/useVendorPurchaseOrders.ts`**
 
-1. Add optional props for `currentBillId`, `currentBillAmount`, and `currentBillReference` to the component interface
-2. Pass them through to the `PODetailsDialog` render
+After fetching PO-level bill_lines (line 130), instead of putting them all into unallocated, try to match each one to a PO line item by cost_code_id:
 
-**File: `src/components/bills/EditExtractedBillDialog.tsx`**
+1. For each PO-level bill_line, look for a PO line in the same PO that shares the same `cost_code_id`
+2. If a match is found, add the billed amount and invoice to that line's totals (same maps used by line-level billing: `billedByLineId` and `invoicesByLineId`)
+3. Only if no cost_code match is found, put it into "Unallocated"
 
-3. Pass the current bill's ID (if editing an existing bill), total amount, and reference number to each `POSelectionDropdown`
+```text
+Logic change (lines 135-149):
+
+For each PO-level bill_line:
+  1. Find PO lines for this PO that match the bill_line's cost_code_id
+  2. If exactly one match: attribute to that PO line
+  3. If multiple matches: attribute to the first one (or split -- but single match is most common)
+  4. If no match: keep as unallocated (current behavior)
+```
+
+This ensures:
+- The $7,000 + $3,206 + $1,000 framing labor bills (cost code 4370) get attributed to the 4370 PO lines
+- Any deck-related billing (cost code 4810) gets attributed to the Decks PO line
+- Only truly unmatched billing remains in "Unallocated"
 
 ### Technical Details
 
-**POSelectionDropdown.tsx** -- Add 3 new optional props:
+The key change is in the loop at lines 135-149. Instead of blindly adding to `billedByPoIdOnly`, check if the bill_line's `cost_code_id` matches any PO line's `cost_code_id` within the same PO:
 
 ```typescript
-interface POSelectionDropdownProps {
-  // ... existing props ...
-  currentBillId?: string;
-  currentBillAmount?: number;
-  currentBillReference?: string;
-}
+(poBilled || []).forEach((bl: any) => {
+  if (!bl.purchase_order_id) return;
+  
+  // Try to match to a PO line by cost_code_id
+  const poLineList = linesByPo.get(bl.purchase_order_id) || [];
+  const matchingLine = poLineList.find(l => l.cost_code_id && l.cost_code_id === bl.cost_code_id);
+  
+  const invoice: BilledInvoice = {
+    bill_id: bl.bill_id,
+    reference_number: bl.bills?.reference_number || 'No Ref',
+    bill_date: bl.bills?.bill_date || '',
+    amount: bl.amount || 0,
+  };
+  
+  if (matchingLine) {
+    // Attribute to the matched PO line
+    billedByLineId.set(matchingLine.id, (billedByLineId.get(matchingLine.id) || 0) + (bl.amount || 0));
+    const invoices = invoicesByLineId.get(matchingLine.id) || [];
+    invoices.push(invoice);
+    invoicesByLineId.set(matchingLine.id, invoices);
+  } else {
+    // No match -- keep as unallocated
+    billedByPoIdOnly.set(bl.purchase_order_id, (billedByPoIdOnly.get(bl.purchase_order_id) || 0) + (bl.amount || 0));
+    const invoices = unallocatedInvoicesByPoId.get(bl.purchase_order_id) || [];
+    invoices.push(invoice);
+    unallocatedInvoicesByPoId.set(bl.purchase_order_id, invoices);
+  }
+});
 ```
 
-Pass them to `PODetailsDialog` at lines 217-223:
+**Important**: The `linesByPo` map must be built BEFORE this loop (it currently is built after, at line 152). The line grouping code needs to move up, before the PO-level billing distribution.
 
-```typescript
-<PODetailsDialog
-  open={dialogOpen}
-  onOpenChange={setDialogOpen}
-  purchaseOrder={selectedPOForDialog}
-  projectId={projectId}
-  vendorId={vendorId}
-  currentBillId={currentBillId}
-  currentBillAmount={currentBillAmount}
-  currentBillReference={currentBillReference}
-/>
-```
+### Ordering Change
 
-**EditExtractedBillDialog.tsx** -- Pass bill context to each POSelectionDropdown:
-
-```typescript
-<POSelectionDropdown
-  projectId={projectId}
-  vendorId={vendorId}
-  value={line.purchase_order_id}
-  purchaseOrderLineId={line.purchase_order_line_id}
-  onChange={...}
-  costCodeId={line.cost_code_id}
-  currentBillId={bill?.id}
-  currentBillAmount={totalAmount}
-  currentBillReference={referenceNumber}
-/>
-```
+Move lines 151-157 (the `linesByPo` grouping) to before line 132 (before the PO-level billing loop), so that PO lines are available for cost_code matching.
 
 ### Expected Result
 
-- When viewing PO details from the Edit Extracted Bill dialog, billed amounts from the current bill will be highlighted in green
-- The current bill reference and amount will appear at the bottom of the PO dialog
-- Matches the behavior already working in the approval table view
+- Framing Labor lines show their billed totals from INV0010/INV0012
+- Decks line shows $1,032 billed (highlighted green for current bill)
+- Unallocated drops to $0 (or only contains truly unmatched items)
+- Tooltips on billed amounts show the correct invoice breakdowns
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/bills/POSelectionDropdown.tsx` | Add currentBillId/Amount/Reference props, pass to PODetailsDialog |
-| `src/components/bills/EditExtractedBillDialog.tsx` | Pass bill context to POSelectionDropdown |
+| `src/hooks/useVendorPurchaseOrders.ts` | Move linesByPo grouping up; distribute PO-level billing to lines by cost_code match |
 
