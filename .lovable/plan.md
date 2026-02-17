@@ -1,91 +1,59 @@
 
 
-## Fix: Distribute PO-Level Billing to Line Items by Cost Code
+## Fix: Smart Memo-Based Matching for PO-Level Billing Distribution
 
 ### Problem
 
-Bills from Four Seasons Construction were linked to the PO at the header level (`purchase_order_id` set, `purchase_order_line_id` NULL). The current code correctly fetches these but dumps them all into "Unallocated" ($11,206). Instead, it should match them to the correct PO line items using cost_code_id, so that the "Decks" line shows $1,032 billed (from INV0021's deck line), framing labor lines show their billed amounts, etc.
+The cost_code matching we added lumps all billing onto the first PO line when multiple lines share the same cost code. For PO 2025-115E-0006, 14 out of 17 lines share cost code 4370 (Framing Labor), so all $11,206 in billing gets attributed to "Ground floor" (the first 4370 line).
 
-### Root Cause
-
-In `src/hooks/useVendorPurchaseOrders.ts`, lines 125-149 fetch bill_lines where `purchase_order_id` is set but `purchase_order_line_id` is NULL. All of these are lumped into `billedByPoIdOnly` and `unallocatedInvoicesByPoId` maps, which feed directly into the "Unallocated" row. There is no attempt to match them to PO lines by cost code.
+The bill lines have descriptive memos that should guide the matching:
+- "Second floor framing draw" ($7,000) should match "2nd floor" PO line
+- "First floor balance" ($3,206) should match "First floor" PO line
+- "Deck framing draw" ($1,000) should match "Decks" PO line
 
 ### Solution
 
 **File: `src/hooks/useVendorPurchaseOrders.ts`**
 
-After fetching PO-level bill_lines (line 130), instead of putting them all into unallocated, try to match each one to a PO line item by cost_code_id:
+Update the PO-level billing distribution logic (lines 140-172) with a three-tier matching strategy:
 
-1. For each PO-level bill_line, look for a PO line in the same PO that shares the same `cost_code_id`
-2. If a match is found, add the billed amount and invoice to that line's totals (same maps used by line-level billing: `billedByLineId` and `invoicesByLineId`)
-3. Only if no cost_code match is found, put it into "Unallocated"
-
-```text
-Logic change (lines 135-149):
-
-For each PO-level bill_line:
-  1. Find PO lines for this PO that match the bill_line's cost_code_id
-  2. If exactly one match: attribute to that PO line
-  3. If multiple matches: attribute to the first one (or split -- but single match is most common)
-  4. If no match: keep as unallocated (current behavior)
-```
-
-This ensures:
-- The $7,000 + $3,206 + $1,000 framing labor bills (cost code 4370) get attributed to the 4370 PO lines
-- Any deck-related billing (cost code 4810) gets attributed to the Decks PO line
-- Only truly unmatched billing remains in "Unallocated"
+1. **Unique cost code match**: If exactly ONE PO line has the matching cost_code_id, attribute to it (current behavior, but only when unique)
+2. **Memo-to-description keyword match**: When multiple PO lines share the same cost code, compare the bill line's memo against each PO line's description using keyword overlap to find the best match
+3. **Unallocated fallback**: If no confident match is found, keep as unallocated
 
 ### Technical Details
 
-The key change is in the loop at lines 135-149. Instead of blindly adding to `billedByPoIdOnly`, check if the bill_line's `cost_code_id` matches any PO line's `cost_code_id` within the same PO:
+**Add `memo` to the poBilled query** (line 136) so it's available for matching.
 
-```typescript
-(poBilled || []).forEach((bl: any) => {
-  if (!bl.purchase_order_id) return;
-  
-  // Try to match to a PO line by cost_code_id
-  const poLineList = linesByPo.get(bl.purchase_order_id) || [];
-  const matchingLine = poLineList.find(l => l.cost_code_id && l.cost_code_id === bl.cost_code_id);
-  
-  const invoice: BilledInvoice = {
-    bill_id: bl.bill_id,
-    reference_number: bl.bills?.reference_number || 'No Ref',
-    bill_date: bl.bills?.bill_date || '',
-    amount: bl.amount || 0,
-  };
-  
-  if (matchingLine) {
-    // Attribute to the matched PO line
-    billedByLineId.set(matchingLine.id, (billedByLineId.get(matchingLine.id) || 0) + (bl.amount || 0));
-    const invoices = invoicesByLineId.get(matchingLine.id) || [];
-    invoices.push(invoice);
-    invoicesByLineId.set(matchingLine.id, invoices);
-  } else {
-    // No match -- keep as unallocated
-    billedByPoIdOnly.set(bl.purchase_order_id, (billedByPoIdOnly.get(bl.purchase_order_id) || 0) + (bl.amount || 0));
-    const invoices = unallocatedInvoicesByPoId.get(bl.purchase_order_id) || [];
-    invoices.push(invoice);
-    unallocatedInvoicesByPoId.set(bl.purchase_order_id, invoices);
-  }
-});
+**Matching function** - simple keyword overlap scorer:
+- Tokenize bill line memo and PO line description into lowercase words
+- Count matching tokens (with basic normalization: "2nd" matches "second", "deck" matches "decks")
+- Select the PO line with the highest overlap score, requiring at least 1 keyword match
+
+```text
+Example matches:
+  memo "Second floor framing draw" vs description "2nd floor" -> 2 matches ("second/2nd", "floor")
+  memo "Second floor framing draw" vs description "Ground floor" -> 1 match ("floor")
+  -> Best match: "2nd floor" (score 2 vs 1)
+
+  memo "Deck framing draw" vs description "Decks" -> 1 match ("deck/decks")
+  memo "Deck framing draw" vs description "Ground floor" -> 0 matches
+  -> Best match: "Decks"
 ```
 
-**Important**: The `linesByPo` map must be built BEFORE this loop (it currently is built after, at line 152). The line grouping code needs to move up, before the PO-level billing distribution.
-
-### Ordering Change
-
-Move lines 151-157 (the `linesByPo` grouping) to before line 132 (before the PO-level billing loop), so that PO lines are available for cost_code matching.
+**Scoring priority**: Among PO lines with the same cost code, pick the one with the highest keyword overlap. If tied or no keywords match, keep as unallocated.
 
 ### Expected Result
 
-- Framing Labor lines show their billed totals from INV0010/INV0012
-- Decks line shows $1,032 billed (highlighted green for current bill)
-- Unallocated drops to $0 (or only contains truly unmatched items)
-- Tooltips on billed amounts show the correct invoice breakdowns
+- "2nd floor" shows $7,000 billed (green for INV0010)
+- "First floor" shows $3,206 billed
+- "Decks" shows $1,000 billed
+- "Ground floor" shows $0.00 billed
+- Unallocated drops to $0
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/hooks/useVendorPurchaseOrders.ts` | Move linesByPo grouping up; distribute PO-level billing to lines by cost_code match |
+| `src/hooks/useVendorPurchaseOrders.ts` | Add memo to query; implement three-tier matching (unique cost code, memo keyword overlap, unallocated fallback) |
 
