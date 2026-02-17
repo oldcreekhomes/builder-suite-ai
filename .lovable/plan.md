@@ -1,35 +1,29 @@
 
 
-## Fix: $0.00 Remaining Shows as Red "-$0.00" Instead of Green "$0.00"
+## Clean Up PODetailsDialog Layout
 
-### Problem
-When a bill exactly matches the PO amount, floating-point arithmetic produces `-0.00` instead of `$0.00`. This causes:
-- The remaining amount to display as "-$0.00" in red (destructive) instead of "$0.00" in green
-- A false "This bill will put the PO over budget by $0.00" warning banner to appear
-- Misleading visual signals that suggest a problem when the bill is a perfect match
+Three changes to simplify the dialog and fix alignment:
 
-### Solution
-Round the `projectedRemaining` and `lineProjectedRemaining` values to the nearest cent to eliminate floating-point artifacts, and treat zero as a non-negative value (green, not red).
+### 1. Remove Summary Row (lines 132-158)
+The summary row (PO Total, Billed to Date, This Bill, Remaining) duplicates the Totals row in the table. Delete it entirely since the table already shows all totals clearly.
+
+### 2. Remove Footer (lines 278-285)
+The "Current Bill: CU202508 for $11,500.00" footer repeats info already visible in the "This Bill" column header and table. Delete the `currentBillAmount` conditional block at the bottom.
+
+### 3. Table Header Fixes
+- Change "Billed" to "Billed To Date" (line 170)
+- Change "This Bill" from `text-right` to `text-left` to match Cost Code and Description alignment (line 171)
+- Also update the "This Bill" data cells (line 202) to `text-left` for consistency
 
 ### Technical Details
 
 **File: `src/components/bills/PODetailsDialog.tsx`**
 
-1. After computing `projectedRemaining` (line 110), round it to 2 decimal places and normalize negative zero:
-   ```typescript
-   const projectedRemaining = Math.round((purchaseOrder.remaining - totalPending) * 100) / 100;
-   ```
-
-2. Inside the line items loop, do the same for `lineProjectedRemaining`:
-   ```typescript
-   const lineProjectedRemaining = Math.round((line.remaining - linePending) * 100) / 100;
-   ```
-
-3. The existing color logic already handles this correctly once the values are properly rounded -- `0 < 0` is false, so it won't get the destructive color; `0 > 0` is false, so it falls through to no special class (default text). We should update the zero case to explicitly show green since $0.00 remaining means "fully allocated, on budget":
-   - Change `projectedRemaining > 0 ? "text-green-700" : ""` to `projectedRemaining >= 0 ? "text-green-700" : ""`
-   - Apply the same change at all 4 locations where this pattern appears (summary row, line items, totals row)
-
-4. The warning banner condition `projectedOverBudget` (line 111) will automatically stop firing since `0 < 0` is false after rounding.
-
-This is a small fix -- about 6 lines changed in one file. No new dependencies or queries needed.
+- Delete the summary `div` block (lines 132-158)
+- Change `<TableHead className="text-xs text-right">Billed</TableHead>` to `Billed To Date`
+- Change `<TableHead className="text-xs text-right">This Bill</TableHead>` to remove `text-right`
+- Update `<TableCell className="text-xs text-right">` for This Bill cells to remove `text-right`
+- Update the Totals row This Bill cell similarly
+- Delete the `currentBillAmount` footer block (lines 278-285)
+- The over-budget warning banner stays -- it serves a distinct purpose as an alert
 
