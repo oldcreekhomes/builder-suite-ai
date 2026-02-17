@@ -26,7 +26,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { format } from "date-fns";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
-import { PODetailsDialogWrapper } from "./PODetailsDialogWrapper";
+import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
 import { CreditUsageHistoryDialog } from "./CreditUsageHistoryDialog";
 
 interface BillAttachment {
@@ -116,11 +116,11 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [poDialogState, setPoDialogState] = useState<{
     open: boolean;
-    poMatch: POMatch | null;
+    matches: POMatch[];
     bill: BillForPayment | null;
   }>({
     open: false,
-    poMatch: null,
+    matches: [],
     bill: null,
   });
   const [creditHistoryDialog, setCreditHistoryDialog] = useState<{
@@ -1085,16 +1085,16 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     {(() => {
                       const matchResult = poMatchingData?.get(bill.id);
                       const status = matchResult?.overall_status || 'no_po';
-                      const firstMatch = matchResult?.matches?.[0] || null;
+                      const matches = matchResult?.matches || [];
                       
                       return (
                         <POStatusBadge
                           status={status}
                           onClick={() => {
-                            if (firstMatch) {
+                            if (matches.length > 0) {
                               setPoDialogState({
                                 open: true,
-                                poMatch: firstMatch,
+                                matches,
                                 bill: bill
                               });
                             }
@@ -1183,9 +1183,11 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
         billId={editingBillId || ''}
       />
 
-      <PODetailsDialogWrapper
-        poDialogState={poDialogState}
-        onClose={() => setPoDialogState({ open: false, poMatch: null, bill: null })}
+      <BillPOSummaryDialog
+        open={poDialogState.open}
+        onOpenChange={(open) => { if (!open) setPoDialogState({ open: false, matches: [], bill: null }); }}
+        matches={poDialogState.matches}
+        bill={poDialogState.bill}
       />
 
       <CreditUsageHistoryDialog
