@@ -1,38 +1,41 @@
 
-## Fix Backfill Damage + PO Status Badge on Extracted Bills
+## Fix PO Status Badge on Extracted Bills Table
 
-### What Went Wrong
+### Problem
+The "PO Status" column in the Extracted Bills table always shows "No PO" even though the Edit dialog correctly auto-matches all three line items to purchase orders (85%, 85%, 95% confidence).
 
-The backfill migration from the last change had a critical JOIN bug. It matched `bill_lines` to `pending_bill_lines` using only `line_number` (e.g., 1, 2, 3) plus a loose owner check. Since `line_number` is not unique across bills, this caused a massive cross-join: **986 bill lines across 657 bills** were incorrectly assigned purchase order IDs, when only **5 pending_bill_lines** actually have PO assignments. This is why the PO details dialogs show "$200,104.04 Billed to Date" and "$48,089.52 Billed to Date" -- hundreds of unrelated bills are now erroneously linked to those POs.
+### Root Cause
+The PO auto-matching logic runs **only inside the EditExtractedBillDialog** component (in local React state). The `purchase_order_id` values are only written to the `pending_bill_lines` database table when the user clicks "Save Changes." The table reads `purchase_order_id` directly from the database, where it is `NULL` until saved.
 
-### Two Issues to Fix
+So the flow is:
+1. Table loads lines from DB -- `purchase_order_id` is NULL -- badge shows "No PO"
+2. User opens Edit dialog -- auto-matching runs in local state -- POs appear correct
+3. User closes without saving -- table still shows "No PO"
+4. Even if user saves, the re-fetch we added in the last change should update it -- but users shouldn't need to Save just to see the correct status
 
-**Issue 1: Reverse the backfill damage (critical)**
-- Run a new migration that clears all incorrectly assigned `purchase_order_id` values from `bill_lines`
-- Then re-apply the backfill correctly, matching through the actual bill-to-pending-upload relationship (using `pending_bill_uploads.status = 'approved'` and tracing the bill via owner_id + vendor_id + bill creation timestamp proximity, or simply clearing all and only keeping what the function now correctly handles going forward)
-- Safest approach: NULL out all `purchase_order_id` on `bill_lines` except for the specific bills that were approved from the 3 known pending uploads, then re-apply those correctly
+### Solution
+Two changes to ensure PO status is accurate immediately:
 
-**Issue 2: PO Status badge shows "No PO" on extracted bills table**
-- The `BatchBillReviewTable` checks `line.purchase_order_id` on the `bill.lines` array (lines 858-867)
-- The data comes from `pending_bill_lines` fetched in `BillsApprovalTabs.tsx`
-- The `pending_bill_lines` query at line 96-100 uses `select('*, project_lots(...)')` which does include `purchase_order_id` from the table
-- However, when the `EditExtractedBillDialog` saves PO assignments, the parent `batchBills` state may not get refreshed with the updated `purchase_order_id` values
-- Need to ensure the `EditExtractedBillDialog` `onSave` callback propagates `purchase_order_id` changes back to the parent state, or that the parent re-fetches lines after the dialog closes
+**1. Auto-persist PO matches when they are computed (EditExtractedBillDialog)**
+When the auto-matching logic in `EditExtractedBillDialog` assigns `purchase_order_id` values to lines, immediately write those values to the `pending_bill_lines` table in the database. This is a lightweight UPDATE (just the `purchase_order_id` column) that runs alongside the existing matching logic, so the data is persisted without requiring the user to click Save.
 
-### Technical Changes
+**2. Re-fetch lines after Edit dialog closes (already done, verify it works)**
+The `onOpenChange` handler we added in the last change re-fetches lines when the dialog closes. Combined with change 1, this will ensure the table badge updates correctly.
 
-**1. New Database Migration** -- Fix the backfill damage
-- `UPDATE bill_lines SET purchase_order_id = NULL` for all bill_lines that were incorrectly assigned (clear everything, then re-apply only the correct ones)
-- Re-apply correct PO links for the 3 known approved pending uploads by matching `bill_lines` through `bills` table using the `pending_bill_uploads` relationship (matching on owner_id, vendor_id, and the bill created closest to the approval time)
+### Technical Details
 
-**2. `src/components/bills/BatchBillReviewTable.tsx`** -- Fix PO status refresh
-- After the `EditExtractedBillDialog` closes, re-fetch the pending_bill_lines for that bill to get updated `purchase_order_id` values
-- Or: have the `EditExtractedBillDialog` pass back updated line data including `purchase_order_id` through the `onLinesUpdate` callback
+**File: `src/components/bills/EditExtractedBillDialog.tsx`**
+- In the `useEffect` that runs the auto-matching (where `setJobCostLines` is called with updated `purchase_order_id` values), add a follow-up database update
+- After computing matches, batch-update all matched `pending_bill_lines` rows with their `purchase_order_id` values
+- This is a fire-and-forget update (no need to block the UI)
 
-**3. `src/components/bills/EditExtractedBillDialog.tsx`** -- Ensure PO IDs propagate on save
-- When saving changes, ensure the `purchase_order_id` field is included in the data passed back to the parent component's state update
-- Check the onSave/onClose flow to confirm line data with PO assignments gets reflected in the parent `batchBills` state
+**File: `src/components/bills/BatchBillReviewTable.tsx`**
+- No changes needed to the PO status logic itself (lines 858-867) -- the existing check for `line.purchase_order_id` is correct
+- The re-fetch on dialog close (lines 887-910) will pick up the persisted PO IDs
 
-### Sequence
-1. Migration first to fix the data corruption (highest priority -- this affects all billing reports)
-2. Then fix the UI refresh so PO status badge updates after editing
+### What the user will see after this fix
+- Open the Manage Bills dialog, go to "Enter with AI" tab
+- The PO Status badge will initially show "No PO" (before any edit)
+- Open the Edit dialog -- auto-matching runs and immediately persists PO links to DB
+- Close the Edit dialog -- table re-fetches lines and badge updates to "Matched"
+- On subsequent page loads, the badge will show "Matched" immediately since PO IDs are already in the DB
