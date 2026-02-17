@@ -872,8 +872,8 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[120px]">Total</TableHead>
                       {showPOSelection && <TableHead className="w-[200px]">Purchase Order</TableHead>}
-                      {showPOSelection && <TableHead className="w-[80px]">Confidence</TableHead>}
-                      <TableHead className="w-[50px]"></TableHead>
+                      {showPOSelection && <TableHead className="w-[80px] text-center">Accuracy</TableHead>}
+                      <TableHead className="w-[50px] text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -956,7 +956,7 @@ export function EditExtractedBillDialog({
                         </TableCell>
                       )}
                       {showPOSelection && (
-                        <TableCell>
+                        <TableCell className="text-center">
                           {line.poConfidence !== undefined && line.poConfidence > 0 && line.purchase_order_id ? (
                             <span className={cn(
                               "text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap",
