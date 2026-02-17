@@ -556,7 +556,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     if (!bill.bill_lines || bill.bill_lines.length === 0) return null;
     
     const memos = bill.bill_lines
-      .map(line => line.memo?.trim())
+      .map(line => (line.memo?.trim() || (line as any).description?.trim()))
       .filter((memo): memo is string => !!memo);
     
     if (memos.length === 0) return null;
