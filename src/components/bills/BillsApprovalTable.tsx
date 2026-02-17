@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -142,7 +142,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     initialNotes: '',
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
-  const [actionValue, setActionValue] = useState<Record<string, string>>({});
+  
   const [poDialogState, setPoDialogState] = useState<{
     open: boolean;
     matches: POMatch[];
@@ -946,25 +946,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   {/* Final column: Actions for draft, Cleared for posted/paid */}
                   <TableCell className="px-2 py-1 w-24 text-center">
                     {isDraftStatus ? (
-                      <div className="flex justify-center">
-                        <Select
-                          value={actionValue[bill.id] || ''}
-                          onValueChange={(value) => {
-                            setActionValue(prev => ({ ...prev, [bill.id]: value }));
-                            handleActionChange(bill.id, value);
-                          }}
-                          disabled={approveBill.isPending || rejectBill.isPending}
-                        >
-                          <SelectTrigger className="h-7 w-20 text-xs border-gray-200 bg-white hover:bg-gray-50">
-                            <SelectValue placeholder="Actions" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-                            <SelectItem value="approve" className="text-xs hover:bg-gray-100 bg-white">Approve</SelectItem>
-                            <SelectItem value="edit" className="text-xs hover:bg-gray-100 bg-white">Edit</SelectItem>
-                            <SelectItem value="reject" className="text-xs hover:bg-gray-100 bg-white">Reject</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <TableRowActions actions={[
+                        { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
+                        { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
+                        { label: "Reject", onClick: () => handleActionChange(bill.id, 'reject'), variant: 'destructive' as const, disabled: approveBill.isPending || rejectBill.isPending },
+                      ]} />
                     ) : (
                       bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
                     )}
@@ -1111,9 +1097,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         open={editingBillId !== null}
         onOpenChange={(open) => {
           if (!open) {
-            if (editingBillId) {
-              setActionValue(prev => ({ ...prev, [editingBillId]: '' }));
-            }
             setEditingBillId(null);
           }
         }}
