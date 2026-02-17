@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Slider } from '@/components/ui/slider';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { BiddingTableRowSpecs } from './components/BiddingTableRowSpecs';
@@ -16,7 +18,6 @@ import { X, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useDistanceFilter } from '@/hooks/useDistanceFilter';
-import { DistanceFilterBar } from './components/DistanceFilterBar';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -25,9 +26,8 @@ type CostCode = Tables<'cost_codes'>;
 interface BidPackageDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: any; // Project bidding item with cost_codes relation and companies
+  item: any;
   costCode: CostCode;
-  // Bid package operations
   onUpdateStatus?: (itemId: string, status: string) => void;
   onUpdateDueDate?: (itemId: string, dueDate: string | null) => void;
   onUpdateReminderDate?: (itemId: string, reminderDate: string | null) => void;
@@ -40,7 +40,6 @@ interface BidPackageDetailsModalProps {
   onTestEmailClick?: () => void;
   onAddCompaniesClick?: () => void;
   onCloseWithPO?: () => void;
-  // Company operations
   onToggleBidStatus: (biddingItemId: string, bidId: string, newStatus: string | null) => void;
   onUpdatePrice: (biddingItemId: string, bidId: string, price: number | null) => void;
   onUploadProposal: (biddingItemId: string, bidId: string, files: File[]) => void;
@@ -65,7 +64,6 @@ export function BidPackageDetailsModal({
   onOpenChange,
   item,
   costCode,
-  // Bid package operations
   onUpdateStatus,
   onUpdateDueDate,
   onUpdateReminderDate,
@@ -78,7 +76,6 @@ export function BidPackageDetailsModal({
   onTestEmailClick,
   onAddCompaniesClick,
   onCloseWithPO,
-  // Company operations
   onToggleBidStatus,
   onUpdatePrice,
   onUploadProposal,
@@ -139,7 +136,6 @@ export function BidPackageDetailsModal({
     }
   };
 
-  // Filter uploading files for this specific bid package
   const bidPackageUploads = uploadingFiles.filter(upload => upload.itemId === item.id);
 
   return (
@@ -210,21 +206,22 @@ export function BidPackageDetailsModal({
 
           {/* Bid Package Management Section */}
           <div className="border rounded-lg">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 text-sm font-medium">Status</th>
-                  <th className="text-left p-3 text-sm font-medium">Sent On</th>
-                  <th className="text-left p-3 text-sm font-medium">Due Date</th>
-                  <th className="text-left p-3 text-sm font-medium">Reminder</th>
-                  <th className="text-left p-3 text-sm font-medium">Specifications</th>
-                  <th className="text-left p-3 text-sm font-medium">Files</th>
-                  <th className="text-center p-3 text-sm font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="p-3">
+            <Table containerClassName="relative w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Sent On</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Reminder</TableHead>
+                  <TableHead>Specifications</TableHead>
+                  <TableHead>Files</TableHead>
+                  <TableHead>Distance</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell>
                     <Select
                       value={item.status || 'draft'}
                       onValueChange={handleStatusChange}
@@ -239,11 +236,11 @@ export function BidPackageDetailsModal({
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
-                  </td>
-                  <td className={cn("p-3 text-sm", !item.sent_on && "text-muted-foreground")}>
+                  </TableCell>
+                  <TableCell className={cn("text-sm", !item.sent_on && "text-muted-foreground")}>
                     {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <BiddingDatePicker
                       value={item.due_date}
                       onChange={(biddingItemId, companyId, date) => onUpdateDueDate?.(biddingItemId, date)}
@@ -253,8 +250,8 @@ export function BidPackageDetailsModal({
                       biddingItemId={item.id}
                       field="due_date"
                     />
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <BiddingDatePicker
                       value={item.reminder_date}
                       onChange={(biddingItemId, companyId, date) => onUpdateReminderDate?.(biddingItemId, date)}
@@ -265,7 +262,7 @@ export function BidPackageDetailsModal({
                       field="reminder_date"
                       dueDate={item.due_date}
                     />
-                  </td>
+                  </TableCell>
                   <BiddingTableRowSpecs
                     item={item}
                     costCode={costCode}
@@ -280,6 +277,21 @@ export function BidPackageDetailsModal({
                     onLinkProjectFiles={onLinkProjectFiles}
                     isReadOnly={isReadOnly}
                   />
+                  <TableCell>
+                    <div className="flex flex-col gap-1 min-w-[140px]">
+                      <span className="text-xs font-medium">{distanceRadius} mi from job site</span>
+                      <Slider
+                        value={[distanceRadius]}
+                        onValueChange={([value]) => setDistanceRadius(value)}
+                        min={0}
+                        max={75}
+                        step={5}
+                      />
+                      <span className="text-[10px] text-muted-foreground">
+                        Showing {distanceFilter.filteredCompanies.length} of {(item.project_bids || []).length} within {distanceRadius} mi
+                      </span>
+                    </div>
+                  </TableCell>
                   <BiddingTableRowActions
                     item={item}
                     costCode={costCode}
@@ -290,20 +302,10 @@ export function BidPackageDetailsModal({
                     isDeleting={false}
                     isReadOnly={isReadOnly}
                   />
-                </tr>
-              </tbody>
-            </table>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
-
-          {/* Distance Filter Bar */}
-          <DistanceFilterBar
-            radiusMiles={distanceRadius}
-            onRadiusChange={setDistanceRadius}
-            projectAddress={projectAddress}
-            filteredCount={distanceFilter.filteredCompanies.length}
-            totalCount={(item.project_bids || []).length}
-            isCalculating={distanceFilter.isCalculating}
-          />
 
           {/* Bulk Action Bar for Selected Companies */}
           {selectedCompanies && selectedCompanies.size > 0 && (
