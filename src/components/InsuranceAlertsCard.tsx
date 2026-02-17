@@ -10,7 +10,7 @@ export const InsuranceAlertsCard = () => {
   const { alerts, isLoading, errorCount, warningCount } = useInsuranceAlerts();
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col overflow-hidden">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
