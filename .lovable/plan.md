@@ -1,43 +1,43 @@
 
 
-## Fix "This Bill" Column Missing on First Load — All Tabs
+## Standardize Bidding Tables to Match shadcn/ui Defaults
 
 ### Problem
-The "This Bill" column is missing when first opening the PO dialog from the Review, Rejected, Approved, and Paid tabs. It only appears after a page refresh. 
+The bidding table (Draft, Bidding, Closed tabs) has inconsistent styling compared to the rest of the application's standardized shadcn/ui tables. Specifically:
+- Actions column "..." button is not centered
+- Multiple cells use custom `py-1` padding instead of default `p-2`
+- Group header rows use custom height/padding overrides
+- The `font-medium` on the Cost Code data cell should be removed (reserved for headers only)
 
-Root cause: 106 out of 107 draft bill lines have `purchase_order_id = NULL` in the database. The approved/paid bills may also lack this field in some cases. The dialog filters pending bill lines by `purchase_order_id`, finds nothing, and hides the column.
+### Changes
 
-The previous fix only addressed the "Enter with AI" tab (BatchBillReviewTable). The same enrichment logic is needed for all other tabs.
+**1. `src/components/bidding/components/BiddingTableRowActions.tsx`**
+- Change `className="py-1"` to no custom class (use default `p-2`)
+- Add `text-center` to ensure the "..." button is centered
 
-### Solution
-Instead of fixing each tab individually, fix it once in `BillPOSummaryDialog.tsx` itself. This component already has access to `vendorPOs` (which contains PO line items with cost codes) and `matches` (which maps cost codes to PO IDs). 
+**2. `src/components/bidding/components/BiddingTableRowContent.tsx`**
+- Remove `font-medium` from the Cost Code TableCell (line 88) -- data cells should use default weight
+- Remove `w-12` from the checkbox TableCell (let it use default sizing)
 
-When building `derivedPendingBillLines`, if a bill line has no `purchase_order_id`, infer it by:
-1. Finding a matching PO from `matches` that shares the same `cost_code_id`
-2. If no match by cost code, check `vendorPOs` line items for a cost code match
+**3. `src/components/bidding/components/BiddingTableRowSpecs.tsx`**
+- Remove `py-1` from the TableCell (line 25) -- use default `p-2`
 
-This mirrors exactly what `useBillPOMatching` does to detect PO matches in the first place.
+**4. `src/components/bidding/components/BiddingTableRowFiles.tsx`**
+- Remove `py-1` from the TableCell (line 86) -- use default `p-2`
 
-### Files Changed
-- `src/components/bills/BillPOSummaryDialog.tsx` — enrich `derivedPendingBillLines` with inferred `purchase_order_id` when it's missing, using the `matches` array and `vendorPOs` data
+**5. `src/components/bidding/BiddingGroupHeader.tsx`**
+- Remove `h-10` from the TableRow (line 33) -- use default row height
+- Remove `py-1` from all TableCells (lines 34, 42, 54) -- use default `p-2`
+- Remove custom `text-sm` from the group name cell (already default)
 
-### Technical Detail
+**6. `src/components/bidding/BiddingTableHeader.tsx`**
+- Add `text-center` to the Actions TableHead (already present, confirmed)
 
-```text
-Current flow (broken):
-  bill_lines[].purchase_order_id = null/undefined
-  --> derivedPendingBillLines has no purchase_order_id
-  --> filter by po_id returns empty
-  --> hasPending = false
-  --> "This Bill" column hidden
+### What stays the same
+- All functionality (date pickers, file uploads, specs editing, status changes, actions dropdown)
+- The 3-dot dropdown menu pattern via `TableRowActions`
+- Calendar component usage
+- Column order and content
 
-Fixed flow:
-  bill_lines[].purchase_order_id = null/undefined
-  --> infer from matches (cost_code_id -> po_id) or vendorPOs
-  --> derivedPendingBillLines has inferred purchase_order_id
-  --> filter by po_id finds lines
-  --> hasPending = true
-  --> "This Bill" column visible
-```
-
-This single fix covers Review, Rejected, Approved, Paid, and even the Enter with AI tab (making the previous BatchBillReviewTable enrichment redundant but harmless).
+### Scope
+This affects all three bidding tabs (Draft, Bidding, Closed) since they all use the same `BiddingTable` component.
