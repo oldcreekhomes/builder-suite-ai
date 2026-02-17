@@ -1,18 +1,21 @@
 
 
-## Fix PO Status Summary Dialog: Single-Line Rows with Standard Table UI
+## Unify PO Status Dialog Across All Bill Tabs
 
 ### Problem
-The PO Status Summary dialog is too narrow, causing column headers ("PO Amount", "Billed to Date") and cell content to wrap onto multiple lines. It also lacks the standard `SettingsTableWrapper` used across all other tables in the application.
+The Paid/Approved tabs (`PayBillsTable`) use `PODetailsDialogWrapper` which opens a single `PODetailsDialog` with only the first PO match. This shows incorrect/incomplete information (e.g., $720 from a single PO line instead of the full $7,000 bill context). Meanwhile, the Review tab (`BillsApprovalTable`) uses the `BillPOSummaryDialog` which correctly shows all matched POs with the "This Bill" column.
 
-### Changes
+### Solution
+Replace `PODetailsDialogWrapper` usage in `PayBillsTable` with `BillPOSummaryDialog` -- the same component used on the Review tab.
 
-**File: `src/components/bills/BillPOSummaryDialog.tsx`**
+### Technical Changes
 
-1. Widen the dialog from `max-w-2xl` to `max-w-4xl` to give columns enough room
-2. Wrap the `<Table>` in a `<SettingsTableWrapper>` (the `border rounded-lg overflow-hidden` container used everywhere else)
-3. Add `whitespace-nowrap` to all `<TableHead>` and `<TableCell>` elements so nothing wraps to a second line
-4. Import `SettingsTableWrapper` from `@/components/ui/settings-table-wrapper`
+**File: `src/components/bills/PayBillsTable.tsx`**
 
-These changes bring this dialog in line with the standardization philosophy -- same table wrapper, same single-line row height, same visual consistency as every other table in the app.
+1. Replace import of `PODetailsDialogWrapper` with `BillPOSummaryDialog`
+2. Change `poDialogState` shape from `{ open, poMatch, bill }` (single match) to `{ open, matches, bill }` (all matches) -- matching the pattern in `BillsApprovalTable`
+3. Update the PO Status badge click handler to pass all matches (`matchResult?.matches`) instead of just `firstMatch`
+4. Replace the `<PODetailsDialogWrapper>` component at the bottom with `<BillPOSummaryDialog>`, passing the same props as the Review tab does
+
+This ensures every tab shows the same PO Status Summary dialog with the "This Bill" column and correct amounts.
 
