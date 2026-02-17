@@ -10,6 +10,7 @@ interface PendingBillLine {
 interface PendingBillForStatus {
   id: string;
   vendor_id?: string;
+  extracted_data?: { vendor_id?: string; vendorId?: string };
   lines?: PendingBillLine[];
 }
 
@@ -25,7 +26,7 @@ export function usePendingBillPOStatus(
   projectId: string | undefined
 ) {
   // Collect unique vendor+cost_code combos for the query
-  const vendorIds = [...new Set(bills.map(b => b.vendor_id).filter(Boolean))] as string[];
+  const vendorIds = [...new Set(bills.map(b => b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId).filter(Boolean))] as string[];
   const costCodeIds = [...new Set(
     bills.flatMap(b => b.lines?.map(l => l.cost_code_id).filter(Boolean) || [])
   )] as string[];
@@ -76,7 +77,8 @@ export function usePendingBillPOStatus(
         }
 
         // Auto-match: check if cost codes have matching POs for this vendor
-        if (!bill.vendor_id) {
+        const effectiveVendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        if (!effectiveVendorId) {
           resultMap.set(bill.id, 'no_po');
           return;
         }
@@ -88,7 +90,7 @@ export function usePendingBillPOStatus(
         }
 
         const matchedCount = linesWithCostCode.filter(l =>
-          poKeys.has(`${bill.vendor_id}|${l.cost_code_id}`)
+          poKeys.has(`${effectiveVendorId}|${l.cost_code_id}`)
         ).length;
 
         if (matchedCount === linesWithCostCode.length) {
