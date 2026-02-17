@@ -72,10 +72,11 @@ export function BillPOSummaryDialog({
       .reduce((sum, line) => sum + (line.amount || 0), 0);
   };
 
-  const derivedPendingBillLines: PendingBillLine[] = (bill?.bill_lines || []).map(l => ({
+  const derivedPendingBillLines = (bill?.bill_lines || []).map(l => ({
     cost_code_id: l.cost_code_id || undefined,
     amount: l.amount || 0,
     purchase_order_line_id: l.purchase_order_line_id || undefined,
+    purchase_order_id: l.purchase_order_id || undefined,
   }));
 
   // If only one match, go directly to the detail dialog
@@ -91,7 +92,7 @@ export function BillPOSummaryDialog({
         currentBillId={bill?.id}
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
-        pendingBillLines={derivedPendingBillLines}
+        pendingBillLines={derivedPendingBillLines.filter(l => l.purchase_order_id === matches[0].po_id)}
       />
     );
   }
@@ -182,7 +183,7 @@ export function BillPOSummaryDialog({
         currentBillId={bill?.id}
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
-        pendingBillLines={derivedPendingBillLines}
+        pendingBillLines={derivedPendingBillLines.filter(l => l.purchase_order_id === selectedPoId)}
       />
     </>
   );
