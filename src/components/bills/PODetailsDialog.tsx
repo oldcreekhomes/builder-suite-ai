@@ -138,10 +138,10 @@ export function PODetailsDialog({
                   <TableRow>
                      <TableHead className="text-xs">Cost Code</TableHead>
                      <TableHead className="text-xs">Description</TableHead>
-                     <TableHead className="text-xs text-right">PO Amount</TableHead>
-                     <TableHead className="text-xs text-right">Billed To Date</TableHead>
+                     <TableHead className="text-xs">PO Amount</TableHead>
+                     <TableHead className="text-xs">Billed To Date</TableHead>
                      {hasPending && <TableHead className="text-xs">This Bill</TableHead>}
-                     <TableHead className="text-xs text-right">Remaining</TableHead>
+                     <TableHead className="text-xs">Remaining</TableHead>
                    </TableRow>
                  </TableHeader>
                  <TableBody>
@@ -164,10 +164,10 @@ export function PODetailsDialog({
                          <TableCell className="text-xs">
                            {line.description || '—'}
                          </TableCell>
-                         <TableCell className="text-xs text-right">
+                         <TableCell className="text-xs">
                            {formatCurrency(line.amount)}
                          </TableCell>
-                         <TableCell className="text-xs text-right">
+                         <TableCell className="text-xs">
                            <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} currentBillId={currentBillId} />
                          </TableCell>
                           {hasPending && (
@@ -179,7 +179,7 @@ export function PODetailsDialog({
                                ) : '—'}
                             </TableCell>
                           )}
-                         <TableCell className={cn("text-xs text-right font-medium",
+                         <TableCell className={cn("text-xs font-medium",
                              hasPending
                                ? (lineProjectedRemaining < 0 ? "text-destructive" : lineProjectedRemaining >= 0 ? "text-green-700" : "")
                                : lineOver ? "text-destructive" : lineComplete ? "text-green-700" : linePartial ? "text-amber-700" : ""
@@ -196,7 +196,7 @@ export function PODetailsDialog({
                        <TableCell className="text-xs italic text-muted-foreground">Unallocated</TableCell>
                        <TableCell></TableCell>
                        <TableCell></TableCell>
-                       <TableCell className="text-xs text-right text-amber-700 font-medium">
+                       <TableCell className="text-xs text-amber-700 font-medium">
                          <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
                        </TableCell>
                        {hasPending && <TableCell></TableCell>}
@@ -208,18 +208,18 @@ export function PODetailsDialog({
                    <TableRow className="bg-muted/50 font-medium">
                       <TableCell className="text-xs font-semibold">Total</TableCell>
                      <TableCell></TableCell>
-                     <TableCell className="text-xs text-right font-semibold">
-                       {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
-                     </TableCell>
-                     <TableCell className="text-xs text-right font-semibold">
-                       {formatCurrency(purchaseOrder.total_billed)}
-                     </TableCell>
+                      <TableCell className="text-xs font-semibold">
+                        {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
+                      </TableCell>
+                      <TableCell className="text-xs font-semibold">
+                        {formatCurrency(purchaseOrder.total_billed)}
+                      </TableCell>
                       {hasPending && (
                          <TableCell className="text-xs font-semibold text-green-700">
                            {formatCurrency(totalPending)}
                          </TableCell>
                       )}
-                       <TableCell className={cn("text-xs text-right font-semibold",
+                       <TableCell className={cn("text-xs font-semibold",
                          hasPending
                            ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining >= 0 ? "text-green-700" : "")
                            : (isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : isHealthy ? "text-green-700" : "")
