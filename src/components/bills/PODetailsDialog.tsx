@@ -107,7 +107,7 @@ export function PODetailsDialog({
   };
 
   const totalPending = hasPending ? pendingBillLines.reduce((s, l) => s + l.amount, 0) : 0;
-  const projectedRemaining = purchaseOrder.remaining - totalPending;
+  const projectedRemaining = Math.round((purchaseOrder.remaining - totalPending) * 100) / 100;
   const projectedOverBudget = projectedRemaining < 0;
 
   return (
@@ -149,7 +149,7 @@ export function PODetailsDialog({
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Remaining</p>
             <p className={cn("text-sm font-semibold",
               hasPending
-                ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining > 0 ? "text-green-700" : "")
+                ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining >= 0 ? "text-green-700" : "")
                 : (isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : "text-green-700")
             )}>
               {formatCurrency(hasPending ? projectedRemaining : purchaseOrder.remaining)}
@@ -175,7 +175,7 @@ export function PODetailsDialog({
                  <TableBody>
                    {lineItems.map((line) => {
                       const linePending = getPendingForLine(line.id, line.cost_code_id);
-                      const lineProjectedRemaining = line.remaining - linePending;
+                      const lineProjectedRemaining = Math.round((line.remaining - linePending) * 100) / 100;
                       const lineOver = hasPending ? lineProjectedRemaining < 0 : line.remaining < 0;
                       const lineComplete = hasPending
                         ? (line.total_billed + linePending >= line.amount && line.amount > 0)
@@ -209,7 +209,7 @@ export function PODetailsDialog({
                          )}
                          <TableCell className={cn("text-xs text-right font-medium",
                              hasPending
-                               ? (lineProjectedRemaining < 0 ? "text-destructive" : lineProjectedRemaining > 0 ? "text-green-700" : "")
+                               ? (lineProjectedRemaining < 0 ? "text-destructive" : lineProjectedRemaining >= 0 ? "text-green-700" : "")
                                : lineOver ? "text-destructive" : lineComplete ? "text-green-700" : linePartial ? "text-amber-700" : ""
                            )}>
                            {formatCurrency(hasPending ? lineProjectedRemaining : line.remaining)}
@@ -249,7 +249,7 @@ export function PODetailsDialog({
                      )}
                        <TableCell className={cn("text-xs text-right font-semibold",
                          hasPending
-                           ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining > 0 ? "text-green-700" : "")
+                           ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining >= 0 ? "text-green-700" : "")
                            : (isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : isHealthy ? "text-green-700" : "")
                        )}>
                        {formatCurrency(hasPending ? projectedRemaining : purchaseOrder.remaining)}
