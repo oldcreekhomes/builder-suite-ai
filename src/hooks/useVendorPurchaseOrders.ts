@@ -133,11 +133,39 @@ export function useVendorPurchaseOrders(
       // Also fetch billed amounts at PO level (for lines linked by purchase_order_id but not purchase_order_line_id)
       const { data: poBilled } = await supabase
         .from('bill_lines')
-        .select('purchase_order_id, purchase_order_line_id, cost_code_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date)')
+        .select('purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date)')
         .in('purchase_order_id', poIds)
         .is('purchase_order_line_id', null);
 
-      // Distribute PO-level billing to line items by cost_code match, or keep as unallocated
+      // --- Helper: simple keyword overlap for memo-to-description matching ---
+      const ORDINAL_MAP: Record<string, string> = {
+        '1st': 'first', '2nd': 'second', '3rd': 'third',
+        '4th': 'fourth', '5th': 'fifth', '6th': 'sixth',
+      };
+      const normToken = (t: string) => {
+        const low = t.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!low) return '';
+        const mapped = ORDINAL_MAP[low];
+        if (mapped) return mapped;
+        // Basic depluralize
+        if (low.endsWith('s') && low.length > 3 && !low.endsWith('ss')) return low.slice(0, -1);
+        return low;
+      };
+      const tokenize = (text: string | null) =>
+        (text || '').split(/\s+/).map(normToken).filter(t => t.length > 1);
+
+      const memoMatchScore = (memo: string | null, description: string | null): number => {
+        const memoTokens = tokenize(memo);
+        const descTokens = tokenize(description);
+        if (memoTokens.length === 0 || descTokens.length === 0) return 0;
+        let hits = 0;
+        for (const dt of descTokens) {
+          if (memoTokens.some(mt => mt === dt || mt.includes(dt) || dt.includes(mt))) hits++;
+        }
+        return hits;
+      };
+
+      // Distribute PO-level billing to line items by cost_code + memo match, or keep as unallocated
       const billedByPoIdOnly = new Map<string, number>();
       const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
       (poBilled || []).forEach((bl: any) => {
@@ -150,20 +178,41 @@ export function useVendorPurchaseOrders(
           amount: bl.amount || 0,
         };
 
-        // Try to match to a PO line by cost_code_id
         const poLineList = linesByPo.get(bl.purchase_order_id) || [];
-        const matchingLine = bl.cost_code_id
-          ? poLineList.find(l => l.cost_code_id && l.cost_code_id === bl.cost_code_id)
-          : null;
 
-        if (matchingLine) {
-          // Attribute to the matched PO line
-          billedByLineId.set(matchingLine.id, (billedByLineId.get(matchingLine.id) || 0) + (bl.amount || 0));
-          const invoices = invoicesByLineId.get(matchingLine.id) || [];
+        // Tier 1: Find PO lines matching cost_code_id
+        const ccMatches = bl.cost_code_id
+          ? poLineList.filter(l => l.cost_code_id === bl.cost_code_id)
+          : [];
+
+        let matched: typeof poLineList[number] | null = null;
+
+        if (ccMatches.length === 1) {
+          // Unique cost code match — attribute directly
+          matched = ccMatches[0];
+        } else if (ccMatches.length > 1) {
+          // Tier 2: Multiple lines share cost code — use memo keyword overlap
+          let bestScore = 0;
+          let bestLine: typeof poLineList[number] | null = null;
+          for (const line of ccMatches) {
+            const score = memoMatchScore(bl.memo, line.description);
+            if (score > bestScore) {
+              bestScore = score;
+              bestLine = line;
+            }
+          }
+          if (bestScore >= 1 && bestLine) {
+            matched = bestLine;
+          }
+        }
+
+        if (matched) {
+          billedByLineId.set(matched.id, (billedByLineId.get(matched.id) || 0) + (bl.amount || 0));
+          const invoices = invoicesByLineId.get(matched.id) || [];
           invoices.push(invoice);
-          invoicesByLineId.set(matchingLine.id, invoices);
+          invoicesByLineId.set(matched.id, invoices);
         } else {
-          // No cost_code match -- keep as unallocated
+          // Tier 3: Unallocated
           billedByPoIdOnly.set(bl.purchase_order_id, (billedByPoIdOnly.get(bl.purchase_order_id) || 0) + (bl.amount || 0));
           const invoices = unallocatedInvoicesByPoId.get(bl.purchase_order_id) || [];
           invoices.push(invoice);
