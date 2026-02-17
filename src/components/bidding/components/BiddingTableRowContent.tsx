@@ -79,13 +79,13 @@ export function BiddingTableRowContent({
   };
   return (
     <TableRow className={`${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell className="w-12">
+      <TableCell>
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="font-medium">
+      <TableCell>
         <div className="flex items-center justify-between">
           <div 
             className="flex items-center cursor-pointer hover:text-primary flex-1"
