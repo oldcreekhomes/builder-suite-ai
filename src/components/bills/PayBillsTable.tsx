@@ -910,17 +910,17 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               </TableRow>
             ) : (
               filteredBills.map((bill) => (
-                <TableRow key={bill.id} className="h-10">
-                  <TableCell className="px-2 py-1 text-xs">
+                <TableRow key={bill.id}>
+                  <TableCell>
                     <MinimalCheckbox
                       checked={selectedBillIds.has(bill.id)}
                       onChange={(e) => handleCheckboxChange(bill.id, e)}
                     />
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     {bill.companies?.company_name || 'Unknown Vendor'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       if (count <= 1) {
@@ -959,14 +959,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     })()}
                   </TableCell>
                   {showProjectColumn && (
-                    <TableCell className="px-2 py-1 text-xs">
+                  <TableCell>
                       {bill.projects?.address || '-'}
                     </TableCell>
                   )}
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell>
                     {formatDisplayFromAny(bill.bill_date)}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell>
                     {bill.due_date ? (
                       (() => {
                         const today = new Date();
@@ -983,7 +983,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       })()
                     ) : '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs font-medium">
+                  <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {formatCurrency(
                         bill.total_amount < 0
@@ -1004,10 +1004,10 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     {bill.reference_number || '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell>
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
                       if (uniqueLotCount <= 1) {
@@ -1046,10 +1046,10 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     })()}
                   </TableCell>
                   
-                  <TableCell className="px-2 py-1 text-xs">
+                  <TableCell>
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-center">
+                  <TableCell className="text-center">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1081,7 +1081,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     </TooltipProvider>
                   </TableCell>
                   {/* PO Status column */}
-                  <TableCell className="px-2 py-1 w-20 text-center">
+                  <TableCell className="w-20 text-center">
                     {(() => {
                       const matchResult = poMatchingData?.get(bill.id);
                       const status = matchResult?.overall_status || 'no_po';

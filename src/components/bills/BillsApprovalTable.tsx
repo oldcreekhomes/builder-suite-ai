@@ -724,9 +724,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               filteredBills.map((bill) => {
                 const memoSummary = getBillMemoSummary(bill);
                 return (
-                <TableRow key={bill.id} className="h-10">
+                <TableRow key={bill.id}>
                   {showProjectColumn && (
-                    <TableCell className="px-2 py-1 text-xs w-44">
+                    <TableCell className="w-44">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -741,7 +741,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       </TooltipProvider>
                     </TableCell>
                   )}
-                  <TableCell className="px-2 py-1 text-xs w-36">
+                  <TableCell className="w-36">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -755,7 +755,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs overflow-hidden w-44">
+                  <TableCell className="overflow-hidden w-44">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       return (
@@ -796,10 +796,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     {formatDisplayFromAny(bill.bill_date)}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     {bill.due_date ? (
                       (() => {
                         const today = new Date();
@@ -816,7 +816,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       })()
                     ) : '-'}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     <div className="flex items-center gap-1">
                       {formatCurrency(bill.total_amount)}
                       {bill.total_amount < 0 && (
@@ -826,11 +826,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs w-32">
+                  <TableCell className="w-32">
                     <span className="block truncate">{bill.reference_number || '-'}</span>
                   </TableCell>
                   {/* Memo column */}
-                  <TableCell className="px-2 py-1 text-xs w-12 text-center">
+                  <TableCell className="w-12 text-center">
                     {memoSummary ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -846,7 +846,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
                       if (uniqueLotCount <= 1) {
@@ -884,10 +884,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="px-2 py-1 w-14 text-center">
+                  <TableCell className="w-14 text-center">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
-                  <TableCell className="px-2 py-1 w-14 text-center">
+                  <TableCell className="w-14 text-center">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -920,7 +920,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   </TableCell>
                   {/* PO Status column */}
                   {showPOStatusColumn && (
-                    <TableCell className="px-2 py-1 w-20 text-center">
+                    <TableCell className="w-20 text-center">
                       {(() => {
                         const matchResult = poMatchingData?.get(bill.id);
                         const status = matchResult?.overall_status || 'no_po';
@@ -944,7 +944,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     </TableCell>
                   )}
                   {/* Final column: Actions for draft, Cleared for posted/paid */}
-                  <TableCell className="px-2 py-1 w-24 text-center">
+                  <TableCell className="w-24 text-center">
                     {isDraftStatus ? (
                       <TableRowActions actions={[
                         { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
@@ -956,7 +956,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     )}
                   </TableCell>
                   {showPayBillButton && (
-                    <TableCell className="py-1 text-xs text-center w-24">
+                    <TableCell className="text-center w-24">
                       <Button
                         size="sm"
                         onClick={() => handlePayBill(bill)}
@@ -968,7 +968,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     </TableCell>
                   )}
                   {canShowDeleteButton && (
-                    <TableCell className="py-1 text-center w-16">
+                    <TableCell className="text-center w-16">
                       {showEditButton ? (
                         <TableRowActions actions={[
                           {
