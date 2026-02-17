@@ -1,41 +1,38 @@
 
-## Fix PO Status Badge on Extracted Bills Table
+
+## Run PO Matching on Initial Load (Not Just on Edit)
 
 ### Problem
-The "PO Status" column in the Extracted Bills table always shows "No PO" even though the Edit dialog correctly auto-matches all three line items to purchase orders (85%, 85%, 95% confidence).
-
-### Root Cause
-The PO auto-matching logic runs **only inside the EditExtractedBillDialog** component (in local React state). The `purchase_order_id` values are only written to the `pending_bill_lines` database table when the user clicks "Save Changes." The table reads `purchase_order_id` directly from the database, where it is `NULL` until saved.
-
-So the flow is:
-1. Table loads lines from DB -- `purchase_order_id` is NULL -- badge shows "No PO"
-2. User opens Edit dialog -- auto-matching runs in local state -- POs appear correct
-3. User closes without saving -- table still shows "No PO"
-4. Even if user saves, the re-fetch we added in the last change should update it -- but users shouldn't need to Save just to see the correct status
+PO auto-matching currently only runs when the user opens the "Edit Extracted Bill" dialog. The table always shows "No PO" on initial load because `purchase_order_id` is NULL in the database until the dialog triggers matching.
 
 ### Solution
-Two changes to ensure PO status is accurate immediately:
+Move the PO matching logic to run automatically right after bill lines are loaded in `BillsApprovalTabs.tsx`, so the PO Status badge is accurate from the moment bills appear in the table.
 
-**1. Auto-persist PO matches when they are computed (EditExtractedBillDialog)**
-When the auto-matching logic in `EditExtractedBillDialog` assigns `purchase_order_id` values to lines, immediately write those values to the `pending_bill_lines` table in the database. This is a lightweight UPDATE (just the `purchase_order_id` column) that runs alongside the existing matching logic, so the data is persisted without requiring the user to click Save.
+### Technical Changes
 
-**2. Re-fetch lines after Edit dialog closes (already done, verify it works)**
-The `onOpenChange` handler we added in the last change re-fetches lines when the dialog closes. Combined with change 1, this will ensure the table badge updates correctly.
+**File: `src/components/bills/BillsApprovalTabs.tsx`** (lines ~90-200, the `fetchAllLines` useEffect)
 
-### Technical Details
+After fetching all lines and processing lots (around line 192), add a new step:
 
-**File: `src/components/bills/EditExtractedBillDialog.tsx`**
-- In the `useEffect` that runs the auto-matching (where `setJobCostLines` is called with updated `purchase_order_id` values), add a follow-up database update
-- After computing matches, batch-update all matched `pending_bill_lines` rows with their `purchase_order_id` values
-- This is a fire-and-forget update (no need to block the UI)
+1. Collect unique vendor IDs from the batch bills (from `bill.vendor_id` or `bill.extracted_data.vendor_id`)
+2. For each unique vendor that has a `vendor_id`, fetch their approved POs using the same query pattern as `useVendorPurchaseOrders` (direct Supabase calls, not the hook, since we're inside an async effect)
+3. For each bill's lines that don't already have a `purchase_order_id`, run `getBestPOLineMatch` against that vendor's PO lines
+4. Batch-update matched `pending_bill_lines` rows in the database with the assigned `purchase_order_id`
+5. Update the local `billsWithLines` state so the table renders the correct PO status immediately
 
-**File: `src/components/bills/BatchBillReviewTable.tsx`**
-- No changes needed to the PO status logic itself (lines 858-867) -- the existing check for `line.purchase_order_id` is correct
-- The re-fetch on dialog close (lines 887-910) will pick up the persisted PO IDs
+This reuses the existing `getBestPOLineMatch` utility from `src/utils/poLineMatching.ts` and follows the same matching logic already proven in the Edit dialog.
 
-### What the user will see after this fix
-- Open the Manage Bills dialog, go to "Enter with AI" tab
-- The PO Status badge will initially show "No PO" (before any edit)
-- Open the Edit dialog -- auto-matching runs and immediately persists PO links to DB
-- Close the Edit dialog -- table re-fetches lines and badge updates to "Matched"
-- On subsequent page loads, the badge will show "Matched" immediately since PO IDs are already in the DB
+**File: `src/components/bills/EditExtractedBillDialog.tsx`** (no changes needed)
+
+The existing auto-match logic in the dialog will detect that lines already have `purchase_order_id` set (from the table-level matching) and skip re-matching (`needsMatching` check on line 395 will be false). So there's no conflict.
+
+### What the User Will See
+
+- Upload a PDF and extract invoices
+- The table immediately shows "Matched", "Partial", or "No PO" based on actual PO matching results
+- Opening the Edit dialog confirms the same PO assignments
+- No need to click Edit just to trigger PO status updates
+
+### Sequence
+1. Add PO matching logic to the `fetchAllLines` effect in `BillsApprovalTabs.tsx`
+2. The matching persists results to DB and updates local state in one pass
