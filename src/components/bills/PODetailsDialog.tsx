@@ -129,34 +129,6 @@ export function PODetailsDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Summary Row */}
-        <div className={cn("grid gap-4 py-3 border-b", hasPending ? "grid-cols-4" : "grid-cols-3")}>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">PO Total</p>
-            <p className="text-sm font-semibold">{formatCurrency(purchaseOrder.total_amount)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Billed to Date</p>
-            <p className="text-sm font-semibold">{formatCurrency(purchaseOrder.total_billed)}</p>
-          </div>
-          {hasPending && (
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">This Bill{currentBillReference ? ` (${currentBillReference})` : ''}</p>
-              <p className="text-sm font-semibold">{formatCurrency(totalPending)}</p>
-            </div>
-          )}
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Remaining</p>
-            <p className={cn("text-sm font-semibold",
-              hasPending
-                ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining >= 0 ? "text-green-700" : "")
-                : (isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : "text-green-700")
-            )}>
-              {formatCurrency(hasPending ? projectedRemaining : purchaseOrder.remaining)}
-            </p>
-          </div>
-        </div>
-
         {/* Line Items Table */}
         <div className="flex-1 overflow-y-auto">
           {lineItems.length > 0 ? (
@@ -167,8 +139,8 @@ export function PODetailsDialog({
                      <TableHead className="text-xs">Cost Code</TableHead>
                      <TableHead className="text-xs">Description</TableHead>
                      <TableHead className="text-xs text-right">PO Amount</TableHead>
-                     <TableHead className="text-xs text-right">Billed</TableHead>
-                     {hasPending && <TableHead className="text-xs text-right">This Bill</TableHead>}
+                     <TableHead className="text-xs text-right">Billed To Date</TableHead>
+                     {hasPending && <TableHead className="text-xs">This Bill</TableHead>}
                      <TableHead className="text-xs text-right">Remaining</TableHead>
                    </TableRow>
                  </TableHeader>
@@ -198,15 +170,15 @@ export function PODetailsDialog({
                          <TableCell className="text-xs text-right">
                            <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} currentBillId={currentBillId} />
                          </TableCell>
-                         {hasPending && (
-                           <TableCell className="text-xs text-right">
-                              {linePending > 0 ? (
-                                 <span className="bg-green-100 text-green-700 px-1 rounded font-medium">
-                                   {formatCurrency(linePending)}
-                                </span>
-                              ) : '—'}
-                           </TableCell>
-                         )}
+                          {hasPending && (
+                            <TableCell className="text-xs">
+                               {linePending > 0 ? (
+                                  <span className="bg-green-100 text-green-700 px-1 rounded font-medium">
+                                    {formatCurrency(linePending)}
+                                 </span>
+                               ) : '—'}
+                            </TableCell>
+                          )}
                          <TableCell className={cn("text-xs text-right font-medium",
                              hasPending
                                ? (lineProjectedRemaining < 0 ? "text-destructive" : lineProjectedRemaining >= 0 ? "text-green-700" : "")
@@ -242,11 +214,11 @@ export function PODetailsDialog({
                      <TableCell className="text-xs text-right font-semibold">
                        {formatCurrency(purchaseOrder.total_billed)}
                      </TableCell>
-                     {hasPending && (
-                        <TableCell className="text-xs text-right font-semibold text-green-700">
-                          {formatCurrency(totalPending)}
-                        </TableCell>
-                     )}
+                      {hasPending && (
+                         <TableCell className="text-xs font-semibold text-green-700">
+                           {formatCurrency(totalPending)}
+                         </TableCell>
+                      )}
                        <TableCell className={cn("text-xs text-right font-semibold",
                          hasPending
                            ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining >= 0 ? "text-green-700" : "")
@@ -277,14 +249,6 @@ export function PODetailsDialog({
           </div>
         )}
 
-        {currentBillAmount !== undefined && (
-          <div className="bg-muted/50 rounded-lg p-3 text-sm">
-            <span className="text-muted-foreground">Current Bill: </span>
-            <span className="font-medium">{currentBillReference || 'No Reference'}</span>
-            <span className="text-muted-foreground"> for </span>
-            <span className="font-medium">{formatCurrency(currentBillAmount)}</span>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
