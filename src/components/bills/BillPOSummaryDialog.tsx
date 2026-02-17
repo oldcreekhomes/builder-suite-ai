@@ -59,7 +59,7 @@ export function BillPOSummaryDialog({
   const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.round(amount * 100) === 0 ? 0 : amount);
 
   // Compute "this bill" amount per PO by matching bill lines to PO cost codes
   const getThisBillAmount = (match: POMatch) => {
