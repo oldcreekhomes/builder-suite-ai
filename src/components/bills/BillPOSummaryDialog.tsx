@@ -19,6 +19,12 @@ import { PODetailsDialog } from "./PODetailsDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 
+interface BillLine {
+  cost_code_id?: string | null;
+  amount?: number;
+  purchase_order_id?: string | null;
+}
+
 interface BillPOSummaryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,6 +35,7 @@ interface BillPOSummaryDialogProps {
     vendor_id?: string;
     total_amount?: number;
     reference_number?: string | null;
+    bill_lines?: BillLine[];
   } | null;
 }
 
@@ -49,6 +56,19 @@ export function BillPOSummaryDialog({
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+
+  // Compute "this bill" amount per PO by matching bill lines to PO cost codes
+  const getThisBillAmount = (match: POMatch) => {
+    if (!bill?.bill_lines) return 0;
+    return bill.bill_lines
+      .filter(line => {
+        if (line.purchase_order_id && line.purchase_order_id !== '__auto__' && line.purchase_order_id !== '__none__') {
+          return line.purchase_order_id === match.po_id;
+        }
+        return line.cost_code_id === match.cost_code_id;
+      })
+      .reduce((sum, line) => sum + (line.amount || 0), 0);
+  };
 
   // If only one match, go directly to the detail dialog
   if (matches.length === 1 && open) {
@@ -87,12 +107,16 @@ export function BillPOSummaryDialog({
                 <TableHead>Cost Code</TableHead>
                 <TableHead className="text-right">PO Amount</TableHead>
                 <TableHead className="text-right">Billed to Date</TableHead>
+                <TableHead className="text-right">This Bill</TableHead>
                 <TableHead className="text-right">Remaining</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matches.map((match) => (
+              {matches.map((match) => {
+                const thisBillAmount = getThisBillAmount(match);
+                const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
+                return (
                 <TableRow
                   key={match.po_id}
                   className="cursor-pointer hover:bg-muted/50"
@@ -102,13 +126,18 @@ export function BillPOSummaryDialog({
                   <TableCell>{match.cost_code_display}</TableCell>
                   <TableCell className="text-right">{formatCurrency(match.po_amount)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(match.total_billed)}</TableCell>
+                  <TableCell className="text-right">
+                    <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                      {formatCurrency(thisBillAmount)}
+                    </span>
+                  </TableCell>
                   <TableCell
                     className={cn(
                       "text-right font-medium",
-                      match.remaining >= 0 ? "text-green-600" : "text-red-600"
+                      adjustedRemaining >= 0 ? "text-green-600" : "text-red-600"
                     )}
                   >
-                    {formatCurrency(match.remaining)}
+                    {formatCurrency(adjustedRemaining)}
                   </TableCell>
                   <TableCell className="text-center">
                     <span
@@ -123,7 +152,8 @@ export function BillPOSummaryDialog({
                     </span>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </DialogContent>
