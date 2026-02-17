@@ -1,25 +1,25 @@
 
 
-## Fix: PO Status Shows "No PO" Because vendor_id Is Not Available to the Hook
+## Add PO Details Dialog on Badge Click in Extracted Bills Table
 
-### Root Cause
+When users click the "Matched" (or other) PO Status badge in the "Enter with AI" table, open the existing PODetailsDialog showing the full PO breakdown -- PO Amount, Billed to Date, This Bill, Remaining -- so they can confirm the match before submitting.
 
-The `usePendingBillPOStatus` hook reads `bill.vendor_id` to look up matching POs. However, when bills are first loaded from `pending_bill_uploads`, there is no `vendor_id` column on that table -- the vendor information lives inside `extracted_data` (as `extracted_data.vendor_id` or `extracted_data.vendorId`).
+### Changes
 
-The `vendor_id` only gets set at the top level of the bill object later, after a vendor-matching RPC call completes (line 334-339 in BillsApprovalTabs). But the PO status hook runs immediately on render with the initial data, where `vendor_id` is undefined. Since all vendor IDs are empty, the hook short-circuits and returns "No PO" for everything.
+**File: `src/components/bills/BatchBillReviewTable.tsx`**
 
-### Solution
-
-Update the `usePendingBillPOStatus` hook to also check `bill.extracted_data?.vendor_id` as a fallback when `bill.vendor_id` is not set. This mirrors what the auto-matching code in BillsApprovalTabs already does (line 197).
+1. **Import** `PODetailsDialog` and `useVendorPurchaseOrders` hook
+2. **Add state**: `poDialogBillId` to track which bill's PO dialog is open
+3. **Fetch POs**: Use the `usePendingBillPOStatus` hook's query data to find the matched PO ID for the selected bill. Call `useVendorPurchaseOrders` with the selected bill's vendor/project to get detailed PO data for the dialog.
+4. **Wire onClick**: Add `onClick` to the `POStatusBadge` to set `poDialogBillId` when clicked (only for non-"no_po" statuses)
+5. **Render dialog**: Add `PODetailsDialog` at the bottom of the component, passing:
+   - The matched PO from `useVendorPurchaseOrders`
+   - `pendingBillLines` mapped from the bill's lines (cost_code_id + amount) so the "This Bill" column shows the current invoice allocation
+   - `currentBillReference` and `currentBillAmount` from the bill data
 
 ### Technical Details
 
-**File: `src/hooks/usePendingBillPOStatus.ts`**
-
-1. Expand the `PendingBillForStatus` interface to include an optional `extracted_data` field.
-2. When collecting vendor IDs, check `bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId` to handle all naming conventions.
-3. When determining per-bill status, use the same fallback to get the effective vendor ID.
-
-This is a small, targeted change -- just 3-4 lines modified. No new queries, no schema changes.
-
-**Why this fixes the screenshot:** The Contractors Unlimited bill has a `vendor_id` in `extracted_data` and a cost code on its line. The PO exists for that vendor + project + cost code combination. Once the hook can read the vendor ID from `extracted_data`, it will find the match and show "Matched" instead of "No PO".
+- The `usePendingBillPOStatus` hook already fetches PO data by vendor+project+cost_code. We will reuse that to identify which PO ID to display.
+- We need to also fetch the full PO details (with line items, billed amounts) via `useVendorPurchaseOrders` to populate the dialog.
+- The `pendingBillLines` prop on `PODetailsDialog` will map the extracted bill's lines to `{ cost_code_id, amount }` so the dialog shows the "This Bill" column with projected remaining balances.
+- Only bills with a status other than "no_po" will have a clickable badge.
