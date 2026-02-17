@@ -174,25 +174,28 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       bills.forEach(bill => {
         const matches: POMatch[] = [];
 
-      // Build a lookup: project_id + vendor_id + cost_code_id -> PO data (for auto-matching)
-      const poLookup = new Map<string, {
+      // Build a lookup: project_id + vendor_id + cost_code_id -> array of PO data (for auto-matching)
+      const poLookup = new Map<string, Array<{
         po_id: string;
         po_number: string;
         po_amount: number;
         cost_code_id: string;
         cost_code_display: string;
-      }>();
+      }>>();
 
       (pos || []).forEach(po => {
         const key = `${po.project_id}|${po.company_id}|${po.cost_code_id}`;
         const ccData = costCodeLookup.get(po.cost_code_id || '');
-        poLookup.set(key, {
+        const entry = {
           po_id: po.id,
           po_number: po.po_number || 'Unknown',
           po_amount: po.total_amount || 0,
           cost_code_id: po.cost_code_id || '',
           cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
-        });
+        };
+        const existing = poLookup.get(key) || [];
+        existing.push(entry);
+        poLookup.set(key, existing);
       });
 
 
@@ -223,10 +226,29 @@ export function useBillPOMatching(bills: BillForMatching[]) {
               billedKey = explicitPo.id;
             }
           } else if (line.cost_code_id && bill.project_id) {
-            // Priority 2: Auto-match by composite key
+            // Priority 2: Auto-match by composite key — returns array of all POs
             const key = `${bill.project_id}|${bill.vendor_id}|${line.cost_code_id}`;
-            poData = poLookup.get(key);
-            if (poData) billedKey = poData.po_id;
+            const poDataArray = poLookup.get(key);
+            if (poDataArray) {
+              poDataArray.forEach(pd => {
+                if (!matches.find(m => m.po_id === pd.po_id)) {
+                  const totalBilled = billedLookup.get(pd.po_id) || 0;
+                  const remaining = pd.po_amount - totalBilled;
+                  const status: 'matched' | 'over_po' = remaining >= 0 ? 'matched' : 'over_po';
+                  matches.push({
+                    po_id: pd.po_id,
+                    po_number: pd.po_number,
+                    po_amount: pd.po_amount,
+                    total_billed: totalBilled,
+                    remaining,
+                    status,
+                    cost_code_id: pd.cost_code_id,
+                    cost_code_display: pd.cost_code_display
+                  });
+                }
+              });
+              return; // skip the single-PO block below
+            }
           }
           
           if (poData && !matches.find(m => m.po_id === poData!.po_id)) {
