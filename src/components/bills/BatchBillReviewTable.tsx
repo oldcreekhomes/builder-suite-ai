@@ -511,24 +511,24 @@ export function BatchBillReviewTable({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="w-12 px-2 py-0 text-xs font-medium">
+            <TableRow>
+              <TableHead className="w-12">
                 <Checkbox disabled aria-label="Select all bills" />
               </TableHead>
               {showProjectColumn && (
-                <TableHead className="px-2 py-0 text-xs font-medium w-44">Project</TableHead>
+                <TableHead className="w-44">Project</TableHead>
               )}
-              <TableHead className="px-2 py-0 text-xs font-medium w-36">Vendor</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-44">Cost Code</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Bill Date</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Due Date</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Amount</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-32">Reference</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-12 text-center">Memo</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Address</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-14 text-center">Files</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">PO Status</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">Actions</TableHead>
+              <TableHead className="w-36">Vendor</TableHead>
+              <TableHead className="w-44">Cost Code</TableHead>
+              <TableHead className="w-24">Bill Date</TableHead>
+              <TableHead className="w-24">Due Date</TableHead>
+              <TableHead className="w-24">Amount</TableHead>
+              <TableHead className="w-32">Reference</TableHead>
+              <TableHead className="w-12 text-center">Memo</TableHead>
+              <TableHead className="w-24">Address</TableHead>
+              <TableHead className="w-14 text-center">Files</TableHead>
+              <TableHead className="w-20 text-center">PO Status</TableHead>
+              <TableHead className="w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -553,8 +553,8 @@ export function BatchBillReviewTable({
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow className="h-8">
-              <TableHead className="w-12 px-2 py-0 text-xs font-medium">
+            <TableRow>
+              <TableHead className="w-12">
                 <Checkbox
                   checked={allSelected}
                   ref={(el: any) => {
@@ -567,19 +567,19 @@ export function BatchBillReviewTable({
                 />
               </TableHead>
               {showProjectColumn && (
-                <TableHead className="px-2 py-0 text-xs font-medium w-44">Project</TableHead>
+                <TableHead className="w-44">Project</TableHead>
               )}
-              <TableHead className="px-2 py-0 text-xs font-medium w-36">Vendor</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-44">Cost Code</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Bill Date</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Due Date</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Amount</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-32">Reference</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-12 text-center">Memo</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-24">Address</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-14 text-center">Files</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">PO Status</TableHead>
-              <TableHead className="px-2 py-0 text-xs font-medium w-20 text-center">Actions</TableHead>
+              <TableHead className="w-36">Vendor</TableHead>
+              <TableHead className="w-44">Cost Code</TableHead>
+              <TableHead className="w-24">Bill Date</TableHead>
+              <TableHead className="w-24">Due Date</TableHead>
+              <TableHead className="w-24">Amount</TableHead>
+              <TableHead className="w-32">Reference</TableHead>
+              <TableHead className="w-12 text-center">Memo</TableHead>
+              <TableHead className="w-24">Address</TableHead>
+              <TableHead className="w-14 text-center">Files</TableHead>
+              <TableHead className="w-20 text-center">PO Status</TableHead>
+              <TableHead className="w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -587,17 +587,17 @@ export function BatchBillReviewTable({
               // Show spinner row for pending/processing bills
               if (bill.status === 'pending' || bill.status === 'processing') {
                 return (
-                  <TableRow key={bill.id} className="h-10">
-                    <TableCell className="px-2 py-1">
+                  <TableRow key={bill.id}>
+                    <TableCell>
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell className="px-2 py-1" colSpan={10 + (showProjectColumn ? 1 : 0)}>
+                    <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)}>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-2 py-1">
+                    <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -665,9 +665,9 @@ export function BatchBillReviewTable({
               };
               
               return (
-                <TableRow key={bill.id} className="h-10 bg-muted/30 hover:bg-muted/50">
+                <TableRow key={bill.id}>
                   {/* Checkbox */}
-                  <TableCell className="px-2 py-1 w-12">
+                  <TableCell className="w-12">
                     <Checkbox
                       checked={selectedBillIds.has(bill.id)}
                       onCheckedChange={() => onBillSelect(bill.id)}
@@ -677,7 +677,7 @@ export function BatchBillReviewTable({
                   
                   {/* Project */}
                   {showProjectColumn && (
-                    <TableCell className="px-2 py-1 text-xs w-44">
+                    <TableCell className="w-44">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -694,7 +694,7 @@ export function BatchBillReviewTable({
                   )}
                   
                   {/* Vendor */}
-                  <TableCell className="px-2 py-1 w-36">
+                  <TableCell className="w-36">
                     {!vendorId && vendorName ? (
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-destructive font-medium truncate max-w-20">{vendorName}</span>
@@ -737,7 +737,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Cost Code */}
-                  <TableCell className="px-2 py-1 w-44">
+                  <TableCell className="w-44">
                     {accountDisplayData.display === null ? (
                       <Badge variant="destructive" className="text-xs h-5">Missing</Badge>
                     ) : (
@@ -770,17 +770,17 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Bill Date */}
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     {billDate ? formatDisplayFromAny(billDate as string) : '-'}
                   </TableCell>
                   
                   {/* Due Date */}
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     {getDueDateDisplay()}
                   </TableCell>
                   
                   {/* Amount */}
-                  <TableCell className="px-2 py-1 w-24">
+                  <TableCell className="w-24">
                     {totalAmount > 0 ? (
                       <span className="text-xs font-medium">{formatCurrency(totalAmount)}</span>
                     ) : (
@@ -789,12 +789,12 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Reference */}
-                  <TableCell className="px-2 py-1 w-32">
+                  <TableCell className="w-32">
                     <span className="text-xs block truncate">{referenceNumber || '-'}</span>
                   </TableCell>
                   
                   {/* Memo */}
-                  <TableCell className="px-2 py-1 w-12 text-center">
+                  <TableCell className="w-12 text-center">
                     {memoSummary ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -812,7 +812,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Address */}
-                  <TableCell className="px-2 py-1 text-xs w-24">
+                  <TableCell className="w-24">
                     {lotAllocationData.uniqueLotCount > 1 ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -841,7 +841,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Files */}
-                  <TableCell className="px-2 py-1 w-14 text-center">
+                  <TableCell className="w-14 text-center">
                     <div className="relative group inline-block">
                       <button
                         onClick={() => {
@@ -872,7 +872,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* PO Status */}
-                  <TableCell className="px-2 py-1 w-20 text-center">
+                  <TableCell className="w-20 text-center">
                     {(() => {
                       const poResult = poStatusMap?.get(bill.id);
                       const status = poResult?.status || 'no_po';
@@ -886,7 +886,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Actions */}
-                  <TableCell className="px-2 py-1 w-20 text-center">
+                  <TableCell className="w-20 text-center">
                     <TableRowActions actions={[
                       { label: "Edit", onClick: () => setEditingBillId(bill.id) },
                       { label: "Delete", onClick: () => onBillDelete(bill.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Bill", confirmDescription: "Are you sure you want to delete this extracted bill? This action cannot be undone." },
