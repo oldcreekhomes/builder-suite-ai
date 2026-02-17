@@ -1,38 +1,37 @@
 
 
-## Standardize ALL Bill Tables to Default shadcn/ui Styling
+## Fix Table Inconsistencies: Remove `table-fixed` and Add Missing Column Widths
 
-### Problem
-Six different bill tables have six different styling approaches. The project standard is **default shadcn/ui** (`h-10 px-2` for `TableHead`, `p-2` for `TableCell`, no custom row heights or backgrounds). The "Enter with AI" table (`BatchBillReviewTable`) is actually the one deviating with custom compact styles (`h-8` header rows, `px-2 py-0 text-xs font-medium` headers, `bg-muted/30` row backgrounds, `px-2 py-1 text-xs` cells).
+### Root Cause
+Two structural issues are making the tables look different despite having the same font:
 
-### What Changes
+1. **`BillsApprovalTable.tsx`** uses `table-fixed` layout and a custom container (`containerClassName="relative w-full"`) which changes how the browser sizes columns -- making text appear different even though it's the same font
+2. **`PayBillsTable.tsx`** is missing width classes on most `TableHead` elements (Vendor, Cost Code, Bill Date, Due Date, Amount have no `w-` class), so columns auto-size based on content instead of matching the reference
 
-#### 1. `BatchBillReviewTable.tsx` (Enter with AI tab) -- the big one
-- Remove `className="h-8"` from both header `TableRow` elements (lines 514, 556)
-- Remove `px-2 py-0 text-xs font-medium` from all `TableHead` elements, keeping only width/alignment classes (lines 515-532, 557-583)
-- Remove `className="h-10 bg-muted/30 hover:bg-muted/50"` from data `TableRow` (line 668), use no custom class
-- Change all `TableCell` from `className="px-2 py-1 text-xs ..."` to just `className="..."` (keep only width classes), letting the default `p-2` apply
+The reference standard is `BatchBillReviewTable.tsx` which uses plain `<Table>` (no `table-fixed`) with explicit width classes on every column.
 
-#### 2. `BillsApprovalTable.tsx` (Rejected, NRAI, Paid tabs)
-- Remove `className="h-10"` from data `TableRow` (line 727)
-- Change all `TableCell` from `className="px-2 py-1 text-xs ..."` to remove the custom padding/font overrides, keeping only width/truncation classes
+### Changes
 
-#### 3. `PayBillsTable.tsx` (Approved tab)
-- Remove `className="h-10"` from data `TableRow` (line 913)
-- Change all `TableCell` from `className="px-2 py-1 text-xs ..."` to remove the custom padding/font overrides, keeping only width classes
+#### 1. `BillsApprovalTable.tsx` (Rejected, NRAI, Paid tabs)
+- Remove `className="table-fixed"` from `<Table>` (line 598)
+- Remove `containerClassName="relative w-full"` from `<Table>` (line 598)
+- Remove the extra wrapper div (`overflow-auto flex-1 min-h-0`) around the Table (line 597) -- simplify to match `BatchBillReviewTable`'s `border rounded-lg` pattern
+- Keep sticky header functionality on `TableHeader`
 
-#### 4. `BillsReviewTable.tsx` (Review tab)
-- Already uses default shadcn/ui styling -- no changes needed
+#### 2. `PayBillsTable.tsx` (Approved tab)
+- Add missing width classes to `TableHead` elements to match BatchBillReviewTable:
+  - Vendor: add `w-36`
+  - Cost Code: add `w-44`
+  - Project: add `w-44`
+  - Bill Date: add `w-24`
+  - Due Date: add `w-24`
+  - Amount: add `w-24`
 
-#### 5. `BillsReviewTableRow.tsx` (Review tab rows)
-- Already uses default styling -- no changes needed
-
-### Technical Summary
-- **Headers**: All `TableHead` elements use only width/alignment classes (e.g., `w-44`, `text-center`). No `px-2 py-0 text-xs font-medium` overrides.
-- **Header rows**: No `h-8` or any height class. Default `h-10` comes from the `TableHead` component itself.
-- **Data rows**: No `h-10`, no `bg-muted/30`. Just default `TableRow` styling.
-- **Data cells**: No `px-2 py-1 text-xs`. Default `p-2` from `TableCell` component. Keep only structural classes like widths (`w-44`), truncation (`truncate`), and alignment (`text-center`, `whitespace-nowrap`).
+#### 3. No changes needed
+- `BatchBillReviewTable.tsx` -- already the reference standard
+- `BillsReviewTable.tsx` -- simple 4-column table, no issues
+- `BillsReviewTableRow.tsx` -- already correct
 
 ### Result
-Every bill table (Enter with AI, Review, Rejected, Approved, Paid, NRAI) will render with identical default shadcn/ui table styling -- same header height, same font size, same cell padding, same row backgrounds -- matching the rest of the application.
+All bill tables will use the same table layout engine (default auto, no `table-fixed`), the same container pattern, and explicit column widths -- producing identical visual rendering across every tab.
 
