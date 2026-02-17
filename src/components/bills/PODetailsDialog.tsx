@@ -30,7 +30,7 @@ const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency', currency: 'USD',
     minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(Math.round(amount * 100) === 0 ? 0 : amount);
 
 function BilledAmountWithTooltip({ amount, invoices, currentBillId }: { amount: number; invoices: BilledInvoice[]; currentBillId?: string }) {
   const hasCurrentBillMatch = currentBillId ? invoices.some(inv => inv.bill_id === currentBillId) : false;
