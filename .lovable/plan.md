@@ -1,39 +1,58 @@
 
 
-## Fix: Filter Pending Bill Lines When Drilling Into a Specific PO
+## Fix: Disambiguate "This Bill" When Multiple PO Lines Share the Same Cost Code
 
 ### Problem
-When clicking into PO 2025-115E-0006 from the PO Summary, ALL 3 bill lines ($3,500 + $1,032 + $720) are passed to the detail dialog. The $720 line belongs to a completely different PO (2026-115E-0056), but since it shares cost code 4370 (Framing Labor), it matches against every Framing Labor line in the PO via the cost_code_id fallback -- showing $720 on every row.
+PO 2025-115E-0006 has two "4810: Decks" line items -- "Decks" ($2,232) and "Rear deck and roof" ($1,500). The $1,032 bill line matches both by cost code, so "This Bill" shows $1,032 on BOTH rows instead of just one.
 
-### Root Cause
-Line 185 in `BillPOSummaryDialog.tsx` passes the unfiltered `derivedPendingBillLines` to `PODetailsDialog`. It needs to be filtered to only the lines that belong to the selected PO.
+This happens because the pending bill line has a `purchase_order_id` but no `purchase_order_line_id`, and the fallback matching in `getPendingForLine` uses only `cost_code_id` -- which is identical for both PO lines.
 
-### Fix (single file: `src/components/bills/BillPOSummaryDialog.tsx`)
+### Solution
+Use the same memo-based keyword matching that the billing distribution code in `useVendorPurchaseOrders.ts` (lines 190-207) already uses. When multiple PO lines share the same cost code, compare the bill line's memo/description against each PO line's description to find the best match. This is the same proven approach the system already uses for allocated billing.
 
-**1. Add `purchase_order_id` to `derivedPendingBillLines` mapping (line 75-79)**
+### Changes
 
-Update the mapping to also carry `purchase_order_id` from the bill lines so we can filter by it.
+**1. `src/components/bills/PODetailsDialog.tsx` -- Add `memo` to PendingBillLine and improve matching**
 
-**2. Filter pending lines for the selected PO (line 185)**
+Add `memo?: string` to the `PendingBillLine` interface.
 
-Replace:
-```tsx
-pendingBillLines={derivedPendingBillLines}
-```
+Update `getPendingForLine` to handle the case where multiple PO lines share the same cost code:
+- First pass: match by `purchase_order_line_id` (already works, no change)
+- Second pass (fallback): when matching by `cost_code_id`, check if there are multiple PO lines with the same cost code. If so, use keyword overlap between the bill line's `memo` and each PO line's `description` to pick the best match. Only allocate the amount to THIS specific PO line if it wins the keyword match.
+- If no keyword winner, leave it unallocated (show dash) rather than double-counting
 
-With logic that filters to only lines where `purchase_order_id` matches the `selectedPoId`. This ensures the $720 line (linked to a different PO) is excluded when viewing PO 2025-115E-0006.
+The logic mirrors the existing `memoMatchScore` approach in `useVendorPurchaseOrders.ts`.
 
-**3. Same filter for single-PO shortcut (line 94)**
+**2. `src/components/bills/BillPOSummaryDialog.tsx` -- Pass `memo` through**
 
-Apply the same filter when there's only 1 match and we go directly to the detail dialog -- filter to lines matching that single PO's ID.
+Update `derivedPendingBillLines` mapping (line 75-79) to include memo from the bill line. Update the `BillLine` interface to include `memo`.
 
-### What Doesn't Change
-- The PO Summary table itself (correctly shows $3,500 / $1,032 / $720)
-- The PODetailsDialog component (its matching logic is fine once it receives correct data)
-- No other tabs or dialogs affected
+**3. `src/components/bills/BatchBillReviewTable.tsx` -- Pass `memo` in bill_lines**
 
-### Expected Result
-- Drill into PO 2025-115E-0006: "This Bill" shows $1,032 only on the Decks line, $0 on all Framing Labor lines
-- Drill into PO 2026-115E-0056: "This Bill" shows $720 on the correct line
-- Drill into PO 2025-115E-0003: "This Bill" shows $3,500 on the Siding line
+Update the bill_lines mapping (line 990-994) to include memo/description from the pending bill line so it flows through to the dialog.
 
+### How Disambiguation Works
+
+The `getPendingForLine` function receives the full list of PO line items. When a bill line falls back to cost code matching:
+
+1. Collect all PO lines with the same cost_code_id
+2. If only one match, allocate directly (current behavior, no change)
+3. If multiple matches, score each by keyword overlap between bill memo and PO line description
+4. Allocate only to the winning PO line
+
+Example with the user's case:
+- Bill line memo: "Decks" (or similar), cost_code 4810, $1,032
+- PO line "Decks" ($2,232): keyword score = high (matches "deck")
+- PO line "Rear deck and roof" ($1,500): keyword score = lower or equal
+- Winner: "Decks" gets $1,032, "Rear deck and roof" shows dash
+
+### Files Changed
+- `src/components/bills/PODetailsDialog.tsx` (add memo to interface, improve getPendingForLine)
+- `src/components/bills/BillPOSummaryDialog.tsx` (pass memo through derivedPendingBillLines)
+- `src/components/bills/BatchBillReviewTable.tsx` (include memo in bill_lines mapping)
+
+### What Stays the Same
+- PO Summary table (correctly shows totals per PO)
+- Billing distribution in `useVendorPurchaseOrders.ts` (already handles this for saved bills)
+- The smart PO matching utility in `poLineMatching.ts` (used for initial PO assignment, not line-level)
+- All other tabs and dialogs
