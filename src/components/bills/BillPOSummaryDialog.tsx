@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { POMatch } from "@/hooks/useBillPOMatching";
-import { PODetailsDialog } from "./PODetailsDialog";
+import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
@@ -24,6 +24,7 @@ interface BillLine {
   cost_code_id?: string | null;
   amount?: number;
   purchase_order_id?: string | null;
+  purchase_order_line_id?: string | null;
 }
 
 interface BillPOSummaryDialogProps {
@@ -71,6 +72,12 @@ export function BillPOSummaryDialog({
       .reduce((sum, line) => sum + (line.amount || 0), 0);
   };
 
+  const derivedPendingBillLines: PendingBillLine[] = (bill?.bill_lines || []).map(l => ({
+    cost_code_id: l.cost_code_id || undefined,
+    amount: l.amount || 0,
+    purchase_order_line_id: l.purchase_order_line_id || undefined,
+  }));
+
   // If only one match, go directly to the detail dialog
   if (matches.length === 1 && open) {
     const singlePO = vendorPOs?.find(po => po.id === matches[0].po_id) || null;
@@ -84,6 +91,7 @@ export function BillPOSummaryDialog({
         currentBillId={bill?.id}
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
+        pendingBillLines={derivedPendingBillLines}
       />
     );
   }
@@ -174,6 +182,7 @@ export function BillPOSummaryDialog({
         currentBillId={bill?.id}
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
+        pendingBillLines={derivedPendingBillLines}
       />
     </>
   );
