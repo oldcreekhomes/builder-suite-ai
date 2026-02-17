@@ -1,38 +1,25 @@
 
 
-## Run PO Matching on Initial Load (Not Just on Edit)
+## Add "This Bill" Column to PO Status Summary Dialog
 
-### Problem
-PO auto-matching currently only runs when the user opens the "Edit Extracted Bill" dialog. The table always shows "No PO" on initial load because `purchase_order_id` is NULL in the database until the dialog triggers matching.
+### What Changes
+Add a "This Bill" column (in green) between "Billed to Date" and "Remaining" in the PO Status Summary dialog, matching the pattern already used in the PODetailsDialog.
 
-### Solution
-Move the PO matching logic to run automatically right after bill lines are loaded in `BillsApprovalTabs.tsx`, so the PO Status badge is accurate from the moment bills appear in the table.
+### How It Works
+- The `BillPOSummaryDialog` already receives the `bill` object, which includes `bill_lines` with `cost_code_id` and `amount` per line
+- Each `POMatch` has a `cost_code_id` -- we match bill lines to POs by cost code to compute per-PO "this bill" amounts
+- The "Remaining" column will be recalculated as `PO Amount - Billed to Date - This Bill`
 
-### Technical Changes
+### Technical Details
 
-**File: `src/components/bills/BillsApprovalTabs.tsx`** (lines ~90-200, the `fetchAllLines` useEffect)
+**File: `src/components/bills/BillPOSummaryDialog.tsx`**
 
-After fetching all lines and processing lots (around line 192), add a new step:
+1. Expand the `bill` prop interface to include `bill_lines` (already available from the parent `BillsApprovalTable`)
+2. For each PO match row, compute the "this bill" amount by summing `bill.bill_lines` where `cost_code_id` matches the PO's `cost_code_id`
+3. Add a new `<TableHead>` for "This Bill" between "Billed to Date" and "Remaining"
+4. Add a new `<TableCell>` showing the amount in green (`text-green-700 bg-green-100`) -- matching the PODetailsDialog style
+5. Recalculate "Remaining" as `po_amount - total_billed - thisBillAmount` so the user sees the projected remaining after this bill
 
-1. Collect unique vendor IDs from the batch bills (from `bill.vendor_id` or `bill.extracted_data.vendor_id`)
-2. For each unique vendor that has a `vendor_id`, fetch their approved POs using the same query pattern as `useVendorPurchaseOrders` (direct Supabase calls, not the hook, since we're inside an async effect)
-3. For each bill's lines that don't already have a `purchase_order_id`, run `getBestPOLineMatch` against that vendor's PO lines
-4. Batch-update matched `pending_bill_lines` rows in the database with the assigned `purchase_order_id`
-5. Update the local `billsWithLines` state so the table renders the correct PO status immediately
+**File: `src/components/bills/BillsApprovalTable.tsx`**
+- No changes needed -- the `bill` object passed to `BillPOSummaryDialog` already contains `bill_lines` from the query data
 
-This reuses the existing `getBestPOLineMatch` utility from `src/utils/poLineMatching.ts` and follows the same matching logic already proven in the Edit dialog.
-
-**File: `src/components/bills/EditExtractedBillDialog.tsx`** (no changes needed)
-
-The existing auto-match logic in the dialog will detect that lines already have `purchase_order_id` set (from the table-level matching) and skip re-matching (`needsMatching` check on line 395 will be false). So there's no conflict.
-
-### What the User Will See
-
-- Upload a PDF and extract invoices
-- The table immediately shows "Matched", "Partial", or "No PO" based on actual PO matching results
-- Opening the Edit dialog confirms the same PO assignments
-- No need to click Edit just to trigger PO status updates
-
-### Sequence
-1. Add PO matching logic to the `fetchAllLines` effect in `BillsApprovalTabs.tsx`
-2. The matching persists results to DB and updates local state in one pass
