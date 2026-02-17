@@ -1,37 +1,33 @@
 
 
-## Fix Table Inconsistencies: Remove `table-fixed` and Add Missing Column Widths
+## Remove All `text-xs` Overrides from BatchBillReviewTable (Enter with AI)
 
-### Root Cause
-Two structural issues are making the tables look different despite having the same font:
+### Problem
+The "Enter with AI" tab (`BatchBillReviewTable.tsx`) has `text-xs` (12px) classes on the content inside nearly every `TableCell` -- on `<span>`, `<Badge>`, and other elements. The other tabs (Rejected, Approved, Paid) do not have these overrides, so they inherit the default `text-sm` (14px) from the shadcn/ui `<Table>` component. This is why the font sizes look different between tabs.
 
-1. **`BillsApprovalTable.tsx`** uses `table-fixed` layout and a custom container (`containerClassName="relative w-full"`) which changes how the browser sizes columns -- making text appear different even though it's the same font
-2. **`PayBillsTable.tsx`** is missing width classes on most `TableHead` elements (Vendor, Cost Code, Bill Date, Due Date, Amount have no `w-` class), so columns auto-size based on content instead of matching the reference
+### Fix
+Remove `text-xs` from all cell content elements inside `BatchBillReviewTable.tsx` so it inherits the same default `text-sm` as every other table. This is approximately 15-20 instances across the file.
 
-The reference standard is `BatchBillReviewTable.tsx` which uses plain `<Table>` (no `table-fixed`) with explicit width classes on every column.
+### Specific removals (all in `BatchBillReviewTable.tsx`)
 
-### Changes
+**Vendor column:**
+- Line 700: `text-xs text-destructive font-medium` -> `text-destructive font-medium`
+- Line 704: `h-5 px-1.5 text-xs font-normal ...` -> `h-5 px-1.5 font-normal ...`
+- Line 718: `h-5 px-1.5 text-xs font-normal ...` -> `h-5 px-1.5 font-normal ...`
+- Line 729: `text-xs block truncate` -> `block truncate`
 
-#### 1. `BillsApprovalTable.tsx` (Rejected, NRAI, Paid tabs)
-- Remove `className="table-fixed"` from `<Table>` (line 598)
-- Remove `containerClassName="relative w-full"` from `<Table>` (line 598)
-- Remove the extra wrapper div (`overflow-auto flex-1 min-h-0`) around the Table (line 597) -- simplify to match `BatchBillReviewTable`'s `border rounded-lg` pattern
-- Keep sticky header functionality on `TableHeader`
+**Cost Code column:**
+- Line 742: `text-xs h-5` -> `h-5` (Badge)
+- Line 747: `text-xs block truncate cursor-default` -> `block truncate cursor-default`
 
-#### 2. `PayBillsTable.tsx` (Approved tab)
-- Add missing width classes to `TableHead` elements to match BatchBillReviewTable:
-  - Vendor: add `w-36`
-  - Cost Code: add `w-44`
-  - Project: add `w-44`
-  - Bill Date: add `w-24`
-  - Due Date: add `w-24`
-  - Amount: add `w-24`
+**Amount column:**
+- Line 785: `text-xs font-medium` -> `font-medium`
+- Line 787: `text-xs h-5` -> `h-5` (Badge)
 
-#### 3. No changes needed
-- `BatchBillReviewTable.tsx` -- already the reference standard
-- `BillsReviewTable.tsx` -- simple 4-column table, no issues
-- `BillsReviewTableRow.tsx` -- already correct
+**Reference column:**
+- Line 793: `text-xs block truncate` -> `block truncate`
+
+**Note:** `text-xs` inside TooltipContent (lines 755, 760, 823) and the tiny delete button (line 869) will be left as-is -- those are tooltip/decorative elements, not table cell content.
 
 ### Result
-All bill tables will use the same table layout engine (default auto, no `table-fixed`), the same container pattern, and explicit column widths -- producing identical visual rendering across every tab.
-
+All bill tabs will render cell text at the same default `text-sm` size, producing identical font rendering across Enter with AI, Rejected, Approved, Paid, and Review.
