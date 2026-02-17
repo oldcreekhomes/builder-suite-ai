@@ -46,7 +46,7 @@ export const InsuranceAlertsCard = () => {
           </div>
         ) : (
           <ScrollArea className="h-full flex-1">
-            <div className="space-y-1 p-6">
+            <div className="space-y-1 p-6 overflow-hidden">
               {alerts.map((alert, index) => (
                 <div
                   key={`${alert.companyId}-${alert.insuranceType || index}`}
