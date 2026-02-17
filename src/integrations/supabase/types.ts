@@ -4159,34 +4159,20 @@ export type Database = {
         Returns: string
       }
       approve_employee: { Args: { employee_id: string }; Returns: undefined }
-      approve_pending_bill:
-        | {
-            Args: {
-              bill_date_param: string
-              due_date_param?: string
-              notes_param?: string
-              pending_upload_id_param: string
-              project_id_param: string
-              reference_number_param?: string
-              review_notes_param?: string
-              terms_param?: string
-              vendor_id_param: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              bill_date_param: string
-              due_date_param: string
-              notes_param?: string
-              pending_upload_id_param: string
-              project_id_param: string
-              reference_number_param?: string
-              terms_param?: string
-              vendor_id_param: string
-            }
-            Returns: string
-          }
+      approve_pending_bill: {
+        Args: {
+          bill_date_param: string
+          due_date_param?: string
+          notes_param?: string
+          pending_upload_id_param: string
+          project_id_param: string
+          reference_number_param?: string
+          review_notes_param?: string
+          terms_param?: string
+          vendor_id_param: string
+        }
+        Returns: string
+      }
       calculate_distance_miles: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
