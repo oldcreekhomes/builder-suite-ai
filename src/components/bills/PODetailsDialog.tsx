@@ -183,12 +183,12 @@ export function PODetailsDialog({
               <Table containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
-                     <TableHead className="text-xs">Cost Code</TableHead>
-                     <TableHead className="text-xs">Description</TableHead>
-                     <TableHead className="text-xs">PO Amount</TableHead>
-                     <TableHead className="text-xs">Billed To Date</TableHead>
-                     {hasPending && <TableHead className="text-xs">This Bill</TableHead>}
-                     <TableHead className="text-xs">Remaining</TableHead>
+                     <TableHead>Cost Code</TableHead>
+                     <TableHead>Description</TableHead>
+                     <TableHead>PO Amount</TableHead>
+                     <TableHead>Billed To Date</TableHead>
+                     {hasPending && <TableHead>This Bill</TableHead>}
+                     <TableHead>Remaining</TableHead>
                    </TableRow>
                  </TableHeader>
                  <TableBody>
@@ -205,20 +205,20 @@ export function PODetailsDialog({
 
                       return (
                         <TableRow key={line.id}>
-                          <TableCell className="text-xs">
+                         <TableCell>
                             {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
                          </TableCell>
-                         <TableCell className="text-xs">
+                         <TableCell>
                            {line.description || '—'}
                          </TableCell>
-                         <TableCell className="text-xs">
+                         <TableCell>
                            {formatCurrency(line.amount)}
                          </TableCell>
-                         <TableCell className="text-xs">
+                         <TableCell>
                            <BilledAmountWithTooltip amount={line.total_billed} invoices={line.billed_invoices} currentBillId={currentBillId} />
                          </TableCell>
                           {hasPending && (
-                            <TableCell className="text-xs">
+                            <TableCell>
                                {linePending > 0 ? (
                                   <span className="bg-green-100 text-green-700 px-1 rounded font-medium">
                                     {formatCurrency(linePending)}
@@ -226,7 +226,7 @@ export function PODetailsDialog({
                                ) : '—'}
                             </TableCell>
                           )}
-                         <TableCell className={cn("text-xs font-medium",
+                         <TableCell className={cn("font-medium",
                              hasPending
                                ? (lineProjectedRemaining < 0 ? "text-destructive" : lineProjectedRemaining >= 0 ? "text-green-700" : "")
                                : lineOver ? "text-destructive" : lineComplete ? "text-green-700" : linePartial ? "text-amber-700" : ""
@@ -240,10 +240,10 @@ export function PODetailsDialog({
                    {/* Unallocated Row */}
                    {purchaseOrder.unallocated_billed > 0 && (
                      <TableRow className="border-t border-dashed">
-                       <TableCell className="text-xs italic text-muted-foreground">Unallocated</TableCell>
+                       <TableCell className="italic text-muted-foreground">Unallocated</TableCell>
                        <TableCell></TableCell>
                        <TableCell></TableCell>
-                       <TableCell className="text-xs text-amber-700 font-medium">
+                       <TableCell className="text-amber-700 font-medium">
                          <BilledAmountWithTooltip amount={purchaseOrder.unallocated_billed} invoices={purchaseOrder.unallocated_invoices} />
                        </TableCell>
                        {hasPending && <TableCell></TableCell>}
@@ -253,20 +253,20 @@ export function PODetailsDialog({
 
                    {/* Totals Row */}
                    <TableRow className="bg-muted/50 font-medium">
-                      <TableCell className="text-xs font-semibold">Total</TableCell>
-                     <TableCell></TableCell>
-                      <TableCell className="text-xs font-semibold">
-                        {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
-                      </TableCell>
-                      <TableCell className="text-xs font-semibold">
-                        {formatCurrency(purchaseOrder.total_billed)}
-                      </TableCell>
-                      {hasPending && (
-                         <TableCell className="text-xs font-semibold text-green-700">
-                           {formatCurrency(totalPending)}
-                         </TableCell>
-                      )}
-                       <TableCell className={cn("text-xs font-semibold",
+                      <TableCell className="font-semibold">Total</TableCell>
+                      <TableCell></TableCell>
+                       <TableCell className="font-semibold">
+                         {formatCurrency(lineItems.reduce((s, l) => s + l.amount, 0))}
+                       </TableCell>
+                       <TableCell className="font-semibold">
+                         {formatCurrency(purchaseOrder.total_billed)}
+                       </TableCell>
+                       {hasPending && (
+                          <TableCell className="font-semibold text-green-700">
+                            {formatCurrency(totalPending)}
+                          </TableCell>
+                       )}
+                        <TableCell className={cn("font-semibold",
                          hasPending
                            ? (projectedRemaining < 0 ? "text-destructive" : projectedRemaining >= 0 ? "text-green-700" : "")
                            : (isOverBudget ? "text-destructive" : isWarning ? "text-amber-700" : isHealthy ? "text-green-700" : "")
