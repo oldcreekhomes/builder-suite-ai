@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,8 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { POStatusBadge } from "./POStatusBadge";
 import { usePendingBillPOStatus } from "@/hooks/usePendingBillPOStatus";
-import { PODetailsDialog } from "./PODetailsDialog";
+import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
+import { POMatch } from "@/hooks/useBillPOMatching";
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
 const formatTerms = (terms: string | null | undefined): string => {
@@ -159,7 +161,23 @@ export function BatchBillReviewTable({
     : undefined;
   const poDialogPoIds = poDialogBillId ? (poStatusMap?.get(poDialogBillId)?.poIds || []) : [];
   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, poDialogVendorId);
-  const matchedPO = vendorPOs?.find(po => poDialogPoIds.includes(po.id)) || null;
+  const poDialogMatches: POMatch[] = useMemo(() => {
+    if (!vendorPOs || !poDialogPoIds.length) return [];
+    return vendorPOs
+      .filter(po => poDialogPoIds.includes(po.id))
+      .map(po => ({
+        po_id: po.id,
+        po_number: po.po_number || 'Unknown',
+        po_amount: po.total_amount || 0,
+        total_billed: 0,
+        remaining: po.total_amount || 0,
+        status: 'matched' as const,
+        cost_code_id: po.cost_code_id || '',
+        cost_code_display: po.cost_code
+          ? `${po.cost_code.code}: ${po.cost_code.name}`
+          : 'Unknown',
+      }));
+  }, [vendorPOs, poDialogPoIds]);
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
@@ -947,31 +965,34 @@ export function BatchBillReviewTable({
         />
       )}
 
-      {poDialogBillId && matchedPO && (
-        <PODetailsDialog
+      {poDialogBillId && poDialogMatches.length > 0 && (
+        <BillPOSummaryDialog
           open={!!poDialogBillId}
           onOpenChange={(open) => { if (!open) setPoDialogBillId(null); }}
-          purchaseOrder={matchedPO}
-          projectId={projectId || null}
-          vendorId={poDialogVendorId || null}
-          currentBillAmount={(() => {
-            const bill = bills.find(b => b.id === poDialogBillId);
-            const ext = bill?.extracted_data;
-            const total = ext?.total_amount || ext?.totalAmount;
-            return total ? (typeof total === 'string' ? parseFloat(total) : total) : 
-              (bill?.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
-          })()}
-          currentBillReference={(() => {
-            const bill = bills.find(b => b.id === poDialogBillId);
-            return bill?.reference_number || bill?.extracted_data?.reference_number || bill?.extracted_data?.referenceNumber || undefined;
-          })()}
-          pendingBillLines={(() => {
-            const bill = bills.find(b => b.id === poDialogBillId);
-            return (bill?.lines || []).map(l => ({
-              cost_code_id: l.cost_code_id,
-              amount: l.amount || 0,
-            }));
-          })()}
+          matches={poDialogMatches}
+          bill={{
+            id: poDialogBillId,
+            project_id: projectId || null,
+            vendor_id: poDialogVendorId,
+            total_amount: (() => {
+              const bill = bills.find(b => b.id === poDialogBillId);
+              const ext = bill?.extracted_data;
+              const total = ext?.total_amount || ext?.totalAmount;
+              return total ? (typeof total === 'string' ? parseFloat(total) : total) :
+                (bill?.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+            })(),
+            reference_number: (() => {
+              const bill = bills.find(b => b.id === poDialogBillId);
+              return bill?.reference_number || bill?.extracted_data?.reference_number || bill?.extracted_data?.referenceNumber || null;
+            })(),
+            bill_lines: (() => {
+              const bill = bills.find(b => b.id === poDialogBillId);
+              return (bill?.lines || []).map(l => ({
+                cost_code_id: l.cost_code_id,
+                amount: l.amount || 0,
+              }));
+            })(),
+          }}
         />
       )}
     </div>
