@@ -74,6 +74,7 @@ interface BillForApproval {
     amount?: number;
     memo?: string;
     purchase_order_id?: string;
+    purchase_order_line_id?: string;
     cost_codes?: {
       code: string;
       name: string;
@@ -258,6 +259,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             amount,
             memo,
             purchase_order_id,
+            purchase_order_line_id,
             cost_codes!bill_lines_cost_code_id_fkey (
               code,
               name

@@ -63,7 +63,9 @@ interface BillForPayment {
     account_id?: string;
     lot_id?: string;
     amount?: number;
+    memo?: string;
     purchase_order_id?: string;
+    purchase_order_line_id?: string;
     project_lots?: {
       id: string;
       lot_name?: string;
@@ -229,7 +231,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               account_id,
               lot_id,
               amount,
+              memo,
               purchase_order_id,
+              purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
                 id,
                 lot_name,
@@ -288,7 +292,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               account_id,
               lot_id,
               amount,
+              memo,
               purchase_order_id,
+              purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
                 id,
                 lot_name,
@@ -340,7 +346,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               account_id,
               lot_id,
               amount,
+              memo,
               purchase_order_id,
+              purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
                 id,
                 lot_name,
@@ -414,7 +422,9 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               account_id,
               lot_id,
               amount,
+              memo,
               purchase_order_id,
+              purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
                 id,
                 lot_name,
