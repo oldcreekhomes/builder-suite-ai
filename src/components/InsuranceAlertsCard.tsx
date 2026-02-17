@@ -50,7 +50,7 @@ export const InsuranceAlertsCard = () => {
               {alerts.map((alert, index) => (
                 <div
                   key={`${alert.companyId}-${alert.insuranceType || index}`}
-                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50"
+                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 overflow-hidden"
                 >
                   {alert.severity === "error" ? (
                     <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
