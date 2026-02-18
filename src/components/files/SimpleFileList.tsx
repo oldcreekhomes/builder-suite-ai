@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Edit3, FolderPlus, CheckSquare, Square, Share2 } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Edit3, Share2, MoveRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 import { BulkActionBar } from './components/BulkActionBar';
@@ -12,6 +15,7 @@ import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+
 interface SimpleFolder {
   name: string;
   path: string;
@@ -42,6 +46,17 @@ interface SimpleFileListProps {
   onCreateFolder: (folderName: string) => void;
 }
 
+const getFileTypeLabel = (mimeType: string): string => {
+  if (mimeType.startsWith('image/')) return mimeType.split('/')[1]?.toUpperCase() || 'Image';
+  if (mimeType.includes('pdf')) return 'PDF';
+  if (mimeType.includes('word') || mimeType.includes('document')) return 'DOCX';
+  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'XLSX';
+  if (mimeType.includes('zip')) return 'ZIP';
+  if (mimeType.includes('text/plain')) return 'TXT';
+  const parts = mimeType.split('/');
+  return parts[parts.length - 1]?.toUpperCase() || '—';
+};
+
 export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   folders,
   files,
@@ -68,9 +83,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
   const { toast } = useToast();
-  
+
   const handleFileView = (file: SimpleFile) => {
-    console.log('PROJECT FILES: Opening file', file.storage_path, file.displayName);
     openProjectFile(file.storage_path, file.displayName);
   };
 
@@ -79,7 +93,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       const { data, error } = await supabase.storage
         .from('project-files')
         .download(file.storage_path);
-
       if (error) throw error;
       if (data) {
         const url = URL.createObjectURL(data);
@@ -92,7 +105,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         URL.revokeObjectURL(url);
       }
     } catch (error) {
-      console.error('Error downloading file:', error);
       toast({ title: "Error", description: "Failed to download file", variant: "destructive" });
     }
   };
@@ -104,33 +116,22 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const confirmRename = async () => {
     if (!renameFile || !newFileName.trim()) return;
-
     try {
-      // Simple rename: just update the filename, preserve any existing folder structure
       let newOriginalFilename = newFileName;
-      
-      // If the file is in a folder, preserve the folder path
       if (renameFile.original_filename && renameFile.original_filename.includes('/')) {
         const folderPath = renameFile.original_filename.substring(0, renameFile.original_filename.lastIndexOf('/'));
         newOriginalFilename = `${folderPath}/${newFileName}`;
       }
-
       const { error } = await supabase
         .from('project_files')
-        .update({ 
-          original_filename: newOriginalFilename,
-          filename: newFileName
-        })
+        .update({ original_filename: newOriginalFilename, filename: newFileName })
         .eq('id', renameFile.id);
-
       if (error) throw error;
-      
       toast({ title: "Success", description: "File renamed successfully" });
       setRenameFile(null);
       setNewFileName('');
       onRefresh();
     } catch (error) {
-      console.error('Error renaming file:', error);
       toast({ title: "Error", description: "Failed to rename file", variant: "destructive" });
     }
   };
@@ -142,36 +143,31 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const confirmFolderRename = async () => {
     if (!renameFolder || !newFolderName.trim()) return;
-
     try {
       const oldFolderPath = renameFolder.path;
-      const parentPath = renameFolder.path.includes('/') ? 
-        renameFolder.path.substring(0, renameFolder.path.lastIndexOf('/')) : '';
+      const parentPath = renameFolder.path.includes('/')
+        ? renameFolder.path.substring(0, renameFolder.path.lastIndexOf('/'))
+        : '';
       const newFolderPath = parentPath ? `${parentPath}/${newFolderName}` : newFolderName;
 
-      // Get all files in this folder first - CRITICAL: Scope by project_id to prevent cross-project updates
       const { data: filesToUpdate, error: fetchError } = await supabase
         .from('project_files')
         .select('id, original_filename')
         .eq('project_id', projectId)
         .like('original_filename', `${oldFolderPath}/%`)
         .eq('is_deleted', false);
-
       if (fetchError) throw fetchError;
 
-      // Update each file's path individually
       if (filesToUpdate && filesToUpdate.length > 0) {
         for (const file of filesToUpdate) {
           const newFilename = file.original_filename.replace(
             new RegExp(`^${oldFolderPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`),
             `${newFolderPath}/`
           );
-          
           const { error: updateError } = await supabase
             .from('project_files')
             .update({ original_filename: newFilename })
             .eq('id', file.id);
-
           if (updateError) throw updateError;
         }
       }
@@ -181,7 +177,6 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       setNewFolderName('');
       onRefresh();
     } catch (error) {
-      console.error('Error renaming folder:', error);
       toast({ title: "Error", description: "Failed to rename folder", variant: "destructive" });
     }
   };
@@ -194,48 +189,27 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         .eq('project_id', projectId)
         .neq('file_type', 'folderkeeper')
         .eq('is_deleted', false);
-
       if (fetchError) throw fetchError;
 
-      // Filter files that belong to this folder
-      const folderFiles = allFiles.filter(file => {
-        const filePath = file.original_filename;
-        const expectedPrefix = `${folder.path}/`;
-        return filePath.startsWith(expectedPrefix);
-      });
+      const folderFiles = allFiles.filter(file =>
+        file.original_filename.startsWith(`${folder.path}/`)
+      );
 
       if (folderFiles.length === 0) {
         toast({ title: "Error", description: "No files found in this folder", variant: "destructive" });
         return;
       }
 
-      // Import JSZip dynamically
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
-
-      // Download each file and add to zip
       for (const file of folderFiles) {
         try {
-          const { data, error } = await supabase.storage
-            .from('project-files')
-            .download(file.storage_path);
-
-          if (error) {
-            console.error(`Error downloading ${file.filename}:`, error);
-            continue;
-          }
-
-          // Get the relative path within the folder for the zip
-          const expectedPrefix = `${folder.path}/`;
-          const relativePath = file.original_filename.substring(expectedPrefix.length);
-          
+          const { data, error } = await supabase.storage.from('project-files').download(file.storage_path);
+          if (error) continue;
+          const relativePath = file.original_filename.substring(`${folder.path}/`.length);
           zip.file(relativePath, data);
-        } catch (error) {
-          console.error(`Error processing ${file.filename}:`, error);
-        }
+        } catch {}
       }
-
-      // Generate and download the zip file
       const content = await zip.generateAsync({ type: 'blob' });
       const url = window.URL.createObjectURL(content);
       const a = document.createElement('a');
@@ -245,117 +219,46 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
       toast({ title: "Success", description: `Folder "${folder.name}" downloaded successfully` });
     } catch (error) {
-      console.error('Error downloading folder:', error);
       toast({ title: "Error", description: "Failed to download folder", variant: "destructive" });
     }
   };
 
-  const handleFolderDelete = (folder: SimpleFolder) => {
-    setDeleteFolder(folder);
-  };
-
-  // Escape % and _ for SQL LIKE
   const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
 
   const confirmFolderDelete = async () => {
     if (!deleteFolder) return;
-
     try {
       const escaped = escapeLike(deleteFolder.path);
       const likePrefix = `${escaped}/%`;
-
-      // Mark all files in the folder (descendants) - scoped by project
-      const { error: filesError } = await supabase
-        .from('project_files')
-        .update({ is_deleted: true })
-        .eq('project_id', projectId)
-        .like('original_filename', likePrefix);
-
+      const { error: filesError } = await supabase.from('project_files').update({ is_deleted: true }).eq('project_id', projectId).like('original_filename', likePrefix);
       if (filesError) throw filesError;
-
-      // Also delete the .folderkeeper file for this exact folder
-      const { error: keeperError } = await supabase
-        .from('project_files')
-        .update({ is_deleted: true })
-        .eq('project_id', projectId)
-        .eq('original_filename', `${deleteFolder.path}/.folderkeeper`);
-
+      const { error: keeperError } = await supabase.from('project_files').update({ is_deleted: true }).eq('project_id', projectId).eq('original_filename', `${deleteFolder.path}/.folderkeeper`);
       if (keeperError) throw keeperError;
-
-      // Remove the .folderkeeper object in storage to prevent auto-heal recreating the folder
-      await supabase.storage
-        .from('project-files')
-        .remove([`${projectId}/${deleteFolder.path}/.folderkeeper`]);
-
-      // Remove the exact folder entry
-      const { error: pfError1 } = await supabase
-        .from('project_folders')
-        .delete()
-        .match({ project_id: projectId, folder_path: deleteFolder.path });
+      await supabase.storage.from('project-files').remove([`${projectId}/${deleteFolder.path}/.folderkeeper`]);
+      const { error: pfError1 } = await supabase.from('project_folders').delete().match({ project_id: projectId, folder_path: deleteFolder.path });
       if (pfError1) throw pfError1;
-
-      // Remove any subfolders
-      const { error: pfError2 } = await supabase
-        .from('project_folders')
-        .delete()
-        .eq('project_id', projectId)
-        .like('folder_path', likePrefix);
+      const { error: pfError2 } = await supabase.from('project_folders').delete().eq('project_id', projectId).like('folder_path', likePrefix);
       if (pfError2) throw pfError2;
-
       toast({ title: "Success", description: "Folder deleted successfully" });
       setDeleteFolder(null);
       onRefresh();
     } catch (error) {
-      console.error('Error deleting folder:', error);
       toast({ title: "Error", description: "Failed to delete folder", variant: "destructive" });
       setDeleteFolder(null);
     }
   };
 
-  const handleFileDelete = (file: SimpleFile) => {
-    setDeleteFile(file);
-  };
-
-  const handleFileShare = (file: SimpleFile) => {
-    setShareFile(file);
-  };
-
-  // Convert SimpleFile to ProjectFile format for the share modal
-  const getShareableFile = (file: SimpleFile | null) => {
-    if (!file) return null;
-    
-    return {
-      id: file.id,
-      project_id: projectId,
-      original_filename: file.original_filename || file.displayName,
-      file_size: file.file_size,
-      file_type: file.mime_type,
-      storage_path: file.storage_path,
-      uploaded_by: file.uploader?.email || 'unknown',
-      uploaded_at: file.uploaded_at,
-      uploaded_by_profile: file.uploader ? { email: file.uploader.email } : undefined
-    };
-  };
-
   const confirmDelete = async () => {
     if (!deleteFile) return;
-
     try {
-      const { error } = await supabase
-        .from('project_files')
-        .update({ is_deleted: true })
-        .eq('id', deleteFile.id);
-
+      const { error } = await supabase.from('project_files').update({ is_deleted: true }).eq('id', deleteFile.id);
       if (error) throw error;
-      
       toast({ title: "Success", description: "File deleted successfully" });
       setDeleteFile(null);
       onRefresh();
     } catch (error) {
-      console.error('Error deleting file:', error);
       toast({ title: "Error", description: "Failed to delete file", variant: "destructive" });
       setDeleteFile(null);
     }
@@ -363,28 +266,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleSelectFile = (fileId: string, checked: boolean) => {
     const newSelected = new Set(selectedFiles);
-    if (checked) {
-      newSelected.add(fileId);
-    } else {
-      newSelected.delete(fileId);
-    }
+    checked ? newSelected.add(fileId) : newSelected.delete(fileId);
     setSelectedFiles(newSelected);
   };
 
   const handleSelectFolder = (folderPath: string, checked: boolean) => {
     const newSelected = new Set(selectedFolders);
-    if (checked) {
-      newSelected.add(folderPath);
-    } else {
-      newSelected.delete(folderPath);
-    }
+    checked ? newSelected.add(folderPath) : newSelected.delete(folderPath);
     setSelectedFolders(newSelected);
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedFiles(new Set(files.map(file => file.id)));
-      setSelectedFolders(new Set(folders.map(folder => folder.path)));
+      setSelectedFiles(new Set(files.map(f => f.id)));
+      setSelectedFolders(new Set(folders.map(f => f.path)));
     } else {
       setSelectedFiles(new Set());
       setSelectedFolders(new Set());
@@ -393,11 +288,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleMoveFiles = (fileIds?: string[], folderPaths?: string[]) => {
     if (fileIds || folderPaths) {
-      // Individual item move - set specific items to move
       setFilesToMove(fileIds || []);
       setFoldersToMove(folderPaths || []);
     } else {
-      // Bulk move - use current selection
       setFilesToMove(Array.from(selectedFiles));
       setFoldersToMove(Array.from(selectedFolders));
     }
@@ -418,98 +311,64 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const confirmBulkDelete = async () => {
     if (selectedFiles.size === 0 && selectedFolders.size === 0) return;
-
     setIsDeleting(true);
     try {
       let deletedCount = 0;
-      
-      // Delete selected files
       if (selectedFiles.size > 0) {
         const fileIds = Array.from(selectedFiles);
-        const { error } = await supabase
-          .from('project_files')
-          .update({ is_deleted: true })
-          .in('id', fileIds);
-
+        const { error } = await supabase.from('project_files').update({ is_deleted: true }).in('id', fileIds);
         if (error) throw error;
         deletedCount += selectedFiles.size;
       }
-
-      // Delete selected folders and their contents - CRITICAL: Scope by project_id to prevent cross-project deletion
       if (selectedFolders.size > 0) {
         for (const folderPath of selectedFolders) {
           const escaped = escapeLike(folderPath);
           const likePrefix = `${escaped}/%`;
-
-          // Delete all files in the folder (descendants)
-          const { error: filesError } = await supabase
-            .from('project_files')
-            .update({ is_deleted: true })
-            .eq('project_id', projectId)
-            .like('original_filename', likePrefix);
-
+          const { error: filesError } = await supabase.from('project_files').update({ is_deleted: true }).eq('project_id', projectId).like('original_filename', likePrefix);
           if (filesError) throw filesError;
-
-          // Also delete the .folderkeeper file for this exact folder
-          const { error: keeperError } = await supabase
-            .from('project_files')
-            .update({ is_deleted: true })
-            .eq('project_id', projectId)
-            .eq('original_filename', `${folderPath}/.folderkeeper`);
-
+          const { error: keeperError } = await supabase.from('project_files').update({ is_deleted: true }).eq('project_id', projectId).eq('original_filename', `${folderPath}/.folderkeeper`);
           if (keeperError) throw keeperError;
-
-          // Remove the .folderkeeper object in storage to prevent auto-heal recreating the folder
-          await supabase.storage
-            .from('project-files')
-            .remove([`${projectId}/${folderPath}/.folderkeeper`]);
-          
-          // Remove the exact folder entry
-          const { error: pfError1 } = await supabase
-            .from('project_folders')
-            .delete()
-            .match({ project_id: projectId, folder_path: folderPath });
+          await supabase.storage.from('project-files').remove([`${projectId}/${folderPath}/.folderkeeper`]);
+          const { error: pfError1 } = await supabase.from('project_folders').delete().match({ project_id: projectId, folder_path: folderPath });
           if (pfError1) throw pfError1;
-
-          // Remove subfolder entries
-          const { error: pfError2 } = await supabase
-            .from('project_folders')
-            .delete()
-            .eq('project_id', projectId)
-            .like('folder_path', likePrefix);
+          const { error: pfError2 } = await supabase.from('project_folders').delete().eq('project_id', projectId).like('folder_path', likePrefix);
           if (pfError2) throw pfError2;
-          
-          deletedCount += 1; // Count folder as 1 item for user feedback
+          deletedCount += 1;
         }
       }
-
-      const itemType = selectedFiles.size > 0 && selectedFolders.size > 0 
-        ? 'item(s)' 
-        : selectedFiles.size > 0 
-          ? 'file(s)' 
-          : 'folder(s)';
-      
+      const itemType = selectedFiles.size > 0 && selectedFolders.size > 0 ? 'item(s)' : selectedFiles.size > 0 ? 'file(s)' : 'folder(s)';
       toast({ title: "Success", description: `Successfully deleted ${deletedCount} ${itemType}` });
       setSelectedFiles(new Set());
       setSelectedFolders(new Set());
       setShowBulkDeleteConfirm(false);
       onRefresh();
     } catch (error) {
-      console.error('Error deleting items:', error);
       toast({ title: "Error", description: "Failed to delete selected items", variant: "destructive" });
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return '🖼️';
-    if (mimeType.includes('pdf')) return '📄';
-    if (mimeType.includes('word')) return '📝';
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-    if (mimeType.includes('zip') || mimeType.includes('rar')) return '🗜️';
-    return '📁';
+  const getShareableFile = (file: SimpleFile | null) => {
+    if (!file) return null;
+    return {
+      id: file.id,
+      project_id: projectId,
+      original_filename: file.original_filename || file.displayName,
+      file_size: file.file_size,
+      file_type: file.mime_type,
+      storage_path: file.storage_path,
+      uploaded_by: file.uploader?.email || 'unknown',
+      uploaded_at: file.uploaded_at,
+      uploaded_by_profile: file.uploader ? { email: file.uploader.email } : undefined
+    };
   };
+
+  const allSelected = files.length + folders.length > 0
+    && selectedFiles.size === files.length
+    && selectedFolders.size === folders.length;
+
+  const someSelected = selectedFiles.size > 0 || selectedFolders.size > 0;
 
   if (folders.length === 0 && files.length === 0) {
     return (
@@ -531,184 +390,134 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         isDeleting={isDeleting}
       />
 
-      {/* Select All Controls */}
-      {(files.length > 0 || folders.length > 0) && (
-        <div className="mb-4 flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const allSelected = selectedFiles.size === files.length && selectedFolders.size === folders.length;
-              handleSelectAll(!allSelected);
-            }}
-            className="gap-2"
-          >
-            {selectedFiles.size === files.length && selectedFolders.size === folders.length ? (
-              <CheckSquare className="h-4 w-4" />
-            ) : (
-              <Square className="h-4 w-4" />
-            )}
-            {selectedFiles.size === files.length && selectedFolders.size === folders.length ? 'Deselect All' : 'Select All'}
+      {/* Move Selected button */}
+      {someSelected && (
+        <div className="mb-3">
+          <Button variant="outline" size="sm" onClick={() => handleMoveFiles()} className="gap-2">
+            <MoveRight className="h-4 w-4" />
+            Move Selected ({selectedFiles.size + selectedFolders.size})
           </Button>
-          {(selectedFiles.size > 0 || selectedFolders.size > 0) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleMoveFiles()}
-              className="gap-2"
-            >
-               <FileText className="h-4 w-4" />
-              Move Selected ({selectedFiles.size + selectedFolders.size})
-            </Button>
-          )}
         </div>
       )}
-      
-      <div className="space-y-2">
-        {/* Folders */}
-        {folders.map((folder) => (
-          <div
-            key={folder.path}
-            className={`flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors ${
-              selectedFolders.has(folder.path) ? 'bg-accent border-primary' : ''
-            }`}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleSelectFolder(folder.path, !selectedFolders.has(folder.path))}
-              className="p-1"
-            >
-              {selectedFolders.has(folder.path) ? (
-                <CheckSquare className="h-4 w-4 text-primary" />
-              ) : (
-                <Square className="h-4 w-4" />
-              )}
-            </Button>
-            <Folder className="h-5 w-5 text-blue-500" />
-            <div 
-              className="flex-1 cursor-pointer"
-              onClick={() => onFolderClick(folder.path)}
-            >
-              <p className="font-medium">{folder.name}</p>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFolderRename(folder)}
-                className="gap-1"
-              >
-                <Edit3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFolderDownload(folder)}
-                className="gap-1"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleMoveFiles([], [folder.path])}
-                className="gap-1"
-                title="Move folder"
-              >
-                <FileText className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFolderDelete(folder)}
-                className="gap-1 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
 
-        {/* Files */}
-        {files.map((file) => (
-          <div
-            key={file.id}
-            className={`flex items-center gap-1.5 p-1.5 rounded-lg border hover:bg-accent transition-colors ${
-              selectedFiles.has(file.id) ? 'bg-accent border-primary' : ''
-            }`}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleSelectFile(file.id, !selectedFiles.has(file.id))}
-              className="p-1"
-            >
-              {selectedFiles.has(file.id) ? (
-                <CheckSquare className="h-4 w-4 text-primary" />
-              ) : (
-                <Square className="h-4 w-4" />
-              )}
-            </Button>
-            <div className="text-xl">
-              {getFileIcon(file.mime_type)}
-            </div>
-            <div 
-              className="flex-1 min-w-0 cursor-pointer"
-              onClick={() => handleFileView(file)}
-            >
-              <p className="font-medium truncate">{file.displayName}</p>
-            </div>
-            <div 
-              className="flex items-center gap-3 text-sm text-muted-foreground whitespace-nowrap cursor-pointer"
-              onClick={() => handleFileView(file)}
-            >
-              <span>{formatFileSize(file.file_size)}</span>
-              <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
-              {file.uploader && (
-                <span className="hidden sm:inline">
-                  {file.uploader.first_name} {file.uploader.last_name}
-                </span>
-              )}
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFileShare(file)}
-                className="gap-1"
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFileRename(file)}
-                className="gap-1"
-              >
-                <Edit3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFileDownload(file)}
-                className="gap-1"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleFileDelete(file)}
-                className="gap-1 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                aria-label="Select all"
+              />
+            </TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead className="w-24">Type</TableHead>
+            <TableHead className="w-28">Size</TableHead>
+            <TableHead className="w-40">Uploaded By</TableHead>
+            <TableHead className="w-32">Date</TableHead>
+            <TableHead className="w-20 text-center">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {/* Folders */}
+          {folders.map((folder) => (
+            <TableRow key={folder.path} data-state={selectedFolders.has(folder.path) ? 'selected' : undefined}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedFolders.has(folder.path)}
+                  onCheckedChange={(checked) => handleSelectFolder(folder.path, !!checked)}
+                  aria-label={`Select folder ${folder.name}`}
+                />
+              </TableCell>
+              <TableCell>
+                <button
+                  className="flex items-center gap-2 text-left hover:underline focus:outline-none"
+                  onClick={() => onFolderClick(folder.path)}
+                >
+                  <Folder className="h-4 w-4 text-primary shrink-0" />
+                  <span className="font-medium">{folder.name}</span>
+                </button>
+              </TableCell>
+              <TableCell className="text-muted-foreground">—</TableCell>
+              <TableCell className="text-muted-foreground">—</TableCell>
+              <TableCell className="text-muted-foreground">—</TableCell>
+              <TableCell className="text-muted-foreground">—</TableCell>
+              <TableCell className="text-center">
+                <TableRowActions actions={[
+                  { label: 'Rename', onClick: () => handleFolderRename(folder) },
+                  { label: 'Download as Zip', onClick: () => handleFolderDownload(folder) },
+                  { label: 'Move', onClick: () => handleMoveFiles([], [folder.path]) },
+                  {
+                    label: 'Delete',
+                    onClick: () => setDeleteFolder(folder),
+                    variant: 'destructive',
+                    requiresConfirmation: true,
+                    confirmTitle: 'Delete Folder',
+                    confirmDescription: `Are you sure you want to delete the folder "${folder.name}" and all its contents? This action cannot be undone.`,
+                  },
+                ]} />
+              </TableCell>
+            </TableRow>
+          ))}
 
+          {/* Files */}
+          {files.map((file) => (
+            <TableRow key={file.id} data-state={selectedFiles.has(file.id) ? 'selected' : undefined}>
+              <TableCell>
+                <Checkbox
+                  checked={selectedFiles.has(file.id)}
+                  onCheckedChange={(checked) => handleSelectFile(file.id, !!checked)}
+                  aria-label={`Select file ${file.displayName}`}
+                />
+              </TableCell>
+              <TableCell>
+                <button
+                  className="flex items-center gap-2 text-left hover:underline focus:outline-none truncate max-w-xs"
+                  onClick={() => handleFileView(file)}
+                >
+                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="truncate">{file.displayName}</span>
+                </button>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {getFileTypeLabel(file.mime_type)}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatFileSize(file.file_size)}
+              </TableCell>
+              <TableCell className="text-muted-foreground truncate max-w-[160px]">
+                {file.uploader
+                  ? (file.uploader.first_name || file.uploader.last_name
+                    ? `${file.uploader.first_name ?? ''} ${file.uploader.last_name ?? ''}`.trim()
+                    : file.uploader.email)
+                  : '—'}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {new Date(file.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </TableCell>
+              <TableCell className="text-center">
+                <TableRowActions actions={[
+                  { label: 'Preview', onClick: () => handleFileView(file) },
+                  { label: 'Download', onClick: () => handleFileDownload(file) },
+                  { label: 'Rename', onClick: () => handleFileRename(file) },
+                  { label: 'Share', onClick: () => setShareFile(file) },
+                  { label: 'Move', onClick: () => handleMoveFiles([file.id], []) },
+                  {
+                    label: 'Delete',
+                    onClick: () => setDeleteFile(file),
+                    variant: 'destructive',
+                    requiresConfirmation: true,
+                    confirmTitle: 'Delete File',
+                    confirmDescription: `Are you sure you want to delete "${file.displayName}"? This action cannot be undone.`,
+                  },
+                ]} />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {/* Dialogs */}
       <DeleteConfirmationDialog
         open={!!deleteFile}
         onOpenChange={(open) => !open && setDeleteFile(null)}
@@ -732,9 +541,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label htmlFor="fileName" className="text-sm font-medium">
-                File Name
-              </label>
+              <label htmlFor="fileName" className="text-sm font-medium">File Name</label>
               <Input
                 id="fileName"
                 value={newFileName}
@@ -745,12 +552,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameFile(null)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmRename} disabled={!newFileName.trim()}>
-              Rename
-            </Button>
+            <Button variant="outline" onClick={() => setRenameFile(null)}>Cancel</Button>
+            <Button onClick={confirmRename} disabled={!newFileName.trim()}>Rename</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -762,9 +565,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label htmlFor="folderName" className="text-sm font-medium">
-                Folder Name
-              </label>
+              <label htmlFor="folderName" className="text-sm font-medium">Folder Name</label>
               <Input
                 id="folderName"
                 value={newFolderName}
@@ -775,12 +576,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameFolder(null)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmFolderRename} disabled={!newFolderName.trim()}>
-              Rename
-            </Button>
+            <Button variant="outline" onClick={() => setRenameFolder(null)}>Cancel</Button>
+            <Button onClick={confirmFolderRename} disabled={!newFolderName.trim()}>Rename</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
