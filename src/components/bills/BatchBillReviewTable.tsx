@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, FileText, Loader2, Plus } from "lucide-react";
 import { TableRowActions } from "@/components/ui/table-row-actions";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { cn } from "@/lib/utils";
 import { formatDisplayFromAny } from "@/utils/dateOnly";
 import { EditExtractedBillDialog } from "./EditExtractedBillDialog";
@@ -150,6 +151,30 @@ export function BatchBillReviewTable({
   } | undefined>(undefined);
   const { toast } = useToast();
   const { openBillAttachment } = useUniversalFilePreviewContext();
+  const [deletingAttachmentBill, setDeletingAttachmentBill] = useState<PendingBill | null>(null);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
+
+  const handleDeleteAttachment = async () => {
+    if (!deletingAttachmentBill) return;
+    setIsDeletingAttachment(true);
+    try {
+      if (deletingAttachmentBill.file_path) {
+        await supabase.storage.from('bill-attachments').remove([deletingAttachmentBill.file_path]);
+      }
+      const { error } = await supabase
+        .from('pending_bill_uploads')
+        .update({ file_name: '', file_path: '' })
+        .eq('id', deletingAttachmentBill.id);
+      if (error) throw error;
+      onBillUpdate(deletingAttachmentBill.id, { file_name: '', file_path: '' });
+      toast({ title: "Attachment removed", description: "The file was deleted. The bill and its line items remain in the queue." });
+    } catch (err: any) {
+      toast({ title: "Error", description: `Failed to remove attachment: ${err.message}`, variant: "destructive" });
+    } finally {
+      setIsDeletingAttachment(false);
+      setDeletingAttachmentBill(null);
+    }
+  };
 
   // Auto-match PO status by looking up project_purchase_orders
   const { data: poStatusMap } = usePendingBillPOStatus(bills, projectId);
@@ -878,10 +903,10 @@ export function BatchBillReviewTable({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onBillDelete(bill.id);
+                          setDeletingAttachmentBill(bill);
                         }}
                         className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
-                        title="Delete file"
+                        title="Remove attachment"
                         type="button"
                       >
                         <span className="text-xs font-bold leading-none">×</span>
@@ -1008,6 +1033,15 @@ export function BatchBillReviewTable({
           }}
         />
       )}
+
+      <DeleteConfirmationDialog
+        open={!!deletingAttachmentBill}
+        onOpenChange={(open) => { if (!open) setDeletingAttachmentBill(null); }}
+        title="Remove Attachment?"
+        description="Remove this attachment? The bill and its line items will remain in the queue."
+        onConfirm={handleDeleteAttachment}
+        isLoading={isDeletingAttachment}
+      />
     </div>
   );
 }

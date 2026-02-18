@@ -15,6 +15,7 @@ import { JobSearchInput } from "@/components/JobSearchInput";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { cn } from "@/lib/utils";
 import { normalizeToYMD, toDateLocal } from "@/utils/dateOnly";
@@ -112,13 +113,37 @@ export function EditExtractedBillDialog({
   const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] = useState(false);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
   const hasAutoMatched = useRef(false);
 
-  // Reset auto-match flag when dialog opens
+  const handleDeleteAttachment = async () => {
+    setIsDeletingAttachment(true);
+    try {
+      if (filePath) {
+        await supabase.storage.from('bill-attachments').remove([filePath]);
+      }
+      const { error } = await supabase
+        .from('pending_bill_uploads')
+        .update({ file_name: '', file_path: '' })
+        .eq('id', pendingUploadId);
+      if (error) throw error;
+      setFileName('');
+      setFilePath('');
+      toast({ title: "Attachment removed", description: "The file was deleted. The bill and its line items remain in the queue." });
+    } catch (err: any) {
+      toast({ title: "Error", description: `Failed to remove attachment: ${err.message}`, variant: "destructive" });
+    } finally {
+      setIsDeletingAttachment(false);
+      setShowDeleteAttachmentConfirm(false);
+    }
+  };
+
+
   useEffect(() => {
     if (open) hasAutoMatched.current = false;
   }, [open]);
@@ -826,6 +851,7 @@ export function EditExtractedBillDialog({
               <Label>Reference No.</Label>
               <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
             </div>
+            {fileName ? (
             <div className="space-y-2">
               <Label>Attachment</Label>
               <div>
@@ -847,14 +873,10 @@ export function EditExtractedBillDialog({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Note: This deletes the entire pending bill upload
-                      if (confirm('Delete this bill attachment? This will remove the entire bill from the queue.')) {
-                        onOpenChange(false);
-                        // Trigger deletion through parent component if needed
-                      }
+                      setShowDeleteAttachmentConfirm(true);
                     }}
-                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
-                    title="Delete file"
+                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
+                    title="Remove attachment"
                     type="button"
                   >
                     <span className="text-xs font-bold leading-none">×</span>
@@ -862,6 +884,7 @@ export function EditExtractedBillDialog({
                 </div>
               </div>
             </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label>Internal Notes</Label>
@@ -1138,6 +1161,14 @@ export function EditExtractedBillDialog({
       }}
       initialValue={internalNotes}
       onSave={(notes) => setInternalNotes(notes)}
+    />
+    <DeleteConfirmationDialog
+      open={showDeleteAttachmentConfirm}
+      onOpenChange={(open) => { if (!open) setShowDeleteAttachmentConfirm(false); }}
+      title="Remove Attachment?"
+      description="Remove this attachment? The bill and its line items will remain in the queue."
+      onConfirm={handleDeleteAttachment}
+      isLoading={isDeletingAttachment}
     />
     </>
   );
