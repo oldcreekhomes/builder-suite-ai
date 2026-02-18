@@ -399,7 +399,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         </div>
       )}
 
-      <Table>
+      <Table containerClassName="relative w-full">
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">

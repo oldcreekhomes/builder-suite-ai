@@ -905,16 +905,18 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       />
 
       {/* File List */}
-      <div className="flex-1 overflow-auto">
-        <SimpleFileList
-          folders={folders}
-          files={files}
-          onFolderClick={handleFolderClick}
-          onRefresh={() => { refetch(); refetchFolders(); }}
-          projectId={projectId}
-          currentPath={currentPath}
-          onCreateFolder={handleCreateFolder}
-        />
+      <div className="flex-1 overflow-auto p-4">
+        <div className="border rounded-lg overflow-hidden">
+          <SimpleFileList
+            folders={folders}
+            files={files}
+            onFolderClick={handleFolderClick}
+            onRefresh={() => { refetch(); refetchFolders(); }}
+            projectId={projectId}
+            currentPath={currentPath}
+            onCreateFolder={handleCreateFolder}
+          />
+        </div>
       </div>
 
       {/* Modals */}
