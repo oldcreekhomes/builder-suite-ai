@@ -155,6 +155,19 @@ export function BatchBillReviewTable({
   const [deletingAttachmentBill, setDeletingAttachmentBill] = useState<PendingBill | null>(null);
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
 
+  const handleRemoveAttachment = async (bill: PendingBill, att: { id: string; file_name: string; file_path: string }) => {
+    try {
+      await supabase.storage.from('bill-attachments').remove([att.file_path]);
+      await supabase.from('bill_attachments').delete().eq('id', att.id);
+      onBillUpdate(bill.id, {
+        attachments: (bill.attachments || []).filter(a => a.id !== att.id)
+      });
+      toast({ title: "Attachment removed" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
   const handleDeleteAttachment = async () => {
     if (!deletingAttachmentBill) return;
     setIsDeletingAttachment(true);
@@ -890,15 +903,27 @@ export function BatchBillReviewTable({
                       {(bill.attachments || []).slice(0, 3).map(att => {
                         const IconComponent = getFileIcon(att.file_name);
                         return (
-                          <button
-                            key={att.id}
-                            onClick={() => openBillAttachment(att.file_path, att.file_name)}
-                            className={`${getFileIconColor(att.file_name)} transition-colors p-1`}
-                            title={att.file_name}
-                            type="button"
-                          >
-                            <IconComponent className="h-4 w-4" />
-                          </button>
+                          <div key={att.id} className="relative group shrink-0">
+                            <button
+                              onClick={() => openBillAttachment(att.file_path, att.file_name)}
+                              className={`${getFileIconColor(att.file_name)} transition-colors p-1`}
+                              title={att.file_name}
+                              type="button"
+                            >
+                              <IconComponent className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveAttachment(bill, att);
+                              }}
+                              className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 items-center justify-center hidden group-hover:flex"
+                              title="Remove attachment"
+                              type="button"
+                            >
+                              <span className="text-xs font-bold leading-none">×</span>
+                            </button>
+                          </div>
                         );
                       })}
                       {(bill.attachments?.length || 0) > 3 && (
