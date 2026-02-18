@@ -150,6 +150,7 @@ export const usePendingBills = () => {
           project_id: lineData.project_id,
           purchase_order_id: lineData.purchase_order_id,
           memo: lineData.memo,
+          lot_id: lineData.lot_id,
         },
       ]);
 

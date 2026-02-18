@@ -20,6 +20,7 @@ import { BillNotesDialog } from "./BillNotesDialog";
 import { cn } from "@/lib/utils";
 import { normalizeToYMD, toDateLocal } from "@/utils/dateOnly";
 import { usePendingBills } from "@/hooks/usePendingBills";
+import { useLots } from "@/hooks/useLots";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
@@ -84,6 +85,7 @@ interface LineItem {
   cost_code_display?: string;
   purchase_order_id?: string;
   purchase_order_line_id?: string;
+  lot_id?: string;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -99,6 +101,8 @@ export function EditExtractedBillDialog({
 }: EditExtractedBillDialogProps) {
   const { projectId } = useParams();
   const { pendingBills, updateLine, addLine, deleteLine } = usePendingBills();
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const [vendorId, setVendorId] = useState<string>("");
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [dueDate, setDueDate] = useState<Date>();
@@ -257,6 +261,7 @@ export function EditExtractedBillDialog({
                 line_type: 'job_cost',
                 cost_code_id: costCodeToUse || undefined,
                 cost_code_display: costCodeDisplay || undefined,
+                lot_id: line.lot_id || undefined,
                 quantity: qty,
                 unit_cost: unitCost,
                 amount: amt,
@@ -271,6 +276,7 @@ export function EditExtractedBillDialog({
                   line_type: 'job_cost',
                   cost_code_id: defaultCostCode,
                   cost_code_display: costCodeDisplay || undefined,
+                  lot_id: line.lot_id || undefined,
                   quantity: qty,
                   unit_cost: unitCost,
                   amount: amt,
@@ -680,6 +686,7 @@ export function EditExtractedBillDialog({
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
             purchase_order_id: line.purchase_order_id,
+            lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
             amount: lineAmount,
@@ -697,6 +704,7 @@ export function EditExtractedBillDialog({
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
             purchase_order_id: line.purchase_order_id,
+            lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
             amount: lineAmount,
@@ -1006,6 +1014,7 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[100px]">Quantity</TableHead>
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[120px]">Total</TableHead>
+                      {showAddressColumn && <TableHead className="w-[160px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[200px]">Purchase Order</TableHead>}
                       {showPOSelection && <TableHead className="w-[80px] text-center">Accuracy</TableHead>}
                       <TableHead className="w-[50px] text-center">Actions</TableHead>
@@ -1056,6 +1065,25 @@ export function EditExtractedBillDialog({
                       <TableCell>
                         <span className="font-medium">${line.amount.toFixed(2)}</span>
                       </TableCell>
+                      {showAddressColumn && (
+                        <TableCell>
+                          <Select
+                            value={line.lot_id || ''}
+                            onValueChange={(value) => updateJobCostLine(line.id, 'lot_id', value)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lots.map((lot) => (
+                                <SelectItem key={lot.id} value={lot.id}>
+                                  {lot.lot_name || `Lot ${lot.lot_number}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      )}
                       {showPOSelection && (
                         <TableCell>
                           <POSelectionDropdown
