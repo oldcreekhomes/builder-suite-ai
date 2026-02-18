@@ -1,38 +1,28 @@
 
-## Fix: Edit Extracted Bill — Move Attachments & Internal Notes to Row 2
+## Fix: Edit Extracted Bill — Attachments & Internal Notes in Third Column (50/50 Split)
 
-### What's Wrong
+### What Needs to Change
 
-The "Edit Extracted Bill" dialog currently uses a 3-column grid, placing Attachments and Internal Notes in a third row below Due Date and Reference No. The "Enter Manually" form correctly shows all 4 fields on one row: **Due Date | Terms | Attachments | Internal Notes**.
+The current Row 2 uses `grid-cols-12` with four `col-span-3` items, creating 4 equal columns. The user wants **3 columns**, matching the Enter Manually form exactly:
 
-The goal is to match the exact layout shown in the reference screenshot.
-
-### Target Layout
-
-```text
-Row 1: [ Vendor (col 1) ]  [ Bill Date (col 2) ]  [ Terms (col 3) ]  [empty col 4]
-Row 2: [ Due Date (col 1) ] [ Reference No. (col 2) ] [ Attachments (col 3) ] [ Internal Notes (col 4) ]
 ```
+Row 1: [ Vendor ]       [ Bill Date ]     [ Terms ]
+Row 2: [ Due Date ]     [ Reference No. ] [ Attachments | Internal Notes ]
+                                            ← 50%  →  ←      50%       →
+```
+
+The third cell in Row 2 should contain a nested `grid grid-cols-2` (or `flex gap-2`) with Attachments on the left half and Internal Notes on the right half.
 
 ### What Will Change
 
 **File: `src/components/bills/EditExtractedBillDialog.tsx`**
 
-1. Change the grid from `grid-cols-3` to `grid-cols-4` on the header info wrapper div (line ~773).
+1. Change Row 2's outer grid from `grid grid-cols-12 gap-4` → `grid grid-cols-3 gap-4` (lines ~822).
 
-2. **Row 1** — Add an empty 4th column `<div />` spacer after Terms, so Vendor/Bill Date/Terms occupy cols 1–3 and col 4 is blank.
+2. Remove `col-span-3` from the Due Date and Reference No. divs (lines ~823, ~852).
 
-3. **Row 2** — Keep Due Date (col 1) and Reference No. (col 2) as-is. Remove the existing `<div />` spacer that was col 3. Attachments and Internal Notes now become cols 3 and 4 respectively — moved up from the old Row 3.
+3. Replace the two separate `col-span-3` divs (Attachments and Internal Notes) with a **single third column div** that contains a nested `grid grid-cols-2 gap-2` holding both side by side:
+   - Left half: Label "Attachments" + file icon (if present) + "Add Files" button + hidden input
+   - Right half: Label "Internal Notes" + "Add Internal Notes" / "View Notes" button
 
-4. **Delete the old Row 3** block entirely (the `col-span-2` Attachments div and the Internal Notes div that followed it).
-
-5. The Attachments column in Row 2 will show:
-   - The file icon (if a file exists) with its × delete button
-   - An "Add File" button (matching the Enter Manually style — full-width outline button labeled "Add Files")
-   - The hidden file input
-
-6. The Internal Notes column in Row 2 will show:
-   - Label "Internal Notes"
-   - A full-width outline button labeled "Add Internal Notes" / "View Notes"
-
-This is a pure layout restructure — no logic changes, all existing file upload, delete, and notes functionality remains identical.
+This is a pure layout change — no logic changes at all.
