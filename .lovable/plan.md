@@ -1,47 +1,40 @@
 
-## Fix Settings Page Header Alignment & Gray Line
+## Align Dashboard Header Height with Sidebar Branding
 
-### What the User Sees
+### The Problem
 
-From the screenshot:
-1. **Gray line at the very top** — Between the sidebar's "Construction Management" border and the main header bar, there is a visible gap caused by `mt-4` on the `<header>` element in `DashboardHeader.tsx`. This gap exposes the `bg-gray-50` page background as a thin gray strip.
-2. **Right side content is lower than the left sidebar border** — The header (with "Old Creek Homes, LLC" and the "New Project" button) is pushed down by that `mt-4`, while the sidebar border sits flush at the top.
-3. **Header background is white** — User wants the top bar to be gray (matching the page background), not bright white.
+The sidebar branding block (`SidebarBranding`) displays two lines of text:
+- Line 1: **BuilderSuite ML** (`text-xl font-bold`) + 4px margin-bottom
+- Line 2: **Construction Management** (`text-sm text-gray-600`)
 
-### Root Cause
+With `py-2` (8px top + 8px bottom), the total sidebar branding height is approximately:
+- 8px (padding-top) + 28px (title) + 4px (mb-1) + 20px (subtitle) + 8px (padding-bottom) ≈ **68px**
 
-In `src/components/DashboardHeader.tsx` (line 103), the default header has:
-```tsx
-<header className="bg-white border-b border-border px-6 py-2 mt-4">
-```
+The dashboard header currently has `py-2` with only one line of text (`text-2xl font-bold`):
+- 8px + 32px + 8px ≈ **48px**
 
-- `mt-4` creates a 16px gap above the header → this is the "gray line" (the `bg-gray-50` showing through)
-- `bg-white` makes the header bright white instead of the gray background the user wants
+This 20px difference is why the right-side content appears lower — the header bar is shorter than the sidebar branding block.
 
-### Changes — `src/components/DashboardHeader.tsx`
+### Fix — `src/components/DashboardHeader.tsx`
 
-**Line 103** — Remove `mt-4`, change `bg-white` to `bg-gray-50`:
+Change the default header padding from `py-2` to `py-4` to expand the header height to match the sidebar's two-line branding block:
 
 ```tsx
-// Before
-<header className="bg-white border-b border-border px-6 py-2 mt-4">
+// Before (line 103)
+<header className="bg-gray-50 border-b border-border px-6 py-2">
 
 // After
-<header className="bg-gray-50 border-b border-border px-6 py-2">
+<header className="bg-gray-50 border-b border-border px-6 py-4">
 ```
 
-This:
-- Removes the gap so the right-side header aligns vertically with the sidebar's "Construction Management" border
-- Changes the top bar background from white to gray, making it seamless with the page background and matching the user's request
+**Why `py-4`?**
+- `py-4` = 16px top + 16px bottom = 32px total padding
+- Header total: 16 + 32 + 16 = **64px** — closely matching the sidebar branding block (~68px)
+- This brings the bottom border of the header into alignment with the bottom border of the sidebar branding section
 
-### No Other Files Need to Change
+### Only One Line Changes
 
-The Settings page layout (`src/pages/Settings.tsx`) and the AppSidebar are unaffected — the fix is entirely in the header `className`.
+- **File:** `src/components/DashboardHeader.tsx`, line 103
+- **Change:** `py-2` → `py-4` on the default header element
 
-### Visual Result
-
-| Element | Before | After |
-|---|---|---|
-| Top gap (gray line) | 16px (`mt-4`) | None (removed) |
-| Header background | `bg-white` | `bg-gray-50` |
-| Vertical alignment | Misaligned (header lower) | Flush with sidebar border |
+The sidebar, ProjectSelector, and all other files remain untouched.
