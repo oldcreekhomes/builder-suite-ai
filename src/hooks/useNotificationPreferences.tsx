@@ -22,6 +22,7 @@ export interface NotificationPreferences {
   can_access_accountant_dashboard: boolean;
   can_access_estimate: boolean;
   can_access_marketplace: boolean;
+  can_delete_bills: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -40,6 +41,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_access_accountant_dashboard: false,
   can_access_estimate: false,
   can_access_marketplace: false,
+  can_delete_bills: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {
@@ -91,6 +93,7 @@ export const useNotificationPreferences = (userId?: string) => {
           can_access_owner_dashboard: true,
           can_access_accountant_dashboard: true,
           can_access_estimate: true,
+          can_delete_bills: true,
         } : {};
 
         const defaultData = {
