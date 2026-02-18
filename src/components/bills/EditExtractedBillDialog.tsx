@@ -1009,12 +1009,12 @@ export function EditExtractedBillDialog({
                 <Table containerClassName="relative w-full overflow-x-auto overflow-y-visible max-h-none">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[180px]">Cost Code</TableHead>
-                      <TableHead className="w-[180px]">Memo</TableHead>
-                      <TableHead className="w-[180px]">Quantity</TableHead>
-                      <TableHead className="w-[180px]">Unit Cost</TableHead>
+                      <TableHead className="w-[220px]">Cost Code</TableHead>
+                      <TableHead className="w-[220px]">Memo</TableHead>
+                      <TableHead className="w-[70px]">Quantity</TableHead>
+                      <TableHead className="w-[90px]">Unit Cost</TableHead>
                       <TableHead className="w-[80px]">Total</TableHead>
-                      {showAddressColumn && <TableHead className="w-[180px]">Address</TableHead>}
+                      {showAddressColumn && <TableHead className="w-[90px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
                       {showPOSelection && <TableHead className="w-[55px] text-center">Match</TableHead>}
                       <TableHead className="w-[50px] text-center">Actions</TableHead>
