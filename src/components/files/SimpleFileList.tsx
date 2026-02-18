@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
-import { BulkActionBar } from './components/BulkActionBar';
+
 import { FileShareModal } from './components/FileShareModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -381,21 +381,20 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   }
 
   return (
-    <div className="p-4">
-      {/* Bulk Action Bar */}
-      <BulkActionBar
-        selectedCount={selectedFiles.size}
-        selectedFolderCount={selectedFolders.size}
-        onBulkDelete={handleBulkDelete}
-        isDeleting={isDeleting}
-      />
-
-      {/* Move Selected button */}
+    <div>
+      {/* Inline bulk action bar — only shown when items are selected */}
       {someSelected && (
-        <div className="mb-3">
+        <div className="flex items-center gap-3 mb-2 px-1">
+          <span className="text-sm text-muted-foreground">
+            {selectedFiles.size + selectedFolders.size} selected
+          </span>
           <Button variant="outline" size="sm" onClick={() => handleMoveFiles()} className="gap-2">
             <MoveRight className="h-4 w-4" />
-            Move Selected ({selectedFiles.size + selectedFolders.size})
+            Move Selected
+          </Button>
+          <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={isDeleting} className="gap-2">
+            <Trash2 className="h-4 w-4" />
+            {isDeleting ? "Deleting..." : "Delete Selected"}
           </Button>
         </div>
       )}
