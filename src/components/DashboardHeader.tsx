@@ -1,6 +1,6 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Pencil } from "lucide-react";
+import { Plus, ArrowLeft, MoreHorizontal } from "lucide-react";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -75,7 +75,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                       onClick={() => setEditDialogOpen(true)}
                       className="h-6 w-6"
                     >
-                      <Pencil className="h-3 w-3" />
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </>
                 ) : projectError ? (
