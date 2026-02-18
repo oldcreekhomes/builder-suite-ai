@@ -1,28 +1,26 @@
 
-## Fix: Paid Tab Columns Being Cut Off (PO Status, Cleared, Actions Missing)
+## Fix: Paid Tab Columns (PO Status, Cleared, Actions) Still Cut Off
 
-### Root Cause
+### Root Cause Analysis
 
-In `src/components/bills/BillsApprovalTable.tsx`, the table wrapper div at line 600 is:
+The last edit made two changes that now conflict:
 
-```tsx
-<div className="border rounded-lg">
-```
+1. `<div className="border rounded-lg overflow-auto">` — outer div has overflow-auto
+2. `<Table containerClassName="relative w-full">` — this REMOVED the Table's own internal `overflow-auto` wrapper
 
-It is missing `overflow-auto`. The table has many columns (Vendor, Cost Code, Bill Date, Due Date, Amount, Reference, Memo, Address, Files, Notes, PO Status, Cleared, Actions), and without `overflow-auto`, anything beyond the visible width is silently clipped — not scrollable, just gone. The user sees the table end abruptly at "Notes."
+The problem is that removing the Table's internal overflow means the table's content now overflows the `border rounded-lg` div — but that div is itself inside `<div className="flex flex-col h-full">` which constrains height but not width. The `overflow-auto` on the border div handles *vertical* scroll fine but the *horizontal* overflow is being absorbed by the Dialog's own `overflow-auto` container (`flex-1 overflow-auto px-6 pb-6` in `ManageBillsDialog`), which doesn't have enough context to scroll just the table horizontally.
 
 ### The Fix
 
-Add `overflow-auto` to that wrapper div:
+Revert `containerClassName="relative w-full"` back to the default (remove that prop entirely), so the `<Table>` component uses its built-in `relative w-full overflow-auto` container. This means the table itself handles horizontal scrolling internally, which is the correct pattern per the memory notes for dialogs.
 
-```tsx
-<div className="border rounded-lg overflow-auto">
-```
-
-This restores horizontal scrolling on the table, making PO Status, Cleared, and Actions visible again — identical to how they appeared before (as shown in the user's second screenshot, where all columns are visible).
+The outer `border rounded-lg overflow-auto` div can remain — having both is harmless since the inner Table scroll will intercept horizontal overflow first.
 
 ### File to Edit
 
-- `src/components/bills/BillsApprovalTable.tsx` — line 600
-  - Change: `<div className="border rounded-lg">`
-  - To: `<div className="border rounded-lg overflow-auto">`
+**`src/components/bills/BillsApprovalTable.tsx`** — line 601:
+
+- Current: `<Table containerClassName="relative w-full">`
+- Change to: `<Table>` (remove containerClassName prop entirely, restoring the default `relative w-full overflow-auto`)
+
+This is a one-line change that restores the original working behavior.
