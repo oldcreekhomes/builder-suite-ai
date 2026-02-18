@@ -1,50 +1,85 @@
 
-## Fix: Precisely Align Dashboard Header with Sidebar Branding
+## Add "Can Delete Bills" Permission to Employee Access Level
 
-### Root Cause (Exact Calculation)
+### What Needs to Change
 
-The sidebar branding (`SidebarHeader`) uses `py-2` (8px top/bottom padding). Inside it:
-- The shadcn `SidebarHeader` base adds `flex flex-col gap-2 p-2`, but the custom className `px-6 py-2` overrides the padding
-- Content: `text-xl` title (~28px line-height) + `mb-1` (4px gap) + `text-sm` subtitle (~20px) = 52px of content
-- **Total sidebar header height: 8 + 52 + 8 = ~68px**
+Currently, `canDeleteBills` in `useUserRole.ts` is hardcoded to only allow `owner` or `accountant` roles. You want this to be a per-employee toggle — just like "Undo Reconciliation" or "Close the Books" — stored in `user_notification_preferences` and controlled from the employee's Access Level panel.
 
-The current `DashboardHeader` with `py-4` (16px top/bottom):
-- Content: `text-2xl` (~32px line-height) = 32px of content
-- **Total header height: 16 + 32 + 16 = 64px**
+### Summary of All Changes
 
-The 4px gap is why they still don't align. Adjusting `py-4` alone is imprecise because font rendering varies. The reliable fix is to set an **explicit minimum height** using `style={{ minHeight: '68px' }}` on the header element, combined with `flex items-center` to vertically center the content — this guarantees the header bottom border lands exactly where the sidebar branding bottom border is.
+**1. Database — Add `can_delete_bills` column**
 
-### The Fix
+A new boolean column needs to be added to the `user_notification_preferences` table:
+- Column name: `can_delete_bills`
+- Default: `false` (all employees off by default)
+- Owners will get `true` when their preferences are auto-created
 
-**`src/components/DashboardHeader.tsx` — line 103**
+**2. `src/hooks/useNotificationPreferences.tsx`**
 
-Change from:
-```tsx
-<header className="bg-gray-50 border-b border-border px-6 py-4">
-  <div className="flex items-center justify-between">
+Add `can_delete_bills` to:
+- The `NotificationPreferences` interface
+- The `defaultPreferences` object (default: `false`)
+- The owner auto-permissions block (owners get `true`)
+
+**3. `src/hooks/useUserRole.ts`**
+
+Remove the hardcoded `canDeleteBills` line:
+```ts
+// REMOVE this line:
+canDeleteBills: roles.includes('owner') || roles.includes('accountant'),
+```
+The `canDeleteBills` value will now come from preferences, not roles.
+
+**4. New hook — `src/hooks/useDeleteBillsPermission.ts`**
+
+Create a small dedicated hook (matching the pattern of `useUndoReconciliationPermissions`, `useCloseBookPermissions`, etc.):
+```ts
+import { useNotificationPreferences } from "./useNotificationPreferences";
+
+export const useDeleteBillsPermission = () => {
+  const { preferences, isLoading } = useNotificationPreferences();
+  return {
+    canDeleteBills: isLoading ? false : (preferences.can_delete_bills ?? false),
+    isLoading,
+  };
+};
 ```
 
-To:
-```tsx
-<header className="bg-gray-50 border-b border-border px-6" style={{ minHeight: '68px' }}>
-  <div className="flex items-center justify-between h-full" style={{ minHeight: '68px' }}>
+**5. `src/components/bills/BillsApprovalTable.tsx`**
+
+Replace the import of `useUserRole` (for `canDeleteBills`) with the new `useDeleteBillsPermission` hook. The `canShowDeleteButton` logic currently checks both `isOwner` and `canDeleteBills` for void bills — this simplifies to just `canDeleteBills` since owners will have the permission enabled by default via their preferences.
+
+**6. `src/components/accounting/AccountDetailDialog.tsx`**
+
+Same swap — replace `canDeleteBills` from `useUserRole` with the new hook.
+
+**7. `src/components/employees/EmployeeAccessPreferences.tsx`**
+
+Add the new toggle below "Undo Reconciliation" in the Accounting section:
+
+```
+Can Delete Bills
+Ability to permanently delete posted, paid, or rejected bills
+[Toggle — default OFF]
 ```
 
-Actually, the simplest and most pixel-perfect approach: remove `py-4` and replace with an explicit `h-[68px]` Tailwind class and `flex items-center` on the header itself:
+**8. Owner Auto-Permissions**
 
-```tsx
-<header className="bg-gray-50 border-b border-border px-6 h-[68px] flex items-center">
-  <div className="flex items-center justify-between w-full">
-```
+In `useNotificationPreferences.tsx`, add `can_delete_bills: true` to the `ownerPermissions` block so existing owners get the permission automatically when their preferences row is first created (or needs updating).
 
-This sets the header to exactly 68px — the same computed height as the sidebar branding block — and the bottom borders will be perfectly level.
+### Technical Notes
 
-### Why This Works
+- The `user_notification_preferences` table already has RLS policies. No RLS changes are needed — the existing policies for that table handle access correctly.
+- The hardcoded role check (`roles.includes('owner') || roles.includes('accountant')`) is completely removed from `useUserRole.ts`. The `canDeleteBills` property is removed from that hook's return value entirely.
+- All existing employees (including you) will have `can_delete_bills = false` until you manually toggle it on for each person in their Access Level settings.
+- Any existing owner preferences rows in the DB will need the new column set to `true` — this will be handled via a SQL update as part of the migration.
 
-- `h-[68px]` sets a fixed height, eliminating any font-rendering variance from `py-` padding alone
-- `flex items-center` on the header vertically centers the content row within those 68px
-- `w-full` on the inner div ensures the `justify-between` layout still spans the full width
+### Files to Edit
 
-### Files Changed
-
-- **`src/components/DashboardHeader.tsx`** — line 103 only: replace `py-4` with `h-[68px] flex items-center`, and adjust inner div to `w-full`
+1. Database migration — add `can_delete_bills boolean default false` column
+2. `src/hooks/useNotificationPreferences.tsx` — add field to interface + defaults + owner block
+3. `src/hooks/useUserRole.ts` — remove `canDeleteBills` from return
+4. `src/hooks/useDeleteBillsPermission.ts` — new file
+5. `src/components/bills/BillsApprovalTable.tsx` — swap hook
+6. `src/components/accounting/AccountDetailDialog.tsx` — swap hook
+7. `src/components/employees/EmployeeAccessPreferences.tsx` — add toggle
