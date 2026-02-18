@@ -214,6 +214,7 @@ export type Database = {
           file_path: string
           file_size: number
           id: string
+          pending_upload_id: string | null
           updated_at: string
           uploaded_at: string
           uploaded_by: string
@@ -226,6 +227,7 @@ export type Database = {
           file_path: string
           file_size: number
           id?: string
+          pending_upload_id?: string | null
           updated_at?: string
           uploaded_at?: string
           uploaded_by: string
@@ -238,6 +240,7 @@ export type Database = {
           file_path?: string
           file_size?: number
           id?: string
+          pending_upload_id?: string | null
           updated_at?: string
           uploaded_at?: string
           uploaded_by?: string
@@ -248,6 +251,13 @@ export type Database = {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_attachments_pending_upload_id_fkey"
+            columns: ["pending_upload_id"]
+            isOneToOne: false
+            referencedRelation: "pending_bill_uploads"
             referencedColumns: ["id"]
           },
         ]
