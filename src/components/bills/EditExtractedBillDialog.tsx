@@ -770,8 +770,8 @@ export function EditExtractedBillDialog({
 
         <div className="space-y-6 overflow-y-auto overflow-x-visible flex-1 px-2">
           {/* Header Info */}
-          <div className="grid grid-cols-4 gap-6">
-            {/* Row 1: Vendor | Bill Date | Terms | (empty) */}
+          {/* Row 1: Vendor | Bill Date | Terms */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2 min-w-0">
               <Label>Vendor *</Label>
               <VendorSearchInput value={vendorId} onChange={setVendorId} />
@@ -816,10 +816,11 @@ export function EditExtractedBillDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div /> {/* Row 1 col 4 spacer */}
+          </div>
 
-            {/* Row 2: Due Date | Reference No. | Attachments | Internal Notes */}
-            <div className="space-y-2">
+          {/* Row 2: Due Date | Reference No. | Attachments | Internal Notes (col-span-12) */}
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-3 space-y-2">
               <Label>Due Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -848,17 +849,17 @@ export function EditExtractedBillDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
+            <div className="col-span-3 space-y-2">
               <Label>Reference No.</Label>
               <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
             </div>
 
-            {/* Attachments col */}
-            <div className="space-y-2">
+            {/* Attachments */}
+            <div className="col-span-3 space-y-2">
               <Label>Attachments</Label>
               <div className="flex items-center gap-2">
                 {fileName && (
-                  <div className="relative group">
+                  <div className="relative group shrink-0">
                     <button
                       onClick={() => {
                         const displayName = fileName.split('/').pop() || fileName;
@@ -888,7 +889,6 @@ export function EditExtractedBillDialog({
                 )}
                 <Button
                   variant="outline"
-                  size="sm"
                   type="button"
                   onClick={() => document.getElementById('edit-extracted-bill-file-input')?.click()}
                   className="flex-1 h-10 text-sm"
@@ -923,8 +923,8 @@ export function EditExtractedBillDialog({
               </div>
             </div>
 
-            {/* Internal Notes col */}
-            <div className="space-y-2">
+            {/* Internal Notes */}
+            <div className="col-span-3 space-y-2">
               <Label>Internal Notes</Label>
               <Button
                 type="button"
