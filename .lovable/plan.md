@@ -1,125 +1,42 @@
 
-## Fix: RLS Policies on `bill_attachments` for Pending Upload Attachments
+## Fix RLS Policies on `bill_attachments` for Employees & Accountants
 
-### Root Cause
+### What's Wrong
 
-The error "new row violates row-level security policy for table 'bill_attachments'" happens because the INSERT policy added in the previous migration checks:
+Three policies on `bill_attachments` are broken for non-owner users (employees, accountants):
 
+1. **INSERT** — only allows the home builder owner (`pending_bill_uploads.owner_id = auth.uid()`). Employees and accountants are blocked.
+2. **DELETE** — same restriction, employees can't remove attachments they added.
+3. **SELECT** — only covers rows linked to an approved `bill_id`. Rows still linked to a `pending_upload_id` (i.e., attachments added in the Edit Extracted Bill dialog before approval) are invisible to employees.
+
+### The Fix — One Migration
+
+**DROP and RECREATE** three policies to add the employee/accountant check alongside the owner check:
+
+**INSERT policy** — allow if:
+- The `pending_bill_uploads.owner_id` is the current user (owner), OR
+- The current user is a **confirmed employee or accountant** whose `home_builder_id` matches `pending_bill_uploads.owner_id`
+
+**DELETE policy** — same logic as INSERT.
+
+**SELECT policy** — add a second `OR` branch covering rows where `pending_upload_id IS NOT NULL`, using the same owner-or-employee check.
+
+### Technical Details
+
+The employee check in all three policies:
 ```sql
-pending_bill_uploads.owner_id = auth.uid()
-```
-
-But `pending_bill_uploads.owner_id` stores the **home builder's** user ID (the company owner), not the employee's or accountant's `auth.uid()`. This is by design (per the multi-tenant architecture), but the RLS policy doesn't account for it.
-
-The same mismatch exists on the SELECT and DELETE policies for pending-upload-linked attachments.
-
-### What Needs to Change
-
-**One database migration** — fix all three policies (INSERT, SELECT, DELETE) on `bill_attachments` that reference `pending_bill_uploads` to also allow employees and accountants who belong to the same home builder.
-
-**INSERT policy** — currently:
-```sql
--- BROKEN: only passes if user IS the owner
-pending_bill_uploads.owner_id = auth.uid()
-```
-Fix: also allow when `auth.uid()` is a confirmed employee/accountant whose `home_builder_id` matches `pending_bill_uploads.owner_id`:
-```sql
-pending_bill_uploads.owner_id = auth.uid()
-OR pending_bill_uploads.owner_id IN (
+pbu.owner_id IN (
   SELECT home_builder_id FROM users
-  WHERE id = auth.uid() AND confirmed = true
-  AND role IN ('employee', 'accountant')
+  WHERE id = auth.uid()
+    AND confirmed = true
+    AND role IN ('employee', 'accountant')
 )
 ```
 
-**SELECT policy** — currently only looks at `bill_id → bills.owner_id`. It doesn't cover rows where `bill_id IS NULL` and `pending_upload_id IS NOT NULL`. Add a second clause to cover those.
+This ties access directly to the employee's profile record — specifically their `confirmed` flag and `home_builder_id`. No unconfirmed employees or users from other companies can access the data.
 
-**DELETE policy** — same fix as INSERT.
+### What Changes
 
-### Files Changed
-
-**Database only** — one migration replacing the three pending-upload policies on `bill_attachments`. No code changes needed in `EditExtractedBillDialog.tsx` — the upload logic is correct, only RLS is blocking it.
-
-### Migration SQL (outline)
-
-```sql
--- Drop the broken policies
-DROP POLICY IF EXISTS "Users can insert bill_attachments for their pending uploads" ON bill_attachments;
-DROP POLICY IF EXISTS "Users can delete bill_attachments for their pending uploads" ON bill_attachments;
-
--- Recreate INSERT with employee/accountant support
-CREATE POLICY "Users can insert bill_attachments for their pending uploads"
-  ON bill_attachments FOR INSERT
-  WITH CHECK (
-    pending_upload_id IS NULL
-    OR EXISTS (
-      SELECT 1 FROM pending_bill_uploads pbu
-      WHERE pbu.id = pending_upload_id
-        AND (
-          pbu.owner_id = auth.uid()
-          OR pbu.owner_id IN (
-            SELECT home_builder_id FROM users
-            WHERE id = auth.uid()
-              AND confirmed = true
-              AND role IN ('employee', 'accountant')
-          )
-        )
-    )
-  );
-
--- Recreate DELETE with same fix
-CREATE POLICY "Users can delete bill_attachments for their pending uploads"
-  ON bill_attachments FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM pending_bill_uploads pbu
-      WHERE pbu.id = pending_upload_id
-        AND (
-          pbu.owner_id = auth.uid()
-          OR pbu.owner_id IN (
-            SELECT home_builder_id FROM users
-            WHERE id = auth.uid()
-              AND confirmed = true
-              AND role IN ('employee', 'accountant')
-          )
-        )
-    )
-  );
-
--- Also fix SELECT policy to cover pending-upload-linked attachments
--- (the current SELECT policy only covers bill_id-linked rows)
-DROP POLICY IF EXISTS "Bill attachments visible to owner and confirmed employees" ON bill_attachments;
-CREATE POLICY "Bill attachments visible to owner and confirmed employees"
-  ON bill_attachments FOR SELECT
-  USING (
-    -- Rows linked to an approved bill
-    (bill_id IS NOT NULL AND EXISTS (
-      SELECT 1 FROM bills b
-      WHERE b.id = bill_id
-        AND (
-          b.owner_id = auth.uid()
-          OR b.owner_id IN (
-            SELECT home_builder_id FROM users
-            WHERE id = auth.uid() AND confirmed = true
-            AND role IN ('employee', 'accountant')
-          )
-        )
-    ))
-    OR
-    -- Rows still linked to a pending upload (not yet approved)
-    (pending_upload_id IS NOT NULL AND EXISTS (
-      SELECT 1 FROM pending_bill_uploads pbu
-      WHERE pbu.id = pending_upload_id
-        AND (
-          pbu.owner_id = auth.uid()
-          OR pbu.owner_id IN (
-            SELECT home_builder_id FROM users
-            WHERE id = auth.uid() AND confirmed = true
-            AND role IN ('employee', 'accountant')
-          )
-        )
-    ))
-  );
-```
-
-No code changes required — the dialog's upload logic is correct.
+- **Database only** — one migration file
+- **No frontend changes** — `EditExtractedBillDialog.tsx` is correct
+- After this migration, any confirmed employee or accountant belonging to the home builder will be able to add, view, and remove attachments on pending bill uploads
