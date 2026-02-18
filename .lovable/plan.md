@@ -1,46 +1,38 @@
 
-## Fix: Attachment Deletion Should Only Remove the File, Not the Entire Bill
+## Fix: Edit Extracted Bill — Move Attachments & Internal Notes to Row 2
 
-### Problem Summary
+### What's Wrong
 
-Two locations incorrectly delete the entire pending bill when the user clicks the X on a file attachment:
+The "Edit Extracted Bill" dialog currently uses a 3-column grid, placing Attachments and Internal Notes in a third row below Due Date and Reference No. The "Enter Manually" form correctly shows all 4 fields on one row: **Due Date | Terms | Attachments | Internal Notes**.
 
-1. **`BatchBillReviewTable.tsx`** (Enter with AI table) — The X button on the file icon calls `onBillDelete(bill.id)`, which deletes the whole pending bill record and its lines from the database.
+The goal is to match the exact layout shown in the reference screenshot.
 
-2. **`EditExtractedBillDialog.tsx`** (Edit Extracted Bill dialog) — The X button shows a misleading message ("This will remove the entire bill from the queue") and closes the dialog without doing anything useful.
+### Target Layout
 
-### Correct Behavior
-
-Clicking X on an attachment should:
-- Delete the file from Supabase Storage (`bill-attachments` bucket)
-- Clear `file_name` and `file_path` on the `pending_bill_uploads` row (set them to empty/null)
-- Keep the bill record and all its extracted line items intact in the queue
-- Show the bill row without an attachment icon afterward
+```text
+Row 1: [ Vendor (col 1) ]  [ Bill Date (col 2) ]  [ Terms (col 3) ]  [empty col 4]
+Row 2: [ Due Date (col 1) ] [ Reference No. (col 2) ] [ Attachments (col 3) ] [ Internal Notes (col 4) ]
+```
 
 ### What Will Change
 
-#### Fix 1 — `src/components/bills/BatchBillReviewTable.tsx`
+**File: `src/components/bills/EditExtractedBillDialog.tsx`**
 
-- **Line ~879–888**: The `×` button on the file icon currently calls `onBillDelete(bill.id)`. Replace this with a new `handleDeleteAttachment(bill)` function that:
-  1. Calls `supabase.storage.from('bill-attachments').remove([bill.file_path])` to delete the file
-  2. Calls `supabase.from('pending_bill_uploads').update({ file_name: '', file_path: '' }).eq('id', bill.id)` to clear the file reference
-  3. Calls `onBillUpdate(bill.id, { file_name: '', file_path: '' })` to update local UI state
-  4. Shows a success toast "Attachment removed"
-- Add a confirmation step using the existing `DeleteConfirmationDialog` (or a simple window confirm), with the message: "Remove this attachment? The bill and its line items will remain in the queue."
-- The **row-level Delete** in `TableRowActions` (line 910) correctly deletes the whole bill — this stays as-is.
+1. Change the grid from `grid-cols-3` to `grid-cols-4` on the header info wrapper div (line ~773).
 
-#### Fix 2 — `src/components/bills/EditExtractedBillDialog.tsx`
+2. **Row 1** — Add an empty 4th column `<div />` spacer after Terms, so Vendor/Bill Date/Terms occupy cols 1–3 and col 4 is blank.
 
-- **Line ~847–861**: Replace the broken `confirm()` + close logic with a proper `handleDeleteAttachment` async function that:
-  1. Deletes the file from storage
-  2. Updates the `pending_bill_uploads` record to clear `file_path` and `file_name`
-  3. Updates local state (`setFileName('')`, `setFilePath('')`)
-  4. Shows success/error toast
-- Use the existing `DeleteConfirmationDialog` component (already used elsewhere in the codebase) for the confirmation, with the correct message: "Remove this attachment? The bill and its line items will remain in the queue."
-- Add state for `showDeleteAttachmentConfirm` to control the dialog visibility
-- When `fileName` and `filePath` are empty, hide the attachment button/icon entirely (or show a "No attachment" placeholder)
+3. **Row 2** — Keep Due Date (col 1) and Reference No. (col 2) as-is. Remove the existing `<div />` spacer that was col 3. Attachments and Internal Notes now become cols 3 and 4 respectively — moved up from the old Row 3.
 
-### Files to Edit
+4. **Delete the old Row 3** block entirely (the `col-span-2` Attachments div and the Internal Notes div that followed it).
 
-- `src/components/bills/BatchBillReviewTable.tsx`
-- `src/components/bills/EditExtractedBillDialog.tsx`
+5. The Attachments column in Row 2 will show:
+   - The file icon (if a file exists) with its × delete button
+   - An "Add File" button (matching the Enter Manually style — full-width outline button labeled "Add Files")
+   - The hidden file input
+
+6. The Internal Notes column in Row 2 will show:
+   - Label "Internal Notes"
+   - A full-width outline button labeled "Add Internal Notes" / "View Notes"
+
+This is a pure layout restructure — no logic changes, all existing file upload, delete, and notes functionality remains identical.
