@@ -885,6 +885,7 @@ export function BatchBillReviewTable({
                   
                   {/* Files */}
                   <TableCell className="w-14 text-center">
+                    {bill.file_name ? (
                     <div className="relative group inline-block">
                       <button
                         onClick={() => {
@@ -912,6 +913,7 @@ export function BatchBillReviewTable({
                         <span className="text-xs font-bold leading-none">×</span>
                       </button>
                     </div>
+                    ) : null}
                   </TableCell>
                   
                   {/* PO Status */}
