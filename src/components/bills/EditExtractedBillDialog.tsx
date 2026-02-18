@@ -14,7 +14,8 @@ import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
+import { BillNotesDialog } from "./BillNotesDialog";
 import { cn } from "@/lib/utils";
 import { normalizeToYMD, toDateLocal } from "@/utils/dateOnly";
 import { usePendingBills } from "@/hooks/usePendingBills";
@@ -109,6 +110,8 @@ export function EditExtractedBillDialog({
   const [filePath, setFilePath] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("job-cost");
   const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
+  const [internalNotes, setInternalNotes] = useState<string>("");
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
@@ -134,6 +137,7 @@ export function EditExtractedBillDialog({
       setVendorId(extractedVendorId);
       setRefNo(extractedData.reference_number || extractedData.referenceNumber || "");
       setTerms(normalizeTermsForUI(extractedData.terms));
+      setInternalNotes(extractedData.notes || "");
       setFileName(bill.file_name);
       setFilePath(bill.file_path);
 
@@ -605,6 +609,7 @@ export function EditExtractedBillDialog({
           terms,
           total_amount: calculatedTotal,
           totalAmount: calculatedTotal,
+          notes: internalNotes || null,
         },
       })
       .eq('id', pendingUploadId);
@@ -731,6 +736,7 @@ export function EditExtractedBillDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
@@ -855,6 +861,25 @@ export function EditExtractedBillDialog({
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Internal Notes</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-10"
+                onClick={() => setNotesDialogOpen(true)}
+              >
+                {internalNotes.trim() ? (
+                  <>
+                    <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
+                    View Notes
+                  </>
+                ) : (
+                  "Add Internal Notes"
+                )}
+              </Button>
             </div>
           </div>
 
@@ -1103,5 +1128,17 @@ export function EditExtractedBillDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    <BillNotesDialog
+      open={notesDialogOpen}
+      onOpenChange={setNotesDialogOpen}
+      billInfo={{
+        vendor: '',
+        amount: 0,
+      }}
+      initialValue={internalNotes}
+      onSave={(notes) => setInternalNotes(notes)}
+    />
+    </>
   );
 }
