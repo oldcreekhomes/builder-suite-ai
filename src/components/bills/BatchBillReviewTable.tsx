@@ -97,6 +97,7 @@ interface PendingBill {
   reference_number?: string;
   terms?: string;
   lines?: PendingBillLine[];
+  attachments?: Array<{ id: string; file_name: string; file_path: string }>;
 }
 
 interface ProcessingUpload {
@@ -885,35 +886,41 @@ export function BatchBillReviewTable({
                   
                   {/* Files */}
                   <TableCell className="w-14 text-center">
-                    {bill.file_name ? (
-                    <div className="relative group inline-block">
-                      <button
-                        onClick={() => {
-                          const displayName = bill.file_name.split('/').pop() || bill.file_name;
-                          openBillAttachment(bill.file_path, displayName);
-                        }}
-                        className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
-                        title={bill.file_name}
-                        type="button"
-                      >
-                        {(() => {
-                          const IconComponent = getFileIcon(bill.file_name);
-                          return <IconComponent className="h-4 w-4" />;
-                        })()}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingAttachmentBill(bill);
-                        }}
-                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
-                        title="Remove attachment"
-                        type="button"
-                      >
-                        <span className="text-xs font-bold leading-none">×</span>
-                      </button>
+                    <div className="flex items-center justify-center gap-1">
+                      {(bill.attachments || []).slice(0, 3).map(att => {
+                        const IconComponent = getFileIcon(att.file_name);
+                        return (
+                          <button
+                            key={att.id}
+                            onClick={() => openBillAttachment(att.file_path, att.file_name)}
+                            className={`${getFileIconColor(att.file_name)} transition-colors p-1`}
+                            title={att.file_name}
+                            type="button"
+                          >
+                            <IconComponent className="h-4 w-4" />
+                          </button>
+                        );
+                      })}
+                      {(bill.attachments?.length || 0) > 3 && (
+                        <span className="text-xs text-muted-foreground">+{bill.attachments!.length - 3}</span>
+                      )}
+                      {(!bill.attachments || bill.attachments.length === 0) && bill.file_name && (
+                        <button
+                          onClick={() => {
+                            const displayName = bill.file_name.split('/').pop() || bill.file_name;
+                            openBillAttachment(bill.file_path, displayName);
+                          }}
+                          className={`${getFileIconColor(bill.file_name)} transition-colors p-1`}
+                          title={bill.file_name}
+                          type="button"
+                        >
+                          {(() => {
+                            const IconComponent = getFileIcon(bill.file_name);
+                            return <IconComponent className="h-4 w-4" />;
+                          })()}
+                        </button>
+                      )}
                     </div>
-                    ) : null}
                   </TableCell>
                   
                   {/* PO Status */}
@@ -949,26 +956,35 @@ export function BatchBillReviewTable({
           open={!!editingBillId}
           onOpenChange={async (open) => {
             if (!open) {
-              // Re-fetch lines for this bill to get updated purchase_order_id values
+              // Re-fetch lines and attachments for this bill
               const closingBillId = editingBillId;
               setEditingBillId(null);
               try {
-                const { data: lines } = await supabase
-                  .from('pending_bill_lines')
-                  .select('*, project_lots(id, lot_number, lot_name)')
-                  .eq('pending_upload_id', closingBillId)
-                  .order('line_number');
+                const [linesResult, attachmentsResult] = await Promise.all([
+                  supabase
+                    .from('pending_bill_lines')
+                    .select('*, project_lots(id, lot_number, lot_name)')
+                    .eq('pending_upload_id', closingBillId)
+                    .order('line_number'),
+                  supabase
+                    .from('bill_attachments')
+                    .select('id, file_name, file_path')
+                    .eq('pending_upload_id', closingBillId),
+                ]);
                 
-                if (lines) {
-                  const processedLines = lines.map((line: any) => ({
+                if (linesResult.data) {
+                  const processedLines = linesResult.data.map((line: any) => ({
                     ...line,
                     lot_name: line.project_lots?.lot_name || 
                               (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
                   }));
                   onLinesUpdate(closingBillId, processedLines);
                 }
+                onBillUpdate(closingBillId, {
+                  attachments: attachmentsResult.data || [],
+                });
               } catch (err) {
-                console.error('Failed to refresh lines after edit:', err);
+                console.error('Failed to refresh lines/attachments after edit:', err);
               }
             }
           }}
