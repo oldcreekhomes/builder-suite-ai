@@ -249,40 +249,22 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
 
           <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5 flex-1">
-                <Label htmlFor="can-undo-reconciliation" className="text-sm font-normal cursor-pointer">
-                  Undo Reconciliation
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Ability to reverse completed bank reconciliations and make transactions editable again
-                </p>
-              </div>
-              <Switch
-                id="can-undo-reconciliation"
-                checked={preferences.can_undo_reconciliation}
-                onCheckedChange={(checked) => 
-                  updatePreferences({ can_undo_reconciliation: checked })
-                }
-              />
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-undo-reconciliation" className="text-sm font-normal cursor-pointer">
+                Undo Reconciliation
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to reverse completed bank reconciliations and make transactions editable again
+              </p>
             </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div className="space-y-0.5 flex-1">
-                <Label htmlFor="can-delete-bills" className="text-sm font-normal cursor-pointer">
-                  Delete Bills
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Ability to permanently delete posted, paid, or rejected bills
-                </p>
-              </div>
-              <Switch
-                id="can-delete-bills"
-                checked={preferences.can_delete_bills}
-                onCheckedChange={(checked) => 
-                  updatePreferences({ can_delete_bills: checked })
-                }
-              />
-            </div>
+            <Switch
+              id="can-undo-reconciliation"
+              checked={preferences.can_undo_reconciliation}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_undo_reconciliation: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 

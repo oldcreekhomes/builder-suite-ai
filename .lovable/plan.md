@@ -1,26 +1,50 @@
 
-## Fix: Paid Tab Columns (PO Status, Cleared, Actions) Still Cut Off
+## Fix: Precisely Align Dashboard Header with Sidebar Branding
 
-### Root Cause Analysis
+### Root Cause (Exact Calculation)
 
-The last edit made two changes that now conflict:
+The sidebar branding (`SidebarHeader`) uses `py-2` (8px top/bottom padding). Inside it:
+- The shadcn `SidebarHeader` base adds `flex flex-col gap-2 p-2`, but the custom className `px-6 py-2` overrides the padding
+- Content: `text-xl` title (~28px line-height) + `mb-1` (4px gap) + `text-sm` subtitle (~20px) = 52px of content
+- **Total sidebar header height: 8 + 52 + 8 = ~68px**
 
-1. `<div className="border rounded-lg overflow-auto">` — outer div has overflow-auto
-2. `<Table containerClassName="relative w-full">` — this REMOVED the Table's own internal `overflow-auto` wrapper
+The current `DashboardHeader` with `py-4` (16px top/bottom):
+- Content: `text-2xl` (~32px line-height) = 32px of content
+- **Total header height: 16 + 32 + 16 = 64px**
 
-The problem is that removing the Table's internal overflow means the table's content now overflows the `border rounded-lg` div — but that div is itself inside `<div className="flex flex-col h-full">` which constrains height but not width. The `overflow-auto` on the border div handles *vertical* scroll fine but the *horizontal* overflow is being absorbed by the Dialog's own `overflow-auto` container (`flex-1 overflow-auto px-6 pb-6` in `ManageBillsDialog`), which doesn't have enough context to scroll just the table horizontally.
+The 4px gap is why they still don't align. Adjusting `py-4` alone is imprecise because font rendering varies. The reliable fix is to set an **explicit minimum height** using `style={{ minHeight: '68px' }}` on the header element, combined with `flex items-center` to vertically center the content — this guarantees the header bottom border lands exactly where the sidebar branding bottom border is.
 
 ### The Fix
 
-Revert `containerClassName="relative w-full"` back to the default (remove that prop entirely), so the `<Table>` component uses its built-in `relative w-full overflow-auto` container. This means the table itself handles horizontal scrolling internally, which is the correct pattern per the memory notes for dialogs.
+**`src/components/DashboardHeader.tsx` — line 103**
 
-The outer `border rounded-lg overflow-auto` div can remain — having both is harmless since the inner Table scroll will intercept horizontal overflow first.
+Change from:
+```tsx
+<header className="bg-gray-50 border-b border-border px-6 py-4">
+  <div className="flex items-center justify-between">
+```
 
-### File to Edit
+To:
+```tsx
+<header className="bg-gray-50 border-b border-border px-6" style={{ minHeight: '68px' }}>
+  <div className="flex items-center justify-between h-full" style={{ minHeight: '68px' }}>
+```
 
-**`src/components/bills/BillsApprovalTable.tsx`** — line 601:
+Actually, the simplest and most pixel-perfect approach: remove `py-4` and replace with an explicit `h-[68px]` Tailwind class and `flex items-center` on the header itself:
 
-- Current: `<Table containerClassName="relative w-full">`
-- Change to: `<Table>` (remove containerClassName prop entirely, restoring the default `relative w-full overflow-auto`)
+```tsx
+<header className="bg-gray-50 border-b border-border px-6 h-[68px] flex items-center">
+  <div className="flex items-center justify-between w-full">
+```
 
-This is a one-line change that restores the original working behavior.
+This sets the header to exactly 68px — the same computed height as the sidebar branding block — and the bottom borders will be perfectly level.
+
+### Why This Works
+
+- `h-[68px]` sets a fixed height, eliminating any font-rendering variance from `py-` padding alone
+- `flex items-center` on the header vertically centers the content row within those 68px
+- `w-full` on the inner div ensures the `justify-between` layout still spans the full width
+
+### Files Changed
+
+- **`src/components/DashboardHeader.tsx`** — line 103 only: replace `py-4` with `h-[68px] flex items-center`, and adjust inner div to `w-full`

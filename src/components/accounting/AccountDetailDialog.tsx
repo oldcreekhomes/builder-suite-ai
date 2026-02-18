@@ -23,7 +23,6 @@ import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useDeleteBillsPermission } from "@/hooks/useDeleteBillsPermission";
 import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
 import { Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -99,7 +98,7 @@ export function AccountDetailDialog({
   const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
   const { deleteCreditCard, correctCreditCard } = useCreditCards();
   const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine, correctManualJournalEntry } = useJournalEntries();
-  const { canDeleteBills } = useDeleteBillsPermission();
+  const { canDeleteBills } = useUserRole();
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);

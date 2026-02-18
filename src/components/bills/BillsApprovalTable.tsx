@@ -26,7 +26,6 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useDeleteBillsPermission } from "@/hooks/useDeleteBillsPermission";
 import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
@@ -107,8 +106,7 @@ interface BillsApprovalTableProps {
 
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
-  const { isOwner } = useUserRole();
-  const { canDeleteBills } = useDeleteBillsPermission();
+  const { canDeleteBills, isOwner } = useUserRole();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const queryClient = useQueryClient();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
@@ -575,9 +573,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     (Array.isArray(status) && (status.includes('paid') || status.includes('posted')));
   
   const canShowDeleteButton = 
-    // For rejected bills (void status), users with delete permission can edit
-    (canDeleteBills && (status === 'void' || (Array.isArray(status) && status.includes('void')))) ||
-    // For posted/paid bills, users with delete permission can delete
+    // For rejected bills (void status), owners and accountants can edit
+    ((isOwner || canDeleteBills) && (status === 'void' || (Array.isArray(status) && status.includes('void')))) ||
+    // For posted/paid bills, owners and accountants can delete
     (canDeleteBills && (status === 'posted' || status === 'paid' || (Array.isArray(status) && (status.includes('posted') || status.includes('paid')))));
 
   if (isLoading) {
@@ -597,8 +595,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     <>
       <div className="flex flex-col h-full">
         {/* Scrollable table container */}
-        <div className="border rounded-lg overflow-auto">
-            <Table containerClassName="relative w-full">
+        <div className="border rounded-lg">
+            <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   {showProjectColumn && (
