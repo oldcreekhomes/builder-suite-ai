@@ -8,7 +8,7 @@ import {
   Image,
   ChevronRight,
   Building2,
-  Pencil
+  MoreHorizontal
 } from "lucide-react";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useProjects } from "@/hooks/useProjects";
@@ -92,7 +92,7 @@ export default function ProjectDashboard() {
                         }}
                         className="h-7 w-7"
                       >
-                        <Pencil className="h-4 w-4" />
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </h1>
                   </div>
