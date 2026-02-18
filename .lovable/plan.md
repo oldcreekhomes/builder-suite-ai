@@ -1,50 +1,92 @@
 
-## Fix: Precisely Align Dashboard Header with Sidebar Branding
+## Fix Table Formatting, Border, Address Width & Input Heights
 
-### Root Cause (Exact Calculation)
+### Changes Summary
 
-The sidebar branding (`SidebarHeader`) uses `py-2` (8px top/bottom padding). Inside it:
-- The shadcn `SidebarHeader` base adds `flex flex-col gap-2 p-2`, but the custom className `px-6 py-2` overrides the padding
-- Content: `text-xl` title (~28px line-height) + `mb-1` (4px gap) + `text-sm` subtitle (~20px) = 52px of content
-- **Total sidebar header height: 8 + 52 + 8 = ~68px**
+Four distinct fixes in `src/components/bills/EditExtractedBillDialog.tsx`:
 
-The current `DashboardHeader` with `py-4` (16px top/bottom):
-- Content: `text-2xl` (~32px line-height) = 32px of content
-- **Total header height: 16 + 32 + 16 = 64px**
+---
 
-The 4px gap is why they still don't align. Adjusting `py-4` alone is imprecise because font rendering varies. The reliable fix is to set an **explicit minimum height** using `style={{ minHeight: '68px' }}` on the header element, combined with `flex items-center` to vertically center the content — this guarantees the header bottom border lands exactly where the sidebar branding bottom border is.
+### 1. Total — Add Comma Formatting
 
-### The Fix
+**Current:** `$11500.00`
+**Fixed:** `$11,500.00`
 
-**`src/components/DashboardHeader.tsx` — line 103**
-
-Change from:
-```tsx
-<header className="bg-gray-50 border-b border-border px-6 py-4">
-  <div className="flex items-center justify-between">
-```
-
-To:
-```tsx
-<header className="bg-gray-50 border-b border-border px-6" style={{ minHeight: '68px' }}>
-  <div className="flex items-center justify-between h-full" style={{ minHeight: '68px' }}>
-```
-
-Actually, the simplest and most pixel-perfect approach: remove `py-4` and replace with an explicit `h-[68px]` Tailwind class and `flex items-center` on the header itself:
+`calculateTotal()` returns a raw `.toFixed(2)` string. We'll replace the display with `Intl.NumberFormat` so the total renders with commas, matching the rest of the app's currency standard.
 
 ```tsx
-<header className="bg-gray-50 border-b border-border px-6 h-[68px] flex items-center">
-  <div className="flex items-center justify-between w-full">
+// Before (line 1235)
+<span className="text-2xl font-bold">${calculateTotal()}</span>
+
+// After
+<span className="text-2xl font-bold">
+  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+    .format(parseFloat(calculateTotal()))}
+</span>
 ```
 
-This sets the header to exactly 68px — the same computed height as the sidebar branding block — and the bottom borders will be perfectly level.
+---
 
-### Why This Works
+### 2. Job Cost Table — Add Border Container
 
-- `h-[68px]` sets a fixed height, eliminating any font-rendering variance from `py-` padding alone
-- `flex items-center` on the header vertically centers the content row within those 68px
-- `w-full` on the inner div ensures the `justify-between` layout still spans the full width
+Wrap the `<Table>` in a `border rounded-lg overflow-hidden` div, matching the standardized table style used across the app (Files, Manage Bills, etc.).
+
+```tsx
+// Before
+<Table containerClassName="relative w-full overflow-x-auto ...">
+
+// After — wrapped
+<div className="border rounded-lg overflow-hidden overflow-x-auto">
+  <Table containerClassName="relative w-full">
+    ...
+  </Table>
+</div>
+```
+
+---
+
+### 3. Address Column — Increase Width
+
+`90px` → `130px` so lot names like "2026-100N-..." are more readable.
+
+```tsx
+{showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
+```
+
+---
+
+### 4. Input Heights — Match PO Dropdown (h-8)
+
+The Purchase Order dropdown (`POSelectionDropdown`) uses `h-8` on its `SelectTrigger`. All other inputs in the same row are default `h-10`. This mismatch is the visual inconsistency the user is seeing.
+
+Fix: add `className="h-8"` (or `className="h-8 text-sm"`) to every input in the job cost rows:
+
+| Input | Current | Fix |
+|---|---|---|
+| Cost Code (`CostCodeSearchInput`) | default h-10 | pass `className="h-8"` |
+| Memo (`Input`) | default h-10 | add `className="h-8"` |
+| Quantity (`Input`) | default h-10 | add `className="h-8"` |
+| Unit Cost (`Input`) | default h-10 | add `className="h-8"` |
+| Address (`SelectTrigger`) | default h-10 | already uses `w-full`, add `className="h-8 w-full"` |
+
+The same fix applies to the **Expense** tab inputs (Account, Memo, Quantity, Unit Cost) to keep them consistent.
+
+---
 
 ### Files Changed
 
-- **`src/components/DashboardHeader.tsx`** — line 103 only: replace `py-4` with `h-[68px] flex items-center`, and adjust inner div to `w-full`
+- **`src/components/bills/EditExtractedBillDialog.tsx`** only — no other files touched.
+
+### Column Widths After This Change
+
+```text
+Cost Code:      220px
+Memo:           220px
+Quantity:       70px
+Unit Cost:      120px
+Total:          80px
+Address:        130px   (was 90px)
+Purchase Order: 180px
+Match:          55px
+Actions:        50px
+```
