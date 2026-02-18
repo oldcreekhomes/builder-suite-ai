@@ -1,92 +1,47 @@
 
-## Fix Table Formatting, Border, Address Width & Input Heights
+## Fix Settings Page Header Alignment & Gray Line
 
-### Changes Summary
+### What the User Sees
 
-Four distinct fixes in `src/components/bills/EditExtractedBillDialog.tsx`:
+From the screenshot:
+1. **Gray line at the very top** — Between the sidebar's "Construction Management" border and the main header bar, there is a visible gap caused by `mt-4` on the `<header>` element in `DashboardHeader.tsx`. This gap exposes the `bg-gray-50` page background as a thin gray strip.
+2. **Right side content is lower than the left sidebar border** — The header (with "Old Creek Homes, LLC" and the "New Project" button) is pushed down by that `mt-4`, while the sidebar border sits flush at the top.
+3. **Header background is white** — User wants the top bar to be gray (matching the page background), not bright white.
 
----
+### Root Cause
 
-### 1. Total — Add Comma Formatting
-
-**Current:** `$11500.00`
-**Fixed:** `$11,500.00`
-
-`calculateTotal()` returns a raw `.toFixed(2)` string. We'll replace the display with `Intl.NumberFormat` so the total renders with commas, matching the rest of the app's currency standard.
-
+In `src/components/DashboardHeader.tsx` (line 103), the default header has:
 ```tsx
-// Before (line 1235)
-<span className="text-2xl font-bold">${calculateTotal()}</span>
-
-// After
-<span className="text-2xl font-bold">
-  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-    .format(parseFloat(calculateTotal()))}
-</span>
+<header className="bg-white border-b border-border px-6 py-2 mt-4">
 ```
 
----
+- `mt-4` creates a 16px gap above the header → this is the "gray line" (the `bg-gray-50` showing through)
+- `bg-white` makes the header bright white instead of the gray background the user wants
 
-### 2. Job Cost Table — Add Border Container
+### Changes — `src/components/DashboardHeader.tsx`
 
-Wrap the `<Table>` in a `border rounded-lg overflow-hidden` div, matching the standardized table style used across the app (Files, Manage Bills, etc.).
+**Line 103** — Remove `mt-4`, change `bg-white` to `bg-gray-50`:
 
 ```tsx
 // Before
-<Table containerClassName="relative w-full overflow-x-auto ...">
+<header className="bg-white border-b border-border px-6 py-2 mt-4">
 
-// After — wrapped
-<div className="border rounded-lg overflow-hidden overflow-x-auto">
-  <Table containerClassName="relative w-full">
-    ...
-  </Table>
-</div>
+// After
+<header className="bg-gray-50 border-b border-border px-6 py-2">
 ```
 
----
+This:
+- Removes the gap so the right-side header aligns vertically with the sidebar's "Construction Management" border
+- Changes the top bar background from white to gray, making it seamless with the page background and matching the user's request
 
-### 3. Address Column — Increase Width
+### No Other Files Need to Change
 
-`90px` → `130px` so lot names like "2026-100N-..." are more readable.
+The Settings page layout (`src/pages/Settings.tsx`) and the AppSidebar are unaffected — the fix is entirely in the header `className`.
 
-```tsx
-{showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
-```
+### Visual Result
 
----
-
-### 4. Input Heights — Match PO Dropdown (h-8)
-
-The Purchase Order dropdown (`POSelectionDropdown`) uses `h-8` on its `SelectTrigger`. All other inputs in the same row are default `h-10`. This mismatch is the visual inconsistency the user is seeing.
-
-Fix: add `className="h-8"` (or `className="h-8 text-sm"`) to every input in the job cost rows:
-
-| Input | Current | Fix |
+| Element | Before | After |
 |---|---|---|
-| Cost Code (`CostCodeSearchInput`) | default h-10 | pass `className="h-8"` |
-| Memo (`Input`) | default h-10 | add `className="h-8"` |
-| Quantity (`Input`) | default h-10 | add `className="h-8"` |
-| Unit Cost (`Input`) | default h-10 | add `className="h-8"` |
-| Address (`SelectTrigger`) | default h-10 | already uses `w-full`, add `className="h-8 w-full"` |
-
-The same fix applies to the **Expense** tab inputs (Account, Memo, Quantity, Unit Cost) to keep them consistent.
-
----
-
-### Files Changed
-
-- **`src/components/bills/EditExtractedBillDialog.tsx`** only — no other files touched.
-
-### Column Widths After This Change
-
-```text
-Cost Code:      220px
-Memo:           220px
-Quantity:       70px
-Unit Cost:      120px
-Total:          80px
-Address:        130px   (was 90px)
-Purchase Order: 180px
-Match:          55px
-Actions:        50px
-```
+| Top gap (gray line) | 16px (`mt-4`) | None (removed) |
+| Header background | `bg-white` | `bg-gray-50` |
+| Vertical alignment | Misaligned (header lower) | Flush with sidebar border |
