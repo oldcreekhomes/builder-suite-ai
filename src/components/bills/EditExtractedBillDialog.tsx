@@ -1006,7 +1006,8 @@ export function EditExtractedBillDialog({
                   No job cost lines. Click "Add Line" to add one.
                 </div>
               ) : (
-                <Table containerClassName="relative w-full overflow-x-auto overflow-y-visible max-h-none">
+              <div className="border rounded-lg overflow-hidden overflow-x-auto">
+              <Table containerClassName="relative w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[220px]">Cost Code</TableHead>
@@ -1014,7 +1015,7 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[70px]">Quantity</TableHead>
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[80px]">Total</TableHead>
-                      {showAddressColumn && <TableHead className="w-[90px]">Address</TableHead>}
+                      {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
                       {showPOSelection && <TableHead className="w-[55px] text-center">Match</TableHead>}
                       <TableHead className="w-[50px] text-center">Actions</TableHead>
@@ -1024,9 +1025,10 @@ export function EditExtractedBillDialog({
                     {jobCostLines.map((line) => (
                     <TableRow key={line.id}>
                       <TableCell>
-                        <CostCodeSearchInput
+                         <CostCodeSearchInput
                           value={line.cost_code_display || ""}
                           onChange={(value) => updateJobCostLine(line.id, 'cost_code_display', value)}
+                          className="h-8"
                           onCostCodeSelect={(costCode) => {
                             if (costCode) {
                               const display = `${costCode.code} - ${costCode.name}`;
@@ -1042,13 +1044,15 @@ export function EditExtractedBillDialog({
                         />
                       </TableCell>
                       <TableCell>
-                        <Input
+                         <Input
+                          className="h-8"
                           value={line.memo || ""}
                           onChange={(e) => updateJobCostLine(line.id, 'memo', e.target.value)}
                         />
                       </TableCell>
                       <TableCell>
                         <Input
+                          className="h-8"
                           type="number"
                           value={line.quantity}
                           onChange={(e) => updateJobCostLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
@@ -1056,6 +1060,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
+                          className="h-8"
                           type="number"
                           step="0.01"
                           value={line.unit_cost}
@@ -1071,7 +1076,7 @@ export function EditExtractedBillDialog({
                             value={line.lot_id || ''}
                             onValueChange={(value) => updateJobCostLine(line.id, 'lot_id', value)}
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="h-8 w-full">
                               <SelectValue placeholder="Select" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1146,6 +1151,7 @@ export function EditExtractedBillDialog({
                   ))}
                 </TableBody>
               </Table>
+              </div>
               )}
             </TabsContent>
 
@@ -1155,7 +1161,8 @@ export function EditExtractedBillDialog({
                   No expense lines. Click "Add Line" to add one.
                 </div>
               ) : (
-                <Table containerClassName="relative w-full overflow-x-auto overflow-y-visible max-h-none">
+                <div className="border rounded-lg overflow-hidden overflow-x-auto">
+                <Table containerClassName="relative w-full">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[200px]">Account</TableHead>
@@ -1189,12 +1196,14 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
+                          className="h-8"
                           value={line.memo || ""}
                           onChange={(e) => updateExpenseLine(line.id, 'memo', e.target.value)}
                         />
                       </TableCell>
                       <TableCell>
                         <Input
+                          className="h-8"
                           type="number"
                           value={line.quantity}
                           onChange={(e) => updateExpenseLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
@@ -1202,6 +1211,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
+                          className="h-8"
                           type="number"
                           step="0.01"
                           value={line.unit_cost}
@@ -1225,6 +1235,7 @@ export function EditExtractedBillDialog({
                   ))}
                 </TableBody>
               </Table>
+              </div>
               )}
             </TabsContent>
           </Tabs>
@@ -1232,7 +1243,7 @@ export function EditExtractedBillDialog({
           {/* Total */}
           <div className="flex justify-end items-center gap-4 pt-4 border-t">
             <span className="text-lg font-semibold">Total:</span>
-            <span className="text-2xl font-bold">${calculateTotal()}</span>
+            <span className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(parseFloat(calculateTotal()))}</span>
           </div>
 
           {/* Actions */}
