@@ -817,7 +817,7 @@ export function EditExtractedBillDialog({
               </Select>
             </div>
 
-            {/* Row 2: Due Date | Reference No. | Attachment */}
+            {/* Row 2: Due Date | Reference No. | (spacer) */}
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
@@ -839,7 +839,7 @@ export function EditExtractedBillDialog({
                     selected={dueDate}
                     onSelect={(date) => {
                       setDueDate(date);
-                      setIsDueAuto(false); // Manual selection disables auto-calculation
+                      setIsDueAuto(false);
                     }}
                     initialFocus
                     className="pointer-events-auto"
@@ -851,40 +851,81 @@ export function EditExtractedBillDialog({
               <Label>Reference No.</Label>
               <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
             </div>
-            {fileName ? (
-            <div className="space-y-2">
-              <Label>Attachment</Label>
-              <div>
-                <div className="relative group inline-block">
-                  <button
-                    onClick={() => {
-                      const displayName = fileName.split('/').pop() || fileName;
-                      openBillAttachment(filePath, displayName);
-                    }}
-                    className={`${getFileIconColor(fileName)} transition-colors p-1`}
-                    title={getCleanFileName(fileName)}
+            <div /> {/* spacer */}
+
+            {/* Row 3: Attachment (col-span-2) | Internal Notes */}
+            <div className="col-span-2">
+              <div className="space-y-2">
+                <Label>Attachments</Label>
+                <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+                  {/* Existing attachment from pending upload */}
+                  {fileName && (
+                    <div className="relative group">
+                      <button
+                        onClick={() => {
+                          const displayName = fileName.split('/').pop() || fileName;
+                          openBillAttachment(filePath, displayName);
+                        }}
+                        className={`${getFileIconColor(fileName)} transition-colors p-1 rounded hover:bg-muted/50`}
+                        title={getCleanFileName(fileName)}
+                        type="button"
+                      >
+                        {(() => {
+                          const IconComponent = getFileIcon(fileName);
+                          return <IconComponent className="h-5 w-5" />;
+                        })()}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteAttachmentConfirm(true);
+                        }}
+                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                        title="Remove attachment"
+                        type="button"
+                      >
+                        <span className="text-xs font-bold leading-none">×</span>
+                      </button>
+                    </div>
+                  )}
+                  {/* Add File button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
                     type="button"
+                    onClick={() => document.getElementById('edit-extracted-bill-file-input')?.click()}
+                    className="h-10 text-sm px-3"
                   >
-                    {(() => {
-                      const IconComponent = getFileIcon(fileName);
-                      return <IconComponent className="h-4 w-4" />;
-                    })()}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDeleteAttachmentConfirm(true);
+                    Add File
+                  </Button>
+                  <input
+                    id="edit-extracted-bill-file-input"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !pendingUploadId) return;
+                      try {
+                        const timestamp = Date.now();
+                        const sanitizedName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '_').replace(/_+/g, '_');
+                        const newFilePath = `${pendingUploadId}/${timestamp}_${sanitizedName}`;
+                        const { error: uploadError } = await supabase.storage.from('bill-attachments').upload(newFilePath, file);
+                        if (uploadError) throw uploadError;
+                        const { error: dbError } = await supabase.from('pending_bill_uploads').update({ file_name: file.name, file_path: newFilePath }).eq('id', pendingUploadId);
+                        if (dbError) throw dbError;
+                        setFileName(file.name);
+                        setFilePath(newFilePath);
+                        toast({ title: "File added", description: `${file.name} uploaded successfully.` });
+                      } catch (err: any) {
+                        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+                      }
+                      e.target.value = '';
                     }}
-                    className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center transition-opacity"
-                    title="Remove attachment"
-                    type="button"
-                  >
-                    <span className="text-xs font-bold leading-none">×</span>
-                  </button>
+                  />
                 </div>
               </div>
             </div>
-            ) : null}
 
             <div className="space-y-2">
               <Label>Internal Notes</Label>
