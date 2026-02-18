@@ -35,6 +35,5 @@ export const useUserRole = () => {
     isOwner: roles.includes('owner'),
     isAccountant: roles.includes('accountant'),
     isEmployee: roles.includes('employee'),
-    canDeleteBills: roles.includes('owner') || roles.includes('accountant'),
   };
 };
