@@ -185,7 +185,7 @@ const Settings = () => {
                   </TabsList>
                 </div>
                 
-                <div className="flex-1 min-w-0 p-6">
+                <div className="flex-1 min-w-0 p-6 pt-8">
                   <TabsContent value="company-profile" className="mt-0">
                     <CompanyProfileTab />
                   </TabsContent>
