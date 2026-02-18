@@ -107,39 +107,28 @@ export function EditExtractedBillDialog({
   const [isDueAuto, setIsDueAuto] = useState<boolean>(true);
   const [jobCostLines, setJobCostLines] = useState<LineItem[]>([]);
   const [expenseLines, setExpenseLines] = useState<LineItem[]>([]);
-  const [fileName, setFileName] = useState<string>("");
-  const [filePath, setFilePath] = useState<string>("");
+  const [attachments, setAttachments] = useState<Array<{ id: string; file_name: string; file_path: string }>>([]);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("job-cost");
   const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
-  const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] = useState(false);
-  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
   const hasAutoMatched = useRef(false);
 
-  const handleDeleteAttachment = async () => {
-    setIsDeletingAttachment(true);
+  const handleRemoveAttachment = async (attachment: { id: string; file_name: string; file_path: string }) => {
     try {
-      if (filePath) {
-        await supabase.storage.from('bill-attachments').remove([filePath]);
-      }
-      const { error } = await supabase
-        .from('pending_bill_uploads')
-        .update({ file_name: '', file_path: '' })
-        .eq('id', pendingUploadId);
-      if (error) throw error;
-      setFileName('');
-      setFilePath('');
-      toast({ title: "Attachment removed", description: "The file was deleted. The bill and its line items remain in the queue." });
+      // Delete from storage
+      await supabase.storage.from('bill-attachments').remove([attachment.file_path]);
+      // Delete from bill_attachments table
+      await supabase.from('bill_attachments').delete().eq('id', attachment.id);
+      setAttachments(prev => prev.filter(a => a.id !== attachment.id));
+      toast({ title: "Attachment removed", description: "The file was deleted." });
     } catch (err: any) {
       toast({ title: "Error", description: `Failed to remove attachment: ${err.message}`, variant: "destructive" });
-    } finally {
-      setIsDeletingAttachment(false);
-      setShowDeleteAttachmentConfirm(false);
     }
   };
 
@@ -163,8 +152,21 @@ export function EditExtractedBillDialog({
       setRefNo(extractedData.reference_number || extractedData.referenceNumber || "");
       setTerms(normalizeTermsForUI(extractedData.terms));
       setInternalNotes(extractedData.notes || "");
-      setFileName(bill.file_name);
-      setFilePath(bill.file_path);
+
+      // Load attachments from bill_attachments table (new multi-file path)
+      const { data: attachmentRows } = await supabase
+        .from('bill_attachments')
+        .select('id, file_name, file_path')
+        .eq('pending_upload_id', pendingUploadId);
+
+      if (attachmentRows && attachmentRows.length > 0) {
+        setAttachments(attachmentRows as Array<{ id: string; file_name: string; file_path: string }>);
+      } else if (bill.file_name) {
+        // Legacy fallback: single file stored on pending_bill_uploads itself
+        setAttachments([{ id: 'legacy', file_name: bill.file_name, file_path: bill.file_path }]);
+      } else {
+        setAttachments([]);
+      }
 
       let loadedBillDate = new Date();
       if (extractedData.bill_date || extractedData.billDate) {
@@ -859,66 +861,91 @@ export function EditExtractedBillDialog({
               {/* Attachments */}
               <div className="space-y-2">
                 <Label>Attachments</Label>
-                <div className="flex items-center gap-2">
-                  {fileName && (
-                    <div className="relative group shrink-0">
-                      <button
-                        onClick={() => {
-                          const displayName = fileName.split('/').pop() || fileName;
-                          openBillAttachment(filePath, displayName);
-                        }}
-                        className={`${getFileIconColor(fileName)} transition-colors p-1 rounded hover:bg-muted/50`}
-                        title={getCleanFileName(fileName)}
-                        type="button"
-                      >
-                        {(() => {
-                          const IconComponent = getFileIcon(fileName);
-                          return <IconComponent className="h-5 w-5" />;
-                        })()}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDeleteAttachmentConfirm(true);
-                        }}
-                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-                        title="Remove attachment"
-                        type="button"
-                      >
-                        <span className="text-xs font-bold leading-none">×</span>
-                      </button>
-                    </div>
-                  )}
+                <div className="flex items-center flex-wrap gap-1">
+                  {attachments.map((attachment) => {
+                    const IconComponent = getFileIcon(attachment.file_name);
+                    return (
+                      <div key={attachment.id} className="relative group shrink-0">
+                        <button
+                          onClick={() => openBillAttachment(attachment.file_path, attachment.file_name)}
+                          className={`${getFileIconColor(attachment.file_name)} transition-colors p-1 rounded hover:bg-muted/50`}
+                          title={getCleanFileName(attachment.file_name)}
+                          type="button"
+                        >
+                          <IconComponent className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (attachment.id !== 'legacy') {
+                              handleRemoveAttachment(attachment);
+                            }
+                          }}
+                          className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                          title="Remove attachment"
+                          type="button"
+                        >
+                          <span className="text-xs font-bold leading-none">×</span>
+                        </button>
+                      </div>
+                    );
+                  })}
                   <Button
                     variant="outline"
                     type="button"
                     onClick={() => document.getElementById('edit-extracted-bill-file-input')?.click()}
-                    className="flex-1 h-10 text-sm"
+                    className="flex-1 h-10 text-sm min-w-[80px]"
+                    disabled={isUploadingFile}
                   >
-                    Add Files
+                    {isUploadingFile ? 'Uploading...' : 'Add Files'}
                   </Button>
                   <input
                     id="edit-extracted-bill-file-input"
                     type="file"
+                    multiple
                     className="hidden"
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
                     onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !pendingUploadId) return;
-                      try {
-                        const timestamp = Date.now();
-                        const sanitizedName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '_').replace(/_+/g, '_');
-                        const newFilePath = `${pendingUploadId}/${timestamp}_${sanitizedName}`;
-                        const { error: uploadError } = await supabase.storage.from('bill-attachments').upload(newFilePath, file);
-                        if (uploadError) throw uploadError;
-                        const { error: dbError } = await supabase.from('pending_bill_uploads').update({ file_name: file.name, file_path: newFilePath }).eq('id', pendingUploadId);
-                        if (dbError) throw dbError;
-                        setFileName(file.name);
-                        setFilePath(newFilePath);
-                        toast({ title: "File added", description: `${file.name} uploaded successfully.` });
-                      } catch (err: any) {
-                        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0 || !pendingUploadId) return;
+                      setIsUploadingFile(true);
+                      const newAttachments: Array<{ id: string; file_name: string; file_path: string }> = [];
+                      const { data: { user } } = await supabase.auth.getUser();
+                      for (const file of files) {
+                        if (file.size > 20 * 1024 * 1024) {
+                          toast({ title: "File too large", description: `${file.name} exceeds 20MB.`, variant: "destructive" });
+                          continue;
+                        }
+                        try {
+                          const timestamp = Date.now();
+                          const sanitizedName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '_').replace(/_+/g, '_');
+                          const newFilePath = `${pendingUploadId}/${timestamp}_${sanitizedName}`;
+                          const { error: uploadError } = await supabase.storage.from('bill-attachments').upload(newFilePath, file);
+                          if (uploadError) throw uploadError;
+                          const { data: row, error: dbError } = await supabase
+                            .from('bill_attachments')
+                            .insert({
+                              pending_upload_id: pendingUploadId,
+                              bill_id: null,
+                              file_name: file.name,
+                              file_path: newFilePath,
+                              file_size: file.size,
+                              content_type: file.type,
+                              uploaded_by: user?.id,
+                            })
+                            .select('id, file_name, file_path')
+                            .single();
+                          if (dbError) throw dbError;
+                          if (row) newAttachments.push(row as { id: string; file_name: string; file_path: string });
+                        } catch (err: any) {
+                          toast({ title: "Upload failed", description: `${file.name}: ${err.message}`, variant: "destructive" });
+                        }
                       }
+                      if (newAttachments.length > 0) {
+                        setAttachments(prev => [...prev.filter(a => a.id !== 'legacy'), ...newAttachments]);
+                        toast({ title: "Files added", description: `${newAttachments.length} file(s) uploaded successfully.` });
+                      }
+                      setIsUploadingFile(false);
                       e.target.value = '';
                     }}
                   />
@@ -1202,14 +1229,6 @@ export function EditExtractedBillDialog({
       }}
       initialValue={internalNotes}
       onSave={(notes) => setInternalNotes(notes)}
-    />
-    <DeleteConfirmationDialog
-      open={showDeleteAttachmentConfirm}
-      onOpenChange={(open) => { if (!open) setShowDeleteAttachmentConfirm(false); }}
-      title="Remove Attachment?"
-      description="Remove this attachment? The bill and its line items will remain in the queue."
-      onConfirm={handleDeleteAttachment}
-      isLoading={isDeletingAttachment}
     />
     </>
   );
