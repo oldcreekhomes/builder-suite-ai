@@ -1,54 +1,125 @@
 
-## Fix: Multiple Attachments in Edit Extracted Bill Dialog
+## Fix: RLS Policies on `bill_attachments` for Pending Upload Attachments
 
-### The Problem
+### Root Cause
 
-The current implementation stores only **one** file per extracted bill — a single `file_name` and `file_path` column in `pending_bill_uploads`. The file input even only reads `e.target.files?.[0]`, so clicking "Add Files" and selecting a new file replaces the previous one entirely.
-
-### The Solution
-
-Add a `pending_upload_id` foreign key column to `bill_attachments` so multiple attachment records can reference a single extracted bill in the queue. Then update the dialog's UI and logic to manage an array of attachments — matching exactly how the Enter Manually form works via `BillAttachmentUpload`.
-
-### Technical Changes
-
-**1. Database Migration**
-
-Add a nullable `pending_upload_id` column to `bill_attachments` referencing `pending_bill_uploads.id`:
+The error "new row violates row-level security policy for table 'bill_attachments'" happens because the INSERT policy added in the previous migration checks:
 
 ```sql
-ALTER TABLE bill_attachments
-  ADD COLUMN pending_upload_id uuid REFERENCES pending_bill_uploads(id) ON DELETE CASCADE;
+pending_bill_uploads.owner_id = auth.uid()
 ```
 
-This means the `bill_id` column stays nullable (it's already nullable) and gets filled in when the pending bill is approved and becomes a real bill. Existing rows are unaffected.
+But `pending_bill_uploads.owner_id` stores the **home builder's** user ID (the company owner), not the employee's or accountant's `auth.uid()`. This is by design (per the multi-tenant architecture), but the RLS policy doesn't account for it.
 
-**2. `src/components/bills/EditExtractedBillDialog.tsx`**
+The same mismatch exists on the SELECT and DELETE policies for pending-upload-linked attachments.
 
-Replace single-file state with a multi-file array — mirroring `BillAttachmentUpload`:
+### What Needs to Change
 
-- **State**: Replace `const [fileName, setFileName] = useState<string>("")` and `const [filePath, setFilePath] = useState<string>("")` with:
-  ```ts
-  const [attachments, setAttachments] = useState<Array<{ id: string; file_name: string; file_path: string }>>([]);
-  ```
+**One database migration** — fix all three policies (INSERT, SELECT, DELETE) on `bill_attachments` that reference `pending_bill_uploads` to also allow employees and accountants who belong to the same home builder.
 
-- **On open / `useEffect`**: Instead of reading `bill.file_name` and `bill.file_path`, query `bill_attachments` where `pending_upload_id = pendingUploadId`. Fall back gracefully: if the legacy single-file fields (`bill.file_name`) are set and no rows exist yet, show that one file.
+**INSERT policy** — currently:
+```sql
+-- BROKEN: only passes if user IS the owner
+pending_bill_uploads.owner_id = auth.uid()
+```
+Fix: also allow when `auth.uid()` is a confirmed employee/accountant whose `home_builder_id` matches `pending_bill_uploads.owner_id`:
+```sql
+pending_bill_uploads.owner_id = auth.uid()
+OR pending_bill_uploads.owner_id IN (
+  SELECT home_builder_id FROM users
+  WHERE id = auth.uid() AND confirmed = true
+  AND role IN ('employee', 'accountant')
+)
+```
 
-- **File upload handler** (`onChange` on the hidden input):
-  - Change input to `multiple` (it already has this but only reads index 0 — fix to loop all files)
-  - For each selected file: upload to `bill-attachments` bucket, then insert a row into `bill_attachments` with `pending_upload_id = pendingUploadId` and `bill_id = null`
-  - Append to local `attachments` state
+**SELECT policy** — currently only looks at `bill_id → bills.owner_id`. It doesn't cover rows where `bill_id IS NULL` and `pending_upload_id IS NOT NULL`. Add a second clause to cover those.
 
-- **File delete handler**: Delete the row from `bill_attachments` by `id`, remove from storage, filter out of local state. Replace the current `showDeleteAttachmentConfirm` single-file confirm flow with per-attachment inline `×` buttons (same UX as `BillAttachmentUpload`).
+**DELETE policy** — same fix as INSERT.
 
-- **UI**: The Attachments section already shows icons for each file — just map over `attachments[]` instead of checking a single `fileName` string. The `Add Files` button and hidden input stay in place.
+### Files Changed
 
-**3. Approval flow (`SimplifiedAIBillExtraction.tsx` or wherever pending bills are approved)**
+**Database only** — one migration replacing the three pending-upload policies on `bill_attachments`. No code changes needed in `EditExtractedBillDialog.tsx` — the upload logic is correct, only RLS is blocking it.
 
-When a pending bill is approved and a real `bill_id` is created, update all `bill_attachments` rows where `pending_upload_id = pendingUploadId` to set `bill_id = newBillId` and clear `pending_upload_id`. Also clear the legacy `file_name`/`file_path` on the `pending_bill_uploads` row (or leave them as-is — they become irrelevant).
+### Migration SQL (outline)
 
-### What Stays the Same
+```sql
+-- Drop the broken policies
+DROP POLICY IF EXISTS "Users can insert bill_attachments for their pending uploads" ON bill_attachments;
+DROP POLICY IF EXISTS "Users can delete bill_attachments for their pending uploads" ON bill_attachments;
 
-- The 50/50 layout (Attachments | Internal Notes) in the third column — no layout changes
-- The Internal Notes button, notes dialog, all line item logic
-- The `bill_attachments` table columns for approved bills (`bill_id` path) — unchanged
-- The `BillAttachmentUpload` component used in the Enter Manually form — unchanged
+-- Recreate INSERT with employee/accountant support
+CREATE POLICY "Users can insert bill_attachments for their pending uploads"
+  ON bill_attachments FOR INSERT
+  WITH CHECK (
+    pending_upload_id IS NULL
+    OR EXISTS (
+      SELECT 1 FROM pending_bill_uploads pbu
+      WHERE pbu.id = pending_upload_id
+        AND (
+          pbu.owner_id = auth.uid()
+          OR pbu.owner_id IN (
+            SELECT home_builder_id FROM users
+            WHERE id = auth.uid()
+              AND confirmed = true
+              AND role IN ('employee', 'accountant')
+          )
+        )
+    )
+  );
+
+-- Recreate DELETE with same fix
+CREATE POLICY "Users can delete bill_attachments for their pending uploads"
+  ON bill_attachments FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM pending_bill_uploads pbu
+      WHERE pbu.id = pending_upload_id
+        AND (
+          pbu.owner_id = auth.uid()
+          OR pbu.owner_id IN (
+            SELECT home_builder_id FROM users
+            WHERE id = auth.uid()
+              AND confirmed = true
+              AND role IN ('employee', 'accountant')
+          )
+        )
+    )
+  );
+
+-- Also fix SELECT policy to cover pending-upload-linked attachments
+-- (the current SELECT policy only covers bill_id-linked rows)
+DROP POLICY IF EXISTS "Bill attachments visible to owner and confirmed employees" ON bill_attachments;
+CREATE POLICY "Bill attachments visible to owner and confirmed employees"
+  ON bill_attachments FOR SELECT
+  USING (
+    -- Rows linked to an approved bill
+    (bill_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM bills b
+      WHERE b.id = bill_id
+        AND (
+          b.owner_id = auth.uid()
+          OR b.owner_id IN (
+            SELECT home_builder_id FROM users
+            WHERE id = auth.uid() AND confirmed = true
+            AND role IN ('employee', 'accountant')
+          )
+        )
+    ))
+    OR
+    -- Rows still linked to a pending upload (not yet approved)
+    (pending_upload_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM pending_bill_uploads pbu
+      WHERE pbu.id = pending_upload_id
+        AND (
+          pbu.owner_id = auth.uid()
+          OR pbu.owner_id IN (
+            SELECT home_builder_id FROM users
+            WHERE id = auth.uid() AND confirmed = true
+            AND role IN ('employee', 'accountant')
+          )
+        )
+    ))
+  );
+```
+
+No code changes required — the dialog's upload logic is correct.
