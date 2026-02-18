@@ -38,6 +38,7 @@ interface BatchBill extends PendingBill {
   due_date?: string;
   reference_number?: string;
   lines: PendingBillLine[];
+  attachments?: Array<{ id: string; file_name: string; file_path: string }>;
 }
 
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
@@ -92,27 +93,33 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       // First fetch all lines with lot info
       const billsWithLines = await Promise.all(
         pendingBills.map(async (bill) => {
-          if (cancelled) return { ...bill, lines: [] };
+          if (cancelled) return { ...bill, lines: [], attachments: [] };
           
-          const { data: lines, error } = await supabase
-            .from('pending_bill_lines')
-            .select('*, project_lots(id, lot_number, lot_name)')
-            .eq('pending_upload_id', bill.id)
-            .order('line_number');
+          const [linesResult, attachmentsResult] = await Promise.all([
+            supabase
+              .from('pending_bill_lines')
+              .select('*, project_lots(id, lot_number, lot_name)')
+              .eq('pending_upload_id', bill.id)
+              .order('line_number'),
+            supabase
+              .from('bill_attachments')
+              .select('id, file_name, file_path')
+              .eq('pending_upload_id', bill.id),
+          ]);
 
-          if (error) {
-            console.error(`Error fetching lines for bill ${bill.id}:`, error);
-            return { ...bill, lines: [] };
+          if (linesResult.error) {
+            console.error(`Error fetching lines for bill ${bill.id}:`, linesResult.error);
+            return { ...bill, lines: [], attachments: attachmentsResult.data || [] };
           }
 
           // Map lot_name from joined data
-          const processedLines = (lines || []).map((line: any) => ({
+          const processedLines = (linesResult.data || []).map((line: any) => ({
             ...line,
             lot_name: line.project_lots?.lot_name || 
                       (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
           })) as PendingBillLine[];
 
-          return { ...bill, lines: processedLines };
+          return { ...bill, lines: processedLines, attachments: attachmentsResult.data || [] };
         })
       );
 
