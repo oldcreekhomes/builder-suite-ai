@@ -1,92 +1,36 @@
 
-## Fix Table Formatting, Border, Address Width & Input Heights
+## Restore Hidden Columns on Paid Bills Table
 
-### Changes Summary
+### Root Cause
 
-Four distinct fixes in `src/components/bills/EditExtractedBillDialog.tsx`:
+The `BillsApprovalTable.tsx` wraps the `<Table>` in a `<div className="border rounded-lg">` container (line 598). This container has **no overflow handling**, which means when the table is wider than the visible area, the right-side columns are silently clipped — they render but are hidden behind the border box edge.
 
----
+The columns that are being cut off for the Paid tab are:
+- **PO Status** (`w-20`)
+- **Cleared** (renders as the "final column" for paid status, `w-24`)
+- **Actions** (shown when `canShowDeleteButton` is true for users with delete permission, `w-16`)
 
-### 1. Total — Add Comma Formatting
+The columns themselves and their rendering logic are **intact** — nothing was deleted. It's purely a CSS overflow/clipping issue introduced when the `border rounded-lg` wrapper was added to match the standardized table style.
 
-**Current:** `$11500.00`
-**Fixed:** `$11,500.00`
+### Fix
 
-`calculateTotal()` returns a raw `.toFixed(2)` string. We'll replace the display with `Intl.NumberFormat` so the total renders with commas, matching the rest of the app's currency standard.
-
-```tsx
-// Before (line 1235)
-<span className="text-2xl font-bold">${calculateTotal()}</span>
-
-// After
-<span className="text-2xl font-bold">
-  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
-    .format(parseFloat(calculateTotal()))}
-</span>
-```
-
----
-
-### 2. Job Cost Table — Add Border Container
-
-Wrap the `<Table>` in a `border rounded-lg overflow-hidden` div, matching the standardized table style used across the app (Files, Manage Bills, etc.).
+Add `overflow-hidden` to the outer wrapper div so the Table's built-in `overflow-auto` inner scroll container operates correctly within the rounded border, and the right-side columns become visible and scrollable.
 
 ```tsx
-// Before
-<Table containerClassName="relative w-full overflow-x-auto ...">
+// Line 598 — BillsApprovalTable.tsx
+// Before:
+<div className="border rounded-lg">
 
-// After — wrapped
-<div className="border rounded-lg overflow-hidden overflow-x-auto">
-  <Table containerClassName="relative w-full">
-    ...
-  </Table>
-</div>
+// After:
+<div className="border rounded-lg overflow-hidden">
 ```
 
----
+### Why `overflow-hidden` (not `overflow-x-auto`)?
 
-### 3. Address Column — Increase Width
+The `Table` component (`src/components/ui/table.tsx` line 16) already wraps the `<table>` in `relative w-full overflow-auto`. So horizontal scrolling is already handled internally. Adding `overflow-x-auto` to the outer div would create a double-scrollbar. Adding `overflow-hidden` instead tells the outer border box to clip to its own rounded corners and let the inner scroll container do its job — this is the same pattern used in `EditExtractedBillDialog` and other standardized tables.
 
-`90px` → `130px` so lot names like "2026-100N-..." are more readable.
+### File Changed
 
-```tsx
-{showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
-```
+- **`src/components/bills/BillsApprovalTable.tsx`** — one line change on line 598.
 
----
-
-### 4. Input Heights — Match PO Dropdown (h-8)
-
-The Purchase Order dropdown (`POSelectionDropdown`) uses `h-8` on its `SelectTrigger`. All other inputs in the same row are default `h-10`. This mismatch is the visual inconsistency the user is seeing.
-
-Fix: add `className="h-8"` (or `className="h-8 text-sm"`) to every input in the job cost rows:
-
-| Input | Current | Fix |
-|---|---|---|
-| Cost Code (`CostCodeSearchInput`) | default h-10 | pass `className="h-8"` |
-| Memo (`Input`) | default h-10 | add `className="h-8"` |
-| Quantity (`Input`) | default h-10 | add `className="h-8"` |
-| Unit Cost (`Input`) | default h-10 | add `className="h-8"` |
-| Address (`SelectTrigger`) | default h-10 | already uses `w-full`, add `className="h-8 w-full"` |
-
-The same fix applies to the **Expense** tab inputs (Account, Memo, Quantity, Unit Cost) to keep them consistent.
-
----
-
-### Files Changed
-
-- **`src/components/bills/EditExtractedBillDialog.tsx`** only — no other files touched.
-
-### Column Widths After This Change
-
-```text
-Cost Code:      220px
-Memo:           220px
-Quantity:       70px
-Unit Cost:      120px
-Total:          80px
-Address:        130px   (was 90px)
-Purchase Order: 180px
-Match:          55px
-Actions:        50px
-```
+No logic, column visibility conditions, or data is changed. This is a pure CSS fix.
