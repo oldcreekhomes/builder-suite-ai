@@ -430,7 +430,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell>
                 <button
-                  className="flex items-center gap-2 text-left hover:underline focus:outline-none"
+                  className="flex items-center gap-2 text-left focus:outline-none"
                   onClick={() => onFolderClick(folder.path)}
                 >
                   <Folder className="h-4 w-4 text-primary shrink-0" />
@@ -471,7 +471,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell>
                 <button
-                  className="flex items-center gap-2 text-left hover:underline focus:outline-none truncate max-w-xs"
+                  className="flex items-center gap-2 text-left focus:outline-none truncate max-w-xs"
                   onClick={() => handleFileView(file)}
                 >
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
