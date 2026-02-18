@@ -1,49 +1,44 @@
 
-## Fix Column Widths in Edit Extracted Bill Dialog
+## Resize Job Cost Table Columns in Edit Extracted Bill Dialog
 
-### What the User Wants (from the screenshot and voice notes)
+### What the User Wants
 
-The table is cramped after the Address column was added. Four specific fixes are needed:
+From the screenshot and voice notes, the table still feels cramped. The user wants:
 
-1. **Memo** — restore to a larger width (it was flexible/unconstrained before; adding the Address column squeezed it to almost nothing showing only "ab")
-2. **Quantity** — reduce its width to reclaim horizontal space
-3. **Address** — reduce by half (currently `w-[160px]` → `w-[80px]`)
-4. **Accuracy** — it's going off-screen / invisible because the table is too wide; rename it to something shorter. The user rejected "Confidence" as too long. Best short option: **"Match"** (5 chars, clearly means "how well the AI matched this line to a PO")
+1. **Quantity** — reduce by 25% (currently 70px → 52px, rounded to **52px**)
+2. **Unit Cost** — reduce by 25% (currently 100px → **75px**)
+3. **Total** — reduce (currently 100px, has lots of whitespace → **80px**)
+4. **Address** — increase so the lot name is actually readable (currently 80px, cramped showing "Lo..." → match Purchase Order width)
+5. **Cost Code, Memo, Quantity, Unit Cost, Address** — all made the same width as Purchase Order (`180px`)
 
-### Current Column Widths
+Combining rules 1/2/3 with rule 5: rule 5 (match PO = 180px) overrides the percentage reductions for those columns, since the user's final explicit instruction is to make them match PO size. The only columns that don't get 180px are Total (reduce to ~80px), Match (stays 55px), and Actions (stays 50px).
 
-```text
-Cost Code:      w-[200px]
-Memo:           (no width — fills remaining space, but now squeezed)
-Quantity:       w-[100px]
-Unit Cost:      w-[120px]
-Total:          w-[120px]
-Address:        w-[160px]   ← NEW, too wide
-Purchase Order: w-[200px]
-Accuracy:       w-[80px]    ← going off-screen
-Actions:        w-[50px]
-```
-
-### Proposed New Widths
+### Resulting Column Widths
 
 ```text
-Cost Code:      w-[180px]   (slight reduction)
-Memo:           w-[120px]   (give it an explicit, reasonable width)
-Quantity:       w-[70px]    (reduce from 100px)
-Unit Cost:      w-[100px]   (slight reduction)
-Total:          w-[100px]   (slight reduction)
-Address:        w-[80px]    (half of 160px)
-Purchase Order: w-[180px]   (slight reduction)
-Match:          w-[55px]    (renamed from "Accuracy", tighter)
-Actions:        w-[50px]    (unchanged)
+Cost Code:      180px   (was 180px — no change, already matches PO)
+Memo:           180px   (was 120px — increase to match PO)
+Quantity:       180px   (was 70px — increase to match PO)
+Unit Cost:      180px   (was 100px — increase to match PO)
+Total:          80px    (was 100px — reduced per user request)
+Address:        180px   (was 80px — increase to match PO and be readable)
+Purchase Order: 180px   (unchanged — the reference width)
+Match:          55px    (unchanged)
+Actions:        50px    (unchanged)
 ```
 
-Total estimate: 180+120+70+100+100+80+180+55+50 = **935px** — fits comfortably inside the dialog.
+Total (with address + PO columns): 180+180+180+180+80+180+180+55+50 = **1,265px**
+
+The dialog already has `overflow-x-auto` on the table container so horizontal scrolling will handle any overflow gracefully.
 
 ### File Changed
 
-**`src/components/bills/EditExtractedBillDialog.tsx`** — lines 1012–1020:
-- Update `className` widths on all `<TableHead>` elements in the Job Cost table
-- Rename `"Accuracy"` → `"Match"` on line 1019
+**`src/components/bills/EditExtractedBillDialog.tsx`** — lines 1012–1016 and 1017:
+- `Cost Code`: keep at `w-[180px]`
+- `Memo`: `w-[120px]` → `w-[180px]`
+- `Quantity`: `w-[70px]` → `w-[180px]`
+- `Unit Cost`: `w-[100px]` → `w-[180px]`
+- `Total`: `w-[100px]` → `w-[80px]`
+- `Address`: `w-[80px]` → `w-[180px]`
 
-No logic changes — purely column width and label text adjustments.
+No logic changes — purely column width adjustments.
