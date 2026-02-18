@@ -39,7 +39,7 @@ export function ManageBillsDialog({ open, onOpenChange, projectId, projectIds }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Manage Bills</DialogTitle>
           <DialogDescription>
