@@ -818,9 +818,9 @@ export function EditExtractedBillDialog({
             </div>
           </div>
 
-          {/* Row 2: Due Date | Reference No. | Attachments | Internal Notes (col-span-12) */}
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-3 space-y-2">
+          {/* Row 2: Due Date | Reference No. | [Attachments + Internal Notes 50/50] */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -849,98 +849,101 @@ export function EditExtractedBillDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="col-span-3 space-y-2">
+            <div className="space-y-2">
               <Label>Reference No.</Label>
               <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} />
             </div>
 
-            {/* Attachments */}
-            <div className="col-span-3 space-y-2">
-              <Label>Attachments</Label>
-              <div className="flex items-center gap-2">
-                {fileName && (
-                  <div className="relative group shrink-0">
-                    <button
-                      onClick={() => {
-                        const displayName = fileName.split('/').pop() || fileName;
-                        openBillAttachment(filePath, displayName);
-                      }}
-                      className={`${getFileIconColor(fileName)} transition-colors p-1 rounded hover:bg-muted/50`}
-                      title={getCleanFileName(fileName)}
-                      type="button"
-                    >
-                      {(() => {
-                        const IconComponent = getFileIcon(fileName);
-                        return <IconComponent className="h-5 w-5" />;
-                      })()}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDeleteAttachmentConfirm(true);
-                      }}
-                      className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-                      title="Remove attachment"
-                      type="button"
-                    >
-                      <span className="text-xs font-bold leading-none">×</span>
-                    </button>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => document.getElementById('edit-extracted-bill-file-input')?.click()}
-                  className="flex-1 h-10 text-sm"
-                >
-                  Add Files
-                </Button>
-                <input
-                  id="edit-extracted-bill-file-input"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file || !pendingUploadId) return;
-                    try {
-                      const timestamp = Date.now();
-                      const sanitizedName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '_').replace(/_+/g, '_');
-                      const newFilePath = `${pendingUploadId}/${timestamp}_${sanitizedName}`;
-                      const { error: uploadError } = await supabase.storage.from('bill-attachments').upload(newFilePath, file);
-                      if (uploadError) throw uploadError;
-                      const { error: dbError } = await supabase.from('pending_bill_uploads').update({ file_name: file.name, file_path: newFilePath }).eq('id', pendingUploadId);
-                      if (dbError) throw dbError;
-                      setFileName(file.name);
-                      setFilePath(newFilePath);
-                      toast({ title: "File added", description: `${file.name} uploaded successfully.` });
-                    } catch (err: any) {
-                      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
-                    }
-                    e.target.value = '';
-                  }}
-                />
+            {/* Third column: Attachments (left 50%) + Internal Notes (right 50%) */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Attachments */}
+              <div className="space-y-2">
+                <Label>Attachments</Label>
+                <div className="flex items-center gap-2">
+                  {fileName && (
+                    <div className="relative group shrink-0">
+                      <button
+                        onClick={() => {
+                          const displayName = fileName.split('/').pop() || fileName;
+                          openBillAttachment(filePath, displayName);
+                        }}
+                        className={`${getFileIconColor(fileName)} transition-colors p-1 rounded hover:bg-muted/50`}
+                        title={getCleanFileName(fileName)}
+                        type="button"
+                      >
+                        {(() => {
+                          const IconComponent = getFileIcon(fileName);
+                          return <IconComponent className="h-5 w-5" />;
+                        })()}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteAttachmentConfirm(true);
+                        }}
+                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                        title="Remove attachment"
+                        type="button"
+                      >
+                        <span className="text-xs font-bold leading-none">×</span>
+                      </button>
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => document.getElementById('edit-extracted-bill-file-input')?.click()}
+                    className="flex-1 h-10 text-sm"
+                  >
+                    Add Files
+                  </Button>
+                  <input
+                    id="edit-extracted-bill-file-input"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !pendingUploadId) return;
+                      try {
+                        const timestamp = Date.now();
+                        const sanitizedName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '_').replace(/_+/g, '_');
+                        const newFilePath = `${pendingUploadId}/${timestamp}_${sanitizedName}`;
+                        const { error: uploadError } = await supabase.storage.from('bill-attachments').upload(newFilePath, file);
+                        if (uploadError) throw uploadError;
+                        const { error: dbError } = await supabase.from('pending_bill_uploads').update({ file_name: file.name, file_path: newFilePath }).eq('id', pendingUploadId);
+                        if (dbError) throw dbError;
+                        setFileName(file.name);
+                        setFilePath(newFilePath);
+                        toast({ title: "File added", description: `${file.name} uploaded successfully.` });
+                      } catch (err: any) {
+                        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Internal Notes */}
-            <div className="col-span-3 space-y-2">
-              <Label>Internal Notes</Label>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-10"
-                onClick={() => setNotesDialogOpen(true)}
-              >
-                {internalNotes.trim() ? (
-                  <>
-                    <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
-                    View Notes
-                  </>
-                ) : (
-                  "Add Internal Notes"
-                )}
-              </Button>
+              {/* Internal Notes */}
+              <div className="space-y-2">
+                <Label>Internal Notes</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-10"
+                  onClick={() => setNotesDialogOpen(true)}
+                >
+                  {internalNotes.trim() ? (
+                    <>
+                      <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
+                      View Notes
+                    </>
+                  ) : (
+                    "Add Internal Notes"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
