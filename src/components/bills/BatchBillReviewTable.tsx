@@ -917,7 +917,7 @@ export function BatchBillReviewTable({
                                 e.stopPropagation();
                                 handleRemoveAttachment(bill, att);
                               }}
-                              className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 items-center justify-center hidden group-hover:flex"
+                              className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
                               title="Remove attachment"
                               type="button"
                             >
