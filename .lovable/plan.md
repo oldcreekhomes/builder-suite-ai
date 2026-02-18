@@ -1,13 +1,28 @@
 
-## Reduce Top Padding on Settings Right Panel
+## Fix: Paid Tab Columns Being Cut Off (PO Status, Cleared, Actions Missing)
 
-### What Changed Last Time
-- Before: `p-6` → top padding = 24px
-- After: `p-6 pt-8` → top padding = 32px (added 8px)
+### Root Cause
 
-### Fix
-Change `pt-8` to `pt-7` (28px), which is exactly halfway between the original 24px and the current 32px. This should align the right-side content baseline with the "Settings" title on the left.
+In `src/components/bills/BillsApprovalTable.tsx`, the table wrapper div at line 600 is:
+
+```tsx
+<div className="border rounded-lg">
+```
+
+It is missing `overflow-auto`. The table has many columns (Vendor, Cost Code, Bill Date, Due Date, Amount, Reference, Memo, Address, Files, Notes, PO Status, Cleared, Actions), and without `overflow-auto`, anything beyond the visible width is silently clipped — not scrollable, just gone. The user sees the table end abruptly at "Notes."
+
+### The Fix
+
+Add `overflow-auto` to that wrapper div:
+
+```tsx
+<div className="border rounded-lg overflow-auto">
+```
+
+This restores horizontal scrolling on the table, making PO Status, Cleared, and Actions visible again — identical to how they appeared before (as shown in the user's second screenshot, where all columns are visible).
 
 ### File to Edit
-- `src/pages/Settings.tsx` — line with `<div className="flex-1 min-w-0 p-6 pt-8">`
-  - Change to: `<div className="flex-1 min-w-0 p-6 pt-7">`
+
+- `src/components/bills/BillsApprovalTable.tsx` — line 600
+  - Change: `<div className="border rounded-lg">`
+  - To: `<div className="border rounded-lg overflow-auto">`
