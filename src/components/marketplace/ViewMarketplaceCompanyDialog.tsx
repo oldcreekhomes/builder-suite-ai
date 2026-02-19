@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Globe, MapPin, Phone, Mail, Star, Shield, Users } from "lucide-react";
+import { Globe, MapPin, Phone, Mail, Star, Shield, Users, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,6 +20,9 @@ interface MarketplaceCompany {
   insurance_verified?: boolean;
   rating?: number;
   review_count?: number;
+  message_count?: number;
+  lat?: number;
+  lng?: number;
   created_at: string;
 }
 
@@ -38,9 +41,10 @@ interface ViewMarketplaceCompanyDialogProps {
   company: MarketplaceCompany | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMessageClick?: () => void;
 }
 
-export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: ViewMarketplaceCompanyDialogProps) {
+export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange, onMessageClick }: ViewMarketplaceCompanyDialogProps) {
   const { data: representatives = [] } = useQuery({
     queryKey: ['marketplace-representatives', company?.id],
     queryFn: async () => {
@@ -96,26 +100,26 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {company.address && (
                 <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4 text-gray-400" />
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">{company.address}</span>
                 </div>
               )}
               
               {company.phone_number && (
                 <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-gray-400" />
+                  <Phone className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">{company.phone_number}</span>
                 </div>
               )}
               
               {company.website && (
                 <div className="flex items-center space-x-2">
-                  <Globe className="h-4 w-4 text-gray-400" />
+                  <Globe className="h-4 w-4 text-muted-foreground" />
                   <a 
                     href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-primary hover:text-primary/80"
                   >
                     {company.website}
                   </a>
@@ -126,7 +130,7 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
                 <div className="flex items-center space-x-2">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                   <span className="text-sm font-medium">{company.rating}</span>
-                  <span className="text-sm text-gray-500">({company.review_count || 0} reviews)</span>
+                  <span className="text-sm text-muted-foreground">({company.review_count || 0} reviews)</span>
                 </div>
               )}
               
@@ -140,41 +144,10 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
             
             {company.description && (
               <div className="mt-4">
-                <p className="text-sm text-gray-600">{company.description}</p>
+                <p className="text-sm text-muted-foreground">{company.description}</p>
               </div>
             )}
           </div>
-
-          <Separator />
-
-
-          {/* Service Areas */}
-          {company.service_areas && company.service_areas.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Service Areas</h3>
-              <div className="flex flex-wrap gap-2">
-                {company.service_areas.map((area, index) => (
-                  <Badge key={index} variant="outline">
-                    {area}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* License Numbers */}
-          {company.license_numbers && company.license_numbers.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">License Numbers</h3>
-              <div className="flex flex-wrap gap-2">
-                {company.license_numbers.map((license, index) => (
-                  <Badge key={index} variant="outline" className="font-mono">
-                    {license}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
 
           <Separator />
 
@@ -187,7 +160,7 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
             {representatives.length > 0 ? (
               <div className="space-y-3">
                 {representatives.map((rep) => (
-                  <div key={rep.id} className="bg-gray-50 rounded-lg p-3">
+                  <div key={rep.id} className="bg-muted/50 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-medium">
                         {rep.first_name} {rep.last_name}
@@ -198,19 +171,19 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
                         )}
                       </div>
                       {rep.title && (
-                        <span className="text-sm text-gray-500">{rep.title}</span>
+                        <span className="text-sm text-muted-foreground">{rep.title}</span>
                       )}
                     </div>
                     <div className="space-y-1">
                       {rep.email && (
                         <div className="flex items-center space-x-2">
-                          <Mail className="h-3 w-3 text-gray-400" />
+                          <Mail className="h-3 w-3 text-muted-foreground" />
                           <span className="text-sm">{rep.email}</span>
                         </div>
                       )}
                       {rep.phone_number && (
                         <div className="flex items-center space-x-2">
-                          <Phone className="h-3 w-3 text-gray-400" />
+                          <Phone className="h-3 w-3 text-muted-foreground" />
                           <span className="text-sm">{rep.phone_number}</span>
                         </div>
                       )}
@@ -219,9 +192,56 @@ export function ViewMarketplaceCompanyDialog({ company, open, onOpenChange }: Vi
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No representatives listed</p>
+              <p className="text-sm text-muted-foreground">No representatives listed</p>
             )}
           </div>
+
+          {/* Service Areas */}
+          {company.service_areas && company.service_areas.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Service Areas</h3>
+                <div className="flex flex-wrap gap-2">
+                  {company.service_areas.map((area, index) => (
+                    <Badge key={index} variant="outline">
+                      {area}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* License Numbers */}
+          {company.license_numbers && company.license_numbers.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-lg font-semibold mb-3">License Numbers</h3>
+                <div className="flex flex-wrap gap-2">
+                  {company.license_numbers.map((license, index) => (
+                    <Badge key={index} variant="outline" className="font-mono">
+                      {license}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Send Message Button */}
+          {onMessageClick && (
+            <>
+              <Separator />
+              <div className="flex justify-end">
+                <Button onClick={onMessageClick} className="gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Send Message
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
