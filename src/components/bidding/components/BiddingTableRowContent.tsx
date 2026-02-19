@@ -3,8 +3,6 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { BiddingDatePicker } from './BiddingDatePicker';
 import { BiddingTableRowSpecs } from './BiddingTableRowSpecs';
@@ -77,39 +75,32 @@ export function BiddingTableRowContent({
   const handleCreatePO = () => {
     onCloseWithPO?.();
   };
+
+  const stopProp = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
-    <TableRow className={`${isSelected ? 'bg-blue-50' : ''}`}>
-      <TableCell>
+    <TableRow
+      className={`${isSelected ? 'bg-blue-50' : ''} cursor-pointer`}
+      onClick={onRowClick}
+    >
+      <TableCell className="w-10" onClick={stopProp}>
         <Checkbox
           checked={isSelected}
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell>
-        <div className="flex items-center justify-between">
-          <div 
-            className="flex items-center cursor-pointer hover:text-primary flex-1"
-            onClick={onRowClick}
-          >
-            {costCode?.code} - {costCode?.name}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRowClick}
-            className="h-6 w-6 p-0 hover:bg-primary/10"
-          >
-            <Eye className="h-3 w-3" />
-          </Button>
+      <TableCell className="w-56">
+        <div className="hover:text-primary">
+          {costCode?.code} - {costCode?.name}
         </div>
       </TableCell>
-      <TableCell>
-        <Select 
-          value={item.status || 'draft'} 
+      <TableCell className="w-28" onClick={stopProp}>
+        <Select
+          value={item.status || 'draft'}
           onValueChange={handleStatusChange}
           disabled={isReadOnly}
         >
-          <SelectTrigger className="w-20 h-8">
+          <SelectTrigger className="w-24 h-8">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
@@ -127,10 +118,10 @@ export function BiddingTableRowContent({
         onJustClose={handleJustClose}
         onCreatePO={handleCreatePO}
       />
-      <TableCell className={cn("w-32", !item.sent_on && "text-muted-foreground")}>
+      <TableCell className={cn("w-28", !item.sent_on && "text-muted-foreground")}>
         {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
       </TableCell>
-      <TableCell className="w-32">
+      <TableCell className="w-28" onClick={stopProp}>
         <BiddingDatePicker
           value={item.due_date}
           onChange={(biddingItemId, companyId, date) => onUpdateDueDate(biddingItemId, date)}
@@ -141,7 +132,7 @@ export function BiddingTableRowContent({
           field="due_date"
         />
       </TableCell>
-      <TableCell className="w-32">
+      <TableCell className="w-28" onClick={stopProp}>
         <BiddingDatePicker
           value={item.reminder_date}
           onChange={(biddingItemId, companyId, date) => onUpdateReminderDate(biddingItemId, date)}
@@ -158,6 +149,8 @@ export function BiddingTableRowContent({
         costCode={costCode}
         onUpdateSpecifications={onUpdateSpecifications}
         isReadOnly={isReadOnly}
+        cellClassName="w-24"
+        onCellClick={stopProp}
       />
       <BiddingTableRowFiles
         item={item}
@@ -166,6 +159,7 @@ export function BiddingTableRowContent({
         onFileUpload={onFileUpload}
         onDeleteIndividualFile={onDeleteIndividualFile}
         onLinkProjectFiles={onLinkProjectFiles}
+        onCellClick={stopProp}
       />
       <BiddingTableRowActions
         item={item}
@@ -176,6 +170,7 @@ export function BiddingTableRowContent({
         onAddCompaniesClick={onAddCompaniesClick}
         isDeleting={isDeleting}
         isReadOnly={isReadOnly}
+        onCellClick={stopProp}
       />
     </TableRow>
   );
