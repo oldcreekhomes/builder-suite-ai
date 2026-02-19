@@ -1,34 +1,31 @@
 
 
-## Problem Summary
+## Add Advantage Landscape + Crystal Partin (Skip Bulk Cleanup)
 
-Raymond's bill approval is failing because of a **$0.00 bill line**. The City of Alexandria bill has 5 lines, one of which is a `job_cost` line with amount = $0.00. When approving, the system tries to create a journal entry line with both debit and credit = 0, which violates a database constraint that requires every journal entry line to have a positive debit OR positive credit.
+### Step 1: Delete the 2 existing bad "Advantage Landscape" duplicates
 
-This also created **6 orphaned journal entries** (from 6 retry attempts) that need cleanup.
+Remove the two incorrect entries (Maryland address, wrong contact info) from a previous builder import:
+- ID: `7c172b20-2361-4448-8df4-d2d14d5cd7d8`
+- ID: `1f2ad73e-b674-46c0-b512-0b302affd37d`
 
-## Fix Plan
+### Step 2: Insert the correct Advantage Landscape company
 
-### 1. Clean up orphaned journal entries (database)
-Delete the 6 orphaned journal entries that have no lines:
-- Journal entry IDs: `2e5a54c6`, `b8a03c88`, `e814e497`, `396f1a36`, `4235650d`, `88642265`
+**marketplace_companies:**
+- Company Name: Advantage Landscape
+- Company Type: Landscaping Contractor
+- Phone: 703-398-4715
+- Website: https://advantagelandscape.com/
+- Source: manual
 
-### 2. Fix the $0 bill line (database)
-Delete the zero-amount job_cost bill line (`id: 5378d3ca`) that has no useful data (amount=0, memo=null, lot_id=null).
+**marketplace_company_representatives:**
+- First Name: Crystal
+- Last Name: Partin
+- Title: Director of Business Development
+- Email: cpartin@advantagelandscape.com
+- Phone: 703-398-4715
+- Linked to the new Advantage Landscape company record
 
-### 3. Code fix: Skip zero-amount lines in postBill (src/hooks/useBills.ts)
-In the `postBill` mutation, add a guard to skip bill lines with amount = 0 when creating journal entry lines. This prevents the CHECK constraint violation.
+### Technical Details
 
-```typescript
-// In postBill mutationFn, before processing each bill line:
-for (const line of bill.bill_lines) {
-  // Skip zero-amount lines - they can't create valid journal entries
-  if (line.amount === 0 || line.amount === null) continue;
-  
-  // ... existing processing logic
-}
-```
+All operations use direct SQL data statements (DELETE + INSERT) via the database insert tool -- no schema changes or code changes needed.
 
-### 4. Code fix: Skip zero-amount lines in AI extraction approval (src/hooks/usePendingBills.ts)
-Same guard in the `approve_pending_bill` RPC call path - though the RPC itself should handle this, the batch approval logic should also filter zero-amount lines.
-
-After these changes, Raymond can approve the bill successfully, and future bills with zero-amount lines won't cause this error.
