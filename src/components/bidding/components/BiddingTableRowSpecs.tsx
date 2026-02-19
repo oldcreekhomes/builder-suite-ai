@@ -27,7 +27,7 @@ export function BiddingTableRowSpecs({
   return (
     <>
       <TableCell className={cellClassName} onClick={onCellClick}>
-        <div className="flex items-center justify-start">
+        <div className="flex items-center justify-center">
           {item.specifications && item.specifications.trim() !== '' ? (
             <Tooltip>
               <TooltipTrigger asChild>
