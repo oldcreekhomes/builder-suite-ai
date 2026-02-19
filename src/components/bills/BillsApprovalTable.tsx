@@ -597,7 +597,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         {/* Scrollable table container */}
         <div className="border rounded-lg">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10">
+              <TableHeader>
                 <TableRow>
                   {showProjectColumn && (
                     <TableHead className="w-44">
