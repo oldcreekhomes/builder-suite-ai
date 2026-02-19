@@ -1,41 +1,60 @@
 
-## Three Focused Updates to the Bidding Table
+## Fix: Price Update No Longer Overwrites "Will Bid" Status
 
-### What Needs to Change
+### Root Cause
 
-Based on the screenshot, there are three issues to fix:
+In `src/hooks/useBiddingCompanyMutations.ts`, the `updatePriceMutation` (lines 128–169) contains this logic:
 
-**1. Cost Code column is too narrow** — "4400 - Exterior Trim / Cornice" and "4640 - Cabinet Installation" wrap to two lines because `w-40` (160px) is not enough. Increasing it by ~20% to `w-48` (192px) gives enough room for most cost code names to fit on one line. The cell also needs `whitespace-nowrap` to prevent wrapping.
+```ts
+const updateData: { price: number | null; bid_status?: string; bid_acknowledged_by?: null } = { 
+  price,
+  bid_acknowledged_by: null // Reset acknowledgment so PM sees the update
+};
+if (price !== null && price > 0) {
+  updateData.bid_status = 'submitted';  // <-- THIS IS THE PROBLEM
+}
+```
 
-**2. Specifications column content is left-aligned** — The "Add Specs" button and the paperclip icon are left-aligned (`justify-start`). They need to be centered (`justify-center`).
+When a PM manually types a price, the mutation **unconditionally overwrites `bid_status` to `'submitted'`**, which erases the existing `will_bid` status entirely. That's why the "Will Bid: Yes" column went blank — the status got changed from `will_bid` to `submitted`, and the Will Bid column only shows for `will_bid` status.
 
-**3. Other columns need to shift right** — When Cost Code grows from `w-40` to `w-48`, all other columns naturally shift right together since the table uses auto layout. No other column widths need to change — they stay equal at `w-32` each (Status, Sent On, Due Date, Reminder Date, Specifications) and `w-40` for Files.
+### The Fix
 
-### Technical Changes
+The `updatePriceMutation` should **only set `bid_status = 'submitted'` if the current status is NOT already `will_bid`**. Since the mutation currently doesn't fetch the current status before updating, the cleanest fix is to:
 
-**File 1: `src/components/bidding/BiddingTableHeader.tsx`**
-- Change `Cost Code` column: `w-40` → `w-48`
-- All other column widths remain identical
+**Option A (preferred — no extra DB call):** Remove the automatic `bid_status` override entirely from the PM-side price update. The PM is manually entering a price for tracking purposes — this is different from a subcontractor submitting a bid through the portal (which is handled by the `submit-bid` edge function). The PM updating a price should never change the workflow status.
 
-**File 2: `src/components/bidding/components/BiddingTableRowContent.tsx`**
-- Change the Cost Code `<TableCell>` width: `w-40` → `w-48`
-- Add `whitespace-nowrap overflow-hidden` to prevent text wrapping in the cost code cell
+**Option B:** Fetch the current `bid_status` before updating, and only set `'submitted'` if the current status is `null` or `'will_not_bid'`.
 
-**File 3: `src/components/bidding/components/BiddingTableRowSpecs.tsx`**
-- Change `justify-start` → `justify-center` in the specs cell's wrapper div so both the paperclip icon and "Add Specs" text button are centered within the column
+Option A is simpler, safer, and correct for this workflow. The `submit-bid` edge function (which subcontractors use) still correctly sets `bid_status = 'submitted'`, so that path is unaffected.
 
-### Summary of Width Changes
+### The Change
 
-| Column | Before | After |
-|---|---|---|
-| Checkbox | `w-10` | `w-10` (no change) |
-| Cost Code | `w-40` | `w-48` (+8, ~20% wider) |
-| Status | `w-32` | `w-32` (no change) |
-| Sent On | `w-32` | `w-32` (no change) |
-| Due Date | `w-32` | `w-32` (no change) |
-| Reminder Date | `w-32` | `w-32` (no change) |
-| Specifications | `w-32` | `w-32` (no change) |
-| Files | `w-40` | `w-40` (no change) |
-| Actions | `w-16` | `w-16` (no change) |
+**File: `src/hooks/useBiddingCompanyMutations.ts`**
 
-Only 3 files need to be edited, and all changes are minimal and targeted.
+Remove the automatic `bid_status = 'submitted'` override from the `updatePriceMutation`. The update should only touch `price` and `bid_acknowledged_by`:
+
+**Before (lines 134–140):**
+```ts
+const updateData: { price: number | null; bid_status?: string; bid_acknowledged_by?: null } = { 
+  price,
+  bid_acknowledged_by: null
+};
+if (price !== null && price > 0) {
+  updateData.bid_status = 'submitted';
+}
+```
+
+**After:**
+```ts
+const updateData = { 
+  price,
+  bid_acknowledged_by: null
+};
+```
+
+### Impact
+
+- "Will Bid: Yes" stays intact when a PM manually updates a price — no more disappearing status.
+- The `bid_acknowledged_by: null` reset is preserved, so the PM notification for updated bids still works.
+- The `submit-bid` edge function is untouched — subcontractors submitting through the portal still correctly set status to `submitted`.
+- Only 1 file, 5 lines changed.
