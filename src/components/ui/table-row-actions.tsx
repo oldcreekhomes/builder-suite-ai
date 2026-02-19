@@ -24,9 +24,10 @@ export interface TableAction {
 
 interface TableRowActionsProps {
   actions: TableAction[];
+  disabled?: boolean;
 }
 
-export function TableRowActions({ actions }: TableRowActionsProps) {
+export function TableRowActions({ actions, disabled }: TableRowActionsProps) {
   const [confirmAction, setConfirmAction] = useState<TableAction | null>(null);
 
   const visibleActions = actions.filter(a => !a.hidden);
@@ -51,6 +52,19 @@ export function TableRowActions({ actions }: TableRowActionsProps) {
       setConfirmAction(null);
     }
   };
+
+  if (disabled) {
+    return (
+      <Button
+        variant="ghost"
+        className="h-8 w-8 p-0 mx-auto text-muted-foreground/40 cursor-not-allowed"
+        disabled
+      >
+        <span className="sr-only">No actions available</span>
+        <MoreHorizontal className="h-4 w-4" />
+      </Button>
+    );
+  }
 
   return (
     <>
