@@ -1,36 +1,40 @@
 
-## Restore Hidden Columns on Paid Bills Table
+## Restore Missing Columns on the Paid Bills Table
 
 ### Root Cause
 
-The `BillsApprovalTable.tsx` wraps the `<Table>` in a `<div className="border rounded-lg">` container (line 598). This container has **no overflow handling**, which means when the table is wider than the visible area, the right-side columns are silently clipped — they render but are hidden behind the border box edge.
-
-The columns that are being cut off for the Paid tab are:
-- **PO Status** (`w-20`)
-- **Cleared** (renders as the "final column" for paid status, `w-24`)
-- **Actions** (shown when `canShowDeleteButton` is true for users with delete permission, `w-16`)
-
-The columns themselves and their rendering logic are **intact** — nothing was deleted. It's purely a CSS overflow/clipping issue introduced when the `border rounded-lg` wrapper was added to match the standardized table style.
-
-### Fix
-
-Add `overflow-hidden` to the outer wrapper div so the Table's built-in `overflow-auto` inner scroll container operates correctly within the rounded border, and the right-side columns become visible and scrollable.
+In `src/components/bills/BillsApprovalTable.tsx` at **line 598**, the table wrapper div is:
 
 ```tsx
-// Line 598 — BillsApprovalTable.tsx
-// Before:
+<div className="border rounded-lg">
+```
+
+It is missing `overflow-hidden`. Without it, the browser's rounded-corner clipping does not engage properly — the `<Table>` component's internal `overflow-auto` scroll container (from `src/components/ui/table.tsx`) cannot scroll horizontally within the border box. The rightmost columns (PO Status, Cleared, Actions) exist in the DOM but are visually clipped/hidden by the border box boundary.
+
+### The Fix
+
+Add `overflow-hidden` to line 598:
+
+```tsx
+// Before (line 598):
 <div className="border rounded-lg">
 
 // After:
 <div className="border rounded-lg overflow-hidden">
 ```
 
-### Why `overflow-hidden` (not `overflow-x-auto`)?
+This is the **same pattern** used in `EditExtractedBillDialog.tsx` and all other standardized tables in the application. `overflow-hidden` tells the outer div to clip to its own rounded corners, while the inner `Table`'s built-in `overflow-auto` container handles horizontal scrolling — allowing all columns (PO Status, Cleared, Actions) to be visible and scrollable.
 
-The `Table` component (`src/components/ui/table.tsx` line 16) already wraps the `<table>` in `relative w-full overflow-auto`. So horizontal scrolling is already handled internally. Adding `overflow-x-auto` to the outer div would create a double-scrollbar. Adding `overflow-hidden` instead tells the outer border box to clip to its own rounded corners and let the inner scroll container do its job — this is the same pattern used in `EditExtractedBillDialog` and other standardized tables.
+### Why Only One Line
+
+The columns themselves are intact and rendering correctly:
+- `PO Status` — line 700–702
+- `Cleared` / `Actions` — line 704–706
+- `Pay Bill` — line 707–709
+- `Actions` (delete) — line 710–713
+
+No column logic needs to change. This is a pure one-word CSS fix.
 
 ### File Changed
 
-- **`src/components/bills/BillsApprovalTable.tsx`** — one line change on line 598.
-
-No logic, column visibility conditions, or data is changed. This is a pure CSS fix.
+- **`src/components/bills/BillsApprovalTable.tsx`** — line 598, add `overflow-hidden` to the wrapper div class.
