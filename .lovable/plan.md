@@ -1,65 +1,59 @@
 
-## Fix: Show Actual File Names on Attached Proposals in Confirm PO Dialog
+## Fix: Move the X Delete Button to Sit Directly on the File Icon
 
 ### The Problem
 
-In the `ConfirmPODialog`, the attached proposals section shows only file type icons with a hardcoded tooltip that says "Preview PDF file" — regardless of the actual file type or name. This means the user cannot tell which file is which when reviewing before sending the PO.
+In `ConfirmPODialog.tsx`, the `relative` wrapper `<div>` wraps the entire file card — both the icon and the filename label below it. Because `absolute -top-1 -right-1` is relative to this full container, the X ends up at the top-right corner of the whole card (icon + text), which pushes it far away from the icon.
 
-The root causes:
-1. `getCleanFileName` is **not imported** in `ConfirmPODialog.tsx` — only `getFileIcon` and `getFileIconColor` are imported.
-2. The tooltip text is hardcoded as `"Preview {fileName.split('.').pop()?.toUpperCase()} file"` — which is generic (just says "Preview PDF file").
-3. There is no visible label beneath the icon showing the human-readable file name.
+In the reference standard (the `ProposalCell` in the Bid Package modal), the `relative` container only wraps the icon button itself — so `-top-1 -right-1` places the X right next to the corner of the icon.
 
 ### The Fix
 
-**File: `src/components/bidding/ConfirmPODialog.tsx`**
+**File: `src/components/bidding/ConfirmPODialog.tsx`** — restructure the file item layout so:
 
-**Change 1 — Import `getCleanFileName`:**
-```ts
-import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
-```
+1. The outer `<div>` is no longer `relative` — it just stacks children vertically (`flex flex-col items-center`)
+2. A new inner `<div className="relative">` wraps **only the icon button** (not the filename label)
+3. The X button's `absolute -top-1 -right-1` now positions it at the corner of just the icon, matching the reference standard
 
-**Change 2 — Restructure each file item** to show:
-- The icon (clickable to preview)
-- The cleaned file name as a visible label beneath the icon
-- The tooltip showing the full clean name on hover
-
-Replace the current icon-only button with a stacked layout:
-
+**Before (simplified):**
 ```tsx
-<Tooltip key={index}>
-  <TooltipTrigger asChild>
-    <button
-      onClick={() => handleFilePreview(fileName)}
-      className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer max-w-[80px]"
-    >
-      <IconComponent className={`h-6 w-6 ${iconColor}`} />
-      <span className="text-xs text-gray-600 truncate w-full text-center">
-        {getCleanFileName(fileName)}
-      </span>
+<div className="relative">           {/* wraps icon + label — X ends up far right */}
+  <Tooltip>
+    <button>
+      <IconComponent />              {/* icon */}
+      <span>{cleanName}</span>       {/* label */}
     </button>
-  </TooltipTrigger>
-  <TooltipContent>
-    <p>{getCleanFileName(fileName)}</p>
-  </TooltipContent>
-</Tooltip>
+  </Tooltip>
+  <button className="absolute -top-1 -right-1 ...">×</button>   {/* X is at card edge */}
+</div>
 ```
 
-This gives each file:
-- A recognizable icon (red for PDF, green for Excel, blue for Word)
-- A truncated visible name label beneath it (e.g., "Roofing Quote.pdf")
-- A full name on hover via tooltip
+**After (simplified):**
+```tsx
+<div className="flex flex-col items-center">    {/* outer: stacks icon+label vertically */}
+  <div className="relative">                    {/* inner: wraps icon only */}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button onClick={() => handleFilePreview(fileName)}
+          className="flex items-center justify-center p-1 rounded-lg hover:bg-muted transition-colors cursor-pointer">
+          <IconComponent className={`h-6 w-6 ${iconColor}`} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent><p>{cleanName}</p></TooltipContent>
+    </Tooltip>
+    <button className="absolute -top-1 -right-1 bg-destructive ...">×</button>  {/* X sits on icon */}
+  </div>
+  <span className="text-xs text-muted-foreground truncate max-w-[60px] text-center mt-1">
+    {cleanName}
+  </span>
+</div>
+```
 
-### What `getCleanFileName` Does
-
-The function strips the UUID/timestamp storage prefixes added during upload, e.g.:
-- `4430_abc123_1738123456789_random.Roofing Quote.pdf` → `Roofing Quote.pdf`
-- `proposal_550e8400-e29b-41d4-a716-446655440000_1738000000000_Invoice.pdf` → `Invoice.pdf`
+This exactly mirrors the `ProposalCell` pattern where the X overlaps the top-right corner of the file icon only.
 
 ### Files to Change
 
 Only **1 file**: `src/components/bidding/ConfirmPODialog.tsx`
-- Add `getCleanFileName` to the import on line 5
-- Update the file button/tooltip rendering block (lines 162–180)
 
-This is a minimal, targeted change with no side effects.
+- Restructure lines 172–200: separate the `relative` wrapper from the label so the X button positions relative to the icon only
+- No logic changes — same `setFileToDelete`, same `handleFilePreview`, same `DeleteConfirmationDialog`
