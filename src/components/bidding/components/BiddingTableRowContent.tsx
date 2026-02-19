@@ -89,8 +89,8 @@ export function BiddingTableRowContent({
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="w-40">
-        <div className="hover:text-primary">
+      <TableCell className="w-48">
+        <div className="hover:text-primary whitespace-nowrap overflow-hidden text-ellipsis">
           {costCode?.code} - {costCode?.name}
         </div>
       </TableCell>
