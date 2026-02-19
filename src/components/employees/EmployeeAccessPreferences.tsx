@@ -265,6 +265,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-delete-bills" className="text-sm font-normal cursor-pointer">
+                Delete Invoices
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to delete paid invoices that have not been cleared or locked
+              </p>
+            </div>
+            <Switch
+              id="can-delete-bills"
+              checked={preferences.can_delete_bills}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_delete_bills: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 
