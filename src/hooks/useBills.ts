@@ -148,6 +148,9 @@ export const useBills = () => {
 
       // Process each bill line
       for (const line of bill.bill_lines) {
+        // Skip zero-amount lines - they can't create valid journal entries
+        if (line.amount === 0 || line.amount === null) continue;
+        
         const lineAmount = Math.abs(line.amount);
         const isCredit = line.amount < 0;
         
