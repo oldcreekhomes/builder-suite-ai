@@ -168,7 +168,7 @@ export function BiddingCompanyRow({
         />
       </TableCell>
       <TableCell className="text-center">
-        <TableRowActions actions={actions} />
+        <TableRowActions actions={actions} disabled={isReadOnly && !awardedPO} />
       </TableCell>
 
       <ConfirmPODialog
