@@ -7,6 +7,8 @@ import { ProposalCell } from './ProposalCell';
 import { ConfirmPODialog } from '../ConfirmPODialog';
 import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
+import { Badge } from '@/components/ui/badge';
+import type { AwardedPO } from '@/hooks/useBidPackagePO';
 
 interface Company {
   id: string;
@@ -50,6 +52,7 @@ interface BiddingCompanyRowProps {
   isSelected?: boolean;
   onCheckboxChange?: (companyId: string, checked: boolean) => void;
   distanceInfo?: DistanceResult | null;
+  awardedPOs?: AwardedPO[];
 }
 
 export function BiddingCompanyRow({
@@ -71,9 +74,11 @@ export function BiddingCompanyRow({
   costCodeId,
   isSelected = false,
   onCheckboxChange,
-  distanceInfo
+  distanceInfo,
+  awardedPOs = []
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
+  const awardedPO = awardedPOs.find(po => po.company_id === biddingCompany.company_id);
   const { getPOStatusForCompany } = usePOStatus(projectId, costCodeId);
 
   const handleSendPO = () => {
@@ -113,9 +118,16 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
       <TableCell>
-        <span className="font-medium whitespace-nowrap">
-          {biddingCompany.companies.company_name}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="font-medium whitespace-nowrap">
+            {biddingCompany.companies.company_name}
+          </span>
+          {awardedPO && (
+            <Badge className="bg-green-100 text-green-700 border-green-200 text-xs w-fit">
+              PO Awarded · {awardedPO.po_number || 'Pending'}
+            </Badge>
+          )}
+        </div>
       </TableCell>
       <TableCell>
         <Select 
