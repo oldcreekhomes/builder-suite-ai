@@ -1,59 +1,83 @@
 
-## Fix: Move the X Delete Button to Sit Directly on the File Icon
+## Show "PO Awarded" Indicator in Closed Bid Package Dialog
 
-### The Problem
+### The Goal
 
-In `ConfirmPODialog.tsx`, the `relative` wrapper `<div>` wraps the entire file card — both the icon and the filename label below it. Because `absolute -top-1 -right-1` is relative to this full container, the X ends up at the top-right corner of the whole card (icon + text), which pushes it far away from the icon.
+When a user opens a closed bid package in the `BidPackageDetailsModal`, they should be able to immediately see which company was awarded the contract (i.e., has an associated Purchase Order). Currently, there is no visual indicator — all companies look identical regardless of whether one was awarded a PO.
 
-In the reference standard (the `ProposalCell` in the Bid Package modal), the `relative` container only wraps the icon button itself — so `-top-1 -right-1` places the X right next to the corner of the icon.
+### The Approach
 
-### The Fix
+The cleanest approach is to fetch the Purchase Orders associated with the specific bid package when the modal opens. The `project_purchase_orders` table has a `bid_package_id` column that directly links back to the originating bid package. This avoids needing to join by cost code or project — it's a direct, reliable link.
 
-**File: `src/components/bidding/ConfirmPODialog.tsx`** — restructure the file item layout so:
+The indicator will appear in the **company list within the modal**, specifically in the company's row, showing a green "PO Awarded" badge next to the company name for the company that received the PO.
 
-1. The outer `<div>` is no longer `relative` — it just stacks children vertically (`flex flex-col items-center`)
-2. A new inner `<div className="relative">` wraps **only the icon button** (not the filename label)
-3. The X button's `absolute -top-1 -right-1` now positions it at the corner of just the icon, matching the reference standard
+### Data Flow
 
-**Before (simplified):**
-```tsx
-<div className="relative">           {/* wraps icon + label — X ends up far right */}
-  <Tooltip>
-    <button>
-      <IconComponent />              {/* icon */}
-      <span>{cleanName}</span>       {/* label */}
-    </button>
-  </Tooltip>
-  <button className="absolute -top-1 -right-1 ...">×</button>   {/* X is at card edge */}
-</div>
+```text
+BiddingTableRow (item.id = bid_package_id)
+  └── BidPackageDetailsModal
+        └── BiddingCompanyList
+              └── BiddingCompanyRow
+                    └── [NEW] "PO Awarded" badge if company has a PO
 ```
 
-**After (simplified):**
+The PO data will be fetched in a new lightweight hook and passed down the chain.
+
+### Technical Implementation
+
+**Step 1 — New hook: `useBidPackagePO`** (`src/hooks/useBidPackagePO.ts`)
+
+A simple `useQuery` that fetches POs for a given `bid_package_id`:
+
+```ts
+const { data } = await supabase
+  .from('project_purchase_orders')
+  .select('id, company_id, po_number, total_amount, status')
+  .eq('bid_package_id', bidPackageId);
+```
+
+Returns an array of `{ company_id, po_number, total_amount }` for matched POs.
+
+**Step 2 — Use the hook in `BidPackageDetailsModal`**
+
+When `isReadOnly` is true (i.e., closed packages), call `useBidPackagePO(item.id)`. Pass the resulting PO list down to `BiddingCompanyList` as a new optional prop: `awardedPOs`.
+
+**Step 3 — Pass through `BiddingCompanyList` → `BiddingCompanyRow`**
+
+Add `awardedPOs` as an optional prop to both components and pass it along.
+
+**Step 4 — Display the badge in `BiddingCompanyRow`**
+
+In the **Company** cell, check if `awardedPOs` contains an entry matching `biddingCompany.company_id`. If so, render a green badge below the company name:
+
 ```tsx
-<div className="flex flex-col items-center">    {/* outer: stacks icon+label vertically */}
-  <div className="relative">                    {/* inner: wraps icon only */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button onClick={() => handleFilePreview(fileName)}
-          className="flex items-center justify-center p-1 rounded-lg hover:bg-muted transition-colors cursor-pointer">
-          <IconComponent className={`h-6 w-6 ${iconColor}`} />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent><p>{cleanName}</p></TooltipContent>
-    </Tooltip>
-    <button className="absolute -top-1 -right-1 bg-destructive ...">×</button>  {/* X sits on icon */}
+<TableCell>
+  <div className="flex flex-col gap-0.5">
+    <span className="font-medium whitespace-nowrap">
+      {biddingCompany.companies.company_name}
+    </span>
+    {awardedPO && (
+      <Badge className="bg-green-100 text-green-700 text-xs w-fit">
+        PO Awarded · {awardedPO.po_number}
+      </Badge>
+    )}
   </div>
-  <span className="text-xs text-muted-foreground truncate max-w-[60px] text-center mt-1">
-    {cleanName}
-  </span>
-</div>
+</TableCell>
 ```
 
-This exactly mirrors the `ProposalCell` pattern where the X overlaps the top-right corner of the file icon only.
+This places the badge directly under the company name — clean, unobtrusive, and immediately clear.
 
 ### Files to Change
 
-Only **1 file**: `src/components/bidding/ConfirmPODialog.tsx`
+- **NEW** `src/hooks/useBidPackagePO.ts` — Fetch POs linked to a specific bid package
+- `src/components/bidding/BidPackageDetailsModal.tsx` — Call the hook when `isReadOnly`, pass `awardedPOs` to `BiddingCompanyList`
+- `src/components/bidding/BiddingCompanyList.tsx` — Accept and pass `awardedPOs` prop to `BiddingCompanyRow`
+- `src/components/bidding/components/BiddingCompanyRow.tsx` — Show the green "PO Awarded" badge in the Company cell
 
-- Restructure lines 172–200: separate the `relative` wrapper from the label so the X button positions relative to the icon only
-- No logic changes — same `setFileToDelete`, same `handleFilePreview`, same `DeleteConfirmationDialog`
+### What It Will Look Like
+
+In the closed "Roofing" dialog, the DCF Contracting row will show:
+- **DCF Contracting** (bold)
+- `PO Awarded · 2026-XXXX-XXXX` (green badge, small text, beneath the name)
+
+An Exterior, Inc. (no PO) will show only their name as before — no badge.
