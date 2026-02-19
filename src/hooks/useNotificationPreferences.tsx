@@ -78,7 +78,7 @@ export const useNotificationPreferences = (userId?: string) => {
         
         const isOwner = !!roleData;
         
-        // Owners get all permissions enabled by default
+        // Owners get most permissions enabled by default (but NOT can_delete_bills — always off for everyone)
         const ownerPermissions = isOwner ? {
           can_access_accounting: true,
           can_access_manage_bills: true,
@@ -93,6 +93,7 @@ export const useNotificationPreferences = (userId?: string) => {
           can_access_owner_dashboard: true,
           can_access_accountant_dashboard: true,
           can_access_estimate: true,
+          can_delete_bills: false,
         } : {};
 
         const defaultData = {
