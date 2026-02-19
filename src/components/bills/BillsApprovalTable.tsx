@@ -595,8 +595,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     <>
       <div className="flex flex-col min-w-0">
         {/* Scrollable table container */}
-        <div className="border rounded-lg overflow-x-auto">
-            <Table containerClassName="relative w-full" className="min-w-[900px]">
+        <div className="border rounded-lg">
+            <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   {showProjectColumn && (
@@ -741,7 +741,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       </TooltipProvider>
                     </TableCell>
                   )}
-                  <TableCell className="w-36">
+                  <TableCell className="w-32 max-w-[128px]">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -755,7 +755,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
-                  <TableCell className="overflow-hidden w-44">
+                  <TableCell className="w-36 max-w-[144px] overflow-hidden">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       return (
@@ -796,10 +796,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="w-24">
+                  <TableCell className="w-20">
                     {formatDisplayFromAny(bill.bill_date)}
                   </TableCell>
-                  <TableCell className="w-24">
+                  <TableCell className="w-20">
                     {bill.due_date ? (
                       (() => {
                         const today = new Date();
@@ -816,7 +816,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       })()
                     ) : '-'}
                   </TableCell>
-                  <TableCell className="w-24">
+                  <TableCell className="w-20">
                     <div className="flex items-center gap-1">
                       {formatCurrency(bill.total_amount)}
                       {bill.total_amount < 0 && (
@@ -826,11 +826,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="w-32">
+                  <TableCell className="w-24 max-w-[96px]">
                     <span className="block truncate">{bill.reference_number || '-'}</span>
                   </TableCell>
                   {/* Memo column */}
-                  <TableCell className="w-12 text-center">
+                  <TableCell className="w-10 text-center">
                     {memoSummary ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -846,7 +846,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="w-24">
+                  <TableCell className="w-16 max-w-[64px]">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
                       if (uniqueLotCount <= 1) {
@@ -884,10 +884,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="w-14 text-center">
+                  <TableCell className="w-10 text-center">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>
-                  <TableCell className="w-14 text-center">
+                  <TableCell className="w-10 text-center">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
