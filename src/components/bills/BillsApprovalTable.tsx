@@ -596,7 +596,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       <div className="flex flex-col min-w-0">
         {/* Scrollable table container */}
         <div className="border rounded-lg overflow-x-auto">
-            <Table containerClassName="relative w-full" className="min-w-[1200px]">
+            <Table containerClassName="relative w-full" className="min-w-[900px]">
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   {showProjectColumn && (
@@ -623,7 +623,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       )}
                     </TableHead>
                   )}
-                  <TableHead className="w-36">
+                  <TableHead className="w-32">
                     {enableSorting ? (
                       <button
                         type="button"
@@ -645,8 +645,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       'Vendor'
                     )}
                   </TableHead>
-                  <TableHead className="w-44">Cost Code</TableHead>
-                  <TableHead className="w-24">
+                  <TableHead className="w-36">Cost Code</TableHead>
+                  <TableHead className="w-20">
                     {enableSorting ? (
                       <button
                         type="button"
@@ -668,7 +668,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       'Bill Date'
                     )}
                   </TableHead>
-                  <TableHead className="w-24">
+                  <TableHead className="w-20">
                     {enableSorting ? (
                       <button
                         type="button"
@@ -690,22 +690,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <span className="whitespace-nowrap">Due Date</span>
                     )}
                   </TableHead>
-                  <TableHead className="w-24">Amount</TableHead>
-                  <TableHead className="w-32">Reference</TableHead>
-                  <TableHead className="w-12 text-center">Memo</TableHead>
-                  <TableHead className="w-24">Address</TableHead>
-                  
-                  <TableHead className="w-14 text-center">Files</TableHead>
-                  <TableHead className="w-14 text-center">Notes</TableHead>
+                  <TableHead className="w-20">Amount</TableHead>
+                  <TableHead className="w-24">Reference</TableHead>
+                  <TableHead className="w-10 text-center">Memo</TableHead>
+                  <TableHead className="w-16">Address</TableHead>
+                  <TableHead className="w-10 text-center">Files</TableHead>
+                  <TableHead className="w-10 text-center">Notes</TableHead>
                   {showPOStatusColumn && (
                     <TableHead className="w-20 text-center">PO Status</TableHead>
                   )}
                   {/* Final column: Actions for draft, Cleared for posted/paid - always renders for consistent layout */}
-                  <TableHead className="w-24 text-center">
+                  <TableHead className="w-20 text-center">
                     {isDraftStatus ? 'Actions' : 'Cleared'}
                   </TableHead>
                   {showPayBillButton && (
-                    <TableHead className="text-center w-24">Pay Bill</TableHead>
+                    <TableHead className="text-center w-20">Pay Bill</TableHead>
                   )}
                   {canShowDeleteButton && (
                     <TableHead className="text-center w-16">
