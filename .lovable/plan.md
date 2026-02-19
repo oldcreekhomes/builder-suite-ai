@@ -1,31 +1,38 @@
 
 
-## Add Advantage Landscape + Crystal Partin (Skip Bulk Cleanup)
+## Enhance Marketplace Row Click to Show Detailed Company Profile
 
-### Step 1: Delete the 2 existing bad "Advantage Landscape" duplicates
+### What Changes
 
-Remove the two incorrect entries (Maryland address, wrong contact info) from a previous builder import:
-- ID: `7c172b20-2361-4448-8df4-d2d14d5cd7d8`
-- ID: `1f2ad73e-b674-46c0-b512-0b302affd37d`
+When a user clicks on a row in the Marketplace table, a detailed company profile dialog will open showing:
 
-### Step 2: Insert the correct Advantage Landscape company
+1. **Company header** -- name, type badge, rating with stars, review count
+2. **Contact information** -- phone number, website link, address
+3. **Representatives section** -- full contact details for each rep (name, title, email, phone), with primary contact highlighted
+4. **Description** (if available)
+5. **Service areas and license numbers** (if available)
+6. **Message button** -- opens the existing Send Message modal directly from the profile dialog
 
-**marketplace_companies:**
-- Company Name: Advantage Landscape
-- Company Type: Landscaping Contractor
-- Phone: 703-398-4715
-- Website: https://advantagelandscape.com/
-- Source: manual
+### How It Works
 
-**marketplace_company_representatives:**
-- First Name: Crystal
-- Last Name: Partin
-- Title: Director of Business Development
-- Email: cpartin@advantagelandscape.com
-- Phone: 703-398-4715
-- Linked to the new Advantage Landscape company record
+- Clicking anywhere on a table row (except the existing Website link or Message button) opens the `ViewMarketplaceCompanyDialog`
+- The existing `ViewMarketplaceCompanyDialog` component already fetches representatives and displays most of this info -- it just needs a "Send Message" button added and needs to be wired into the table
+- The Send Message modal will layer on top of the profile dialog
 
 ### Technical Details
 
-All operations use direct SQL data statements (DELETE + INSERT) via the database insert tool -- no schema changes or code changes needed.
+**File: `src/components/marketplace/MarketplaceCompaniesTable.tsx`**
+- Import `ViewMarketplaceCompanyDialog`
+- Add state for `viewDialogOpen` and `viewCompany`
+- Add `onClick` handler to each `TableRow` that sets the selected company and opens the view dialog
+- Prevent click propagation on the Website link and Message button so they don't also trigger the row click
+- Render `ViewMarketplaceCompanyDialog` alongside the existing `SendMarketplaceMessageModal`
+
+**File: `src/components/marketplace/ViewMarketplaceCompanyDialog.tsx`**
+- Add a "Send Message" button in the dialog (at the top or bottom of the content)
+- Accept an `onMessageClick` callback prop that opens the message modal
+- Pass the full company data (including `message_count`) so the dialog can display all relevant fields
+- Update the `MarketplaceCompany` interface to include `message_count`, `lat`, `lng` fields to match the table's interface
+
+No database or schema changes required -- representatives are already fetched by the existing dialog component.
 
