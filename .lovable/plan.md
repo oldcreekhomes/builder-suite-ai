@@ -1,84 +1,51 @@
 
-## Two Changes to the Bidding Table
+## Fix: Equal Column Spacing for Bidding Table
 
-### Change 1: Remove the Eyeball Icon
+### The Problem
 
-In `src/components/bidding/components/BiddingTableRowContent.tsx` lines 96–103, there is a ghost `<Button>` with an `<Eye>` icon rendered next to the cost code name. This needs to be removed entirely. The cost code text itself already has `onClick={onRowClick}` on it, so click functionality is preserved.
+Looking at the screenshot, the issue is that the **Files** column has no explicit width (`<TableHead>Files</TableHead>`) so it expands to fill all remaining space. This pushes **Actions** to the far right and makes the entire layout look unbalanced — most of the visible row is dead whitespace inside the Files column.
 
-**Current code (lines 89–104):**
-```tsx
-<div className="flex items-center justify-between">
-  <div className="flex items-center cursor-pointer hover:text-primary flex-1" onClick={onRowClick}>
-    {costCode?.code} - {costCode?.name}
-  </div>
-  <Button variant="ghost" size="sm" onClick={onRowClick} className="h-6 w-6 p-0 hover:bg-primary/10">
-    <Eye className="h-3 w-3" />
-  </Button>
-</div>
-```
+The current widths are:
+- Checkbox: `w-10` (40px)
+- Cost Code: `w-56` (224px)
+- Status: `w-28` (112px)
+- Sent On: `w-28` (112px)
+- Due Date: `w-28` (112px)
+- Reminder Date: `w-28` (112px)
+- Specifications: `w-24` (96px)
+- **Files: (no width — grows to fill everything)**
+- Actions: `w-20` (80px)
 
-**After (clean — just the text, no wrapper div needed):**
-```tsx
-<div className="cursor-pointer hover:text-primary" onClick={onRowClick}>
-  {costCode?.code} - {costCode?.name}
-</div>
-```
+### The Fix
 
-The `Eye` import from `lucide-react` will also be removed since it will no longer be used.
+Switch to a consistent, equal-feeling column distribution. Since there are 9 columns total (including checkbox), the strategy is:
 
-### Change 2: Make Entire Row Clickable (Except Interactive Cells)
+1. **Remove all hard widths** and use `w-1/12` or percentage-based widths consistently, OR
+2. **Give Files a fixed width** (e.g., `w-36`) so it doesn't expand, and let the table auto-layout distribute naturally.
 
-The `<TableRow>` in `BiddingTableRowContent.tsx` (line 81) gets an `onClick` handler that calls `onRowClick`. The interactive cells need `e.stopPropagation()` so their own interactions aren't swallowed by the row click.
+The cleanest approach: give every content column the **same width** (`w-32` = 128px each), keep the checkbox narrow (`w-10`), and give Files and Actions fixed widths too. This makes all data columns visually equal.
 
-**Row change:**
-```tsx
-<TableRow
-  className={`${isSelected ? 'bg-blue-50' : ''} cursor-pointer`}
-  onClick={onRowClick}
->
-```
+Proposed column widths:
 
-**Cells that need `stopPropagation`** (wrap their content in a `div` with `onClick={e => e.stopPropagation()}`):
-- **Checkbox cell** — user clicks to select, not to open dialog
-- **Status select cell** — has its own dropdown
-- **Due Date cell** — `BiddingDatePicker`
-- **Reminder Date cell** — `BiddingDatePicker`
-- **Specifications cell** — `BiddingTableRowSpecs` opens its own modal
-- **Files cell** — `BiddingTableRowFiles` has file upload/delete interactions
-- **Actions cell** — `BiddingTableRowActions` has its own dropdown
-
-The simplest approach: add `onClick={e => e.stopPropagation()}` as a `<div>` wrapper inside each of those `<TableCell>` elements, **or** pass the event through `TableCell` directly via `onClick`. The cleanest is:
-
-```tsx
-<TableCell onClick={e => e.stopPropagation()}>
-  <Select ...>
-```
-
-This is done for every interactive cell (Status, Due Date, Reminder Date, Specs, Files, Actions). The Checkbox cell also gets it so checking a row doesn't simultaneously open the dialog.
-
-### Change 3: Fix Column Spacing
-
-Looking at the screenshot — the table is very unbalanced. Cost Code gets almost no width, Status is squeezed, Specifications/Files have too much space. The fix is to set explicit, sensible widths in `BiddingTableHeader.tsx`:
-
-| Column | Current | New width |
+| Column | New Width | Notes |
 |---|---|---|
-| Checkbox | `w-12` | `w-10` |
-| Cost Code | (none — auto) | `w-56` |
-| Status | (none — auto) | `w-28` |
-| Sent On | `w-32` | `w-28` |
-| Due Date | `w-32` | `w-28` |
-| Reminder Date | `w-32` | `w-28` |
-| Specifications | (none — auto) | `w-24` |
-| Files | (none — auto) | (flex remaining) |
-| Actions | (none — centered) | `w-20 text-center` |
+| Checkbox | `w-10` | Keep as is |
+| Cost Code | `w-40` | Slightly wider for "4430 - Roofing" text |
+| Status | `w-32` | Equal |
+| Sent On | `w-32` | Equal |
+| Due Date | `w-32` | Equal |
+| Reminder Date | `w-32` | Equal |
+| Specifications | `w-32` | Equal |
+| Files | `w-40` | Slightly wider for icon + "Add Files" button |
+| Actions | `w-16 text-center` | Narrow — just the `...` button |
 
-These proportions match the data — cost code names like "4430 - Roofing" need room, dates are fixed-width, specs/files are secondary.
-
-The corresponding `<TableCell>` widths in `BiddingTableRowContent.tsx` are synced to match.
+This gives a total of: 40 + 160 + 128 + 128 + 128 + 128 + 128 + 160 + 64 = ~1064px, which fits most screens and distributes evenly with no "empty ocean" in the middle.
 
 ### Files to Change
 
-| File | Change |
-|---|---|
-| `src/components/bidding/components/BiddingTableRowContent.tsx` | Remove Eye icon + button, add `onClick={onRowClick}` to `<TableRow>`, add `e.stopPropagation()` to all interactive cells |
-| `src/components/bidding/BiddingTableHeader.tsx` | Update column widths for balanced layout |
+Two files only:
+
+1. **`src/components/bidding/BiddingTableHeader.tsx`** — Update all `TableHead` widths.
+2. **`src/components/bidding/components/BiddingTableRowContent.tsx`** — Update all `TableCell` widths to match the header. Also update the `cellClassName` prop passed to `BiddingTableRowSpecs`.
+
+The sub-components (`BiddingTableRowSpecs`, `BiddingTableRowFiles`, `BiddingTableRowActions`) already accept a `cellClassName` prop so their `TableCell` widths can be updated from the parent.
