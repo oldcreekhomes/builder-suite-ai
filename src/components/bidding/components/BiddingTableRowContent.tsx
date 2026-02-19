@@ -89,18 +89,18 @@ export function BiddingTableRowContent({
           onCheckedChange={(checked) => onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-      <TableCell className="w-56">
+      <TableCell className="w-40">
         <div className="hover:text-primary">
           {costCode?.code} - {costCode?.name}
         </div>
       </TableCell>
-      <TableCell className="w-28" onClick={stopProp}>
+      <TableCell className="w-32" onClick={stopProp}>
         <Select
           value={item.status || 'draft'}
           onValueChange={handleStatusChange}
           disabled={isReadOnly}
         >
-          <SelectTrigger className="w-24 h-8">
+          <SelectTrigger className="w-full h-8">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
@@ -118,10 +118,10 @@ export function BiddingTableRowContent({
         onJustClose={handleJustClose}
         onCreatePO={handleCreatePO}
       />
-      <TableCell className={cn("w-28", !item.sent_on && "text-muted-foreground")}>
+      <TableCell className={cn("w-32", !item.sent_on && "text-muted-foreground")}>
         {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
       </TableCell>
-      <TableCell className="w-28" onClick={stopProp}>
+      <TableCell className="w-32" onClick={stopProp}>
         <BiddingDatePicker
           value={item.due_date}
           onChange={(biddingItemId, companyId, date) => onUpdateDueDate(biddingItemId, date)}
@@ -132,7 +132,7 @@ export function BiddingTableRowContent({
           field="due_date"
         />
       </TableCell>
-      <TableCell className="w-28" onClick={stopProp}>
+      <TableCell className="w-32" onClick={stopProp}>
         <BiddingDatePicker
           value={item.reminder_date}
           onChange={(biddingItemId, companyId, date) => onUpdateReminderDate(biddingItemId, date)}
@@ -149,7 +149,7 @@ export function BiddingTableRowContent({
         costCode={costCode}
         onUpdateSpecifications={onUpdateSpecifications}
         isReadOnly={isReadOnly}
-        cellClassName="w-24"
+        cellClassName="w-32"
         onCellClick={stopProp}
       />
       <BiddingTableRowFiles
@@ -160,6 +160,7 @@ export function BiddingTableRowContent({
         onDeleteIndividualFile={onDeleteIndividualFile}
         onLinkProjectFiles={onLinkProjectFiles}
         onCellClick={stopProp}
+        cellClassName="w-40"
       />
       <BiddingTableRowActions
         item={item}
@@ -171,6 +172,7 @@ export function BiddingTableRowContent({
         isDeleting={isDeleting}
         isReadOnly={isReadOnly}
         onCellClick={stopProp}
+        cellClassName="w-16 text-center"
       />
     </TableRow>
   );
