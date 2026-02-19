@@ -129,15 +129,12 @@ export const useBiddingCompanyMutations = (projectId: string) => {
     mutationFn: async ({ bidId, price }: { bidId: string; price: number | null }) => {
       console.log('Updating bid price:', { bidId, price });
       
-      // When a price is entered, also update status to submitted so PM sees it on dashboard
-      // Reset bid_acknowledged_by so PM is notified of the update
-      const updateData: { price: number | null; bid_status?: string; bid_acknowledged_by?: null } = { 
+      // Reset bid_acknowledged_by so PM is notified of the update, but never touch bid_status
+      // (PM manually entering a price should not overwrite will_bid / will_not_bid workflow status)
+      const updateData = { 
         price,
-        bid_acknowledged_by: null // Reset acknowledgment so PM sees the update
+        bid_acknowledged_by: null
       };
-      if (price !== null && price > 0) {
-        updateData.bid_status = 'submitted';
-      }
       
       const { error } = await supabase
         .from('project_bids')
