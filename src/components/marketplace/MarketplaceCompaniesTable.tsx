@@ -13,6 +13,7 @@ import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Lock, Loader2, Ca
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
 import { SendMarketplaceMessageModal } from "./SendMarketplaceMessageModal";
+import { ViewMarketplaceCompanyDialog } from "./ViewMarketplaceCompanyDialog";
 import { useCompanyHQ } from "@/hooks/useCompanyHQ";
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { toast } from "sonner";
@@ -59,6 +60,8 @@ export function MarketplaceCompaniesTable({
 }: MarketplaceCompaniesTableProps) {
   const [selectedCompany, setSelectedCompany] = useState<MarketplaceCompany | null>(null);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewCompany, setViewCompany] = useState<MarketplaceCompany | null>(null);
   const [distanceCalculationEnabled, setDistanceCalculationEnabled] = useState(false);
   const [isCalculatingDistances, setIsCalculatingDistances] = useState(false);
   const [calculatedDistances, setCalculatedDistances] = useState<Record<string, number | null>>({});
@@ -100,6 +103,18 @@ export function MarketplaceCompaniesTable({
   const handleMessageClick = (company: MarketplaceCompany) => {
     setSelectedCompany(company);
     setMessageModalOpen(true);
+  };
+
+  const handleRowClick = (company: MarketplaceCompany) => {
+    setViewCompany(company);
+    setViewDialogOpen(true);
+  };
+
+  const handleMessageFromDialog = () => {
+    if (viewCompany) {
+      setSelectedCompany(viewCompany);
+      setMessageModalOpen(true);
+    }
   };
 
   // Get the company types for selected category
@@ -361,7 +376,7 @@ export function MarketplaceCompaniesTable({
                                company.distance > maxRadius;
               
               return (
-                <TableRow key={company.id} className={`h-10 ${isLocked ? 'opacity-50' : ''}`}>
+                <TableRow key={company.id} className={`h-10 ${isLocked ? 'opacity-50' : ''} cursor-pointer hover:bg-muted/50`} onClick={() => !isLocked && handleRowClick(company)}>
                   <TableCell className="px-2 py-1">
                     <div className="flex items-center gap-1">
                       {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
@@ -419,6 +434,7 @@ export function MarketplaceCompaniesTable({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center space-x-1 text-primary hover:text-primary/80"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <Globe className="h-3 w-3 flex-shrink-0" />
                         <span className="text-xs">Visit</span>
@@ -432,7 +448,7 @@ export function MarketplaceCompaniesTable({
                       variant="outline"
                       size="sm"
                       className="h-7 text-xs gap-1"
-                      onClick={() => handleMessageClick(company)}
+                      onClick={(e) => { e.stopPropagation(); handleMessageClick(company); }}
                       disabled={isLocked}
                     >
                       <MessageSquare className="h-3 w-3" />
@@ -455,6 +471,13 @@ export function MarketplaceCompaniesTable({
           </TableBody>
         </Table>
       </div>
+
+      <ViewMarketplaceCompanyDialog
+        company={viewCompany}
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        onMessageClick={handleMessageFromDialog}
+      />
 
       <SendMarketplaceMessageModal
         company={selectedCompany}
