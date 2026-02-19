@@ -11,6 +11,7 @@ interface BiddingTableRowActionsProps {
   onAddCompaniesClick?: () => void;
   isDeleting?: boolean;
   isReadOnly?: boolean;
+  onCellClick?: (e: React.MouseEvent) => void;
 }
 
 export function BiddingTableRowActions({ 
@@ -21,10 +22,11 @@ export function BiddingTableRowActions({
   onTestEmailClick,
   onAddCompaniesClick,
   isDeleting = false,
-  isReadOnly = false 
+  isReadOnly = false,
+  onCellClick
 }: BiddingTableRowActionsProps) {
   return (
-    <TableCell className="text-center">
+    <TableCell className="w-20 text-center" onClick={onCellClick}>
       <TableRowActions actions={[
         { label: "Send Bid Package", onClick: onSendClick, hidden: isReadOnly },
         { label: "Send Test Email", onClick: onTestEmailClick || (() => {}), hidden: isReadOnly || !onTestEmailClick },

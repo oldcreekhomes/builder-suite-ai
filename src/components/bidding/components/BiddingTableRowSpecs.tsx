@@ -10,19 +10,23 @@ interface BiddingTableRowSpecsProps {
   costCode: any;
   onUpdateSpecifications: (itemId: string, specifications: string) => void;
   isReadOnly?: boolean;
+  cellClassName?: string;
+  onCellClick?: (e: React.MouseEvent) => void;
 }
 
 export function BiddingTableRowSpecs({ 
   item, 
   costCode, 
   onUpdateSpecifications,
-  isReadOnly = false 
+  isReadOnly = false,
+  cellClassName,
+  onCellClick
 }: BiddingTableRowSpecsProps) {
   const [showSpecsModal, setShowSpecsModal] = useState(false);
 
   return (
     <>
-      <TableCell>
+      <TableCell className={cellClassName} onClick={onCellClick}>
         <div className="flex items-center justify-start">
           {item.specifications && item.specifications.trim() !== '' ? (
             <Tooltip>
