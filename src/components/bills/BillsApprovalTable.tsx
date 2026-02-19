@@ -593,10 +593,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full min-w-0">
         {/* Scrollable table container */}
-        <div>
-            <Table containerClassName="relative w-full overflow-auto border rounded-lg">
+        <div className="border rounded-lg overflow-hidden min-w-0">
+            <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   {showProjectColumn && (
