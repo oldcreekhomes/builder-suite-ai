@@ -1,51 +1,41 @@
 
-## Fix: Equal Column Spacing for Bidding Table
+## Three Focused Updates to the Bidding Table
 
-### The Problem
+### What Needs to Change
 
-Looking at the screenshot, the issue is that the **Files** column has no explicit width (`<TableHead>Files</TableHead>`) so it expands to fill all remaining space. This pushes **Actions** to the far right and makes the entire layout look unbalanced — most of the visible row is dead whitespace inside the Files column.
+Based on the screenshot, there are three issues to fix:
 
-The current widths are:
-- Checkbox: `w-10` (40px)
-- Cost Code: `w-56` (224px)
-- Status: `w-28` (112px)
-- Sent On: `w-28` (112px)
-- Due Date: `w-28` (112px)
-- Reminder Date: `w-28` (112px)
-- Specifications: `w-24` (96px)
-- **Files: (no width — grows to fill everything)**
-- Actions: `w-20` (80px)
+**1. Cost Code column is too narrow** — "4400 - Exterior Trim / Cornice" and "4640 - Cabinet Installation" wrap to two lines because `w-40` (160px) is not enough. Increasing it by ~20% to `w-48` (192px) gives enough room for most cost code names to fit on one line. The cell also needs `whitespace-nowrap` to prevent wrapping.
 
-### The Fix
+**2. Specifications column content is left-aligned** — The "Add Specs" button and the paperclip icon are left-aligned (`justify-start`). They need to be centered (`justify-center`).
 
-Switch to a consistent, equal-feeling column distribution. Since there are 9 columns total (including checkbox), the strategy is:
+**3. Other columns need to shift right** — When Cost Code grows from `w-40` to `w-48`, all other columns naturally shift right together since the table uses auto layout. No other column widths need to change — they stay equal at `w-32` each (Status, Sent On, Due Date, Reminder Date, Specifications) and `w-40` for Files.
 
-1. **Remove all hard widths** and use `w-1/12` or percentage-based widths consistently, OR
-2. **Give Files a fixed width** (e.g., `w-36`) so it doesn't expand, and let the table auto-layout distribute naturally.
+### Technical Changes
 
-The cleanest approach: give every content column the **same width** (`w-32` = 128px each), keep the checkbox narrow (`w-10`), and give Files and Actions fixed widths too. This makes all data columns visually equal.
+**File 1: `src/components/bidding/BiddingTableHeader.tsx`**
+- Change `Cost Code` column: `w-40` → `w-48`
+- All other column widths remain identical
 
-Proposed column widths:
+**File 2: `src/components/bidding/components/BiddingTableRowContent.tsx`**
+- Change the Cost Code `<TableCell>` width: `w-40` → `w-48`
+- Add `whitespace-nowrap overflow-hidden` to prevent text wrapping in the cost code cell
 
-| Column | New Width | Notes |
+**File 3: `src/components/bidding/components/BiddingTableRowSpecs.tsx`**
+- Change `justify-start` → `justify-center` in the specs cell's wrapper div so both the paperclip icon and "Add Specs" text button are centered within the column
+
+### Summary of Width Changes
+
+| Column | Before | After |
 |---|---|---|
-| Checkbox | `w-10` | Keep as is |
-| Cost Code | `w-40` | Slightly wider for "4430 - Roofing" text |
-| Status | `w-32` | Equal |
-| Sent On | `w-32` | Equal |
-| Due Date | `w-32` | Equal |
-| Reminder Date | `w-32` | Equal |
-| Specifications | `w-32` | Equal |
-| Files | `w-40` | Slightly wider for icon + "Add Files" button |
-| Actions | `w-16 text-center` | Narrow — just the `...` button |
+| Checkbox | `w-10` | `w-10` (no change) |
+| Cost Code | `w-40` | `w-48` (+8, ~20% wider) |
+| Status | `w-32` | `w-32` (no change) |
+| Sent On | `w-32` | `w-32` (no change) |
+| Due Date | `w-32` | `w-32` (no change) |
+| Reminder Date | `w-32` | `w-32` (no change) |
+| Specifications | `w-32` | `w-32` (no change) |
+| Files | `w-40` | `w-40` (no change) |
+| Actions | `w-16` | `w-16` (no change) |
 
-This gives a total of: 40 + 160 + 128 + 128 + 128 + 128 + 128 + 160 + 64 = ~1064px, which fits most screens and distributes evenly with no "empty ocean" in the middle.
-
-### Files to Change
-
-Two files only:
-
-1. **`src/components/bidding/BiddingTableHeader.tsx`** — Update all `TableHead` widths.
-2. **`src/components/bidding/components/BiddingTableRowContent.tsx`** — Update all `TableCell` widths to match the header. Also update the `cellClassName` prop passed to `BiddingTableRowSpecs`.
-
-The sub-components (`BiddingTableRowSpecs`, `BiddingTableRowFiles`, `BiddingTableRowActions`) already accept a `cellClassName` prop so their `TableCell` widths can be updated from the parent.
+Only 3 files need to be edited, and all changes are minimal and targeted.
