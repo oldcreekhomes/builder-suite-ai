@@ -125,7 +125,7 @@ export function BiddingCompanyRow({
       </TableCell>
       <TableCell>
         {awardedPO && (
-          <Badge className="bg-green-100 text-green-700 border-green-200 text-xs whitespace-nowrap">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs whitespace-nowrap">
             PO Awarded · {awardedPO.po_number || 'Pending'}
           </Badge>
         )}
