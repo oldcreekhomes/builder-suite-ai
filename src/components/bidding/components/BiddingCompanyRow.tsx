@@ -95,6 +95,7 @@ export function BiddingCompanyRow({
     {
       label: isReadOnly ? "Resend PO Email" : "Send PO",
       onClick: () => setShowConfirmPODialog(true),
+      hidden: isReadOnly && !awardedPO,
     },
     {
       label: "Remove Company",
@@ -118,16 +119,16 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
       <TableCell>
-        <div className="flex flex-col gap-0.5">
-          <span className="font-medium whitespace-nowrap">
-            {biddingCompany.companies.company_name}
-          </span>
-          {awardedPO && (
-            <Badge className="bg-green-100 text-green-700 border-green-200 text-xs w-fit">
-              PO Awarded · {awardedPO.po_number || 'Pending'}
-            </Badge>
-          )}
-        </div>
+        <span className="font-medium whitespace-nowrap">
+          {biddingCompany.companies.company_name}
+        </span>
+      </TableCell>
+      <TableCell>
+        {awardedPO && (
+          <Badge className="bg-green-100 text-green-700 border-green-200 text-xs whitespace-nowrap">
+            PO Awarded · {awardedPO.po_number || 'Pending'}
+          </Badge>
+        )}
       </TableCell>
       <TableCell>
         <Select 
