@@ -1,0 +1,1 @@
+UPDATE user_notification_preferences SET can_delete_bills = false WHERE can_delete_bills = true;
