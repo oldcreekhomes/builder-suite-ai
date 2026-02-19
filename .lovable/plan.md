@@ -1,60 +1,65 @@
 
-## Fix: Price Update No Longer Overwrites "Will Bid" Status
+## Fix: Show Actual File Names on Attached Proposals in Confirm PO Dialog
 
-### Root Cause
+### The Problem
 
-In `src/hooks/useBiddingCompanyMutations.ts`, the `updatePriceMutation` (lines 128–169) contains this logic:
+In the `ConfirmPODialog`, the attached proposals section shows only file type icons with a hardcoded tooltip that says "Preview PDF file" — regardless of the actual file type or name. This means the user cannot tell which file is which when reviewing before sending the PO.
 
-```ts
-const updateData: { price: number | null; bid_status?: string; bid_acknowledged_by?: null } = { 
-  price,
-  bid_acknowledged_by: null // Reset acknowledgment so PM sees the update
-};
-if (price !== null && price > 0) {
-  updateData.bid_status = 'submitted';  // <-- THIS IS THE PROBLEM
-}
-```
-
-When a PM manually types a price, the mutation **unconditionally overwrites `bid_status` to `'submitted'`**, which erases the existing `will_bid` status entirely. That's why the "Will Bid: Yes" column went blank — the status got changed from `will_bid` to `submitted`, and the Will Bid column only shows for `will_bid` status.
+The root causes:
+1. `getCleanFileName` is **not imported** in `ConfirmPODialog.tsx` — only `getFileIcon` and `getFileIconColor` are imported.
+2. The tooltip text is hardcoded as `"Preview {fileName.split('.').pop()?.toUpperCase()} file"` — which is generic (just says "Preview PDF file").
+3. There is no visible label beneath the icon showing the human-readable file name.
 
 ### The Fix
 
-The `updatePriceMutation` should **only set `bid_status = 'submitted'` if the current status is NOT already `will_bid`**. Since the mutation currently doesn't fetch the current status before updating, the cleanest fix is to:
+**File: `src/components/bidding/ConfirmPODialog.tsx`**
 
-**Option A (preferred — no extra DB call):** Remove the automatic `bid_status` override entirely from the PM-side price update. The PM is manually entering a price for tracking purposes — this is different from a subcontractor submitting a bid through the portal (which is handled by the `submit-bid` edge function). The PM updating a price should never change the workflow status.
-
-**Option B:** Fetch the current `bid_status` before updating, and only set `'submitted'` if the current status is `null` or `'will_not_bid'`.
-
-Option A is simpler, safer, and correct for this workflow. The `submit-bid` edge function (which subcontractors use) still correctly sets `bid_status = 'submitted'`, so that path is unaffected.
-
-### The Change
-
-**File: `src/hooks/useBiddingCompanyMutations.ts`**
-
-Remove the automatic `bid_status = 'submitted'` override from the `updatePriceMutation`. The update should only touch `price` and `bid_acknowledged_by`:
-
-**Before (lines 134–140):**
+**Change 1 — Import `getCleanFileName`:**
 ```ts
-const updateData: { price: number | null; bid_status?: string; bid_acknowledged_by?: null } = { 
-  price,
-  bid_acknowledged_by: null
-};
-if (price !== null && price > 0) {
-  updateData.bid_status = 'submitted';
-}
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 ```
 
-**After:**
-```ts
-const updateData = { 
-  price,
-  bid_acknowledged_by: null
-};
+**Change 2 — Restructure each file item** to show:
+- The icon (clickable to preview)
+- The cleaned file name as a visible label beneath the icon
+- The tooltip showing the full clean name on hover
+
+Replace the current icon-only button with a stacked layout:
+
+```tsx
+<Tooltip key={index}>
+  <TooltipTrigger asChild>
+    <button
+      onClick={() => handleFilePreview(fileName)}
+      className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer max-w-[80px]"
+    >
+      <IconComponent className={`h-6 w-6 ${iconColor}`} />
+      <span className="text-xs text-gray-600 truncate w-full text-center">
+        {getCleanFileName(fileName)}
+      </span>
+    </button>
+  </TooltipTrigger>
+  <TooltipContent>
+    <p>{getCleanFileName(fileName)}</p>
+  </TooltipContent>
+</Tooltip>
 ```
 
-### Impact
+This gives each file:
+- A recognizable icon (red for PDF, green for Excel, blue for Word)
+- A truncated visible name label beneath it (e.g., "Roofing Quote.pdf")
+- A full name on hover via tooltip
 
-- "Will Bid: Yes" stays intact when a PM manually updates a price — no more disappearing status.
-- The `bid_acknowledged_by: null` reset is preserved, so the PM notification for updated bids still works.
-- The `submit-bid` edge function is untouched — subcontractors submitting through the portal still correctly set status to `submitted`.
-- Only 1 file, 5 lines changed.
+### What `getCleanFileName` Does
+
+The function strips the UUID/timestamp storage prefixes added during upload, e.g.:
+- `4430_abc123_1738123456789_random.Roofing Quote.pdf` → `Roofing Quote.pdf`
+- `proposal_550e8400-e29b-41d4-a716-446655440000_1738000000000_Invoice.pdf` → `Invoice.pdf`
+
+### Files to Change
+
+Only **1 file**: `src/components/bidding/ConfirmPODialog.tsx`
+- Add `getCleanFileName` to the import on line 5
+- Update the file button/tooltip rendering block (lines 162–180)
+
+This is a minimal, targeted change with no side effects.
