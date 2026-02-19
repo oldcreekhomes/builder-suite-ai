@@ -169,34 +169,36 @@ export function ConfirmPODialog({
                   const cleanName = getCleanFileName(fileName);
                   
                   return (
-                    <div key={index} className="relative">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => handleFilePreview(fileName)}
-                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer max-w-[80px]"
-                          >
-                            <IconComponent className={`h-6 w-6 ${iconColor}`} />
-                            <span className="text-xs text-muted-foreground truncate w-full text-center">
-                              {cleanName}
-                            </span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{cleanName}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFileToDelete(fileName);
-                        }}
-                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-                        title="Delete file"
-                        type="button"
-                      >
-                        <span className="text-xs font-bold leading-none">×</span>
-                      </button>
+                    <div key={index} className="flex flex-col items-center">
+                      <div className="relative">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => handleFilePreview(fileName)}
+                              className="flex items-center justify-center p-1 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                            >
+                              <IconComponent className={`h-6 w-6 ${iconColor}`} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{cleanName}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFileToDelete(fileName);
+                          }}
+                          className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                          title="Delete file"
+                          type="button"
+                        >
+                          <span className="text-xs font-bold leading-none">×</span>
+                        </button>
+                      </div>
+                      <span className="text-xs text-muted-foreground truncate max-w-[60px] text-center mt-1">
+                        {cleanName}
+                      </span>
                     </div>
                   );
                 })}
