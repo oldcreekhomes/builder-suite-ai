@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { getFileIcon, getFileIconColor } from '../bidding/utils/fileIconUtils';
+import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -162,19 +162,23 @@ export function ConfirmPODialog({
                 {biddingCompany.proposals.map((fileName, index) => {
                   const IconComponent = getFileIcon(fileName);
                   const iconColor = getFileIconColor(fileName);
+                  const cleanName = getCleanFileName(fileName);
                   
                   return (
                     <Tooltip key={index}>
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => handleFilePreview(fileName)}
-                          className="flex items-center justify-center w-12 h-12 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                          className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer max-w-[80px]"
                         >
                           <IconComponent className={`h-6 w-6 ${iconColor}`} />
+                          <span className="text-xs text-muted-foreground truncate w-full text-center">
+                            {cleanName}
+                          </span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Preview {fileName.split('.').pop()?.toUpperCase()} file</p>
+                        <p>{cleanName}</p>
                       </TooltipContent>
                     </Tooltip>
                   );
