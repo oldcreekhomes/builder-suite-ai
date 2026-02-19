@@ -12,6 +12,7 @@ export const useAccountingPermissions = () => {
       canAccessManageBills: false,
       canAccessTransactions: false,
       canAccessReports: false,
+      canDeleteBills: false,
       isLoading,
     };
   }
@@ -22,6 +23,7 @@ export const useAccountingPermissions = () => {
     canAccessManageBills: preferences.can_access_manage_bills ?? false,
     canAccessTransactions: preferences.can_access_transactions ?? false,
     canAccessReports: preferences.can_access_reports ?? false,
+    canDeleteBills: preferences.can_delete_bills ?? false,
     isLoading,
   };
 };
