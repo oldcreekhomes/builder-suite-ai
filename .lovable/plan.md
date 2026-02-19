@@ -1,65 +1,57 @@
 
-## The Real Problem — Definitively Identified
+## Root Cause — The Real Reason Changes Had No Effect
 
-After reading every relevant line, the root cause is now crystal clear.
+The header `TableHead` width classes were updated in previous attempts, but **the body `TableCell` width classes were never changed**. In HTML tables without `table-fixed`, the browser ignores header widths and sizes columns based on the **body cell content**. Because the body cells still have the original wide widths (`w-44`, `w-36`, `w-24`, `w-32`, etc.) and `whitespace-nowrap` on Vendor and Cost Code, the table stays wide regardless of what was changed in the header.
 
-### Why Nothing Has Worked
+Here is the mismatch that exists right now:
 
-The `Table` component in `table.tsx` renders this structure:
+| Column | Header Width (changed) | Body Cell Width (unchanged — still old) |
+|---|---|---|
+| Vendor | `w-32` | `w-36` (old) |
+| Cost Code | `w-36` | `w-44` (old) + `whitespace-nowrap` |
+| Bill Date | `w-20` | `w-24` (old) |
+| Due Date | `w-20` | `w-24` (old) |
+| Amount | `w-20` | `w-24` (old) |
+| Reference | `w-24` | `w-32` (old) |
+| Memo | `w-10` | `w-12` (old) |
+| Address | `w-16` | `w-24` (old) |
+| Files | `w-10` | `w-14` (old) |
+| Notes | `w-10` | `w-14` (old) |
 
-```
-<div class="{containerClassName}">    ← scroll container
-  <table class="w-full {className}">  ← the table element
-```
+This also explains why the user says "nothing changed" — because the header changes are visually overridden by the wider body cells.
 
-When `containerClassName="relative w-full overflow-x-auto"` is passed and `className="min-w-[1200px]"` is passed:
+## The Fix
 
-- The scroll container div becomes: `class="relative w-full overflow-x-auto"` — width is 100% of its parent
-- The table element becomes: `class="w-full caption-bottom text-sm min-w-[1200px]"` — width is 100% of the scroll container (because `w-full` is already baked in and wins), but minimum 1200px
+Update all the `TableCell` width classes in the body rows of `BillsApprovalTable.tsx` to match the tighter header widths, and remove `whitespace-nowrap` from Vendor and Cost Code cells so they can wrap inside constrained columns.
 
-**The critical conflict:** `w-full` on the `<table>` means it's 100% of its parent (the scroll container). `min-w-[1200px]` means it can't go below 1200px. But when the scroll container is itself `w-full` and has no max-width or fixed width, the scroll container ALSO expands to 1200px+ to accommodate the table. A container can only scroll its children if the children are **wider than the container**. If the container expands with the content, `overflow-x-auto` never triggers.
+Also simplify the container — remove the `min-w-[900px]` from `<Table>` since the columns will fit naturally once tightened, just like `PayBillsTable` works with a plain `<div className="border rounded-lg"><Table>` and no min-width at all.
 
-Every fix attempt has been trapped in this same loop.
+### Exact Changes in `src/components/bills/BillsApprovalTable.tsx`
 
-### The Definitive Solution — Two Options
-
-**Option A (Simplest — skip the scroll entirely by removing min-widths and reducing column widths)**
-
-The Paid tab has `showProjectColumn={false}`, which means it has fewer columns. Looking at the screenshot, the columns that show are: Vendor, Cost Code, Bill Date, Due Date, Amount, Reference, Memo, Address, Files, Notes — and then PO Status, Cleared, and Actions are cut off.
-
-The real question is: **do these 13 columns actually need 1200px, or can they be displayed in less space?** Looking at the screenshot, there is clearly empty/wasted space in Reference and Cost Code columns. The table could fit all columns without scrolling if we reduced the oversized column widths.
-
-**Option B (Correct scroll approach — make the border wrapper the scroll container)**
-
-Instead of relying on the internal `Table` component scroll container, make the **outer border wrapper div** the scroll container directly — and give it an explicit `overflow-x-auto`. The Table inside should use `containerClassName="relative w-full"` (no overflow on it — the outer div handles scroll), and the `<table>` element should have `min-w-[1200px]`.
-
+**Container (lines 598-599)** — simplify to match PayBillsTable's working pattern:
 ```tsx
-// The border wrapper becomes the scroll container:
+// FROM:
 <div className="border rounded-lg overflow-x-auto">
-  <Table containerClassName="relative w-full" className="min-w-[1200px]">
-```
+    <Table containerClassName="relative w-full" className="min-w-[900px]">
 
-This works because:
-- The border wrapper `div` has `overflow-x-auto` — IT is the scroll container
-- Its width is determined by its parent (the flex column) — it is constrained to the viewport
-- The `Table`'s internal container div is `relative w-full` — no overflow, it expands freely
-- The `<table>` has `min-w-[1200px]` — it is wider than the border wrapper's viewport width
-- Since the `<table>` is wider than the `border wrapper`, `overflow-x-auto` on the border wrapper triggers a scrollbar
-
-**This is the correct approach** — the scroll container must be the outermost constrained div, not an inner div.
-
-### Exact Change
-
-**File: `src/components/bills/BillsApprovalTable.tsx`** — line 598-599:
-
-```tsx
-// CURRENT (broken):
+// TO:
 <div className="border rounded-lg">
-    <Table containerClassName="relative w-full overflow-x-auto" className="min-w-[1200px]">
-
-// FIXED:
-<div className="border rounded-lg overflow-x-auto">
-    <Table containerClassName="relative w-full" className="min-w-[1200px]">
+    <Table>
 ```
 
-The scroll container changes from the **inner div** (inside Table component) to the **outer border wrapper div** — which IS properly constrained by its parent flex container. This makes `overflow-x-auto` work correctly, revealing PO Status, Cleared, and Actions columns.
+**Body cells** — update widths to match the headers and remove `whitespace-nowrap`:
+
+- Line 744: `<TableCell className="w-36">` → `<TableCell className="w-32 max-w-[128px]">`
+- Line 758: `<TableCell className="overflow-hidden w-44">` → `<TableCell className="w-36 max-w-[144px] overflow-hidden">`
+- Line 799: `<TableCell className="w-24">` (Bill Date) → `<TableCell className="w-20">`
+- Line 802: `<TableCell className="w-24">` (Due Date) → `<TableCell className="w-20">`
+- Line 819: `<TableCell className="w-24">` (Amount) → `<TableCell className="w-20">`
+- Line 829: `<TableCell className="w-32">` (Reference) → `<TableCell className="w-24 max-w-[96px]">`
+- Line 833: `<TableCell className="w-12 text-center">` (Memo) → `<TableCell className="w-10 text-center">`
+- Line 849: `<TableCell className="w-24">` (Address) → `<TableCell className="w-16 max-w-[64px]">`
+- Line 887: `<TableCell className="w-14 text-center">` (Files) → `<TableCell className="w-10 text-center">`
+- Line 890: `<TableCell className="w-14 text-center">` (Notes) → `<TableCell className="w-10 text-center">`
+- Line 930 (Vendor cell): Remove `whitespace-nowrap` from the span inside
+- Line 933 (Cost Code cell): Remove `whitespace-nowrap` from the span inside
+
+This matches exactly how `PayBillsTable.tsx` works (plain `<div className="border rounded-lg"><Table>`, no min-width, body cells drive widths), and will bring all columns — including PO Status, Cleared, and Actions — into view.
