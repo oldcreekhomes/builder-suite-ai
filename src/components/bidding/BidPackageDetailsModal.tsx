@@ -18,6 +18,7 @@ import { X, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useDistanceFilter } from '@/hooks/useDistanceFilter';
+import { useBidPackagePO } from '@/hooks/useBidPackagePO';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -96,6 +97,7 @@ export function BidPackageDetailsModal({
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [distanceRadius, setDistanceRadius] = useState(50);
+  const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
 
   const handleStatusChange = (value: string) => {
     if (value === 'closed') {
@@ -342,6 +344,7 @@ export function BidPackageDetailsModal({
                   onCompanyCheckboxChange={onCompanyCheckboxChange}
                   onSelectAllCompanies={onSelectAllCompanies}
                   getDistanceForCompany={distanceFilter.getDistanceForCompany}
+                  awardedPOs={awardedPOs}
                 />
               </tbody>
             </table>

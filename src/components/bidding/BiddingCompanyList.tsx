@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { BiddingCompanyRow } from './components/BiddingCompanyRow';
+import type { AwardedPO } from '@/hooks/useBidPackagePO';
 
 interface Company {
   id: string;
@@ -43,6 +44,7 @@ interface BiddingCompanyListProps {
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
   getDistanceForCompany?: (companyId: string) => DistanceResult | null;
+  awardedPOs?: AwardedPO[];
 }
 
 export function BiddingCompanyList({ 
@@ -62,7 +64,8 @@ export function BiddingCompanyList({
   selectedCompanies = new Set(),
   onCompanyCheckboxChange,
   onSelectAllCompanies,
-  getDistanceForCompany
+  getDistanceForCompany,
+  awardedPOs = []
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
 
@@ -179,6 +182,7 @@ export function BiddingCompanyList({
           isSelected={selectedCompanies.has(biddingCompany.id)}
           onCheckboxChange={onCompanyCheckboxChange}
           distanceInfo={getDistanceForCompany?.(biddingCompany.id)}
+          awardedPOs={awardedPOs}
         />
       ))}
     </>
