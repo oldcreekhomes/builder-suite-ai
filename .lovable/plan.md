@@ -1,93 +1,92 @@
 
-## The Problem: What's Actually Happening
+## The Definitive Fix — After Reading Every Relevant Line
 
-After reading the complete `BillsApprovalTable.tsx` file carefully, the issue is now completely understood.
+### What the Code Actually Does
 
-### Column Width Math
-
-The Paid tab has these columns (no project column since `showProjectColumn={false}`):
-
-| Column | Width |
-|---|---|
-| Vendor | 144px (w-36) |
-| Cost Code | 176px (w-44) |
-| Bill Date | 96px (w-24) |
-| Due Date | 96px (w-24) |
-| Amount | 96px (w-24) |
-| Reference | 128px (w-32) |
-| Memo | 48px (w-12) |
-| Address | 96px (w-24) |
-| Files | 56px (w-14) |
-| Notes | 56px (w-14) |
-| **PO Status** | **80px (w-20)** |
-| **Cleared** | **96px (w-24)** |
-| **Actions** | **64px (w-16)** (if user can delete) |
-
-**Total: ~1232px minimum.** The table genuinely needs over 1200px.
-
-### Why It's Still Broken After All Attempts
-
-The current code (after all previous fixes) is:
-
-```tsx
-<div className="flex flex-col h-full min-w-0">
-  <div className="border rounded-lg overflow-hidden min-w-0">
-    <Table className="min-w-[1200px]">
+The `Table` component in `table.tsx` has this structure:
+```
+<div class="relative w-full overflow-auto">   ← scroll container (from containerClassName default)
+  <table class="w-full min-w-[1200px] ...">   ← the actual table
 ```
 
-Two problems co-exist:
-
-1. `overflow-hidden` on the border wrapper is clipping the scroll container. The `<Table>` component internally renders `<div class="relative w-full overflow-auto">` wrapping the `<table>`. When the outer div has `overflow-hidden`, the browser clips that entire scroll container at the parent's boundary — making the scrollbar either invisible or non-functional in WebKit/Safari-based rendering environments.
-
-2. `min-w-[1200px]` on `<Table>` applies to the `<table>` HTML element — but the Tailwind class `w-full` (also on `<table>`) and `min-w-[1200px]` both apply. In the absence of a working scroll container (due to problem #1), the table just gets squeezed.
-
-### The Definitive Fix
-
-Two targeted changes to `BillsApprovalTable.tsx`:
-
-**Change 1 (line 598):** Remove `overflow-hidden` from the border wrapper. The border and rounded corners work fine without it — modern browsers clip `border-radius` correctly on block elements without needing `overflow-hidden` as long as the inner scroll container handles its own overflow.
-
-```tsx
-// BEFORE (broken):
-<div className="border rounded-lg overflow-hidden min-w-0">
-
-// AFTER (fixed):
-<div className="border rounded-lg min-w-0">
-```
-
-**Change 2 (line 599):** Keep `min-w-[1200px]` on the Table so the table is wide enough to require horizontal scroll, but also remove `h-full` from the outer flex wrapper since it's not needed and can cause collapsed containers in certain layout contexts.
-
-```tsx
-// Line 596 — also simplify outer wrapper:
-// BEFORE:
-<div className="flex flex-col h-full min-w-0">
-
-// AFTER:
-<div className="flex flex-col min-w-0">
-```
-
-The full corrected structure becomes:
-
+The current `BillsApprovalTable.tsx` (lines 596-599) renders:
 ```tsx
 <div className="flex flex-col min-w-0">
   <div className="border rounded-lg min-w-0">
     <Table className="min-w-[1200px]">
-      ...all columns including PO Status, Cleared, Actions...
-    </Table>
-  </div>
-  {/* Footer */}
-</div>
 ```
 
-### Why This Works
+### Why It Still Fails
 
-- `border rounded-lg` on the wrapper provides the visual border and rounded corners without clipping children
-- The `<Table>` component's own internal `<div class="relative w-full overflow-auto">` handles horizontal scrolling freely (not clipped by `overflow-hidden` on the parent)
-- `min-w-[1200px]` on the `<table>` element ensures the table is wider than its container, triggering the `overflow-auto` scrollbar
-- `min-w-0` on both flex containers prevents flex children from overflowing their parent in the opposite direction
+`className="min-w-[1200px]"` on `<Table>` applies to the `<table>` HTML element. The `<table>` also has `w-full` (applied inside `table.tsx` line 21). These two conflict:
+
+- `w-full` = 100% of its parent (the scroll container div)
+- `min-w-[1200px]` = floor of 1200px
+
+When the scroll container div is itself `w-full` of an unconstrained parent, both the `<table>` AND the scroll container expand together — the scroll container never gets "smaller than its content," so `overflow-auto` has nothing to scroll.
+
+The fix must be applied to the **scroll container div itself**, not the `<table>`. The scroll container needs a fixed/constrained width so it's smaller than the 1200px content inside it.
+
+### The Correct Fix
+
+Pass `containerClassName` to constrain the scroll container div to the available width while letting the `<table>` be wider:
+
+```tsx
+// BEFORE (broken — min-width on table element, scroll container expands with it):
+<Table className="min-w-[1200px]">
+
+// AFTER (correct — scroll container is constrained, table content forces horizontal scroll):
+<Table 
+  containerClassName="relative w-full overflow-x-auto"
+  className="min-w-[1200px]"
+>
+```
+
+Then the outer structure:
+```tsx
+<div className="flex flex-col min-w-0">
+  <div className="border rounded-lg overflow-hidden">
+    <Table
+      containerClassName="relative w-full overflow-x-auto"
+      className="min-w-[1200px]"
+    >
+```
+
+Using `overflow-x-auto` (instead of `overflow-auto`) on the scroll container ensures only horizontal scrolling is enabled at the table level, which is the correct behavior for a data table. The `overflow-hidden` on the border wrapper clips rounded corners cleanly.
+
+### Exactly Two Lines Changed in `BillsApprovalTable.tsx`
+
+**Line 598** — add `overflow-hidden` back to the border wrapper:
+```tsx
+// FROM:
+<div className="border rounded-lg min-w-0">
+// TO:
+<div className="border rounded-lg overflow-hidden">
+```
+
+**Line 599** — add `containerClassName` to `<Table>`:
+```tsx
+// FROM:
+<Table className="min-w-[1200px]">
+// TO:
+<Table containerClassName="relative w-full overflow-x-auto" className="min-w-[1200px]">
+```
+
+This is the pattern recommended in the project's own memory note (`style/standardized-table-ui-shadcn`, rule 8): *"the Table must be passed `containerClassName='relative w-full'` to disable its default internal overflow"* — except here we want `overflow-x-auto` specifically to enable horizontal scrolling at exactly the right level.
+
+### Why All Previous Attempts Failed
+
+| Previous Attempt | Why It Failed |
+|---|---|
+| `overflow-hidden` on border wrapper alone | Clipped the scroll container entirely — no scroll possible |
+| `min-w-[1200px]` on `<Table>` (className) | Applied to `<table>` element, but scroll container expanded with it |
+| `min-w-0` on flex containers | Only prevents flex children from overflowing outward; doesn't constrain the table scroll container |
+| Removing `overflow-hidden` | Border rounding still doesn't work; scroll container still not constrained |
+
+The key insight: the scroll container div (`containerClassName`) must be the element with the **constrained width**, so `overflow-auto` activates. The `<table>` inside must have the **minimum width** to force overflow. These are two separate elements — the fix requires setting both.
 
 ### Files Changed
 
-- `src/components/bills/BillsApprovalTable.tsx` — lines 596 and 598 only:
-  - Line 596: Remove `h-full` from flex wrapper
-  - Line 598: Remove `overflow-hidden` from border wrapper
+- **`src/components/bills/BillsApprovalTable.tsx`** — lines 598–599:
+  - Line 598: `<div className="border rounded-lg overflow-hidden">`
+  - Line 599: `<Table containerClassName="relative w-full overflow-x-auto" className="min-w-[1200px]">`
