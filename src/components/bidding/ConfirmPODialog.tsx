@@ -8,6 +8,8 @@ import { usePOMutations } from '@/hooks/usePOMutations';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
+import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
 
 interface Company {
   id: string;
@@ -50,8 +52,10 @@ export function ConfirmPODialog({
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
   const { openProposalFile } = useUniversalFilePreviewContext();
+  const { deleteIndividualProposal } = useBiddingCompanyMutations(projectId);
   const [customMessage, setCustomMessage] = useState('');
   const [costCodeData, setCostCodeData] = useState<{code: string, name: string} | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
   // Fetch cost code data when dialog opens
   useEffect(() => {
@@ -158,29 +162,42 @@ export function ConfirmPODialog({
           {biddingCompany.proposals && biddingCompany.proposals.length > 0 && (
             <div>
               <label className="text-sm font-medium text-muted-foreground">Attached Proposals:</label>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 {biddingCompany.proposals.map((fileName, index) => {
                   const IconComponent = getFileIcon(fileName);
                   const iconColor = getFileIconColor(fileName);
                   const cleanName = getCleanFileName(fileName);
                   
                   return (
-                    <Tooltip key={index}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => handleFilePreview(fileName)}
-                          className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer max-w-[80px]"
-                        >
-                          <IconComponent className={`h-6 w-6 ${iconColor}`} />
-                          <span className="text-xs text-muted-foreground truncate w-full text-center">
-                            {cleanName}
-                          </span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{cleanName}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <div key={index} className="relative">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => handleFilePreview(fileName)}
+                            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer max-w-[80px]"
+                          >
+                            <IconComponent className={`h-6 w-6 ${iconColor}`} />
+                            <span className="text-xs text-muted-foreground truncate w-full text-center">
+                              {cleanName}
+                            </span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{cleanName}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFileToDelete(fileName);
+                        }}
+                        className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                        title="Delete file"
+                        type="button"
+                      >
+                        <span className="text-xs font-bold leading-none">×</span>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -212,6 +229,19 @@ export function ConfirmPODialog({
             {isLoading ? "Sending..." : mode === 'resend' ? "Resend PO" : "Send PO"}
           </Button>
         </div>
+
+        <DeleteConfirmationDialog
+          open={!!fileToDelete}
+          onOpenChange={(open) => !open && setFileToDelete(null)}
+          title="Delete Proposal File"
+          description={`Are you sure you want to delete "${fileToDelete ? getCleanFileName(fileToDelete) : ''}"? This action cannot be undone.`}
+          onConfirm={() => {
+            if (fileToDelete && biddingCompany) {
+              deleteIndividualProposal('', biddingCompany.id, fileToDelete);
+              setFileToDelete(null);
+            }
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
