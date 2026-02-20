@@ -92,9 +92,9 @@ export function POSelectionDropdown({
 
   const handleChange = (val: string) => {
     if (val === '__none__') {
-      onChange(undefined, undefined);
+      onChange('__none__', undefined);
     } else if (val === '__auto__') {
-      onChange(undefined, undefined);
+      onChange('__auto__', undefined);
     } else {
       // Check if this PO has exactly one line item — auto-assign it
       const selectedPO = purchaseOrders?.find(po => po.id === val);
@@ -133,7 +133,7 @@ export function POSelectionDropdown({
   const selectedPO = value ? purchaseOrders?.find(po => po.id === value) : undefined;
   const showLineDropdown = selectedPO && selectedPO.line_items.length > 1 && !purchaseOrderLineId;
 
-  const selectValue = value || (hasPurchaseOrders ? '__auto__' : '__none__');
+  const selectValue = value != null && value !== '' ? value : (hasPurchaseOrders ? '__auto__' : '__none__');
 
   return (
     <div className="flex items-center gap-1">
