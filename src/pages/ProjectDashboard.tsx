@@ -13,6 +13,7 @@ import {
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectAccountingAlerts } from "@/components/project-dashboard/ProjectAccountingAlerts";
@@ -25,7 +26,8 @@ export default function ProjectDashboard() {
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  
+  const { preferences } = useNotificationPreferences();
+  const canEditProjects = preferences?.can_edit_projects ?? false;
   // Get current project
   const currentProject = projects.find(p => p.id === projectId);
   
@@ -83,17 +85,19 @@ export default function ProjectDashboard() {
                   <div>
                     <h1 className="text-2xl font-bold text-black flex items-center gap-2">
                       {currentProject.address}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditDialogOpen(true);
-                        }}
-                        className="h-7 w-7"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      {canEditProjects && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditDialogOpen(true);
+                          }}
+                          className="h-7 w-7"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      )}
                     </h1>
                   </div>
                 </div>
