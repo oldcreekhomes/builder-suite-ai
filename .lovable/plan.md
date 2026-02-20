@@ -1,65 +1,22 @@
 
 
-## Fix: Remove `role = 'employee'` From project_account_exclusions RLS Policies (Take 3)
+## Fix: Allow "No Purchase Order" Selection to Stick
 
 ### Problem
 
-The RLS policies on `project_account_exclusions` still contain `users.role = 'employee'` in all three policies (SELECT, INSERT, DELETE). Jole Ann Sorensen has `role = 'accountant'`, so she is blocked every time. Previous migration attempts did not apply successfully.
+When you select "No purchase order" from the PO dropdown, it immediately reverts back to "Auto-match by cost code." This happens because selecting "No purchase order" sets the value to `undefined`, which is indistinguishable from "hasn't been chosen yet," causing the dropdown to default back to auto-match.
 
-### What Will Change
+### Solution
 
-The three existing RLS policies will be dropped and recreated. The **only** change is removing `AND (users.role = 'employee'::text)` from the subquery. The new condition allows any confirmed company member regardless of their role text.
-
-### Access Control Model After Fix
-
-- **Database layer (RLS)**: Ensures users can only touch data belonging to their company. No role filtering -- just company membership via `home_builder_id` + `confirmed = true`.
-- **Application layer**: The "Edit Projects" toggle in Employee Access & Preferences controls who can open the Edit Project dialog and make changes. This is where you grant or revoke project editing for individual employees.
+Update the `POSelectionDropdown` component so that selecting "No purchase order" stores the sentinel value `"__none__"` instead of `undefined`. This way the dropdown knows the user explicitly chose "no PO" and won't snap back to auto-match.
 
 ### Technical Details
 
-Single database migration:
+**File: `src/components/bills/POSelectionDropdown.tsx`**
 
-```sql
-DROP POLICY IF EXISTS "Users can view exclusions for their projects" ON project_account_exclusions;
-DROP POLICY IF EXISTS "Users can insert exclusions for their projects" ON project_account_exclusions;
-DROP POLICY IF EXISTS "Users can delete exclusions for their projects" ON project_account_exclusions;
+1. **Line 93-97 (handleChange)**: When `__none__` is selected, call `onChange('__none__', undefined)` instead of `onChange(undefined, undefined)`. Same for `__auto__`.
 
-CREATE POLICY "Users can view exclusions for their projects"
-ON project_account_exclusions FOR SELECT USING (
-  (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
-  OR
-  (project_id IN (
-    SELECT id FROM projects WHERE owner_id = (
-      SELECT home_builder_id FROM users
-      WHERE id = auth.uid() AND confirmed = true
-    )
-  ))
-);
+2. **Line 136 (selectValue)**: Change the fallback logic so it only defaults to `__auto__` when the value is truly unset (undefined/null), not when it's the `__none__` sentinel.
 
-CREATE POLICY "Users can insert exclusions for their projects"
-ON project_account_exclusions FOR INSERT WITH CHECK (
-  (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
-  OR
-  (project_id IN (
-    SELECT id FROM projects WHERE owner_id = (
-      SELECT home_builder_id FROM users
-      WHERE id = auth.uid() AND confirmed = true
-    )
-  ))
-);
-
-CREATE POLICY "Users can delete exclusions for their projects"
-ON project_account_exclusions FOR DELETE USING (
-  (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
-  OR
-  (project_id IN (
-    SELECT id FROM projects WHERE owner_id = (
-      SELECT home_builder_id FROM users
-      WHERE id = auth.uid() AND confirmed = true
-    )
-  ))
-);
-```
-
-No code changes needed. Only this database migration.
+3. **Parent components** (`EditExtractedBillDialog`, `ManualBillEntry`, `EditBillDialog`): Update the save/submit logic so that when the PO value is `"__none__"` or `"__auto__"`, it saves `null` to the database instead of the sentinel string. This ensures database integrity while the UI correctly reflects the user's choice.
 
