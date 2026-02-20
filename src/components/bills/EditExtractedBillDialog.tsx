@@ -215,6 +215,7 @@ export function EditExtractedBillDialog({
           const isSingleLine = data.length === 1;
           
           // Build job cost and expense arrays, promoting expense lines to job_cost when a single default cost code exists
+          const poOverrides: Record<string, string> | undefined = extractedData.po_overrides;
           let jobCost: LineItem[] = [];
           let expense: LineItem[] = [];
 
@@ -262,6 +263,7 @@ export function EditExtractedBillDialog({
                 line_type: 'job_cost',
                 cost_code_id: costCodeToUse || undefined,
                 cost_code_display: costCodeDisplay || undefined,
+                purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
                 lot_id: line.lot_id || undefined,
                 quantity: qty,
                 unit_cost: unitCost,
@@ -277,6 +279,7 @@ export function EditExtractedBillDialog({
                   line_type: 'job_cost',
                   cost_code_id: defaultCostCode,
                   cost_code_display: costCodeDisplay || undefined,
+                  purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
                   lot_id: line.lot_id || undefined,
                   quantity: qty,
                   unit_cost: unitCost,
@@ -330,6 +333,13 @@ export function EditExtractedBillDialog({
           // Filter out any $0 lines - they serve no accounting purpose
           jobCost = jobCost.filter(line => line.amount > 0);
           expense = expense.filter(line => line.amount > 0);
+
+          // If any loaded line already has a PO, or user previously saved edits, skip auto-matching
+          const anyLineHasPO = [...jobCost, ...expense].some(l => !!l.purchase_order_id);
+          const userPreviouslyEdited = !!extractedData.user_edited;
+          if (anyLineHasPO || userPreviouslyEdited) {
+            hasAutoMatched.current = true;
+          }
 
           setJobCostLines(jobCost);
           setExpenseLines(expense);
@@ -627,6 +637,17 @@ export function EditExtractedBillDialog({
     const billDateStr = normalizeToYMD(billDate);
     const dueDateStr = dueDate ? normalizeToYMD(dueDate) : null;
     
+    // Build PO overrides map: line_id → purchase_order_id (preserving __none__ sentinel)
+    const poOverrides: Record<string, string> = {};
+    for (const line of allLines) {
+      if (line.purchase_order_id) {
+        poOverrides[line.id] = line.purchase_order_id;
+      } else {
+        // Explicitly mark as no PO if user hasn't set one
+        poOverrides[line.id] = '__none__';
+      }
+    }
+
     await supabase
       .from('pending_bill_uploads')
       .update({
@@ -644,6 +665,8 @@ export function EditExtractedBillDialog({
           total_amount: calculatedTotal,
           totalAmount: calculatedTotal,
           notes: internalNotes || null,
+          user_edited: true,
+          po_overrides: poOverrides,
         },
       })
       .eq('id', pendingUploadId);
