@@ -1,26 +1,29 @@
 
 
-## Fix: RLS Policies on project_account_exclusions Still Blocking Accountants
+## Fix: Remove `role = 'employee'` From project_account_exclusions RLS Policies (Take 3)
 
 ### Problem
 
-The current RLS policies on `project_account_exclusions` still contain `role = 'employee'` in their conditions. Jole Ann Sorensen has `role = 'accountant'`, so she is blocked. The previous migration either was not applied or was overwritten.
+The RLS policies on `project_account_exclusions` still contain `users.role = 'employee'` in all three policies (SELECT, INSERT, DELETE). Jole Ann Sorensen has `role = 'accountant'`, so she is blocked every time. Previous migration attempts did not apply successfully.
 
-### Solution
+### What Will Change
 
-Run a new migration that drops all 3 existing policies and recreates them without the `role = 'employee'` filter. The new policies will allow any confirmed user whose `home_builder_id` matches the project owner -- matching the broader pattern used by the `projects` table.
+The three existing RLS policies will be dropped and recreated. The **only** change is removing `AND (users.role = 'employee'::text)` from the subquery. The new condition allows any confirmed company member regardless of their role text.
+
+### Access Control Model After Fix
+
+- **Database layer (RLS)**: Ensures users can only touch data belonging to their company. No role filtering -- just company membership via `home_builder_id` + `confirmed = true`.
+- **Application layer**: The "Edit Projects" toggle in Employee Access & Preferences controls who can open the Edit Project dialog and make changes. This is where you grant or revoke project editing for individual employees.
 
 ### Technical Details
 
-Single database migration with this SQL:
+Single database migration:
 
 ```sql
--- Drop existing restrictive policies
 DROP POLICY IF EXISTS "Users can view exclusions for their projects" ON project_account_exclusions;
 DROP POLICY IF EXISTS "Users can insert exclusions for their projects" ON project_account_exclusions;
 DROP POLICY IF EXISTS "Users can delete exclusions for their projects" ON project_account_exclusions;
 
--- Recreate SELECT policy: owner OR any confirmed company member
 CREATE POLICY "Users can view exclusions for their projects"
 ON project_account_exclusions FOR SELECT USING (
   (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
@@ -33,7 +36,6 @@ ON project_account_exclusions FOR SELECT USING (
   ))
 );
 
--- Recreate INSERT policy
 CREATE POLICY "Users can insert exclusions for their projects"
 ON project_account_exclusions FOR INSERT WITH CHECK (
   (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
@@ -46,7 +48,6 @@ ON project_account_exclusions FOR INSERT WITH CHECK (
   ))
 );
 
--- Recreate DELETE policy
 CREATE POLICY "Users can delete exclusions for their projects"
 ON project_account_exclusions FOR DELETE USING (
   (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
@@ -60,6 +61,5 @@ ON project_account_exclusions FOR DELETE USING (
 );
 ```
 
-The key change: removing `AND (users.role = 'employee'::text)` so that accountants, construction managers, and any other confirmed team member can access the table. Access control remains governed by the "Edit Projects" toggle in the Employee Access panel.
+No code changes needed. Only this database migration.
 
-No code changes needed -- only this database migration.
