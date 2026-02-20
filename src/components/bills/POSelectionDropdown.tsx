@@ -110,14 +110,6 @@ export function POSelectionDropdown({
     }
   };
 
-  const handleLineChange = (lineId: string) => {
-    if (lineId === '__none__') {
-      onChange(value, undefined);
-    } else {
-      onChange(value, lineId);
-    }
-  };
-
   const handleInfoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const poToShow = value 
@@ -128,10 +120,6 @@ export function POSelectionDropdown({
       setDialogOpen(true);
     }
   };
-
-  // Get selected PO for line dropdown
-  const selectedPO = value ? purchaseOrders?.find(po => po.id === value) : undefined;
-  const showLineDropdown = selectedPO && selectedPO.line_items.length > 1 && !purchaseOrderLineId;
 
   const selectValue = value != null && value !== '' ? value : (hasPurchaseOrders ? '__auto__' : '__none__');
 
@@ -174,39 +162,6 @@ export function POSelectionDropdown({
           </SelectContent>
         </Select>
 
-        {/* Line-level dropdown when PO has multiple lines */}
-        {showLineDropdown && (
-          <Select
-            value={purchaseOrderLineId || '__none__'}
-            onValueChange={handleLineChange}
-            disabled={disabled}
-          >
-            <SelectTrigger className="h-7 text-xs">
-              <SelectValue placeholder="Select line item" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" className="text-xs text-muted-foreground">
-                No specific line
-              </SelectItem>
-              {selectedPO.line_items.map((line) => {
-                const isMatch = costCodeId && line.cost_code_id === costCodeId;
-                return (
-                  <SelectItem 
-                    key={line.id} 
-                    value={line.id}
-                    className="text-xs"
-                  >
-                    <span className={cn(isMatch && "text-primary font-medium")}>
-                      {line.description || (line.cost_code ? line.cost_code.code : `Line ${line.line_number}`)}
-                      {' — '}
-                      {formatCurrency(line.remaining)} / {formatCurrency(line.amount)}
-                    </span>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        )}
       </div>
       
       {hasPurchaseOrders && (
