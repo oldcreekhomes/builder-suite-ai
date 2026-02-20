@@ -1,38 +1,65 @@
 
 
-## Enhance Marketplace Row Click to Show Detailed Company Profile
+## Fix: RLS Policies on project_account_exclusions Still Blocking Accountants
 
-### What Changes
+### Problem
 
-When a user clicks on a row in the Marketplace table, a detailed company profile dialog will open showing:
+The current RLS policies on `project_account_exclusions` still contain `role = 'employee'` in their conditions. Jole Ann Sorensen has `role = 'accountant'`, so she is blocked. The previous migration either was not applied or was overwritten.
 
-1. **Company header** -- name, type badge, rating with stars, review count
-2. **Contact information** -- phone number, website link, address
-3. **Representatives section** -- full contact details for each rep (name, title, email, phone), with primary contact highlighted
-4. **Description** (if available)
-5. **Service areas and license numbers** (if available)
-6. **Message button** -- opens the existing Send Message modal directly from the profile dialog
+### Solution
 
-### How It Works
-
-- Clicking anywhere on a table row (except the existing Website link or Message button) opens the `ViewMarketplaceCompanyDialog`
-- The existing `ViewMarketplaceCompanyDialog` component already fetches representatives and displays most of this info -- it just needs a "Send Message" button added and needs to be wired into the table
-- The Send Message modal will layer on top of the profile dialog
+Run a new migration that drops all 3 existing policies and recreates them without the `role = 'employee'` filter. The new policies will allow any confirmed user whose `home_builder_id` matches the project owner -- matching the broader pattern used by the `projects` table.
 
 ### Technical Details
 
-**File: `src/components/marketplace/MarketplaceCompaniesTable.tsx`**
-- Import `ViewMarketplaceCompanyDialog`
-- Add state for `viewDialogOpen` and `viewCompany`
-- Add `onClick` handler to each `TableRow` that sets the selected company and opens the view dialog
-- Prevent click propagation on the Website link and Message button so they don't also trigger the row click
-- Render `ViewMarketplaceCompanyDialog` alongside the existing `SendMarketplaceMessageModal`
+Single database migration with this SQL:
 
-**File: `src/components/marketplace/ViewMarketplaceCompanyDialog.tsx`**
-- Add a "Send Message" button in the dialog (at the top or bottom of the content)
-- Accept an `onMessageClick` callback prop that opens the message modal
-- Pass the full company data (including `message_count`) so the dialog can display all relevant fields
-- Update the `MarketplaceCompany` interface to include `message_count`, `lat`, `lng` fields to match the table's interface
+```sql
+-- Drop existing restrictive policies
+DROP POLICY IF EXISTS "Users can view exclusions for their projects" ON project_account_exclusions;
+DROP POLICY IF EXISTS "Users can insert exclusions for their projects" ON project_account_exclusions;
+DROP POLICY IF EXISTS "Users can delete exclusions for their projects" ON project_account_exclusions;
 
-No database or schema changes required -- representatives are already fetched by the existing dialog component.
+-- Recreate SELECT policy: owner OR any confirmed company member
+CREATE POLICY "Users can view exclusions for their projects"
+ON project_account_exclusions FOR SELECT USING (
+  (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
+  OR
+  (project_id IN (
+    SELECT id FROM projects WHERE owner_id = (
+      SELECT home_builder_id FROM users
+      WHERE id = auth.uid() AND confirmed = true
+    )
+  ))
+);
 
+-- Recreate INSERT policy
+CREATE POLICY "Users can insert exclusions for their projects"
+ON project_account_exclusions FOR INSERT WITH CHECK (
+  (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
+  OR
+  (project_id IN (
+    SELECT id FROM projects WHERE owner_id = (
+      SELECT home_builder_id FROM users
+      WHERE id = auth.uid() AND confirmed = true
+    )
+  ))
+);
+
+-- Recreate DELETE policy
+CREATE POLICY "Users can delete exclusions for their projects"
+ON project_account_exclusions FOR DELETE USING (
+  (project_id IN (SELECT id FROM projects WHERE owner_id = auth.uid()))
+  OR
+  (project_id IN (
+    SELECT id FROM projects WHERE owner_id = (
+      SELECT home_builder_id FROM users
+      WHERE id = auth.uid() AND confirmed = true
+    )
+  ))
+);
+```
+
+The key change: removing `AND (users.role = 'employee'::text)` so that accountants, construction managers, and any other confirmed team member can access the table. Access control remains governed by the "Edit Projects" toggle in the Employee Access panel.
+
+No code changes needed -- only this database migration.
