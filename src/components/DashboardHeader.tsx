@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { useProject } from "@/hooks/useProject";
 import { useProjectContextWithData } from "@/hooks/useProjectContext";
 
@@ -18,6 +19,8 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { profile } = useUserProfile();
+  const { preferences } = useNotificationPreferences();
+  const canEditProjects = preferences?.can_edit_projects ?? false;
   const navigate = useNavigate();
   const location = useLocation();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
@@ -69,14 +72,16 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                 ) : project?.address ? (
                   <>
                     <p className="text-sm text-gray-600">{project.address}</p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditDialogOpen(true)}
-                      className="h-6 w-6"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    {canEditProjects && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditDialogOpen(true)}
+                        className="h-6 w-6"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    )}
                   </>
                 ) : projectError ? (
                   <p className="text-sm text-gray-400">Address unavailable</p>
