@@ -165,12 +165,12 @@ export function PODetailsDialog({
             <FileText className="h-5 w-5 text-primary" />
             <span>PO {purchaseOrder.po_number}</span>
             <div className="ml-auto">
-              {isOverBudget ? (
+            {(isOverBudget || (hasPending && projectedOverBudget)) ? (
                 <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Over Budget</Badge>
               ) : isWarning ? (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
               ) : (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1">On Track</Badge>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1">Within Budget</Badge>
               )}
             </div>
           </DialogTitle>
