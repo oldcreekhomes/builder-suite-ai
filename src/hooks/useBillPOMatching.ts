@@ -54,69 +54,29 @@ export function useBillPOMatching(bills: BillForMatching[]) {
     queryFn: async () => {
       if (!bills.length) return new Map<string, BillPOMatchResult>();
 
-      // Get unique project IDs and vendor IDs from bills
-      const projectIds = [...new Set(bills.map(b => b.project_id).filter(Boolean))] as string[];
-      const vendorIds = [...new Set(bills.map(b => b.vendor_id))];
-      
-      // Get unique cost code IDs from all bill lines
-      const costCodeIds = [...new Set(
-        bills.flatMap(b => b.bill_lines?.map(l => l.cost_code_id).filter(Boolean) || [])
-      )] as string[];
-
-      // Get unique explicit purchase_order_ids from bill lines
+      // Collect only the explicitly saved purchase_order_ids from bill lines.
+      // The PO Status Summary ONLY reflects explicit DB assignments — no cost-code inference.
       const explicitPoIds = [...new Set(
         bills.flatMap(b => b.bill_lines?.map(l => l.purchase_order_id).filter(
           id => id && id !== '__auto__' && id !== '__none__'
         ) || [])
       )] as string[];
 
-      if (!projectIds.length || !vendorIds.length || !costCodeIds.length) {
-        // Return empty matches for all bills
-        const resultMap = new Map<string, BillPOMatchResult>();
-        bills.forEach(bill => {
-          resultMap.set(bill.id, {
-            bill_id: bill.id,
-            matches: [],
-            overall_status: 'no_po'
-          });
-        });
-        return resultMap;
-      }
-
-      // Fetch POs by composite key (for auto-matching)
-      let compositePos: typeof explicitPos = [];
-      if (projectIds.length && vendorIds.length && costCodeIds.length) {
-        const { data, error } = await supabase
-          .from('project_purchase_orders')
-          .select(`id, po_number, total_amount, project_id, company_id, cost_code_id`)
-          .in('project_id', projectIds)
-          .in('company_id', vendorIds)
-          .in('cost_code_id', costCodeIds);
-        if (error) throw error;
-        compositePos = data || [];
-      }
-
-      // Fetch explicitly linked POs by ID
-      let explicitPos: Array<{ id: string; po_number: string | null; total_amount: number | null; project_id: string | null; company_id: string | null; cost_code_id: string | null }> = [];
+      // Fetch only the explicitly linked POs
+      let pos: Array<{ id: string; po_number: string | null; total_amount: number | null; project_id: string | null; company_id: string | null; cost_code_id: string | null }> = [];
       if (explicitPoIds.length) {
         const { data, error } = await supabase
           .from('project_purchase_orders')
           .select(`id, po_number, total_amount, project_id, company_id, cost_code_id`)
           .in('id', explicitPoIds);
         if (error) throw error;
-        explicitPos = data || [];
+        pos = data || [];
       }
 
-      // Merge and deduplicate
-      const posMap = new Map<string, (typeof explicitPos)[0]>();
-      [...compositePos, ...explicitPos].forEach(po => posMap.set(po.id, po));
-      const pos = Array.from(posMap.values());
-
-      // Collect all cost code IDs from POs too (for display)
-      const allCostCodeIds = [...new Set([
-        ...costCodeIds,
-        ...pos.map(po => po.cost_code_id).filter(Boolean) as string[]
-      ])];
+      // Collect cost code IDs from matched POs (for display labels)
+      const allCostCodeIds = [...new Set(
+        pos.map(po => po.cost_code_id).filter(Boolean) as string[]
+      )];
 
       // Fetch cost codes for display
       const { data: costCodesData } = await supabase
@@ -180,81 +140,29 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       bills.forEach(bill => {
         const matches: POMatch[] = [];
 
-      // Build a lookup: project_id + vendor_id + cost_code_id -> array of PO data (for auto-matching)
-      const poLookup = new Map<string, Array<{
-        po_id: string;
-        po_number: string;
-        po_amount: number;
-        cost_code_id: string;
-        cost_code_display: string;
-      }>>();
-
-      (pos || []).forEach(po => {
-        const key = `${po.project_id}|${po.company_id}|${po.cost_code_id}`;
-        const ccData = costCodeLookup.get(po.cost_code_id || '');
-        const entry = {
-          po_id: po.id,
-          po_number: po.po_number || 'Unknown',
-          po_amount: po.total_amount || 0,
-          cost_code_id: po.cost_code_id || '',
-          cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
-        };
-        const existing = poLookup.get(key) || [];
-        existing.push(entry);
-        poLookup.set(key, existing);
-      });
-
-
-        // Also check lines with explicit purchase_order_id
         const allLines = bill.bill_lines || [];
         
         allLines.forEach(line => {
-          // Skip lines with __none__ — user explicitly chose no PO
-          if (line.purchase_order_id === '__none__') return;
-          // Skip lines with no cost code and no explicit PO
-          if (!line.cost_code_id && (!line.purchase_order_id || line.purchase_order_id === '__auto__')) return;
+          // Only process lines with an explicit, non-sentinel purchase_order_id.
+          // Lines with null, __none__, or __auto__ are intentionally skipped —
+          // the PO Status Summary reflects only what is explicitly saved in the DB.
+          if (!line.purchase_order_id || line.purchase_order_id === '__none__' || line.purchase_order_id === '__auto__') return;
           
           let poData: { po_id: string; po_number: string; po_amount: number; cost_code_id: string; cost_code_display: string } | undefined;
           let billedKey: string | undefined;
           
-          if (line.purchase_order_id && line.purchase_order_id !== '__auto__') {
-            // Priority 1: Explicit PO link — look up by PO ID directly
-            const explicitPo = pos.find(p => p.id === line.purchase_order_id);
-            if (explicitPo) {
-              const ccData = costCodeLookup.get(explicitPo.cost_code_id || '');
-              poData = {
-                po_id: explicitPo.id,
-                po_number: explicitPo.po_number || 'Unknown',
-                po_amount: explicitPo.total_amount || 0,
-                cost_code_id: explicitPo.cost_code_id || '',
-                cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
-              };
-              billedKey = explicitPo.id;
-            }
-          } else if (line.cost_code_id && bill.project_id) {
-            // Priority 2: Auto-match by composite key — returns array of all POs
-            const key = `${bill.project_id}|${bill.vendor_id}|${line.cost_code_id}`;
-            const poDataArray = poLookup.get(key);
-            if (poDataArray) {
-              poDataArray.forEach(pd => {
-                if (!matches.find(m => m.po_id === pd.po_id)) {
-                  const totalBilled = billedLookup.get(pd.po_id) || 0;
-                  const remaining = pd.po_amount - totalBilled;
-                  const status: 'matched' | 'over_po' = remaining >= 0 ? 'matched' : 'over_po';
-                  matches.push({
-                    po_id: pd.po_id,
-                    po_number: pd.po_number,
-                    po_amount: pd.po_amount,
-                    total_billed: totalBilled,
-                    remaining,
-                    status,
-                    cost_code_id: pd.cost_code_id,
-                    cost_code_display: pd.cost_code_display
-                  });
-                }
-              });
-              return; // skip the single-PO block below
-            }
+          // Explicit PO link — look up by PO ID directly
+          const explicitPo = pos.find(p => p.id === line.purchase_order_id);
+          if (explicitPo) {
+            const ccData = costCodeLookup.get(explicitPo.cost_code_id || '');
+            poData = {
+              po_id: explicitPo.id,
+              po_number: explicitPo.po_number || 'Unknown',
+              po_amount: explicitPo.total_amount || 0,
+              cost_code_id: explicitPo.cost_code_id || '',
+              cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
+            };
+            billedKey = explicitPo.id;
           }
           
           if (poData && !matches.find(m => m.po_id === poData!.po_id)) {
