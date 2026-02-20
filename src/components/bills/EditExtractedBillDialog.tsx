@@ -27,6 +27,7 @@ import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bi
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
+import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
 // Normalize terms from any format to standardized dropdown values
@@ -685,7 +686,7 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
-            purchase_order_id: line.purchase_order_id,
+            purchase_order_id: sanitizePoId(line.purchase_order_id),
             lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
@@ -703,7 +704,7 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
-            purchase_order_id: line.purchase_order_id,
+            purchase_order_id: sanitizePoId(line.purchase_order_id),
             lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,

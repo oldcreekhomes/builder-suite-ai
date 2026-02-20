@@ -26,6 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
+import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
 
@@ -475,8 +476,8 @@ export function ManualBillEntry() {
           cost_code_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           lot_id: row.lotId || singleLotId || undefined,
-          purchase_order_id: row.purchaseOrderId || undefined,
-          purchase_order_line_id: row.purchaseOrderLineId || undefined,
+          purchase_order_id: sanitizePoId(row.purchaseOrderId),
+          purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -489,8 +490,8 @@ export function ManualBillEntry() {
           account_id: row.accountId || undefined,
           project_id: row.projectId || projectId || undefined,
           lot_id: row.lotId || singleLotId || undefined,
-          purchase_order_id: row.purchaseOrderId || undefined,
-          purchase_order_line_id: row.purchaseOrderLineId || undefined,
+          purchase_order_id: sanitizePoId(row.purchaseOrderId),
+          purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
