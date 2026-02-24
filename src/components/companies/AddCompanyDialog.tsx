@@ -41,7 +41,7 @@ import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetecti
 import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
 import { Search } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
-import { normalizeServiceAreas } from "@/lib/serviceArea";
+import { normalizeServiceAreas, inferServiceAreaFromAddress } from "@/lib/serviceArea";
 
 // Helper function to parse address components from Google Places
 const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
@@ -285,7 +285,13 @@ export function AddCompanyDialog({
         phone_number: data.phone_number || null,
         website: data.website || null,
         home_builder_id: homeBuilderIdToUse,
-        service_areas: normalizeServiceAreas(selectedServiceAreas),
+        service_areas: normalizeServiceAreas(selectedServiceAreas).length > 0
+          ? normalizeServiceAreas(selectedServiceAreas)
+          : [inferServiceAreaFromAddress({
+              state: data.state,
+              city: data.city,
+              address_line_1: data.address_line_1,
+            }) ?? "Washington, DC"],
       };
       console.log('Inserting company data:', insertData);
 
