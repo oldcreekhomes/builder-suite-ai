@@ -1,86 +1,64 @@
 
 
-## Service Area Tagging System
+## Move Service Areas to a Dropdown Next to Company Type
 
-### Overview
+### What Changes
 
-Add a `service_areas` text array column to the `companies` table so each subcontractor/vendor can be tagged with the regions they serve (e.g., "Northern Virginia", "Outer Banks, NC"). Then, add a `region` text field to the `projects` table so each project is tagged with its area. When adding companies to bid packages, the list will be filtered to only show companies whose service areas include the project's region.
+The "Service Areas" field will be moved from the bottom of the Company Information tab to sit **right next to "Company Type"** in the same row. It will change from the current free-text multi-tag input to a **simple multi-select dropdown** with two predefined options:
 
-### How It Works for You
+- Washington, DC
+- Outer Banks, NC
 
-1. **Projects get a region tag** -- When creating/editing a project, you pick or type a region like "Northern Virginia" or "Outer Banks, NC".
-2. **Companies get service area tags** -- When creating/editing a company, you add one or more service areas (same region names). Existing companies can be bulk-tagged.
-3. **Bid package filtering is automatic** -- The "Add Companies to Bid Package" modal only shows companies whose service areas overlap with the project's region. A toggle lets you override and see all companies if needed.
+This applies to both the **Edit Company** and **Add Company** dialogs.
 
-No Google Maps API calls are needed. This is pure database filtering.
+### Layout (Before vs After)
 
-### Your Current Data
-
-| Region | Projects | Companies |
-|--------|----------|-----------|
-| Northern Virginia / DC / MD | ~30 projects (Alexandria, Arlington, etc.) | ~56 companies (VA, MD, DC) |
-| Outer Banks, NC | 1 project (Nags Head) | ~27 companies (NC) |
-
-### Database Changes
-
-**1. Add `service_areas` column to `companies` table:**
-
-```sql
-ALTER TABLE companies ADD COLUMN service_areas text[] DEFAULT '{}';
+**Before:**
+```text
+| Company Name          | Company Type     |
+| [Address fields...]                      |
+| Phone Number          | Website          |
+| Associated Cost Codes                    |
+| Service Areas (free-text tag input)      |
 ```
 
-**2. Add `region` column to `projects` table:**
-
-```sql
-ALTER TABLE projects ADD COLUMN region text;
+**After:**
+```text
+| Company Name          | Company Type     | Service Area     |
+| [Address fields...]                                        |
+| Phone Number          | Website                             |
+| Associated Cost Codes                                      |
 ```
 
-**3. Auto-populate existing data based on state:**
+The top row changes from a 2-column grid to a **3-column grid** to fit Company Name, Company Type, and Service Area side by side.
 
+### Technical Details
+
+**Files to modify:**
+
+1. **`src/components/companies/EditCompanyDialog.tsx`**
+   - Change the top `grid grid-cols-2` (line 451) to `grid grid-cols-3`
+   - Add a Service Area dropdown (using existing Select component) right after Company Type, inside that same grid row
+   - Remove the standalone "Service Areas" section at the bottom (lines 574-583)
+   - The dropdown will allow multiple selections displayed as badges, with "Washington, DC" and "Outer Banks, NC" as options
+
+2. **`src/components/companies/AddCompanyDialog.tsx`**
+   - Same changes: move Service Area into the top row as a 3rd column dropdown
+   - Remove the standalone section at the bottom
+
+3. **`src/components/companies/ServiceAreaSelector.tsx`**
+   - Rewrite to be a simple multi-select dropdown with the two predefined regions instead of the current free-text tag input
+   - Keep the same props interface (`selectedAreas`, `onAreasChange`) so no other code changes are needed
+
+### Data Mapping
+
+The existing database values "Northern Virginia" will be mapped to "Washington, DC" in the migration to match the new naming. A small SQL update will handle this:
 ```sql
--- Tag VA/MD/DC companies as "Northern Virginia"
-UPDATE companies
-SET service_areas = ARRAY['Northern Virginia']
-WHERE state IN ('VA', 'MD', 'DC') AND archived_at IS NULL;
+UPDATE companies 
+SET service_areas = array_replace(service_areas, 'Northern Virginia', 'Washington, DC');
 
--- Tag NC companies as "Outer Banks, NC"
-UPDATE companies
-SET service_areas = ARRAY['Outer Banks, NC']
-WHERE state = 'NC' AND archived_at IS NULL;
-
--- Tag projects by address
-UPDATE projects
-SET region = 'Northern Virginia'
-WHERE address ILIKE '%VA%' OR address ILIKE '%Arlington%' OR address ILIKE '%Alexandria%' OR address ILIKE '%McLean%' OR address ILIKE '%Falls Church%';
-
-UPDATE projects
-SET region = 'Outer Banks, NC'
-WHERE address ILIKE '%NC%' OR address ILIKE '%Nags Head%';
+UPDATE projects 
+SET region = 'Washington, DC' 
+WHERE region = 'Northern Virginia';
 ```
-
-### Code Changes
-
-**File: `src/components/companies/AddCompanyDialog.tsx`**
-- Add a "Service Areas" multi-tag input (similar to cost codes) on the Company Info tab.
-- Use a predefined list of regions derived from existing project regions, plus allow custom entries.
-
-**File: `src/components/companies/EditCompanyDialog.tsx`**
-- Add the same Service Areas field for editing existing companies.
-
-**File: `src/components/bidding/AddCompaniesToBidPackageModal.tsx`**
-- Look up the project's `region` field.
-- Filter the `company_cost_codes` query results to only include companies whose `service_areas` array contains the project's region.
-- Add a small "Show all companies" toggle/checkbox that removes the filter when checked.
-
-**File: `src/pages/ProjectDetails.tsx` (or project creation/edit form)**
-- Add a "Region" dropdown/input field to project settings.
-
-**File: `src/components/companies/CompaniesTable.tsx`**
-- Display service areas as badges in the table (optional, low priority).
-
-### What You'll See
-
-- When you open a bid package for the Nags Head project and click "Add Companies," you'll only see your NC subs -- not the 50+ Virginia ones.
-- When you open a bid package for an Arlington project, you'll only see your VA/MD/DC subs.
-- A "Show all" toggle is available if you ever need to cross-assign.
 
