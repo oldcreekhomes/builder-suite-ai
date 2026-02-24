@@ -1,64 +1,55 @@
 
 
-## Simplified PO Matching: Suggest Once, Persist Forever
+## Fix: A/P Aging Email Report Not Filtering by As-Of Date
 
-### The Simple Rule
+### Problem
+The "Send Reports" dialog generates the A/P Aging PDF using a query that fetches **all open bills regardless of date**. This is why the emailed report shows $120,669.35 (including bills from Oct 2025 through Feb 2026) instead of the correct $12,391.77 (only bills on or before Sep 30, 2025).
 
-PO suggestions happen at **two entry points only**: "Enter Manually" and "Enter with AI." After that, whatever is saved on the bill line (`purchase_order_id`) is the single source of truth -- no re-inference, no fallback guessing.
+The on-screen Accounts Payable tab works correctly because it applies `.lte('bill_date', asOfDateStr)` and uses the predecessor chain logic for accurate payment attribution. The email report skips both of these.
 
-### Current Problems
+### Root Cause (SendReportsDialog.tsx, lines 644-658)
+The bill query is missing the date filter:
+```
+.eq('project_id', projectId)
+.in('status', ['posted', 'paid'])
+.eq('is_reversal', false)
+.is('reversed_by_id', null)
+// MISSING: .lte('bill_date', asOfDateStr)
+```
 
-1. **`useBillPOMatching.ts`** (used by Approved/Posted/Paid tabs) has a **fallback auto-match** (lines 91-206) that re-infers PO matches at display time using vendor + project + cost_code. This causes every bill with a matching cost code to show "Matched" even when no PO was ever assigned.
+It also lacks:
+- The predecessor chain logic (mapping payments from reversed bills to their active successors)
+- As-of-date-aware payment calculation (payments made after the as-of date should not reduce the open balance)
+- Lot filtering (the on-screen report filters by lot, but the email version does not)
 
-2. **`usePendingBillPOStatus.ts`** (used by Review tab) does the same inference for pending bills -- it never checks `purchase_order_id` on `pending_bill_lines`, it just guesses from cost codes.
+### Solution
+Port the exact query and calculation logic from `AccountsPayableContent.tsx` into `SendReportsDialog.tsx` so the emailed PDF matches the on-screen report exactly.
 
-3. These two hooks use **different logic**, so statuses can differ between tabs.
+### Changes to `src/components/accounting/SendReportsDialog.tsx`
 
-### The Fix (3 Changes)
+**1. Add date filter to the bills query (line 658)**
+Add `.lte('bill_date', asOfDateStr)` to only include bills dated on or before the as-of date.
 
-#### 1. Remove all inference from `useBillPOMatching.ts`
+**2. Add predecessor chain logic for payment attribution**
+Port the predecessor map logic from `AccountsPayableContent.tsx` (lines 110-175) that:
+- Fetches reversed bills and maps them by reference number to active successors
+- Queries journal entries (bill payments) to calculate actual payments made on or before the as-of date
+- Sums ALL debit lines in payment journal entries (to account for multi-lot splits)
+- Attributes payments from predecessor (reversed) bill IDs to their active successors
 
-- Delete lines 64-122 (the entire fallback auto-match block: `unmatchedCostCodeIds`, `fallbackPos`, `fallbackMap`, merging fallback POs)
-- Delete lines 199-206 (the fallback resolution inside the per-line loop)
-- Only explicit `purchase_order_id` values on `bill_lines` drive status
-- Result: if `purchase_order_id` is NULL on a bill line, that line is "not matched" -- period
+**3. Calculate open balance using as-of-date-aware payments**
+Instead of using `bill.total_amount - bill.amount_paid` (which reflects current payment state, not as-of-date state), calculate open balance as `bill.total_amount - paymentsAsOfDate` using the journal-entry-derived payment totals.
 
-#### 2. Replace `usePendingBillPOStatus.ts` with explicit-only logic
+**4. Filter out fully-paid-as-of-date bills**
+After recalculating open balances, exclude bills where the as-of-date open balance is less than or equal to $0.01.
 
-- Instead of querying `project_purchase_orders` and inferring, simply read `purchase_order_id` from `pending_bill_lines`
-- A pending bill line with `purchase_order_id` set = matched; without = not matched
-- This means status in the Review tab matches exactly what was saved during the "Enter with AI" or "Enter Manually" step
-
-#### 3. Keep the suggestion engine only in entry dialogs (no changes needed)
-
-- **`EditExtractedBillDialog.tsx`** (AI entry): Already auto-matches using the smart scoring engine and persists `purchase_order_id` to `pending_bill_lines` (lines 470-485). This is correct -- it suggests at entry time and saves.
-- **`ManualBillEntry.tsx`** (Manual entry): Already uses `getBestPOLineMatch` and saves `purchase_order_id` on bill lines at submission. This is correct.
-- **No changes needed** to these entry points -- they already suggest and persist.
-
-### What This Achieves
-
-- **Enter Manually / Enter with AI**: System suggests PO matches and saves them to the database
-- **Review tab**: Shows exactly what was saved -- no guessing
-- **Approved / Posted / Paid tabs**: Shows exactly what was saved -- no guessing
-- **User edits a PO in any tab**: The edit saves `purchase_order_id` to the database, overriding the original suggestion
-- **Same status everywhere**: Because every tab reads the same column (`purchase_order_id`) from the database
-
-### What Happens to Existing Bills
-
-Bills that currently show "Matched" due to inference (like the Ocean Watch / ABC Supply ones) will correctly flip to **"No PO"** because they have `purchase_order_id = NULL` in the database. This is the correct behavior -- they were never actually linked.
-
-### Files Modified
-
+### File Modified
 | File | Change |
 |------|--------|
-| `src/hooks/useBillPOMatching.ts` | Remove fallback inference block; only use explicit `purchase_order_id` |
-| `src/hooks/usePendingBillPOStatus.ts` | Rewrite to check `purchase_order_id` on `pending_bill_lines` instead of inferring from cost codes |
+| `src/components/accounting/SendReportsDialog.tsx` | Replace the AP aging generation block (lines ~644-712) with the full date-aware, predecessor-chain-aware logic from AccountsPayableContent.tsx |
 
-### Files NOT Modified (already correct)
-
-| File | Why |
-|------|-----|
-| `src/components/bills/EditExtractedBillDialog.tsx` | Already suggests and persists PO at AI entry time |
-| `src/components/bills/ManualBillEntry.tsx` | Already suggests and persists PO at manual entry time |
-| `src/hooks/usePendingBills.ts` | `autoPopulatePOIds` helper can be removed since we no longer need last-minute inference at approval time |
+### Expected Result
+- Emailed A/P Aging PDF for "923 17th St" as of Sep 30, 2025 will show $12,391.77 -- matching the Balance Sheet and the on-screen Accounts Payable tab exactly.
+- Bills dated after the as-of date (Oct 2025 onward) will be excluded.
+- Payments made after the as-of date will not reduce open balances.
 
