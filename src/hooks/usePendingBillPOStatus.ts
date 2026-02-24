@@ -20,9 +20,9 @@ export interface POStatusResult {
 }
 
 /**
- * Hook that determines PO status for pending/extracted bills by checking:
- * 1. Explicit purchase_order_id on pending_bill_lines (set via Edit dialog)
- * 2. Auto-match against project_purchase_orders using vendor + project + cost_code
+ * Hook that determines PO status for pending/extracted bills by checking
+ * explicit purchase_order_id on pending_bill_lines.
+ * No inference or auto-matching -- only persisted links count.
  *
  * Returns a Map of bill_id -> POStatusResult (status + matched PO IDs)
  */
@@ -30,39 +30,9 @@ export function usePendingBillPOStatus(
   bills: PendingBillForStatus[],
   projectId: string | undefined
 ) {
-  // Collect unique vendor+cost_code combos for the query
-  const vendorIds = [...new Set(bills.map(b => b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId).filter(Boolean))] as string[];
-  const costCodeIds = [...new Set(
-    bills.flatMap(b => b.lines?.map(l => l.cost_code_id).filter(Boolean) || [])
-  )] as string[];
-
   return useQuery({
-    queryKey: ['pending-bill-po-status', projectId, vendorIds.sort().join(','), costCodeIds.sort().join(',')],
+    queryKey: ['pending-bill-po-status', projectId, bills.map(b => b.id).sort().join(',')],
     queryFn: async () => {
-      if (!projectId || !vendorIds.length || !costCodeIds.length) {
-        return new Map<string, POStatusResult>();
-      }
-
-      // Fetch POs matching vendor + project + cost_code
-      const { data: pos, error } = await supabase
-        .from('project_purchase_orders')
-        .select('id, company_id, cost_code_id')
-        .eq('project_id', projectId)
-        .in('company_id', vendorIds)
-        .in('cost_code_id', costCodeIds);
-
-      if (error) throw error;
-
-      // Build a map of "vendor_id|cost_code_id" -> PO IDs
-      const poKeyMap = new Map<string, string[]>();
-      (pos || []).forEach(po => {
-        const key = `${po.company_id}|${po.cost_code_id}`;
-        const existing = poKeyMap.get(key) || [];
-        existing.push(po.id);
-        poKeyMap.set(key, existing);
-      });
-
-      // Now determine status for each bill
       const resultMap = new Map<string, POStatusResult>();
 
       bills.forEach(bill => {
@@ -72,49 +42,17 @@ export function usePendingBillPOStatus(
           return;
         }
 
-        // Check explicit links first
-        const explicitPoIds = [...new Set(lines.map(l => l.purchase_order_id).filter(Boolean))] as string[];
-        const hasExplicitAll = lines.every(l => l.purchase_order_id);
-        const hasExplicitAny = lines.some(l => l.purchase_order_id);
+        const explicitPoIds = [...new Set(
+          lines.map(l => l.purchase_order_id).filter(Boolean)
+        )] as string[];
 
-        if (hasExplicitAll) {
+        const hasAllLinked = lines.every(l => l.purchase_order_id);
+        const hasSomeLinked = lines.some(l => l.purchase_order_id);
+
+        if (hasAllLinked) {
           resultMap.set(bill.id, { status: 'matched', poIds: explicitPoIds });
-          return;
-        }
-        if (hasExplicitAny) {
+        } else if (hasSomeLinked) {
           resultMap.set(bill.id, { status: 'partial', poIds: explicitPoIds });
-          return;
-        }
-
-        // Auto-match: check if cost codes have matching POs for this vendor
-        const effectiveVendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
-        if (!effectiveVendorId) {
-          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
-          return;
-        }
-
-        const linesWithCostCode = lines.filter(l => l.cost_code_id);
-        if (linesWithCostCode.length === 0) {
-          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
-          return;
-        }
-
-        const matchedPoIds = new Set<string>();
-        let matchedCount = 0;
-        linesWithCostCode.forEach(l => {
-          const key = `${effectiveVendorId}|${l.cost_code_id}`;
-          const ids = poKeyMap.get(key);
-          if (ids && ids.length > 0) {
-            matchedCount++;
-            ids.forEach(id => matchedPoIds.add(id));
-          }
-        });
-
-        const poIdArray = [...matchedPoIds];
-        if (matchedCount === linesWithCostCode.length) {
-          resultMap.set(bill.id, { status: 'matched', poIds: poIdArray });
-        } else if (matchedCount > 0) {
-          resultMap.set(bill.id, { status: 'partial', poIds: poIdArray });
         } else {
           resultMap.set(bill.id, { status: 'no_po', poIds: [] });
         }

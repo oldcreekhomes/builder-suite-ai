@@ -61,21 +61,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         ) || [])
       )] as string[];
 
-      // Also collect vendor + project + cost_code combos for fallback auto-matching
-      // (for lines that have no explicit purchase_order_id)
-      const unmatchedCostCodeIds = [...new Set(
-        bills.flatMap(b =>
-          (b.bill_lines || [])
-            .filter(l => !l.purchase_order_id || l.purchase_order_id === '__auto__' || l.purchase_order_id === '__none__')
-            .map(l => l.cost_code_id)
-            .filter(Boolean)
-        )
-      )] as string[];
-
-      const vendorIds = [...new Set(bills.map(b => b.vendor_id).filter(Boolean))] as string[];
-      const projectIds = [...new Set(
-        bills.map(b => b.project_id).filter(Boolean)
-      )] as string[];
+      // No fallback inference -- only explicit purchase_order_id links drive status
 
       // Fetch explicitly linked POs
       let pos: Array<{ id: string; po_number: string | null; total_amount: number | null; project_id: string | null; company_id: string | null; cost_code_id: string | null }> = [];
@@ -87,39 +73,6 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         if (error) throw error;
         pos = data || [];
       }
-
-      // Fetch fallback auto-matched POs (vendor + project + cost_code)
-      let fallbackPos: typeof pos = [];
-      if (unmatchedCostCodeIds.length && vendorIds.length && projectIds.length) {
-        const { data, error } = await supabase
-          .from('project_purchase_orders')
-          .select(`id, po_number, total_amount, project_id, company_id, cost_code_id`)
-          .in('company_id', vendorIds)
-          .in('project_id', projectIds)
-          .in('cost_code_id', unmatchedCostCodeIds);
-        if (error) throw error;
-        fallbackPos = data || [];
-      }
-
-      // Build fallback lookup: "vendor_id|project_id|cost_code_id" -> PO
-      const fallbackMap = new Map<string, typeof pos[0]>();
-      fallbackPos.forEach(po => {
-        if (po.company_id && po.project_id && po.cost_code_id) {
-          const key = `${po.company_id}|${po.project_id}|${po.cost_code_id}`;
-          if (!fallbackMap.has(key)) {
-            fallbackMap.set(key, po);
-          }
-        }
-      });
-
-      // Merge fallback POs into the main PO list (deduped)
-      const allPoIds = new Set(pos.map(p => p.id));
-      fallbackPos.forEach(po => {
-        if (!allPoIds.has(po.id)) {
-          pos.push(po);
-          allPoIds.add(po.id);
-        }
-      });
 
       // Collect cost code IDs from all POs (for display labels)
       const allCostCodeIds = [...new Set(
@@ -194,15 +147,6 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           // Skip sentinel values
           if (resolvedPoId === '__none__' || resolvedPoId === '__auto__') {
             resolvedPoId = undefined;
-          }
-          
-          // Fallback: if no explicit PO, try vendor + project + cost_code match
-          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
-            const key = `${bill.vendor_id}|${bill.project_id}|${line.cost_code_id}`;
-            const fallbackPo = fallbackMap.get(key);
-            if (fallbackPo) {
-              resolvedPoId = fallbackPo.id;
-            }
           }
           
           if (!resolvedPoId) return;

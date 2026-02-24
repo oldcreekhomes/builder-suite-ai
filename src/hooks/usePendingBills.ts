@@ -40,60 +40,6 @@ export interface PendingBillLine {
   updated_at: string;
 }
 
-/**
- * Before approval, auto-populate purchase_order_id on pending_bill_lines
- * that don't already have one, by matching vendor + project + cost_code
- * against project_purchase_orders. This ensures PO status persists through approval.
- */
-async function autoPopulatePOIds(
-  pendingUploadId: string,
-  vendorId: string,
-  projectId: string
-) {
-  // 1. Fetch lines without a purchase_order_id that have a cost_code_id
-  const { data: lines, error: linesError } = await supabase
-    .from("pending_bill_lines")
-    .select("id, cost_code_id, purchase_order_id")
-    .eq("pending_upload_id", pendingUploadId);
-
-  if (linesError || !lines) return;
-
-  const unmatchedLines = lines.filter(l => l.cost_code_id && !l.purchase_order_id);
-  if (unmatchedLines.length === 0) return;
-
-  const costCodeIds = [...new Set(unmatchedLines.map(l => l.cost_code_id!))] as string[];
-
-  // 2. Find matching POs for this vendor + project + cost codes
-  const { data: pos, error: posError } = await supabase
-    .from("project_purchase_orders")
-    .select("id, cost_code_id")
-    .eq("project_id", projectId)
-    .eq("company_id", vendorId)
-    .in("cost_code_id", costCodeIds);
-
-  if (posError || !pos || pos.length === 0) return;
-
-  // Build cost_code_id -> first matching PO id
-  const poMap = new Map<string, string>();
-  pos.forEach(po => {
-    if (po.cost_code_id && !poMap.has(po.cost_code_id)) {
-      poMap.set(po.cost_code_id, po.id);
-    }
-  });
-
-  // 3. Update each unmatched line with its PO
-  const updates = unmatchedLines
-    .filter(l => poMap.has(l.cost_code_id!))
-    .map(l =>
-      supabase
-        .from("pending_bill_lines")
-        .update({ purchase_order_id: poMap.get(l.cost_code_id!) })
-        .eq("id", l.id)
-    );
-
-  await Promise.all(updates);
-}
-
 export const usePendingBills = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -250,8 +196,8 @@ export const usePendingBills = () => {
       notes?: string;
       reviewNotes?: string;
     }) => {
-      // Auto-populate purchase_order_id on pending_bill_lines before approval
-      await autoPopulatePOIds(pendingUploadId, vendorId, projectId);
+
+
 
       const { data, error } = await supabase.rpc("approve_pending_bill", {
         pending_upload_id_param: pendingUploadId,
@@ -339,8 +285,8 @@ export const usePendingBills = () => {
 
       for (const bill of bills) {
         try {
-          // Auto-populate purchase_order_id on pending_bill_lines before approval
-          await autoPopulatePOIds(bill.pendingUploadId, bill.vendorId, bill.projectId);
+
+
 
           const { data, error } = await supabase.rpc("approve_pending_bill", {
             pending_upload_id_param: bill.pendingUploadId,

@@ -75,19 +75,7 @@ export function BillPOSummaryDialog({
   };
 
   const derivedPendingBillLines = (bill?.bill_lines || []).map(l => {
-    let poId = l.purchase_order_id || undefined;
-    // Infer purchase_order_id from matches or vendorPOs when missing
-    if (!poId && l.cost_code_id) {
-      const match = matches.find(m => m.cost_code_id === l.cost_code_id);
-      if (match) {
-        poId = match.po_id;
-      } else if (vendorPOs) {
-        const vendorMatch = vendorPOs.find(po =>
-          po.line_items?.some((pli: any) => pli.cost_code_id === l.cost_code_id)
-        );
-        if (vendorMatch) poId = vendorMatch.id;
-      }
-    }
+    const poId = l.purchase_order_id || undefined;
     return {
       cost_code_id: l.cost_code_id || undefined,
       amount: l.amount || 0,
