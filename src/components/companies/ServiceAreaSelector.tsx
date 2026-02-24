@@ -1,119 +1,67 @@
-import { useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import { X, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { X, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface ServiceAreaSelectorProps {
   selectedAreas: string[];
   onAreasChange: (areas: string[]) => void;
 }
 
-// Fetch distinct service areas already in use
-function useExistingServiceAreas() {
-  return useQuery({
-    queryKey: ["distinct-service-areas"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("companies")
-        .select("service_areas")
-        .not("service_areas", "eq", "{}");
-
-      if (error) throw error;
-
-      const areaSet = new Set<string>();
-      for (const row of data || []) {
-        const areas = row.service_areas as string[] | null;
-        if (areas) {
-          for (const a of areas) areaSet.add(a);
-        }
-      }
-
-      // Also pull distinct regions from projects
-      const { data: projectData } = await supabase
-        .from("projects")
-        .select("region")
-        .not("region", "is", null);
-
-      for (const row of projectData || []) {
-        if (row.region) areaSet.add(row.region);
-      }
-
-      return Array.from(areaSet).sort();
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
+const SERVICE_AREAS = ["Washington, DC", "Outer Banks, NC"] as const;
 
 export function ServiceAreaSelector({ selectedAreas, onAreasChange }: ServiceAreaSelectorProps) {
-  const [inputValue, setInputValue] = useState("");
-  const { data: existingAreas = [] } = useExistingServiceAreas();
-
-  const addArea = useCallback((area: string) => {
-    const trimmed = area.trim();
-    if (trimmed && !selectedAreas.includes(trimmed)) {
-      onAreasChange([...selectedAreas, trimmed]);
+  const toggleArea = useCallback((area: string) => {
+    if (selectedAreas.includes(area)) {
+      onAreasChange(selectedAreas.filter(a => a !== area));
+    } else {
+      onAreasChange([...selectedAreas, area]);
     }
-    setInputValue("");
   }, [selectedAreas, onAreasChange]);
-
-  const removeArea = useCallback((area: string) => {
-    onAreasChange(selectedAreas.filter(a => a !== area));
-  }, [selectedAreas, onAreasChange]);
-
-  const suggestions = existingAreas.filter(
-    a => !selectedAreas.includes(a) && a.toLowerCase().includes(inputValue.toLowerCase())
-  );
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 min-h-[28px]">
-        {selectedAreas.map(area => (
-          <Badge key={area} variant="secondary" className="gap-1 text-xs">
-            {area}
-            <X className="h-3 w-3 cursor-pointer" onClick={() => removeArea(area)} />
-          </Badge>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Input
-          placeholder="Type a service area..."
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              if (inputValue.trim()) addArea(inputValue);
-            }
-          }}
-          className="text-sm"
-        />
+    <Popover>
+      <PopoverTrigger asChild>
         <Button
-          type="button"
-          size="sm"
           variant="outline"
-          onClick={() => { if (inputValue.trim()) addArea(inputValue); }}
-          disabled={!inputValue.trim()}
+          role="combobox"
+          className="w-full justify-between h-10 font-normal"
         >
-          <Plus className="h-4 w-4" />
+          {selectedAreas.length > 0 ? (
+            <div className="flex flex-wrap gap-1 overflow-hidden">
+              {selectedAreas.map(area => (
+                <Badge key={area} variant="secondary" className="text-xs gap-1">
+                  {area}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleArea(area);
+                    }}
+                  />
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <span className="text-muted-foreground">Select areas...</span>
+          )}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
-      </div>
-      {inputValue && suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {suggestions.slice(0, 5).map(area => (
-            <Badge
-              key={area}
-              variant="outline"
-              className="cursor-pointer text-xs hover:bg-muted"
-              onClick={() => addArea(area)}
-            >
-              + {area}
-            </Badge>
-          ))}
-        </div>
-      )}
-    </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-1 bg-popover z-50" align="start">
+        {SERVICE_AREAS.map(area => (
+          <div
+            key={area}
+            className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+            onClick={() => toggleArea(area)}
+          >
+            <Check className={cn("h-4 w-4", selectedAreas.includes(area) ? "opacity-100" : "opacity-0")} />
+            {area}
+          </div>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }

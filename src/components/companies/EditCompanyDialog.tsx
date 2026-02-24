@@ -448,7 +448,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               </TabsList>
               
               <TabsContent value="company-info" className="space-y-6 mt-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="company_name"
@@ -500,8 +500,15 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                       </FormItem>
                     )}
                   />
-                </div>
 
+                  <div className="space-y-2">
+                    <FormLabel>Service Area</FormLabel>
+                    <ServiceAreaSelector
+                      selectedAreas={selectedServiceAreas}
+                      onAreasChange={setSelectedServiceAreas}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -571,16 +578,6 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <FormLabel>Service Areas</FormLabel>
-                  <ServiceAreaSelector
-                    selectedAreas={selectedServiceAreas}
-                    onAreasChange={setSelectedServiceAreas}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Tag regions this company serves (e.g., "Northern Virginia", "Outer Banks, NC")
-                  </p>
-                </div>
               </TabsContent>
               
               <TabsContent value="representatives" className="space-y-6 mt-6">
