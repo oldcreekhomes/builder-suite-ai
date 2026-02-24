@@ -641,6 +641,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
       if (reports.accountsPayable && projectId) {
         console.log('📊 Generating Accounts Payable PDF for project:', projectId);
 
+        // Step 1: Fetch bills dated on or before the as-of date
         const { data: bills, error: billsError } = await supabase
           .from('bills')
           .select(`
@@ -655,20 +656,79 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           .eq('project_id', projectId)
           .in('status', ['posted', 'paid'])
           .eq('is_reversal', false)
-          .is('reversed_by_id', null);
+          .is('reversed_by_id', null)
+          .lte('bill_date', asOfDateStr);
 
         if (billsError) {
           console.error('📊 A/P PDF: Bills query failed:', billsError);
           throw billsError;
         }
 
-        // Filter to only open bills (amount_paid < total_amount)
-        const openBills = bills?.filter(bill => {
-          const openBalance = bill.total_amount - bill.amount_paid;
-          return openBalance > 0.01;
-        }) || [];
+        const allBills = bills || [];
+        const activeBillIds = allBills.map(b => b.id);
 
-        console.log(`📊 A/P PDF: Found ${openBills.length} open bills`);
+        // Step 2: Build predecessor map (old reversed bill -> active bill)
+        const { data: reversedBills } = await supabase
+          .from('bills')
+          .select('id, reversed_by_id, reference_number')
+          .eq('project_id', projectId)
+          .not('reversed_by_id', 'is', null)
+          .eq('is_reversal', false);
+
+        const activeByRef: Record<string, string> = {};
+        allBills.forEach(b => {
+          if (b.reference_number) {
+            activeByRef[b.reference_number] = b.id;
+          }
+        });
+
+        const predecessorToActive: Record<string, string> = {};
+        const predecessorIds: string[] = [];
+        (reversedBills || []).forEach((rb: any) => {
+          if (!activeBillIds.includes(rb.id) && rb.reference_number) {
+            const activeId = activeByRef[rb.reference_number];
+            if (activeId) {
+              predecessorIds.push(rb.id);
+              predecessorToActive[rb.id] = activeId;
+            }
+          }
+        });
+
+        // Step 3: Query payment JEs for active AND predecessor bill IDs
+        const allBillIdsForPayments = [...activeBillIds, ...predecessorIds];
+        let paidAsOfDate: Record<string, number> = {};
+
+        if (allBillIdsForPayments.length > 0) {
+          const { data: paymentEntries, error: payError } = await supabase
+            .from('journal_entries')
+            .select('source_id, journal_entry_lines!inner(debit)')
+            .eq('source_type', 'bill_payment')
+            .in('source_id', allBillIdsForPayments)
+            .lte('entry_date', asOfDateStr)
+            .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr)
+            .gt('journal_entry_lines.debit', 0);
+
+          if (payError) throw payError;
+
+          (paymentEntries || []).forEach((entry: any) => {
+            const sourceId = entry.source_id;
+            const totalDebit = (entry.journal_entry_lines || []).reduce(
+              (sum: number, line: any) => sum + (line.debit || 0), 0
+            );
+            const targetBillId = predecessorToActive[sourceId] || sourceId;
+            paidAsOfDate[targetBillId] = (paidAsOfDate[targetBillId] || 0) + totalDebit;
+          });
+        }
+
+        // Step 4: Calculate open balance using as-of-date-aware payments
+        const openBills = allBills
+          .map(bill => ({
+            ...bill,
+            amount_paid: paidAsOfDate[bill.id] || 0,
+          }))
+          .filter(bill => (bill.total_amount - bill.amount_paid) > 0.01);
+
+        console.log(`📊 A/P PDF: Found ${openBills.length} open bills as of ${asOfDateStr}`);
 
         // Calculate aging buckets
         const agingBuckets: {
@@ -684,7 +744,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         };
 
         openBills.forEach(bill => {
-          const billDate = new Date(bill.bill_date);
+          const billDate = new Date(bill.bill_date + 'T00:00:00');
           const agingDays = Math.floor((asOfDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
           const openBalance = bill.total_amount - bill.amount_paid;
 
@@ -698,13 +758,13 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             openBalance,
           };
 
-          if (agingDays <= 30) {
+          if (agingDays >= 0 && agingDays <= 30) {
             agingBuckets['1-30'].push(agingBill);
-          } else if (agingDays <= 60) {
+          } else if (agingDays >= 31 && agingDays <= 60) {
             agingBuckets['31-60'].push(agingBill);
-          } else if (agingDays <= 90) {
+          } else if (agingDays >= 61 && agingDays <= 90) {
             agingBuckets['61-90'].push(agingBill);
-          } else {
+          } else if (agingDays > 90) {
             agingBuckets['>90'].push(agingBill);
           }
         });
