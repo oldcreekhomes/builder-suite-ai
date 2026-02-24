@@ -57,7 +57,12 @@ export function ServiceAreaSelector({ selectedAreas, onAreasChange }: ServiceAre
             className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
             onClick={() => toggleArea(area)}
           >
-            <Check className={cn("h-4 w-4", selectedAreas.includes(area) ? "opacity-100" : "opacity-0")} />
+            <input
+              type="checkbox"
+              checked={selectedAreas.includes(area)}
+              readOnly
+              className="h-3.5 w-3.5 rounded border border-input accent-primary cursor-pointer"
+            />
             {area}
           </div>
         ))}
