@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Globe } from 'lucide-react';
 import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
+import { normalizeServiceArea, normalizeServiceAreas } from '@/lib/serviceArea';
 
 interface AddCompaniesToBidPackageModalProps {
   open: boolean;
@@ -81,9 +82,11 @@ export function AddCompaniesToBidPackageModal({
   const filteredCompanies = React.useMemo(() => {
     if (!availableCompanies) return [];
     if (showAll || !projectRegion) return availableCompanies;
+    const normalizedRegion = normalizeServiceArea(projectRegion);
+    if (!normalizedRegion) return availableCompanies;
     return availableCompanies.filter(company => {
-      const areas = (company as any).service_areas as string[] | null;
-      return areas && areas.includes(projectRegion);
+      const areas = normalizeServiceAreas((company as any).service_areas as string[] | null);
+      return areas.includes(normalizedRegion);
     });
   }, [availableCompanies, showAll, projectRegion]);
 
