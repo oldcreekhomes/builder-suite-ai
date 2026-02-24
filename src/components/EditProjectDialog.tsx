@@ -116,8 +116,8 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
           <TabsContent value="details">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-4 gap-4">
-                <div className="col-span-3 space-y-2">
+              <div className="grid grid-cols-8 gap-4">
+                <div className="col-span-5 space-y-2">
                   <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
@@ -126,7 +126,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                     required
                   />
                 </div>
-                <div className="col-span-1 space-y-2">
+                <div className="col-span-3 space-y-2">
                   <Label htmlFor="region">Region</Label>
                   <Select
                     value={formData.region || "no-region"}
