@@ -1,67 +1,107 @@
 
-Goal: make Service Area behavior consistent and strict so only two values exist in practice (“Washington, DC” and “Outer Banks, NC”), and legacy “Northern Virginia” always maps to “Washington, DC”.
+Problem restated in plain language:
+- You expect every company to always show one of only two service areas when editing: “Washington, DC” or “Outer Banks, NC”.
+- Right now some companies (including Kat & Mat Electrical Services and Dulles Geotechnical) open with both boxes blank, which breaks your workflow.
 
-What I verified
-- The Edit Company dialog is loading `service_areas` now, but it uses raw DB values without normalization.
-- The database still contains many legacy values:
-  - `companies.service_areas` has 58 entries with “Northern Virginia”.
-  - `projects.region` has 28 rows with “Northern Virginia”.
-- “Patriot Development Company” and “Dulles Geotechnical…” currently have `service_areas = []`, so no checkbox can be pre-checked for those records until a value is set.
-- Bid package filtering currently does exact string matching (`areas.includes(projectRegion)`), which breaks when one side is “Northern Virginia” and the other is “Washington, DC”.
+What I verified from your live data and code:
+1) The checkbox UI is working; it checks only when `selectedAreas` contains exact canonical values.
+2) For the two companies you named, the database currently has empty service areas:
+   - Kat & Mat Electrical Services → `service_areas = []`
+   - Dulles Geotechnical… → `service_areas = []`
+3) Legacy “Northern Virginia” values were already migrated, so this is no longer a label-mapping issue.
+4) The real root cause is historical data population:
+   - earlier migration auto-filled from `state`, but many companies have `state = null` while the full address text contains `VA`/`NC`.
+   - result: many records stayed empty.
+5) There are still many blank records (`service_areas = []`) in `companies`, so this is systemic, not just two rows.
 
-Implementation approach
-1) Add one shared Service Area normalization utility
-- Create a small helper in `src/lib` (e.g., `serviceArea.ts`) that:
-  - Defines canonical options: `["Washington, DC", "Outer Banks, NC"]`
-  - Maps aliases: `"Northern Virginia" -> "Washington, DC"` (case-insensitive + trimmed handling)
-  - Exposes:
-    - `normalizeServiceArea(area: string): string | null`
-    - `normalizeServiceAreas(areas: string[] | null | undefined): string[]`
-    - `isSameServiceArea(a, b): boolean` (optional convenience)
-- This becomes the single source of truth used everywhere.
+Do I know what the issue is?
+- Yes. The dialog is blank because those records truly have no service area stored, and current dialog initialization does not apply a mandatory fallback when empty.
 
-2) Normalize company data when opening/saving Edit Company
-- In `EditCompanyDialog.tsx`:
-  - On initialization: normalize incoming `company.service_areas` before setting `selectedServiceAreas`.
-  - On submit: normalize + dedupe selected areas before writing to DB.
-- This guarantees old labels still display as checked in the UI and are saved back canonically.
+Implementation plan to make this fully reliable:
 
-3) Normalize company data when creating new companies
-- In `AddCompanyDialog.tsx`:
-  - Normalize + dedupe `selectedServiceAreas` before insert.
-- Prevents any non-canonical values from being newly stored.
+1) Enforce canonical + fallback logic in one shared utility
+- File: `src/lib/serviceArea.ts`
+- Add helpers:
+  - `inferServiceAreaFromAddress({ state, city, address_line_1, address })`
+  - `getCompanyServiceAreasOrDefault(company)` that returns:
+    - normalized existing values when present
+    - otherwise inferred value from address/state
+    - otherwise hard fallback to `["Washington, DC"]`
+- Keep only canonical outputs: `Washington, DC` or `Outer Banks, NC`.
 
-4) Make filtering resilient in bid-package company selection
-- In `AddCompaniesToBidPackageModal.tsx`:
-  - Normalize `projectRegion`.
-  - Normalize each company’s `service_areas`.
-  - Compare canonicalized values instead of raw strings.
-- Result: legacy data and current UI labels match correctly during filtering.
+2) Fix Edit Company initialization so blanks never appear
+- File: `src/components/companies/EditCompanyDialog.tsx`
+- Replace current conditional init:
+  - from “only set selected areas if array length > 0”
+  - to “always set selected areas via new fallback helper”
+- Result:
+  - opening any company always pre-checks one of the two options
+  - Dulles and Kat & Mat will no longer open blank.
 
-5) Constrain project region to canonical choices
-- In `EditProjectDialog.tsx`:
-  - Replace free-text `region` input with a controlled select (plus optional “No region”).
-  - Normalize legacy value on load so “Northern Virginia” displays as “Washington, DC”.
-  - Save only canonical region values.
-- This prevents reintroducing mismatched strings going forward.
+3) Prevent future blank saves
+- File: `src/components/companies/EditCompanyDialog.tsx`
+- On submit, if selected areas are empty, auto-apply fallback from address (or default DC).
+- This guarantees persisted data is never empty again from this dialog.
 
-6) One-time data cleanup in database (data update, not schema change)
-- Run a one-time update to convert historical values:
-  - `companies.service_areas`: replace “Northern Virginia” with “Washington, DC”
-  - `projects.region`: set “Northern Virginia” to “Washington, DC”
-- This aligns historical rows with current UI options and fixes existing records globally.
+4) Apply same safeguard to Add Company
+- File: `src/components/companies/AddCompanyDialog.tsx`
+- Before insert, if no explicit service area selected, apply same fallback logic.
+- Ensures new companies never enter with empty arrays.
 
-7) Validation and QA checklist
-- Edit a company with legacy “Northern Virginia” and confirm “Washington, DC” is checked.
-- Edit/save/reopen same company to confirm persistence remains canonical.
-- Check a company with empty `service_areas` (like Patriot Development): verify no checkbox selected, then set Washington, DC and confirm it persists.
-- Open Add Companies to Bid Package for a project in Washington, DC and confirm previously legacy-tagged companies are included.
-- Edit a project and confirm region selection is limited to valid values.
-- Test the full flow end-to-end in Settings and Bidding screens to confirm behavior is consistent.
+5) One-time database backfill for existing empty companies
+- Add migration to populate all currently empty `service_areas` so legacy rows are corrected immediately.
+- Logic:
+  - if address/state indicates NC/Outer Banks cities → `["Outer Banks, NC"]`
+  - otherwise default to `["Washington, DC"]`
+- This intentionally follows your business rule of only two places and no blanks.
 
-Technical notes
-- This is primarily a data-normalization consistency fix, not a rendering bug.
-- The most robust fix is both:
-  - code-level normalization (defensive + future-proof), and
-  - one-time data cleanup (historical correctness).
-- No table structure changes are needed.
+Proposed SQL (safe one-time backfill for empties):
+```sql
+UPDATE companies
+SET service_areas = CASE
+  WHEN COALESCE(state, '') ILIKE 'NC'
+    OR COALESCE(address_line_1, '') ILIKE '% NC %'
+    OR COALESCE(address, '') ILIKE '% NC %'
+    OR COALESCE(address_line_1, '') ILIKE '%Outer Banks%'
+    OR COALESCE(address, '') ILIKE '%Outer Banks%'
+    OR COALESCE(address_line_1, '') ILIKE '%Nags Head%'
+    OR COALESCE(address, '') ILIKE '%Nags Head%'
+    OR COALESCE(address_line_1, '') ILIKE '%Kitty Hawk%'
+    OR COALESCE(address, '') ILIKE '%Kitty Hawk%'
+    OR COALESCE(address_line_1, '') ILIKE '%Kill Devil Hills%'
+    OR COALESCE(address, '') ILIKE '%Kill Devil Hills%'
+  THEN ARRAY['Outer Banks, NC']::text[]
+  ELSE ARRAY['Washington, DC']::text[]
+END
+WHERE archived_at IS NULL
+  AND COALESCE(array_length(service_areas, 1), 0) = 0;
+```
+
+6) Verification checklist (must pass before closing)
+- Open Kat & Mat Electrical Services in Edit Company:
+  - expected: Washington, DC checked (not blank)
+- Open Dulles Geotechnical in Edit Company:
+  - expected: Washington, DC checked (not blank)
+- Open several known NC companies:
+  - expected: Outer Banks, NC checked
+- Save one edited company and reopen:
+  - expected: checkbox remains correctly selected
+- Confirm no active companies remain with empty `service_areas`:
+```sql
+SELECT count(*)
+FROM companies
+WHERE archived_at IS NULL
+  AND COALESCE(array_length(service_areas,1),0)=0;
+```
+Expected result: `0`.
+
+Risk notes and mitigation:
+- Risk: a few non-NC addresses may default to DC even if business intent was OBX.
+- Mitigation: fallback is intentionally aligned with your rule (“only DC/OBX; never blank”), and users can still manually switch an individual company when needed.
+
+Why this will solve your exact complaint:
+- Today’s blank state is caused by empty DB values plus no fallback on dialog open.
+- This plan fixes both layers:
+  - data layer (backfill existing empties),
+  - UI layer (fallback initialization/saving),
+so companies will not open blank anymore.
