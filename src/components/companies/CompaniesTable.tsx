@@ -234,19 +234,33 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           <TableBody>
             {filteredCompanies.map((company) => (
               <TableRow key={company.id}>
-                <TableCell className="font-medium w-[25%] max-w-0 truncate">
-                  {company.company_name}
+                <TableCell className="font-medium w-[25%] max-w-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="block truncate">{company.company_name}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{company.company_name}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </TableCell>
                 <TableCell className="w-28">
                   <Badge className={getTypeColor(company.company_type)}>
                     {company.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell className="max-w-0 truncate">
+                <TableCell className="max-w-0">
                   {company.address ? (
-                    <span className="text-muted-foreground">
-                      {company.address.replace(/, United States$/, '')}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block truncate text-muted-foreground">
+                          {company.address.replace(/, United States$/, '')}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{company.address.replace(/, United States$/, '')}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
