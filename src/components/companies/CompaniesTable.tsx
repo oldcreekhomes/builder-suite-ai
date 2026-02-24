@@ -219,10 +219,10 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
   return (
     <>      
       <SettingsTableWrapper>
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead>Company Name</TableHead>
+              <TableHead className="w-[25%]">Company Name</TableHead>
               <TableHead className="w-28">Type</TableHead>
               <TableHead>Address</TableHead>
               <TableHead className="w-24 whitespace-nowrap">Cost Codes</TableHead>
@@ -234,7 +234,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           <TableBody>
             {filteredCompanies.map((company) => (
               <TableRow key={company.id}>
-                <TableCell className="font-medium">
+                <TableCell className="font-medium w-[25%] max-w-0 truncate">
                   {company.company_name}
                 </TableCell>
                 <TableCell className="w-28">
@@ -242,9 +242,9 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     {company.company_type}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="max-w-0 truncate">
                   {company.address ? (
-                    <span className="text-muted-foreground truncate max-w-[200px]">
+                    <span className="text-muted-foreground">
                       {company.address.replace(/, United States$/, '')}
                     </span>
                   ) : (
