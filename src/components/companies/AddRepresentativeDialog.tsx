@@ -1,5 +1,6 @@
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,8 +27,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 
 const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -35,6 +38,7 @@ const representativeSchema = z.object({
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone_number: z.string().optional(),
   title: z.string().optional(),
+  service_areas: z.array(z.string()).min(1, "At least one service area is required"),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -49,6 +53,21 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch parent company's service areas to auto-populate
+  const { data: parentCompany } = useQuery({
+    queryKey: ['company-service-areas', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('service_areas')
+        .eq('id', companyId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!companyId && open,
+  });
+
   const form = useForm<RepresentativeFormData>({
     resolver: zodResolver(representativeSchema),
     defaultValues: {
@@ -57,6 +76,7 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
       email: "",
       phone_number: "",
       title: "",
+      service_areas: [],
     },
   });
 
@@ -83,6 +103,7 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
           email: data.email || null,
           phone_number: data.phone_number || null,
           title: data.title || null,
+          service_areas: data.service_areas,
           home_builder_id: homeBuilderIdToUse,
         });
       
@@ -111,6 +132,16 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
   const onSubmit = (data: RepresentativeFormData) => {
     createRepresentativeMutation.mutate(data);
   };
+
+  // Auto-populate service areas from parent company when dialog opens
+  useEffect(() => {
+    if (open && parentCompany?.service_areas?.length) {
+      const current = form.getValues('service_areas');
+      if (!current || current.length === 0) {
+        form.setValue('service_areas', parentCompany.service_areas);
+      }
+    }
+  }, [open, parentCompany, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,6 +233,35 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
                         <SelectItem value="Accountant">Accountant</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="service_areas"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Areas</FormLabel>
+                    <div className="flex gap-4">
+                      {SERVICE_AREA_OPTIONS.map((area) => (
+                        <div key={area} className="flex items-center space-x-2">
+                          <Checkbox
+                            checked={field.value?.includes(area)}
+                            onCheckedChange={(checked) => {
+                              const current = field.value || [];
+                              field.onChange(
+                                checked
+                                  ? [...current, area]
+                                  : current.filter((a: string) => a !== area)
+                              );
+                            }}
+                          />
+                          <span className="text-sm">{area}</span>
+                        </div>
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

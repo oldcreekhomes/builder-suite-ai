@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 
 const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -43,6 +44,7 @@ const representativeSchema = z.object({
   receive_bid_notifications: z.boolean().default(false),
   receive_schedule_notifications: z.boolean().default(false),
   receive_po_notifications: z.boolean().default(false),
+  service_areas: z.array(z.string()).min(1, "At least one service area is required"),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -58,6 +60,7 @@ interface Representative {
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
   receive_po_notifications?: boolean;
+  service_areas?: string[];
   companies?: {
     company_name: string;
   } | null;
@@ -86,6 +89,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
       receive_bid_notifications: false,
       receive_schedule_notifications: false,
       receive_po_notifications: false,
+      service_areas: [],
     },
   });
 
@@ -116,6 +120,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         receive_bid_notifications: representative.receive_bid_notifications || false,
         receive_schedule_notifications: representative.receive_schedule_notifications || false,
         receive_po_notifications: representative.receive_po_notifications || false,
+        service_areas: representative.service_areas || [],
       });
       setCompanySearch("");
     }
@@ -159,6 +164,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         receive_bid_notifications: data.receive_bid_notifications,
         receive_schedule_notifications: data.receive_schedule_notifications,
         receive_po_notifications: data.receive_po_notifications,
+        service_areas: data.service_areas,
       };
 
       const { error } = await supabase
@@ -231,6 +237,35 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
               </TabsList>
               
               <TabsContent value="general" className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="service_areas"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Service Areas</FormLabel>
+                      <div className="flex gap-4">
+                        {SERVICE_AREA_OPTIONS.map((area) => (
+                          <div key={area} className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value?.includes(area)}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                field.onChange(
+                                  checked
+                                    ? [...current, area]
+                                    : current.filter((a: string) => a !== area)
+                                );
+                              }}
+                            />
+                            <span className="text-sm">{area}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}

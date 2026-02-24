@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Phone } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import { TableRowActions } from "@/components/ui/table-row-actions";
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
@@ -33,6 +34,7 @@ interface Representative {
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
   receive_po_notifications?: boolean;
+  service_areas?: string[];
   companies?: {
     company_name: string;
   } | null;
@@ -65,6 +67,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
           receive_bid_notifications,
           receive_schedule_notifications,
           receive_po_notifications,
+          service_areas,
           created_at,
           updated_at,
           companies!company_representatives_company_id_fkey (
@@ -295,6 +298,7 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead>First Name</TableHead>
               <TableHead>Last Name</TableHead>
               <TableHead>Company</TableHead>
+              <TableHead>Service Area</TableHead>
               <TableHead>Type</TableHead>
               <TableHead className="min-w-[200px]">Email</TableHead>
               <TableHead>Phone</TableHead>
@@ -307,13 +311,13 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
           <TableBody>
             {filteredRepresentatives.length === 0 && searchQuery ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-4 text-muted-foreground">
                   No representatives found matching "{searchQuery}".
                 </TableCell>
               </TableRow>
             ) : representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
+                <TableCell colSpan={11} className="text-center py-4 text-muted-foreground">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
@@ -327,6 +331,15 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                     {rep.last_name}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{rep.companies?.company_name}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(rep.service_areas || []).map((area) => (
+                        <Badge key={area} variant="outline" className="text-xs px-1.5 py-0.5">
+                          {area}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Select 
                       value={rep.title || ''} 

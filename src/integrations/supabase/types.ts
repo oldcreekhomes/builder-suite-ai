@@ -1451,6 +1451,7 @@ export type Database = {
           receive_bid_notifications: boolean | null
           receive_po_notifications: boolean | null
           receive_schedule_notifications: boolean | null
+          service_areas: string[]
           title: string
           updated_at: string
         }
@@ -1466,6 +1467,7 @@ export type Database = {
           receive_bid_notifications?: boolean | null
           receive_po_notifications?: boolean | null
           receive_schedule_notifications?: boolean | null
+          service_areas?: string[]
           title: string
           updated_at?: string
         }
@@ -1481,6 +1483,7 @@ export type Database = {
           receive_bid_notifications?: boolean | null
           receive_po_notifications?: boolean | null
           receive_schedule_notifications?: boolean | null
+          service_areas?: string[]
           title?: string
           updated_at?: string
         }
