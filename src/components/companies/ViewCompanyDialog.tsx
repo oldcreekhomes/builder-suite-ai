@@ -49,6 +49,7 @@ interface Representative {
   receive_bid_notifications?: boolean;
   receive_schedule_notifications?: boolean;
   receive_po_notifications?: boolean;
+  service_areas?: string[];
 }
 
 interface ViewCompanyDialogProps {
@@ -71,7 +72,7 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
       
       const { data, error } = await supabase
         .from('company_representatives')
-        .select('id, first_name, last_name, email, phone_number, title, receive_bid_notifications, receive_schedule_notifications, receive_po_notifications')
+        .select('id, first_name, last_name, email, phone_number, title, receive_bid_notifications, receive_schedule_notifications, receive_po_notifications, service_areas')
         .eq('company_id', company.id)
         .order('first_name');
       
@@ -236,8 +237,17 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
                              </span>
                            </div>
                           
-                          {rep.title && (
+                           {rep.title && (
                             <div className="text-sm text-gray-600">{rep.title}</div>
+                          )}
+                          {rep.service_areas && rep.service_areas.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {rep.service_areas.map((area) => (
+                                <Badge key={area} variant="outline" className="text-xs px-1.5 py-0.5">
+                                  {area}
+                                </Badge>
+                              ))}
+                            </div>
                           )}
                           
                           <div className="flex flex-col space-y-1">

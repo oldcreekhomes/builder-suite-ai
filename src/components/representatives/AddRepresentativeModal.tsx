@@ -33,6 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 
 const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -44,6 +45,7 @@ const representativeSchema = z.object({
   receive_bid_notifications: z.boolean().default(false),
   receive_schedule_notifications: z.boolean().default(false),
   receive_po_notifications: z.boolean().default(false),
+  service_areas: z.array(z.string()).min(1, "At least one service area is required"),
 });
 
 type RepresentativeFormData = z.infer<typeof representativeSchema>;
@@ -70,6 +72,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
       receive_bid_notifications: false,
       receive_schedule_notifications: false,
       receive_po_notifications: false,
+      service_areas: [],
     },
   });
 
@@ -79,7 +82,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
     queryFn: async () => {
       const { data, error } = await supabase
         .from('companies')
-        .select('id, company_name')
+        .select('id, company_name, service_areas')
         .is('archived_at', null)
         .order('company_name');
       
@@ -121,6 +124,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
         receive_bid_notifications: data.receive_bid_notifications,
         receive_schedule_notifications: data.receive_schedule_notifications,
         receive_po_notifications: data.receive_po_notifications,
+        service_areas: data.service_areas,
         home_builder_id: homeBuilderIdToUse,
       };
 
@@ -169,6 +173,11 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
   const handleCompanySelect = (companyName: string) => {
     form.setValue('company_name', companyName);
     setCompanySearch('');
+    // Auto-populate service areas from selected company
+    const selectedCompany = companies.find(c => c.company_name === companyName);
+    if (selectedCompany?.service_areas?.length) {
+      form.setValue('service_areas', selectedCompany.service_areas);
+    }
   };
 
   return (
@@ -309,6 +318,38 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                     </FormItem>
                   )}
                 />
+
+                <div className="pt-2">
+                  <Separator className="mb-4" />
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Service Areas</p>
+                  <FormField
+                    control={form.control}
+                    name="service_areas"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="space-y-2">
+                          {SERVICE_AREA_OPTIONS.map((area) => (
+                            <div key={area} className="flex items-center space-x-3">
+                              <Checkbox
+                                checked={field.value?.includes(area)}
+                                onCheckedChange={(checked) => {
+                                  const current = field.value || [];
+                                  field.onChange(
+                                    checked
+                                      ? [...current, area]
+                                      : current.filter((a: string) => a !== area)
+                                  );
+                                }}
+                              />
+                              <FormLabel className="text-sm font-normal">{area}</FormLabel>
+                            </div>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="pt-2">
                   <Separator className="mb-4" />
