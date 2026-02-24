@@ -754,6 +754,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           endDate={timelineEnd}
           dayWidth={dayWidth}
           recentlySavedTasks={recentlySavedTasks}
+          projectId={projectId}
         />
       </div>
 
