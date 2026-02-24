@@ -88,6 +88,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           created_at,
           updated_at,
           insurance_required,
+          service_areas,
           archived_at
         `)
         .is('archived_at', null)
