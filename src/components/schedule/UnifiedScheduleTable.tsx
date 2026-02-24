@@ -52,6 +52,8 @@ interface UnifiedScheduleTableProps {
   dayWidth: number;
   recentlySavedTasks?: Set<string>;
   projectId?: string;
+  projectResources?: import("@/hooks/useProjectResources").ProjectResource[];
+  isLoadingResources?: boolean;
 }
 
 export function UnifiedScheduleTable({ 
@@ -73,7 +75,9 @@ export function UnifiedScheduleTable({
   endDate,
   dayWidth,
   recentlySavedTasks = new Set(),
-  projectId
+  projectId,
+  projectResources,
+  isLoadingResources
 }: UnifiedScheduleTableProps) {
   const { toast } = useToast();
   const ROW_HEIGHT = useScheduleRowHeight();
@@ -780,6 +784,8 @@ export function UnifiedScheduleTable({
                       onValueChange={(value) => handleTaskUpdate(task.id, { resources: value })}
                       readOnly={taskHasChildren}
                       projectId={projectId}
+                      externalResources={projectResources}
+                      externalIsLoading={isLoadingResources}
                     />
                   </div>
                 </div>
