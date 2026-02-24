@@ -10,7 +10,7 @@ export interface ProjectResource {
   type: 'user' | 'representative';
 }
 
-export const useProjectResources = () => {
+export const useProjectResources = (projectId?: string) => {
   const [resources, setResources] = useState<ProjectResource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,6 +19,17 @@ export const useProjectResources = () => {
       setIsLoading(true);
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user) return;
+
+      // Fetch project region if projectId provided
+      let projectRegion: string | null = null;
+      if (projectId) {
+        const { data: project } = await supabase
+          .from('projects')
+          .select('region')
+          .eq('id', projectId)
+          .maybeSingle();
+        projectRegion = project?.region || null;
+      }
 
       let allResources: ProjectResource[] = [];
 
@@ -98,12 +109,19 @@ export const useProjectResources = () => {
         const companyIds = ownedCompanies.map(c => c.id);
         const { data: representatives } = await supabase
           .from('company_representatives')
-          .select('id, first_name, last_name, email, phone_number')
+          .select('id, first_name, last_name, email, phone_number, service_areas')
           .in('company_id', companyIds);
 
         if (representatives && representatives.length > 0) {
           console.log('Found representatives:', representatives);
-          const repResources = representatives.map(rep => ({
+          // Filter by project region if set
+          const filteredReps = projectRegion
+            ? representatives.filter(rep => 
+                (rep.service_areas || []).includes(projectRegion)
+              )
+            : representatives;
+          console.log('Filtered representatives by region:', projectRegion, filteredReps.length, '/', representatives.length);
+          const repResources = filteredReps.map(rep => ({
             resourceId: rep.id,
             resourceName: `${rep.first_name} ${rep.last_name}`.trim(),
             resourceGroup: 'External' as const,
@@ -128,7 +146,7 @@ export const useProjectResources = () => {
 
   useEffect(() => {
     fetchResources();
-  }, []);
+  }, [projectId]);
 
   return {
     resources,

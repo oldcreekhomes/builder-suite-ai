@@ -13,15 +13,16 @@ interface ResourcesSelectorProps {
   onValueChange: (value: string) => void;
   className?: string;
   readOnly?: boolean;
+  projectId?: string;
 }
 
-export function ResourcesSelector({ value, onValueChange, className, readOnly = false }: ResourcesSelectorProps) {
+export function ResourcesSelector({ value, onValueChange, className, readOnly = false, projectId }: ResourcesSelectorProps) {
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
   
   // Use the project resources hook
-  const { resources, isLoading } = useProjectResources();
+  const { resources, isLoading } = useProjectResources(projectId);
 
   // Parse the current value into selected resources
   useEffect(() => {
