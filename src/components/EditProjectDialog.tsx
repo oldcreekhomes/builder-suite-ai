@@ -19,6 +19,7 @@ import { Project } from "@/hooks/useProjects";
 import { LotManagementSection } from "@/components/LotManagementSection";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ProjectAccountsTab } from "@/components/ProjectAccountsTab";
+import { SERVICE_AREA_OPTIONS, normalizeServiceArea } from "@/lib/serviceArea";
 
 interface EditProjectDialogProps {
   project: Project | null;
@@ -49,7 +50,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         construction_manager: project.construction_manager || "no-manager",
         accounting_manager: project.accounting_manager || "no-manager",
         accounting_software: project.accounting_software || "quickbooks",
-        region: (project as any).region || "",
+        region: normalizeServiceArea((project as any).region || "") || "",
       });
     }
   }, [project]);
@@ -190,12 +191,20 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
                 <div className="space-y-2">
                   <Label htmlFor="region">Region</Label>
-                  <Input
-                    id="region"
-                    placeholder="e.g., Northern Virginia"
-                    value={formData.region}
-                    onChange={(e) => handleChange('region', e.target.value)}
-                  />
+                  <Select
+                    value={formData.region || "no-region"}
+                    onValueChange={(value) => handleChange('region', value === "no-region" ? "" : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-region">No Region</SelectItem>
+                      {SERVICE_AREA_OPTIONS.map((area) => (
+                        <SelectItem key={area} value={area}>{area}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
                     Used to filter companies by service area in bid packages
                   </p>
