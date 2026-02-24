@@ -1,40 +1,79 @@
 
 
-## Remove Distance Filter from Bidding Module
+## Add Service Areas to Company Representatives
 
-### What's changing
+### Summary
 
-The distance-based filtering in the bid package detail view is being completely removed. Companies will now be filtered by **service area** (already implemented), not by driving distance. This will also fix the issue where "Kat & Mat Electrical Services" (and other companies) are hidden despite having active bids.
+Add a `service_areas` text array column to `company_representatives`, backfill it from the parent company's service areas, and update all representative Add/Edit forms and tables to display and manage this field. This is purely additive -- no notification logic changes.
 
-### Changes
+### 1. Database Migration
 
-**1. `src/components/bidding/BidPackageDetailsModal.tsx`**
-- Remove the `useDistanceFilter` import and hook call
-- Remove `distanceRadius` state
-- Remove the `Slider` import
-- Remove the "Distance" `<TableHead>` column and its `<TableCell>` (the slider cell)
-- Pass `item.project_bids` directly to `BiddingCompanyList` instead of `distanceFilter.filteredCompanies`
-- Remove `getDistanceForCompany` prop from `BiddingCompanyList`
-- Update `onSendClick` to map company IDs directly from `item.project_bids` instead of `distanceFilter.filteredCompanies`
-- Result: 7 columns remain (Status, Sent On, Due Date, Reminder, Specifications, Files, Actions)
+Add the column and backfill existing representatives with their parent company's service areas:
 
-**2. `src/components/bidding/BiddingCompanyList.tsx`**
-- Remove the `DistanceResult` interface
-- Remove the `getDistanceForCompany` prop from the interface and destructuring
-- Remove passing `distanceInfo` to `BiddingCompanyRow`
+```sql
+ALTER TABLE company_representatives
+  ADD COLUMN service_areas text[] NOT NULL DEFAULT '{}'::text[];
 
-**3. `src/components/bidding/components/BiddingCompanyRow.tsx`**
-- Remove the `DistanceResult` interface
-- Remove the `distanceInfo` prop from the interface and destructuring
+UPDATE company_representatives cr
+SET service_areas = COALESCE(c.service_areas, ARRAY['Washington, DC']::text[])
+FROM companies c
+WHERE cr.company_id = c.id;
+```
 
-**4. `src/hooks/useDistanceFilter.ts`**
-- Keep the file (it may be used by the Marketplace module), but no bidding code will reference it anymore
+### 2. Settings > Representatives Table (`src/components/representatives/RepresentativesTable.tsx`)
 
-### Why this fixes the missing companies
+- Add `service_areas` to the query select
+- Add a "Service Area" column between "Company" and "Type"
+- Display service area values as badges (same styling pattern used for company service areas)
+- Update the Representative interface to include `service_areas?: string[]`
 
-The distance filter was set to 75 miles with `enabled: true` (always on). Companies like "Kat & Mat Electrical Services" (located in Texas) exceeded the radius and were excluded from `filteredCompanies`, resulting in "No companies associated with this cost code." By removing the filter entirely and passing `item.project_bids` directly, ALL companies with bids in the package will appear.
+### 3. Settings > Add Representative Modal (`src/components/representatives/AddRepresentativeModal.tsx`)
 
-### No other files affected
+- Add `service_areas` to the zod schema as `z.array(z.string()).min(1, "At least one service area is required")`
+- Add a "Service Area" section with checkboxes for "Washington, DC" and "Outer Banks, NC" (from `SERVICE_AREA_OPTIONS`)
+- When a company is selected, auto-populate from the selected company's service areas by fetching `service_areas` in the companies dropdown query
+- Include `service_areas` in the insert payload
 
-The `SendBidPackageModal` and `BiddingTableRow` will continue working -- they receive `filteredCompanyIds` from the `onSendClick` callback, which will now just pass all company IDs from `item.project_bids`.
+### 4. Settings > Edit Representative Dialog (`src/components/representatives/EditRepresentativeDialog.tsx`)
+
+- Add `service_areas` to the zod schema
+- Initialize from `representative.service_areas` in the useEffect reset
+- Add service area checkboxes to the "General" tab
+- Include in the update payload
+
+### 5. Company View > Add Representative Dialog (`src/components/companies/AddRepresentativeDialog.tsx`)
+
+- Add `service_areas` to the schema and form
+- Default checkboxes from the parent company's service areas (fetch via `companyId` prop)
+- Include in the insert payload
+
+### 6. Company View > Edit Representative Dialog (`src/components/companies/EditRepresentativeDialog.tsx`)
+
+- Add `service_areas` to the schema, form reset, and update payload
+- Add checkboxes to the "General" tab
+
+### 7. Company View Dialog (`src/components/companies/ViewCompanyDialog.tsx`)
+
+- Add `service_areas` to the representatives query select
+- Display service area badges next to each representative's name/title
+
+### Files to modify
+
+```text
+Database: new migration (add service_areas column + backfill)
+
+src/components/representatives/RepresentativesTable.tsx
+src/components/representatives/AddRepresentativeModal.tsx
+src/components/representatives/EditRepresentativeDialog.tsx
+src/components/companies/AddRepresentativeDialog.tsx
+src/components/companies/EditRepresentativeDialog.tsx
+src/components/companies/ViewCompanyDialog.tsx
+```
+
+### What stays the same
+
+- All notification logic (bid, schedule, PO) -- unchanged, still uses boolean flags
+- Company-level service areas -- untouched
+- The `src/lib/serviceArea.ts` utility -- reused for canonical options
+- Bidding module -- no changes needed for this step
 
