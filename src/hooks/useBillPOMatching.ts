@@ -55,14 +55,29 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       if (!bills.length) return new Map<string, BillPOMatchResult>();
 
       // Collect only the explicitly saved purchase_order_ids from bill lines.
-      // The PO Status Summary ONLY reflects explicit DB assignments — no cost-code inference.
       const explicitPoIds = [...new Set(
         bills.flatMap(b => b.bill_lines?.map(l => l.purchase_order_id).filter(
           id => id && id !== '__auto__' && id !== '__none__'
         ) || [])
       )] as string[];
 
-      // Fetch only the explicitly linked POs
+      // Also collect vendor + project + cost_code combos for fallback auto-matching
+      // (for lines that have no explicit purchase_order_id)
+      const unmatchedCostCodeIds = [...new Set(
+        bills.flatMap(b =>
+          (b.bill_lines || [])
+            .filter(l => !l.purchase_order_id || l.purchase_order_id === '__auto__' || l.purchase_order_id === '__none__')
+            .map(l => l.cost_code_id)
+            .filter(Boolean)
+        )
+      )] as string[];
+
+      const vendorIds = [...new Set(bills.map(b => b.vendor_id).filter(Boolean))] as string[];
+      const projectIds = [...new Set(
+        bills.map(b => b.project_id).filter(Boolean)
+      )] as string[];
+
+      // Fetch explicitly linked POs
       let pos: Array<{ id: string; po_number: string | null; total_amount: number | null; project_id: string | null; company_id: string | null; cost_code_id: string | null }> = [];
       if (explicitPoIds.length) {
         const { data, error } = await supabase
@@ -73,7 +88,40 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         pos = data || [];
       }
 
-      // Collect cost code IDs from matched POs (for display labels)
+      // Fetch fallback auto-matched POs (vendor + project + cost_code)
+      let fallbackPos: typeof pos = [];
+      if (unmatchedCostCodeIds.length && vendorIds.length && projectIds.length) {
+        const { data, error } = await supabase
+          .from('project_purchase_orders')
+          .select(`id, po_number, total_amount, project_id, company_id, cost_code_id`)
+          .in('company_id', vendorIds)
+          .in('project_id', projectIds)
+          .in('cost_code_id', unmatchedCostCodeIds);
+        if (error) throw error;
+        fallbackPos = data || [];
+      }
+
+      // Build fallback lookup: "vendor_id|project_id|cost_code_id" -> PO
+      const fallbackMap = new Map<string, typeof pos[0]>();
+      fallbackPos.forEach(po => {
+        if (po.company_id && po.project_id && po.cost_code_id) {
+          const key = `${po.company_id}|${po.project_id}|${po.cost_code_id}`;
+          if (!fallbackMap.has(key)) {
+            fallbackMap.set(key, po);
+          }
+        }
+      });
+
+      // Merge fallback POs into the main PO list (deduped)
+      const allPoIds = new Set(pos.map(p => p.id));
+      fallbackPos.forEach(po => {
+        if (!allPoIds.has(po.id)) {
+          pos.push(po);
+          allPoIds.add(po.id);
+        }
+      });
+
+      // Collect cost code IDs from all POs (for display labels)
       const allCostCodeIds = [...new Set(
         pos.map(po => po.cost_code_id).filter(Boolean) as string[]
       )];
@@ -116,11 +164,9 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         const billIdsToExclude = new Set(bills.map(b => b.id));
 
         (linkedLines || []).forEach(line => {
-          // Exclude lines from the current bill(s) being viewed
           if (billIdsToExclude.has(line.bill_id)) return;
 
           const billData = line.bills as unknown as { status: string; is_reversal: boolean; reversed_at: string | null };
-          // Only count posted/paid, non-reversal, non-reversed bills
           if (
             billData &&
             ['posted', 'paid'].includes(billData.status) &&
@@ -143,42 +189,43 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         const allLines = bill.bill_lines || [];
         
         allLines.forEach(line => {
-          // Only process lines with an explicit, non-sentinel purchase_order_id.
-          // Lines with null, __none__, or __auto__ are intentionally skipped —
-          // the PO Status Summary reflects only what is explicitly saved in the DB.
-          if (!line.purchase_order_id || line.purchase_order_id === '__none__' || line.purchase_order_id === '__auto__') return;
+          let resolvedPoId = line.purchase_order_id;
           
-          let poData: { po_id: string; po_number: string; po_amount: number; cost_code_id: string; cost_code_display: string } | undefined;
-          let billedKey: string | undefined;
-          
-          // Explicit PO link — look up by PO ID directly
-          const explicitPo = pos.find(p => p.id === line.purchase_order_id);
-          if (explicitPo) {
-            const ccData = costCodeLookup.get(explicitPo.cost_code_id || '');
-            poData = {
-              po_id: explicitPo.id,
-              po_number: explicitPo.po_number || 'Unknown',
-              po_amount: explicitPo.total_amount || 0,
-              cost_code_id: explicitPo.cost_code_id || '',
-              cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
-            };
-            billedKey = explicitPo.id;
+          // Skip sentinel values
+          if (resolvedPoId === '__none__' || resolvedPoId === '__auto__') {
+            resolvedPoId = undefined;
           }
           
-          if (poData && !matches.find(m => m.po_id === poData!.po_id)) {
-            const totalBilled = billedKey ? (billedLookup.get(billedKey) || 0) : 0;
-            const remaining = poData.po_amount - totalBilled;
+          // Fallback: if no explicit PO, try vendor + project + cost_code match
+          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
+            const key = `${bill.vendor_id}|${bill.project_id}|${line.cost_code_id}`;
+            const fallbackPo = fallbackMap.get(key);
+            if (fallbackPo) {
+              resolvedPoId = fallbackPo.id;
+            }
+          }
+          
+          if (!resolvedPoId) return;
+          
+          const matchedPo = pos.find(p => p.id === resolvedPoId);
+          if (!matchedPo) return;
+          
+          if (!matches.find(m => m.po_id === matchedPo.id)) {
+            const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
+            const totalBilled = billedLookup.get(matchedPo.id) || 0;
+            const poAmount = matchedPo.total_amount || 0;
+            const remaining = poAmount - totalBilled;
             const status: 'matched' | 'over_po' = remaining >= 0 ? 'matched' : 'over_po';
             
             matches.push({
-              po_id: poData.po_id,
-              po_number: poData.po_number,
-              po_amount: poData.po_amount,
+              po_id: matchedPo.id,
+              po_number: matchedPo.po_number || 'Unknown',
+              po_amount: poAmount,
               total_billed: totalBilled,
               remaining,
               status,
-              cost_code_id: poData.cost_code_id,
-              cost_code_display: poData.cost_code_display
+              cost_code_id: matchedPo.cost_code_id || '',
+              cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
             });
           }
         });
@@ -205,7 +252,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       return resultMap;
     },
     enabled: bills.length > 0,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 }
 
