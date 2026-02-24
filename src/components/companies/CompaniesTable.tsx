@@ -223,12 +223,12 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Company Name</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead className="w-28">Type</TableHead>
               <TableHead>Address</TableHead>
-              <TableHead>Cost Codes</TableHead>
-              <TableHead>Website</TableHead>
-              <TableHead>Representatives</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead className="w-24 whitespace-nowrap">Cost Codes</TableHead>
+              <TableHead className="w-24">Website</TableHead>
+              <TableHead className="w-32 whitespace-nowrap">Representatives</TableHead>
+              <TableHead className="w-16 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -237,7 +237,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                 <TableCell className="font-medium">
                   {company.company_name}
                 </TableCell>
-                <TableCell>
+                <TableCell className="w-28">
                   <Badge className={getTypeColor(company.company_type)}>
                     {company.company_type}
                   </Badge>
@@ -251,7 +251,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="w-24">
                   {company.cost_codes && company.cost_codes.length > 0 ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -271,7 +271,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="w-24">
                   {company.website ? (
                     <a 
                       href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
@@ -285,7 +285,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="w-32">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -301,7 +301,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     </TooltipContent>
                   </Tooltip>
                 </TableCell>
-                <TableCell>
+                <TableCell className="w-16">
                   <div className="flex justify-center">
                     <TableRowActions actions={[
                       {
