@@ -1,41 +1,64 @@
 
-## Fix: PO Status Must Be Consistent Across All Tabs
 
-### Problem
-The Review tab and Approved/Posted/Paid tabs use **completely different** PO matching logic:
+## Simplified PO Matching: Suggest Once, Persist Forever
 
-- **Review tab** (`usePendingBillPOStatus`): Auto-matches bills to POs by looking up `project_purchase_orders` where vendor + project + cost_code match. This shows "Matched" even though nothing is saved to the database.
-- **Approved/Posted/Paid tabs** (`useBillPOMatching`): Only checks if `purchase_order_id` is explicitly saved on `bill_lines`. Since it was never saved during approval, these bills show "No PO".
+### The Simple Rule
 
-Database confirms: bills $265.80, $289.25, $2,738.76, and $30,749.66 all have `purchase_order_id = NULL` on their bill lines, despite matching POs existing for vendor + cost_code.
+PO suggestions happen at **two entry points only**: "Enter Manually" and "Enter with AI." After that, whatever is saved on the bill line (`purchase_order_id`) is the single source of truth -- no re-inference, no fallback guessing.
 
-### Solution (Two-Part Fix)
+### Current Problems
 
-#### Part 1: Persist auto-matched PO IDs during approval (`usePendingBills.ts`)
+1. **`useBillPOMatching.ts`** (used by Approved/Posted/Paid tabs) has a **fallback auto-match** (lines 91-206) that re-infers PO matches at display time using vendor + project + cost_code. This causes every bill with a matching cost code to show "Matched" even when no PO was ever assigned.
 
-Before calling `approve_pending_bill`, auto-populate `purchase_order_id` on `pending_bill_lines` that don't already have one:
+2. **`usePendingBillPOStatus.ts`** (used by Review tab) does the same inference for pending bills -- it never checks `purchase_order_id` on `pending_bill_lines`, it just guesses from cost codes.
 
-1. Fetch the pending bill's lines (with cost_code_id)
-2. Look up matching POs from `project_purchase_orders` using vendor + project + cost_code
-3. Update each `pending_bill_line` with the matched `purchase_order_id` (only where currently NULL)
-4. Then call `approve_pending_bill` as normal (it already copies `purchase_order_id` to `bill_lines`)
+3. These two hooks use **different logic**, so statuses can differ between tabs.
 
-This applies to both single (`approveBill`) and batch (`batchApproveBills`) mutations.
+### The Fix (3 Changes)
 
-#### Part 2: Add fallback auto-match to `useBillPOMatching` for existing bills
+#### 1. Remove all inference from `useBillPOMatching.ts`
 
-For bills that were already approved without PO IDs (the ones currently showing "No PO"), add the same vendor + project + cost_code matching logic as a fallback in `useBillPOMatching.ts`. This ensures:
+- Delete lines 64-122 (the entire fallback auto-match block: `unmatchedCostCodeIds`, `fallbackPos`, `fallbackMap`, merging fallback POs)
+- Delete lines 199-206 (the fallback resolution inside the per-line loop)
+- Only explicit `purchase_order_id` values on `bill_lines` drive status
+- Result: if `purchase_order_id` is NULL on a bill line, that line is "not matched" -- period
 
-- Bills approved before this fix still show correct PO status
-- The logic is identical to what the Review tab uses
-- Only kicks in when `purchase_order_id` is NULL (explicit selections are always respected)
+#### 2. Replace `usePendingBillPOStatus.ts` with explicit-only logic
 
-### Files to Modify
+- Instead of querying `project_purchase_orders` and inferring, simply read `purchase_order_id` from `pending_bill_lines`
+- A pending bill line with `purchase_order_id` set = matched; without = not matched
+- This means status in the Review tab matches exactly what was saved during the "Enter with AI" or "Enter Manually" step
 
-1. **`src/hooks/usePendingBills.ts`** -- Add pre-approval PO auto-population step to both `approveBill` and `batchApproveBills` mutations
-2. **`src/hooks/useBillPOMatching.ts`** -- Add vendor + project + cost_code fallback matching when `purchase_order_id` is NULL on bill lines, mirroring the logic in `usePendingBillPOStatus`
+#### 3. Keep the suggestion engine only in entry dialogs (no changes needed)
 
-### Result
-After this fix, a bill that shows "Matched" in Review will also show "Matched" in Approved, Posted, Paid, and any other tab -- because:
-- New approvals will persist the PO match to the database
-- Existing approved bills without PO IDs will be matched on-the-fly using the same logic
+- **`EditExtractedBillDialog.tsx`** (AI entry): Already auto-matches using the smart scoring engine and persists `purchase_order_id` to `pending_bill_lines` (lines 470-485). This is correct -- it suggests at entry time and saves.
+- **`ManualBillEntry.tsx`** (Manual entry): Already uses `getBestPOLineMatch` and saves `purchase_order_id` on bill lines at submission. This is correct.
+- **No changes needed** to these entry points -- they already suggest and persist.
+
+### What This Achieves
+
+- **Enter Manually / Enter with AI**: System suggests PO matches and saves them to the database
+- **Review tab**: Shows exactly what was saved -- no guessing
+- **Approved / Posted / Paid tabs**: Shows exactly what was saved -- no guessing
+- **User edits a PO in any tab**: The edit saves `purchase_order_id` to the database, overriding the original suggestion
+- **Same status everywhere**: Because every tab reads the same column (`purchase_order_id`) from the database
+
+### What Happens to Existing Bills
+
+Bills that currently show "Matched" due to inference (like the Ocean Watch / ABC Supply ones) will correctly flip to **"No PO"** because they have `purchase_order_id = NULL` in the database. This is the correct behavior -- they were never actually linked.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/hooks/useBillPOMatching.ts` | Remove fallback inference block; only use explicit `purchase_order_id` |
+| `src/hooks/usePendingBillPOStatus.ts` | Rewrite to check `purchase_order_id` on `pending_bill_lines` instead of inferring from cost codes |
+
+### Files NOT Modified (already correct)
+
+| File | Why |
+|------|-----|
+| `src/components/bills/EditExtractedBillDialog.tsx` | Already suggests and persists PO at AI entry time |
+| `src/components/bills/ManualBillEntry.tsx` | Already suggests and persists PO at manual entry time |
+| `src/hooks/usePendingBills.ts` | `autoPopulatePOIds` helper can be removed since we no longer need last-minute inference at approval time |
+
