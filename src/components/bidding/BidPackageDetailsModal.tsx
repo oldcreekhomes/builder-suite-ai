@@ -6,7 +6,6 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Slider } from '@/components/ui/slider';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { BiddingTableRowSpecs } from './components/BiddingTableRowSpecs';
@@ -17,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { X, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useDistanceFilter } from '@/hooks/useDistanceFilter';
 import { useBidPackagePO } from '@/hooks/useBidPackagePO';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
@@ -96,7 +94,6 @@ export function BidPackageDetailsModal({
   removeUpload
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [distanceRadius, setDistanceRadius] = useState(50);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
 
   const handleStatusChange = (value: string) => {
@@ -114,14 +111,6 @@ export function BidPackageDetailsModal({
   const handleCreatePO = () => {
     onCloseWithPO?.();
   };
-
-  const distanceFilter = useDistanceFilter({
-    enabled: true,
-    radiusMiles: distanceRadius,
-    projectAddress: projectAddress || '',
-    companies: item.project_bids || []
-  });
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800';
@@ -217,7 +206,6 @@ export function BidPackageDetailsModal({
                   <TableHead>Reminder</TableHead>
                   <TableHead>Specifications</TableHead>
                   <TableHead>Files</TableHead>
-                  <TableHead>Distance</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -279,27 +267,12 @@ export function BidPackageDetailsModal({
                     onLinkProjectFiles={onLinkProjectFiles}
                     isReadOnly={isReadOnly}
                   />
-                  <TableCell>
-                    <div className="flex flex-col gap-1 min-w-[140px]">
-                      <span className="text-xs font-medium">{distanceRadius} mi from job site</span>
-                      <Slider
-                        value={[distanceRadius]}
-                        onValueChange={([value]) => setDistanceRadius(value)}
-                        min={0}
-                        max={75}
-                        step={5}
-                      />
-                      <span className="text-[10px] text-muted-foreground">
-                        Showing {distanceFilter.filteredCompanies.length} of {(item.project_bids || []).length} within {distanceRadius} mi
-                      </span>
-                    </div>
-                  </TableCell>
                   <BiddingTableRowActions
                     item={item}
                     costCode={costCode}
                     onDelete={(itemId) => onDelete?.(itemId)}
                     onSendClick={() => {
-                      const ids = distanceFilter.filteredCompanies.map((c: any) => c.company_id);
+                      const ids = (item.project_bids || []).map((c: any) => c.company_id);
                       onSendClick?.(ids);
                     }}
                     onTestEmailClick={() => onTestEmailClick?.()}
@@ -328,7 +301,7 @@ export function BidPackageDetailsModal({
               <tbody>
                 <BiddingCompanyList
                   biddingItemId={item.id}
-                  companies={distanceFilter.filteredCompanies}
+                  companies={item.project_bids || []}
                   onToggleBidStatus={onToggleBidStatus}
                   onUpdatePrice={onUpdatePrice}
                   onUploadProposal={onUploadProposal}
@@ -343,7 +316,6 @@ export function BidPackageDetailsModal({
                   selectedCompanies={selectedCompanies}
                   onCompanyCheckboxChange={onCompanyCheckboxChange}
                   onSelectAllCompanies={onSelectAllCompanies}
-                  getDistanceForCompany={distanceFilter.getDistanceForCompany}
                   awardedPOs={awardedPOs}
                 />
               </tbody>

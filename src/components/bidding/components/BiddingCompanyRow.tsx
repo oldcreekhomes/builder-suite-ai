@@ -17,12 +17,6 @@ interface Company {
   address?: string;
 }
 
-interface DistanceResult {
-  companyId: string;
-  distance: number | null;
-  error?: string;
-}
-
 interface BiddingCompany {
   id: string;
   company_id: string;
@@ -51,7 +45,6 @@ interface BiddingCompanyRowProps {
   costCodeId: string;
   isSelected?: boolean;
   onCheckboxChange?: (companyId: string, checked: boolean) => void;
-  distanceInfo?: DistanceResult | null;
   awardedPOs?: AwardedPO[];
 }
 
@@ -74,7 +67,6 @@ export function BiddingCompanyRow({
   costCodeId,
   isSelected = false,
   onCheckboxChange,
-  distanceInfo,
   awardedPOs = []
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
