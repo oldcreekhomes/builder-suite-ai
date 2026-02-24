@@ -1,42 +1,48 @@
 
 
-## Fix: Resources Not Loading in Schedule
-
-### Problem
-Every row in the schedule creates its own `ResourcesSelector`, each calling `useProjectResources(projectId)` independently. With 20+ visible rows, this fires 100+ simultaneous Supabase queries, causing silent failures and empty resource lists. Before the region filter was added, this same per-row pattern existed but was less likely to fail because there were fewer queries per call (no project lookup).
-
-### Solution
-Fetch resources **once** at the `CustomGanttChart` level and pass the data down as props. This reduces queries from 100+ to just 5.
-
-```text
-BEFORE (broken - N instances):
-  CustomGanttChart
-    UnifiedScheduleTable
-      ResourcesSelector (row 1) -> useProjectResources() -> 5+ queries
-      ResourcesSelector (row 2) -> useProjectResources() -> 5+ queries
-      ... (20+ rows = 100+ queries)
-
-AFTER (fixed - 1 instance):
-  CustomGanttChart -> useProjectResources(projectId) -> 5 queries total
-    UnifiedScheduleTable (receives resources prop)
-      ResourcesSelector (row 1) -> uses prop directly
-      ResourcesSelector (row 2) -> uses prop directly
-      ... (0 additional queries)
-```
+## Move Notes into Actions Dropdown and Reorder Menu Items
 
 ### Changes
 
-#### 1. `src/components/schedule/CustomGanttChart.tsx`
-- Import and call `useProjectResources(projectId)` once at the top level
-- Pass `resources` and `isLoadingResources` to `UnifiedScheduleTable`
+#### 1. Remove the Notes column from the table
 
-#### 2. `src/components/schedule/UnifiedScheduleTable.tsx`
-- Add `resources` and `isLoadingResources` props to the interface
-- Pass them through to each `ResourcesSelector`
+**`src/components/purchaseOrders/PurchaseOrdersTableHeader.tsx`**
+- Remove the `<TableHead>Notes</TableHead>` column
 
-#### 3. `src/components/schedule/ResourcesSelector.tsx`
-- Add optional `resources` and `isLoadingResources` props
-- When provided, use them directly instead of calling `useProjectResources`
-- Only fall back to the hook if no resources prop is passed (backward compat)
+**`src/components/purchaseOrders/components/PurchaseOrdersTableRowContent.tsx`**
+- Remove the `<TableCell>` containing `<NotesEditor>` (lines 140-145)
+- Pass `onUpdateNotes` and `item` info to `PurchaseOrdersTableRowActions` so it can open the notes dialog from the dropdown
 
-No changes needed to the filtering logic itself -- it already correctly matches project region to representative service areas. The data confirms: project "Outer Banks, NC" has matching reps (Chris Smith, Brian OConnor, Eddie Musick, Joey Austin).
+#### 2. Add "Notes" as a dropdown action and reorder alphabetically
+
+**`src/components/purchaseOrders/components/PurchaseOrdersTableRowActions.tsx`**
+- Add `onNotesClick` prop (which opens the NotesEditor dialog)
+- Reorder the actions alphabetically (excluding Cancel):
+  1. Edit
+  2. Notes
+  3. Send Purchase Order
+  4. Send Test Email
+  5. --- separator ---
+  6. Cancel Purchase Order (destructive, stays at bottom)
+
+#### 3. Move NotesEditor dialog trigger into the row actions
+
+Since the NotesEditor is currently a standalone dialog triggered by a button, we need to control it from the actions dropdown. The simplest approach:
+
+- In `PurchaseOrdersTableRowContent`, keep the `NotesEditor` component rendered but hidden (no visible trigger), controlled by a state variable
+- Add a `notesOpen` state, pass `onNotesClick={() => setNotesOpen(true)}` to the row actions
+- Render the NotesEditor dialog with `open={notesOpen}` / `onOpenChange={setNotesOpen}` props
+
+This requires a small update to `NotesEditor` to accept optional `open` and `onOpenChange` props for external control.
+
+### Summary of final dropdown order
+
+```text
+Edit
+Notes
+Send Purchase Order
+Send Test Email
+─────────────────
+Cancel Purchase Order  (red/destructive)
+```
+
