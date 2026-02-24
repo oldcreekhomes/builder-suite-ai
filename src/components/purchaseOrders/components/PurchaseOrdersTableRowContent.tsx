@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,6 +32,7 @@ export function PurchaseOrdersTableRowContent({
   onEditClick,
   projectId
 }: PurchaseOrdersTableRowContentProps) {
+  const [notesOpen, setNotesOpen] = useState(false);
   const costCode = item.cost_codes;
   const lines = (item as any).purchase_order_lines || [];
   const hasMultipleLines = lines.length > 1;
@@ -138,13 +139,6 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell>
-        <NotesEditor
-          value={item.notes || ''}
-          onChange={(notes) => onUpdateNotes(item.id, notes)}
-        />
-      </TableCell>
-      
-      <TableCell>
         <FilesCell files={item.files} projectId={projectId} />
       </TableCell>
       
@@ -155,7 +149,15 @@ export function PurchaseOrdersTableRowContent({
         onSendClick={onSendClick}
         onTestEmailClick={onTestEmailClick}
         onEditClick={onEditClick}
+        onNotesClick={() => setNotesOpen(true)}
         isDeleting={isDeleting}
+      />
+
+      <NotesEditor
+        value={item.notes || ''}
+        onChange={(notes) => onUpdateNotes(item.id, notes)}
+        open={notesOpen}
+        onOpenChange={setNotesOpen}
       />
     </TableRow>
   );

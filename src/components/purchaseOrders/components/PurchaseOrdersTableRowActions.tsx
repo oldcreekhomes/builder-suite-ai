@@ -10,6 +10,7 @@ interface PurchaseOrdersTableRowActionsProps {
   onSendClick: () => void;
   onTestEmailClick: () => void;
   onEditClick: () => void;
+  onNotesClick: () => void;
   isDeleting?: boolean;
 }
 
@@ -20,14 +21,16 @@ export function PurchaseOrdersTableRowActions({
   onSendClick,
   onTestEmailClick,
   onEditClick,
+  onNotesClick,
   isDeleting = false
 }: PurchaseOrdersTableRowActionsProps) {
   return (
     <TableCell className="py-1 text-center">
       <TableRowActions actions={[
+        { label: "Edit", onClick: onEditClick },
+        { label: "Notes", onClick: onNotesClick },
         { label: "Send Purchase Order", onClick: onSendClick },
         { label: "Send Test Email", onClick: onTestEmailClick },
-        { label: "Edit", onClick: onEditClick },
         { label: "Cancel Purchase Order", onClick: () => onDelete(item), variant: "destructive", requiresConfirmation: true, confirmTitle: "Cancel Purchase Order", confirmDescription: `Are you sure you want to cancel PO "${item.po_number}"? A cancellation email will be sent to all company representatives who receive PO notifications.`, isLoading: isDeleting },
       ]} />
     </TableCell>
