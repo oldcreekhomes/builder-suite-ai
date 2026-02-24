@@ -7,10 +7,14 @@ import { Edit3 } from 'lucide-react';
 interface NotesEditorProps {
   value: string;
   onChange: (value: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function NotesEditor({ value, onChange }: NotesEditorProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function NotesEditor({ value, onChange, open: externalOpen, onOpenChange: externalOnOpenChange }: NotesEditorProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = externalOpen ?? internalOpen;
+  const setIsOpen = externalOnOpenChange ?? setInternalOpen;
   const [tempValue, setTempValue] = useState(value);
 
   const handleSave = () => {
@@ -25,16 +29,6 @@ export function NotesEditor({ value, onChange }: NotesEditorProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-8 w-8 p-0"
-          title="Edit Notes"
-        >
-          <Edit3 className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Notes</DialogTitle>
