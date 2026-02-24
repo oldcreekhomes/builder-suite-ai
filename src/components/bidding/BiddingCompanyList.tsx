@@ -20,12 +20,6 @@ interface BiddingCompany {
   companies: Company & { address?: string };
 }
 
-interface DistanceResult {
-  companyId: string;
-  distance: number | null;
-  error?: string;
-}
-
 interface BiddingCompanyListProps {
   biddingItemId: string;
   companies: BiddingCompany[];
@@ -43,7 +37,6 @@ interface BiddingCompanyListProps {
   selectedCompanies?: Set<string>;
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
-  getDistanceForCompany?: (companyId: string) => DistanceResult | null;
   awardedPOs?: AwardedPO[];
 }
 
@@ -64,7 +57,6 @@ export function BiddingCompanyList({
   selectedCompanies = new Set(),
   onCompanyCheckboxChange,
   onSelectAllCompanies,
-  getDistanceForCompany,
   awardedPOs = []
 }: BiddingCompanyListProps) {
   const [localPrices, setLocalPrices] = useState<Record<string, string>>({});
@@ -182,7 +174,6 @@ export function BiddingCompanyList({
           costCodeId={costCodeId}
           isSelected={selectedCompanies.has(biddingCompany.id)}
           onCheckboxChange={onCompanyCheckboxChange}
-          distanceInfo={getDistanceForCompany?.(biddingCompany.id)}
           awardedPOs={awardedPOs}
         />
       ))}
