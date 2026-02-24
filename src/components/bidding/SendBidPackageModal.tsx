@@ -55,7 +55,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
               email,
               phone_number,
               title,
-              receive_bid_notifications
+              receive_bid_notifications,
+              service_areas
             )
           )
         `)
@@ -181,15 +182,19 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
           company_name: senderCompanyData.company_name,
           address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
         } : undefined,
-        companies: companiesData.map(company => ({
-          id: company.companies.id,
-          company_name: company.companies.company_name,
-          address: company.companies.address,
-          phone_number: company.companies.phone_number,
-          representatives: company.companies.company_representatives?.filter(
-            (rep: any) => rep.receive_bid_notifications && rep.email
-          ) || []
-        })).filter(company => company.representatives.length > 0)
+        companies: companiesData.map(company => {
+          const projectRegion = projectData?.region;
+          return {
+            id: company.companies.id,
+            company_name: company.companies.company_name,
+            address: company.companies.address,
+            phone_number: company.companies.phone_number,
+            representatives: company.companies.company_representatives?.filter(
+              (rep: any) => rep.receive_bid_notifications && rep.email &&
+                (!projectRegion || (rep.service_areas || []).includes(projectRegion))
+            ) || []
+          };
+        }).filter(company => company.representatives.length > 0)
       };
 
       console.log('📋 Prepared email data:', JSON.stringify(emailData, null, 2));
@@ -263,9 +268,11 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   if (!bidPackage) return null;
 
   const costCode = bidPackage.cost_codes;
+  const projectRegion = projectData?.region;
   const recipients = companiesData?.reduce((acc, company) => {
     const reps = company.companies?.company_representatives?.filter(
-      (rep: any) => rep.receive_bid_notifications && rep.email
+      (rep: any) => rep.receive_bid_notifications && rep.email &&
+        (!projectRegion || (rep.service_areas || []).includes(projectRegion))
     ) || [];
     return acc + reps.length;
   }, 0) || 0;
@@ -381,7 +388,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
               <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
-                    (rep: any) => rep.receive_bid_notifications && rep.email
+                    (rep: any) => rep.receive_bid_notifications && rep.email &&
+                      (!projectRegion || (rep.service_areas || []).includes(projectRegion))
                   ) || [];
 
                   if (notificationReps.length === 0) return null;

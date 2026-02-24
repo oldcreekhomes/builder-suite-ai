@@ -77,7 +77,8 @@ const handler = async (req: Request): Promise<Response> => {
           ),
           projects (
             address,
-            construction_manager
+            construction_manager,
+            region
           ),
           project_bids!inner (
             id,
@@ -145,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
           // Get representatives
           const { data: reps } = await supabase
             .from('company_representatives')
-            .select('id, first_name, last_name, email, phone_number, title')
+            .select('id, first_name, last_name, email, phone_number, title, service_areas')
             .eq('company_id', bid.company_id)
             .eq('receive_bid_notifications', true);
 
@@ -168,8 +169,14 @@ const handler = async (req: Request): Promise<Response> => {
             }
           }
 
-          if (reps && reps.length > 0) {
-            console.log(`  ✅ Will send reminder to ${companyName} (${reps.length} reps)`);
+          // Filter reps by project region/service area match
+          const projectRegion = pkg.projects?.region;
+          const filteredReps = reps ? reps.filter((rep: any) => 
+            !projectRegion || (rep.service_areas || []).includes(projectRegion)
+          ) : [];
+
+          if (filteredReps.length > 0) {
+            console.log(`  ✅ Will send reminder to ${companyName} (${filteredReps.length} reps after region filter)`);
             remindersToSend.push({
               bid_package_id: pkg.id,
               bid_package_name: pkg.name,
@@ -188,7 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
               project_manager_phone: managerPhone,
               cost_code: pkg.cost_codes.code,
               cost_code_name: pkg.cost_codes.name,
-              representatives: reps
+              representatives: filteredReps
             });
           } else {
             console.log(`  ⚠️ ${companyName} needs reminder but has no reps with bid notifications enabled`);
