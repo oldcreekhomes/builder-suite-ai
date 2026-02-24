@@ -1,43 +1,42 @@
 
 
-## Filter Schedule Resources by Project Region
+## Fix: Resources Not Loading in Schedule
 
 ### Problem
-The resource selector in the schedule shows ALL company representatives regardless of region. For example, a DC-only representative shows up on an Outer Banks project schedule, which is confusing and clutters the list.
+Every row in the schedule creates its own `ResourcesSelector`, each calling `useProjectResources(projectId)` independently. With 20+ visible rows, this fires 100+ simultaneous Supabase queries, causing silent failures and empty resource lists. Before the region filter was added, this same per-row pattern existed but was less likely to fail because there were fewer queries per call (no project lookup).
 
 ### Solution
-Filter the "Company Representatives" section of the resource dropdown so only representatives whose `service_areas` include the current project's region are shown. Internal users remain unfiltered (they work across all regions).
+Fetch resources **once** at the `CustomGanttChart` level and pass the data down as props. This reduces queries from 100+ to just 5.
+
+```text
+BEFORE (broken - N instances):
+  CustomGanttChart
+    UnifiedScheduleTable
+      ResourcesSelector (row 1) -> useProjectResources() -> 5+ queries
+      ResourcesSelector (row 2) -> useProjectResources() -> 5+ queries
+      ... (20+ rows = 100+ queries)
+
+AFTER (fixed - 1 instance):
+  CustomGanttChart -> useProjectResources(projectId) -> 5 queries total
+    UnifiedScheduleTable (receives resources prop)
+      ResourcesSelector (row 1) -> uses prop directly
+      ResourcesSelector (row 2) -> uses prop directly
+      ... (0 additional queries)
+```
 
 ### Changes
 
-#### 1. Update `useProjectResources` hook (`src/hooks/useProjectResources.ts`)
-- Add an optional `projectId` parameter
-- When `projectId` is provided, fetch the project's `region` from the `projects` table
-- Include `service_areas` in the `company_representatives` query
-- After fetching representatives, filter out any whose `service_areas` does not contain the project's region
-- If the project has no region set, show all representatives (backward compatible)
+#### 1. `src/components/schedule/CustomGanttChart.tsx`
+- Import and call `useProjectResources(projectId)` once at the top level
+- Pass `resources` and `isLoadingResources` to `UnifiedScheduleTable`
 
-#### 2. Update `ResourcesSelector` component (`src/components/schedule/ResourcesSelector.tsx`)
-- Add an optional `projectId` prop
-- Pass it through to `useProjectResources(projectId)`
+#### 2. `src/components/schedule/UnifiedScheduleTable.tsx`
+- Add `resources` and `isLoadingResources` props to the interface
+- Pass them through to each `ResourcesSelector`
 
-#### 3. Update `UnifiedScheduleTable` component (`src/components/schedule/UnifiedScheduleTable.tsx`)
-- Add a `projectId` prop to the component interface
-- Pass it down to each `ResourcesSelector` instance
+#### 3. `src/components/schedule/ResourcesSelector.tsx`
+- Add optional `resources` and `isLoadingResources` props
+- When provided, use them directly instead of calling `useProjectResources`
+- Only fall back to the hook if no resources prop is passed (backward compat)
 
-#### 4. Update `CustomGanttChart` component (`src/components/schedule/CustomGanttChart.tsx`)
-- Pass the existing `projectId` prop to `UnifiedScheduleTable`
-
-#### 5. Update `TaskRow` component (`src/components/schedule/TaskRow.tsx`) (if used)
-- Add `projectId` prop and pass it to `ResourcesSelector`
-
-### Filtering Logic
-```text
-IF project.region IS NOT NULL:
-  Show rep only if rep.service_areas CONTAINS project.region
-ELSE:
-  Show all representatives (current behavior)
-```
-
-Internal users are always shown regardless of region.
-
+No changes needed to the filtering logic itself -- it already correctly matches project region to representative service areas. The data confirms: project "Outer Banks, NC" has matching reps (Chris Smith, Brian OConnor, Eddie Musick, Joey Austin).
