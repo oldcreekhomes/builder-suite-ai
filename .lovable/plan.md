@@ -1,79 +1,33 @@
 
 
-## Add Service Areas to Company Representatives
+## Fix Service Area Field in Settings Representatives
 
-### Summary
+### Problem
+The Service Area field in the Settings representative dialogs (Edit and Add) currently shows as bare checkboxes at the top of the form. It should use the same dropdown/popover style as the Company dialogs (`ServiceAreaSelector` component) and sit in the same row as the Company field.
 
-Add a `service_areas` text array column to `company_representatives`, backfill it from the parent company's service areas, and update all representative Add/Edit forms and tables to display and manage this field. This is purely additive -- no notification logic changes.
+### Changes
 
-### 1. Database Migration
+#### 1. Edit Representative Dialog (`src/components/representatives/EditRepresentativeDialog.tsx`)
+- Remove the standalone `service_areas` checkbox block at the top of the General tab (lines 240-267)
+- Put Company and Service Area side-by-side in a `grid grid-cols-2 gap-4` row
+- Replace the checkboxes with the existing `ServiceAreaSelector` component (popover with badges, same as company forms)
+- Wire `ServiceAreaSelector` to `form.setValue('service_areas', ...)` and `form.watch('service_areas')`
 
-Add the column and backfill existing representatives with their parent company's service areas:
+#### 2. Add Representative Modal (`src/components/representatives/AddRepresentativeModal.tsx`)
+- Remove the separated "Service Areas" section with checkboxes near the bottom (lines 322-352)
+- Put Company and Service Area side-by-side in a `grid grid-cols-2 gap-4` row
+- Replace with `ServiceAreaSelector` component, keeping the existing auto-populate logic (when a company is selected, its service areas are pre-filled)
 
-```sql
-ALTER TABLE company_representatives
-  ADD COLUMN service_areas text[] NOT NULL DEFAULT '{}'::text[];
-
-UPDATE company_representatives cr
-SET service_areas = COALESCE(c.service_areas, ARRAY['Washington, DC']::text[])
-FROM companies c
-WHERE cr.company_id = c.id;
-```
-
-### 2. Settings > Representatives Table (`src/components/representatives/RepresentativesTable.tsx`)
-
-- Add `service_areas` to the query select
-- Add a "Service Area" column between "Company" and "Type"
-- Display service area values as badges (same styling pattern used for company service areas)
-- Update the Representative interface to include `service_areas?: string[]`
-
-### 3. Settings > Add Representative Modal (`src/components/representatives/AddRepresentativeModal.tsx`)
-
-- Add `service_areas` to the zod schema as `z.array(z.string()).min(1, "At least one service area is required")`
-- Add a "Service Area" section with checkboxes for "Washington, DC" and "Outer Banks, NC" (from `SERVICE_AREA_OPTIONS`)
-- When a company is selected, auto-populate from the selected company's service areas by fetching `service_areas` in the companies dropdown query
-- Include `service_areas` in the insert payload
-
-### 4. Settings > Edit Representative Dialog (`src/components/representatives/EditRepresentativeDialog.tsx`)
-
-- Add `service_areas` to the zod schema
-- Initialize from `representative.service_areas` in the useEffect reset
-- Add service area checkboxes to the "General" tab
-- Include in the update payload
-
-### 5. Company View > Add Representative Dialog (`src/components/companies/AddRepresentativeDialog.tsx`)
-
-- Add `service_areas` to the schema and form
-- Default checkboxes from the parent company's service areas (fetch via `companyId` prop)
-- Include in the insert payload
-
-### 6. Company View > Edit Representative Dialog (`src/components/companies/EditRepresentativeDialog.tsx`)
-
-- Add `service_areas` to the schema, form reset, and update payload
-- Add checkboxes to the "General" tab
-
-### 7. Company View Dialog (`src/components/companies/ViewCompanyDialog.tsx`)
-
-- Add `service_areas` to the representatives query select
-- Display service area badges next to each representative's name/title
-
-### Files to modify
+### Layout (both dialogs)
 
 ```text
-Database: new migration (add service_areas column + backfill)
-
-src/components/representatives/RepresentativesTable.tsx
-src/components/representatives/AddRepresentativeModal.tsx
-src/components/representatives/EditRepresentativeDialog.tsx
-src/components/companies/AddRepresentativeDialog.tsx
-src/components/companies/EditRepresentativeDialog.tsx
-src/components/companies/ViewCompanyDialog.tsx
+| Company (searchable)    | Service Area (dropdown) |
 ```
 
-### What stays the same
+Both fields in one row, matching the company dialog pattern.
 
-- All notification logic (bid, schedule, PO) -- unchanged, still uses boolean flags
-- Company-level service areas -- untouched
-- The `src/lib/serviceArea.ts` utility -- reused for canonical options
-- Bidding module -- no changes needed for this step
-
+### Technical Details
+- Reuse `ServiceAreaSelector` from `src/components/companies/ServiceAreaSelector.tsx` -- no new components needed
+- The `ServiceAreaSelector` is a controlled component accepting `selectedAreas` and `onAreasChange` props
+- Connect it to the form via `form.watch('service_areas')` for reading and `form.setValue('service_areas', areas)` for writing
+- Validation (`min(1)`) stays in the zod schema -- form-level error will still display via `FormMessage`
