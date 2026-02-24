@@ -91,7 +91,8 @@ export function SendTestEmailModal({
               email,
               phone_number,
               title,
-              receive_bid_notifications
+              receive_bid_notifications,
+              service_areas
             )
           )
         `)
