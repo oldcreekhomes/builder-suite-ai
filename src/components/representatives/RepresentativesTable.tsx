@@ -298,7 +298,6 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
               <TableHead>First Name</TableHead>
               <TableHead>Last Name</TableHead>
               <TableHead>Company</TableHead>
-              <TableHead>Service Area</TableHead>
               <TableHead>Type</TableHead>
               <TableHead className="min-w-[200px]">Email</TableHead>
               <TableHead>Phone</TableHead>
@@ -311,13 +310,13 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
           <TableBody>
             {filteredRepresentatives.length === 0 && searchQuery ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-4 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
                   No representatives found matching "{searchQuery}".
                 </TableCell>
               </TableRow>
             ) : representatives.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-4 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
                   No representatives found. Add your first representative to get started.
                 </TableCell>
               </TableRow>
@@ -331,15 +330,6 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                     {rep.last_name}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{rep.companies?.company_name}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(rep.service_areas || []).map((area) => (
-                        <Badge key={area} variant="outline" className="text-xs px-1.5 py-0.5">
-                          {area}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
                   <TableCell>
                     <Select 
                       value={rep.title || ''} 
