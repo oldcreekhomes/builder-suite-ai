@@ -1,28 +1,34 @@
 
 
-## Fix Companies Table Column Widths
+## Fix Companies Table: Match Search Layout to Full List
 
 ### Problem
-When the full company list is displayed (no search), the browser's auto table layout engine compresses columns based on content, causing "Cost Codes" to wrap and the overall layout to look squeezed. When searching (fewer rows), the layout looks perfect because there's less content competing for space.
+With 2 rows (search results), the browser has plenty of space and the columns look perfect. With 150+ rows, long company names wrap onto multiple lines, pushing the right-side columns off-screen. The columns need to be locked so the layout is identical regardless of row count.
 
 ### Solution
-Add explicit width classes to both `TableHead` and `TableCell` elements in `CompaniesTable.tsx` to lock the column proportions regardless of row count. This follows the project's established pattern (per the html-table-sizing-rules-body-sync standard).
+Use `table-fixed` layout on the table and assign explicit percentage-based widths to the Company Name and Address columns. Add truncation so long text gets cut off with ellipsis instead of wrapping.
 
-### File to Modify
+### Changes to `src/components/companies/CompaniesTable.tsx`
 
-**`src/components/companies/CompaniesTable.tsx`**
+1. Add `table-fixed` class to the Table component
+2. Set Company Name column to a fixed width (e.g., `w-[25%]`) with truncation
+3. Set Address column to use remaining space with truncation
+4. Ensure all `TableCell` elements have matching `truncate` and `max-w-0` so text clips cleanly
 
-Update the table header and body cells with synchronized width classes:
+### Column Layout
 
-| Column | Width | Notes |
-|--------|-------|-------|
-| Company Name | (no width, flex fill) | Takes remaining space |
-| Type | `w-28` | Badge fits comfortably |
-| Address | (no width, flex fill) | Takes remaining space |
-| Cost Codes | `w-24` | Short content, prevent header wrap |
-| Website | `w-24` | Short content |
-| Representatives | `w-32` | Icon + count |
-| Actions | `w-16 text-center` | 3-dot menu only |
+| Column | Width | Truncation |
+|--------|-------|------------|
+| Company Name | `w-[25%]` | Yes -- truncate with ellipsis |
+| Type | `w-28` | No |
+| Address | auto (remaining) | Yes -- truncate with ellipsis |
+| Cost Codes | `w-24` | No |
+| Website | `w-24` | No |
+| Representatives | `w-32` | No |
+| Actions | `w-16` | No |
 
-Add `whitespace-nowrap` to the Cost Codes and Representatives headers to prevent text wrapping. Apply matching width classes on the corresponding `TableCell` elements so the browser respects the sizing consistently.
+### Technical Detail
+- Adding `className="table-fixed"` to `<Table>` forces the browser to respect header widths exactly
+- `max-w-0 truncate` on Company Name and Address cells ensures text is clipped with "..." instead of wrapping to multiple lines
+- This makes the full list render identically to the search results view
 
