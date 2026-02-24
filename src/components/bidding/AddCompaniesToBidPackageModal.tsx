@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Globe } from 'lucide-react';
 import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
 
 interface AddCompaniesToBidPackageModalProps {
@@ -24,7 +26,23 @@ export function AddCompaniesToBidPackageModal({
   existingCompanyIds
 }: AddCompaniesToBidPackageModalProps) {
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
+  const [showAll, setShowAll] = useState(false);
   const { addCompanyToBidPackage } = useBiddingCompanyMutations(projectId);
+
+  // Fetch the project's region
+  const { data: projectRegion } = useQuery({
+    queryKey: ['project-region', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('region')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.region as string | null;
+    },
+    enabled: open && !!projectId,
+  });
 
   // Fetch companies associated with this cost code that aren't already in the bid package
   const { data: availableCompanies, isLoading } = useQuery({
@@ -39,7 +57,8 @@ export function AddCompaniesToBidPackageModal({
             company_name,
             company_type,
             address,
-            phone_number
+            phone_number,
+            service_areas
           )
         `)
         .eq('cost_code_id', costCodeId);
@@ -57,6 +76,16 @@ export function AddCompaniesToBidPackageModal({
     },
     enabled: open && !!costCodeId,
   });
+
+  // Filter companies by region unless showAll is checked
+  const filteredCompanies = React.useMemo(() => {
+    if (!availableCompanies) return [];
+    if (showAll || !projectRegion) return availableCompanies;
+    return availableCompanies.filter(company => {
+      const areas = (company as any).service_areas as string[] | null;
+      return areas && areas.includes(projectRegion);
+    });
+  }, [availableCompanies, showAll, projectRegion]);
 
   const handleCompanyToggle = (companyId: string) => {
     setSelectedCompanies(prev => {
@@ -88,6 +117,24 @@ export function AddCompaniesToBidPackageModal({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Add Companies to Bid Package</DialogTitle>
+          {projectRegion && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                Showing companies for: <span className="font-medium text-foreground">{projectRegion}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="show-all-companies"
+                  checked={showAll}
+                  onCheckedChange={(checked) => setShowAll(!!checked)}
+                />
+                <Label htmlFor="show-all-companies" className="text-sm cursor-pointer">
+                  Show all companies
+                </Label>
+              </div>
+            </div>
+          )}
         </DialogHeader>
         
         <div className="flex-1 overflow-auto">
@@ -102,7 +149,7 @@ export function AddCompaniesToBidPackageModal({
               <div className="p-2">
                 <h3 className="font-medium mb-2">Available Companies</h3>
                 <div className="space-y-1 max-h-52 overflow-auto">
-                  {(availableCompanies || [])
+                  {filteredCompanies
                     .filter(company => !selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 
@@ -113,7 +160,7 @@ export function AddCompaniesToBidPackageModal({
                         {company.company_name}
                       </div>
                     ))}
-                  {(availableCompanies || []).filter(company => !selectedCompanies.has(company.id)).length === 0 && (
+                  {filteredCompanies.filter(company => !selectedCompanies.has(company.id)).length === 0 && (
                     <div className="text-center py-3 text-muted-foreground text-sm">
                       No companies available
                     </div>
@@ -125,7 +172,7 @@ export function AddCompaniesToBidPackageModal({
               <div className="p-2">
                 <h3 className="font-medium mb-2">Selected Companies ({selectedCompanies.size})</h3>
                 <div className="space-y-1 max-h-52 overflow-auto">
-                  {(availableCompanies || [])
+                  {filteredCompanies
                     .filter(company => selectedCompanies.has(company.id))
                     .map((company) => (
                       <div 

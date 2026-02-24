@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "@/components/companies/CostCodeSelector";
+import { ServiceAreaSelector } from "@/components/companies/ServiceAreaSelector";
 import { InsuranceContent } from "@/components/companies/CompanyInsuranceSection";
 import { ExtractedInsuranceData } from "@/components/companies/InsuranceCertificateUpload";
 import { InlineRepresentativeForm, InlineRepresentativeFormRef, InlineRepresentativeData } from "@/components/companies/InlineRepresentativeForm";
@@ -114,6 +115,7 @@ export function AddCompanyDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const [selectedServiceAreas, setSelectedServiceAreas] = useState<string[]>([]);
   const [costCodeError, setCostCodeError] = useState<string>("");
   const [extractedInsuranceData, setExtractedInsuranceData] = useState<ExtractedInsuranceData | null>(null);
   const [pendingInsuranceFilePath, setPendingInsuranceFilePath] = useState<string | null>(null);
@@ -282,6 +284,7 @@ export function AddCompanyDialog({
         phone_number: data.phone_number || null,
         website: data.website || null,
         home_builder_id: homeBuilderIdToUse,
+        service_areas: selectedServiceAreas,
       };
       console.log('Inserting company data:', insertData);
 
@@ -390,6 +393,7 @@ export function AddCompanyDialog({
       // Reset form and state
       form.reset();
       setSelectedCostCodes([]);
+      setSelectedServiceAreas([]);
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
       representativeFormRef.current?.reset();
@@ -480,6 +484,7 @@ export function AddCompanyDialog({
       // Reset form and selections when closing
       form.reset();
       setSelectedCostCodes([]);
+      setSelectedServiceAreas([]);
       setCostCodeError("");
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
@@ -646,6 +651,17 @@ export function AddCompanyDialog({
                     {costCodeError && (
                       <p className="text-sm font-medium text-destructive">{costCodeError}</p>
                     )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <FormLabel>Service Areas</FormLabel>
+                    <ServiceAreaSelector
+                      selectedAreas={selectedServiceAreas}
+                      onAreasChange={setSelectedServiceAreas}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Tag regions this company serves (e.g., "Northern Virginia", "Outer Banks, NC")
+                    </p>
                   </div>
                 </TabsContent>
                 
