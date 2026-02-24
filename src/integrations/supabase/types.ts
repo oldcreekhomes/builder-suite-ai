@@ -1236,6 +1236,7 @@ export type Database = {
           insurance_required: boolean
           marketplace_company_id: string | null
           phone_number: string | null
+          service_areas: string[] | null
           state: string | null
           terms: string | null
           updated_at: string
@@ -1257,6 +1258,7 @@ export type Database = {
           insurance_required?: boolean
           marketplace_company_id?: string | null
           phone_number?: string | null
+          service_areas?: string[] | null
           state?: string | null
           terms?: string | null
           updated_at?: string
@@ -1278,6 +1280,7 @@ export type Database = {
           insurance_required?: boolean
           marketplace_company_id?: string | null
           phone_number?: string | null
+          service_areas?: string[] | null
           state?: string | null
           terms?: string | null
           updated_at?: string
@@ -3542,6 +3545,7 @@ export type Database = {
           qb_invoices_approved_date: string | null
           qb_invoices_paid_date: string | null
           qb_last_reconciliation_date: string | null
+          region: string | null
           status: string
           total_lots: number | null
           updated_at: string
@@ -3564,6 +3568,7 @@ export type Database = {
           qb_invoices_approved_date?: string | null
           qb_invoices_paid_date?: string | null
           qb_last_reconciliation_date?: string | null
+          region?: string | null
           status: string
           total_lots?: number | null
           updated_at?: string
@@ -3586,6 +3591,7 @@ export type Database = {
           qb_invoices_approved_date?: string | null
           qb_invoices_paid_date?: string | null
           qb_last_reconciliation_date?: string | null
+          region?: string | null
           status?: string
           total_lots?: number | null
           updated_at?: string

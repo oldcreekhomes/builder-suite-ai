@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { StructuredAddressInput } from "@/components/StructuredAddressInput";
 import { CostCodeSelector } from "./CostCodeSelector";
+import { ServiceAreaSelector } from "./ServiceAreaSelector";
 import { RepresentativeContent } from "./RepresentativeSelector";
 import { InsuranceContent } from "./CompanyInsuranceSection";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
@@ -66,6 +67,7 @@ interface Company {
   website?: string;
   home_builder_id: string;
   insurance_required?: boolean;
+  service_areas?: string[];
 }
 
 interface EditCompanyDialogProps {
@@ -173,6 +175,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
+  const [selectedServiceAreas, setSelectedServiceAreas] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'company-info' | 'representatives' | 'insurance'>('company-info');
   const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
   const initializationDone = useRef(false);
@@ -276,6 +279,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
 
+      // Initialize service areas
+      if (company.service_areas && company.service_areas.length > 0) {
+        setSelectedServiceAreas([...company.service_areas]);
+      }
+
       initializationDone.current = true;
     }
   }, [company, open, form]);
@@ -292,6 +300,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   useEffect(() => {
     if (!open) {
       setSelectedCostCodes([]);
+      setSelectedServiceAreas([]);
       setActiveTab('company-info');
       setShowInsuranceUpload(false);
       initializationDone.current = false;
@@ -364,6 +373,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         zip_code: data.zip_code,
         phone_number: data.phone_number,
         website: data.website,
+        service_areas: selectedServiceAreas,
         // Build legacy address field for compatibility
         address: [
           data.address_line_1,
@@ -559,6 +569,17 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                     selectedCostCodes={selectedCostCodes}
                     onCostCodesChange={handleCostCodesChange}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Service Areas</FormLabel>
+                  <ServiceAreaSelector
+                    selectedAreas={selectedServiceAreas}
+                    onAreasChange={setSelectedServiceAreas}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Tag regions this company serves (e.g., "Northern Virginia", "Outer Banks, NC")
+                  </p>
                 </div>
               </TabsContent>
               

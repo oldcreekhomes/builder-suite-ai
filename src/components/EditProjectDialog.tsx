@@ -38,6 +38,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     construction_manager: "no-manager",
     accounting_manager: "no-manager",
     accounting_software: "quickbooks",
+    region: "",
   });
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         construction_manager: project.construction_manager || "no-manager",
         accounting_manager: project.accounting_manager || "no-manager",
         accounting_software: project.accounting_software || "quickbooks",
+        region: (project as any).region || "",
       });
     }
   }, [project]);
@@ -62,6 +64,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         construction_manager: data.construction_manager === "no-manager" ? null : data.construction_manager,
         accounting_manager: data.accounting_manager === "no-manager" ? null : data.accounting_manager,
         accounting_software: data.accounting_software,
+        region: data.region || null,
       };
       
       const { error } = await supabase
@@ -185,6 +188,21 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                   </Select>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="region">Region</Label>
+                  <Input
+                    id="region"
+                    placeholder="e.g., Northern Virginia"
+                    value={formData.region}
+                    onChange={(e) => handleChange('region', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used to filter companies by service area in bid packages
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="accountingSoftware">Accounting Software</Label>
                   <Select 
