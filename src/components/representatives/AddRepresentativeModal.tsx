@@ -33,7 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Search } from "lucide-react";
-import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
+import { ServiceAreaSelector } from "@/components/companies/ServiceAreaSelector";
 
 const representativeSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -279,72 +279,57 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="company_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company</FormLabel>
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            placeholder="Search and select company..."
-                            value={companySearch || field.value}
-                            onChange={(e) => setCompanySearch(e.target.value)}
-                            className="pl-10"
-                          />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="company_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company</FormLabel>
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Search and select company..."
+                              value={companySearch || field.value}
+                              onChange={(e) => setCompanySearch(e.target.value)}
+                              className="pl-10"
+                            />
+                          </div>
+                          {companySearch && filteredCompanies.length > 0 && (
+                            <div className="border rounded-md bg-background shadow-sm max-h-32 overflow-y-auto">
+                              {filteredCompanies.map((company) => (
+                                <div
+                                  key={company.id}
+                                  className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                                  onClick={() => handleCompanySelect(company.company_name)}
+                                >
+                                  {company.company_name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {companySearch && filteredCompanies.length === 0 && (
+                            <div className="border rounded-md bg-background shadow-sm p-3 text-muted-foreground text-sm text-center">
+                              No companies found matching your search
+                            </div>
+                          )}
                         </div>
-                        {companySearch && filteredCompanies.length > 0 && (
-                          <div className="border rounded-md bg-background shadow-sm max-h-32 overflow-y-auto">
-                            {filteredCompanies.map((company) => (
-                              <div
-                                key={company.id}
-                                className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
-                                onClick={() => handleCompanySelect(company.company_name)}
-                              >
-                                {company.company_name}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {companySearch && filteredCompanies.length === 0 && (
-                          <div className="border rounded-md bg-background shadow-sm p-3 text-muted-foreground text-sm text-center">
-                            No companies found matching your search
-                          </div>
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <div className="pt-2">
-                  <Separator className="mb-4" />
-                  <p className="text-sm font-medium text-muted-foreground mb-3">Service Areas</p>
                   <FormField
                     control={form.control}
                     name="service_areas"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="space-y-2">
-                          {SERVICE_AREA_OPTIONS.map((area) => (
-                            <div key={area} className="flex items-center space-x-3">
-                              <Checkbox
-                                checked={field.value?.includes(area)}
-                                onCheckedChange={(checked) => {
-                                  const current = field.value || [];
-                                  field.onChange(
-                                    checked
-                                      ? [...current, area]
-                                      : current.filter((a: string) => a !== area)
-                                  );
-                                }}
-                              />
-                              <FormLabel className="text-sm font-normal">{area}</FormLabel>
-                            </div>
-                          ))}
-                        </div>
+                        <FormLabel>Service Areas</FormLabel>
+                        <ServiceAreaSelector
+                          selectedAreas={field.value || []}
+                          onAreasChange={(areas) => field.onChange(areas)}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
