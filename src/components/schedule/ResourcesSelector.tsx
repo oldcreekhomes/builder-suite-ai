@@ -14,15 +14,19 @@ interface ResourcesSelectorProps {
   className?: string;
   readOnly?: boolean;
   projectId?: string;
+  externalResources?: import("@/hooks/useProjectResources").ProjectResource[];
+  externalIsLoading?: boolean;
 }
 
-export function ResourcesSelector({ value, onValueChange, className, readOnly = false, projectId }: ResourcesSelectorProps) {
+export function ResourcesSelector({ value, onValueChange, className, readOnly = false, projectId, externalResources, externalIsLoading }: ResourcesSelectorProps) {
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
   
-  // Use the project resources hook
-  const { resources, isLoading } = useProjectResources(projectId);
+  // Use external resources if provided, otherwise fall back to hook
+  const hookResult = useProjectResources(externalResources ? undefined : projectId);
+  const resources = externalResources ?? hookResult.resources;
+  const isLoading = externalIsLoading ?? hookResult.isLoading;
 
   // Parse the current value into selected resources
   useEffect(() => {

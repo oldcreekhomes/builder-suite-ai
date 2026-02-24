@@ -26,6 +26,7 @@ import { useTaskAdd } from "@/hooks/useTaskAdd";
 import { useTaskHierarchy } from "@/hooks/useTaskHierarchy";
 import { usePublishSchedule } from "@/hooks/usePublishSchedule";
 import { recalculateAllTaskDates } from "@/utils/scheduleRecalculation";
+import { useProjectResources } from "@/hooks/useProjectResources";
 
 interface CustomGanttChartProps {
   projectId: string;
@@ -41,6 +42,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   const { toast } = useToast();
   const { captureState, undo, canUndo, isUndoing } = useScheduleUndo(projectId, user?.id);
   const { publishSchedule, isLoading: isPublishing } = usePublishSchedule(projectId);
+  const { resources: projectResources, isLoading: isLoadingResources } = useProjectResources(projectId);
   
   // Parent recalculation is now handled directly in useTaskMutations.tsx
   // This eliminates the 3-second cooldown and 1.5-second debounce that caused lag
@@ -755,6 +757,8 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
           dayWidth={dayWidth}
           recentlySavedTasks={recentlySavedTasks}
           projectId={projectId}
+          projectResources={projectResources}
+          isLoadingResources={isLoadingResources}
         />
       </div>
 
