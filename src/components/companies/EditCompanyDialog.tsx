@@ -38,7 +38,7 @@ import { InsuranceContent } from "./CompanyInsuranceSection";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
 import { Search, ShieldOff, Info, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { normalizeServiceAreas } from "@/lib/serviceArea";
+import { normalizeServiceAreas, getCompanyServiceAreasOrDefault } from "@/lib/serviceArea";
 
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
@@ -280,10 +280,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         website: company.website || "",
       });
 
-      // Initialize service areas (normalize legacy values like "Northern Virginia")
-      if (company.service_areas && company.service_areas.length > 0) {
-        setSelectedServiceAreas(normalizeServiceAreas(company.service_areas));
-      }
+      // Initialize service areas — always resolve to at least one canonical value
+      setSelectedServiceAreas(getCompanyServiceAreasOrDefault(company));
 
       initializationDone.current = true;
     }
@@ -374,7 +372,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         zip_code: data.zip_code,
         phone_number: data.phone_number,
         website: data.website,
-        service_areas: normalizeServiceAreas(selectedServiceAreas),
+        service_areas: normalizeServiceAreas(selectedServiceAreas).length > 0
+          ? normalizeServiceAreas(selectedServiceAreas)
+          : ["Washington, DC"],
         // Build legacy address field for compatibility
         address: [
           data.address_line_1,
