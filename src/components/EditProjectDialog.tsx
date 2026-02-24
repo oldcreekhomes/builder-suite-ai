@@ -116,14 +116,33 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
           <TabsContent value="details">
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  required
-                />
+              <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-3 space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleChange('address', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-span-1 space-y-2">
+                  <Label htmlFor="region">Region</Label>
+                  <Select
+                    value={formData.region || "no-region"}
+                    onValueChange={(value) => handleChange('region', value === "no-region" ? "" : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-region">No Region</SelectItem>
+                      {SERVICE_AREA_OPTIONS.map((area) => (
+                        <SelectItem key={area} value={area}>{area}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -189,29 +208,6 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="region">Region</Label>
-                  <Select
-                    value={formData.region || "no-region"}
-                    onValueChange={(value) => handleChange('region', value === "no-region" ? "" : value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select region" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no-region">No Region</SelectItem>
-                      {SERVICE_AREA_OPTIONS.map((area) => (
-                        <SelectItem key={area} value={area}>{area}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Used to filter companies by service area in bid packages
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="accountingSoftware">Accounting Software</Label>
                   <Select 
