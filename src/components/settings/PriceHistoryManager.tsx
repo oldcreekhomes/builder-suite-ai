@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
-import { CalendarIcon, Paperclip, Trash2 } from "lucide-react";
+import { CalendarIcon, Paperclip } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import { cn } from "@/lib/utils";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
@@ -161,7 +162,6 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
   };
 
   const handleDeletePriceEntry = async (entry: PriceHistory) => {
-    if (!confirm("Are you sure you want to delete this price history entry? This cannot be undone.")) return;
     if (!costCode) return;
 
     setDeletingEntryId(entry.id);
@@ -477,21 +477,14 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
                           {format(new Date(entry.changed_at), "MMM d, yyyy")}
                         </div>
                         {canDeletePriceHistory && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePriceEntry(entry)}
-                                disabled={deletingEntryId === entry.id}
-                                className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Delete this price entry</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <DeleteButton
+                            onDelete={() => handleDeletePriceEntry(entry)}
+                            title="Delete Price Entry"
+                            description="Are you sure you want to delete this price history entry? This cannot be undone."
+                            size="icon"
+                            variant="ghost"
+                            isLoading={deletingEntryId === entry.id}
+                          />
                         )}
                       </div>
                     </div>
