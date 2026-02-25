@@ -112,6 +112,7 @@ export const useCostCodes = () => {
         has_specifications: costCodeData.hasSpecifications === 'yes',
         has_bidding: costCodeData.hasBidding === 'yes',
         has_subcategories: costCodeData.hasSubcategories === 'yes',
+        estimate: costCodeData.estimate === 'yes',
         owner_id: ownerId,
       } as any;
 
