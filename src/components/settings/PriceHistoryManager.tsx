@@ -462,11 +462,11 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
             ) : priceHistory.length === 0 ? (
               <div className="text-sm text-muted-foreground">No price history yet</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {priceHistory.map((entry) => (
                   <div 
                     key={entry.id} 
-                    className="rounded-lg border border-border bg-card p-4 space-y-2"
+                    className="rounded-md border border-border bg-card px-3 py-2 space-y-1"
                   >
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-medium">
