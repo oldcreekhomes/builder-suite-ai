@@ -1,22 +1,28 @@
 
-## Fix: Estimate field not saving when adding subcategory
+
+## Standardize Closing Reports Actions to Dropdown Menu
 
 ### Problem
-When adding a subcategory with Estimate set to "Yes", the value is not saved to the database. The `addCostCode` function in `useCostCodes.tsx` builds a payload that maps fields like `hasSpecifications`, `hasBidding`, and `hasSubcategories` but **omits the `estimate` field entirely**. The `cost_codes` table has an `estimate` boolean column that defaults to null/false, so it always shows "No".
+The Closing Reports dialog uses inline icon buttons (Download, Edit, Delete) instead of the standardized "..." dropdown menu used everywhere else in the app.
 
 ### Fix
 
-**File: `src/hooks/useCostCodes.tsx` (line ~115)**
+**File: `src/components/accounting/ClosingReportsDialog.tsx`**
 
-Add the `estimate` field to the payload object:
+1. Import `TableRowActions` from `@/components/ui/table-row-actions`
+2. Remove imports for `Download`, `Pencil`, and `DeleteButton` (no longer needed inline)
+3. Change the Actions `TableHead` to use `text-center`
+4. Replace the inline buttons block with a single `TableRowActions` component containing:
+   - "Download" action
+   - "Rename" action (triggers the edit dialog)
+   - "Delete" action (destructive, with confirmation)
+5. Move `onClick` row-click handling so the dropdown doesn't conflict
 
-```typescript
-estimate: costCodeData.estimate === 'yes',
-```
-
-This maps the `"yes"/"no"` string from the dialog form to the boolean `estimate` column in the database, consistent with how `has_specifications`, `has_bidding`, and `has_subcategories` are already handled.
+### Result
+The Actions column will show a centered "..." button that opens a dropdown with Download, Rename, and Delete -- matching the Purchase Orders table and all other tables in the app.
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/hooks/useCostCodes.tsx` | Add `estimate` field to the insert/update payload (1 line) |
+| `src/components/accounting/ClosingReportsDialog.tsx` | Replace inline action buttons with `TableRowActions` dropdown |
+
