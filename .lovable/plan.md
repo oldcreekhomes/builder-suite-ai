@@ -1,39 +1,50 @@
 
-## Fix: Price History Changes Should Update Table, Edit Dialog, and Chart Instantly
+## Add "Delete Price History" Permission and Delete Functionality
 
-### Problem
-When adding a historical price in the Price History Manager (the Sheet/side panel opened from the Edit Cost Code dialog), the database is updated but nothing in the UI refreshes -- the table, the edit dialog's price field, and the price chart all show stale data until a manual page refresh.
+### Overview
+Add a new permission `can_delete_price_history` that controls whether a user can delete entries from the Price History dialog. This permission defaults to FALSE for all users (including owners) and must be explicitly enabled in the Edit Employee Access tab.
 
-### Root Cause
-`PriceHistoryManager` component has no callback prop to notify parent components that a price was added. It updates the database (both `cost_code_price_history` and `cost_codes.price`) but never triggers a re-fetch of the cost codes list or chart data.
+### Changes Required
 
-### Fix
+**1. Database: Add column to `user_notification_preferences`**
+- Run SQL migration to add `can_delete_price_history boolean not null default false` to the `user_notification_preferences` table
+- Regenerate Supabase types so the new column appears in the TypeScript types
 
-**1. `src/components/settings/PriceHistoryManager.tsx`**
-- Add an `onPriceUpdate` callback prop to the interface
-- Call `onPriceUpdate()` after successfully adding a historical price (after the DB updates on line ~240)
+**2. `src/hooks/useNotificationPreferences.tsx`**
+- Add `can_delete_price_history: boolean` to the `NotificationPreferences` interface
+- Add `can_delete_price_history: false` to `defaultPreferences`
+- Keep it `false` in owner defaults too (matching the pattern used for `can_delete_bills`)
 
-**2. `src/components/EditCostCodeDialog.tsx`**
-- Add an `onPriceUpdate` callback prop to the interface
-- Pass it through to `PriceHistoryManager` as `onPriceUpdate`
-- When `onPriceUpdate` fires, also update the local `formData.price` state so the price field in the edit dialog reflects the new price immediately
+**3. `src/components/employees/EmployeeAccessPreferences.tsx`**
+- Add a new "Delete Price History" toggle in the Accounting section (after the "Delete Invoices" toggle)
+- Label: "Delete Price History"
+- Description: "Ability to delete historical price entries from cost codes"
+- Wired to `preferences.can_delete_price_history`
 
-**3. `src/pages/Settings.tsx`**
-- Pass the existing `fetchCostCodes` function (or equivalent refetch) as `onPriceUpdate` to `EditCostCodeDialog`, so the table refreshes when a historical price is added
+**4. `src/components/settings/PriceHistoryManager.tsx`**
+- Add a `canDeletePriceHistory?: boolean` prop
+- Add a delete button (trash icon or X) on each price history entry row, only visible when `canDeletePriceHistory` is true
+- On delete: show a confirmation dialog, then delete the record from `cost_code_price_history`, delete any associated file from storage, re-sync the `cost_codes.price` to the new most recent entry, call `onPriceUpdate()`, and refresh the list
 
-### Data Flow After Fix
-```text
-User adds price in PriceHistoryManager
-  -> DB updated (history + cost_codes.price)
-  -> onPriceUpdate() called
-    -> EditCostCodeDialog updates its local price field
-    -> Settings.tsx re-fetches cost codes -> table updates
-    -> PriceHistoryModal chart will show new data on next open
-```
+**5. `src/components/EditCostCodeDialog.tsx`**
+- Import and use `useNotificationPreferences` to get `can_delete_price_history`
+- Pass it to `PriceHistoryManager` as `canDeletePriceHistory`
 
-### Files Changed
+### Technical Details
+
 | File | Change |
 |------|--------|
-| `src/components/settings/PriceHistoryManager.tsx` | Add `onPriceUpdate` prop, call it after successful price insert |
-| `src/components/EditCostCodeDialog.tsx` | Add `onPriceUpdate` prop, pass to PriceHistoryManager, update local form state |
-| `src/pages/Settings.tsx` | Pass `fetchCostCodes` as `onPriceUpdate` to EditCostCodeDialog |
+| Database migration | Add `can_delete_price_history` column (default false) |
+| `src/hooks/useNotificationPreferences.tsx` | Add field to interface and defaults |
+| `src/components/employees/EmployeeAccessPreferences.tsx` | Add toggle in Accounting section |
+| `src/components/settings/PriceHistoryManager.tsx` | Add `canDeletePriceHistory` prop, delete button per row, delete handler with confirmation, price re-sync after delete |
+| `src/components/EditCostCodeDialog.tsx` | Read permission and pass to PriceHistoryManager |
+
+### Delete Logic (PriceHistoryManager)
+When a price history entry is deleted:
+1. If it has a `file_path`, delete the file from Supabase storage
+2. Delete the row from `cost_code_price_history`
+3. Fetch the new most recent price history entry
+4. Update `cost_codes.price` to match the new most recent entry (or set to 0 if no history remains)
+5. Call `onPriceUpdate()` to refresh the table and edit dialog
+6. Refresh the local price history list
