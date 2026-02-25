@@ -170,17 +170,17 @@ export function PriceHistoryModal({
   };
 
   const generateHistoricalChartData = () => {
-    // If price is null/0 but history exists, use most recent historical price
-    let currentPrice = Number(costCode.price || 0);
-    if (currentPrice === 0 && history.length > 0) {
-      const sortedHistory = [...history].sort((a, b) => 
-        new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
-      );
-      currentPrice = Number(sortedHistory[0].price || 0);
-    }
     const today = new Date();
     
-    // If no history, show current price for past 12 months
+    // If no history, show current price as flat line for past 12 months
+    let currentPrice = Number(costCode.price || 0);
+    if (currentPrice === 0 && history.length > 0) {
+      const sorted = [...history].sort((a, b) => 
+        new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+      );
+      currentPrice = Number(sorted[0].price || 0);
+    }
+
     if (history.length === 0) {
       const months = [];
       for (let i = 11; i >= 0; i--) {
@@ -188,64 +188,58 @@ export function PriceHistoryModal({
         date.setMonth(date.getMonth() - i);
         date.setDate(15);
         months.push({
-          date: format(date, 'MMM yy'),
+          date: format(date, 'MMM dd'),
           price: currentPrice,
-          fullDate: format(date, 'MMM yyyy')
+          fullDate: format(date, 'MMM dd, yyyy')
         });
       }
       return months;
     }
-    
+
     // Sort history oldest first
-    const sortedHistory = [...history].sort((a, b) => 
+    const sorted = [...history].sort((a, b) => 
       new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime()
     );
-    
-    // Find date range: earliest history to 3 months in future
-    const earliestDate = new Date(sortedHistory[0].changed_at);
-    const latestDate = new Date(today);
-    latestDate.setMonth(latestDate.getMonth() + 3); // Show 3 months into future
-    
-    // Get the most recent price (either from history or current)
-    const lastHistoricalPrice = Number(sortedHistory[sortedHistory.length - 1].price || 0);
-    const mostRecentPrice = currentPrice > 0 ? currentPrice : lastHistoricalPrice;
-    
-    // Generate monthly data points from earliest to latest
-    const months = [];
-    const currentDate = new Date(earliestDate);
-    currentDate.setDate(15); // 15th of each month
-    
-    // Get the price before the earliest history entry (use first historical price)
-    const earliestPrice = Number(sortedHistory[0].price || 0);
-    
-    while (currentDate <= latestDate) {
-      // For this month, find the active price
-      let activePrice = earliestPrice;
-      
-      // Find the most recent price change at or before this month
-      for (const record of sortedHistory) {
-        const recordDate = new Date(record.changed_at);
-        if (recordDate <= currentDate) {
-          activePrice = Number(record.price || 0);
-        }
+
+    const dataPoints: { date: string; price: number; fullDate: string }[] = [];
+
+    sorted.forEach((entry, i) => {
+      const entryDate = new Date(entry.changed_at);
+      const price = Number(entry.price || 0);
+
+      // Add carry-forward point (day before this change) using previous price
+      if (i > 0) {
+        const dayBefore = new Date(entryDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        const prevPrice = Number(sorted[i - 1].price || 0);
+        dataPoints.push({
+          date: format(dayBefore, 'MMM dd'),
+          price: prevPrice,
+          fullDate: format(dayBefore, 'MMM dd, yyyy'),
+        });
       }
-      
-      // For future months, use the most recent price
-      if (currentDate > today) {
-        activePrice = mostRecentPrice;
-      }
-      
-      months.push({
-        date: format(currentDate, 'MMM yy'),
-        price: activePrice,
-        fullDate: format(currentDate, 'MMM yyyy')
+
+      // Add the actual price change point
+      dataPoints.push({
+        date: format(entryDate, 'MMM dd'),
+        price,
+        fullDate: format(entryDate, 'MMM dd, yyyy'),
       });
-      
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
+    });
+
+    // Add today as the final point with the most recent price
+    const lastPrice = Number(sorted[sorted.length - 1].price || 0);
+    const todayStr = format(today, 'MMM dd');
+    const lastPoint = dataPoints[dataPoints.length - 1];
+    if (!lastPoint || lastPoint.date !== todayStr) {
+      dataPoints.push({
+        date: todayStr,
+        price: currentPrice > 0 ? currentPrice : lastPrice,
+        fullDate: format(today, 'MMM dd, yyyy'),
+      });
     }
-    
-    return months;
+
+    return dataPoints;
   };
 
   const calculateVolatility = () => {
