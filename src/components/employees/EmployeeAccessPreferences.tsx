@@ -283,6 +283,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-delete-price-history" className="text-sm font-normal cursor-pointer">
+                Delete Price History
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to delete historical price entries from cost codes
+              </p>
+            </div>
+            <Switch
+              id="can-delete-price-history"
+              checked={preferences.can_delete_price_history}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_delete_price_history: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 

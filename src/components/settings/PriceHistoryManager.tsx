@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { format } from "date-fns";
-import { CalendarIcon, Paperclip } from "lucide-react";
+import { CalendarIcon, Paperclip, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
@@ -30,9 +30,10 @@ interface PriceHistoryManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPriceUpdate?: () => void;
+  canDeletePriceHistory?: boolean;
 }
 
-export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdate }: PriceHistoryManagerProps) {
+export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdate, canDeletePriceHistory }: PriceHistoryManagerProps) {
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [historicalPrice, setHistoricalPrice] = useState("");
@@ -41,6 +42,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { openProjectFile } = useUniversalFilePreviewContext();
@@ -155,6 +157,54 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
       });
     } finally {
       setDeletingFileId(null);
+    }
+  };
+
+  const handleDeletePriceEntry = async (entry: PriceHistory) => {
+    if (!confirm("Are you sure you want to delete this price history entry? This cannot be undone.")) return;
+    if (!costCode) return;
+
+    setDeletingEntryId(entry.id);
+    try {
+      // 1. Delete file from storage if exists
+      if (entry.file_path) {
+        await supabase.storage.from('project-files').remove([entry.file_path]);
+      }
+
+      // 2. Delete the record
+      const { error } = await supabase
+        .from('cost_code_price_history')
+        .delete()
+        .eq('id', entry.id);
+
+      if (error) throw error;
+
+      // 3. Re-sync cost_codes.price to new most recent entry
+      const { data: latestHistory } = await supabase
+        .from('cost_code_price_history')
+        .select('price')
+        .eq('cost_code_id', costCode.id)
+        .order('changed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      await supabase
+        .from('cost_codes')
+        .update({ 
+          price: latestHistory?.price ?? 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', costCode.id);
+
+      toast({ title: "Success", description: "Price history entry deleted" });
+
+      fetchPriceHistory();
+      onPriceUpdate?.();
+    } catch (error) {
+      console.error('Error deleting price history entry:', error);
+      toast({ title: "Error", description: "Failed to delete price history entry", variant: "destructive" });
+    } finally {
+      setDeletingEntryId(null);
     }
   };
 
@@ -422,8 +472,27 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
                       <div className="text-sm font-medium">
                         ${parseFloat(entry.price.toString()).toFixed(2)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(entry.changed_at), "MMM d, yyyy")}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(entry.changed_at), "MMM d, yyyy")}
+                        </div>
+                        {canDeletePriceHistory && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePriceEntry(entry)}
+                                disabled={deletingEntryId === entry.id}
+                                className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete this price entry</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </div>
                     

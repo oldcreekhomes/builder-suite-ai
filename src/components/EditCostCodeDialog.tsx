@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +36,7 @@ export function EditCostCodeDialog({
   onUpdateCostCode,
   onPriceUpdate 
 }: EditCostCodeDialogProps) {
+  const { preferences } = useNotificationPreferences();
   const [showPriceHistory, setShowPriceHistory] = useState(false);
   const [formData, setFormData] = useState({
     code: "",
@@ -262,6 +264,7 @@ export function EditCostCodeDialog({
         costCode={costCode}
         open={showPriceHistory}
         onOpenChange={setShowPriceHistory}
+        canDeletePriceHistory={!!preferences.can_delete_price_history}
         onPriceUpdate={() => {
           // Update local form price from DB
           if (costCode) {
