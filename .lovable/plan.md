@@ -1,28 +1,45 @@
 
 
-## Standardize Closing Reports Actions to Dropdown Menu
+## Fix: Email Reports ignoring project account exclusions
 
 ### Problem
-The Closing Reports dialog uses inline icon buttons (Download, Edit, Delete) instead of the standardized "..." dropdown menu used everywhere else in the app.
+When sending the Balance Sheet and Income Statement via the "Email Reports" feature, all active accounts appear regardless of which accounts have been unchecked in the Edit Project dialog. The on-screen reports correctly filter using the `project_account_exclusions` table, but `SendReportsDialog.tsx` skips this step entirely.
 
 ### Fix
 
-**File: `src/components/accounting/ClosingReportsDialog.tsx`**
+**File: `src/components/accounting/SendReportsDialog.tsx`**
 
-1. Import `TableRowActions` from `@/components/ui/table-row-actions`
-2. Remove imports for `Download`, `Pencil`, and `DeleteButton` (no longer needed inline)
-3. Change the Actions `TableHead` to use `text-center`
-4. Replace the inline buttons block with a single `TableRowActions` component containing:
-   - "Download" action
-   - "Rename" action (triggers the edit dialog)
-   - "Delete" action (destructive, with confirmation)
-5. Move `onClick` row-click handling so the dropdown doesn't conflict
+**1. Balance Sheet section (around line 130-216)**
+- Fetch `project_account_exclusions` for this project alongside the accounts query
+- Build an `excludedAccountIds` Set from the results
+- Skip excluded accounts when categorizing into assets/liabilities/equity
+- This matches the pattern already used in `BalanceSheetContent.tsx`
 
-### Result
-The Actions column will show a centered "..." button that opens a dropdown with Download, Rename, and Delete -- matching the Purchase Orders table and all other tables in the app.
+**2. Income Statement section (around line 260-322)**
+- Same approach: fetch exclusions and filter out excluded accounts before building revenue/expenses arrays
+- This matches the pattern in `IncomeStatementContent.tsx`
+
+### Technical Detail
+
+Both sections will add a query:
+```typescript
+const { data: exclusions } = await supabase
+  .from('project_account_exclusions')
+  .select('account_id')
+  .eq('project_id', projectId);
+
+const excludedAccountIds = new Set(
+  (exclusions || []).map(e => e.account_id)
+);
+```
+
+Then filter accounts before processing:
+```typescript
+const filteredAccounts = accounts?.filter(a => !excludedAccountIds.has(a.id));
+```
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/components/accounting/ClosingReportsDialog.tsx` | Replace inline action buttons with `TableRowActions` dropdown |
+| `src/components/accounting/SendReportsDialog.tsx` | Add exclusion filtering to both Balance Sheet and Income Statement PDF generation |
 
