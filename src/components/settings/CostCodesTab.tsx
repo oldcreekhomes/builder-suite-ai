@@ -71,17 +71,25 @@ export function CostCodesTab({
       cc.name.toLowerCase().includes(query)
     );
     
+    // Include parents of matched children
     const parentGroupsToInclude = new Set<string>();
     directMatches.forEach(cc => {
       if (cc.parent_group) {
         parentGroupsToInclude.add(cc.parent_group.trim());
       }
     });
+
+    // Include children of matched parents
+    const childGroupsToInclude = new Set<string>();
+    directMatches.forEach(cc => {
+      childGroupsToInclude.add(cc.code.trim());
+    });
     
     return costCodes.filter(cc => 
       cc.code.toLowerCase().includes(query) ||
       cc.name.toLowerCase().includes(query) ||
-      parentGroupsToInclude.has(cc.code.trim())
+      parentGroupsToInclude.has(cc.code.trim()) ||
+      (cc.parent_group && childGroupsToInclude.has(cc.parent_group.trim()))
     );
   }, [costCodes, searchQuery]);
 
