@@ -270,6 +270,7 @@ const Settings = () => {
           onOpenChange={setEditDialogOpen}
           existingCostCodes={costCodes.map(cc => ({ code: cc.code, name: cc.name }))}
           onUpdateCostCode={handleUpdateCostCode}
+          onPriceUpdate={refetch}
         />
 
         <EditSpecificationDescriptionDialog

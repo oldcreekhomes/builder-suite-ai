@@ -29,9 +29,10 @@ interface PriceHistoryManagerProps {
   costCode: CostCode | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onPriceUpdate?: () => void;
 }
 
-export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHistoryManagerProps) {
+export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdate }: PriceHistoryManagerProps) {
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [historicalPrice, setHistoricalPrice] = useState("");
@@ -255,6 +256,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange }: PriceHisto
       
       // Refresh the list
       fetchPriceHistory();
+      onPriceUpdate?.();
     } catch (error) {
       console.error('Error adding historical price:', error);
       toast({

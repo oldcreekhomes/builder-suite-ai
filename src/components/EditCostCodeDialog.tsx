@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { History } from "lucide-react";
 import { PriceHistoryManager } from "@/components/settings/PriceHistoryManager";
+import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type CostCode = Tables<'cost_codes'>;
@@ -23,6 +24,7 @@ interface EditCostCodeDialogProps {
   onOpenChange: (open: boolean) => void;
   existingCostCodes: Array<{ code: string; name: string; }>;
   onUpdateCostCode: (costCodeId: string, updatedCostCode: any) => Promise<void>;
+  onPriceUpdate?: () => void;
 }
 
 export function EditCostCodeDialog({ 
@@ -30,7 +32,8 @@ export function EditCostCodeDialog({
   open, 
   onOpenChange, 
   existingCostCodes, 
-  onUpdateCostCode 
+  onUpdateCostCode,
+  onPriceUpdate 
 }: EditCostCodeDialogProps) {
   const [showPriceHistory, setShowPriceHistory] = useState(false);
   const [formData, setFormData] = useState({
@@ -259,6 +262,22 @@ export function EditCostCodeDialog({
         costCode={costCode}
         open={showPriceHistory}
         onOpenChange={setShowPriceHistory}
+        onPriceUpdate={() => {
+          // Update local form price from DB
+          if (costCode) {
+            supabase
+              .from("cost_codes")
+              .select("price")
+              .eq("id", costCode.id)
+              .single()
+              .then(({ data }) => {
+                if (data?.price != null) {
+                  setFormData(prev => ({ ...prev, price: data.price.toString() }));
+                }
+              });
+          }
+          onPriceUpdate?.();
+        }}
       />
     </Dialog>
   );
