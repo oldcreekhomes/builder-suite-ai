@@ -1,39 +1,25 @@
 
-
-## Fix: Cost Code Search Should Include Subcategories When Parent Matches
+## Fix: Table and Price Graph Not Updating After "Update Cost Code"
 
 ### Problem
-When searching "concrete" in the Cost Codes settings, only the parent code 4275 (Concrete) appears. Its subcategories (4275.1 Footings & Walls, 4275.2 Basement Slab, etc.) are filtered out because their names don't contain "concrete."
+After clicking "Update Cost Code" in the edit dialog, the table price and the price history graph don't reflect the new value until a manual page refresh.
 
 ### Root Cause
-The search filter in `CostCodesTab.tsx` (lines 68-85) has logic to include **parents when a child matches**, but lacks the reverse: including **children when a parent matches**.
+In `EditCostCodeDialog.tsx`, the `handleSubmit` function calls `onUpdateCostCode()` **without awaiting it**, then immediately closes the dialog. The database update and state refresh happen in the background, but the dialog closure and re-render timing cause the UI to show stale data. Additionally, the `onUpdateCostCode` prop is typed as returning `void` instead of `Promise<void>`, hiding the async nature.
 
 ### Fix
-In `src/components/settings/CostCodesTab.tsx`, add a second pass that collects the codes of all matched parents, then includes any child whose `parent_group` matches one of those codes.
 
-**Current logic (line 68-85):**
-```
-1. Find direct matches (code or name contains query)
-2. Collect parent_group values from matched children
-3. Include parents of matched children
-```
+**File: `src/components/EditCostCodeDialog.tsx`**
 
-**Updated logic:**
-```
-1. Find direct matches (code or name contains query)
-2. Collect parent_group values from matched children -> include those parents
-3. Collect codes of matched parents -> include their children
-4. Return union of all
-```
+1. Update the `onUpdateCostCode` prop type from `void` to `Promise<void>`
+2. Make `handleSubmit` an async function
+3. `await` the `onUpdateCostCode` call before closing the dialog
 
-### Technical Detail
-After building the `parentGroupsToInclude` set (for pulling in parents of matched children), add a `childGroupsToInclude` set that contains the `code` of every direct match. Then in the final filter, also include cost codes whose `parent_group` is in `childGroupsToInclude`.
+This ensures the database write and `fetchCostCodes()` complete before the dialog closes, so the table immediately reflects the new price.
 
-### File Changed
-| File | Change |
-|------|--------|
-| `src/components/settings/CostCodesTab.tsx` | Add child-inclusion logic to the `filteredCostCodes` memo (lines 68-85) |
+**File: `src/hooks/useCostCodes.tsx`** (no change needed -- `updateCostCode` already calls `setCostCodes` and `fetchCostCodes` which will re-render the table with the updated price)
 
-### Expected Result
-Searching "concrete" will show 4275 (Concrete) plus all its subcategories (4275.1 through 4275.5), and similarly for any other parent code matched by search.
+**File: `src/components/settings/PriceHistoryModal.tsx`** (no change needed -- the graph re-fetches history each time it opens, and the new price history entry is already inserted during `updateCostCode`)
 
+### Summary
+One file changed, three lines modified. The table and graph will update instantly after clicking "Update Cost Code."
