@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, Download, Pencil } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import {
   Table,
   TableBody,
@@ -22,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DeleteButton } from "@/components/ui/delete-button";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
 interface ClosingReportsDialogProps {
@@ -326,40 +326,12 @@ function ClosingReportsDialogContent({ projectId }: { projectId: string }) {
                   <TableCell>
                     {format(new Date(report.uploaded_at), 'PP')}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(report.storage_path, cleanName(report.original_filename || 'report.pdf'));
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(report.id, report.original_filename);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <DeleteButton
-                          onDelete={() => deleteMutation.mutate(report.id)}
-                          title="Delete Closing Report"
-                          description="Are you sure you want to delete this closing report? This action cannot be undone."
-                          size="sm"
-                          variant="ghost"
-                          isLoading={deleteMutation.isPending}
-                          showIcon={true}
-                        />
-                      </div>
-                    </div>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    <TableRowActions actions={[
+                      { label: "Download", onClick: () => handleDownload(report.storage_path, cleanName(report.original_filename || 'report.pdf')) },
+                      { label: "Rename", onClick: () => handleEdit(report.id, report.original_filename) },
+                      { label: "Delete", onClick: () => deleteMutation.mutate(report.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Closing Report", confirmDescription: "Are you sure you want to delete this closing report? This action cannot be undone.", isLoading: deleteMutation.isPending },
+                    ]} />
                   </TableCell>
                 </TableRow>
               ))}
