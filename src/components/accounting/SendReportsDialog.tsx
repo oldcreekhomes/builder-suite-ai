@@ -130,12 +130,21 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
       if (reports.balanceSheet) {
         console.log('📊 Generating Balance Sheet PDF for project:', projectId);
         
-        const { data: accounts } = await supabase
-          .from('accounts')
-          .select('id, code, name, type, is_active')
-          .eq('is_active', true);
+        const [{ data: accounts }, { data: exclusions }] = await Promise.all([
+          supabase
+            .from('accounts')
+            .select('id, code, name, type, is_active')
+            .eq('is_active', true),
+          supabase
+            .from('project_account_exclusions')
+            .select('account_id')
+            .eq('project_id', projectId),
+        ]);
 
-        console.log('📊 Accounts fetched:', accounts?.length);
+        const excludedAccountIds = new Set((exclusions || []).map(e => e.account_id));
+        const filteredAccounts = accounts?.filter(a => !excludedAccountIds.has(a.id));
+
+        console.log('📊 Accounts fetched:', accounts?.length, 'Excluded:', excludedAccountIds.size);
 
         let journalLinesQuery = supabase
           .from('journal_entry_lines')
@@ -174,7 +183,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         let revenueBalance = 0;
         let expenseBalance = 0;
 
-        accounts?.forEach((account) => {
+        filteredAccounts?.forEach((account) => {
           const rawBalance = accountBalances[account.id] || 0;
           let displayBalance = rawBalance;
           
@@ -260,13 +269,22 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
       if (reports.incomeStatement) {
         console.log('📊 Generating Income Statement PDF for project:', projectId);
         
-        const { data: accounts } = await supabase
-          .from('accounts')
-          .select('id, code, name, type, is_active')
-          .eq('is_active', true)
-          .in('type', ['revenue', 'expense']);
+        const [{ data: accounts }, { data: isExclusions }] = await Promise.all([
+          supabase
+            .from('accounts')
+            .select('id, code, name, type, is_active')
+            .eq('is_active', true)
+            .in('type', ['revenue', 'expense']),
+          supabase
+            .from('project_account_exclusions')
+            .select('account_id')
+            .eq('project_id', projectId),
+        ]);
 
-        console.log('📊 Accounts fetched:', accounts?.length);
+        const isExcludedIds = new Set((isExclusions || []).map(e => e.account_id));
+        const filteredAccounts = accounts?.filter(a => !isExcludedIds.has(a.id));
+
+        console.log('📊 Accounts fetched:', accounts?.length, 'Excluded:', isExcludedIds.size);
 
         let journalLinesQuery = supabase
           .from('journal_entry_lines')
@@ -299,7 +317,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         const revenue: any[] = [];
         const expenses: any[] = [];
 
-        accounts?.forEach((account) => {
+        filteredAccounts?.forEach((account) => {
           const rawBalance = accountBalances[account.id] || 0;
           
           if (account.type === 'revenue') {
