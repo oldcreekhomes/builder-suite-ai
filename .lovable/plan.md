@@ -1,25 +1,39 @@
 
-## Fix: Table and Price Graph Not Updating After "Update Cost Code"
+## Fix: Price History Changes Should Update Table, Edit Dialog, and Chart Instantly
 
 ### Problem
-After clicking "Update Cost Code" in the edit dialog, the table price and the price history graph don't reflect the new value until a manual page refresh.
+When adding a historical price in the Price History Manager (the Sheet/side panel opened from the Edit Cost Code dialog), the database is updated but nothing in the UI refreshes -- the table, the edit dialog's price field, and the price chart all show stale data until a manual page refresh.
 
 ### Root Cause
-In `EditCostCodeDialog.tsx`, the `handleSubmit` function calls `onUpdateCostCode()` **without awaiting it**, then immediately closes the dialog. The database update and state refresh happen in the background, but the dialog closure and re-render timing cause the UI to show stale data. Additionally, the `onUpdateCostCode` prop is typed as returning `void` instead of `Promise<void>`, hiding the async nature.
+`PriceHistoryManager` component has no callback prop to notify parent components that a price was added. It updates the database (both `cost_code_price_history` and `cost_codes.price`) but never triggers a re-fetch of the cost codes list or chart data.
 
 ### Fix
 
-**File: `src/components/EditCostCodeDialog.tsx`**
+**1. `src/components/settings/PriceHistoryManager.tsx`**
+- Add an `onPriceUpdate` callback prop to the interface
+- Call `onPriceUpdate()` after successfully adding a historical price (after the DB updates on line ~240)
 
-1. Update the `onUpdateCostCode` prop type from `void` to `Promise<void>`
-2. Make `handleSubmit` an async function
-3. `await` the `onUpdateCostCode` call before closing the dialog
+**2. `src/components/EditCostCodeDialog.tsx`**
+- Add an `onPriceUpdate` callback prop to the interface
+- Pass it through to `PriceHistoryManager` as `onPriceUpdate`
+- When `onPriceUpdate` fires, also update the local `formData.price` state so the price field in the edit dialog reflects the new price immediately
 
-This ensures the database write and `fetchCostCodes()` complete before the dialog closes, so the table immediately reflects the new price.
+**3. `src/pages/Settings.tsx`**
+- Pass the existing `fetchCostCodes` function (or equivalent refetch) as `onPriceUpdate` to `EditCostCodeDialog`, so the table refreshes when a historical price is added
 
-**File: `src/hooks/useCostCodes.tsx`** (no change needed -- `updateCostCode` already calls `setCostCodes` and `fetchCostCodes` which will re-render the table with the updated price)
+### Data Flow After Fix
+```text
+User adds price in PriceHistoryManager
+  -> DB updated (history + cost_codes.price)
+  -> onPriceUpdate() called
+    -> EditCostCodeDialog updates its local price field
+    -> Settings.tsx re-fetches cost codes -> table updates
+    -> PriceHistoryModal chart will show new data on next open
+```
 
-**File: `src/components/settings/PriceHistoryModal.tsx`** (no change needed -- the graph re-fetches history each time it opens, and the new price history entry is already inserted during `updateCostCode`)
-
-### Summary
-One file changed, three lines modified. The table and graph will update instantly after clicking "Update Cost Code."
+### Files Changed
+| File | Change |
+|------|--------|
+| `src/components/settings/PriceHistoryManager.tsx` | Add `onPriceUpdate` prop, call it after successful price insert |
+| `src/components/EditCostCodeDialog.tsx` | Add `onPriceUpdate` prop, pass to PriceHistoryManager, update local form state |
+| `src/pages/Settings.tsx` | Pass `fetchCostCodes` as `onPriceUpdate` to EditCostCodeDialog |
