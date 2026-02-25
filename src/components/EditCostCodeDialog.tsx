@@ -22,7 +22,7 @@ interface EditCostCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingCostCodes: Array<{ code: string; name: string; }>;
-  onUpdateCostCode: (costCodeId: string, updatedCostCode: any) => void;
+  onUpdateCostCode: (costCodeId: string, updatedCostCode: any) => Promise<void>;
 }
 
 export function EditCostCodeDialog({ 
@@ -63,14 +63,14 @@ export function EditCostCodeDialog({
     }
   }, [costCode]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (costCode) {
       const updatedData = {
         ...formData,
         parent_group: formData.parent_group === "none" ? null : formData.parent_group
       };
-      onUpdateCostCode(costCode.id, updatedData);
+      await onUpdateCostCode(costCode.id, updatedData);
       onOpenChange(false);
     }
   };
