@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +51,7 @@ interface MakeDepositsContentProps {
 
 export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: MakeDepositsContentProps) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [depositDate, setDepositDate] = useState<Date>(new Date());
   const [depositSourceId, setDepositSourceId] = useState<string>("");
@@ -207,6 +208,22 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     // Start with a fresh blank form by default; do not auto-load the most recent deposit.
     hasInitiallyLoaded.current = true;
   }, []);
+
+  // Auto-load deposit from URL param (e.g., from Job Cost report)
+  useEffect(() => {
+    const depositId = searchParams.get('depositId');
+    if (depositId && sortedDeposits.length > 0 && accounts.length > 0) {
+      const deposit = sortedDeposits.find(d => d.id === depositId);
+      if (deposit) {
+        const index = sortedDeposits.indexOf(deposit);
+        setCurrentEntryIndex(index);
+        void loadDepositData(deposit);
+        // Clear the param so it doesn't re-trigger
+        searchParams.delete('depositId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [sortedDeposits, accounts, searchParams]);
 
   // Reset to new deposit when tab becomes active
   useEffect(() => {

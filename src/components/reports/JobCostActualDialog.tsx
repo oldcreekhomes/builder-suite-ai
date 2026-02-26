@@ -11,6 +11,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { ArrowUpDown, Check } from "lucide-react";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 
 interface JobCostActualDialogProps {
@@ -42,6 +43,7 @@ interface JournalEntryLine {
   vendor_name?: string;
   reference_number?: string;
   bill_id?: string;
+  deposit_id?: string;
   source_type?: string;
 }
 
@@ -58,6 +60,7 @@ export function JobCostActualDialog({
   const { session } = useAuth();
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
@@ -233,6 +236,7 @@ export function JobCostActualDialog({
         let reconciled = line.reconciled;
         let reference_number: string | undefined;
         let bill_id: string | undefined;
+        let deposit_id: string | undefined;
 
         if (sourceType === 'bill') {
           const billData = billsMap.get(sourceId);
@@ -248,12 +252,14 @@ export function JobCostActualDialog({
           const depData = depositsMap.get(sourceId);
           vendor_name = depData?.company_name ?? undefined;
           reconciled = depData?.reconciled ?? line.reconciled;
+          deposit_id = sourceId;
         }
 
         return {
           ...line,
           source_type: sourceType || 'unknown',
           bill_id,
+          deposit_id,
           vendor_name,
           reference_number,
           reconciled,
@@ -314,6 +320,11 @@ const formatCurrency = (value: number) => {
 
   const handleEditBill = (billId: string) => {
     setEditingBillId(billId);
+  };
+
+  const handleEditDeposit = (depositId: string) => {
+    onClose();
+    navigate(`/project/${projectId}/accounting/banking?tab=make-deposits&depositId=${depositId}`);
   };
 
   const handleEditDialogClose = () => {
@@ -394,9 +405,10 @@ const formatCurrency = (value: number) => {
                         </TableCell>
                         <TableCell>
                         <div className="flex items-center justify-center">
-                            {line.bill_id && !line.reconciled && !isDateLocked(line.journal_entries.entry_date) && (
+                            {!line.reconciled && !isDateLocked(line.journal_entries.entry_date) && (line.bill_id || line.deposit_id) && (
                               <TableRowActions actions={[
-                                { label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) },
+                                ...(line.bill_id ? [{ label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) }] : []),
+                                ...(line.deposit_id ? [{ label: "Edit Deposit", onClick: () => handleEditDeposit(line.deposit_id!) }] : []),
                               ]} />
                             )}
                             {(line.reconciled || isDateLocked(line.journal_entries.entry_date)) && (
