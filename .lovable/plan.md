@@ -1,55 +1,45 @@
 
 
-## Create EditDepositDialog Component
+## Standardize EditDepositDialog to Match EditBillDialog Styling
 
-Build a new `EditDepositDialog` component (similar to `EditBillDialog`) that opens as a modal dialog when clicking "Edit Deposit" from the Job Cost Actual Dialog, instead of navigating away to the Make Deposits page.
+The Edit Bill dialog is the established standard in the application. Here are the specific differences between the two dialogs and what needs to change:
 
-### New File: `src/components/deposits/EditDepositDialog.tsx`
+### Differences Found
 
-Create a dialog component that:
-- Accepts `open`, `onOpenChange`, and `depositId` props (same pattern as `EditBillDialog`)
-- Loads the deposit data (header + lines + attachments) via a `useQuery` keyed on `depositId`
-- Displays an editable form with:
-  - **Header fields**: Date, Deposit To (bank account), Received From (vendor), Check #
-  - **Tabs**: Chart of Accounts and Job Cost (matching the MakeDepositsContent layout)
-  - **Line items**: Account/CostCode, Description, Quantity, Cost, Total, Address (if multiple lots)
-  - **Attachments section**
-  - **Footer**: Total display + Save button
-- Uses the existing `updateDepositFull` mutation from `useDeposits` hook to save changes
-- Follows the same form patterns (AccountSearchInputInline, CostCodeSearchInput, VendorSearchInput, DateInputPicker) already used in MakeDepositsContent
-- Invalidates relevant query keys on save so the Job Cost report refreshes
+| Aspect | Edit Bill (Standard) | Edit Deposit (Current) |
+|--------|---------------------|----------------------|
+| **Dialog width** | `max-w-6xl` | `max-w-5xl` |
+| **Dialog height** | `max-h-[90vh] overflow-y-auto` | `max-h-[85vh] flex flex-col` |
+| **Header labels** | Full-size `Label` (default text-sm) | `Label className="text-xs"` |
+| **Header field layout** | `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3` with `space-y-2` per field | `grid grid-cols-4` with no spacing |
+| **Line items section** | `"Line Items"` heading, wrapped in `border rounded-lg overflow-hidden` container with `bg-muted` header row and `border-t` separators | Bare `div` with loose grid rows, no table container |
+| **Tab list** | `grid w-full grid-cols-2` (full-width tabs) | Default narrow `TabsList` |
+| **Add Row button** | Above the table, `variant="outline"` with `Plus` icon | Below the table, `variant="ghost"` with tiny text |
+| **Delete button** | `variant="destructive"` red button, `h-8 w-8` | `variant="ghost"` subtle icon |
+| **Total display** | Inside table footer with `bg-muted border-t` | In `DialogFooter` as text |
+| **Footer buttons** | Two `flex-1` buttons (Cancel + Save Changes), same width, inside the content flow | `DialogFooter` with small right-aligned buttons |
+| **Cost field** | Has `$` prefix inside input | Plain input |
+| **Total column** | Computed total shown per row in a `bg-muted` badge | No per-row total |
+| **Input sizes** | `h-8` with no `text-xs` override | `h-8 text-xs` |
 
-### Modified File: `src/components/reports/JobCostActualDialog.tsx`
+### Plan: Restyle EditDepositDialog
 
-- Remove the `handleEditDeposit` navigation function
-- Remove `useNavigate` import (if only used for deposits)
-- Add state: `editingDepositId` (same pattern as `editingBillId`)
-- Replace "Edit Deposit" action to call `setEditingDepositId(line.deposit_id)`
-- Render `<EditDepositDialog>` at the bottom (same as `<EditBillDialog>`)
-- On close, invalidate the job cost actual details query
+**File: `src/components/deposits/EditDepositDialog.tsx`**
 
-### Modified File: `src/components/transactions/MakeDepositsContent.tsx`
-
-- Remove the `depositId` URL parameter auto-load logic (lines 212-226) since it's no longer needed
-
-### Technical Details
-
-The `EditDepositDialog` will reuse:
-- `useDeposits` hook (`updateDepositFull` mutation) for saving
-- `useAccounts` hook for bank account and chart of accounts dropdowns
-- `useCostCodeSearch` hook for job cost lines
-- `useLots` hook for address column
-- `VendorSearchInput` for the "Received From" field
-- `AccountSearchInputInline` for account selection
-- `CostCodeSearchInput` for cost code selection
-- `DepositAttachmentUpload` for file attachments
-
-The dialog will be a `max-w-5xl` dialog (matching EditBillDialog size) with the same tab structure as MakeDepositsContent (Chart of Accounts / Job Cost tabs).
+1. **Dialog container**: Change to `max-w-6xl max-h-[90vh] overflow-y-auto` (remove flex flex-col)
+2. **Header fields**: Use `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4` with `space-y-2` per field, remove `text-xs` from Labels
+3. **Tabs**: Use `grid w-full grid-cols-2` on `TabsList`
+4. **Line items table**: Wrap in `border rounded-lg overflow-hidden` container with `bg-muted` header row using grid columns, `border-t` row separators, and `p-3` padding (matching Edit Bill structure)
+5. **Add line columns**: Add a computed "Total" column per row (qty x cost, displayed in a `bg-muted` bordered badge)
+6. **Cost input**: Add `$` prefix like Edit Bill
+7. **Add Row button**: Move above the table, use `variant="outline"` with `size="sm"`
+8. **Delete button**: Change to `variant="destructive"` with `h-8 w-8 p-0`
+9. **Table footer**: Add `bg-muted border-t` row showing the tab total (e.g., "Chart of Accounts Total: $117.33")
+10. **Dialog footer**: Replace `DialogFooter` with two full-width `flex-1` buttons (Cancel + Save) matching Edit Bill's pattern
+11. **Remove `text-xs`** from all inputs -- use default text-sm to match Edit Bill
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/components/deposits/EditDepositDialog.tsx` | New file -- full edit deposit dialog |
-| `src/components/reports/JobCostActualDialog.tsx` | Use EditDepositDialog instead of navigation |
-| `src/components/transactions/MakeDepositsContent.tsx` | Remove depositId URL param auto-load logic |
+| `src/components/deposits/EditDepositDialog.tsx` | Restyle to match Edit Bill dialog patterns |
 
