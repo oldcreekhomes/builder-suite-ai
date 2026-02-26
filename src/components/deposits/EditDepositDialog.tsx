@@ -302,21 +302,21 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
           {/* Header */}
           <div className={cn(
             "grid gap-2 p-3 bg-muted font-medium text-sm",
-            showAddressColumn ? "grid-cols-20" : "grid-cols-17"
+            showAddressColumn ? "grid-cols-24" : "grid-cols-20"
           )}>
             <div className="col-span-5">{type === 'revenue' ? 'Cost Code' : 'Account'}</div>
             <div className="col-span-5">Description</div>
             <div className="col-span-2">Qty</div>
-            <div className="col-span-2">Cost</div>
-            <div className="col-span-2">Total</div>
-            {showAddressColumn && <div className="col-span-3">Address</div>}
-            <div className="col-span-1 text-right">Action</div>
+            <div className="col-span-3">Cost</div>
+            <div className="col-span-3">Total</div>
+            {showAddressColumn && <div className="col-span-4">Address</div>}
+            <div className="col-span-2 text-right">Action</div>
           </div>
 
           {rows.map(row => (
             <div key={row.id} className={cn(
               "grid gap-2 p-3 border-t",
-              showAddressColumn ? "grid-cols-20" : "grid-cols-17"
+              showAddressColumn ? "grid-cols-24" : "grid-cols-20"
             )}>
               <div className="col-span-5">
                 {type === 'revenue' ? (
@@ -359,7 +359,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                   className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-3">
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input
@@ -370,13 +370,13 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                   />
                 </div>
               </div>
-              <div className="col-span-2 flex items-center">
+              <div className="col-span-3 flex items-center">
                 <div className="h-8 w-full flex items-center px-2 border rounded-md bg-muted text-sm font-medium">
                   ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
                 </div>
               </div>
               {showAddressColumn && (
-                <div className="col-span-3">
+                <div className="col-span-4">
                   <Select
                     value={row.lotId || ""}
                     onValueChange={(value) => updateRow(type, row.id, 'lotId', value)}
@@ -394,7 +394,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                   </Select>
                 </div>
               )}
-              <div className="col-span-1 flex items-center justify-end">
+              <div className="col-span-2 flex items-center justify-end">
                 <Button
                   variant="destructive"
                   size="sm"
@@ -412,13 +412,13 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
           <div className="p-3 bg-muted border-t">
             <div className={cn(
               "grid gap-2",
-              showAddressColumn ? "grid-cols-20" : "grid-cols-17"
+              showAddressColumn ? "grid-cols-24" : "grid-cols-20"
             )}>
-              <div className="col-span-14 font-medium">{tabLabel}</div>
-              <div className="col-span-2 font-medium">
+              <div className="col-span-15 font-medium">{tabLabel}</div>
+              <div className="col-span-3 font-medium">
                 ${tabTotal.toFixed(2)}
               </div>
-              <div className={showAddressColumn ? "col-span-4" : "col-span-1"}></div>
+              <div className={showAddressColumn ? "col-span-6" : "col-span-2"}></div>
             </div>
           </div>
         </div>
