@@ -324,7 +324,7 @@ const formatCurrency = (value: number) => {
 
   const handleEditDeposit = (depositId: string) => {
     onClose();
-    navigate(`/project/${projectId}/accounting/banking?tab=make-deposits&depositId=${depositId}`);
+    navigate(`/project/${projectId}/accounting/banking/make-deposits?depositId=${depositId}`);
   };
 
   const handleEditDialogClose = () => {
