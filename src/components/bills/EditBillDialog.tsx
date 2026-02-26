@@ -584,7 +584,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Bill</DialogTitle>
             <DialogDescription>Loading bill data...</DialogDescription>
@@ -601,7 +601,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Bill</DialogTitle>
         <DialogDescription>
@@ -806,8 +806,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           )}
 
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Line Items</h3>
-            
             <Tabs defaultValue="job-cost" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
@@ -1094,25 +1092,14 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </Tabs>
           </div>
 
-          <div className="flex gap-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-              disabled={updateBill.isPending || correctBill.isPending}
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
               Cancel
             </Button>
-            <Button 
-              type="button" 
-              className="flex-1"
-              onClick={handleSave}
-              disabled={updateBill.isPending || correctBill.isPending}
-            >
+            <Button onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
               {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
             </Button>
-          </div>
+          </DialogFooter>
         </div>
 
         <AlertDialog open={showSaveConfirmation} onOpenChange={setShowSaveConfirmation}>
