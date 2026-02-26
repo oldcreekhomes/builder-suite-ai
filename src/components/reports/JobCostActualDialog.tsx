@@ -8,8 +8,8 @@ import { format } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Check, Pencil } from "lucide-react";
+import { ArrowUpDown, Check } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 
@@ -200,6 +200,30 @@ export function JobCostActualDialog({
         );
       }
 
+      // Enrich deposit entries with company name and reconciled status
+      const depositSourceIds = rawLines
+        .filter(line => line.journal_entries.source_type === 'deposit')
+        .map(line => line.journal_entries.source_id)
+        .filter((id): id is string => id !== null);
+
+      let depositsMap = new Map<string, { company_name: string | null; reconciled: boolean | null }>();
+      if (depositSourceIds.length > 0) {
+        const { data: depositsData } = await supabase
+          .from('deposits')
+          .select('id, reconciled, company_id, companies!deposits_company_id_fkey(company_name)')
+          .in('id', depositSourceIds);
+
+        depositsMap = new Map(
+          depositsData?.map(dep => [
+            dep.id,
+            {
+              company_name: (dep.companies as any)?.company_name ?? null,
+              reconciled: dep.reconciled
+            }
+          ]) || []
+        );
+      }
+
       // Map all lines with enriched data
       return rawLines.map(line => {
         const sourceType = line.journal_entries.source_type;
@@ -220,6 +244,10 @@ export function JobCostActualDialog({
           const checkData = checksMap.get(sourceId);
           vendor_name = checkData?.pay_to;
           reconciled = checkData?.reconciled ?? line.reconciled;
+        } else if (sourceType === 'deposit') {
+          const depData = depositsMap.get(sourceId);
+          vendor_name = depData?.company_name ?? undefined;
+          reconciled = depData?.reconciled ?? line.reconciled;
         }
 
         return {
@@ -365,17 +393,11 @@ const formatCurrency = (value: number) => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center">
                             {line.bill_id && !line.reconciled && !isDateLocked(line.journal_entries.entry_date) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => handleEditBill(line.bill_id!)}
-                                title="Edit Bill"
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
+                              <TableRowActions actions={[
+                                { label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) },
+                              ]} />
                             )}
                             {(line.reconciled || isDateLocked(line.journal_entries.entry_date)) && (
                               <TooltipProvider>
