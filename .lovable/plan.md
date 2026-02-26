@@ -1,48 +1,31 @@
 
 
-## Fix: Balance Sheet Totals Not Including the Difference Adjustment
+## Two Fixes for Job Cost Actual Dialog
 
-### Root Cause
+### 1. Replace Edit Icon with 3-Dot Menu (Actions Column)
 
-In both `BalanceSheetContent.tsx` and `BalanceSheet.tsx`, the code:
-1. Calculates `totalEquity` from the equity array
-2. Computes the difference between Assets and (Liabilities + Equity)
-3. Adds a "Balance Sheet Difference" row to the equity array
-4. Returns the **old** `totalEquity` that was computed **before** adding the difference row
+Currently, editable bills show a pencil icon directly in the Actions column. This should use the standardized `TableRowActions` dropdown (3-dot menu) consistent with the rest of the application.
 
-This means the "Total Equity" and "Total Liabilities & Equity" displayed in the UI never include the balancing adjustment, so the totals appear unbalanced.
+**Changes in `src/components/reports/JobCostActualDialog.tsx`:**
+- Import `TableRowActions` from `@/components/ui/table-row-actions`
+- Replace the `<Button>` with `<Pencil>` icon (lines 370-378) with a `<TableRowActions>` component
+- The dropdown will contain an "Edit" action for bills that are not locked
+- Locked rows continue to show the lock icon only (no 3-dot menu)
 
-### Fix
+### 2. Show Vendor Name for Deposits
 
-In both files, recalculate `totalEquity` after potentially adding the difference line, so the returned total always matches the sum of all equity rows.
+Currently, the query only enriches `bill` and `check` source types with vendor names. Deposits are not enriched, so the Name column shows "-" for deposit transactions.
 
-**File: `src/components/reports/BalanceSheetContent.tsx` (lines 217-240)**
-
-- Move `totalEquity` calculation (or add a recalculation) to after the difference line is potentially added
-- Change `return { ... totalEquity }` to use the updated value
-
-**File: `src/pages/BalanceSheet.tsx` (lines 172-197)**
-
-- Same fix: recalculate `totalEquity` after the difference line addition
-
-Concretely, in both files, after the `if (Math.abs(difference) > 0.01)` block, add:
-
-```typescript
-const finalTotalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
-```
-
-And return `finalTotalEquity` instead of `totalEquity`.
-
-### Why This Works
-
-The difference line adds exactly `totalAssets - totalLiabilities - totalEquity` to equity. So:
-
-finalTotalEquity = totalEquity + difference = totalEquity + (totalAssets - totalLiabilities - totalEquity) = totalAssets - totalLiabilities
-
-Therefore: totalLiabilities + finalTotalEquity = totalAssets. Always balanced.
+**Changes in `src/components/reports/JobCostActualDialog.tsx`:**
+- After the checks enrichment block (around line 201), add a deposit enrichment block:
+  - Collect all `source_id`s where `source_type === 'deposit'`
+  - Query the `deposits` table with `companies(company_name)` join (via `company_id`)
+  - Build a `depositsMap` mapping deposit ID to company name
+- In the line mapping section (around line 204-233), add an `else if (sourceType === 'deposit')` branch:
+  - Set `vendor_name` from `depositsMap` using the deposit's company name
+  - Set `reconciled` from the deposit record
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/components/reports/BalanceSheetContent.tsx` | Recalculate totalEquity after difference line, return updated value |
-| `src/pages/BalanceSheet.tsx` | Same fix |
+| `src/components/reports/JobCostActualDialog.tsx` | Replace pencil icon with TableRowActions dropdown; add deposit enrichment for vendor name |
