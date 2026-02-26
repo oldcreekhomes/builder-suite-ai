@@ -1,46 +1,48 @@
 
-## Fix: Balance Sheet Not Balancing -- `Math.abs()` Bug in Equity (and Liability) Calculations
+
+## Fix: Balance Sheet Totals Not Including the Difference Adjustment
 
 ### Root Cause
 
-The bug is in how equity account balances are calculated. The code uses `Math.abs(rawBalance)` for equity accounts, but it should use `-rawBalance` (the same formula used for liabilities).
+In both `BalanceSheetContent.tsx` and `BalanceSheet.tsx`, the code:
+1. Calculates `totalEquity` from the equity array
+2. Computes the difference between Assets and (Liabilities + Equity)
+3. Adds a "Balance Sheet Difference" row to the equity array
+4. Returns the **old** `totalEquity` that was computed **before** adding the difference row
 
-**Why `Math.abs()` is wrong:**
-- In double-entry accounting, `rawBalance = sum(debits) - sum(credits)`.
-- Equity accounts normally have **credit** balances, so `rawBalance` is typically negative.
-- `Math.abs()` and `-rawBalance` both produce the correct positive display value for normal credit balances.
-- **But** if an equity account has a **debit** balance (e.g., owner draws, or a loss), `rawBalance` is positive. `Math.abs()` keeps it positive, but `-rawBalance` correctly makes it negative -- which **subtracts** from total equity.
-- Using `Math.abs()` means a debit-balance equity account gets **added** to equity instead of subtracted, throwing off the balance sheet by exactly 2x that account's balance.
-
-This is almost certainly the source of the $1,404.08 difference -- an equity account with ~$702.04 debit balance is being added instead of subtracted.
+This means the "Total Equity" and "Total Liabilities & Equity" displayed in the UI never include the balancing adjustment, so the totals appear unbalanced.
 
 ### Fix
 
-Change `Math.abs(rawBalance)` to `-rawBalance` for equity accounts in all three files:
+In both files, recalculate `totalEquity` after potentially adding the difference line, so the returned total always matches the sum of all equity rows.
 
-| File | Line | Change |
-|------|------|--------|
-| `src/components/reports/BalanceSheetContent.tsx` | 177 | `Math.abs(rawBalance)` to `-rawBalance` |
-| `src/pages/BalanceSheet.tsx` | 137 | `Math.abs(rawBalance)` to `-rawBalance` |
-| `src/components/accounting/SendReportsDialog.tsx` | 210 | `Math.abs(rawBalance)` to `-rawBalance` |
-| `src/components/accounting/SendReportsDialog.tsx` | 201 | `Math.abs(rawBalance)` to `-rawBalance` (liabilities too -- same bug) |
+**File: `src/components/reports/BalanceSheetContent.tsx` (lines 217-240)**
 
-This makes equity match the identical pattern already used for liabilities (`-rawBalance`) in the two main Balance Sheet files, which is the correct accounting formula.
+- Move `totalEquity` calculation (or add a recalculation) to after the difference line is potentially added
+- Change `return { ... totalEquity }` to use the updated value
 
-### Why This Permanently Prevents Future Imbalances
+**File: `src/pages/BalanceSheet.tsx` (lines 172-197)**
 
-The Balance Sheet equation is: **Assets = Liabilities + Equity**
+- Same fix: recalculate `totalEquity` after the difference line addition
 
-In raw journal entry terms (debit - credit):
-- Assets: `rawBalance` (debit-normal, positive is correct)
-- Liabilities: `-rawBalance` (credit-normal, negate to display as positive)
-- Equity: `-rawBalance` (credit-normal, negate to display as positive)
+Concretely, in both files, after the `if (Math.abs(difference) > 0.01)` block, add:
 
-When all three use the correct sign convention, the equation is mathematically guaranteed to balance because every journal entry has equal debits and credits. The only way it can be off is if `Math.abs()` or similar logic breaks the sign, which is exactly what is happening now.
+```typescript
+const finalTotalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
+```
+
+And return `finalTotalEquity` instead of `totalEquity`.
+
+### Why This Works
+
+The difference line adds exactly `totalAssets - totalLiabilities - totalEquity` to equity. So:
+
+finalTotalEquity = totalEquity + difference = totalEquity + (totalAssets - totalLiabilities - totalEquity) = totalAssets - totalLiabilities
+
+Therefore: totalLiabilities + finalTotalEquity = totalAssets. Always balanced.
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/components/reports/BalanceSheetContent.tsx` | Fix equity: `Math.abs(rawBalance)` to `-rawBalance` |
-| `src/pages/BalanceSheet.tsx` | Fix equity: `Math.abs(rawBalance)` to `-rawBalance` |
-| `src/components/accounting/SendReportsDialog.tsx` | Fix equity AND liabilities: `Math.abs(rawBalance)` to `-rawBalance` |
+| `src/components/reports/BalanceSheetContent.tsx` | Recalculate totalEquity after difference line, return updated value |
+| `src/pages/BalanceSheet.tsx` | Same fix |
