@@ -1,35 +1,60 @@
 
 
-## Fix EditDepositDialog Broken Grid Layout
+## Make Both Edit Dialogs Use Native shadcn Patterns
 
-### Root Cause
+### What Changes
 
-The line items grid uses `grid-cols-17` which is **not defined** in the Tailwind config. Only `grid-cols-20` and `grid-cols-24` are custom-defined. Since Tailwind doesn't recognize `grid-cols-17`, it generates no CSS, causing all columns to stack vertically -- making the dialog massive.
+Both `EditDepositDialog` and `EditBillDialog` currently use custom overrides instead of shadcn's built-in primitives. Here's what we'll fix in both:
 
-### Fix
+### 1. Footer: Use `<DialogFooter>` (native shadcn)
 
-**File: `src/components/deposits/EditDepositDialog.tsx`**
+**Before** (custom, non-shadcn -- the stretched buttons you dislike):
+```text
+<div className="flex gap-2 pt-4">
+  <Button variant="outline" className="flex-1">Cancel</Button>
+  <Button className="flex-1">Save Changes</Button>
+</div>
+```
 
-Change the grid system to match EditBillDialog's approach:
-- **Without address column**: Use `grid-cols-20` (instead of broken `grid-cols-17`)
-- **With address column**: Use `grid-cols-24` (instead of `grid-cols-20`)
+**After** (native shadcn -- right-aligned, normal-sized buttons):
+```text
+<DialogFooter>
+  <Button variant="outline" ...>Cancel</Button>
+  <Button ...>Save Changes</Button>
+</DialogFooter>
+```
 
-Adjust column spans to fill the new grid properly:
+shadcn's `DialogFooter` renders `sm:flex-row sm:justify-end sm:space-x-2` -- clean, right-aligned, standard spacing. No custom classes needed.
 
-| Column | Without Address (20 cols) | With Address (24 cols) |
-|--------|--------------------------|----------------------|
-| Account/Cost Code | col-span-5 | col-span-5 |
-| Description | col-span-5 | col-span-5 |
-| Qty | col-span-2 | col-span-2 |
-| Cost | col-span-3 | col-span-3 |
-| Total | col-span-3 | col-span-3 |
-| Address | -- | col-span-4 |
-| Action | col-span-2 | col-span-2 |
+### 2. Container: Shrink from `max-w-6xl` to `max-w-4xl`
 
-Update all 4 grid locations (header, rows, footer) to use `grid-cols-20` / `grid-cols-24` with corrected col-spans that sum correctly. Also fix the footer col-span to match the new totals.
+`max-w-6xl` (1152px) is way too wide for these forms. `max-w-4xl` (896px) is closer to what shadcn demos use for complex dialogs. Both dialogs get this change.
+
+### 3. Remove the custom "Line Items" heading
+
+The `<h3 className="text-lg font-medium">Line Items</h3>` is redundant -- the Tabs already make it obvious. Removing it tightens the layout.
+
+### 4. Keep what already works
+
+The line items table structure (`border rounded-lg overflow-hidden`, `bg-muted` header, `border-t` separators) is fine and not part of shadcn's scope -- it's application-specific data display. No changes there.
 
 ### Files Changed
-| File | Change |
-|------|--------|
-| `src/components/deposits/EditDepositDialog.tsx` | Replace `grid-cols-17` with `grid-cols-20` and `grid-cols-20` with `grid-cols-24` throughout `renderLineItems` |
+
+| File | Changes |
+|------|---------|
+| `src/components/deposits/EditDepositDialog.tsx` | Use `DialogFooter` for buttons, change `max-w-6xl` to `max-w-4xl`, remove "Line Items" heading, import `DialogFooter` |
+| `src/components/bills/EditBillDialog.tsx` | Use `DialogFooter` for buttons, change `max-w-6xl` to `max-w-4xl` (both loading and main content), remove "Line Items" heading |
+
+### Technical Details
+
+**EditDepositDialog changes:**
+- Add `DialogFooter` to the import from `@/components/ui/dialog`
+- Replace lines 528-547 (the `div.flex.gap-2.pt-4` footer) with `<DialogFooter>` containing normal Cancel + Save buttons
+- Change line 449 and 432: `max-w-6xl` to `max-w-4xl`
+- Remove line 502: the `<h3>Line Items</h3>` heading
+
+**EditBillDialog changes:**
+- Lines 1097-1115: Replace the `div.flex.gap-2.pt-4` footer with `<DialogFooter>` containing normal Cancel + Save buttons
+- Lines 604 and 587: `max-w-6xl` to `max-w-4xl`
+- Remove line 809: the `<h3>Line Items</h3>` heading
 
