@@ -11,8 +11,8 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { ArrowUpDown, Check } from "lucide-react";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
+import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
@@ -60,8 +60,8 @@ export function JobCostActualDialog({
   const { session } = useAuth();
   const userId = session?.user?.id;
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
 
@@ -323,13 +323,16 @@ const formatCurrency = (value: number) => {
   };
 
   const handleEditDeposit = (depositId: string) => {
-    onClose();
-    navigate(`/project/${projectId}/accounting/banking/make-deposits?depositId=${depositId}`);
+    setEditingDepositId(depositId);
   };
 
   const handleEditDialogClose = () => {
     setEditingBillId(null);
-    // Refresh data after edit
+    queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
+  };
+
+  const handleEditDepositDialogClose = () => {
+    setEditingDepositId(null);
     queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
   };
 
@@ -472,6 +475,13 @@ const formatCurrency = (value: number) => {
         open={!!editingBillId}
         onOpenChange={handleEditDialogClose}
         billId={editingBillId || ''}
+      />
+
+      {/* Edit Deposit Dialog */}
+      <EditDepositDialog
+        open={!!editingDepositId}
+        onOpenChange={handleEditDepositDialogClose}
+        depositId={editingDepositId || ''}
       />
     </>
   );
