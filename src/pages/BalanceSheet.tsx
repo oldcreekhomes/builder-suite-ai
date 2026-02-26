@@ -188,13 +188,15 @@ export default function BalanceSheet() {
         });
       }
 
+      const finalTotalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
+
       return {
         assets,
         liabilities,
         equity,
         totalAssets,
         totalLiabilities,
-        totalEquity
+        totalEquity: finalTotalEquity
       };
     },
     enabled: !!user && !!session && !authLoading, // Only run when authenticated
