@@ -174,7 +174,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
             break;
             
           case 'equity':
-            displayBalance = Math.abs(rawBalance);
+            displayBalance = -rawBalance;
             const equityBalance: AccountBalance = {
               id: account.id,
               code: account.code,

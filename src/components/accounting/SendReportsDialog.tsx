@@ -198,7 +198,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               });
               break;
             case 'liability':
-              displayBalance = Math.abs(rawBalance);
+              displayBalance = -rawBalance;
               liabilities.current.push({
                 id: account.id,
                 code: account.code,
@@ -207,7 +207,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               });
               break;
             case 'equity':
-              displayBalance = Math.abs(rawBalance);
+              displayBalance = -rawBalance;
               equity.push({
                 id: account.id,
                 code: account.code,

@@ -134,7 +134,7 @@ export default function BalanceSheet() {
             
           case 'equity':
             // Equity: Credit balances are positive for balance sheet presentation
-            displayBalance = Math.abs(rawBalance);
+            displayBalance = -rawBalance;
             const equityBalance: AccountBalance = {
               id: account.id,
               code: account.code,
