@@ -1,31 +1,37 @@
 
 
-## Two Fixes for Job Cost Actual Dialog
+## Add Edit Deposit Support to Job Cost Actual Dialog
 
-### 1. Replace Edit Icon with 3-Dot Menu (Actions Column)
+Since there is no standalone `EditDepositDialog` (deposits are edited inline on the Make Deposits page), the best approach is to navigate the user to the Make Deposits page with a query parameter so the deposit loads automatically for editing.
 
-Currently, editable bills show a pencil icon directly in the Actions column. This should use the standardized `TableRowActions` dropdown (3-dot menu) consistent with the rest of the application.
+### Changes
 
-**Changes in `src/components/reports/JobCostActualDialog.tsx`:**
-- Import `TableRowActions` from `@/components/ui/table-row-actions`
-- Replace the `<Button>` with `<Pencil>` icon (lines 370-378) with a `<TableRowActions>` component
-- The dropdown will contain an "Edit" action for bills that are not locked
-- Locked rows continue to show the lock icon only (no 3-dot menu)
+**File: `src/components/reports/JobCostActualDialog.tsx`**
 
-### 2. Show Vendor Name for Deposits
+1. Add `useNavigate` import from `react-router-dom`
+2. Track `deposit_id` on enriched lines (same pattern as `bill_id`) -- set it when `sourceType === 'deposit'`
+3. Add a `handleEditDeposit` function that navigates to `/project/${projectId}/accounting/banking/make-deposits?depositId=${depositId}` and closes the dialog
+4. In the Actions column, extend the condition to show the 3-dot `TableRowActions` menu for deposits too (when not reconciled and not date-locked), with an "Edit Deposit" action
 
-Currently, the query only enriches `bill` and `check` source types with vendor names. Deposits are not enriched, so the Name column shows "-" for deposit transactions.
+**File: `src/components/transactions/MakeDepositsContent.tsx`**
 
-**Changes in `src/components/reports/JobCostActualDialog.tsx`:**
-- After the checks enrichment block (around line 201), add a deposit enrichment block:
-  - Collect all `source_id`s where `source_type === 'deposit'`
-  - Query the `deposits` table with `companies(company_name)` join (via `company_id`)
-  - Build a `depositsMap` mapping deposit ID to company name
-- In the line mapping section (around line 204-233), add an `else if (sourceType === 'deposit')` branch:
-  - Set `vendor_name` from `depositsMap` using the deposit's company name
-  - Set `reconciled` from the deposit record
+5. Read `depositId` from URL search params on mount
+6. If a `depositId` is present, find and load that deposit using the existing `loadDepositData` function (same flow as clicking a deposit in the search dialog)
+
+### Technical Details
+
+In `JobCostActualDialog.tsx`:
+- Add `deposit_id` to the `JournalEntryLine` interface
+- In the mapping logic where `sourceType === 'deposit'`, set `deposit_id = sourceId`
+- The Actions cell condition changes from `line.bill_id && !locked` to `(line.bill_id || line.deposit_id) && !locked`, with appropriate action labels
+
+In `MakeDepositsContent.tsx`:
+- Use `useSearchParams` to read `depositId` query param
+- Add a `useEffect` that, when `depositId` is present and deposits are loaded, finds the matching deposit and calls `loadDepositData` on it
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/components/reports/JobCostActualDialog.tsx` | Replace pencil icon with TableRowActions dropdown; add deposit enrichment for vendor name |
+| `src/components/reports/JobCostActualDialog.tsx` | Add deposit_id tracking, navigate to Make Deposits page on edit |
+| `src/components/transactions/MakeDepositsContent.tsx` | Read depositId from URL params and auto-load that deposit |
+
