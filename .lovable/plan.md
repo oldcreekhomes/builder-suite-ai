@@ -1,42 +1,46 @@
 
+## Fix: Balance Sheet Not Balancing -- `Math.abs()` Bug in Equity (and Liability) Calculations
 
-## Fix Price History Graph to Use Actual Dates
+### Root Cause
 
-### Problem
-The price history chart currently:
-- Plots data on the 15th of each month (arbitrary), missing the actual dates prices changed
-- Extends 3 months into the future beyond today
-- Doesn't mark the real dates of price changes (e.g., Jun 22 and Jan 16)
+The bug is in how equity account balances are calculated. The code uses `Math.abs(rawBalance)` for equity accounts, but it should use `-rawBalance` (the same formula used for liabilities).
+
+**Why `Math.abs()` is wrong:**
+- In double-entry accounting, `rawBalance = sum(debits) - sum(credits)`.
+- Equity accounts normally have **credit** balances, so `rawBalance` is typically negative.
+- `Math.abs()` and `-rawBalance` both produce the correct positive display value for normal credit balances.
+- **But** if an equity account has a **debit** balance (e.g., owner draws, or a loss), `rawBalance` is positive. `Math.abs()` keeps it positive, but `-rawBalance` correctly makes it negative -- which **subtracts** from total equity.
+- Using `Math.abs()` means a debit-balance equity account gets **added** to equity instead of subtracted, throwing off the balance sheet by exactly 2x that account's balance.
+
+This is almost certainly the source of the $1,404.08 difference -- an equity account with ~$702.04 debit balance is being added instead of subtracted.
 
 ### Fix
 
-**File: `src/components/settings/PriceHistoryModal.tsx`** -- rewrite `generateHistoricalChartData()`
+Change `Math.abs(rawBalance)` to `-rawBalance` for equity accounts in all three files:
 
-Replace the monthly-interpolation approach with an event-driven approach:
+| File | Line | Change |
+|------|------|--------|
+| `src/components/reports/BalanceSheetContent.tsx` | 177 | `Math.abs(rawBalance)` to `-rawBalance` |
+| `src/pages/BalanceSheet.tsx` | 137 | `Math.abs(rawBalance)` to `-rawBalance` |
+| `src/components/accounting/SendReportsDialog.tsx` | 210 | `Math.abs(rawBalance)` to `-rawBalance` |
+| `src/components/accounting/SendReportsDialog.tsx` | 201 | `Math.abs(rawBalance)` to `-rawBalance` (liabilities too -- same bug) |
 
-1. **Plot actual price change dates** -- each history entry gets a data point at its real date (e.g., "Jun 22, 2025", "Jan 16, 2026")
-2. **End at today** -- add a final data point for today's date (Feb 25, 2026) using the most recent price, and do NOT extend into the future
-3. **Carry price forward** -- between price change events, add a point just before the next change to show the "step" visually (the flat line then drop pattern seen in the screenshot)
+This makes equity match the identical pattern already used for liabilities (`-rawBalance`) in the two main Balance Sheet files, which is the correct accounting formula.
 
-The resulting data points for the example would be:
-- Jun 22, 2025: $4,000 (first price)
-- Jan 15, 2026: $4,000 (day before change, carries forward)
-- Jan 16, 2026: $2,900 (price change)
-- Feb 25, 2026: $2,900 (today, carries forward)
+### Why This Permanently Prevents Future Imbalances
 
-The X-axis labels will use `format(date, 'MMM dd')` or similar to show actual dates rather than just month abbreviations.
+The Balance Sheet equation is: **Assets = Liabilities + Equity**
 
-### Technical Details
+In raw journal entry terms (debit - credit):
+- Assets: `rawBalance` (debit-normal, positive is correct)
+- Liabilities: `-rawBalance` (credit-normal, negate to display as positive)
+- Equity: `-rawBalance` (credit-normal, negate to display as positive)
 
-| Area | Change |
-|------|--------|
-| `generateHistoricalChartData()` | Replace monthly loop with event-based data points at actual change dates, with carry-forward points and today as the endpoint |
-| X-axis format | Update date format string to show day precision (e.g., "Jun 22") |
-| Chart tooltip | `fullDate` will show the exact date for hover context |
-| Future extension removed | No more `latestDate.setMonth(+3)` -- graph ends at today |
+When all three use the correct sign convention, the equation is mathematically guaranteed to balance because every journal entry has equal debits and credits. The only way it can be off is if `Math.abs()` or similar logic breaks the sign, which is exactly what is happening now.
 
 ### Files Changed
 | File | Change |
 |------|--------|
-| `src/components/settings/PriceHistoryModal.tsx` | Rewrite `generateHistoricalChartData()` to use actual dates and end at today |
-
+| `src/components/reports/BalanceSheetContent.tsx` | Fix equity: `Math.abs(rawBalance)` to `-rawBalance` |
+| `src/pages/BalanceSheet.tsx` | Fix equity: `Math.abs(rawBalance)` to `-rawBalance` |
+| `src/components/accounting/SendReportsDialog.tsx` | Fix equity AND liabilities: `Math.abs(rawBalance)` to `-rawBalance` |
