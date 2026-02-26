@@ -1,60 +1,48 @@
 
 
-## Make Both Edit Dialogs Use Native shadcn Patterns
+## Merge Cost Code 4780 (Driveway Apron) into 4770 (Driveway) and Clean Up Duplicates
 
-### What Changes
+### Current State
 
-Both `EditDepositDialog` and `EditBillDialog` currently use custom overrides instead of shadcn's built-in primitives. Here's what we'll fix in both:
+You have duplicate cost codes for driveways:
+- **4770 "Driveway"** (correct, keep) -- has 2 duplicate records in cost_codes table
+- **4780 "Driveway Apron"** (duplicate, delete) -- has 2 duplicate records in cost_codes table
 
-### 1. Footer: Use `<DialogFooter>` (native shadcn)
+The primary 4780 ID (`69307bee`) has data across multiple tables. The primary 4770 ID (`afa82c53`) is the one with existing project data.
 
-**Before** (custom, non-shadcn -- the stretched buttons you dislike):
-```text
-<div className="flex gap-2 pt-4">
-  <Button variant="outline" className="flex-1">Cancel</Button>
-  <Button className="flex-1">Save Changes</Button>
-</div>
-```
+### Data to Migrate (4780 -> 4770)
 
-**After** (native shadcn -- right-aligned, normal-sized buttons):
-```text
-<DialogFooter>
-  <Button variant="outline" ...>Cancel</Button>
-  <Button ...>Save Changes</Button>
-</DialogFooter>
-```
+All references to `69307bee-4764-41ce-92ae-d4321e0a56a7` (4780) need to move to `afa82c53-2791-4600-b630-f5df2756fbd2` (4770):
 
-shadcn's `DialogFooter` renders `sm:flex-row sm:justify-end sm:space-x-2` -- clean, right-aligned, standard spacing. No custom classes needed.
+| Table | Records | Notes |
+|-------|---------|-------|
+| project_budgets | 10 rows | All 10 projects already have a 4770 budget row at the same lot. The 4780 rows have actual_amount data on 3 projects ($2,500 / $1,478 / $3,512). These amounts need to be **added** to the existing 4770 rows, then the 4780 rows deleted. |
+| project_purchase_orders | 4 POs | Reassign cost_code_id to 4770 |
+| project_bid_packages | 7 packages | Reassign cost_code_id to 4770 |
+| purchase_order_lines | 4 lines | Reassign cost_code_id to 4770 |
+| cost_code_price_history | 1 entry | Reassign cost_code_id to 4770 |
+| cost_code_specifications | 2 entries (1 per duplicate) | Delete 4780 specs, keep 4770 spec |
 
-### 2. Container: Shrink from `max-w-6xl` to `max-w-4xl`
+### Execution Steps (all data operations via insert tool)
 
-`max-w-6xl` (1152px) is way too wide for these forms. `max-w-4xl` (896px) is closer to what shadcn demos use for complex dialogs. Both dialogs get this change.
+**Step 1: Merge actual_amounts on project_budgets**
+For the 3 projects where 4780 has non-zero actual_amount, add those amounts to the corresponding 4770 budget row:
+- Project `0bc41245`: Add $2,500 to 4770's $5,900 = $8,400
+- Project `a6e9a30e`: Add $1,478 to 4770's $2,698 = $4,176
+- Project `b633e88d`: Add $3,512 to 4770's $1,652 = $5,164
 
-### 3. Remove the custom "Line Items" heading
+**Step 2: Delete all 4780 project_budget rows** (10 rows)
 
-The `<h3 className="text-lg font-medium">Line Items</h3>` is redundant -- the Tabs already make it obvious. Removing it tightens the layout.
+**Step 3: Reassign foreign keys** in project_purchase_orders, project_bid_packages, purchase_order_lines, and cost_code_price_history from 4780 ID to 4770 ID
 
-### 4. Keep what already works
+**Step 4: Delete 4780 specifications** (both duplicates)
 
-The line items table structure (`border rounded-lg overflow-hidden`, `bg-muted` header, `border-t` separators) is fine and not part of shadcn's scope -- it's application-specific data display. No changes there.
+**Step 5: Delete the duplicate 4770 cost_code record** (`a9a19650`) that has no project data (only 1 orphan spec)
+
+**Step 6: Delete both 4780 cost_code records** (`69307bee` and `a96c503d`)
+
+After this, you'll have a single clean 4770 "Driveway" cost code with all historical data preserved.
 
 ### Files Changed
-
-| File | Changes |
-|------|---------|
-| `src/components/deposits/EditDepositDialog.tsx` | Use `DialogFooter` for buttons, change `max-w-6xl` to `max-w-4xl`, remove "Line Items" heading, import `DialogFooter` |
-| `src/components/bills/EditBillDialog.tsx` | Use `DialogFooter` for buttons, change `max-w-6xl` to `max-w-4xl` (both loading and main content), remove "Line Items" heading |
-
-### Technical Details
-
-**EditDepositDialog changes:**
-- Add `DialogFooter` to the import from `@/components/ui/dialog`
-- Replace lines 528-547 (the `div.flex.gap-2.pt-4` footer) with `<DialogFooter>` containing normal Cancel + Save buttons
-- Change line 449 and 432: `max-w-6xl` to `max-w-4xl`
-- Remove line 502: the `<h3>Line Items</h3>` heading
-
-**EditBillDialog changes:**
-- Lines 1097-1115: Replace the `div.flex.gap-2.pt-4` footer with `<DialogFooter>` containing normal Cancel + Save buttons
-- Lines 604 and 587: `max-w-6xl` to `max-w-4xl`
-- Remove line 809: the `<h3>Line Items</h3>` heading
+No code changes -- this is entirely a database data migration.
 
