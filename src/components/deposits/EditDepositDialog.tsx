@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -429,7 +429,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Deposit</DialogTitle>
             <DialogDescription>Loading deposit data...</DialogDescription>
@@ -446,7 +446,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Deposit</DialogTitle>
           <DialogDescription>Make changes to this deposit.</DialogDescription>
@@ -497,10 +497,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
             </div>
           </div>
 
-          {/* Line Items */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Line Items</h3>
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="other">Chart of Accounts</TabsTrigger>
@@ -525,26 +522,14 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
             />
           </div>
 
-          {/* Footer Buttons */}
-          <div className="flex gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-              disabled={isSaving}
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={handleSave}
-              disabled={isSaving || isLoading}
-            >
+            <Button onClick={handleSave} disabled={isSaving || isLoading}>
               {isSaving ? "Saving..." : "Save Changes"}
             </Button>
-          </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>
