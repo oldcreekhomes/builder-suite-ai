@@ -1,19 +1,26 @@
 
+## Remove the Repair Button from the Schedule Toolbar
 
-## Fix Gantt Chart DST Off-By-One Bug
+### Why
+The Repair button was a diagnostic/workaround tool for a hierarchy corruption bug. There are currently **zero corrupted tasks** in the entire database. The underlying `__TEMP__` pattern is still used internally during task reordering (two-phase swap), but that resolves automatically -- users should never need to manually trigger a repair.
 
-### Problem
-Task 8.14 Drywall's Gantt bar is 1 day short because the date range crosses DST spring-forward (March 8, 2026). The 23-hour day causes `Math.floor` to lose a day.
+### Changes
 
-### Fix
-**File: `src/utils/dateOnly.ts`, line 142**
+**1. `src/components/schedule/ScheduleToolbar.tsx`**
+- Remove `onRepairSchedule`, `isRepairing`, and `hasCorruptedTasks` from the props interface
+- Remove the destructured props
+- Remove the Repair button JSX block (lines ~128-138)
+- Remove the `Wrench` icon import
 
-Change one word:
-```text
-Before: const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-After:  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-```
+**2. `src/components/schedule/CustomGanttChart.tsx`**
+- Remove the `isRepairing` state variable
+- Remove the `hasCorruptedTasks` computed value and `hasSelfReferencingPredecessors` check (~lines 625-634)
+- Remove the entire `handleRepairSchedule` function (~lines 636-695)
+- Remove `onRepairSchedule`, `isRepairing`, and `hasCorruptedTasks` props from the `ScheduleToolbar` usage
 
-`Math.round` absorbs the +/- 1 hour from DST transitions and always returns the correct calendar day count. This fixes all tasks spanning any DST boundary, present and future.
+### What stays
+- The `repair-schedule-hierarchies` edge function stays deployed (harmless, and could be useful as an admin-only tool if ever needed)
+- The `__TEMP__` hierarchy pattern in `useTaskBulkMutations.ts` and `bulk-update-hierarchies` edge function stays -- it is the two-phase reorder mechanism, not a bug
 
-One line, one word. Done.
+### Result
+Cleaner toolbar with only the buttons users actually need: Add, Undo, Copy, Expand/Collapse, Zoom In, Zoom Out, Publish.
