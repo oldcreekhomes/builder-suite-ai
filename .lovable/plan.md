@@ -1,39 +1,19 @@
 
 
-## Restore 3-dot Actions Menu with "Close" and "Delete" Options
+## Fix Gantt Chart DST Off-By-One Bug
 
-### What will change
+### Problem
+Task 8.14 Drywall's Gantt bar is 1 day short because the date range crosses DST spring-forward (March 8, 2026). The 23-hour day causes `Math.floor` to lose a day.
 
-The current green checkmark button on each issue row will be replaced with the standard 3-dot menu (`TableRowActions`), offering two options:
+### Fix
+**File: `src/utils/dateOnly.ts`, line 142**
 
-1. **Close** -- Opens the Resolve Confirmation Dialog (with the CC user checkboxes), sends the closure email to the creator + any selected users, and marks the issue as Resolved.
-2. **Delete** -- Shows a destructive confirmation dialog, then permanently deletes the issue from the database.
+Change one word:
+```text
+Before: const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+After:  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+```
 
-### Implementation
+`Math.round` absorbs the +/- 1 hour from DST transitions and always returns the correct calendar day count. This fixes all tasks spanning any DST boundary, present and future.
 
-**1. Add a `deleteIssue` mutation to `src/hooks/useIssueMutations.ts`**
-- New mutation that deletes the issue row from `company_issues` (and associated `issue_files` records/storage files).
-- Invalidates the relevant query caches on success.
-
-**2. Update `src/components/issues/IssuesTable.tsx`**
-- Destructure `deleteIssue` from `useIssueMutations()`.
-- Add a `handleDeleteIssue` handler and pass it as `onDelete` to each `IssuesTableRow`.
-
-**3. Rewrite the Actions cell in `src/components/issues/IssuesTableRow.tsx`**
-- Import both `TableRowActions` and `ResolveButton` (or just inline the resolve dialog state).
-- Instead of rendering a standalone `ResolveButton`, render a custom 3-dot dropdown with two menu items:
-  - **Close**: triggers a `ResolveConfirmationDialog` (with CC user selection). On confirm, calls `onResolve(issue.id, ccUserIds)`.
-  - **Delete**: triggers a `DeleteConfirmationDialog`. On confirm, calls `onDelete(issue.id)`.
-- Accept new prop `onDelete: (id: string) => void`.
-
-**4. Wire up the props**
-- `IssuesTableRowProps` gains `onDelete` and `isDeleting`.
-- `IssuesTable` passes `onDelete={handleDeleteIssue}` and `isDeleting={deleteIssue.isPending}`.
-
-### Files changed
-| File | Change |
-|------|--------|
-| `src/hooks/useIssueMutations.ts` | Add `deleteIssue` mutation |
-| `src/components/issues/IssuesTable.tsx` | Wire `deleteIssue` + pass `onDelete` prop |
-| `src/components/issues/IssuesTableRow.tsx` | Replace `ResolveButton` with 3-dot menu containing Close (with CC dialog) and Delete options |
-
+One line, one word. Done.
