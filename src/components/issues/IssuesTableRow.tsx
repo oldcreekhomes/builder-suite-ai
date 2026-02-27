@@ -3,7 +3,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { TableRowActions } from '@/components/ui/table-row-actions';
+import { ResolveButton } from '@/components/ui/resolve-button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { IssueFilesCell } from './IssueFilesCell';
@@ -260,9 +260,16 @@ export function IssuesTableRow({
       />
       
       <TableCell className="px-2 py-1 w-16">
-        <TableRowActions actions={[
-          { label: "Resolve", onClick: () => onResolve(issue.id, []), variant: "destructive", requiresConfirmation: true, confirmTitle: "Resolve Issue", confirmDescription: "Are you sure you want to resolve this issue? It will be marked as resolved and removed from the active list.", isLoading: isResolving },
-        ]} />
+        <ResolveButton
+          onResolve={(ccUserIds) => onResolve(issue.id, ccUserIds)}
+          title="Resolve Issue"
+          description="Are you sure you want to resolve this issue? The issue creator will be notified."
+          isLoading={isResolving}
+          authorId={issue.created_by}
+          size="icon"
+          variant="ghost"
+          showIcon={true}
+        />
       </TableCell>
     </TableRow>
   );
