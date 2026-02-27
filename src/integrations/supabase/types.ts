@@ -2600,6 +2600,7 @@ export type Database = {
       }
       marketplace_subscriptions: {
         Row: {
+          allowed_service_areas: string[] | null
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
@@ -2612,6 +2613,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allowed_service_areas?: string[] | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
@@ -2624,6 +2626,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allowed_service_areas?: string[] | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null

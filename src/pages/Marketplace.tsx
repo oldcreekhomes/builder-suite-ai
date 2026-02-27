@@ -2,50 +2,34 @@ import { useState, useCallback } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
-import { Search, Store } from "lucide-react";
+import { Search, Store, MapPin } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceCompaniesTable";
 import { MarketplaceCategorySidebar } from "@/components/marketplace/MarketplaceCategorySidebar";
-import { MarketplaceRadiusControl } from "@/components/marketplace/MarketplaceRadiusControl";
-import { SetupHQModal } from "@/components/marketplace/SetupHQModal";
 import { UpgradeMarketplaceModal } from "@/components/marketplace/UpgradeMarketplaceModal";
-import { useCompanyHQ } from "@/hooks/useCompanyHQ";
-import { useMarketplaceSubscription, SubscriptionTier } from "@/hooks/useMarketplaceSubscription";
+import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [currentRadius, setCurrentRadius] = useState(30);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   
   // Track counts from the table
-  const [tableCounts, setTableCounts] = useState({ filteredCount: 0, totalCount: 0, excludedCount: 0 });
+  const [tableCounts, setTableCounts] = useState({ filteredCount: 0, totalCount: 0 });
 
-  const { hqData, hasHQSet, isLoading: hqLoading, updateHQ, isUpdating } = useCompanyHQ();
-  const { tier, maxRadius, isLoading: subscriptionLoading } = useMarketplaceSubscription();
+  const { allowedAreas, isLoading: subscriptionLoading } = useMarketplaceSubscription();
 
-  // Show setup HQ modal for new users
-  const [setupModalOpen, setSetupModalOpen] = useState(false);
+  // Active service area for browsing (default to first allowed area)
+  const [activeArea, setActiveArea] = useState<string | null>(null);
+  const currentArea = activeArea || (allowedAreas.length > 0 ? allowedAreas[0] : SERVICE_AREA_OPTIONS[0]);
 
-  // Check if we need to show setup modal (no HQ set and not loading)
-  const shouldShowSetupModal = !hqLoading && !hasHQSet && !setupModalOpen;
-
-  const handleUpgradeSelect = (selectedTier: SubscriptionTier) => {
-    // TODO: Integrate with Stripe checkout
-    console.log('Selected tier:', selectedTier);
-  };
-
-  const handleRadiusChange = (radius: number) => {
-    if (radius <= maxRadius) {
-      setCurrentRadius(radius);
-    }
-  };
-
-  const handleCountsChange = useCallback((counts: { filteredCount: number; totalCount: number; excludedCount: number }) => {
+  const handleCountsChange = useCallback((counts: { filteredCount: number; totalCount: number }) => {
     setTableCounts(counts);
   }, []);
 
-  if (hqLoading || subscriptionLoading) {
+  if (subscriptionLoading) {
     return (
       <div className="min-h-screen flex w-full bg-background items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
@@ -82,20 +66,41 @@ export default function Marketplace() {
 
           {/* Companies content */}
           <div className="flex-1 p-6 overflow-auto">
-            {/* Radius Control - only show if HQ is set */}
-            {hasHQSet && (
-              <MarketplaceRadiusControl
-                hqCity={hqData?.hq_city || null}
-                hqState={hqData?.hq_state || null}
-                currentRadius={currentRadius}
-                maxRadius={maxRadius}
-                tier={tier}
-                filteredCount={tableCounts.filteredCount}
-                totalCount={tableCounts.totalCount}
-                onRadiusChange={handleRadiusChange}
-                onUpgradeClick={() => setUpgradeModalOpen(true)}
-              />
-            )}
+            {/* Service Area Bar */}
+            <div className="bg-background border rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Browsing:</span>
+                  <div className="flex gap-2">
+                    {SERVICE_AREA_OPTIONS.map(area => {
+                      const isAllowed = allowedAreas.includes(area);
+                      const isActive = currentArea === area;
+                      return (
+                        <Badge
+                          key={area}
+                          variant={isActive ? "default" : "secondary"}
+                          className={`cursor-pointer ${!isAllowed ? 'opacity-50' : ''}`}
+                          onClick={() => {
+                            if (isAllowed) {
+                              setActiveArea(area);
+                            } else {
+                              setUpgradeModalOpen(true);
+                            }
+                          }}
+                        >
+                          {area}
+                          {!isAllowed && " 🔒"}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{tableCounts.filteredCount}</span> suppliers
+                </div>
+              </div>
+            </div>
 
             {/* Search */}
             <div className="relative max-w-md mb-4">
@@ -113,30 +118,18 @@ export default function Marketplace() {
               searchQuery={searchQuery}
               selectedCategory={selectedCategory}
               selectedType={selectedType}
-              currentRadius={currentRadius}
+              activeServiceAreas={[currentArea]}
               onCountsChange={handleCountsChange}
             />
           </div>
         </div>
       </SidebarInset>
 
-      {/* Setup HQ Modal - shows on first visit */}
-      <SetupHQModal
-        open={shouldShowSetupModal || setupModalOpen}
-        onOpenChange={setSetupModalOpen}
-        onSave={(data) => {
-          updateHQ(data);
-          setSetupModalOpen(false);
-        }}
-        isLoading={isUpdating}
-      />
-
       {/* Upgrade Modal */}
       <UpgradeMarketplaceModal
         open={upgradeModalOpen}
         onOpenChange={setUpgradeModalOpen}
-        currentTier={tier}
-        onSelectTier={handleUpgradeSelect}
+        currentAreas={allowedAreas}
       />
     </div>
   );

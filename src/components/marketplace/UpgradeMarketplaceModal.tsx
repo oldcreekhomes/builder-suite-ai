@@ -7,156 +7,73 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Crown, MapPin, Zap } from "lucide-react";
-import { TIER_LIMITS, SubscriptionTier } from "@/hooks/useMarketplaceSubscription";
+import { Check, MapPin, Lock } from "lucide-react";
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 
 interface UpgradeMarketplaceModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentTier: SubscriptionTier;
-  onSelectTier: (tier: SubscriptionTier) => void;
+  currentAreas: string[];
 }
 
 export function UpgradeMarketplaceModal({
   open,
   onOpenChange,
-  currentTier,
-  onSelectTier,
+  currentAreas,
 }: UpgradeMarketplaceModalProps) {
-  const handleSelectPro = () => {
-    onSelectTier('pro');
-    // TODO: Integrate with Stripe checkout
-    onOpenChange(false);
-  };
-
-  const handleSelectEnterprise = () => {
-    onSelectTier('enterprise');
-    // TODO: Integrate with Stripe checkout
-    onOpenChange(false);
-  };
+  const lockedAreas = SERVICE_AREA_OPTIONS.filter(a => !currentAreas.includes(a));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
             Expand Your Reach
           </DialogTitle>
           <DialogDescription>
-            Your free plan includes suppliers within 30 miles of your headquarters.
-            Upgrade to access suppliers across your entire region or nationwide.
+            Your current plan includes {currentAreas.length === 1 ? '1 service area' : `${currentAreas.length} service areas`}.
+            Add additional regions to discover more suppliers.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-2 gap-4 mt-4">
-          {/* Pro Tier */}
-          <Card className={`relative ${currentTier === 'pro' ? 'ring-2 ring-primary' : ''}`}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  Pro
-                </CardTitle>
-                {currentTier === 'pro' && (
-                  <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                    Current Plan
-                  </span>
-                )}
+        <div className="space-y-3 mt-4">
+          {/* Current areas */}
+          <div>
+            <p className="text-sm font-medium mb-2">Your Service Areas</p>
+            {currentAreas.map(area => (
+              <div key={area} className="flex items-center gap-2 py-1.5 px-3 bg-muted/50 rounded-md mb-1">
+                <Check className="h-4 w-4 text-primary" />
+                <span className="text-sm">{area}</span>
+                <span className="text-xs text-muted-foreground ml-auto">Included</span>
               </div>
-              <CardDescription>Regional access for growing builders</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <span className="text-3xl font-bold">${TIER_LIMITS.pro.price}</span>
-                <span className="text-muted-foreground">/month</span>
-              </div>
-              
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Up to 100-mile radius
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Access to all suppliers in region
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Unlimited messages
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Priority support
-                </li>
-              </ul>
+            ))}
+          </div>
 
-              <Button 
-                className="w-full" 
-                onClick={handleSelectPro}
-                disabled={currentTier === 'pro' || currentTier === 'enterprise'}
-              >
-                {currentTier === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Enterprise Tier */}
-          <Card className={`relative ${currentTier === 'enterprise' ? 'ring-2 ring-primary' : ''}`}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-accent-foreground" />
-                  Enterprise
-                </CardTitle>
-                {currentTier === 'enterprise' && (
-                  <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                    Current Plan
-                  </span>
-                )}
-              </div>
-              <CardDescription>National access for large operations</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <span className="text-3xl font-bold">${TIER_LIMITS.enterprise.price}</span>
-                <span className="text-muted-foreground">/month</span>
-              </div>
-              
-              <ul className="space-y-2 mb-6">
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Unlimited search radius
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Nationwide supplier access
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  API access for integrations
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  Dedicated account manager
-                </li>
-              </ul>
-
-              <Button 
-                className="w-full" 
-                variant="secondary"
-                onClick={handleSelectEnterprise}
-                disabled={currentTier === 'enterprise'}
-              >
-                {currentTier === 'enterprise' ? 'Current Plan' : 'Upgrade to Enterprise'}
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Locked areas */}
+          {lockedAreas.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Available Regions</p>
+              {lockedAreas.map(area => (
+                <Card key={area} className="mb-2">
+                  <CardContent className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{area}</span>
+                    </div>
+                    <Button size="sm" variant="outline" disabled>
+                      Coming Soon
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 text-center">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Continue with Free
+            Close
           </Button>
         </div>
       </DialogContent>
