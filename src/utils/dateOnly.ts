@@ -139,7 +139,7 @@ export const getCalendarDaysBetween = (startDateStr: DateString, endDateStr: Dat
   const endDate = new Date(end.year, end.month - 1, end.day);
   
   const diffTime = endDate.getTime() - startDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   
   return diffDays + 1; // +1 for inclusive calculation
 };
