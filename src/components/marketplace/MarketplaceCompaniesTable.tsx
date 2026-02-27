@@ -9,14 +9,12 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Lock, Loader2, Calculator } from "lucide-react";
+import { Globe, MapPin, Star, Phone, Building2, MessageSquare, Badge as BadgeIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { COMPANY_TYPE_CATEGORIES } from "@/constants/companyTypeGoogleMapping";
 import { SendMarketplaceMessageModal } from "./SendMarketplaceMessageModal";
 import { ViewMarketplaceCompanyDialog } from "./ViewMarketplaceCompanyDialog";
-import { useCompanyHQ } from "@/hooks/useCompanyHQ";
-import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
-import { toast } from "sonner";
 
 interface MarketplaceCompany {
   id: string;
@@ -37,55 +35,25 @@ interface MarketplaceCompany {
   created_at: string;
 }
 
-interface DistanceResult {
-  companyId: string;
-  distance: number | null;
-  error?: string;
-}
-
 interface MarketplaceCompaniesTableProps {
   searchQuery?: string;
   selectedCategory?: string | null;
   selectedType?: string | null;
-  currentRadius?: number;
-  onCountsChange?: (counts: { filteredCount: number; totalCount: number; excludedCount: number }) => void;
+  activeServiceAreas: string[];
+  onCountsChange?: (counts: { filteredCount: number; totalCount: number }) => void;
 }
 
 export function MarketplaceCompaniesTable({ 
   searchQuery = "", 
   selectedCategory = null, 
   selectedType = null,
-  currentRadius = 30,
+  activeServiceAreas,
   onCountsChange
 }: MarketplaceCompaniesTableProps) {
   const [selectedCompany, setSelectedCompany] = useState<MarketplaceCompany | null>(null);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewCompany, setViewCompany] = useState<MarketplaceCompany | null>(null);
-  const [distanceCalculationEnabled, setDistanceCalculationEnabled] = useState(false);
-  const [isCalculatingDistances, setIsCalculatingDistances] = useState(false);
-  const [calculatedDistances, setCalculatedDistances] = useState<Record<string, number | null>>({});
-  
-  const { hqData, hasHQSet } = useCompanyHQ();
-  const { maxRadius, tier } = useMarketplaceSubscription();
-
-  // Build origin address from HQ data
-  const hqOrigin = useMemo(() => {
-    if (!hasHQSet || !hqData) return null;
-    const parts = [
-      hqData.hq_address,
-      hqData.hq_city,
-      hqData.hq_state,
-      hqData.hq_zip
-    ].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : null;
-  }, [hasHQSet, hqData]);
-
-  // Reset distances when category changes
-  useEffect(() => {
-    setDistanceCalculationEnabled(false);
-    setCalculatedDistances({});
-  }, [selectedCategory, selectedType]);
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['marketplace-companies'],
@@ -122,8 +90,8 @@ export function MarketplaceCompaniesTable({
     ? COMPANY_TYPE_CATEGORIES.find(cat => cat.name === selectedCategory)?.types || []
     : [];
 
-  // Filter by category/type and search first (to reduce distance API calls)
-  const preFiltedCompanies = useMemo(() => {
+  // Filter by category/type, service area, and search
+  const filteredCompanies = useMemo(() => {
     let filtered = companies;
 
     // Category/type filter first
@@ -137,6 +105,14 @@ export function MarketplaceCompaniesTable({
       return [];
     }
 
+    // Service area filter
+    if (activeServiceAreas.length > 0) {
+      filtered = filtered.filter(c => {
+        const companyAreas = c.service_areas || [];
+        return companyAreas.some(area => activeServiceAreas.includes(area));
+      });
+    }
+
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -148,136 +124,16 @@ export function MarketplaceCompaniesTable({
     }
 
     return filtered;
-  }, [companies, selectedCategory, selectedType, categoryTypes, searchQuery]);
+  }, [companies, selectedCategory, selectedType, categoryTypes, searchQuery, activeServiceAreas]);
 
-  // Manual distance calculation function
-  const calculateDistances = async () => {
-    if (!hqOrigin || preFiltedCompanies.length === 0) return;
-    
-    setIsCalculatingDistances(true);
-    
-    try {
-      const companiesPayload = preFiltedCompanies
-        .filter(c => c.address && c.address.trim() && c.address !== 'Unknown')
-        .map(c => ({ id: c.id, address: c.address! }));
-      
-      if (companiesPayload.length === 0) {
-        toast.error("No companies with valid addresses to calculate distances for.");
-        return;
-      }
-
-      // Check cache first
-      const { data: cachedData } = await supabase
-        .from('marketplace_distance_cache')
-        .select('company_id, distance_miles')
-        .eq('origin_address', hqOrigin)
-        .in('company_id', companiesPayload.map(c => c.id));
-
-      const cachedDistances: Record<string, number | null> = {};
-      const uncachedCompanies: typeof companiesPayload = [];
-
-      if (cachedData && cachedData.length > 0) {
-        cachedData.forEach(row => {
-          cachedDistances[row.company_id] = row.distance_miles;
-        });
-        
-        companiesPayload.forEach(c => {
-          if (!(c.id in cachedDistances)) {
-            uncachedCompanies.push(c);
-          }
-        });
-      } else {
-        uncachedCompanies.push(...companiesPayload);
-      }
-
-      // If all are cached, use them directly
-      if (uncachedCompanies.length === 0) {
-        setCalculatedDistances(cachedDistances);
-        setDistanceCalculationEnabled(true);
-        toast.success(`Loaded ${Object.keys(cachedDistances).length} cached distances.`);
-        return;
-      }
-
-      // Call API for uncached companies
-      const { data, error } = await supabase.functions.invoke('calculate-distances', {
-        body: { 
-          projectAddress: hqOrigin, 
-          companies: uncachedCompanies 
-        }
-      });
-
-      if (error) {
-        console.error('Distance calculation error:', error);
-        toast.error("Failed to calculate distances. Please try again.");
-        return;
-      }
-
-      // Merge cached and new distances
-      const newDistances: Record<string, number | null> = { ...cachedDistances };
-      if (data?.results) {
-        Object.values(data.results as Record<string, DistanceResult>).forEach((result: DistanceResult) => {
-          newDistances[result.companyId] = result.distance;
-        });
-      }
-
-      setCalculatedDistances(newDistances);
-      setDistanceCalculationEnabled(true);
-      
-      const cachedCount = Object.keys(cachedDistances).length;
-      const newCount = uncachedCompanies.length;
-      toast.success(`Calculated ${newCount} distances (${cachedCount} from cache).`);
-      
-    } catch (err) {
-      console.error('Distance calculation error:', err);
-      toast.error("Failed to calculate distances. Please try again.");
-    } finally {
-      setIsCalculatingDistances(false);
+  // Total in category (before service area filter) for display
+  const totalInCategory = useMemo(() => {
+    if (!selectedCategory) return 0;
+    if (selectedType) {
+      return companies.filter(c => c.company_type === selectedType).length;
     }
-  };
-
-  // Apply distance filtering and sorting
-  const { filteredCompanies, totalInCategory, excludedCount } = useMemo(() => {
-    const total = preFiltedCompanies.length;
-    let excluded = 0;
-
-    if (!hasHQSet || !hqOrigin || !distanceCalculationEnabled) {
-      // If no HQ or distances not calculated, show all pre-filtered companies without distance info
-      return { 
-        filteredCompanies: preFiltedCompanies.map(c => ({ ...c, distance: null as number | null })), 
-        totalInCategory: total,
-        excludedCount: 0
-      };
-    }
-
-    // Add distance to each company and filter/sort
-    const withDistances = preFiltedCompanies.map(company => {
-      const distance = calculatedDistances[company.id] ?? null;
-      return { ...company, distance };
-    });
-
-    // Filter by radius
-    const filtered = withDistances.filter(company => {
-      if (company.distance === null) {
-        // Exclude companies without calculable distance
-        excluded++;
-        return false;
-      }
-      return company.distance <= currentRadius;
-    });
-
-    // Sort by distance (closest first)
-    filtered.sort((a, b) => {
-      if (a.distance === null) return 1;
-      if (b.distance === null) return -1;
-      return a.distance - b.distance;
-    });
-
-    return { 
-      filteredCompanies: filtered, 
-      totalInCategory: total,
-      excludedCount: excluded
-    };
-  }, [preFiltedCompanies, hasHQSet, hqOrigin, calculatedDistances, currentRadius, distanceCalculationEnabled]);
+    return companies.filter(c => categoryTypes.includes(c.company_type)).length;
+  }, [companies, selectedCategory, selectedType, categoryTypes]);
 
   // Report counts to parent
   useEffect(() => {
@@ -285,10 +141,9 @@ export function MarketplaceCompaniesTable({
       onCountsChange({
         filteredCount: filteredCompanies.length,
         totalCount: totalInCategory,
-        excludedCount
       });
     }
-  }, [filteredCompanies.length, totalInCategory, excludedCount, onCountsChange]);
+  }, [filteredCompanies.length, totalInCategory, onCountsChange]);
 
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading marketplace companies...</div>;
@@ -309,49 +164,13 @@ export function MarketplaceCompaniesTable({
     );
   }
 
-  const showDistanceColumn = hasHQSet && hqOrigin && distanceCalculationEnabled;
-
   return (
     <>
-      {/* Distance calculation controls */}
-      {hasHQSet && hqOrigin && !distanceCalculationEnabled && (
-        <div className="flex items-center gap-3 mb-4 p-3 bg-muted/50 rounded-lg border">
-          <Calculator className="h-5 w-5 text-muted-foreground" />
-          <div className="flex-1">
-            <p className="text-sm font-medium">Calculate distances from your HQ</p>
-            <p className="text-xs text-muted-foreground">
-              {preFiltedCompanies.length} companies in this category
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={calculateDistances}
-            disabled={isCalculatingDistances}
-          >
-            {isCalculatingDistances ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Calculating...
-              </>
-            ) : (
-              <>
-                <MapPin className="h-4 w-4 mr-2" />
-                Calculate Distances
-              </>
-            )}
-          </Button>
-        </div>
-      )}
-
-      {excludedCount > 0 && distanceCalculationEnabled && (
-        <div className="text-sm text-muted-foreground mb-2">
-          {excludedCount} supplier{excludedCount !== 1 ? 's' : ''} excluded (address couldn't be mapped)
-        </div>
-      )}
-
       <div className="text-sm text-muted-foreground mb-2">
         Showing {filteredCompanies.length} of {totalInCategory} companies
-        {showDistanceColumn && ` within ${currentRadius} miles`}
+        {activeServiceAreas.length > 0 && (
+          <span> in {activeServiceAreas.join(', ')}</span>
+        )}
       </div>
       
       <div className="border rounded-lg">
@@ -359,10 +178,8 @@ export function MarketplaceCompaniesTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[18%]">Company Name</TableHead>
-              <TableHead className="w-[28%]">Location</TableHead>
-              {showDistanceColumn && (
-                <TableHead className="w-[10%]">Distance</TableHead>
-              )}
+              <TableHead className="w-[24%]">Location</TableHead>
+              <TableHead className="w-[14%]">Service Area</TableHead>
               <TableHead className="w-[12%]">Rating</TableHead>
               <TableHead className="w-[14%]">Phone</TableHead>
               <TableHead className="w-[8%]">Website</TableHead>
@@ -370,101 +187,91 @@ export function MarketplaceCompaniesTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCompanies.map((company) => {
-              const isLocked = company.distance !== undefined && 
-                               company.distance !== null && 
-                               company.distance > maxRadius;
-              
-              return (
-                <TableRow key={company.id} className={`h-10 ${isLocked ? 'opacity-50' : ''} cursor-pointer hover:bg-muted/50`} onClick={() => !isLocked && handleRowClick(company)}>
-                  <TableCell className="px-2 py-1">
-                    <div className="flex items-center gap-1">
-                      {isLocked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                      <span className="text-xs font-medium truncate">{company.company_name}</span>
+            {filteredCompanies.map((company) => (
+              <TableRow key={company.id} className="h-10 cursor-pointer hover:bg-muted/50" onClick={() => handleRowClick(company)}>
+                <TableCell className="px-2 py-1">
+                  <span className="text-xs font-medium truncate">{company.company_name}</span>
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.address ? (
+                    <div className="flex items-start space-x-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <span className="text-xs text-muted-foreground truncate">
+                        {company.address}
+                      </span>
                     </div>
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.address ? (
-                      <div className="flex items-start space-x-1">
-                        <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
-                        <span className="text-xs text-muted-foreground truncate">
-                          {company.address}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                  {showDistanceColumn && (
-                    <TableCell className="px-2 py-1">
-                      {company.distance !== null && company.distance !== undefined ? (
-                        <span className="text-xs text-muted-foreground">
-                          {company.distance.toFixed(1)} mi
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
                   )}
-                  <TableCell className="px-2 py-1">
-                    {company.rating ? (
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                        <span className="text-xs font-medium">{company.rating}</span>
-                        <span className="text-xs text-muted-foreground">({company.review_count || 0})</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.phone_number && !isLocked ? (
-                      <div className="flex items-center space-x-1">
-                        <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                        <span className="text-xs text-muted-foreground truncate">{company.phone_number}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">{isLocked ? '🔒' : '-'}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    {company.website && !isLocked ? (
-                      <a 
-                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-1 text-primary hover:text-primary/80"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Globe className="h-3 w-3 flex-shrink-0" />
-                        <span className="text-xs">Visit</span>
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">{isLocked ? '🔒' : '-'}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-2 py-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1"
-                      onClick={(e) => { e.stopPropagation(); handleMessageClick(company); }}
-                      disabled={isLocked}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.service_areas && company.service_areas.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {company.service_areas.map(area => (
+                        <Badge key={area} variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {area}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.rating ? (
+                    <div className="flex items-center space-x-1">
+                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                      <span className="text-xs font-medium">{company.rating}</span>
+                      <span className="text-xs text-muted-foreground">({company.review_count || 0})</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.phone_number ? (
+                    <div className="flex items-center space-x-1">
+                      <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs text-muted-foreground truncate">{company.phone_number}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  {company.website ? (
+                    <a 
+                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-1 text-primary hover:text-primary/80"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <MessageSquare className="h-3 w-3" />
-                      {isLocked ? 'Locked' : 'Message'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                      <Globe className="h-3 w-3 flex-shrink-0" />
+                      <span className="text-xs">Visit</span>
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">-</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-2 py-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={(e) => { e.stopPropagation(); handleMessageClick(company); }}
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    Message
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
 
             {filteredCompanies.length === 0 && (
               <TableRow>
-                <TableCell colSpan={showDistanceColumn ? 7 : 6} className="text-center py-4 text-xs text-muted-foreground">
-                  {distanceCalculationEnabled 
-                    ? `No marketplace companies found within ${currentRadius} miles.`
-                    : "No companies found. Try selecting a different category or calculating distances."}
+                <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
+                  No companies found in the selected service area(s). Try adjusting your filters.
                 </TableCell>
               </TableRow>
             )}

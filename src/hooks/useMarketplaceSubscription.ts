@@ -1,14 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-
-export type SubscriptionTier = 'free' | 'pro' | 'enterprise';
+import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 
 export interface MarketplaceSubscription {
   id: string;
   owner_id: string;
-  tier: SubscriptionTier;
-  max_radius_miles: number;
+  allowed_service_areas: string[];
   status: 'active' | 'cancelled' | 'expired';
   stripe_subscription_id: string | null;
   current_period_start: string | null;
@@ -17,15 +15,8 @@ export interface MarketplaceSubscription {
   updated_at: string;
 }
 
-export const TIER_LIMITS: Record<SubscriptionTier, { radius: number; price: number; label: string }> = {
-  free: { radius: 30, price: 0, label: 'Free' },
-  pro: { radius: 100, price: 29, label: 'Pro' },
-  enterprise: { radius: Infinity, price: 99, label: 'Enterprise' },
-};
-
 export function useMarketplaceSubscription() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data: subscription, isLoading, error } = useQuery({
     queryKey: ['marketplace-subscription', user?.id],
@@ -44,13 +35,12 @@ export function useMarketplaceSubscription() {
 
       if (error) throw error;
 
-      // If no subscription exists, return default free tier
+      // If no subscription exists, return default (1 free service area)
       if (!data) {
         return {
           id: '',
           owner_id: ownerId,
-          tier: 'free' as SubscriptionTier,
-          max_radius_miles: 30,
+          allowed_service_areas: [SERVICE_AREA_OPTIONS[0]], // Default: "Washington, DC"
           status: 'active' as const,
           stripe_subscription_id: null,
           current_period_start: null,
@@ -60,22 +50,22 @@ export function useMarketplaceSubscription() {
         };
       }
 
-      return data as MarketplaceSubscription;
+      return {
+        ...data,
+        allowed_service_areas: (data as any).allowed_service_areas || [SERVICE_AREA_OPTIONS[0]],
+      } as MarketplaceSubscription;
     },
     enabled: !!user?.id,
   });
 
-  const tier = subscription?.tier || 'free';
-  const maxRadius = TIER_LIMITS[tier].radius;
+  const allowedAreas = subscription?.allowed_service_areas || [SERVICE_AREA_OPTIONS[0]];
   const isActive = subscription?.status === 'active';
 
   return {
     subscription,
-    tier,
-    maxRadius,
+    allowedAreas,
     isActive,
     isLoading,
     error,
-    tierLimits: TIER_LIMITS,
   };
 }
