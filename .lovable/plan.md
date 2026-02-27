@@ -1,40 +1,60 @@
 
 
-## Phase 1: Tag All Marketplace Companies with Service Areas ✅ DONE
+## Fix Marketplace: Per-Region Supplier Counts + Grant OBX Access to Old Creek Homes
 
-All 2,238 marketplace companies have been tagged:
-- **2,208** → "Washington, DC"
-- **30** → "Outer Banks, NC"
-- Pete's Asphalt address fixed to "Silver Spring, MD"
-- Zero NULLs remaining
+### Problem 1: "0 suppliers" display
+The service area bar shows a single count (`tableCounts.filteredCount`) which only reflects the filtered count for the currently selected category. Before any category is selected, it shows "0 suppliers" which is confusing. The count should show how many suppliers exist **per region** regardless of category selection.
+
+### Problem 2: Old Creek Homes needs OBX access
+The `marketplace_subscriptions` table is currently empty, so every user defaults to `["Washington, DC"]` only. Old Creek Homes (owner_id: `2653aba8-d154-4301-99bf-77d559492e19`) needs both "Washington, DC" and "Outer Banks, NC".
+
+### Problem 3: Console error in UpgradeMarketplaceModal
+Minor `forwardRef` warning from `DialogHeader` -- harmless but worth fixing.
 
 ---
 
-## Phase 2: Replace Distance Filtering with Service Area Filtering ✅ DONE
+### Changes
 
-### Changes Made
+**1. Show per-region counts in the service area bar (`src/pages/Marketplace.tsx`)**
+- Query `marketplace_companies` to get counts grouped by service area (a lightweight count query)
+- Display the count next to each region badge, e.g. "Washington, DC (2,208)" and "Outer Banks, NC (30)"
+- Remove the single "X suppliers" text on the right side of the bar, or keep it as the active region's count
 
-**Database migration:**
-- Added `allowed_service_areas text[] DEFAULT ARRAY['Washington, DC']` to `marketplace_subscriptions`
+**2. Insert subscription row for Old Creek Homes (data operation)**
+- Insert into `marketplace_subscriptions`:
+  - `owner_id`: `2653aba8-d154-4301-99bf-77d559492e19`
+  - `allowed_service_areas`: `["Washington, DC", "Outer Banks, NC"]`
+  - `status`: `active`
 
-**Files modified:**
+**3. Fix DialogHeader ref warning (`src/components/marketplace/UpgradeMarketplaceModal.tsx`)**
+- Wrap `DialogHeader` usage properly or suppress the ref warning (minor cleanup)
 
-1. **`src/hooks/useMarketplaceSubscription.ts`** — Removed radius/tier logic, now tracks `allowed_service_areas`
-2. **`src/components/marketplace/MarketplaceCompaniesTable.tsx`** — Removed all distance calculation logic, filters by service area match, shows Service Area badge column
-3. **`src/pages/Marketplace.tsx`** — Removed radius control, HQ setup modal, replaced with service area selector bar
-4. **`src/components/marketplace/UpgradeMarketplaceModal.tsx`** — Changed to per-service-area model
-5. **Deleted `src/components/marketplace/MarketplaceRadiusControl.tsx`**
+---
 
-### What Stays
-- `marketplace_companies.service_areas` column (now populated)
-- `serviceArea.ts` normalization utilities
-- Edge functions (`calculate-distances`, `get-google-maps-key`) stay deployed but dormant
-- HQ data on users table (used by Settings)
-- `marketplace_distance_cache` table (harmless, no longer queried)
-- `SetupHQModal.tsx` file (kept but no longer imported — can be cleaned up later)
+### Technical Details
 
-### Result
-- Zero Google API costs from marketplace browsing
-- Simpler UX: builder sees suppliers in their region automatically
-- Clear future monetization: pay per additional service area
-- Consistent with how bidding and projects already work
+**Per-region counts query** -- Add a separate `useQuery` in `Marketplace.tsx`:
+```typescript
+const { data: regionCounts } = useQuery({
+  queryKey: ['marketplace-region-counts'],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('marketplace_companies')
+      .select('service_areas');
+    // Count per region client-side since service_areas is an array
+    const counts: Record<string, number> = {};
+    SERVICE_AREA_OPTIONS.forEach(a => counts[a] = 0);
+    data?.forEach(c => {
+      (c.service_areas || []).forEach((area: string) => {
+        if (counts[area] !== undefined) counts[area]++;
+      });
+    });
+    return counts;
+  },
+});
+```
+
+Then display in the badge: `{area} ({regionCounts?.[area] ?? 0})`
+
+**Data insert** for Old Creek subscription -- executed via edge function or admin tool.
+
