@@ -17,7 +17,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
   const [showAddRow, setShowAddRow] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { data: issues, isLoading } = useCompanyIssues(category);
-  const { updateIssue, updateIssueStatus, resolveIssue } = useIssueMutations();
+  const { updateIssue, updateIssueStatus, resolveIssue, deleteIssue } = useIssueMutations();
 
   const handleUpdateIssue = (id: string, updates: { 
     title?: string; 
@@ -32,6 +32,10 @@ export function IssuesTable({ category }: IssuesTableProps) {
 
   const handleResolveIssue = (id: string, ccUserIds: string[]) => {
     resolveIssue.mutate({ id, ccUserIds });
+  };
+
+  const handleDeleteIssue = (id: string) => {
+    deleteIssue.mutate(id);
   };
 
   const filteredIssues = useMemo(() => {
@@ -113,7 +117,9 @@ export function IssuesTable({ category }: IssuesTableProps) {
                   issueNumber={index + 1}
                   onUpdate={handleUpdateIssue}
                   onResolve={handleResolveIssue}
+                  onDelete={handleDeleteIssue}
                   isResolving={resolveIssue.isPending}
+                  isDeleting={deleteIssue.isPending}
                 />
               ))
             )}

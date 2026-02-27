@@ -3,7 +3,9 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ResolveButton } from '@/components/ui/resolve-button';
+import { TableRowActions } from '@/components/ui/table-row-actions';
+import { ResolveConfirmationDialog } from '@/components/ui/resolve-confirmation-dialog';
+import { useCompanyUsers } from '@/hooks/useCompanyUsers';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { IssueFilesCell } from './IssueFilesCell';
@@ -32,7 +34,9 @@ interface IssuesTableRowProps {
     category?: string;
   }) => void;
   onResolve: (id: string, ccUserIds: string[]) => void;
+  onDelete: (id: string) => void;
   isResolving?: boolean;
+  isDeleting?: boolean;
 }
 
 export function IssuesTableRow({ 
@@ -40,11 +44,15 @@ export function IssuesTableRow({
   issueNumber,
   onUpdate,
   onResolve,
-  isResolving = false
+  onDelete,
+  isResolving = false,
+  isDeleting = false,
 }: IssuesTableRowProps) {
   const [title, setTitle] = useState(issue.title);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [files, setFiles] = useState<IssueFile[]>([]);
+  const [showResolveDialog, setShowResolveDialog] = useState(false);
+  const { users } = useCompanyUsers();
 
   // Fetch user data for author initials
   const { data: author } = useQuery({
@@ -259,16 +267,34 @@ export function IssuesTableRow({
         onCommentChange={handleCommentChange}
       />
       
-      <TableCell className="px-2 py-1 w-16">
-        <ResolveButton
-          onResolve={(ccUserIds) => onResolve(issue.id, ccUserIds)}
-          title="Resolve Issue"
-          description="Are you sure you want to resolve this issue? The issue creator will be notified."
+      <TableCell className="px-2 py-1 w-16 text-center">
+        <TableRowActions actions={[
+          { 
+            label: "Close", 
+            onClick: () => setShowResolveDialog(true),
+          },
+          { 
+            label: "Delete", 
+            onClick: () => onDelete(issue.id), 
+            variant: "destructive", 
+            requiresConfirmation: true, 
+            confirmTitle: "Delete Issue", 
+            confirmDescription: "Are you sure you want to permanently delete this issue? This action cannot be undone.", 
+            isLoading: isDeleting,
+          },
+        ]} />
+        <ResolveConfirmationDialog
+          open={showResolveDialog}
+          onOpenChange={setShowResolveDialog}
+          title="Close Issue"
+          description="Are you sure you want to close this issue? The issue creator will be notified."
+          onConfirm={(ccUserIds) => {
+            onResolve(issue.id, ccUserIds);
+            setShowResolveDialog(false);
+          }}
           isLoading={isResolving}
+          users={users}
           authorId={issue.created_by}
-          size="icon"
-          variant="ghost"
-          showIcon={true}
         />
       </TableCell>
     </TableRow>

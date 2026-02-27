@@ -203,10 +203,51 @@ export function useIssueMutations() {
     },
   });
 
+  const deleteIssue = useMutation({
+    mutationFn: async (id: string) => {
+      // Get issue category before deleting (for cache invalidation)
+      const { data: issue } = await supabase
+        .from('company_issues')
+        .select('category')
+        .eq('id', id)
+        .single();
+
+      // Delete associated files from storage and DB
+      const { data: files } = await supabase
+        .from('issue_files')
+        .select('id, file_path')
+        .eq('issue_id', id);
+
+      if (files && files.length > 0) {
+        const filePaths = files.map(f => f.file_path);
+        await supabase.storage.from('issue-files').remove(filePaths);
+        await supabase.from('issue_files').delete().eq('issue_id', id);
+      }
+
+      // Delete the issue
+      const { error } = await supabase
+        .from('company_issues')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { category: issue?.category };
+    },
+    onSuccess: (result) => {
+      if (result?.category) {
+        queryClient.invalidateQueries({ queryKey: ['company-issues', result.category] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['company-issues'] });
+      queryClient.invalidateQueries({ queryKey: ['issue-counts-v6'] });
+      toast({ title: 'Issue deleted', description: 'The issue has been permanently deleted.' });
+    },
+  });
+
   return {
     createIssue,
     updateIssue,
     updateIssueStatus,
     resolveIssue,
+    deleteIssue,
   };
 }
