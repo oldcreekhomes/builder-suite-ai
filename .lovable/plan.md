@@ -1,43 +1,43 @@
 
+Goal: Make validation failure unmistakable in the Edit Representative flow by showing a red toast even when the user is on the Notifications tab.
 
-## Fix: Make the red toast error actually fire on validation failure
+What I found:
+1. The Settings screen (/settings) uses `src/components/representatives/EditRepresentativeDialog.tsx` (via `RepresentativesTable.tsx`).
+2. The recent toast-error logic was added to a different component: `src/components/companies/EditRepresentativeDialog.tsx`.
+3. Because the active dialog on Settings never got the new invalid-submit handler, users only see inline validation text (for example, “At least one service area is required”) and no destructive toast.
 
-### Problem
-The `handleFormError` callback was added but the toast never appears. Two issues:
+Implementation plan:
+1. Update the correct dialog component used on Settings
+   - File: `src/components/representatives/EditRepresentativeDialog.tsx`
+   - Add a `handleFormError(errors)` callback for `react-hook-form` invalid submissions.
+   - Build a clear error summary message list from key required fields (especially `service_areas`).
+   - Trigger a destructive toast:
+     - Title: “Missing Required Fields”
+     - Description: actionable text that tells them to go to the General tab and add at least one service area.
+     - Variant: `destructive` (red).
 
-1. **Array field error structure**: For `service_areas` (a `z.array()` field), react-hook-form may store the error under `errors.service_areas.root` rather than directly on `errors.service_areas.message`. The current check `if (errors.service_areas)` may find an object but the logic still doesn't reliably build a message.
+2. Wire the invalid callback into submit handling
+   - Replace current submit call (`form.handleSubmit(onSubmit)(e)`) with `form.handleSubmit(onSubmit, handleFormError)(e)` (or equivalent stable handler).
+   - Ensure toast always fires on invalid submit regardless of active tab.
 
-2. **Fallback needed**: If no specific field is matched, the toast should still fire with a generic message so it never silently fails.
+3. Improve cross-tab clarity for this specific case
+   - Include explicit tab context in the toast message, for example:
+     - “At least one Service Area is required (General tab).”
+   - Add a generic fallback message if errors exist but don’t map to a known field:
+     - “Please review required fields on the General tab.”
 
-### Fix (single file)
+4. Keep behavior consistent across both representative edit dialogs
+   - Optionally mirror the same invalid-toast behavior in `src/components/companies/EditRepresentativeDialog.tsx` so both edit experiences behave the same way (prevents future confusion).
 
-**File: `src/components/companies/EditRepresentativeDialog.tsx`**
+Validation checklist after implementation:
+1. Open Settings → Representatives → Edit a rep.
+2. Remove all service areas, switch to Notifications tab, click Update.
+3. Confirm:
+   - A red destructive toast appears immediately.
+   - Toast clearly states what is missing and where to fix it (General tab).
+4. Switch back to General, fix service areas, resubmit, verify successful save toast still works.
 
-Update `handleFormError` to:
-- Accept the `errors` parameter directly from react-hook-form's `handleSubmit`
-- Check for `service_areas` errors using both direct and `.root` paths
-- Add a fallback: if there are any errors at all but none matched our specific checks, still show a generic toast
-- This guarantees a red toast always appears when validation fails
-
-```typescript
-const handleFormError = (errors: any) => {
-  const messages: string[] = [];
-  if (errors.service_areas || errors.service_areas?.root) {
-    messages.push("At least one service area is required (General tab)");
-  }
-  if (errors.first_name) messages.push("First name is required (General tab)");
-  if (errors.last_name) messages.push("Last name is required (General tab)");
-  if (errors.email) messages.push("Valid email is required (General tab)");
-  
-  toast({
-    title: "Missing Required Fields",
-    description: messages.length > 0 
-      ? messages.join(". ") 
-      : "Please check all required fields on the General tab.",
-    variant: "destructive",
-  });
-};
-```
-
-This is a single function change in one file. The toast will always fire on validation failure.
-
+Technical notes:
+- No backend/database logic changes.
+- This is purely client-side validation UX and form submit wiring.
+- Existing inline field errors remain; toast is additive for visibility when users are on another tab.
