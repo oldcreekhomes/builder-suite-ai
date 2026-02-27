@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Wrench, Trash2 } from "lucide-react";
+import { Plus, Send, Copy, ZoomIn, ZoomOut, ChevronsUpDown, ChevronsDownUp, Undo2, Trash2 } from "lucide-react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import {
   AlertDialog,
@@ -28,9 +28,6 @@ interface ScheduleToolbarProps {
   onUndo: () => void;
   canUndo: boolean;
   isUndoing?: boolean;
-  onRepairSchedule?: () => void;
-  isRepairing?: boolean;
-  hasCorruptedTasks?: boolean;
   onBulkDelete?: () => void;
   isDeleting?: boolean;
 }
@@ -49,9 +46,6 @@ export function ScheduleToolbar({
   onUndo,
   canUndo,
   isUndoing,
-  onRepairSchedule,
-  isRepairing,
-  hasCorruptedTasks,
   onBulkDelete,
   isDeleting
 }: ScheduleToolbarProps) {
@@ -124,18 +118,6 @@ export function ScheduleToolbar({
         <Send className="h-4 w-4" />
         <span>Publish</span>
       </Button>
-
-      {onRepairSchedule && (
-        <Button
-          onClick={onRepairSchedule}
-          size="sm"
-          variant="outline"
-          disabled={isRepairing}
-        >
-          <Wrench className="h-4 w-4" />
-          <span>{isRepairing ? 'Repairing...' : 'Repair'}</span>
-        </Button>
-      )}
 
       {selectedTasks.size > 0 && onBulkDelete && (
         <AlertDialog>
