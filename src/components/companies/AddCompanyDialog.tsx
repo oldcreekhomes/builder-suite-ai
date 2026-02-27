@@ -526,7 +526,7 @@ export function AddCompanyDialog({
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="company-info" className="space-y-6 mt-6">
+                <TabsContent value="company-info" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
                   <div className="grid grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
@@ -669,7 +669,7 @@ export function AddCompanyDialog({
 
                 </TabsContent>
                 
-                <TabsContent value="representatives" className="space-y-6 mt-6">
+                <TabsContent value="representatives" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
                       Fill in the representative information below. Required fields: First Name, Email, and Title.
@@ -683,7 +683,7 @@ export function AddCompanyDialog({
                   </div>
                 </TabsContent>
                 
-              <TabsContent value="insurance" className="space-y-6 mt-6">
+              <TabsContent value="insurance" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
                   <InsuranceContent 
                     companyId={null}
                     homeBuilder=""
