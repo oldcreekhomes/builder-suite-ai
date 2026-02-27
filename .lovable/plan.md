@@ -1,20 +1,43 @@
 
 
-## Fix: Preserve Representative Data When Switching Tabs
+## Fix: Make the red toast error actually fire on validation failure
 
 ### Problem
-When switching between tabs in the "Add New Company" dialog, the representative form fields get wiped out. This happens because Radix UI Tabs unmounts the content of inactive tabs, destroying the `InlineRepresentativeForm`'s internal form state. The company info tab doesn't have this problem because its fields are managed by the parent form which stays mounted.
+The `handleFormError` callback was added but the toast never appears. Two issues:
 
-### Solution
-Add `forceMount` to all three `TabsContent` components so they stay in the DOM when inactive, and use a CSS class to hide inactive tabs visually. This way the representative form keeps its state across tab switches.
+1. **Array field error structure**: For `service_areas` (a `z.array()` field), react-hook-form may store the error under `errors.service_areas.root` rather than directly on `errors.service_areas.message`. The current check `if (errors.service_areas)` may find an object but the logic still doesn't reliably build a message.
 
-### Changes
+2. **Fallback needed**: If no specific field is matched, the toast should still fire with a generic message so it never silently fails.
 
-**File: `src/components/companies/AddCompanyDialog.tsx`**
+### Fix (single file)
 
-Update the three `TabsContent` elements:
-- Add `forceMount` prop to each `TabsContent`
-- Add `className` with `data-[state=inactive]:hidden` to hide inactive tabs via CSS instead of unmounting them
+**File: `src/components/companies/EditRepresentativeDialog.tsx`**
 
-This is a minimal, targeted change -- just 3 lines modified. No changes to the `InlineRepresentativeForm` or any other component.
+Update `handleFormError` to:
+- Accept the `errors` parameter directly from react-hook-form's `handleSubmit`
+- Check for `service_areas` errors using both direct and `.root` paths
+- Add a fallback: if there are any errors at all but none matched our specific checks, still show a generic toast
+- This guarantees a red toast always appears when validation fails
+
+```typescript
+const handleFormError = (errors: any) => {
+  const messages: string[] = [];
+  if (errors.service_areas || errors.service_areas?.root) {
+    messages.push("At least one service area is required (General tab)");
+  }
+  if (errors.first_name) messages.push("First name is required (General tab)");
+  if (errors.last_name) messages.push("Last name is required (General tab)");
+  if (errors.email) messages.push("Valid email is required (General tab)");
+  
+  toast({
+    title: "Missing Required Fields",
+    description: messages.length > 0 
+      ? messages.join(". ") 
+      : "Please check all required fields on the General tab.",
+    variant: "destructive",
+  });
+};
+```
+
+This is a single function change in one file. The toast will always fire on validation failure.
 
