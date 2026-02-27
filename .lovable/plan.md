@@ -1,23 +1,20 @@
 
 
-## Restore $200 Price History Entry for Cost Code 4275.7
+## Fix: Preserve Representative Data When Switching Tabs
 
-### What happened
-The original $200 price entry for cost code 4275.7 ("Concrete Pier - 12\" x 24\"") was lost. Only the recent $250 entry from today remains.
+### Problem
+When switching between tabs in the "Add New Company" dialog, the representative form fields get wiped out. This happens because Radix UI Tabs unmounts the content of inactive tabs, destroying the `InlineRepresentativeForm`'s internal form state. The company info tab doesn't have this problem because its fields are managed by the parent form which stays mounted.
 
-### What we'll do
-Insert a single record into `cost_code_price_history`:
-- **cost_code_id**: `7a243761-6df5-4733-a244-729344e7b365`
-- **price**: $200
-- **changed_at**: October 25, 2025
-- **owner_id**: `2653aba8-d154-4301-99bf-77d559492e19`
+### Solution
+Add `forceMount` to all three `TabsContent` components so they stay in the DOM when inactive, and use a CSS class to hide inactive tabs visually. This way the representative form keeps its state across tab switches.
 
-### Result
-The price history will show two entries:
-1. Oct 25, 2025 -- $200 (restored)
-2. Feb 26, 2026 -- $250 (current)
+### Changes
 
-The current cost code price stays at $250 (most recent entry), which is correct.
+**File: `src/components/companies/AddCompanyDialog.tsx`**
 
-### Technical details
-Single INSERT into `cost_code_price_history` using the data insert tool. No code or schema changes needed.
+Update the three `TabsContent` elements:
+- Add `forceMount` prop to each `TabsContent`
+- Add `className` with `data-[state=inactive]:hidden` to hide inactive tabs via CSS instead of unmounting them
+
+This is a minimal, targeted change -- just 3 lines modified. No changes to the `InlineRepresentativeForm` or any other component.
+
