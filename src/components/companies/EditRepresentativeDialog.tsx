@@ -149,6 +149,22 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
     updateRepresentativeMutation.mutate(data);
   };
 
+  const handleFormError = () => {
+    const errors = form.formState.errors;
+    const messages: string[] = [];
+    if (errors.service_areas) messages.push("At least one service area is required (General tab)");
+    if (errors.first_name) messages.push("First name is required (General tab)");
+    if (errors.last_name) messages.push("Last name is required (General tab)");
+    if (errors.email) messages.push("Valid email is required (General tab)");
+    if (messages.length > 0) {
+      toast({
+        title: "Missing Required Fields",
+        description: messages.join(". "),
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent 
@@ -161,7 +177,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void form.handleSubmit(onSubmit)(); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void form.handleSubmit(onSubmit, handleFormError)(); }} className="space-y-4">
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="general">General</TabsTrigger>
