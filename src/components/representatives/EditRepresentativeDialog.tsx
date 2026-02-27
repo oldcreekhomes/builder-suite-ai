@@ -194,10 +194,24 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
   });
 
   const onSubmit = (data: RepresentativeFormData) => {
-    console.log('🔥 FORM SUBMIT: Form submission triggered');
-    console.log('🔥 FORM DATA:', data);
-    console.log('🔥 REPRESENTATIVE:', representative);
     updateRepresentativeMutation.mutate(data);
+  };
+
+  const handleFormError = (errors: any) => {
+    const messages: string[] = [];
+    if (errors.service_areas || errors.service_areas?.root) messages.push("At least one service area is required (General tab)");
+    if (errors.first_name) messages.push("First name is required (General tab)");
+    if (errors.last_name) messages.push("Last name is required (General tab)");
+    if (errors.company_name) messages.push("Company is required (General tab)");
+    if (errors.email) messages.push("Valid email is required (General tab)");
+
+    toast({
+      title: "Missing Required Fields",
+      description: messages.length > 0
+        ? messages.join(". ")
+        : "Please check all required fields on the General tab.",
+      variant: "destructive",
+    });
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -226,10 +240,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={(e) => {
-            console.log('🔥 FORM: Native form submit event triggered');
-            form.handleSubmit(onSubmit)(e);
-          }} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit, handleFormError)} className="space-y-4">
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="general">General</TabsTrigger>
@@ -447,13 +458,6 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
               <Button 
                 type="submit" 
                 disabled={updateRepresentativeMutation.isPending}
-                onClick={() => {
-                  console.log('🔥 BUTTON: Update button clicked');
-                  console.log('🔥 FORM STATE:', form.formState);
-                  console.log('🔥 FORM ERRORS:', form.formState.errors);
-                  console.log('🔥 FORM VALUES:', form.getValues());
-                  console.log('🔥 IS VALID:', form.formState.isValid);
-                }}
               >
                 {updateRepresentativeMutation.isPending ? "Updating..." : "Update Representative"}
               </Button>
