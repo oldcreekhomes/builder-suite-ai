@@ -1,21 +1,39 @@
 
-## Fix: Restore the Resolve dialog with CC user selection on Issues table
 
-### Problem
-The Issues table row uses `TableRowActions` with a generic `DeleteConfirmationDialog` for the Resolve action. This shows a simple "Cancel / Delete" dialog with no option to CC other users. The dedicated `ResolveButton` and `ResolveConfirmationDialog` components already exist and support selecting company users to CC on the resolution email -- they're just not being used.
+## Restore 3-dot Actions Menu with "Close" and "Delete" Options
 
-### Solution
-Replace the `TableRowActions` usage in `IssuesTableRow.tsx` with the `ResolveButton` component.
+### What will change
 
-### Changes (1 file)
+The current green checkmark button on each issue row will be replaced with the standard 3-dot menu (`TableRowActions`), offering two options:
 
-**File: `src/components/issues/IssuesTableRow.tsx`**
+1. **Close** -- Opens the Resolve Confirmation Dialog (with the CC user checkboxes), sends the closure email to the creator + any selected users, and marks the issue as Resolved.
+2. **Delete** -- Shows a destructive confirmation dialog, then permanently deletes the issue from the database.
 
-1. Import `ResolveButton` from `@/components/ui/resolve-button`
-2. Replace the Actions table cell that currently renders `TableRowActions` with a `ResolveButton` that:
-   - Calls `onResolve(issue.id, ccUserIds)` with the selected CC users
-   - Passes `authorId={issue.created_by}` so the author is excluded from the CC list
-   - Shows the proper "Resolve Issue" confirmation dialog with the user selection checkboxes
-   - Uses the green resolve styling instead of the red "Delete" button
+### Implementation
 
-This restores the original behavior: clicking Resolve opens a dialog that always sends the email to the issue creator and lets you optionally CC other company users.
+**1. Add a `deleteIssue` mutation to `src/hooks/useIssueMutations.ts`**
+- New mutation that deletes the issue row from `company_issues` (and associated `issue_files` records/storage files).
+- Invalidates the relevant query caches on success.
+
+**2. Update `src/components/issues/IssuesTable.tsx`**
+- Destructure `deleteIssue` from `useIssueMutations()`.
+- Add a `handleDeleteIssue` handler and pass it as `onDelete` to each `IssuesTableRow`.
+
+**3. Rewrite the Actions cell in `src/components/issues/IssuesTableRow.tsx`**
+- Import both `TableRowActions` and `ResolveButton` (or just inline the resolve dialog state).
+- Instead of rendering a standalone `ResolveButton`, render a custom 3-dot dropdown with two menu items:
+  - **Close**: triggers a `ResolveConfirmationDialog` (with CC user selection). On confirm, calls `onResolve(issue.id, ccUserIds)`.
+  - **Delete**: triggers a `DeleteConfirmationDialog`. On confirm, calls `onDelete(issue.id)`.
+- Accept new prop `onDelete: (id: string) => void`.
+
+**4. Wire up the props**
+- `IssuesTableRowProps` gains `onDelete` and `isDeleting`.
+- `IssuesTable` passes `onDelete={handleDeleteIssue}` and `isDeleting={deleteIssue.isPending}`.
+
+### Files changed
+| File | Change |
+|------|--------|
+| `src/hooks/useIssueMutations.ts` | Add `deleteIssue` mutation |
+| `src/components/issues/IssuesTable.tsx` | Wire `deleteIssue` + pass `onDelete` prop |
+| `src/components/issues/IssuesTableRow.tsx` | Replace `ResolveButton` with 3-dot menu containing Close (with CC dialog) and Delete options |
+
