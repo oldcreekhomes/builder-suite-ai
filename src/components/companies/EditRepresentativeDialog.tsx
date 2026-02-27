@@ -149,20 +149,20 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
     updateRepresentativeMutation.mutate(data);
   };
 
-  const handleFormError = () => {
-    const errors = form.formState.errors;
+  const handleFormError = (errors: any) => {
     const messages: string[] = [];
-    if (errors.service_areas) messages.push("At least one service area is required (General tab)");
+    if (errors.service_areas || errors.service_areas?.root) messages.push("At least one service area is required (General tab)");
     if (errors.first_name) messages.push("First name is required (General tab)");
     if (errors.last_name) messages.push("Last name is required (General tab)");
     if (errors.email) messages.push("Valid email is required (General tab)");
-    if (messages.length > 0) {
-      toast({
-        title: "Missing Required Fields",
-        description: messages.join(". "),
-        variant: "destructive",
-      });
-    }
+    
+    toast({
+      title: "Missing Required Fields",
+      description: messages.length > 0 
+        ? messages.join(". ") 
+        : "Please check all required fields on the General tab.",
+      variant: "destructive",
+    });
   };
 
   return (
