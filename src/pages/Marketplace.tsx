@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { MarketplaceCategorySidebar } from "@/components/marketplace/Marketplace
 import { UpgradeMarketplaceModal } from "@/components/marketplace/UpgradeMarketplaceModal";
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,6 +22,35 @@ export default function Marketplace() {
   const [tableCounts, setTableCounts] = useState({ filteredCount: 0, totalCount: 0 });
 
   const { allowedAreas, isLoading: subscriptionLoading } = useMarketplaceSubscription();
+
+  // Per-region supplier counts
+  const { data: regionCounts } = useQuery({
+    queryKey: ['marketplace-region-counts'],
+    queryFn: async () => {
+      // Fetch all rows (bypassing 1000-row default limit)
+      let allData: { service_areas: string[] | null }[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data } = await supabase
+          .from('marketplace_companies')
+          .select('service_areas')
+          .range(from, from + pageSize - 1);
+        if (!data || data.length === 0) break;
+        allData = allData.concat(data as any);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      const counts: Record<string, number> = {};
+      SERVICE_AREA_OPTIONS.forEach(a => counts[a] = 0);
+      allData.forEach(c => {
+        ((c.service_areas as string[]) || []).forEach((area: string) => {
+          if (counts[area] !== undefined) counts[area]++;
+        });
+      });
+      return counts;
+    },
+  });
 
   // Active service area for browsing (default to first allowed area)
   const [activeArea, setActiveArea] = useState<string | null>(null);
@@ -89,15 +120,12 @@ export default function Marketplace() {
                             }
                           }}
                         >
-                          {area}
+                          {area} ({regionCounts?.[area]?.toLocaleString() ?? '…'})
                           {!isAllowed && " 🔒"}
                         </Badge>
                       );
                     })}
                   </div>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{tableCounts.filteredCount}</span> suppliers
                 </div>
               </div>
             </div>
