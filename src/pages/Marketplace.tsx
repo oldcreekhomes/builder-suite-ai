@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
-import { Search, Store, MapPin } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MarketplaceCompaniesTable } from "@/components/marketplace/MarketplaceCompaniesTable";
 import { MarketplaceCategorySidebar } from "@/components/marketplace/MarketplaceCategorySidebar";
@@ -11,6 +11,7 @@ import { UpgradeMarketplaceModal } from "@/components/marketplace/UpgradeMarketp
 import { useMarketplaceSubscription } from "@/hooks/useMarketplaceSubscription";
 import { SERVICE_AREA_OPTIONS } from "@/lib/serviceArea";
 import { supabase } from "@/integrations/supabase/client";
+import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 
 export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,18 +73,7 @@ export default function Marketplace() {
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
       <SidebarInset className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="p-6 pb-4 space-y-2 border-b border-border">
-          <div className="flex items-center gap-3">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-            <Store className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Marketplace</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Discover top-rated contractors, vendors, and service providers in your area. 
-            All companies are vetted with 4+ star ratings.
-          </p>
-        </div>
+        <CompanyDashboardHeader title="Marketplace" />
 
         {/* Main content with sidebar */}
         <div className="flex flex-1 overflow-hidden">
@@ -97,6 +87,12 @@ export default function Marketplace() {
 
           {/* Companies content */}
           <div className="flex-1 p-6 overflow-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Marketplace</h1>
+              <p className="text-muted-foreground">
+                Discover top-rated contractors, vendors, and service providers in your area.
+              </p>
+            </div>
             {/* Service Area Bar */}
             <div className="bg-background border rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between">
