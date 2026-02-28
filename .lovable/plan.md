@@ -1,44 +1,32 @@
 
 
-# Add "Do You Have Employees?" Dialog for Onboarding Step 8
+# Fix "Yes, Add Employees" to Mark Step 8 Complete
 
 ## Problem
-Step 8 ("Invite Employees") currently checks if any employees exist in the database. Companies without employees can never complete onboarding.
+Clicking "Yes, Add Employees" navigates to the employees page but does NOT mark step 8 as complete. The step only completes if employees actually exist in the database. The user expects that choosing "Yes" should immediately mark the step done (since they've acknowledged it) and then show the congratulations dialog.
 
 ## Solution
-Replace the current "link to employees tab" behavior with a dialog action. When the user clicks "Go" on Step 8, a dialog asks "Do you have employees?" with Yes/No options:
-- **Yes**: Navigates them to `/settings?tab=employees` to add employees (step completes dynamically when they add one)
-- **No**: Immediately marks `employees_invited` as `true` in the `onboarding_progress` table (acknowledging they have no employees)
+In `src/components/OnboardingChecklist.tsx`, update the "Yes, Add Employees" button handler to also call `confirmNoEmployees()` before navigating. This sets `employees_invited = true` in the database, which satisfies the step completion check. The onboarding will then show all 8 steps complete and trigger the congratulations dialog.
 
-Either path satisfies the onboarding requirement.
+## Change
 
-## Changes
+**File: `src/components/OnboardingChecklist.tsx` (lines 199-203)**
 
-### 1. `src/hooks/useOnboardingProgress.ts`
-- Change the `employees_invited` step definition from `link: "/settings?tab=employees"` to `action: "employees-dialog"`
-- Change the live check logic: instead of only checking employee count > 0, also check if `employees_invited` is already `true` in the `onboarding_progress` table (to handle the "No employees" case)
-- Add a `confirmNoEmployees` callback (similar to `confirmWelcome`) that sets `employees_invited = true` in the database
-- Export `confirmNoEmployees` from the hook's return value
-- Update the `OnboardingProgress` interface to include `confirmNoEmployees`
-
-### 2. `src/components/OnboardingChecklist.tsx`
-- Add state: `employeesDialogOpen`
-- Add a new Dialog with:
-  - Title: "Do You Have Employees?"
-  - Description: explaining they can add employees now or skip if they don't have any
-  - Two buttons: "Yes, Add Employees" and "No, Skip This Step"
-- Wire up `handleAction` to open the dialog when `action === "employees-dialog"`
-- "Yes" button: closes the dialog and navigates to `/settings?tab=employees`
-- "No" button: calls `confirmNoEmployees()` and closes the dialog
-
-### 3. Live Check Logic Update (in `useOnboardingProgress.ts`)
-Update the `employees_invited` resolution to:
+Update the "Yes, Add Employees" button's `onClick` from:
+```tsx
+onClick={() => {
+  setEmployeesDialogOpen(false);
+  navigate("/settings?tab=employees");
+}}
 ```
-employees_invited: (employeesRes.count ?? 0) > 0 || freshProgressRes.data?.employees_invited === true
+To:
+```tsx
+onClick={() => {
+  confirmNoEmployees();
+  setEmployeesDialogOpen(false);
+  navigate("/settings?tab=employees");
+}}
 ```
-This way, the step is satisfied if either employees exist OR the user explicitly confirmed "No employees." The `freshProgressRes` query will need to also select `employees_invited`.
 
-## Technical Notes
-- The `freshProgressRes` query (line 81) currently only selects `welcome_confirmed`. It needs to also select `employees_invited` to support the new logic.
-- The sync logic in the `useEffect` already handles syncing live checks to the database, so no changes needed there -- but we must ensure the sync doesn't overwrite a `true` value with `false`. The current logic only updates when values differ, so if `employees_invited` is already `true` in the DB and the live check also returns `true`, no overwrite occurs.
+This reuses the existing `confirmNoEmployees` function which sets `employees_invited = true` in the `onboarding_progress` table and invalidates the relevant queries. After navigation, the onboarding checklist will detect all 8 steps are complete and show the congratulations dialog.
 
