@@ -229,7 +229,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
               <Settings className="mr-2 h-4 w-4" />
               Global Settings
             </Button>
-            <Button size="sm" onClick={() => setShowAddBiddingModal(true)}>
+            <Button variant="outline" size="sm" onClick={() => setShowAddBiddingModal(true)}>
               {getLoadButtonText()}
             </Button>
           </div>
@@ -272,7 +272,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
             <Settings className="mr-2 h-4 w-4" />
             Global Settings
           </Button>
-          <Button onClick={() => setShowAddBiddingModal(true)}>
+          <Button variant="outline" onClick={() => setShowAddBiddingModal(true)}>
             {getLoadButtonText()}
           </Button>
         </div>
