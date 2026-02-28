@@ -53,7 +53,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   if (projectId) {
     return (
       <>
-      <header className="bg-white border-b border-border px-6 py-3.5">
+        <header className="bg-white border-b border-border px-6 py-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-gray-600 hover:text-black" />
@@ -61,34 +61,32 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate(`/project/${projectId}`)}
-                className="text-gray-600 hover:text-black"
+                className="text-gray-600 hover:text-black -my-1"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
               </Button>
-              <div className="flex items-center gap-2">
-                {projectLoading ? (
-                  <div className="h-5 w-32 bg-muted animate-pulse rounded"></div>
-                ) : project?.address ? (
-                  <>
-                    <p className="text-sm text-gray-600">{project.address}</p>
-                    {canEditProjects && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setEditDialogOpen(true)}
-                        className="h-6 w-6"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </>
-                ) : projectError ? (
-                  <p className="text-sm text-gray-400">Address unavailable</p>
-                ) : (
-                  <p className="text-sm text-gray-400">No address</p>
-                )}
-              </div>
+              {projectLoading ? (
+                <div className="h-5 w-32 bg-muted animate-pulse rounded"></div>
+              ) : project?.address ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">{project.address}</p>
+                  {canEditProjects && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditDialogOpen(true)}
+                      className="h-6 w-6"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ) : projectError ? (
+                <p className="text-sm text-muted-foreground">Address unavailable</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No address</p>
+              )}
             </div>
           </div>
         </header>
