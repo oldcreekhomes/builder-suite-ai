@@ -16,10 +16,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: string) => void; onAction?: (action: string) => void }) {
+function StepItem({ step, stepNumber, navigate, onAction }: { step: any; stepNumber: number; navigate: (path: string) => void; onAction?: (action: string) => void }) {
   return (
     <li
-      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${
+      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors h-10 ${
         step.completed
           ? "bg-primary/10 text-foreground"
           : "bg-muted/50 text-muted-foreground"
@@ -34,7 +34,7 @@ function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: st
           <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
         )}
         <span className={step.completed ? "line-through opacity-70" : "font-medium"}>
-          {step.label}
+          Step {stepNumber}: {step.label}
         </span>
       </div>
       {step.completed ? (
@@ -138,13 +138,13 @@ export function OnboardingChecklist() {
         <CardContent className="pt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <ul className="space-y-2">
-              {leftSteps.map((step) => (
-                <StepItem key={step.key} step={step} navigate={navigate} onAction={handleAction} />
+              {leftSteps.map((step, index) => (
+                <StepItem key={step.key} step={step} stepNumber={index + 1} navigate={navigate} onAction={handleAction} />
               ))}
             </ul>
             <ul className="space-y-2">
-              {rightSteps.map((step) => (
-                <StepItem key={step.key} step={step} navigate={navigate} onAction={handleAction} />
+              {rightSteps.map((step, index) => (
+                <StepItem key={step.key} step={step} stepNumber={index + 5} navigate={navigate} onAction={handleAction} />
               ))}
             </ul>
           </div>
