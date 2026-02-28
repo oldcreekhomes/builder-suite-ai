@@ -1,32 +1,19 @@
 
+# Reset Onboarding Step 8 for Testing
 
-# Fix "Yes, Add Employees" to Mark Step 8 Complete
+## What needs to happen
+Reset two fields in the `onboarding_progress` table for Dorian Gray Homes (owner `3e482bbc-139c-4ebc-a006-d9290287d2d5`):
 
-## Problem
-Clicking "Yes, Add Employees" navigates to the employees page but does NOT mark step 8 as complete. The step only completes if employees actually exist in the database. The user expects that choosing "Yes" should immediately mark the step done (since they've acknowledged it) and then show the congratulations dialog.
+- `employees_invited` -> `false` (unchecks Step 8)
+- `dismissed` -> `false` (makes the checklist visible again, since all 8 steps were previously completed and dismissed)
 
-## Solution
-In `src/components/OnboardingChecklist.tsx`, update the "Yes, Add Employees" button handler to also call `confirmNoEmployees()` before navigating. This sets `employees_invited = true` in the database, which satisfies the step completion check. The onboarding will then show all 8 steps complete and trigger the congratulations dialog.
+## How
+Create a temporary edge function that uses the service role to run this update, call it once, verify the result, then delete the function.
 
-## Change
-
-**File: `src/components/OnboardingChecklist.tsx` (lines 199-203)**
-
-Update the "Yes, Add Employees" button's `onClick` from:
-```tsx
-onClick={() => {
-  setEmployeesDialogOpen(false);
-  navigate("/settings?tab=employees");
-}}
-```
-To:
-```tsx
-onClick={() => {
-  confirmNoEmployees();
-  setEmployeesDialogOpen(false);
-  navigate("/settings?tab=employees");
-}}
+```sql
+UPDATE onboarding_progress
+SET employees_invited = false, dismissed = false
+WHERE home_builder_id = '3e482bbc-139c-4ebc-a006-d9290287d2d5';
 ```
 
-This reuses the existing `confirmNoEmployees` function which sets `employees_invited = true` in the `onboarding_progress` table and invalidates the relevant queries. After navigation, the onboarding checklist will detect all 8 steps are complete and show the congratulations dialog.
-
+After this, refreshing the dashboard will show the onboarding checklist with Step 8 ("Invite Employees") unchecked and ready to test.
