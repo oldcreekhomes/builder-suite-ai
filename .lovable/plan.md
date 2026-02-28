@@ -1,60 +1,45 @@
 
 
-## Fix Marketplace: Per-Region Supplier Counts + Grant OBX Access to Old Creek Homes
+## Delete All Derrick Russell Homes Records for Fresh Testing
 
-### Problem 1: "0 suppliers" display
-The service area bar shows a single count (`tableCounts.filteredCount`) which only reflects the filtered count for the currently selected category. Before any category is selected, it shows "0 suppliers" which is confusing. The count should show how many suppliers exist **per region** regardless of category selection.
+### What Gets Deleted
+All data associated with Derrick Russell Homes (owner ID: `5d10b16a-3ffc-4ce2-b513-7990ac0de849`) and employee Jalin Hurts (`b63189c0-9c7e-47c6-bb3a-62b97d53fa3d`):
 
-### Problem 2: Old Creek Homes needs OBX access
-The `marketplace_subscriptions` table is currently empty, so every user defaults to `["Washington, DC"]` only. Old Creek Homes (owner_id: `2653aba8-d154-4301-99bf-77d559492e19`) needs both "Washington, DC" and "Outer Banks, NC".
+| Table | Count |
+|---|---|
+| cost_code_specifications | 74 |
+| cost_codes | 298 |
+| accounts | 14 |
+| project_lots | 1 |
+| projects | 1 |
+| company_representatives | 2 |
+| companies | 2 |
+| user_roles | 2 |
+| users (public) | 2 |
+| auth.users | 2 |
 
-### Problem 3: Console error in UpgradeMarketplaceModal
-Minor `forwardRef` warning from `DialogHeader` -- harmless but worth fixing.
+No financial records (bills, checks, deposits, journal entries) exist, so this is a clean wipe.
 
----
+### Approach
+Create a temporary admin edge function that:
+1. Deletes in dependency order (children first, parents last)
+2. Uses the service role key to bypass RLS
+3. Deletes both auth.users entries last (owner + employee)
 
-### Changes
+The function will be deployed, executed once, then deleted.
 
-**1. Show per-region counts in the service area bar (`src/pages/Marketplace.tsx`)**
-- Query `marketplace_companies` to get counts grouped by service area (a lightweight count query)
-- Display the count next to each region badge, e.g. "Washington, DC (2,208)" and "Outer Banks, NC (30)"
-- Remove the single "X suppliers" text on the right side of the bar, or keep it as the active region's count
+### Deletion Order
+1. `cost_code_specifications` (FK to cost_codes)
+2. `project_lots` (FK to projects)
+3. `cost_codes` (FK to owner_id)
+4. `accounts` (FK to owner_id)
+5. `company_representatives` (FK to companies)
+6. `companies` (FK to home_builder_id)
+7. `projects` (FK to owner_id)
+8. `user_roles` (FK to user_id)
+9. `users` (public table, both records)
+10. `auth.users` (admin.deleteUser for both IDs)
 
-**2. Insert subscription row for Old Creek Homes (data operation)**
-- Insert into `marketplace_subscriptions`:
-  - `owner_id`: `2653aba8-d154-4301-99bf-77d559492e19`
-  - `allowed_service_areas`: `["Washington, DC", "Outer Banks, NC"]`
-  - `status`: `active`
-
-**3. Fix DialogHeader ref warning (`src/components/marketplace/UpgradeMarketplaceModal.tsx`)**
-- Wrap `DialogHeader` usage properly or suppress the ref warning (minor cleanup)
-
----
-
-### Technical Details
-
-**Per-region counts query** -- Add a separate `useQuery` in `Marketplace.tsx`:
-```typescript
-const { data: regionCounts } = useQuery({
-  queryKey: ['marketplace-region-counts'],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('marketplace_companies')
-      .select('service_areas');
-    // Count per region client-side since service_areas is an array
-    const counts: Record<string, number> = {};
-    SERVICE_AREA_OPTIONS.forEach(a => counts[a] = 0);
-    data?.forEach(c => {
-      (c.service_areas || []).forEach((area: string) => {
-        if (counts[area] !== undefined) counts[area]++;
-      });
-    });
-    return counts;
-  },
-});
-```
-
-Then display in the badge: `{area} ({regionCounts?.[area] ?? 0})`
-
-**Data insert** for Old Creek subscription -- executed via edge function or admin tool.
+### Result
+Both `buildersuiteai1@gmail.com` (owner) and `jhurts@gmail.com` (employee) will be fully removed from the system, allowing a completely fresh re-registration and test.
 
