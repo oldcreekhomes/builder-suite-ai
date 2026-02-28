@@ -53,7 +53,7 @@ const ProjectFiles = () => {
               headerAction={headerButtons}
             />
             
-            <div className="flex-1 px-6 pt-4 pb-6">
+            <div className="flex-1 px-6 pb-6">
               <SimpleFileManager
                 ref={fileManagerRef}
                 projectId={projectId} 
