@@ -1,4 +1,4 @@
-import { SidebarTrigger } from "@/components/ui/sidebar";
+
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -45,8 +45,7 @@ export function CompanyDashboardHeader({
       <header className="bg-white border-b border-border px-6 py-3.5">
         <div className="flex items-center justify-between h-10">
           <div className="flex items-center space-x-4">
-            <SidebarTrigger className="text-gray-600 hover:text-black" />
-            <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
+            <h1 className="text-xl font-bold text-black">{displayTitle}</h1>
             {dashboardView && onDashboardViewChange && (
               <DashboardSelector 
                 value={dashboardView} 

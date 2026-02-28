@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
