@@ -1,31 +1,32 @@
 
-I checked the current database state and confirmed what you’re seeing:
 
-- `onboarding_progress.chart_of_accounts_imported` is currently **true** for `home_builder_id = 3e482bbc-139c-4ebc-a006-d9290287d2d5` (Doreen Gray Homes), so Step 5 remains checked.
-- Your prior account-code correction is already in place: Retained Earnings account `826e577b-7dbe-4021-b88f-7d61a805140d` has code `3200`.
+# Add Bulk Delete for Chart of Accounts
 
-Implementation plan to unmark Step 5 so you can retest:
+## What Changes
 
-1. Apply a one-time data update in Supabase:
-   ```sql
-   UPDATE public.onboarding_progress
-   SET chart_of_accounts_imported = false,
-       updated_at = now()
-   WHERE home_builder_id = '3e482bbc-139c-4ebc-a006-d9290287d2d5';
-   ```
+**File: `src/components/settings/ChartOfAccountsTab.tsx`**
 
-2. Verify it was applied:
-   ```sql
-   SELECT home_builder_id, chart_of_accounts_imported, updated_at
-   FROM public.onboarding_progress
-   WHERE home_builder_id = '3e482bbc-139c-4ebc-a006-d9290287d2d5';
-   ```
+1. Add a bulk delete handler that loops through all selected account IDs and deletes them via the Supabase client, with proper error handling and toast feedback.
 
-3. Retest behavior in the app:
-   - Refresh `/settings`
-   - Confirm Step 5 (Import Chart of Accounts) is now unchecked
-   - Re-run the chart-of-accounts import flow
+2. Add state for a bulk delete confirmation dialog (`showBulkDeleteConfirm`).
 
-Notes:
-- This is a **data-only** change (no schema/code changes required).
-- Because onboarding is shared at company level via `home_builder_id`, this reset affects the whole Doreen Gray Homes org state (which is exactly what you want for retesting).
+3. Between the search bar and the table, show a "Delete Selected (N)" button (using the existing `BulkActionBar` component pattern) whenever `selectedIds.size > 0`. Clicking it opens a `DeleteConfirmationDialog` warning that this is permanent.
+
+4. On confirm, delete all selected accounts from the database, clear the selection, invalidate the accounts query, and show a success toast.
+
+5. Import `DeleteConfirmationDialog` from `@/components/ui/delete-confirmation-dialog`.
+
+## Technical Details
+
+- Add `showBulkDeleteConfirm` boolean state and `isBulkDeleting` boolean state.
+- Add a `handleBulkDelete` async function that:
+  - Sets `isBulkDeleting = true`
+  - Loops through `selectedIds`, calling `supabase.from('accounts').delete().eq('id', id)` for each
+  - On success: clears selection, invalidates `['accounts']` query, shows success toast
+  - On error: shows error toast with count of failures
+  - Sets `isBulkDeleting = false` and closes the dialog
+- Between the search bar `div` and the `SettingsTableWrapper`, render:
+  - A destructive `Button` with trash icon showing "Delete Selected (N)" when `selectedIds.size > 0`
+  - A `DeleteConfirmationDialog` with title "Delete Selected Accounts" and description warning that N accounts will be permanently deleted
+- After successful bulk delete, clear `selectedIds`.
+
