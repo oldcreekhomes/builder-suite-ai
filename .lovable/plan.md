@@ -1,27 +1,37 @@
 
-Goal: make project-specific pages use the same header sizing/alignment behavior as the working company dashboard/settings header, so border lines and spacing are visually identical everywhere.
+Objective
+- Make project-specific pages use the exact same header geometry as Company Dashboard and Settings, so the header border aligns perfectly with the sidebar reference line on every page.
 
-What I found
-- The “working” pages are using the standard header sizing pattern (`py-3.5`, no top margin) and a consistent header structure.
-- `DashboardHeader.tsx` still has a separate project-specific rendering path (different content structure than company/settings), which keeps layout behavior inconsistent even after padding changes.
-- `ProjectDashboard.tsx` is still using its own inline header instead of the shared header component, so it can drift from the standard.
-- This explains why fixes felt partial: one page got class adjustments, but the architecture still has multiple header implementations.
+What is still wrong (confirmed in code)
+1) `src/pages/ProjectDashboard.tsx` still uses its own custom inline `<header>` instead of the shared header component.
+- This keeps one page on a separate layout path, so it can drift from standards again.
 
-Implementation plan
-1) Make `DashboardHeader` truly uniform for all contexts
-- File: `src/components/DashboardHeader.tsx`
-- Keep one standardized header shell (same container classes and vertical rhythm as company/settings).
-- Preserve project context actions (Back to Project, project edit menu), but place them inside the same shell structure so total header height and border position remain identical.
-- Ensure no project-only compact structure can create a different header height.
+2) `src/components/DashboardHeader.tsx` still has a compact project-only header structure.
+- The project branch uses smaller-height content and a `-my-1` negative margin on the Back button.
+- Even with `py-3.5`, this reduces effective header height versus the company/settings header (which uses larger row content and no negative compression).
 
-2) Refactor `ProjectDashboard` to use the shared header
+3) Result: project pages can still appear vertically off compared with Company Dashboard/Settings despite prior padding edits.
+
+Implementation approach
+1) Enforce a single header “shell geometry” for both header components
+- Files:
+  - `src/components/DashboardHeader.tsx`
+  - `src/components/CompanyDashboardHeader.tsx`
+- Apply identical outer shell classes and fixed vertical geometry:
+  - `bg-white border-b border-border px-6 py-3.5`
+  - add a shared minimum/header row height so content differences cannot change border position.
+- Remove compacting styles in project branch (`-my-1` on Back button).
+- Keep actions/content (Back to Project, project address, edit menu, New Project) but ensure they live inside the same height-constrained shell.
+
+2) Remove Project Dashboard’s custom header and use shared `DashboardHeader`
 - File: `src/pages/ProjectDashboard.tsx`
-- Remove the inline custom `<header ...>` block.
-- Replace with `<DashboardHeader projectId={projectId} />` (or with title if needed), so project dashboard uses the same header component as files/photos/bidding/etc.
-- Keep existing page-specific content (status chip/cards/weather) below the header.
+- Replace the inline `<header ...>` block with:
+  - `<DashboardHeader projectId={projectId} />`
+- Keep existing cards/status/weather content below header unchanged.
+- Keep edit dialog behavior by routing edit trigger through `DashboardHeader` project branch (already supported there) so functionality is preserved.
 
-3) Standardize remaining project page wrappers only where needed
-- Files to validate (and touch only if inconsistent):
+3) Normalize project page container structure (only where needed)
+- Confirm these use `AppSidebar + SidebarInset + DashboardHeader` with no top offset above header:
   - `src/pages/ProjectFiles.tsx`
   - `src/pages/ProjectPhotos.tsx`
   - `src/pages/ProjectBudget.tsx`
@@ -30,31 +40,42 @@ Implementation plan
   - `src/pages/ProjectSchedule.tsx`
   - `src/pages/ApproveBills.tsx`
   - `src/pages/Transactions.tsx`
-  - `src/pages/Reports.tsx`
-- Confirm they all render `DashboardHeader` directly at top of main content and do not introduce page-level top offsets/margins above the header.
+  - `src/pages/Reports.tsx` (project mode branch)
+- No redesign needed; just ensure none introduces margin/padding above the header shell.
 
-4) Keep the visual standard explicit
-- Match the known-good standard from memory:
-  - no top margin above header
-  - `py-3.5` vertical padding
-  - `bg-white border-b border-border`
-- Avoid introducing per-page header exceptions going forward.
+Exact code-level changes planned
+- `DashboardHeader.tsx`
+  - Remove `-my-1` from project Back button.
+  - Standardize project header row sizing to match company/settings row height.
+  - Keep project-specific actions but prevent layout compression.
+- `ProjectDashboard.tsx`
+  - Delete custom header markup and use shared `<DashboardHeader projectId={projectId} />`.
+  - Remove now-unused imports tied only to old inline header (e.g., `Building2`, `MoreHorizontal`, project edit button wiring in this page if fully delegated).
 
-5) Verification checklist (post-implementation)
-- Compare side-by-side against Settings + Company Dashboard:
+Why this will fix it
+- Right now alignment differences come from different header implementations and compressed project content.
+- After this change, all project pages and company/settings pages will share one geometric header contract (same shell + same effective height), so the border sits at the same Y-position everywhere.
+
+Verification checklist (after implementation)
+- Compare with Settings and Company Dashboard as reference:
+  - `/`
+  - `/settings`
   - `/project/:id`
   - `/project/:id/files`
   - `/project/:id/photos`
+  - `/project/:id/budget`
   - `/project/:id/bidding`
   - `/project/:id/purchase-orders`
   - `/project/:id/schedule`
   - `/project/:id/accounting/bills/approve`
+  - `/project/:id/accounting/transactions`
+  - `/project/:id/accounting/reports`
 - Confirm:
-  - no gray strip above project headers
-  - same header height across pages
-  - bottom border line aligns with sidebar reference line exactly
-  - no regressions to back navigation or edit actions.
+  - No gray strip above main header.
+  - Same header height on all pages.
+  - Header bottom border aligns with sidebar reference line consistently.
+  - Back button and edit actions still work on project pages.
 
-Technical notes
-- Root cause is architectural duplication (custom header in `ProjectDashboard` + divergent project branch in `DashboardHeader`), not just a single class typo.
-- The stable fix is to enforce one shared header structure and let pages only control content, not header geometry.
+Risk and mitigation
+- Risk: `ProjectDashboard` could lose status-pill visibility in header after unifying.
+- Mitigation: keep status badge directly below header in page content if needed, rather than reintroducing a custom header. This preserves alignment standard while retaining project context UI.
