@@ -4,7 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight, Rocket, PartyPopper, CheckCircle2 } from "lucide-react";
+import { Check, ArrowRight, Rocket, PartyPopper, CheckCircle2, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import {
@@ -59,11 +59,12 @@ function StepItem({ step, stepNumber, navigate, onAction }: { step: any; stepNum
 }
 
 export function OnboardingChecklist() {
-  const { steps, completedCount, totalCount, allComplete, isLoading, dismissed, dismiss, confirmWelcome } = useOnboardingProgress();
+  const { steps, completedCount, totalCount, allComplete, isLoading, dismissed, dismiss, confirmWelcome, confirmNoEmployees } = useOnboardingProgress();
   const { isOwner } = useUserRole();
   const navigate = useNavigate();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
+  const [employeesDialogOpen, setEmployeesDialogOpen] = useState(false);
 
   // Auto-open welcome dialog when email is verified but welcome not confirmed
   const emailStep = steps.find(s => s.key === "email_verified");
@@ -112,6 +113,8 @@ export function OnboardingChecklist() {
       setNewProjectOpen(true);
     } else if (action === "welcome-dialog") {
       setWelcomeDialogOpen(true);
+    } else if (action === "employees-dialog") {
+      setEmployeesDialogOpen(true);
     }
   };
 
@@ -167,6 +170,39 @@ export function OnboardingChecklist() {
           <DialogFooter className="sm:justify-center">
             <Button onClick={handleWelcomeConfirm} className="px-8">
               Got It
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={employeesDialogOpen} onOpenChange={setEmployeesDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-xl">Do You Have Employees?</DialogTitle>
+            <DialogDescription className="text-center text-base leading-relaxed">
+              If you have employees to add, we'll take you to the employee management page. If not, you can skip this step and complete it later if needed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                confirmNoEmployees();
+                setEmployeesDialogOpen(false);
+              }}
+            >
+              No, Skip This Step
+            </Button>
+            <Button
+              onClick={() => {
+                setEmployeesDialogOpen(false);
+                navigate("/settings?tab=employees");
+              }}
+            >
+              Yes, Add Employees
             </Button>
           </DialogFooter>
         </DialogContent>

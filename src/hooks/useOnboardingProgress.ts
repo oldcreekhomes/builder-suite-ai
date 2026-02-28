@@ -20,6 +20,7 @@ export interface OnboardingProgress {
   dismissed: boolean;
   dismiss: () => void;
   confirmWelcome: () => void;
+  confirmNoEmployees: () => void;
 }
 
 export const useOnboardingProgress = (): OnboardingProgress => {
@@ -78,7 +79,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
           supabase.from("companies").select("id", { count: "exact", head: true }).eq("home_builder_id", effectiveOwnerId).is("archived_at", null),
           supabase.from("projects").select("id", { count: "exact", head: true }).eq("owner_id", effectiveOwnerId),
           supabase.from("users").select("id", { count: "exact", head: true }).eq("home_builder_id", effectiveOwnerId),
-          supabase.from("onboarding_progress").select("welcome_confirmed").eq("home_builder_id", effectiveOwnerId).maybeSingle(),
+          supabase.from("onboarding_progress").select("welcome_confirmed, employees_invited").eq("home_builder_id", effectiveOwnerId).maybeSingle(),
         ]);
 
       return {
@@ -89,7 +90,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
         chart_of_accounts_imported: (accountsRes.count ?? 0) > 0,
         companies_added: (companiesRes.count ?? 0) > 0,
         first_project_created: (projectsRes.count ?? 0) > 0,
-        employees_invited: (employeesRes.count ?? 0) > 0,
+        employees_invited: (employeesRes.count ?? 0) > 0 || freshProgressRes.data?.employees_invited === true,
       };
     },
     enabled: !!effectiveOwnerId && progressRow !== undefined,
@@ -164,7 +165,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     { key: "chart_of_accounts_imported", label: "Import Chart of Accounts", completed: merged.chart_of_accounts_imported, link: "/settings?tab=chart-of-accounts" },
     { key: "companies_added", label: "Add Subcontractors", completed: merged.companies_added, link: "/settings?tab=companies" },
     { key: "first_project_created", label: "Create First Project", completed: merged.first_project_created, action: "new-project" },
-    { key: "employees_invited", label: "Invite Employees", completed: merged.employees_invited, link: "/settings?tab=employees" },
+    { key: "employees_invited", label: "Invite Employees", completed: merged.employees_invited, action: "employees-dialog" },
   ];
 
   const completedCount = steps.filter((s) => s.completed).length;
@@ -190,6 +191,16 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     queryClient.invalidateQueries({ queryKey: ["onboarding-live-checks", effectiveOwnerId] });
   }, [effectiveOwnerId, queryClient]);
 
+  const confirmNoEmployees = useCallback(async () => {
+    if (!effectiveOwnerId) return;
+    await supabase
+      .from("onboarding_progress")
+      .update({ employees_invited: true } as any)
+      .eq("home_builder_id", effectiveOwnerId);
+    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
+    queryClient.invalidateQueries({ queryKey: ["onboarding-live-checks", effectiveOwnerId] });
+  }, [effectiveOwnerId, queryClient]);
+
   return {
     steps,
     completedCount,
@@ -199,5 +210,6 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     dismissed,
     dismiss,
     confirmWelcome,
+    confirmNoEmployees,
   };
 };
