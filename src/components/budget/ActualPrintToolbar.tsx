@@ -20,11 +20,7 @@ export function ActualPrintToolbar({ projectId, selectedLotId, onSelectLot, onPr
 
   return (
     <>
-      <div className="flex items-center justify-between border-b pb-4 mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Actual</h3>
-        </div>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2">
           {onExpandAll && onCollapseAll && (
             <>
               <Button onClick={onExpandAll} variant="outline" size="sm">
@@ -50,7 +46,6 @@ export function ActualPrintToolbar({ projectId, selectedLotId, onSelectLot, onPr
             <Printer className="h-4 w-4 mr-2" />
             Print
           </Button>
-        </div>
       </div>
 
       <ActualCostsImportDialog

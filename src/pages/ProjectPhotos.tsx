@@ -88,7 +88,7 @@ export default function ProjectPhotos() {
             projectId={projectId}
           />
           
-          <div className="flex-1 p-6 space-y-6">
+          <div className="flex-1 px-6 pt-3 pb-6 space-y-6">
             <PhotoUploadDropzone
               projectId={projectId}
               onUploadSuccess={handleUploadSuccess}

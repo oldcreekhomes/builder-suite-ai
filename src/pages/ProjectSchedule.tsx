@@ -25,7 +25,7 @@ export default function ProjectSchedule() {
             projectId={projectId}
           />
           
-          <div className="flex-1 flex flex-col p-6 overflow-hidden">
+          <div className="flex-1 flex flex-col px-6 pt-3 pb-6 overflow-hidden">
 
             <CustomGanttChart projectId={projectId} />
           </div>
