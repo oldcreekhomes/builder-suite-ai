@@ -65,6 +65,7 @@ export function OnboardingChecklist() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
   const [employeesDialogOpen, setEmployeesDialogOpen] = useState(false);
+  const [navigateAfterCongrats, setNavigateAfterCongrats] = useState(false);
 
   // Auto-open welcome dialog when email is verified but welcome not confirmed
   const emailStep = steps.find(s => s.key === "email_verified");
@@ -84,8 +85,15 @@ export function OnboardingChecklist() {
   if (allComplete && dismissed) return null;
 
   if (allComplete && !dismissed) {
+    const handleCongratsClose = () => {
+      dismiss();
+      if (navigateAfterCongrats) {
+        navigate("/settings?tab=employees");
+        setNavigateAfterCongrats(false);
+      }
+    };
     return (
-      <Dialog open onOpenChange={(open) => { if (!open) dismiss(); }}>
+      <Dialog open onOpenChange={(open) => { if (!open) handleCongratsClose(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader className="items-center text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -97,7 +105,7 @@ export function OnboardingChecklist() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-center">
-            <Button onClick={dismiss}>Close</Button>
+            <Button onClick={handleCongratsClose}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -197,10 +205,10 @@ export function OnboardingChecklist() {
               No, Skip This Step
             </Button>
             <Button
-              onClick={() => {
-                confirmNoEmployees();
+              onClick={async () => {
+                await confirmNoEmployees();
                 setEmployeesDialogOpen(false);
-                navigate("/settings?tab=employees");
+                setNavigateAfterCongrats(true);
               }}
             >
               Yes, Add Employees

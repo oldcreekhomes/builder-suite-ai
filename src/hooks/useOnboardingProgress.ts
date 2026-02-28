@@ -197,8 +197,8 @@ export const useOnboardingProgress = (): OnboardingProgress => {
       .from("onboarding_progress")
       .update({ employees_invited: true } as any)
       .eq("home_builder_id", effectiveOwnerId);
-    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
-    queryClient.invalidateQueries({ queryKey: ["onboarding-live-checks", effectiveOwnerId] });
+    await queryClient.refetchQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
+    await queryClient.refetchQueries({ queryKey: ["onboarding-live-checks", effectiveOwnerId] });
   }, [effectiveOwnerId, queryClient]);
 
   return {
