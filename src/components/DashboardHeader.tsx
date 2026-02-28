@@ -12,9 +12,10 @@ interface DashboardHeaderProps {
   title?: string;
   subtitle?: string;
   projectId?: string;
+  headerAction?: React.ReactNode;
 }
 
-export function DashboardHeader({ title, subtitle, projectId }: DashboardHeaderProps) {
+export function DashboardHeader({ title, subtitle, projectId, headerAction }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
   const { preferences } = useNotificationPreferences();
@@ -58,7 +59,10 @@ export function DashboardHeader({ title, subtitle, projectId }: DashboardHeaderP
             </Button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-black">{title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-black">{title}</h1>
+              {headerAction}
+            </div>
             {subtitle && <p className="text-sm text-muted-foreground -mt-0.5">{subtitle}</p>}
           </div>
         </div>

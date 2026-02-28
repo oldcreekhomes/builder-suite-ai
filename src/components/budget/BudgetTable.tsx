@@ -452,9 +452,6 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
         isExportingPdf={isExportingPdf}
-        isLocked={isLocked}
-        canLockBudgets={canLockBudgets}
-        onLockToggle={handleLockToggle}
       />
 
       <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
