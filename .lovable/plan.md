@@ -1,41 +1,26 @@
 
 
-# Complete Deletion of Dorian Gray Homes Test Account
+# Fix Project Dashboard Header Alignment
 
-## Summary
-Delete all data associated with the test account "Doreen Gray Homes" (owner ID: `3e482bbc-139c-4ebc-a006-d9290287d2d5`, email: `buildersuiteai1@gmail.com`) from both the database and auth system.
+## Problem
+The Project Dashboard page (`src/pages/ProjectDashboard.tsx`) has its own inline header with `mt-6` (top margin), creating a visible gray gap above the header. The bottom border also doesn't align with the sidebar's "Construction Management" border. Other pages (Settings, Company Dashboard) work correctly because they use the standardized `DashboardHeader` or `CompanyDashboardHeader` components with `py-3.5` and no top margin.
 
-## Data to Delete
+## Solution
+Update the Project Dashboard header to match the standardized header styling:
 
-| Table | Records | Notes |
-|-------|---------|-------|
-| cost_code_price_history | 227 | owner_id match |
-| cost_codes | 302 | owner_id match |
-| accounts | 14 | owner_id match |
-| company_representatives | 1 | home_builder_id match |
-| companies | 1 | home_builder_id match |
-| projects | 1 | owner_id match (id: 0c8bdbcf...) |
-| onboarding_progress | 1 | home_builder_id match |
-| user_roles | 1 | user_id match |
-| users (public) | 1 | The owner record |
-| auth.users | 1 | The auth account |
+### File: `src/pages/ProjectDashboard.tsx`
 
-No bills, journal entries, checks, deposits, credit cards, or employee users exist for this account.
+1. Remove `mt-6` from the header element
+2. Change `py-2` to `py-3.5` to match the standard vertical padding used by `DashboardHeader` and `CompanyDashboardHeader`
 
-## Approach
-Create a temporary edge function using the service role key to delete all data in the correct order (child tables first to respect foreign key constraints), then delete the auth user. After successful execution, the function will be removed.
+The header class will change from:
+```
+bg-white border-b border-border px-6 py-2 mt-6
+```
+to:
+```
+bg-white border-b border-border px-6 py-3.5
+```
 
-## Deletion Order
-1. `cost_code_price_history` (references cost_codes)
-2. `cost_codes` (owner_id)
-3. `company_representatives` (home_builder_id, references companies)
-4. `companies` (home_builder_id)
-5. `accounts` (owner_id)
-6. `projects` (owner_id)
-7. `onboarding_progress` (home_builder_id)
-8. `user_roles` (user_id)
-9. `users` (public table, id)
-10. `auth.users` (via admin API - removes the authentication account entirely)
-
-After this, the account will no longer exist anywhere in the system.
+This single change ensures the header's bottom border aligns exactly with the sidebar's "Construction Management" section border, matching all other pages in the application.
 
