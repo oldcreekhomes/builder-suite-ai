@@ -1,28 +1,48 @@
 
+Goal: make the vertical distance from the Files header bottom border to the table top border exactly match the vertical distance from the sidebar “Construction Management” bottom border to the project dropdown top border.
 
-## Fix Table Top Alignment -- Reduce Padding
+What I found:
+1) Left side spacing is controlled by:
+- `src/components/sidebar/ProjectSelector.tsx`
+- Wrapper: `className="px-4 py-3 border-b ..."`
+- The dropdown button starts after `py-3` top padding => 12px.
 
-### Problem
-With `pt-3` (12px), the table sits too far below the project selector dropdown. With `pt-0` it was slightly too high. The correct offset is in between.
+2) Right side currently has two spacing sources (this is why it keeps looking too low):
+- `src/pages/ProjectFiles.tsx`: content wrapper currently has `pt-1.5` (6px).
+- `src/components/files/SimpleFileManager.tsx`: outer wrapper is `className="space-y-4"`.
+  - Inside that same wrapper, there are 3 always-rendered hidden `<input className="hidden" />` elements before the file list.
+  - Tailwind `space-y-4` adds vertical gap between siblings even when those siblings are visually hidden via class, so the file list receives an unintended extra 16px top gap.
+- Effective visible gap is roughly 6 + 16 = 22px, which matches your “looks about double” observation.
 
-### Analysis
-- The right-side DashboardHeader bottom border sits ~6px higher than the sidebar's branding section bottom border (above ProjectSelector)
-- The ProjectSelector has `py-3` (12px) top padding before the dropdown button
-- So the table needs ~6px top padding to align with the dropdown's top border (12px - 6px offset = 6px)
+Implementation plan:
+1) Remove the unintended 16px spacing above the table in `SimpleFileManager`.
+- In `src/components/files/SimpleFileManager.tsx`, restructure the return block so hidden file inputs are not inside the `space-y-4` flow that controls visible layout spacing.
+- Safe approach:
+  - Keep a visible-content wrapper with `space-y-4` for breadcrumb/upload/table/modals.
+  - Move hidden inputs outside that spaced wrapper (still inside component return).
+- This preserves spacing behavior for visible sections but eliminates accidental table offset.
 
-### Change
+2) Set the intended page-level top spacing to the exact left-side value.
+- In `src/pages/ProjectFiles.tsx`, set container class to:
+  - `className="flex-1 px-6 pt-3 pb-6"`
+- With the accidental 16px removed, `pt-3` gives the target 12px to match sidebar dropdown placement.
 
-**File: `src/pages/ProjectFiles.tsx` (line 56)**
+3) Verify alignment logic (post-change expectation).
+- Left: 12px (`py-3` in ProjectSelector).
+- Right: 12px (`pt-3` in ProjectFiles + no hidden-input gap).
+- Result: top border of file table and top border of project dropdown align on the same horizontal line.
 
-```text
-Before: <div className="flex-1 px-6 pt-3 pb-6">
-After:  <div className="flex-1 px-6 pt-1.5 pb-6">
-```
+Files to update:
+- `src/components/files/SimpleFileManager.tsx`
+  - Refactor wrapper structure to isolate hidden inputs from `space-y-4`.
+- `src/pages/ProjectFiles.tsx`
+  - Ensure content wrapper uses `pt-3`.
 
-Change `pt-3` (12px) to `pt-1.5` (6px). This accounts for the height difference between the sidebar branding header and the content-area header, placing the table's top border in line with the dropdown button's top border.
+Why this plan is the correct fix:
+- Previous tuning only changed `pt-*` on the page wrapper, but the hidden-input + `space-y-4` interaction was still injecting extra space.
+- Fixing both the accidental gap and the intentional top padding gives deterministic, pixel-accurate alignment instead of trial-and-error nudging.
 
-### Files Changed
-
-| File | Change |
-|------|--------|
-| `src/pages/ProjectFiles.tsx` | Change `pt-3` to `pt-1.5` on content wrapper |
+Technical notes:
+- This is a layout-only change; no data/query/upload logic changes.
+- No API/schema impact.
+- No behavior changes to upload triggers, just DOM spacing flow cleanup.
