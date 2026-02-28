@@ -2654,6 +2654,7 @@ export type Database = {
           home_builder_id: string
           id: string
           updated_at: string
+          welcome_confirmed: boolean
         }
         Insert: {
           chart_of_accounts_imported?: boolean
@@ -2668,6 +2669,7 @@ export type Database = {
           home_builder_id: string
           id?: string
           updated_at?: string
+          welcome_confirmed?: boolean
         }
         Update: {
           chart_of_accounts_imported?: boolean
@@ -2682,6 +2684,7 @@ export type Database = {
           home_builder_id?: string
           id?: string
           updated_at?: string
+          welcome_confirmed?: boolean
         }
         Relationships: [
           {

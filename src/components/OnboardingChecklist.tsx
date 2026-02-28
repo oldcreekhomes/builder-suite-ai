@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOnboardingProgress } from "@/hooks/useOnboardingProgress";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,10 +57,25 @@ function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: st
 }
 
 export function OnboardingChecklist() {
-  const { steps, completedCount, totalCount, allComplete, isLoading, dismissed, dismiss } = useOnboardingProgress();
+  const { steps, completedCount, totalCount, allComplete, isLoading, dismissed, dismiss, confirmWelcome } = useOnboardingProgress();
   const { isOwner } = useUserRole();
   const navigate = useNavigate();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
+
+  // Auto-open welcome dialog when email is verified but welcome not confirmed
+  const emailStep = steps.find(s => s.key === "email_verified");
+  const welcomeStep = steps.find(s => s.key === "welcome_confirmed");
+
+  useEffect(() => {
+    if (
+      emailStep?.completed &&
+      welcomeStep && !welcomeStep.completed &&
+      !allComplete && !dismissed && !isLoading
+    ) {
+      setWelcomeDialogOpen(true);
+    }
+  }, [emailStep?.completed, welcomeStep?.completed, allComplete, dismissed, isLoading]);
 
   if (isLoading) return null;
   if (allComplete && dismissed) return null;
@@ -75,7 +90,7 @@ export function OnboardingChecklist() {
             </div>
             <DialogTitle className="text-xl">Congratulations!</DialogTitle>
             <DialogDescription className="text-center">
-              You've completed all the setup steps for BuilderSuite. You're all set to start managing your projects. If you ever need help, don't hesitate to reach out to our support team.
+              You've completed all the setup steps for BuilderSuiteML. You're all set to start managing your projects. If you ever need help, don't hesitate to reach out to our support team.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-center">
@@ -93,7 +108,14 @@ export function OnboardingChecklist() {
   const handleAction = (action: string) => {
     if (action === "new-project") {
       setNewProjectOpen(true);
+    } else if (action === "welcome-dialog") {
+      setWelcomeDialogOpen(true);
     }
+  };
+
+  const handleWelcomeConfirm = () => {
+    confirmWelcome();
+    setWelcomeDialogOpen(false);
   };
 
   return (
@@ -103,7 +125,7 @@ export function OnboardingChecklist() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Rocket className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Get Started with BuilderSuite</CardTitle>
+              <CardTitle className="text-lg">Get Started with BuilderSuiteML</CardTitle>
             </div>
             <span className="text-sm font-medium text-muted-foreground">
               {completedCount} of {totalCount}
@@ -128,6 +150,25 @@ export function OnboardingChecklist() {
       </Card>
 
       <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
+
+      <Dialog open={welcomeDialogOpen} onOpenChange={(open) => { if (!open) handleWelcomeConfirm(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Rocket className="h-6 w-6 text-primary" />
+            </div>
+            <DialogTitle className="text-xl">Welcome to BuilderSuiteML!</DialogTitle>
+            <DialogDescription className="text-center text-base leading-relaxed">
+              It's imperative that you follow the <strong>8 steps</strong> in our startup workflow. Each step ensures your account is properly configured so you can get the most out of BuilderSuiteML — from cost codes and subcontractors to your first project and team members. Let's get you set up right!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={handleWelcomeConfirm} className="px-8">
+              Got It
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
