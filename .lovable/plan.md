@@ -1,26 +1,45 @@
 
 
-# Delete Erica Gray Homes Account Completely
+# Auto-Sign-Out Deleted Users
 
-## What needs to be deleted
+## Problem
+When a user account is fully deleted from `auth.users`, their browser still holds a cached JWT session token. The app loads this stale session and treats the user as authenticated, even though Supabase returns 403 "User from sub claim in JWT does not exist" on every API call. The user remains stuck in a broken signed-in state.
 
-The account `buildersuiteai1@gmail.com` (ID: `bfdbd789-0cd2-4b79-bc5f-51d28e2a3bc4`) labeled "Erica Gray Homes" has:
-- 1 row in `public.users`
-- 1 row in `user_roles`
-- 1 entry in `auth.users`
-- No employees, projects, companies, cost codes, accounts, bills, or journal entries (clean account)
+## Solution
+After retrieving the cached session in `useAuth`, validate it by calling `supabase.auth.getUser()` (which actually hits the Supabase server, unlike `getSession()` which only reads the local cache). If the server returns an error (e.g., user not found), force a sign-out to clear the stale token and redirect to the auth page.
 
 ## Implementation
 
-1. Create a temporary edge function `admin-delete-user` that uses the service role key to:
-   - Delete from `user_roles` where `user_id` matches
-   - Delete from `public.users` where `id` matches
-   - Delete from `auth.users` using `supabaseAdmin.auth.admin.deleteUser()`
+**File: `src/hooks/useAuth.tsx`**
 
-2. Deploy and invoke the function with userId `bfdbd789-0cd2-4b79-bc5f-51d28e2a3bc4`
+In the `initializeAuth` function, after successfully getting a session (line 89-92), add a server-side validation step:
 
-3. Verify deletion by querying the database to confirm the user no longer exists
+```typescript
+// After getting session successfully
+if (session) {
+  // Validate the session against the server
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !userData?.user) {
+    console.error("🔑 User no longer exists on server, signing out...", userError?.message);
+    await supabase.auth.signOut();
+    setSession(null);
+    setRealUser(null);
+    setLoading(false);
+    return;
+  }
+}
+```
 
-4. Remove the temporary edge function after successful deletion
+Also, in the `onAuthStateChange` listener, add similar handling for the `TOKEN_REFRESHED` event failing (Supabase will emit a `SIGNED_OUT` event automatically when token refresh fails for a deleted user, but adding explicit handling for edge cases where the stale token persists).
 
-This is necessary because the existing `delete-employee` function explicitly blocks deletion of owner accounts, and the database tools only support SELECT queries.
+## What This Achieves
+- Deleted users are automatically signed out on their next page load
+- No more 403 error loops from stale JWTs
+- Clean redirect to the auth/landing page
+- No impact on normal active users (one extra lightweight API call on init)
+
+## Scope
+- Single file change: `src/hooks/useAuth.tsx`
+- No database, RLS, or edge function changes needed
+
