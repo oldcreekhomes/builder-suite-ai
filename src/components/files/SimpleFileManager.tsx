@@ -773,69 +773,66 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
 
   return (
     <UniversalFilePreviewProvider onFileDeleted={() => refetch()}>
-      <div className="flex flex-col h-full">
+      <div className="space-y-4">
       {/* Breadcrumb Navigation with Upload Buttons */}
-      <div className="flex flex-col px-4 py-3 border-b">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <SimpleBreadcrumb 
-              currentPath={currentPath} 
-              onPathClick={handleBreadcrumbClick} 
-            />
-            <span className="text-xs text-muted-foreground">
-              Maximum file size: 50MB
-            </span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="h-10"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Choose Files
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="h-10"
-              onClick={() => folderInputRef.current?.click()}
-            >
-              <FolderOpen className="h-4 w-4 mr-2" />
-              Choose Folder
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="h-10"
-              onClick={() => zipInputRef.current?.click()}
-              disabled={processingZip}
-            >
-              <Archive className="h-4 w-4 mr-2" />
-              {processingZip ? "Processing..." : "Choose Zip File"}
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm"
-              className="h-10"
-              onClick={() => setShowNewFolderModal(true)}
-            >
-              <FolderPlus className="h-4 w-4 mr-2" />
-              Create Folder
-            </Button>
-          </div>
+      <div className="flex items-center justify-between">
+        {currentPath ? (
+          <SimpleBreadcrumb 
+            currentPath={currentPath} 
+            onPathClick={handleBreadcrumbClick} 
+          />
+        ) : (
+          <div />
+        )}
+        
+        <div className="flex items-center space-x-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            className="h-10"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Choose Files
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            className="h-10"
+            onClick={() => folderInputRef.current?.click()}
+          >
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Choose Folder
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            className="h-10"
+            onClick={() => zipInputRef.current?.click()}
+            disabled={processingZip}
+          >
+            <Archive className="h-4 w-4 mr-2" />
+            {processingZip ? "Processing..." : "Choose Zip File"}
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            className="h-10"
+            onClick={() => setShowNewFolderModal(true)}
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Create Folder
+          </Button>
         </div>
       </div>
 
       {/* Upload Progress */}
       {uploadingFiles.length > 0 && (
-        <div className="border-b bg-background">
+        <div className="bg-background border rounded-lg">
           <div className="p-4">
             <h3 className="text-sm font-medium mb-3">Uploading Files</h3>
             <div className="space-y-2 max-h-32 overflow-auto">
@@ -905,7 +902,7 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       />
 
       {/* File List */}
-      <div className="flex-1 overflow-auto p-4">
+      <div>
         <div className="border rounded-lg overflow-hidden">
           <SimpleFileList
             folders={folders}
