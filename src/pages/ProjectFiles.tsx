@@ -27,8 +27,12 @@ const ProjectFiles = () => {
               projectId={projectId}
             />
             
-            <div className="flex-1">
-              <SimpleFileManager 
+            <div className="flex-1 p-6">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold">Files</h1>
+                <p className="text-muted-foreground">Manage and organize project documents.</p>
+              </div>
+              <SimpleFileManager
                 projectId={projectId} 
                 refreshKey={refreshKey}
                 onUploadSuccess={handleUploadSuccess}

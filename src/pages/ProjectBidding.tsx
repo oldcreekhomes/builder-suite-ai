@@ -49,8 +49,12 @@ export default function ProjectBidding() {
               projectId={projectId}
             />
             
-            <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-              <BiddingTabs 
+            <div className="flex-1 p-6 space-y-4">
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold">Bidding</h1>
+                <p className="text-muted-foreground">Manage bid packages and vendor proposals.</p>
+              </div>
+              <BiddingTabs
                 projectId={projectId} 
                 projectAddress={project?.address}
               />
