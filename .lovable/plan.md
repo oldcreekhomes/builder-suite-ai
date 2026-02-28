@@ -1,42 +1,35 @@
 
 
-## Remove Project Address from Header and Streamline Layout
+## Remove Empty Gray Header Bar from Project Pages
 
-### What Changes
+### Problem
+The project-specific header still renders a gray bar with a border (`border-b`) above page content like "Photos", "Files", etc. It serves no purpose now that the project address has been removed -- it's just wasted vertical space.
 
-The project address currently displayed in the `DashboardHeader` (e.g., "1 East Custis Avenue, Alexandria, VA") is already shown in the sidebar's ProjectSelector dropdown. Displaying it again in the header is redundant and wastes vertical space.
-
-### Approach
+### Changes
 
 **File: `src/components/DashboardHeader.tsx`**
 
-Simplify the project-specific header (the `if (projectId)` block):
+Replace the project-specific header block (lines 49-62) to return `null` when `projectId` is set. The sidebar expand button needs to be preserved for when the sidebar is collapsed, so we'll render just that button without any header bar/border:
 
-- Remove the project address text and the edit (three-dot) button from the header
-- Keep the header bar itself as a thin strip with only the sidebar expand button (for when the sidebar is collapsed)
-- Remove the `useProject` hook call since we no longer need to fetch/display project data in the header
-- Remove the `EditProjectDialog` and related state from this component
-- Clean up unused imports (`MoreHorizontal`, `useProject`, `EditProjectDialog`, etc.)
+- When sidebar is expanded: render nothing (`null`) -- no header at all
+- When sidebar is collapsed: render only the small expand button with no background bar or border, positioned inline with the page content
 
-The header becomes a minimal bar:
-```text
-[Expand sidebar button (only when collapsed)] | (empty/clean space)
+Alternatively, the simplest approach: return `null` for the project header entirely, and move the sidebar collapse toggle into the page content area. However, since every project page already has its own content section with padding, the cleanest solution is to render the expand button only when collapsed, without the `<header>` wrapper, border, or background -- just a floating button at the top.
+
+**Concrete change:**
+```tsx
+// Replace the project header block with:
+if (projectId) {
+  if (!isCollapsed) return null;
+  return (
+    <div className="px-6 pt-2">
+      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
+        <ChevronsRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
 ```
 
-This saves roughly 50px of vertical space on every project sub-page and eliminates the redundant address display. The page-level headings ("Files", "Photos", "Approve Bills", etc.) that already exist below the header will naturally move up closer to the top of the viewport.
+This removes the gray bar and border entirely. The sidebar expand button still appears when needed but without the visual header strip. Page titles like "Photos" and "Files" will now sit at the very top of the content area.
 
-### Pages Affected
-
-All ~15 project sub-pages that pass `projectId` to `DashboardHeader` will automatically benefit since they all use the same component:
-- ProjectDashboard, ProjectFiles, ProjectPhotos, ProjectSchedule
-- Accounting, ApproveBills, Transactions, WriteChecks, MakeDeposits
-- ProjectPurchaseOrders, BankReconciliation, IncomeStatement
-- TakeoffEditor, JournalEntry
-
-No changes needed to these individual page files -- they already have their own page titles.
-
-### Technical Details
-
-- The `useProject` hook import and usage will be removed from the header
-- The `EditProjectDialog` can still be accessed from the ProjectPage overview card (which has its own edit button)
-- The `projectId` prop remains accepted so the header knows it's in "project mode" (minimal bar) vs "company mode" (shows company name + New Project button)
