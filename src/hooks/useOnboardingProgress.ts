@@ -19,6 +19,7 @@ export interface OnboardingProgress {
   isLoading: boolean;
   dismissed: boolean;
   dismiss: () => void;
+  confirmWelcome: () => void;
 }
 
 export const useOnboardingProgress = (): OnboardingProgress => {
@@ -81,6 +82,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
 
       return {
         email_verified: userRes.data?.confirmed === true,
+        welcome_confirmed: progressRow?.welcome_confirmed === true,
         company_profile_completed: !!(userRes.data?.hq_address),
         cost_codes_imported: (costCodesRes.count ?? 0) > 0,
         chart_of_accounts_imported: (accountsRes.count ?? 0) > 0,
@@ -89,7 +91,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
         employees_invited: (employeesRes.count ?? 0) > 0,
       };
     },
-    enabled: !!effectiveOwnerId,
+    enabled: !!effectiveOwnerId && progressRow !== undefined,
     staleTime: 30_000,
   });
 
@@ -111,6 +113,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
       // Check if any field changed
       const fields = [
         "email_verified",
+        "welcome_confirmed",
         "company_profile_completed",
         "cost_codes_imported",
         "chart_of_accounts_imported",
@@ -143,6 +146,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
 
   const merged = liveChecks ?? {
     email_verified: false,
+    welcome_confirmed: false,
     company_profile_completed: false,
     cost_codes_imported: false,
     chart_of_accounts_imported: false,
@@ -153,6 +157,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
 
   const steps: OnboardingStep[] = [
     { key: "email_verified", label: "Verify Email", completed: merged.email_verified },
+    { key: "welcome_confirmed", label: "Confirm Welcome Message", completed: merged.welcome_confirmed, action: "welcome-dialog" },
     { key: "company_profile_completed", label: "Set Up Company Profile", completed: merged.company_profile_completed, link: "/settings?tab=company-profile" },
     { key: "cost_codes_imported", label: "Import Cost Codes", completed: merged.cost_codes_imported, link: "/settings?tab=cost-codes" },
     { key: "chart_of_accounts_imported", label: "Import Chart of Accounts", completed: merged.chart_of_accounts_imported, link: "/settings?tab=chart-of-accounts" },
@@ -174,6 +179,16 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
   }, [effectiveOwnerId, queryClient]);
 
+  const confirmWelcome = useCallback(async () => {
+    if (!effectiveOwnerId) return;
+    await supabase
+      .from("onboarding_progress")
+      .update({ welcome_confirmed: true } as any)
+      .eq("home_builder_id", effectiveOwnerId);
+    queryClient.invalidateQueries({ queryKey: ["onboarding-progress", effectiveOwnerId] });
+    queryClient.invalidateQueries({ queryKey: ["onboarding-live-checks", effectiveOwnerId] });
+  }, [effectiveOwnerId, queryClient]);
+
   return {
     steps,
     completedCount,
@@ -182,5 +197,6 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     isLoading: isLoadingProgress || isLoadingLive,
     dismissed,
     dismiss,
+    confirmWelcome,
   };
 };
