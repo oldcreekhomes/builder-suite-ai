@@ -173,12 +173,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
   if (authLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Income Statement <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
-          </h2>
-        </div>
-        <Card>
+      <Card>
           <CardHeader>
             <Skeleton className="h-6 w-20" />
           </CardHeader>
@@ -198,12 +193,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
     console.error("🔍 Income Statement: Query error:", error);
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Income Statement <span className="text-sm text-muted-foreground font-normal ml-4">As of {new Date().toLocaleDateString()}</span>
-          </h2>
-        </div>
-        <Card>
+      <Card>
           <CardContent className="p-6">
             <p className="text-destructive">Error loading income statement data.</p>
             {error?.code === 'PGRST301' || error?.message?.includes('row-level security') ? (
@@ -281,8 +271,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Income Statement</h2>
+      <div className="flex items-center justify-end">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
@@ -318,10 +307,7 @@ export function IncomeStatementContent({ projectId }: IncomeStatementContentProp
       ) : (
         <div className="max-w-3xl">
           <Card>
-            <CardHeader>
-              <CardTitle>Income Statement</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {incomeStatementData?.revenue && incomeStatementData.revenue.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Revenue</h4>

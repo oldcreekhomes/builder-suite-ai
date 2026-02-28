@@ -442,17 +442,19 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
 
   return (
     <div className="space-y-4">
-      <BudgetPrintToolbar 
-        projectId={projectId}
-        selectedLotId={selectedLotId}
-        onSelectLot={selectLot}
-        onPrint={handlePrint}
-        onExportPdf={() => setShowExportDialog(true)}
-        onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
-        onToggleExpandCollapse={handleToggleExpandCollapse}
-        allExpanded={allGroupsExpanded}
-        isExportingPdf={isExportingPdf}
-      />
+      <div className="flex items-center justify-end gap-2">
+        <BudgetPrintToolbar 
+          projectId={projectId}
+          selectedLotId={selectedLotId}
+          onSelectLot={selectLot}
+          onPrint={handlePrint}
+          onExportPdf={() => setShowExportDialog(true)}
+          onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+          onToggleExpandCollapse={handleToggleExpandCollapse}
+          allExpanded={allGroupsExpanded}
+          isExportingPdf={isExportingPdf}
+        />
+      </div>
 
       <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
         <AlertDialogContent>

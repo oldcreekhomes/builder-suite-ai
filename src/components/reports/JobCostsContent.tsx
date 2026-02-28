@@ -488,10 +488,7 @@ return parentRows;
   if (!projectId) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Job Costs</h2>
-        </div>
-        <Card>
+      <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground">Please select a project to view job costs report.</p>
           </CardContent>
@@ -503,10 +500,7 @@ return parentRows;
   if (authLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Job Costs</h2>
-        </div>
-        <Card>
+      <Card>
           <CardHeader>
             <Skeleton className="h-6 w-32" />
           </CardHeader>
@@ -526,10 +520,7 @@ return parentRows;
     console.error("🔍 Job Costs: Query error:", error);
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Job Costs</h2>
-        </div>
-        <Card>
+      <Card>
           <CardContent className="p-6">
             <p className="text-destructive">Error loading job costs data.</p>
             {error?.message?.includes('WIP account not configured') ? (
@@ -607,8 +598,7 @@ return parentRows;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Job Costs</h2>
+      <div className="flex items-center justify-end">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
@@ -645,7 +635,6 @@ return parentRows;
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
-              <CardTitle>Budget vs. Actual</CardTitle>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

@@ -332,10 +332,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
   if (!projectId) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Accounts Payable</h2>
-        </div>
-        <Card>
+      <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground">Please select a project to view A/P aging report.</p>
           </CardContent>
@@ -347,10 +344,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
   if (authLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Accounts Payable</h2>
-        </div>
-        <Card>
+      <Card>
           <CardHeader>
             <Skeleton className="h-6 w-32" />
           </CardHeader>
@@ -369,10 +363,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
   if (error) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Accounts Payable</h2>
-        </div>
-        <Card>
+      <Card>
           <CardContent className="p-6">
             <p className="text-destructive">Error loading A/P aging data.</p>
             <p className="text-sm text-muted-foreground mt-2">
@@ -395,8 +386,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Accounts Payable</h2>
+      <div className="flex items-center justify-end mb-4">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
@@ -431,8 +421,7 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         </Card>
       ) : (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>A/P Aging Detail</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-end">
             <div className="flex items-center gap-2">
               <Button 
                 onClick={handleExportPdf} 
