@@ -10,10 +10,11 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 interface DashboardHeaderProps {
   title?: string;
+  subtitle?: string;
   projectId?: string;
 }
 
-export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
+export function DashboardHeader({ title, subtitle, projectId }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
   const { preferences } = useNotificationPreferences();
@@ -46,15 +47,22 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                       location.pathname === '/companies' || 
                       location.pathname === '/employees';
 
-  // If this is a project page, remove header entirely (sidebar toggle only when collapsed)
+  // Project page header with title/subtitle inside the bar
   if (projectId) {
-    if (!isCollapsed) return null;
     return (
-      <div className="px-6 pt-2">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
-          <ChevronsRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <header className="bg-white border-b border-border px-6 py-3.5">
+        <div className="flex items-center h-10">
+          {isCollapsed && (
+            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8 mr-3">
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-xl font-bold text-black">{title}</h1>
+            {subtitle && <p className="text-sm text-muted-foreground -mt-0.5">{subtitle}</p>}
+          </div>
+        </div>
+      </header>
     );
   }
 

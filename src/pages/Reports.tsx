@@ -20,16 +20,13 @@ export default function Reports() {
             {projectId ? (
               <DashboardHeader 
                 title="Reports" 
+                subtitle="Generate and view financial reports."
                 projectId={projectId}
               />
             ) : (
               <CompanyDashboardHeader />
             )}
             <div className="flex-1 p-6 space-y-4">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold">Reports</h1>
-                <p className="text-muted-foreground">Generate and view financial reports.</p>
-              </div>
               <UniversalFilePreviewProvider>
                 <ReportsTabs projectId={projectId} />
               </UniversalFilePreviewProvider>

@@ -839,6 +839,7 @@ export default function WriteChecks() {
           <SidebarInset className="flex-1">
             <DashboardHeader 
               title="Write Checks" 
+              subtitle="Create and manage check payments."
               projectId={projectId}
             />
             

@@ -18,13 +18,10 @@ export default function Transactions() {
             <SidebarInset>
               <DashboardHeader 
                 title="Transactions" 
+                subtitle="Manage all transaction types in one place."
                 projectId={projectId}
               />
               <div className="mx-auto p-6 w-full">
-                <div className="mb-6">
-                  <h1 className="text-2xl font-bold">Transactions</h1>
-                  <p className="text-muted-foreground">Manage all transaction types in one place.</p>
-                </div>
 
                 <TransactionsTabs projectId={projectId} />
               </div>
