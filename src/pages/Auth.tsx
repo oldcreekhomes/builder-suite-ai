@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import logo from "@/assets/buildersuiteai-logo.png";
+import Logo from "@/components/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
@@ -26,7 +26,7 @@ const Auth = () => {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4">
         <div className="absolute top-6 left-6">
-          <Link to="/"><img src={logo} alt="BuilderSuite ML" className="h-10 hover:opacity-80 transition-opacity" /></Link>
+          <Logo />
         </div>
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
@@ -54,7 +54,7 @@ const Auth = () => {
   return (
     <div className="min-h-screen relative w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-6 left-6">
-        <Link to="/"><img src={logo} alt="BuilderSuite ML" className="h-10 hover:opacity-80 transition-opacity" /></Link>
+        <Logo />
       </div>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">

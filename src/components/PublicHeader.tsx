@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Building2, ChevronDown, HardHat, Handshake } from "lucide-react";
+import { ChevronDown, HardHat, Handshake } from "lucide-react";
+import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 
 interface PublicHeaderProps {
@@ -28,10 +29,7 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-4">
           {/* Left: Logo */}
-          <Link to="/" className="flex items-center">
-            <Building2 className="h-8 w-8 text-primary" />
-            <span className="ml-2 text-xl font-bold text-foreground tracking-tight">BuilderSuite<sub className="text-[0.45em] font-bold ml-0.5 align-baseline relative -bottom-0.5 border border-current rounded-full px-0.5 leading-none">ML</sub></span>
-          </Link>
+          <Logo />
 
           {/* Center: Navigation */}
           <nav className="hidden md:flex items-center space-x-8">

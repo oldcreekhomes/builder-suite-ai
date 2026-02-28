@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { CompanyTypeCombobox } from "@/components/marketplace/CompanyTypeCombobox";
-import logo from "@/assets/buildersuiteai-logo.png";
+import Logo from "@/components/Logo";
 const MarketplaceSignup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -159,7 +159,7 @@ const MarketplaceSignup = () => {
     return (
       <div className="min-h-screen relative bg-muted/30 flex items-center justify-center p-4">
         <div className="absolute top-6 left-6">
-          <Link to="/"><img src={logo} alt="BuilderSuite ML" className="h-10 hover:opacity-80 transition-opacity" /></Link>
+          <Logo />
         </div>
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
@@ -195,7 +195,7 @@ const MarketplaceSignup = () => {
   return (
     <div className="min-h-screen relative w-full flex items-center justify-center bg-muted/30 py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-6 left-6">
-        <Link to="/"><img src={logo} alt="BuilderSuite ML" className="h-10 hover:opacity-80 transition-opacity" /></Link>
+        <Logo />
       </div>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
