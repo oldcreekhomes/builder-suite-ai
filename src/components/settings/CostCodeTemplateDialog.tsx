@@ -58,7 +58,7 @@ export function CostCodeTemplateDialog({
               Import our professionally curated library of ~300 cost codes, pre-configured and ready to go. Everything is automatically populated:
             </p>
             <ul className="text-sm text-muted-foreground space-y-1.5 ml-1">
-              {['Cost codes & categories', 'Specifications', 'Bidding settings', 'Subcategories', 'Estimates'].map((item) => (
+              {['Cost codes & categories', 'Current Local Subcontractor Prices', 'Specifications', 'Bidding settings', 'Subcategories', 'Estimates'].map((item) => (
                 <li key={item} className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
                   {item}
