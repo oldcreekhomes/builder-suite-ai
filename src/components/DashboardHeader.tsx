@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, MoreHorizontal } from "lucide-react";
+import { Plus, ArrowLeft, MoreHorizontal, ChevronsRight } from "lucide-react";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -9,6 +9,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { useProject } from "@/hooks/useProject";
 import { useProjectContextWithData } from "@/hooks/useProjectContext";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface DashboardHeaderProps {
   title?: string;
@@ -25,6 +26,8 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   const location = useLocation();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   // Get company name - handle both home builders and employees
   const getCompanyName = () => {
@@ -55,7 +58,12 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
       <>
         <header className="bg-white border-b border-border px-6 py-3.5">
           <div className="flex items-center justify-between h-10">
-            <div className="flex items-center space-x-4">
+           <div className="flex items-center space-x-4">
+              {isCollapsed && (
+                <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -103,6 +111,11 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
       <header className="bg-white border-b border-border px-6 py-3.5">
           <div className="flex items-center justify-between h-10">
             <div className="flex items-center space-x-4">
+              {isCollapsed && (
+                <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              )}
               {/* Show "Back to Project" button on global pages when project context exists */}
               {isGlobalPage && hasProjectContext && projectContext && (
                 <Button

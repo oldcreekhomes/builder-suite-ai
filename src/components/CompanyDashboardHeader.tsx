@@ -1,10 +1,10 @@
-
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ChevronsRight } from "lucide-react";
 import { useState } from "react";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { DashboardSelector } from "@/components/DashboardSelector";
+import { useSidebar } from "@/components/ui/sidebar";
 import type { DashboardView } from "@/hooks/useDashboardPermissions";
 
 interface CompanyDashboardHeaderProps {
@@ -26,6 +26,8 @@ export function CompanyDashboardHeader({
 }: CompanyDashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   // Get company name - handle both home builders and employees
   const getCompanyName = () => {
@@ -45,6 +47,11 @@ export function CompanyDashboardHeader({
       <header className="bg-white border-b border-border px-6 py-3.5">
         <div className="flex items-center justify-between h-10">
           <div className="flex items-center space-x-4">
+            {isCollapsed && (
+              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            )}
             <h1 className="text-xl font-bold text-black">{displayTitle}</h1>
             {dashboardView && onDashboardViewChange && (
               <DashboardSelector 
