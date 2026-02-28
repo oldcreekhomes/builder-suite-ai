@@ -14,6 +14,8 @@ import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { ChartOfAccountsTemplateDialog } from "./ChartOfAccountsTemplateDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { flattenAccountHierarchy } from "@/lib/accountHierarchy";
+import { BulkActionBar } from "./BulkActionBar";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 export const ChartOfAccountsTab = () => {
   const { accounts, isLoading, createAccount, accountingSettings, deleteAccount } = useAccounts();
@@ -23,6 +25,8 @@ export const ChartOfAccountsTab = () => {
   const [templateDismissed, setTemplateDismissed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -133,6 +137,25 @@ export const ChartOfAccountsTab = () => {
     [filteredAccounts]
   );
 
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    let failures = 0;
+    for (const id of selectedIds) {
+      const { error } = await supabase.from('accounts').delete().eq('id', id);
+      if (error) failures++;
+    }
+    setIsBulkDeleting(false);
+    setShowBulkDeleteConfirm(false);
+    if (failures === 0) {
+      toast({ title: "Success", description: `Deleted ${selectedIds.size} account(s) successfully.` });
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    } else {
+      toast({ title: "Error", description: `${failures} account(s) failed to delete.`, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    }
+  };
+
   if (isLoading) {
     return <div className="text-center py-2 text-sm">Loading chart of accounts...</div>;
   }
@@ -180,6 +203,24 @@ export const ChartOfAccountsTab = () => {
           className="pl-9"
         />
       </div>
+
+      {/* Bulk actions */}
+      <div className="flex items-center gap-2">
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onBulkDelete={() => setShowBulkDeleteConfirm(true)}
+          label="accounts"
+        />
+      </div>
+
+      <DeleteConfirmationDialog
+        open={showBulkDeleteConfirm}
+        onOpenChange={setShowBulkDeleteConfirm}
+        title="Delete Selected Accounts"
+        description={`Are you sure you want to delete ${selectedIds.size} account(s)? This action is permanent and cannot be undone.`}
+        onConfirm={handleBulkDelete}
+        isLoading={isBulkDeleting}
+      />
 
       {/* Table */}
       <SettingsTableWrapper>
