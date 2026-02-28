@@ -91,7 +91,7 @@ export default function ProjectBudget() {
             headerAction={lockButton}
           />
           
-          <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+          <main className="flex-1 px-6 pt-3 pb-6">
             <UniversalFilePreviewProvider>
               <BudgetTable 
                 projectId={projectId} 

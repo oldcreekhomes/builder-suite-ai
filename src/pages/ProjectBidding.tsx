@@ -50,7 +50,7 @@ export default function ProjectBidding() {
               projectId={projectId}
             />
             
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden pt-3">
               <BiddingTabs
                 projectId={projectId} 
                 projectAddress={project?.address}
