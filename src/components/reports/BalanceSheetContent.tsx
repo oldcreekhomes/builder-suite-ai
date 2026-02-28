@@ -265,10 +265,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
   if (authLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-20" />
@@ -302,10 +299,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
     console.error("🔍 Balance Sheet: Query error:", error);
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
-        </div>
-        <Card>
+      <Card>
           <CardContent className="p-6">
             <p className="text-destructive">Error loading balance sheet data.</p>
             {error?.code === 'PGRST301' || error?.message?.includes('row-level security') ? (
@@ -383,8 +377,7 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Balance Sheet</h2>
+      <div className="flex items-center justify-end">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[300px] justify-start text-left font-normal">

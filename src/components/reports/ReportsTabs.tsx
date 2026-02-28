@@ -29,7 +29,7 @@ export function ReportsTabs({ projectId }: ReportsTabsProps) {
         activeItem={active}
         onItemChange={setActive}
       />
-      <div className="flex-1 min-w-0 p-6 overflow-auto">
+      <div className="flex-1 min-w-0 px-6 pt-0 pb-6 overflow-auto">
         {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} />}
         {active === "income-statement" && <IncomeStatementContent projectId={projectId} />}
         {active === "job-costs" && <JobCostsContent projectId={projectId} />}
