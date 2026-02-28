@@ -789,6 +789,29 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
 
   return (
     <UniversalFilePreviewProvider onFileDeleted={() => refetch()}>
+      {/* Hidden file inputs - outside space-y-4 to avoid phantom spacing */}
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        multiple 
+        onChange={handleFileUpload} 
+        className="hidden" 
+      />
+      <input 
+        ref={folderInputRef} 
+        type="file" 
+        {...{ webkitdirectory: "" } as any} 
+        multiple 
+        onChange={handleFolderUpload} 
+        className="hidden" 
+      />
+      <input 
+        ref={zipInputRef} 
+        type="file" 
+        accept=".zip" 
+        onChange={handleZipUpload} 
+        className="hidden" 
+      />
       <div className="space-y-4">
       {/* Breadcrumb Navigation */}
       {currentPath && (
@@ -845,29 +868,6 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
         </div>
       )}
 
-      {/* Hidden file inputs */}
-      <input 
-        ref={fileInputRef} 
-        type="file" 
-        multiple 
-        onChange={handleFileUpload} 
-        className="hidden" 
-      />
-      <input 
-        ref={folderInputRef} 
-        type="file" 
-        {...{ webkitdirectory: "" } as any} 
-        multiple 
-        onChange={handleFolderUpload} 
-        className="hidden" 
-      />
-      <input 
-        ref={zipInputRef} 
-        type="file" 
-        accept=".zip" 
-        onChange={handleZipUpload} 
-        className="hidden" 
-      />
 
       {/* File List */}
       <div>
