@@ -1,33 +1,28 @@
 
 
-# Add Borders to Each Onboarding Step Row
+# Data Fixes for Doreen Gray Homes
 
-## Problem
-The incomplete steps on the right side (Steps 5-8) lack visual definition because there is no border around them, making it hard to see they are aligned with the completed steps on the left.
+Two database data changes are needed (no code/schema changes):
 
-## Fix
+## 1. Update Retained Earnings account code
 
-**File: `src/components/OnboardingChecklist.tsx`** (StepItem component, line ~22)
+The account for Doreen Gray Homes (id: `826e577b-7dbe-4021-b88f-7d61a805140d`) currently has code `32000`. It needs to be updated to `3200`.
 
-Add a `border` class to each `<li>` element so every step -- completed or not -- has a visible border, consistent with the card styling used elsewhere in the app.
-
-Current classes:
-```tsx
-className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors h-10 ${
-  step.completed
-    ? "bg-primary/10 text-foreground"
-    : "bg-muted/50 text-muted-foreground"
-}`}
+**Action**: Update via a temporary edge function using service role key:
+```sql
+UPDATE accounts SET code = '3200' WHERE id = '826e577b-7dbe-4021-b88f-7d61a805140d';
 ```
 
-Updated classes (adding `border`):
-```tsx
-className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors h-10 border ${
-  step.completed
-    ? "bg-primary/10 text-foreground"
-    : "bg-muted/50 text-muted-foreground"
-}`}
+## 2. Reset onboarding Step 5 (Import Chart of Accounts)
+
+The onboarding_progress record for Doreen Gray Homes (home_builder_id: `3e482bbc-139c-4ebc-a006-d9290287d2d5`) has `chart_of_accounts_imported = true`. It needs to be set back to `false` so the import step can be retested.
+
+**Action**: Update via the same temporary edge function:
+```sql
+UPDATE onboarding_progress SET chart_of_accounts_imported = false WHERE home_builder_id = '3e482bbc-139c-4ebc-a006-d9290287d2d5';
 ```
 
-This single addition of the `border` class applies the default border color (`hsl(var(--border))`) to all 8 step rows, giving both columns a consistent, clearly defined appearance.
+## Implementation
+
+Create a temporary edge function `admin-data-fix` that uses the service role key to execute both updates, call it once to apply the fixes, then delete the function afterward.
 
