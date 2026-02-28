@@ -1,29 +1,26 @@
 
 
-# Onboarding Checklist Fixes
+# Make "Check Your Email" Checkmark Green
 
-## Three Changes
+## Change
 
-### 1. Fix "Confirm Welcome Message" not checking off
+**File: `src/pages/Auth.tsx`** (line ~33)
 
-**Root cause**: In `useOnboardingProgress.ts` (line 85), the `welcome_confirmed` status is read from `progressRow?.welcome_confirmed` inside the `liveChecks` query. When the user clicks "Got It", the `confirmWelcome` function updates the database and invalidates both queries, but there is a race condition: `liveChecks` may re-fetch before `progressRow` has refreshed, so it reads the stale value and the checkmark never appears.
+Change the `CheckCircle` icon color from `text-primary` to `text-green-500`, and update the background circle from `bg-primary/10` to `bg-green-100` to match.
 
-**Fix**: In the `liveChecks` query function, fetch `welcome_confirmed` directly from the `onboarding_progress` table instead of relying on the captured `progressRow` variable. This eliminates the stale closure issue.
+Current:
+```tsx
+<div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+  <CheckCircle className="h-8 w-8 text-primary" />
+</div>
+```
 
-**File**: `src/hooks/useOnboardingProgress.ts`
-- Add a query to `onboarding_progress` inside the `Promise.all` in `liveChecks` to get the current `welcome_confirmed` value directly
-- Replace `progressRow?.welcome_confirmed === true` with the fresh DB result
+Updated:
+```tsx
+<div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+  <CheckCircle className="h-8 w-8 text-green-500" />
+</div>
+```
 
-### 2. Update heading text
-
-**File**: `src/components/OnboardingChecklist.tsx` (line 128)
-- Change `"Get Started with BuilderSuiteML"` to `"Get Started with BuilderSuiteML Onboarding Process"`
-
-### 3. Add green checkmark for completed steps (replacing Go button area)
-
-Currently, completed steps show a filled circle + strikethrough text on the left, but the right side where the "Go" button was is empty. The user wants a green checkmark icon (like the `CheckCircle2` used in ProjectBidsCard and ProjectWarnings) to appear on the right side when a step is done.
-
-**File**: `src/components/OnboardingChecklist.tsx`
-- Import `CheckCircle2` from `lucide-react`
-- In the `StepItem` component, add an `else` branch: when `step.completed`, render a `CheckCircle2` icon (`h-5 w-5 text-green-500`) on the right side where the "Go" button normally sits
+After this change, I will navigate to the auth page and trigger the signup success view in the browser so you can see it without needing to delete and re-register a user.
 
