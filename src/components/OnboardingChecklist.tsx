@@ -19,7 +19,7 @@ import {
 function StepItem({ step, stepNumber, navigate, onAction }: { step: any; stepNumber: number; navigate: (path: string) => void; onAction?: (action: string) => void }) {
   return (
     <li
-      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors h-10 ${
+      className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors h-10 border ${
         step.completed
           ? "bg-primary/10 text-foreground"
           : "bg-muted/50 text-muted-foreground"
