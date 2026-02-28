@@ -1,48 +1,56 @@
 
-Goal: make the vertical distance from the Files header bottom border to the table top border exactly match the vertical distance from the sidebar “Construction Management” bottom border to the project dropdown top border.
 
-What I found:
-1) Left side spacing is controlled by:
-- `src/components/sidebar/ProjectSelector.tsx`
-- Wrapper: `className="px-4 py-3 border-b ..."`
-- The dropdown button starts after `py-3` top padding => 12px.
+## Standardize All Project Pages to Match Files Layout
 
-2) Right side currently has two spacing sources (this is why it keeps looking too low):
-- `src/pages/ProjectFiles.tsx`: content wrapper currently has `pt-1.5` (6px).
-- `src/components/files/SimpleFileManager.tsx`: outer wrapper is `className="space-y-4"`.
-  - Inside that same wrapper, there are 3 always-rendered hidden `<input className="hidden" />` elements before the file list.
-  - Tailwind `space-y-4` adds vertical gap between siblings even when those siblings are visually hidden via class, so the file list receives an unintended extra 16px top gap.
-- Effective visible gap is roughly 6 + 16 = 22px, which matches your “looks about double” observation.
+### Goal
+Make every project page (Budget, Bidding, Purchase Orders, Photos, Schedule) use the same content wrapper spacing as the Files page so the top border of content aligns pixel-perfectly with the sidebar's project selector dropdown.
 
-Implementation plan:
-1) Remove the unintended 16px spacing above the table in `SimpleFileManager`.
-- In `src/components/files/SimpleFileManager.tsx`, restructure the return block so hidden file inputs are not inside the `space-y-4` flow that controls visible layout spacing.
-- Safe approach:
-  - Keep a visible-content wrapper with `space-y-4` for breadcrumb/upload/table/modals.
-  - Move hidden inputs outside that spaced wrapper (still inside component return).
-- This preserves spacing behavior for visible sections but eliminates accidental table offset.
+### Reference Standard (Files Page)
+- Content wrapper: `className="flex-1 px-6 pt-3 pb-6"`
+- Action buttons live in `DashboardHeader` via `headerAction` prop
+- No toolbar between header and table
 
-2) Set the intended page-level top spacing to the exact left-side value.
-- In `src/pages/ProjectFiles.tsx`, set container class to:
-  - `className="flex-1 px-6 pt-3 pb-6"`
-- With the accidental 16px removed, `pt-3` gives the target 12px to match sidebar dropdown placement.
+### Changes Per Page
 
-3) Verify alignment logic (post-change expectation).
-- Left: 12px (`py-3` in ProjectSelector).
-- Right: 12px (`pt-3` in ProjectFiles + no hidden-input gap).
-- Result: top border of file table and top border of project dropdown align on the same horizontal line.
+**1. ProjectBudget.tsx**
+- Change `<main className="flex-1 space-y-4 p-4 md:p-6 pt-6">` to `<main className="flex-1 px-6 pt-3 pb-6">`
+- Move the Budget toolbar buttons (Expand/Collapse, Lot Selector, Add Budget, Export PDF) into `DashboardHeader`'s `headerAction` prop alongside the existing lock button
+- The `BudgetPrintToolbar` component currently renders inside `BudgetTable`. It needs to be lifted out so its buttons render in the header, or the toolbar's wrapper needs its border/margin removed and it renders flush with no extra vertical gap
 
-Files to update:
-- `src/components/files/SimpleFileManager.tsx`
-  - Refactor wrapper structure to isolate hidden inputs from `space-y-4`.
-- `src/pages/ProjectFiles.tsx`
-  - Ensure content wrapper uses `pt-3`.
+**2. ProjectBidding.tsx**
+- Change `<div className="flex flex-1 overflow-hidden">` wrapper to `<div className="flex flex-1 overflow-hidden px-0 pt-3">` (the inner BiddingTabs already has `p-6` on its content pane; adjust to `px-6 pt-0 pb-6`)
+- Since Bidding has a ContentSidebar, the alignment is slightly different -- the `pt-3` goes on the outer flex wrapper so the sidebar and content both start at the right vertical position
 
-Why this plan is the correct fix:
-- Previous tuning only changed `pt-*` on the page wrapper, but the hidden-input + `space-y-4` interaction was still injecting extra space.
-- Fixing both the accidental gap and the intentional top padding gives deterministic, pixel-accurate alignment instead of trial-and-error nudging.
+**3. ProjectPurchaseOrders.tsx**
+- Remove the extra `<div className="flex flex-col min-h-screen">` wrapper
+- Change `<main className="flex-1 p-6">` to `<main className="flex-1 px-6 pt-3 pb-6">`
+- Remove `bg-muted/40` from the outer div to match other pages
+- The search bar and "Create PO" button inside `PurchaseOrdersTable` should be moved to `DashboardHeader`'s `headerAction` prop. The search input and create button will render in the header bar, keeping the table flush against the top
 
-Technical notes:
-- This is a layout-only change; no data/query/upload logic changes.
-- No API/schema impact.
-- No behavior changes to upload triggers, just DOM spacing flow cleanup.
+**4. ProjectPhotos.tsx**
+- Change `<div className="flex-1 p-6 space-y-6">` to `<div className="flex-1 px-6 pt-3 pb-6 space-y-6">`
+
+**5. ProjectSchedule.tsx**
+- Change `<div className="flex-1 flex flex-col p-6 overflow-hidden">` to `<div className="flex-1 flex flex-col px-6 pt-3 pb-6 overflow-hidden">`
+
+### Search/Toolbar Strategy
+For pages with search bars or toolbars above the table (Budget, Bidding, Purchase Orders):
+- Move action buttons (Add, Export, Expand/Collapse, Lot Selector, Create PO) into `DashboardHeader`'s `headerAction` slot
+- Keep search inputs inside the table component but remove extra top margins/borders from toolbar wrappers so the table border starts immediately
+- For `BudgetPrintToolbar` and `ActualPrintToolbar`: remove the `border-b pb-4 mb-4` wrapper styling and the title text, keeping only the button row with `justify-end`
+- For `PurchaseOrdersTable`: move the search + create button bar into `headerAction`, or remove its top spacing so the table border is flush
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `src/pages/ProjectBudget.tsx` | Change main wrapper to `px-6 pt-3 pb-6`, move budget action buttons to headerAction |
+| `src/pages/ProjectBidding.tsx` | Add `pt-3` to content area |
+| `src/pages/ProjectPurchaseOrders.tsx` | Change main to `px-6 pt-3 pb-6`, remove extra wrapper, remove bg-muted |
+| `src/pages/ProjectPhotos.tsx` | Change to `px-6 pt-3 pb-6` |
+| `src/pages/ProjectSchedule.tsx` | Change to `px-6 pt-3 pb-6` |
+| `src/components/budget/BudgetPrintToolbar.tsx` | Remove border-b/title styling if buttons move to header |
+| `src/components/budget/ActualPrintToolbar.tsx` | Remove border-b/title styling |
+| `src/components/purchaseOrders/PurchaseOrdersTable.tsx` | Adjust toolbar spacing |
+| `src/components/bidding/BiddingTabs.tsx` | Adjust inner padding from `p-6` to `pt-0 px-6 pb-6` |
+
