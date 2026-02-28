@@ -47,10 +47,10 @@ export default function ProjectPurchaseOrders() {
               projectId={projectId}
             />
             
-            <main className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+            <main className="flex-1 p-6 space-y-4">
               {/* Header */}
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Purchase Orders</h1>
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold">Purchase Orders</h1>
                 <p className="text-muted-foreground">
                   Manage purchase orders for this project
                 </p>

@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { Calendar } from "lucide-react";
+
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CustomGanttChart } from "@/components/schedule/CustomGanttChart";
 
@@ -24,10 +24,10 @@ export default function ProjectSchedule() {
             projectId={projectId}
           />
           
-          <div className="flex-1 flex flex-col p-4 md:p-8 pt-6 overflow-hidden">
-            <div className="flex items-center space-x-2 mb-4">
-              <Calendar className="h-6 w-6" />
-              <h2 className="text-2xl font-bold tracking-tight">Schedule Overview</h2>
+          <div className="flex-1 flex flex-col p-6 overflow-hidden">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Schedule</h1>
+              <p className="text-muted-foreground">View and manage the project timeline.</p>
             </div>
 
             <CustomGanttChart projectId={projectId} />

@@ -43,7 +43,7 @@ export function BudgetPrintToolbar({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Budget</h1>
+          <h1 className="text-2xl font-bold">Budget</h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
