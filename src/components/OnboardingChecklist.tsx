@@ -198,6 +198,7 @@ export function OnboardingChecklist() {
             </Button>
             <Button
               onClick={() => {
+                confirmNoEmployees();
                 setEmployeesDialogOpen(false);
                 navigate("/settings?tab=employees");
               }}
