@@ -64,20 +64,11 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/project/${projectId}`)}
-                className="text-gray-600 hover:text-black"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Project
-              </Button>
               {projectLoading ? (
                 <div className="h-8 w-80 bg-muted animate-pulse rounded"></div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-black">
+                  <h1 className="text-xl font-bold text-black">
                     {project?.address || (projectError ? "Project" : "Project")}
                   </h1>
                   {canEditProjects && project && (
