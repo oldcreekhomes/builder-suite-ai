@@ -70,7 +70,7 @@ export const useOnboardingProgress = (): OnboardingProgress => {
     queryFn: async () => {
       if (!effectiveOwnerId) return null;
 
-      const [userRes, costCodesRes, accountsRes, companiesRes, projectsRes, employeesRes] =
+      const [userRes, costCodesRes, accountsRes, companiesRes, projectsRes, employeesRes, freshProgressRes] =
         await Promise.all([
           supabase.from("users").select("confirmed, hq_address").eq("id", effectiveOwnerId).single(),
           supabase.from("cost_codes").select("id", { count: "exact", head: true }).eq("owner_id", effectiveOwnerId),
@@ -78,11 +78,12 @@ export const useOnboardingProgress = (): OnboardingProgress => {
           supabase.from("companies").select("id", { count: "exact", head: true }).eq("home_builder_id", effectiveOwnerId).is("archived_at", null),
           supabase.from("projects").select("id", { count: "exact", head: true }).eq("owner_id", effectiveOwnerId),
           supabase.from("users").select("id", { count: "exact", head: true }).eq("home_builder_id", effectiveOwnerId),
+          supabase.from("onboarding_progress").select("welcome_confirmed").eq("home_builder_id", effectiveOwnerId).maybeSingle(),
         ]);
 
       return {
         email_verified: userRes.data?.confirmed === true,
-        welcome_confirmed: progressRow?.welcome_confirmed === true,
+        welcome_confirmed: freshProgressRes.data?.welcome_confirmed === true,
         company_profile_completed: !!(userRes.data?.hq_address),
         cost_codes_imported: (costCodesRes.count ?? 0) > 0,
         chart_of_accounts_imported: (accountsRes.count ?? 0) > 0,
