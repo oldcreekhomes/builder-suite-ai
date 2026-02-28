@@ -57,28 +57,14 @@ export default function ProjectDashboard() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
+      <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader projectId={projectId} />
 
-          <div className="flex-1 p-6">
-            {/* Status Badge */}
-            <div className="mb-6">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                currentProject.status === 'Under Construction' ? 'bg-orange-100 text-orange-800' :
-                currentProject.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                currentProject.status === 'In Design' ? 'bg-blue-100 text-blue-800' :
-                currentProject.status === 'Permitting' ? 'bg-blue-100 text-blue-800' :
-                currentProject.status === 'Permanently Closed' ? 'bg-gray-100 text-gray-600' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {currentProject.status}
-              </span>
-            </div>
-
+          <div className="flex-1 px-6 pt-3 pb-6 space-y-6">
             {/* Top Row: Accounting Alerts (left) and Project Photos (right) */}
-            <div className="grid gap-6 md:grid-cols-2 mb-8">
+            <div className="grid gap-6 md:grid-cols-2">
               {/* Accounting Alerts */}
               <ProjectAccountingAlerts 
                 projectId={projectId} 
@@ -128,7 +114,7 @@ export default function ProjectDashboard() {
             </div>
 
             {/* Weather Forecast Section */}
-            <div className="mb-8">
+            <div>
               <WeatherForecast address={currentProject.address} />
             </div>
           </div>
