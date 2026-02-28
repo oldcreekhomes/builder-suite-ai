@@ -46,18 +46,15 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                       location.pathname === '/companies' || 
                       location.pathname === '/employees';
 
-  // If this is a project page, show minimal header strip
+  // If this is a project page, remove header entirely (sidebar toggle only when collapsed)
   if (projectId) {
+    if (!isCollapsed) return null;
     return (
-      <header className="bg-white border-b border-border px-6 py-2">
-        <div className="flex items-center h-8">
-          {isCollapsed && (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </header>
+      <div className="px-6 pt-2">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
     );
   }
 
