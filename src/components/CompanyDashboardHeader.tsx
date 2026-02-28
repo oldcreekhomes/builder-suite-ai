@@ -42,7 +42,7 @@ export function CompanyDashboardHeader({
 
   return (
     <>
-      <header className="bg-white border-b border-border px-6 py-2 mt-4">
+      <header className="bg-white border-b border-border px-6 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <SidebarTrigger className="text-gray-600 hover:text-black" />
