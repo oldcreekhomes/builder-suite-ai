@@ -1,40 +1,44 @@
 
-I traced the issue and confirmed why this keeps happening:
 
-1) The “Use Our Template” import path calls the edge function `copy-template-accounts` from `ChartOfAccountsTab.tsx`.
-2) In `supabase/functions/copy-template-accounts/index.ts`, the hardcoded template still defines Retained Earnings as code `"32000"` (line 23), so every fresh template import recreates it as 32000.
-3) Your live Dorian Gray Homes dataset also currently has Retained Earnings = `32000` (account id `1866a363-ae41-4f9b-aa81-828c06d05ecf`), so it needs a one-time data correction too.
+# Add "Do You Have Employees?" Dialog for Onboarding Step 8
 
-Implementation approach (to satisfy both immediate and future behavior):
+## Problem
+Step 8 ("Invite Employees") currently checks if any employees exist in the database. Companies without employees can never complete onboarding.
 
-## A) Fix future imports (source of truth)
-- Update `supabase/functions/copy-template-accounts/index.ts`:
-  - Change template entry:
-    - from: `{ code: "32000", name: "Retained Earnings", ... }`
-    - to:   `{ code: "3200",  name: "Retained Earnings", ... }`
-- Deploy the updated `copy-template-accounts` edge function so new imports use 3200.
+## Solution
+Replace the current "link to employees tab" behavior with a dialog action. When the user clicks "Go" on Step 8, a dialog asks "Do you have employees?" with Yes/No options:
+- **Yes**: Navigates them to `/settings?tab=employees` to add employees (step completes dynamically when they add one)
+- **No**: Immediately marks `employees_invited` as `true` in the `onboarding_progress` table (acknowledging they have no employees)
 
-## B) Fix current Dorian data now
-Because your org already imported the template, apply a one-time data update for that owner:
-- Update `accounts.code` from `32000` to `3200` for owner `3e482bbc-139c-4ebc-a006-d9290287d2d5` and account name “Retained Earnings”.
-- Preferred safe WHERE filter:
-  - `owner_id = '3e482bbc-139c-4ebc-a006-d9290287d2d5'`
-  - `name = 'Retained Earnings'`
-  - `code = '32000'`
+Either path satisfies the onboarding requirement.
 
-I will execute this with a temporary admin edge function (service role), run it once, verify the result, then remove the temporary function.
+## Changes
 
-## C) Verification checklist
-After deployment + one-time update:
-1. Query Dorian’s accounts and confirm Retained Earnings now shows `3200`.
-2. In UI `/settings?tab=chart-of-accounts`, confirm Retained Earnings displays 3200.
-3. Delete COA and re-import using “Use Our Template” to confirm fresh imports now create 3200 (not 32000).
+### 1. `src/hooks/useOnboardingProgress.ts`
+- Change the `employees_invited` step definition from `link: "/settings?tab=employees"` to `action: "employees-dialog"`
+- Change the live check logic: instead of only checking employee count > 0, also check if `employees_invited` is already `true` in the `onboarding_progress` table (to handle the "No employees" case)
+- Add a `confirmNoEmployees` callback (similar to `confirmWelcome`) that sets `employees_invited = true` in the database
+- Export `confirmNoEmployees` from the hook's return value
+- Update the `OnboardingProgress` interface to include `confirmNoEmployees`
 
-## Edge cases I will guard against
-- If a `3200` Retained Earnings already exists for the same owner, skip update to avoid duplicate-code conflicts.
-- If no matching `32000` row exists, return a “no-op” success response instead of failing.
-- Keep scope strictly to Dorian’s owner_id so other builders are unaffected.
+### 2. `src/components/OnboardingChecklist.tsx`
+- Add state: `employeesDialogOpen`
+- Add a new Dialog with:
+  - Title: "Do You Have Employees?"
+  - Description: explaining they can add employees now or skip if they don't have any
+  - Two buttons: "Yes, Add Employees" and "No, Skip This Step"
+- Wire up `handleAction` to open the dialog when `action === "employees-dialog"`
+- "Yes" button: closes the dialog and navigates to `/settings?tab=employees`
+- "No" button: calls `confirmNoEmployees()` and closes the dialog
 
-## Expected outcome
-- Immediate: Dorian Gray Homes Retained Earnings code becomes 3200.
-- Going forward: every “Import Chart of Accounts” template import creates Retained Earnings as 3200 by default.
+### 3. Live Check Logic Update (in `useOnboardingProgress.ts`)
+Update the `employees_invited` resolution to:
+```
+employees_invited: (employeesRes.count ?? 0) > 0 || freshProgressRes.data?.employees_invited === true
+```
+This way, the step is satisfied if either employees exist OR the user explicitly confirmed "No employees." The `freshProgressRes` query will need to also select `employees_invited`.
+
+## Technical Notes
+- The `freshProgressRes` query (line 81) currently only selects `welcome_confirmed`. It needs to also select `employees_invited` to support the new logic.
+- The sync logic in the `useEffect` already handles syncing live checks to the database, so no changes needed there -- but we must ensure the sync doesn't overwrite a `true` value with `false`. The current logic only updates when values differ, so if `employees_invited` is already `true` in the DB and the live check also returns `true`, no overwrite occurs.
+
