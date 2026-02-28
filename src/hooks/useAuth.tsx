@@ -86,10 +86,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error) {
         console.error("🔑 Error getting session:", error);
         setAuthInitError(error.message);
-      } else {
-        console.log("🔑 Initial session:", session?.user?.email || "no user");
+      } else if (session) {
+        // Validate session against the server (getSession only reads local cache)
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !userData?.user) {
+          console.error("🔑 User no longer exists on server, signing out...", userError?.message);
+          await supabase.auth.signOut();
+          setSession(null);
+          setRealUser(null);
+          setLoading(false);
+          if (timeoutId) clearTimeout(timeoutId);
+          return;
+        }
+        
+        console.log("🔑 Initial session validated:", session.user.email);
         setSession(session);
-        setRealUser(session?.user ?? null);
+        setRealUser(session.user);
+      } else {
+        console.log("🔑 No active session");
+        setSession(null);
+        setRealUser(null);
       }
       
       setLoading(false);
