@@ -1,45 +1,29 @@
 
 
-# Auto-Sign-Out Deleted Users
+# Onboarding Checklist Fixes
 
-## Problem
-When a user account is fully deleted from `auth.users`, their browser still holds a cached JWT session token. The app loads this stale session and treats the user as authenticated, even though Supabase returns 403 "User from sub claim in JWT does not exist" on every API call. The user remains stuck in a broken signed-in state.
+## Three Changes
 
-## Solution
-After retrieving the cached session in `useAuth`, validate it by calling `supabase.auth.getUser()` (which actually hits the Supabase server, unlike `getSession()` which only reads the local cache). If the server returns an error (e.g., user not found), force a sign-out to clear the stale token and redirect to the auth page.
+### 1. Fix "Confirm Welcome Message" not checking off
 
-## Implementation
+**Root cause**: In `useOnboardingProgress.ts` (line 85), the `welcome_confirmed` status is read from `progressRow?.welcome_confirmed` inside the `liveChecks` query. When the user clicks "Got It", the `confirmWelcome` function updates the database and invalidates both queries, but there is a race condition: `liveChecks` may re-fetch before `progressRow` has refreshed, so it reads the stale value and the checkmark never appears.
 
-**File: `src/hooks/useAuth.tsx`**
+**Fix**: In the `liveChecks` query function, fetch `welcome_confirmed` directly from the `onboarding_progress` table instead of relying on the captured `progressRow` variable. This eliminates the stale closure issue.
 
-In the `initializeAuth` function, after successfully getting a session (line 89-92), add a server-side validation step:
+**File**: `src/hooks/useOnboardingProgress.ts`
+- Add a query to `onboarding_progress` inside the `Promise.all` in `liveChecks` to get the current `welcome_confirmed` value directly
+- Replace `progressRow?.welcome_confirmed === true` with the fresh DB result
 
-```typescript
-// After getting session successfully
-if (session) {
-  // Validate the session against the server
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  
-  if (userError || !userData?.user) {
-    console.error("🔑 User no longer exists on server, signing out...", userError?.message);
-    await supabase.auth.signOut();
-    setSession(null);
-    setRealUser(null);
-    setLoading(false);
-    return;
-  }
-}
-```
+### 2. Update heading text
 
-Also, in the `onAuthStateChange` listener, add similar handling for the `TOKEN_REFRESHED` event failing (Supabase will emit a `SIGNED_OUT` event automatically when token refresh fails for a deleted user, but adding explicit handling for edge cases where the stale token persists).
+**File**: `src/components/OnboardingChecklist.tsx` (line 128)
+- Change `"Get Started with BuilderSuiteML"` to `"Get Started with BuilderSuiteML Onboarding Process"`
 
-## What This Achieves
-- Deleted users are automatically signed out on their next page load
-- No more 403 error loops from stale JWTs
-- Clean redirect to the auth/landing page
-- No impact on normal active users (one extra lightweight API call on init)
+### 3. Add green checkmark for completed steps (replacing Go button area)
 
-## Scope
-- Single file change: `src/hooks/useAuth.tsx`
-- No database, RLS, or edge function changes needed
+Currently, completed steps show a filled circle + strikethrough text on the left, but the right side where the "Go" button was is empty. The user wants a green checkmark icon (like the `CheckCircle2` used in ProjectBidsCard and ProjectWarnings) to appear on the right side when a step is done.
+
+**File**: `src/components/OnboardingChecklist.tsx`
+- Import `CheckCircle2` from `lucide-react`
+- In the `StepItem` component, add an `else` branch: when `step.completed`, render a `CheckCircle2` icon (`h-5 w-5 text-green-500`) on the right side where the "Go" button normally sits
 
