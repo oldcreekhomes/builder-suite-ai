@@ -54,7 +54,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
     return (
       <>
         <header className="bg-white border-b border-border px-6 py-3.5">
-          <div className="flex items-center justify-between min-h-[36px]">
+          <div className="flex items-center justify-between h-10">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-gray-600 hover:text-black" />
               <Button
@@ -102,7 +102,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   return (
     <>
       <header className="bg-white border-b border-border px-6 py-3.5">
-          <div className="flex items-center justify-between min-h-[36px]">
+          <div className="flex items-center justify-between h-10">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-gray-600 hover:text-black" />
               
