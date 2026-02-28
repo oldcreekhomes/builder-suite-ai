@@ -1,27 +1,57 @@
 
-# Allow Dismissing the "Add Your Companies" Template Dialog
 
-## Problem
-The "Add Your Companies" template dialog cannot be closed. The `onOpenChange` prop is hardcoded to `() => {}` (a no-op function), which blocks the user from clicking outside, pressing Escape, or using the X button to dismiss it. This traps users on the screen.
+# Fix Onboarding Checklist: Fixed Height Rows + Step Numbers
 
-## Fix
+## Two Changes
 
-**File: `src/components/settings/CompaniesTab.tsx`** (line 81)
+### 1. Fixed row height so left and right columns align perfectly
 
-Change the `onOpenChange` handler from `() => {}` to `(open) => { if (!open) setTemplateDismissed(true); }`. This allows the user to close the dialog by clicking outside, pressing Escape, or the X button. Setting `templateDismissed = true` prevents it from immediately reopening (since `companyCount` is still 0).
+The issue is that completed rows (with a small green checkmark icon) are shorter than incomplete rows (with a taller "Go" button). This causes the two columns to become misaligned.
 
-Current:
+**Fix**: Add a fixed height of `h-10` (40px) to each `<li>` element in the `StepItem` component. This ensures every row -- whether completed or not -- is the same height, so Step 1 lines up with Step 5, Step 2 with Step 6, etc.
+
+**File**: `src/components/OnboardingChecklist.tsx` (line 22)
+
+Change:
 ```tsx
-onOpenChange={() => {}}
+className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${...}`}
+```
+To:
+```tsx
+className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors h-10 ${...}`}
 ```
 
-Updated:
+### 2. Add "Step 1:", "Step 2:", etc. before each label
+
+Pass a `stepNumber` prop into `StepItem` and prepend it to the label text.
+
+**File**: `src/hooks/useOnboardingProgress.ts`
+- No changes needed here; numbering will be handled in the component since steps are already in order.
+
+**File**: `src/components/OnboardingChecklist.tsx`
+- Update `StepItem` to accept a `stepNumber` prop
+- Display it as `"Step {stepNumber}: {step.label}"` in the label span
+- When rendering the steps, pass the index-based step number (1-4 for left column, 5-8 for right column)
+
+Updated label rendering:
 ```tsx
-onOpenChange={(open) => { if (!open) setTemplateDismissed(true); }}
+<span className={step.completed ? "line-through opacity-70" : "font-medium"}>
+  Step {stepNumber}: {step.label}
+</span>
 ```
 
-## Representatives Check
-The Representatives tab (`RepresentativesTab.tsx`) does **not** have a similar template dialog, so no change is needed there. Representatives simply shows an empty table with a message "No representatives found."
+Updated rendering in the grid:
+```tsx
+{leftSteps.map((step, index) => (
+  <StepItem key={step.key} step={step} stepNumber={index + 1} navigate={navigate} onAction={handleAction} />
+))}
+...
+{rightSteps.map((step, index) => (
+  <StepItem key={step.key} step={step} stepNumber={index + 5} navigate={navigate} onAction={handleAction} />
+))}
+```
 
-## Scope
-- Single line change in `src/components/settings/CompaniesTab.tsx`
+## Result
+- All 8 rows will be the same height (40px), keeping left and right columns perfectly aligned
+- Each step will read: "Step 1: Verify Email", "Step 2: Confirm Welcome Message", etc.
+
