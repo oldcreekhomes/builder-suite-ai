@@ -1,29 +1,34 @@
 
 
-## Align "Filter by Type" with "Select Project"
+## Clean Up Header: Move Collapse Button and Fix Font Size
 
 ### Problem
-The "Filter by Type" header in the marketplace category sidebar is shorter than the "Select Project" dropdown area in the main sidebar, causing their bottom borders to misalign.
+1. The SidebarTrigger (hamburger collapse button) sitting in the header bar next to the page title looks out of place
+2. The company name ("Old Creek Homes LLC") displayed in the header on pages like Company Dashboard uses `text-2xl font-bold`, which is larger than the sidebar's "BuilderSuiteML" branding (`text-xl font-bold`), creating a visual mismatch
 
-### Root Cause
-- **ProjectSelector**: `px-4 py-3` padding + `h-10` (40px) button = 64px total height
-- **Filter by Type**: `p-4` (16px) padding + ~20px text = ~52px total height
-- Result: Filter by Type is ~12px shorter
+### Changes
 
-### Fix
-**File: `src/components/marketplace/MarketplaceCategorySidebar.tsx`**
+**1. Move SidebarTrigger from header into the sidebar branding area**
+- File: `src/components/sidebar/SidebarBranding.tsx`
+- Add a small chevron-left icon button (`ChevronsLeft`) in the top-right corner of the branding section
+- When sidebar is collapsed, the mini strip shows a `ChevronsRight` button to expand
+- Uses the existing `useSidebar()` hook's `toggleSidebar` method
 
-Change the Filter by Type header container from `p-4` to `px-4 py-3` and make the inner content `h-10 flex items-center`, exactly mirroring the ProjectSelector's geometry:
+**2. Remove SidebarTrigger from CompanyDashboardHeader**
+- File: `src/components/CompanyDashboardHeader.tsx`
+- Remove the `SidebarTrigger` import and the trigger button from the header
+- The header becomes cleaner: just the page title on the left, "New Project" button on the right
 
-```tsx
-// Before
-<div className="p-4 border-b border-border">
-  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+**3. Remove SidebarTrigger from DashboardHeader (project-level)**
+- File: `src/components/DashboardHeader.tsx`
+- Same treatment: remove the trigger from the project-level header for consistency
 
-// After
-<div className="px-4 py-3 border-b border-border">
-  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 h-10">
-```
+**4. Match company name font to BuilderSuiteML**
+- File: `src/components/CompanyDashboardHeader.tsx`
+- Change the title from `text-2xl font-bold` to `text-xl font-bold` to match the sidebar branding font size
+- This applies to all pages using CompanyDashboardHeader (Company Dashboard, Marketplace, Settings, etc.)
 
-This gives identical height (64px) to the ProjectSelector, so their bottom borders align perfectly. The text remains vertically centered via `items-center`.
-
+### Result
+- Header bar is cleaner with no hamburger button
+- Sidebar has its own collapse/expand chevron in the branding area (familiar Notion/Linear pattern)
+- Company name font matches BuilderSuiteML exactly
