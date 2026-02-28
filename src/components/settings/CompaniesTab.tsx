@@ -78,7 +78,7 @@ export function CompaniesTab() {
     <div className="space-y-4">
       <CompaniesTemplateDialog
         open={templateDialogOpen}
-        onOpenChange={() => {}}
+        onOpenChange={(open) => { if (!open) setTemplateDismissed(true); }}
         onImportExcel={handleImportExcel}
         onAddManually={handleAddManually}
       />
