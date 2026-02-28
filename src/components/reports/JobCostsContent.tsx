@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,9 +49,10 @@ interface JobCostRow {
 
 interface JobCostsContentProps {
   projectId?: string;
+  onHeaderActionChange?: (actions: React.ReactNode) => void;
 }
 
-export function JobCostsContent({ projectId }: JobCostsContentProps) {
+export function JobCostsContent({ projectId, onHeaderActionChange }: JobCostsContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [selectedCostCode, setSelectedCostCode] = useState<JobCostRow | null>(null);
@@ -485,6 +486,135 @@ return parentRows;
     }
   };
 
+  // Group data by parent_group
+  const groupedJobCosts = useMemo(() => {
+    if (!jobCostsData) return {};
+    
+    const grouped: Record<string, JobCostRow[]> = {};
+    jobCostsData.forEach(row => {
+      const group = row.parentGroup || 'Uncategorized';
+      if (!grouped[group]) {
+        grouped[group] = [];
+      }
+      grouped[group].push(row);
+    });
+    
+    // Sort groups alphabetically
+    const sortedGroups: Record<string, JobCostRow[]> = {};
+    Object.keys(grouped).sort().forEach(key => {
+      sortedGroups[key] = grouped[key];
+    });
+    
+    return sortedGroups;
+  }, [jobCostsData]);
+
+  // Calculate group totals
+  const calculateGroupTotals = (rows: JobCostRow[]) => {
+    return rows.reduce((acc, row) => ({
+      budget: acc.budget + row.budget,
+      actual: acc.actual + row.actual,
+      variance: acc.variance + row.variance
+    }), { budget: 0, actual: 0, variance: 0 });
+  };
+
+  // Initialize all groups as expanded
+  useEffect(() => {
+    if (groupedJobCosts && Object.keys(groupedJobCosts).length > 0) {
+      setExpandedGroups(new Set(Object.keys(groupedJobCosts)));
+    }
+  }, [groupedJobCosts]);
+
+  const handleGroupToggle = (group: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(group)) {
+        newSet.delete(group);
+      } else {
+        newSet.add(group);
+      }
+      return newSet;
+    });
+  };
+
+  const totalBudget = jobCostsData?.reduce((sum, row) => sum + row.budget, 0) || 0;
+  const totalActual = jobCostsData?.reduce((sum, row) => sum + row.actual, 0) || 0;
+  const totalVariance = totalBudget - totalActual;
+
+  // Emit controls to header via bridge - MUST be before early returns
+  React.useEffect(() => {
+    if (onHeaderActionChange && projectId) {
+      onHeaderActionChange(
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={canLockBudgets ? handleLockToggle : undefined}
+                  disabled={!canLockBudgets || isLocking || isUnlocking}
+                  className={cn(
+                    "p-1 rounded transition-colors",
+                    canLockBudgets && !isLocking && !isUnlocking 
+                      ? "cursor-pointer hover:bg-accent" 
+                      : "cursor-not-allowed opacity-50"
+                  )}
+                >
+                  {isLocked ? (
+                    <Lock className="h-5 w-5 text-destructive" />
+                  ) : (
+                    <LockOpen className="h-5 w-5 text-green-600" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!canLockBudgets ? (
+                  <p>No access. Contact admin.</p>
+                ) : isLocked ? (
+                  <p>Budget is locked. Click to unlock.</p>
+                ) : (
+                  <p>Budget is unlocked. Click to lock.</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                As of {format(asOfDate, "PPP")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={asOfDate}
+                onSelect={(date) => date && setAsOfDate(date)}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <Button 
+            onClick={handleExportPdf} 
+            variant="outline"
+            size="sm"
+            disabled={isExportingPdf || !jobCostsData || jobCostsData.length === 0}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {isExportingPdf ? 'Exporting...' : 'Export PDF'}
+          </Button>
+          <LotSelector
+            projectId={projectId}
+            selectedLotId={selectedLotId}
+            onSelectLot={setSelectedLotId}
+          />
+        </div>
+      );
+      return () => onHeaderActionChange(null);
+    }
+  }, [onHeaderActionChange, projectId, asOfDate, isLocked, canLockBudgets, isLocking, isUnlocking, isExportingPdf, jobCostsData?.length, selectedLotId]);
+
+  const hasHeaderBridge = !!onHeaderActionChange;
+
   if (!projectId) {
     return (
       <div className="space-y-4">
@@ -542,81 +672,29 @@ return parentRows;
   );
 }
 
-  // Group data by parent_group
-  const groupedJobCosts = useMemo(() => {
-    if (!jobCostsData) return {};
-    
-    const grouped: Record<string, JobCostRow[]> = {};
-    jobCostsData.forEach(row => {
-      const group = row.parentGroup || 'Uncategorized';
-      if (!grouped[group]) {
-        grouped[group] = [];
-      }
-      grouped[group].push(row);
-    });
-    
-    // Sort groups alphabetically
-    const sortedGroups: Record<string, JobCostRow[]> = {};
-    Object.keys(grouped).sort().forEach(key => {
-      sortedGroups[key] = grouped[key];
-    });
-    
-    return sortedGroups;
-  }, [jobCostsData]);
-
-  // Calculate group totals
-  const calculateGroupTotals = (rows: JobCostRow[]) => {
-    return rows.reduce((acc, row) => ({
-      budget: acc.budget + row.budget,
-      actual: acc.actual + row.actual,
-      variance: acc.variance + row.variance
-    }), { budget: 0, actual: 0, variance: 0 });
-  };
-
-  // Initialize all groups as expanded
-  useEffect(() => {
-    if (groupedJobCosts && Object.keys(groupedJobCosts).length > 0) {
-      setExpandedGroups(new Set(Object.keys(groupedJobCosts)));
-    }
-  }, [groupedJobCosts]);
-
-  const handleGroupToggle = (group: string) => {
-    setExpandedGroups(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(group)) {
-        newSet.delete(group);
-      } else {
-        newSet.add(group);
-      }
-      return newSet;
-    });
-  };
-
-  const totalBudget = jobCostsData?.reduce((sum, row) => sum + row.budget, 0) || 0;
-  const totalActual = jobCostsData?.reduce((sum, row) => sum + row.actual, 0) || 0;
-  const totalVariance = totalBudget - totalActual;
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              As of {format(asOfDate, "PPP")}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={asOfDate}
-              onSelect={(date) => date && setAsOfDate(date)}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+      {!hasHeaderBridge && (
+        <div className="flex items-center justify-end">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                As of {format(asOfDate, "PPP")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={asOfDate}
+                onSelect={(date) => date && setAsOfDate(date)}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
 
       {isLoading ? (
         <Card>
@@ -633,56 +711,58 @@ return parentRows;
         </Card>
       ) : (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={canLockBudgets ? handleLockToggle : undefined}
-                      disabled={!canLockBudgets || isLocking || isUnlocking}
-                      className={cn(
-                        "p-1 rounded transition-colors",
-                        canLockBudgets && !isLocking && !isUnlocking 
-                          ? "cursor-pointer hover:bg-accent" 
-                          : "cursor-not-allowed opacity-50"
-                      )}
-                    >
-                      {isLocked ? (
-                        <Lock className="h-5 w-5 text-destructive" />
+          {!hasHeaderBridge && (
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={canLockBudgets ? handleLockToggle : undefined}
+                        disabled={!canLockBudgets || isLocking || isUnlocking}
+                        className={cn(
+                          "p-1 rounded transition-colors",
+                          canLockBudgets && !isLocking && !isUnlocking 
+                            ? "cursor-pointer hover:bg-accent" 
+                            : "cursor-not-allowed opacity-50"
+                        )}
+                      >
+                        {isLocked ? (
+                          <Lock className="h-5 w-5 text-destructive" />
+                        ) : (
+                          <LockOpen className="h-5 w-5 text-green-600" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {!canLockBudgets ? (
+                        <p>No access. Contact admin.</p>
+                      ) : isLocked ? (
+                        <p>Budget is locked. Click to unlock.</p>
                       ) : (
-                        <LockOpen className="h-5 w-5 text-green-600" />
+                        <p>Budget is unlocked. Click to lock.</p>
                       )}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {!canLockBudgets ? (
-                      <p>No access. Contact admin.</p>
-                    ) : isLocked ? (
-                      <p>Budget is locked. Click to unlock.</p>
-                    ) : (
-                      <p>Budget is unlocked. Click to lock.</p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={handleExportPdf} 
-                variant="outline" 
-                disabled={isExportingPdf || !jobCostsData || jobCostsData.length === 0}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                {isExportingPdf ? 'Exporting...' : 'Export PDF'}
-              </Button>
-              <LotSelector
-                projectId={projectId}
-                selectedLotId={selectedLotId}
-                onSelectLot={setSelectedLotId}
-              />
-            </div>
-          </CardHeader>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={handleExportPdf} 
+                  variant="outline" 
+                  disabled={isExportingPdf || !jobCostsData || jobCostsData.length === 0}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {isExportingPdf ? 'Exporting...' : 'Export PDF'}
+                </Button>
+                <LotSelector
+                  projectId={projectId}
+                  selectedLotId={selectedLotId}
+                  onSelectLot={setSelectedLotId}
+                />
+              </div>
+            </CardHeader>
+          )}
 
           {/* Lock/Unlock Confirmation Dialog */}
           <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>

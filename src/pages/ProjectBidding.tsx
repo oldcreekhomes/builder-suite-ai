@@ -1,4 +1,5 @@
 
+import { useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePr
 
 export default function ProjectBidding() {
   const { projectId } = useParams();
+  const [biddingHeaderActions, setBiddingHeaderActions] = useState<ReactNode>(null);
 
   // Fetch project data to get the address
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -48,12 +50,14 @@ export default function ProjectBidding() {
               title="Bidding" 
               subtitle="Manage bid packages and vendor proposals."
               projectId={projectId}
+              headerAction={biddingHeaderActions}
             />
             
             <div className="flex flex-1 overflow-hidden pt-3">
               <BiddingTabs
                 projectId={projectId} 
                 projectAddress={project?.address}
+                onHeaderActionChange={setBiddingHeaderActions}
               />
             </div>
           </SidebarInset>

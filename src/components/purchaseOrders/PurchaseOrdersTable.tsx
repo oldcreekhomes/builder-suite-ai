@@ -16,9 +16,10 @@ import { useLotManagement } from '@/hooks/useLotManagement';
 interface PurchaseOrdersTableProps {
   projectId: string;
   projectAddress?: string;
+  onHeaderActionChange?: (actions: React.ReactNode) => void;
 }
 
-export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrdersTableProps) {
+export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionChange }: PurchaseOrdersTableProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,22 +111,49 @@ export function PurchaseOrdersTable({ projectId, projectAddress }: PurchaseOrder
     return 'No purchase orders yet.';
   };
 
+  // Emit toolbar to header via bridge
+  React.useEffect(() => {
+    if (onHeaderActionChange) {
+      onHeaderActionChange(
+        <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search purchase orders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+          <Button onClick={() => setShowCreateModal(true)} size="sm">
+            Create Purchase Order
+          </Button>
+        </div>
+      );
+      return () => onHeaderActionChange(null);
+    }
+  }, [onHeaderActionChange, searchQuery]);
+
+  const toolbarInContent = !onHeaderActionChange ? (
+    <div className="flex items-center justify-end gap-2">
+      <div className="relative w-64">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search purchase orders..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 h-9"
+        />
+      </div>
+      <Button onClick={() => setShowCreateModal(true)} size="sm">
+        Create Purchase Order
+      </Button>
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search purchase orders..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-        <Button onClick={() => setShowCreateModal(true)} size="sm">
-          Create Purchase Order
-        </Button>
-      </div>
+      {toolbarInContent}
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
