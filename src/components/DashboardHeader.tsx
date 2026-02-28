@@ -69,7 +69,7 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
               ) : (
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-black">
-                    {project?.address || (projectError ? "Project" : "Project")}
+                    {(project?.address?.replace(/,?\s*USA$/i, '') || (projectError ? "Project" : "Project"))}
                   </h1>
                   {canEditProjects && project && (
                     <Button
