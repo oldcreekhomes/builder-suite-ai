@@ -4,7 +4,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight, Rocket, PartyPopper } from "lucide-react";
+import { Check, ArrowRight, Rocket, PartyPopper, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import {
@@ -37,7 +37,9 @@ function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: st
           {step.label}
         </span>
       </div>
-      {!step.completed && (step.link || step.action) && (
+      {step.completed ? (
+        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 ml-2" />
+      ) : (step.link || step.action) ? (
         <Button
           size="sm"
           onClick={() => {
@@ -51,7 +53,7 @@ function StepItem({ step, navigate, onAction }: { step: any; navigate: (path: st
         >
           Go <ArrowRight className="h-3 w-3" />
         </Button>
-      )}
+      ) : null}
     </li>
   );
 }
@@ -125,7 +127,7 @@ export function OnboardingChecklist() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Rocket className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Get Started with BuilderSuiteML</CardTitle>
+              <CardTitle className="text-lg">Get Started with BuilderSuiteML Onboarding Process</CardTitle>
             </div>
             <span className="text-sm font-medium text-muted-foreground">
               {completedCount} of {totalCount}
