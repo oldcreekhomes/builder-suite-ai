@@ -1,34 +1,28 @@
 
 
-## Clean Up Header: Move Collapse Button and Fix Font Size
+## Add Expand Button When Sidebar Is Collapsed
 
 ### Problem
-1. The SidebarTrigger (hamburger collapse button) sitting in the header bar next to the page title looks out of place
-2. The company name ("Old Creek Homes LLC") displayed in the header on pages like Company Dashboard uses `text-2xl font-bold`, which is larger than the sidebar's "BuilderSuiteML" branding (`text-xl font-bold`), creating a visual mismatch
+When the sidebar is collapsed (offcanvas mode), it fully disappears and the chevron button inside it is gone too -- leaving no way to bring the sidebar back.
+
+### Solution
+Add a small expand trigger button to the header bars that only appears when the sidebar is collapsed. This keeps the header clean when the sidebar is open, but provides a way to restore it.
 
 ### Changes
 
-**1. Move SidebarTrigger from header into the sidebar branding area**
-- File: `src/components/sidebar/SidebarBranding.tsx`
-- Add a small chevron-left icon button (`ChevronsLeft`) in the top-right corner of the branding section
-- When sidebar is collapsed, the mini strip shows a `ChevronsRight` button to expand
-- Uses the existing `useSidebar()` hook's `toggleSidebar` method
+**File: `src/components/CompanyDashboardHeader.tsx`**
+- Import `useSidebar` from the sidebar component and `ChevronsRight` from lucide
+- Before the `h1` title, add a `Button` (ghost, icon size) that calls `toggleSidebar`
+- Only render this button when `state === "collapsed"`
+- Uses `ChevronsRight` icon to indicate "expand sidebar"
 
-**2. Remove SidebarTrigger from CompanyDashboardHeader**
-- File: `src/components/CompanyDashboardHeader.tsx`
-- Remove the `SidebarTrigger` import and the trigger button from the header
-- The header becomes cleaner: just the page title on the left, "New Project" button on the right
-
-**3. Remove SidebarTrigger from DashboardHeader (project-level)**
-- File: `src/components/DashboardHeader.tsx`
-- Same treatment: remove the trigger from the project-level header for consistency
-
-**4. Match company name font to BuilderSuiteML**
-- File: `src/components/CompanyDashboardHeader.tsx`
-- Change the title from `text-2xl font-bold` to `text-xl font-bold` to match the sidebar branding font size
-- This applies to all pages using CompanyDashboardHeader (Company Dashboard, Marketplace, Settings, etc.)
+**File: `src/components/DashboardHeader.tsx`**
+- Same treatment: import `useSidebar` and `ChevronsRight`
+- Add the conditional expand button before the existing content in the header's left section
+- Only visible when sidebar is collapsed
 
 ### Result
-- Header bar is cleaner with no hamburger button
-- Sidebar has its own collapse/expand chevron in the branding area (familiar Notion/Linear pattern)
-- Company name font matches BuilderSuiteML exactly
+- When sidebar is open: headers look exactly as they do now (no extra button)
+- When sidebar is collapsed: a small chevron-right icon appears at the left edge of the header, letting the user re-expand the sidebar
+- Consistent across both company-level and project-level pages
+
