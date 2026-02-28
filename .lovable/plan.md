@@ -1,29 +1,28 @@
 
 
-## Align Table Top Border with Project Selector Dropdown
+## Fix Table Top Alignment -- Reduce Padding
 
 ### Problem
-The file table's top border sits slightly higher than the project selector dropdown's top border in the sidebar. They need to be at exactly the same vertical position.
+With `pt-3` (12px), the table sits too far below the project selector dropdown. With `pt-0` it was slightly too high. The correct offset is in between.
 
-### Root Cause
-The sidebar's ProjectSelector wrapper has `py-3` (12px top padding) before the dropdown button, while the content area has zero top padding after the header. This means the table starts ~12px higher than the dropdown.
+### Analysis
+- The right-side DashboardHeader bottom border sits ~6px higher than the sidebar's branding section bottom border (above ProjectSelector)
+- The ProjectSelector has `py-3` (12px) top padding before the dropdown button
+- So the table needs ~6px top padding to align with the dropdown's top border (12px - 6px offset = 6px)
 
 ### Change
 
-**File: `src/pages/ProjectFiles.tsx`**
-
-Add `pt-3` (12px) top padding to the content wrapper, matching the ProjectSelector's `py-3` top padding exactly:
+**File: `src/pages/ProjectFiles.tsx` (line 56)**
 
 ```text
-Before: <div className="flex-1 px-6 pb-6">
-After:  <div className="flex-1 px-6 pt-3 pb-6">
+Before: <div className="flex-1 px-6 pt-3 pb-6">
+After:  <div className="flex-1 px-6 pt-1.5 pb-6">
 ```
 
-This ensures the table's top border aligns pixel-perfectly with the project selector dropdown's top border, since both will have identical 12px spacing below their respective dividers (header border-b and sidebar branding border-b).
+Change `pt-3` (12px) to `pt-1.5` (6px). This accounts for the height difference between the sidebar branding header and the content-area header, placing the table's top border in line with the dropdown button's top border.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/ProjectFiles.tsx` | Add `pt-3` to content wrapper |
-
+| `src/pages/ProjectFiles.tsx` | Change `pt-3` to `pt-1.5` on content wrapper |
