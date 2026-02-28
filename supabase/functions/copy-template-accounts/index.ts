@@ -20,7 +20,7 @@ const TEMPLATE_ACCOUNTS = [
   { code: "2540", name: "Loan Refinance", type: "liability", description: null },
   { code: "2905", name: "Equity", type: "equity", description: null },
   { code: "3120", name: "Construction Management Fees", type: "revenue", description: null },
-  { code: "32000", name: "Retained Earnings", type: "equity", description: "Undistributed earnings of the business" },
+  { code: "3200", name: "Retained Earnings", type: "equity", description: "Undistributed earnings of the business" },
   { code: "9150", name: "Ask Owner", type: "asset", description: null },
 ];
 
