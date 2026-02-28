@@ -1,3 +1,4 @@
+import { useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -10,6 +11,7 @@ import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePr
 
 export default function Reports() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [reportsHeaderActions, setReportsHeaderActions] = useState<ReactNode>(null);
 
   return (
     <ReportsGuard>
@@ -22,13 +24,17 @@ export default function Reports() {
                 title="Reports" 
                 subtitle="Generate and view financial reports."
                 projectId={projectId}
+                headerAction={reportsHeaderActions}
               />
             ) : (
               <CompanyDashboardHeader />
             )}
             <div className="flex flex-1 overflow-hidden">
               <UniversalFilePreviewProvider>
-                <ReportsTabs projectId={projectId} />
+                <ReportsTabs 
+                  projectId={projectId}
+                  onHeaderActionChange={setReportsHeaderActions}
+                />
               </UniversalFilePreviewProvider>
             </div>
           </SidebarInset>

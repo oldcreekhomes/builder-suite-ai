@@ -25,9 +25,10 @@ interface BiddingTableProps {
   projectId: string;
   projectAddress?: string;
   status: 'draft' | 'sent' | 'closed';
+  onHeaderActionChange?: (actions: React.ReactNode) => void;
 }
 
-export function BiddingTable({ projectId, projectAddress, status }: BiddingTableProps) {
+export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
@@ -204,6 +205,91 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
+  // Emit toolbar to header via bridge
+  React.useEffect(() => {
+    if (onHeaderActionChange) {
+      if (status === 'draft') {
+        onHeaderActionChange(
+          <div className="flex items-center gap-2">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search bids..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => setShowGlobalSettingsModal(true)}
+              disabled={biddingItems.length === 0}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Global Settings
+            </Button>
+            <Button size="sm" onClick={() => setShowAddBiddingModal(true)}>
+              {getLoadButtonText()}
+            </Button>
+          </div>
+        );
+      } else {
+        onHeaderActionChange(
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search bids..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        );
+      }
+      return () => onHeaderActionChange(null);
+    }
+  }, [onHeaderActionChange, status, searchQuery, biddingItems.length]);
+
+  const toolbarInContent = !onHeaderActionChange ? (
+    status === 'draft' ? (
+      <div className="flex items-center justify-between">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search bids..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowGlobalSettingsModal(true)}
+            disabled={biddingItems.length === 0}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Global Settings
+          </Button>
+          <Button onClick={() => setShowAddBiddingModal(true)}>
+            {getLoadButtonText()}
+          </Button>
+        </div>
+      </div>
+    ) : (
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search bids..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+    )
+  ) : null;
+
   return (
     <div className="space-y-4 relative">
       {/* Loading overlay during global settings update */}
@@ -216,42 +302,7 @@ export function BiddingTable({ projectId, projectAddress, status }: BiddingTable
         </div>
       )}
 
-      {status === 'draft' ? (
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search bids..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowGlobalSettingsModal(true)}
-              disabled={biddingItems.length === 0}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Global Settings
-            </Button>
-            <Button onClick={() => setShowAddBiddingModal(true)}>
-              {getLoadButtonText()}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search bids..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      )}
+      {toolbarInContent}
 
       {selectedCount > 0 && status === 'draft' && (
         <BulkActionBar

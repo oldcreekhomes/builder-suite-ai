@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Receipt } from "lucide-react";
 import { ContentSidebar } from "@/components/ui/ContentSidebar";
@@ -31,6 +31,7 @@ interface BillsApprovalTabsProps {
   projectId?: string;
   projectIds?: string[];
   reviewOnly?: boolean;
+  onHeaderActionChange?: (actions: ReactNode) => void;
 }
 
 interface BatchBill extends PendingBill {
@@ -42,7 +43,7 @@ interface BatchBill extends PendingBill {
   attachments?: Array<{ id: string; file_name: string; file_path: string }>;
 }
 
-export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }: BillsApprovalTabsProps) {
+export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, onHeaderActionChange }: BillsApprovalTabsProps) {
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || (reviewOnly ? "review" : "upload");
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -685,6 +686,43 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
       ];
 
   const sidebarItems = tabs.map(tab => ({ value: tab.value, label: tab.label }));
+
+  // Emit header actions based on active tab
+  useEffect(() => {
+    if (!onHeaderActionChange) return;
+
+    if (activeTab === 'review' || activeTab === 'rejected' || activeTab === 'pay') {
+      onHeaderActionChange(
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Search bills..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+      );
+    } else if (activeTab === 'approve') {
+      onHeaderActionChange(
+        <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search bills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        </div>
+      );
+    } else {
+      onHeaderActionChange(null);
+    }
+
+    return () => onHeaderActionChange(null);
+  }, [onHeaderActionChange, activeTab, searchQuery]);
 
   return (
     <>

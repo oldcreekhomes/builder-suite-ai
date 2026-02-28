@@ -1,4 +1,5 @@
 
+import { useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,7 @@ import {
 
 export default function ProjectBudget() {
   const { projectId } = useParams();
+  const [budgetHeaderActions, setBudgetHeaderActions] = useState<ReactNode>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -79,6 +81,13 @@ export default function ProjectBudget() {
     </TooltipProvider>
   );
 
+  const combinedHeaderAction = (
+    <div className="flex items-center gap-2">
+      {lockButton}
+      {budgetHeaderActions}
+    </div>
+  );
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -88,7 +97,7 @@ export default function ProjectBudget() {
             title="Budget"
             subtitle="Manage project budget and cost tracking."
             projectId={projectId}
-            headerAction={lockButton}
+            headerAction={combinedHeaderAction}
           />
           
           <main className="flex-1 px-6 pt-3 pb-6">
@@ -96,6 +105,7 @@ export default function ProjectBudget() {
               <BudgetTable 
                 projectId={projectId} 
                 projectAddress={project?.address}
+                onHeaderActionChange={setBudgetHeaderActions}
               />
             </UniversalFilePreviewProvider>
           </main>

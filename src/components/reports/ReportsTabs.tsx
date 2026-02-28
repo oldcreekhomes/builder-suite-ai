@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { FileText } from "lucide-react";
 import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { BalanceSheetContent } from "./BalanceSheetContent";
@@ -8,6 +8,7 @@ import { AccountsPayableContent } from "./AccountsPayableContent";
 
 interface ReportsTabsProps {
   projectId?: string;
+  onHeaderActionChange?: (actions: ReactNode) => void;
 }
 
 const items = [
@@ -17,7 +18,7 @@ const items = [
   { value: "accounts-payable", label: "Accounts Payable" },
 ];
 
-export function ReportsTabs({ projectId }: ReportsTabsProps) {
+export function ReportsTabs({ projectId, onHeaderActionChange }: ReportsTabsProps) {
   const [active, setActive] = useState("balance-sheet");
 
   return (
@@ -30,10 +31,10 @@ export function ReportsTabs({ projectId }: ReportsTabsProps) {
         onItemChange={setActive}
       />
       <div className="flex-1 min-w-0 px-6 pt-0 pb-6 overflow-auto">
-        {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} />}
-        {active === "income-statement" && <IncomeStatementContent projectId={projectId} />}
-        {active === "job-costs" && <JobCostsContent projectId={projectId} />}
-        {active === "accounts-payable" && <AccountsPayableContent projectId={projectId} />}
+        {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
+        {active === "income-statement" && <IncomeStatementContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
+        {active === "job-costs" && <JobCostsContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
+        {active === "accounts-payable" && <AccountsPayableContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
       </div>
     </div>
   );

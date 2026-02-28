@@ -1,3 +1,4 @@
+import { useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { useProject } from "@/hooks/useProject";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -9,6 +10,7 @@ import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePr
 export default function ProjectPurchaseOrders() {
   const { projectId } = useParams<{ projectId: string }>();
   const { data: project } = useProject(projectId!);
+  const [poHeaderActions, setPoHeaderActions] = useState<ReactNode>(null);
 
   if (!project) {
     return (
@@ -30,9 +32,14 @@ export default function ProjectPurchaseOrders() {
               title="Purchase Orders"
               subtitle="Manage purchase orders for this project."
               projectId={projectId}
+              headerAction={poHeaderActions}
             />
             <main className="flex-1 px-6 pt-3 pb-6">
-              <PurchaseOrdersTable projectId={projectId!} projectAddress={project?.address} />
+              <PurchaseOrdersTable 
+                projectId={projectId!} 
+                projectAddress={project?.address}
+                onHeaderActionChange={setPoHeaderActions}
+              />
             </main>
           </SidebarInset>
         </div>

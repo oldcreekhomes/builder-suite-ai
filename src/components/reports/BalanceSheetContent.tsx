@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -39,9 +39,10 @@ interface BalanceSheetData {
 
 interface BalanceSheetContentProps {
   projectId?: string;
+  onHeaderActionChange?: (actions: ReactNode) => void;
 }
 
-export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
+export function BalanceSheetContent({ projectId, onHeaderActionChange }: BalanceSheetContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
@@ -375,9 +376,10 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
     return elements;
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end">
+  // Emit date picker to header via bridge
+  useEffect(() => {
+    if (onHeaderActionChange) {
+      onHeaderActionChange(
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
@@ -395,7 +397,36 @@ export function BalanceSheetContent({ projectId }: BalanceSheetContentProps) {
             />
           </PopoverContent>
         </Popover>
-      </div>
+      );
+      return () => onHeaderActionChange(null);
+    }
+  }, [onHeaderActionChange, asOfDate]);
+
+  const toolbarInContent = !onHeaderActionChange ? (
+    <div className="flex items-center justify-end">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            As of {format(asOfDate, "PPP")}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <Calendar
+            mode="single"
+            selected={asOfDate}
+            onSelect={(date) => date && setAsOfDate(date)}
+            initialFocus
+            className="pointer-events-auto"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  ) : null;
+
+  return (
+    <div className="space-y-4">
+      {toolbarInContent}
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2">

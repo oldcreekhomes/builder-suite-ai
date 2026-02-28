@@ -46,9 +46,10 @@ import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 interface BudgetTableProps {
   projectId: string;
   projectAddress?: string;
+  onHeaderActionChange?: (actions: React.ReactNode) => void;
 }
 
-export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
+export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }: BudgetTableProps) {
   const { toast } = useToast();
   const { selectedLotId, selectLot } = useLotManagement(projectId);
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
@@ -440,9 +441,10 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end gap-2">
+  // Emit toolbar to header via bridge
+  useEffect(() => {
+    if (onHeaderActionChange) {
+      onHeaderActionChange(
         <BudgetPrintToolbar 
           projectId={projectId}
           selectedLotId={selectedLotId}
@@ -454,7 +456,30 @@ export function BudgetTable({ projectId, projectAddress }: BudgetTableProps) {
           allExpanded={allGroupsExpanded}
           isExportingPdf={isExportingPdf}
         />
-      </div>
+      );
+      return () => onHeaderActionChange(null);
+    }
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+
+  const toolbarInContent = !onHeaderActionChange ? (
+    <div className="flex items-center justify-end gap-2">
+      <BudgetPrintToolbar 
+        projectId={projectId}
+        selectedLotId={selectedLotId}
+        onSelectLot={selectLot}
+        onPrint={handlePrint}
+        onExportPdf={() => setShowExportDialog(true)}
+        onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+        onToggleExpandCollapse={handleToggleExpandCollapse}
+        allExpanded={allGroupsExpanded}
+        isExportingPdf={isExportingPdf}
+      />
+    </div>
+  ) : null;
+
+  return (
+    <div className="space-y-4">
+      {toolbarInContent}
 
       <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
         <AlertDialogContent>

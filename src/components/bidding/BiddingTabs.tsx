@@ -7,9 +7,11 @@ import { useBiddingCounts } from "@/hooks/useBiddingCounts";
 interface BiddingTabsProps {
   projectId: string;
   projectAddress?: string;
+  onHeaderActionChange?: (actions: React.ReactNode) => void;
 }
 
-export function BiddingTabs({ projectId, projectAddress }: BiddingTabsProps) {
+
+export function BiddingTabs({ projectId, projectAddress, onHeaderActionChange }: BiddingTabsProps) {
   const [active, setActive] = useState("draft");
   const { data: counts, isLoading } = useBiddingCounts(projectId);
 
@@ -39,6 +41,7 @@ export function BiddingTabs({ projectId, projectAddress }: BiddingTabsProps) {
           projectId={projectId}
           projectAddress={projectAddress}
           status={active as "draft" | "sent" | "closed"}
+          onHeaderActionChange={onHeaderActionChange}
         />
       </div>
     </div>

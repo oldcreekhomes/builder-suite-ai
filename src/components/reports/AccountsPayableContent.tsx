@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AccountsPayableContentProps {
   projectId?: string;
+  onHeaderActionChange?: (actions: React.ReactNode) => void;
 }
 
 interface BillWithVendor {
@@ -32,7 +33,7 @@ interface BillWithVendor {
   bill_lines: { lot_id: string | null; amount: number }[];
 }
 
-export function AccountsPayableContent({ projectId }: AccountsPayableContentProps) {
+export function AccountsPayableContent({ projectId, onHeaderActionChange }: AccountsPayableContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
@@ -329,6 +330,60 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
     }
   };
 
+  const bucketLabels: Record<string, string> = {
+    '1-30': '1 - 30 Days',
+    '31-60': '31 - 60 Days',
+    '61-90': '61 - 90 Days',
+    '>90': 'Over 90 Days',
+  };
+
+  const totalBillCount = Object.values(agingBuckets).flat().length;
+
+  // Emit controls to header via bridge - MUST be before early returns
+  React.useEffect(() => {
+    if (onHeaderActionChange && projectId) {
+      onHeaderActionChange(
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                As of {format(asOfDate, "PPP")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={asOfDate}
+                onSelect={(date) => date && setAsOfDate(date)}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+          <Button 
+            onClick={handleExportPdf} 
+            variant="outline"
+            size="sm"
+            disabled={isExportingPdf || totalBillCount === 0}
+          >
+            <FileDown className="h-4 w-4 mr-2" />
+            {isExportingPdf ? 'Exporting...' : 'Export PDF'}
+          </Button>
+          <LotSelector
+            projectId={projectId}
+            selectedLotId={selectedLotId}
+            onSelectLot={setSelectedLotId}
+            showTotal
+          />
+        </div>
+      );
+      return () => onHeaderActionChange(null);
+    }
+  }, [onHeaderActionChange, projectId, asOfDate, isExportingPdf, totalBillCount, selectedLotId]);
+
+  const hasHeaderBridge = !!onHeaderActionChange;
+
   if (!projectId) {
     return (
       <div className="space-y-4">
@@ -375,36 +430,29 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
     );
   }
 
-  const bucketLabels: Record<string, string> = {
-    '1-30': '1 - 30 Days',
-    '31-60': '31 - 60 Days',
-    '61-90': '61 - 90 Days',
-    '>90': 'Over 90 Days',
-  };
-
-  const totalBillCount = Object.values(agingBuckets).flat().length;
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end mb-4">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              As of {format(asOfDate, "PPP")}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              selected={asOfDate}
-              onSelect={(date) => date && setAsOfDate(date)}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+      {!hasHeaderBridge && (
+        <div className="flex items-center justify-end mb-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                As of {format(asOfDate, "PPP")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={asOfDate}
+                onSelect={(date) => date && setAsOfDate(date)}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
 
       {isLoading ? (
         <Card>
@@ -421,24 +469,26 @@ export function AccountsPayableContent({ projectId }: AccountsPayableContentProp
         </Card>
       ) : (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-end">
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={handleExportPdf} 
-                variant="outline" 
-                disabled={isExportingPdf || totalBillCount === 0}
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                {isExportingPdf ? 'Exporting...' : 'Export PDF'}
-              </Button>
-              <LotSelector
-                projectId={projectId}
-                selectedLotId={selectedLotId}
-                onSelectLot={setSelectedLotId}
-                showTotal
-              />
-            </div>
-          </CardHeader>
+          {!hasHeaderBridge && (
+            <CardHeader className="flex flex-row items-center justify-end">
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={handleExportPdf} 
+                  variant="outline" 
+                  disabled={isExportingPdf || totalBillCount === 0}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {isExportingPdf ? 'Exporting...' : 'Export PDF'}
+                </Button>
+                <LotSelector
+                  projectId={projectId}
+                  selectedLotId={selectedLotId}
+                  onSelectLot={setSelectedLotId}
+                  showTotal
+                />
+              </div>
+            </CardHeader>
+          )}
           <CardContent>
             {totalBillCount === 0 ? (
               <p className="text-muted-foreground text-center py-8">
