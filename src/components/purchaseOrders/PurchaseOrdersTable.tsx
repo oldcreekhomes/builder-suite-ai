@@ -125,7 +125,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
               className="pl-9 h-9"
             />
           </div>
-          <Button onClick={() => setShowCreateModal(true)} size="sm">
+          <Button variant="outline" onClick={() => setShowCreateModal(true)} size="sm">
             Create Purchase Order
           </Button>
         </div>
@@ -145,7 +145,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
           className="pl-9 h-9"
         />
       </div>
-      <Button onClick={() => setShowCreateModal(true)} size="sm">
+      <Button variant="outline" onClick={() => setShowCreateModal(true)} size="sm">
         Create Purchase Order
       </Button>
     </div>
