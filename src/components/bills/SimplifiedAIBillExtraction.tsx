@@ -804,7 +804,7 @@ export default function SimplifiedAIBillExtraction({
       />
 
       <label htmlFor="pdf-upload">
-        <Button disabled={uploading} asChild>
+        <Button variant="outline" size="sm" disabled={uploading} asChild>
           <span>
             {uploading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
