@@ -1,27 +1,29 @@
 
 
-## Fix Marketplace Page Header Alignment
+## Align "Filter by Type" with "Select Project"
 
 ### Problem
-The Marketplace page uses a custom inline header with a `Store` icon, `text-3xl` font, and description baked into the header bar itself. This is completely different from every other page in the app, which uses the shared `CompanyDashboardHeader` component for the top bar and places page titles/descriptions in the content area below.
+The "Filter by Type" header in the marketplace category sidebar is shorter than the "Select Project" dropdown area in the main sidebar, causing their bottom borders to misalign.
 
-### Solution
-Restructure the Marketplace page to match the standard used by Manage Bills, Transactions, and all other pages:
+### Root Cause
+- **ProjectSelector**: `px-4 py-3` padding + `h-10` (40px) button = 64px total height
+- **Filter by Type**: `p-4` (16px) padding + ~20px text = ~52px total height
+- Result: Filter by Type is ~12px shorter
 
-1. Replace the custom header block with `<CompanyDashboardHeader title="Marketplace" />`
-2. Move the page description ("Discover top-rated contractors...") into the content area below as a standard `text-2xl font-bold` title + `text-muted-foreground` subheading block
+### Fix
+**File: `src/components/marketplace/MarketplaceCategorySidebar.tsx`**
 
-### File change: `src/pages/Marketplace.tsx`
+Change the Filter by Type header container from `p-4` to `px-4 py-3` and make the inner content `h-10 flex items-center`, exactly mirroring the ProjectSelector's geometry:
 
-**Remove** (lines 76-86): The custom header with `Store` icon, `text-3xl`, and inline description.
+```tsx
+// Before
+<div className="p-4 border-b border-border">
+  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
 
-**Replace with**:
-- `<CompanyDashboardHeader title="Marketplace" />` as the header (matches exact geometry of all other pages)
-- Standard title block inside the content area:
-  ```
-  <h1 className="text-2xl font-bold">Marketplace</h1>
-  <p className="text-muted-foreground">Discover top-rated contractors...</p>
-  ```
+// After
+<div className="px-4 py-3 border-b border-border">
+  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 h-10">
+```
 
-This gives the Marketplace page the same header bar height, border alignment, sidebar trigger position, and content-area title pattern as Manage Bills, Settings, Company Dashboard, and every other page.
+This gives identical height (64px) to the ProjectSelector, so their bottom borders align perfectly. The text remains vertically centered via `items-center`.
 
