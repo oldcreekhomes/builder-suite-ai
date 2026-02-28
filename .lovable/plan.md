@@ -1,42 +1,53 @@
 
 
-## Move Lock Button to Header and Remove Budget Page Redundancy
+## Align Files Page Buttons and Table with Sidebar
 
 ### Problem
-The Budget page shows "Budget" twice -- once in the DashboardHeader and again in the BudgetPrintToolbar below it, along with a lock icon and "Manage budget for this project" text. This is redundant.
+The Files page has excessive vertical spacing between the header and the action buttons. The user wants the buttons row to sit at the same vertical level as the sidebar's Menus/Messages tabs, and the table top to align accordingly -- matching the Bidding page pattern.
+
+### Root Cause
+The `p-6` wrapper in `ProjectFiles.tsx` adds 24px of padding above the buttons. On the Bidding page, the `ContentSidebar` absorbs the left side while the content area's `p-6` is offset by having a search bar on the left. The Files page has no left sidebar or search, so the 24px top gap is visually prominent.
 
 ### Changes
 
-**1. `src/components/DashboardHeader.tsx`** -- Accept optional `headerAction` prop (ReactNode) and render it to the right of the title:
+**1. `src/pages/ProjectFiles.tsx`**
+- Move the action buttons (Choose Files, Choose Folder, Choose Zip File, Create Folder) out of `SimpleFileManager` and into the `DashboardHeader` via the `headerAction` prop
+- This places the buttons in the header bar itself, right-aligned on the same row as "Files" -- exactly like the lock button on the Budget page
+- Remove the extra `p-6` top padding or reduce it so the table starts closer to the header
 
-```tsx
-interface DashboardHeaderProps {
-  title?: string;
-  subtitle?: string;
-  projectId?: string;
-  headerAction?: React.ReactNode;  // new
-}
-```
+**2. `src/components/files/SimpleFileManager.tsx`**
+- Remove the buttons row (`flex items-center justify-between` block, lines 778-831) from the component's return
+- Extract the button-rendering and file input refs/handlers so they can be passed up or triggered from the parent
+- Accept an optional prop like `renderButtons?: (container: React.RefObject) => React.ReactNode` or simply expose the file input refs and handlers via a callback prop
+- The simplest approach: move the hidden file inputs and buttons into `ProjectFiles.tsx`, passing upload handlers down
 
-In the project header section, place `headerAction` next to the title:
-```
-<div className="flex items-center gap-2">
-  <h1>Budget</h1>
-  {headerAction}   <!-- lock icon goes here -->
-</div>
-```
+Actually, the cleaner approach given the existing `headerAction` pattern:
 
-**2. `src/pages/ProjectBudget.tsx`** -- Pass the lock button as `headerAction` to DashboardHeader:
-- Import `useBudgetLockStatus` and the lock icon/tooltip markup
-- Render the lock button inline as `headerAction` prop
+**2a. `src/pages/ProjectFiles.tsx`**
+- Import the button icons (FileText, FolderOpen, Archive, FolderPlus)
+- Create the buttons as a `headerAction` ReactNode passed to `DashboardHeader`
+- The buttons will use `size="sm"` (matching sidebar button sizing, h-9)
+- Wire the buttons to trigger file inputs that live in this component or pass click handlers to `SimpleFileManager`
 
-**3. `src/components/budget/BudgetPrintToolbar.tsx`** -- Remove:
-- The `<h1>Budget</h1>` heading (line 46)
-- The lock icon/tooltip block (lines 47-77)
-- The `<p>Manage budget for this project</p>` text (lines 100-102)
-- The outer `space-y-4` wrapper becomes just the single toolbar row with buttons
+**2b. `src/components/files/SimpleFileManager.tsx`**
+- Expose `triggerFileUpload`, `triggerFolderUpload`, `triggerZipUpload`, `triggerCreateFolder` via a ref (using `useImperativeHandle`) so the parent can call them from the header buttons
+- Remove the buttons row from the component's render
+- Keep the breadcrumb (only shows when navigated into subfolders)
+- The component now starts directly with the upload progress (if any) and the file list table
+
+**3. Spacing**
+- Change the content wrapper in `ProjectFiles.tsx` from `p-6` to `px-6 pt-4 pb-6` to reduce top spacing, or keep `p-6` since removing the buttons row already moves the table up significantly
+- The table's top edge will now sit much closer to the header, aligning with the sidebar's content area
 
 ### Result
-- Lock icon appears in the header bar next to "Budget", above "Manage project budget and cost tracking."
-- No duplicate "Budget" heading or "Manage budget for this project" text below the header
-- The toolbar area only contains the action buttons (expand/collapse, lot selector, add budget, export PDF)
+- Buttons appear in the header row next to "Files" title (right-aligned), same pattern as Budget's lock button
+- Table starts immediately below the header (with standard padding)
+- Visual alignment matches the Bidding page where content sits right below the header
+- Breadcrumb still appears when navigating into subfolders (inline above the table)
+
+### Files Changed
+
+| File | Action |
+|------|--------|
+| `src/pages/ProjectFiles.tsx` | Pass buttons as `headerAction` to DashboardHeader, wire to SimpleFileManager ref |
+| `src/components/files/SimpleFileManager.tsx` | Expose upload triggers via `forwardRef` + `useImperativeHandle`, remove buttons from render |
