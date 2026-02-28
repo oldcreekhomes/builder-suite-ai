@@ -167,7 +167,7 @@ export const PhotoUploadDropzone = forwardRef<PhotoUploadDropzoneHandle, PhotoUp
 
     return (
       <div className="space-y-4">
-        <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+        <Card>
           <div
             {...getRootProps()}
             className={`p-8 text-center cursor-pointer ${
