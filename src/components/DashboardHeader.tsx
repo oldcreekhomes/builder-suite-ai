@@ -54,14 +54,14 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
     return (
       <>
         <header className="bg-white border-b border-border px-6 py-3.5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between min-h-[36px]">
             <div className="flex items-center space-x-4">
               <SidebarTrigger className="text-gray-600 hover:text-black" />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate(`/project/${projectId}`)}
-                className="text-gray-600 hover:text-black -my-1"
+                className="text-gray-600 hover:text-black"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Project
@@ -104,27 +104,27 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   return (
     <>
       <header className="bg-white border-b border-border px-6 py-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <SidebarTrigger className="text-gray-600 hover:text-black" />
-            
-            {/* Show "Back to Project" button on global pages when project context exists */}
-            {isGlobalPage && hasProjectContext && projectContext && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goBackToProject}
-                className="text-gray-600 hover:text-black"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to {projectContext.projectName}
-              </Button>
-            )}
-            
-            <div>
-              <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
+          <div className="flex items-center justify-between min-h-[36px]">
+            <div className="flex items-center space-x-4">
+              <SidebarTrigger className="text-gray-600 hover:text-black" />
+              
+              {/* Show "Back to Project" button on global pages when project context exists */}
+              {isGlobalPage && hasProjectContext && projectContext && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={goBackToProject}
+                  className="text-gray-600 hover:text-black"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to {projectContext.projectName}
+                </Button>
+              )}
+              
+              <div>
+                <h1 className="text-2xl font-bold text-black">{displayTitle}</h1>
+              </div>
             </div>
-          </div>
           
           <div className="flex items-center space-x-4">
             <Button 
