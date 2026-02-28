@@ -1,45 +1,28 @@
 
 
-## Delete All Derrick Russell Homes Records for Fresh Testing
+## Add Logo with Home Link to Auth Pages
 
-### What Gets Deleted
-All data associated with Derrick Russell Homes (owner ID: `5d10b16a-3ffc-4ce2-b513-7990ac0de849`) and employee Jalin Hurts (`b63189c0-9c7e-47c6-bb3a-62b97d53fa3d`):
+Add the BuilderSuite ML logo in the top-left corner of both the Sign In/Sign Up page (`/auth`) and the Marketplace Signup page (`/auth/marketplace`), linking back to the homepage (`/`). This gives users a clear, familiar way to navigate back.
 
-| Table | Count |
-|---|---|
-| cost_code_specifications | 74 |
-| cost_codes | 298 |
-| accounts | 14 |
-| project_lots | 1 |
-| projects | 1 |
-| company_representatives | 2 |
-| companies | 2 |
-| user_roles | 2 |
-| users (public) | 2 |
-| auth.users | 2 |
+### Changes
 
-No financial records (bills, checks, deposits, journal entries) exist, so this is a clean wipe.
+**1. Auth page (`src/pages/Auth.tsx`)**
+- Import the logo from `src/assets/buildersuiteai-logo.png`
+- Add a fixed/absolute-positioned logo in the top-left corner wrapped in a `<Link to="/">`
+- Apply to both the main auth view and the "Check Your Email" success view
+- Remove or keep the "Welcome to BuilderSuite ML" text heading (the logo replaces its branding role, but the welcome text can stay for context)
 
-### Approach
-Create a temporary admin edge function that:
-1. Deletes in dependency order (children first, parents last)
-2. Uses the service role key to bypass RLS
-3. Deletes both auth.users entries last (owner + employee)
+**2. Marketplace Signup page (`src/pages/MarketplaceSignup.tsx`)**
+- Same treatment: import the logo and add a top-left `<Link to="/">` with the logo image
 
-The function will be deployed, executed once, then deleted.
+### Visual Approach
+- Logo positioned top-left with padding (`p-6`), using `absolute` positioning so it doesn't interfere with the centered card layout
+- Logo sized at roughly 40-48px height, consistent with sidebar branding
+- Hover opacity transition for interactivity feedback
+- On mobile, the logo stays top-left but at a slightly smaller size
 
-### Deletion Order
-1. `cost_code_specifications` (FK to cost_codes)
-2. `project_lots` (FK to projects)
-3. `cost_codes` (FK to owner_id)
-4. `accounts` (FK to owner_id)
-5. `company_representatives` (FK to companies)
-6. `companies` (FK to home_builder_id)
-7. `projects` (FK to owner_id)
-8. `user_roles` (FK to user_id)
-9. `users` (public table, both records)
-10. `auth.users` (admin.deleteUser for both IDs)
-
-### Result
-Both `buildersuiteai1@gmail.com` (owner) and `jhurts@gmail.com` (employee) will be fully removed from the system, allowing a completely fresh re-registration and test.
+### Technical Details
+- Import: `import logo from "@/assets/buildersuiteai-logo.png"`
+- Component: `<Link to="/"><img src={logo} alt="BuilderSuite ML" className="h-10 hover:opacity-80 transition-opacity" /></Link>`
+- Wrapper div: `<div className="absolute top-6 left-6">...</div>` inside the outer `min-h-screen` container (which needs `relative` added)
 
