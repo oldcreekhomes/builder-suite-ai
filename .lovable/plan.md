@@ -1,35 +1,47 @@
 
 
-## Remove Empty Gray Header Bar from Project Pages
+## Add Header Bar Back with Page Title and Remove Duplicate Titles
 
-### Problem
-The project-specific header still renders a gray bar with a border (`border-b`) above page content like "Photos", "Files", etc. It serves no purpose now that the project address has been removed -- it's just wasted vertical space.
+### What's Changing
 
-### Changes
+The gray border line will be restored at the top of project pages (aligned with the "Construction Management" border in the sidebar), but instead of being empty, it will contain the page title and subtitle -- moving them up from the content area. This eliminates the gap and makes the layout more compact.
 
-**File: `src/components/DashboardHeader.tsx`**
+### Approach
 
-Replace the project-specific header block (lines 49-62) to return `null` when `projectId` is set. The sidebar expand button needs to be preserved for when the sidebar is collapsed, so we'll render just that button without any header bar/border:
+**1. Update `DashboardHeader.tsx`** -- Add a `subtitle` prop and restore the header bar for project pages:
 
-- When sidebar is expanded: render nothing (`null`) -- no header at all
-- When sidebar is collapsed: render only the small expand button with no background bar or border, positioned inline with the page content
+- Accept a new optional `subtitle` prop
+- When `projectId` is set, render a proper `<header>` with `border-b border-border`, `px-6 py-3.5`, and `h-10` inner container (matching the standard header height that aligns with the sidebar)
+- Display the `title` as `text-xl font-bold` and `subtitle` as `text-sm text-muted-foreground` inside the header
+- Keep the sidebar expand button (ChevronsRight) when collapsed
 
-Alternatively, the simplest approach: return `null` for the project header entirely, and move the sidebar collapse toggle into the page content area. However, since every project page already has its own content section with padding, the cleanest solution is to render the expand button only when collapsed, without the `<header>` wrapper, border, or background -- just a floating button at the top.
+**2. Update all project pages** -- Remove the duplicate `mb-6` title blocks from the content area and pass `subtitle` to `DashboardHeader`:
 
-**Concrete change:**
-```tsx
-// Replace the project header block with:
-if (projectId) {
-  if (!isCollapsed) return null;
-  return (
-    <div className="px-6 pt-2">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
-        <ChevronsRight className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-```
+Pages to update (each has its own `<h1>` + `<p>` block that becomes redundant):
 
-This removes the gray bar and border entirely. The sidebar expand button still appears when needed but without the visual header strip. Page titles like "Photos" and "Files" will now sit at the very top of the content area.
+| Page | Title | Subtitle |
+|------|-------|----------|
+| ProjectFiles | Files | Manage and organize project documents. |
+| ProjectPhotos | Photos | View and upload project photos. |
+| ApproveBills | Manage Bills | Review, approve and locate invoices - all in one place. |
+| ProjectBidding | Bidding | (check for subtitle) |
+| ProjectBudget | Budget | (check for subtitle) |
+| WriteChecks | Write Checks | (check for subtitle) |
+| Transactions | Transactions | (check for subtitle) |
+| ProjectSchedule | Schedule | (check for subtitle) |
+| ProjectPurchaseOrders | Purchase Orders | (check for subtitle) |
+| TakeoffEditor | Estimate and Takeoff | (check for subtitle) |
+| JournalEntry | Journal Entry | (check for subtitle) |
+| ProjectDashboard | (no title block -- has status badge instead, no change needed) |
+
+For each page:
+- Add `subtitle="..."` to the `DashboardHeader` component
+- Remove the `<div className="mb-6">` block containing the `<h1>` and `<p>`
+
+### Result
+
+- Gray border line is back, perfectly aligned with the sidebar's "Construction Management" divider
+- Page title and subtitle sit inside that header bar instead of below it
+- No duplicate titles -- content starts immediately after the header
+- More vertical space for actual content
 
