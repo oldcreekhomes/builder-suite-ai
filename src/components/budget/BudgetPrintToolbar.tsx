@@ -1,13 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown, Lock, LockOpen } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from '@/lib/utils';
+import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown } from 'lucide-react';
 import { LotSelector } from './LotSelector';
 
 interface BudgetPrintToolbarProps {
@@ -20,9 +13,6 @@ interface BudgetPrintToolbarProps {
   onToggleExpandCollapse?: () => void;
   allExpanded?: boolean;
   isExportingPdf?: boolean;
-  isLocked?: boolean;
-  canLockBudgets?: boolean;
-  onLockToggle?: () => void;
 }
 
 export function BudgetPrintToolbar({ 
@@ -35,71 +25,27 @@ export function BudgetPrintToolbar({
   onToggleExpandCollapse, 
   allExpanded, 
   isExportingPdf,
-  isLocked = false,
-  canLockBudgets = false,
-  onLockToggle,
 }: BudgetPrintToolbarProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold">Budget</h1>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={canLockBudgets ? onLockToggle : undefined}
-                  disabled={!canLockBudgets}
-                  className={cn(
-                    "p-1 rounded transition-colors",
-                    canLockBudgets 
-                      ? "cursor-pointer hover:bg-accent" 
-                      : "cursor-not-allowed opacity-50"
-                  )}
-                >
-                  {isLocked ? (
-                    <Lock className="h-5 w-5 text-red-600" />
-                  ) : (
-                    <LockOpen className="h-5 w-5 text-green-600" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {!canLockBudgets ? (
-                  <p>No access. Contact admin.</p>
-                ) : isLocked ? (
-                  <p>Budget is locked. Click to unlock.</p>
-                ) : (
-                  <p>Budget is unlocked. Click to lock.</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-        <div className="flex items-center gap-2">
-          {onToggleExpandCollapse && (
-            <Button onClick={onToggleExpandCollapse} variant="outline" size="sm">
-              {allExpanded ? (
-                <ChevronsUpDown className="h-4 w-4" />
-              ) : (
-                <ChevronsDownUp className="h-4 w-4" />
-              )}
-            </Button>
+    <div className="flex items-center justify-end gap-2">
+      {onToggleExpandCollapse && (
+        <Button onClick={onToggleExpandCollapse} variant="outline" size="sm">
+          {allExpanded ? (
+            <ChevronsUpDown className="h-4 w-4" />
+          ) : (
+            <ChevronsDownUp className="h-4 w-4" />
           )}
-          <LotSelector projectId={projectId} selectedLotId={selectedLotId} onSelectLot={onSelectLot} />
-          <Button onClick={onAddBudget} variant="outline" size="sm">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Budget
-          </Button>
-          <Button onClick={onExportPdf} variant="outline" size="sm" disabled={isExportingPdf}>
-            <FileDown className="h-4 w-4 mr-2" />
-            {isExportingPdf ? 'Exporting...' : 'Export PDF'}
-          </Button>
-        </div>
-      </div>
-      <p className="text-muted-foreground">
-        Manage budget for this project
-      </p>
+        </Button>
+      )}
+      <LotSelector projectId={projectId} selectedLotId={selectedLotId} onSelectLot={onSelectLot} />
+      <Button onClick={onAddBudget} variant="outline" size="sm">
+        <PlusIcon className="h-4 w-4 mr-2" />
+        Budget
+      </Button>
+      <Button onClick={onExportPdf} variant="outline" size="sm" disabled={isExportingPdf}>
+        <FileDown className="h-4 w-4 mr-2" />
+        {isExportingPdf ? 'Exporting...' : 'Export PDF'}
+      </Button>
     </div>
   );
 }
