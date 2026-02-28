@@ -67,25 +67,23 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                 Back to Project
               </Button>
               {projectLoading ? (
-                <div className="h-5 w-32 bg-muted animate-pulse rounded"></div>
-              ) : project?.address ? (
+                <div className="h-8 w-80 bg-muted animate-pulse rounded"></div>
+              ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">{project.address}</p>
-                  {canEditProjects && (
+                  <h1 className="text-2xl font-bold text-black">
+                    {project?.address || (projectError ? "Project" : "Project")}
+                  </h1>
+                  {canEditProjects && project && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setEditDialogOpen(true)}
-                      className="h-6 w-6"
+                      className="h-7 w-7"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
-              ) : projectError ? (
-                <p className="text-sm text-muted-foreground">Address unavailable</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">No address</p>
               )}
             </div>
           </div>
