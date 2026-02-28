@@ -1,26 +1,27 @@
 
+# Allow Dismissing the "Add Your Companies" Template Dialog
 
-# Make "Check Your Email" Checkmark Green
+## Problem
+The "Add Your Companies" template dialog cannot be closed. The `onOpenChange` prop is hardcoded to `() => {}` (a no-op function), which blocks the user from clicking outside, pressing Escape, or using the X button to dismiss it. This traps users on the screen.
 
-## Change
+## Fix
 
-**File: `src/pages/Auth.tsx`** (line ~33)
+**File: `src/components/settings/CompaniesTab.tsx`** (line 81)
 
-Change the `CheckCircle` icon color from `text-primary` to `text-green-500`, and update the background circle from `bg-primary/10` to `bg-green-100` to match.
+Change the `onOpenChange` handler from `() => {}` to `(open) => { if (!open) setTemplateDismissed(true); }`. This allows the user to close the dialog by clicking outside, pressing Escape, or the X button. Setting `templateDismissed = true` prevents it from immediately reopening (since `companyCount` is still 0).
 
 Current:
 ```tsx
-<div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-  <CheckCircle className="h-8 w-8 text-primary" />
-</div>
+onOpenChange={() => {}}
 ```
 
 Updated:
 ```tsx
-<div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-  <CheckCircle className="h-8 w-8 text-green-500" />
-</div>
+onOpenChange={(open) => { if (!open) setTemplateDismissed(true); }}
 ```
 
-After this change, I will navigate to the auth page and trigger the signup success view in the browser so you can see it without needing to delete and re-register a user.
+## Representatives Check
+The Representatives tab (`RepresentativesTab.tsx`) does **not** have a similar template dialog, so no change is needed there. Representatives simply shows an empty table with a message "No representatives found."
 
+## Scope
+- Single line change in `src/components/settings/CompaniesTab.tsx`
