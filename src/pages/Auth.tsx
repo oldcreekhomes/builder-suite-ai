@@ -30,8 +30,8 @@ const Auth = () => {
         </div>
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-primary" />
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
             <CardTitle className="text-2xl">Check Your Email!</CardTitle>
             <CardDescription className="text-base">
