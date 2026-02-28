@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,6 +11,7 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { useProjects } from "@/hooks/useProjects";
 import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
@@ -75,31 +76,28 @@ export default function ProjectDashboard() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar />
-        <main className="flex-1 flex flex-col">
+        <SidebarInset className="flex-1">
           <header className="bg-white border-b border-border px-6 py-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <SidebarTrigger className="text-gray-600 hover:text-black" />
-                <div className="flex items-center space-x-2">
-                  <Building2 className="h-6 w-6 text-gray-600" />
-                  <div>
-                    <h1 className="text-2xl font-bold text-black flex items-center gap-2">
-                      {currentProject.address}
-                      {canEditProjects && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditDialogOpen(true);
-                          }}
-                          className="h-7 w-7"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </h1>
-                  </div>
+                <Building2 className="h-6 w-6 text-muted-foreground" />
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    {currentProject.address}
+                    {canEditProjects && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditDialogOpen(true);
+                        }}
+                        className="h-7 w-7"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </h1>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -174,7 +172,7 @@ export default function ProjectDashboard() {
               <WeatherForecast address={currentProject.address} />
             </div>
           </div>
-        </main>
+        </SidebarInset>
 
         {showPhotoViewer && selectedPhoto && (
           <PhotoViewer
