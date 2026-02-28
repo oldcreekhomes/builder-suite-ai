@@ -1,37 +1,53 @@
 
 
-## Fix Cost Code Template Import: Add Price History + Update Dialog
+## Add Welcome Message Step + Reset Erica Gray Homes
 
-### Problem
-When a new user imports cost codes via "Use Our Template," the edge function (`copy-template-cost-codes`) copies cost codes and specifications but **skips the `cost_code_price_history` table**. This means imported cost codes don't have any price history data -- the Price History graph shows flat or empty data instead of matching Old Creek Homes' actual history.
+### Overview
+
+Add a new onboarding step #2 called "Confirm Welcome Message" between "Verify Email" and "Set Up Company Profile." When a new user first signs in and their email is verified but they haven't confirmed the welcome message yet, a dialog appears with an important message about following the 8-step startup workflow. Closing the dialog marks the step complete. Total steps go from 7 to 8.
+
+Also: delete Erica Gray Homes' onboarding_progress row so the account is fresh for retesting.
 
 ### Changes
 
-**1. Add green checkmark to template dialog (`src/components/settings/CostCodeTemplateDialog.tsx`)**
-- Add "Current Local Subcontractor Prices" to the benefits list (the array of green checkmark items)
-- Updated list: `['Cost codes & categories', 'Current Local Subcontractor Prices', 'Specifications', 'Bidding settings', 'Subcategories', 'Estimates']`
+**1. Database migration: Add `welcome_confirmed` column to `onboarding_progress`**
+- Add `welcome_confirmed BOOLEAN NOT NULL DEFAULT FALSE` to the `onboarding_progress` table
+- Delete the existing onboarding_progress row for Erica Gray Homes (`home_builder_id = 'bfdbd789-0cd2-4b79-bc5f-51d28e2a3bc4'`) so she can retest from scratch
 
-**2. Update the edge function to also copy price history (`supabase/functions/copy-template-cost-codes/index.ts`)**
-- After inserting cost codes and specifications, fetch all `cost_code_price_history` records for the template owner's cost codes
-- Map each record to the new cost code IDs using the existing `idMap`
-- Insert the copied price history records with the new owner's cost code IDs, preserving `changed_at`, `price`, `unit_of_measure`, and `notes` fields
-- Skip `file_path` (attachments are owner-specific and shouldn't be copied)
-- Process in batches to handle large datasets
+**2. Update `useOnboardingProgress` hook**
+- Add `welcome_confirmed` to the `liveChecks` query -- read it directly from the `onboarding_progress` row (not a live check like the others, since it's a one-time manual action)
+- Add the new step at position #2 in the steps array: `{ key: "welcome_confirmed", label: "Confirm Welcome Message", completed: ..., action: "welcome-dialog" }`
+- Add `welcome_confirmed` to the sync fields list
+- Expose a new `confirmWelcome` function that updates the `onboarding_progress` row to set `welcome_confirmed = true`
 
-**3. Reset Erica Gray Homes' onboarding step**
-- This is a data-level action: delete all cost codes owned by Erica Gray Homes so the template dialog reappears and the user can reimport with the fix applied
+**3. Update `OnboardingChecklist` component**
+- Add a `welcomeDialogOpen` state
+- Handle the `"welcome-dialog"` action in `handleAction` to open the dialog
+- Auto-open the dialog when email is verified but welcome is not confirmed (so it appears on first login)
+- Render a welcome dialog with:
+  - Title: "Welcome to BuilderSuiteML!"
+  - Body explaining the importance of completing all 8 setup steps
+  - A "Got It" button that calls `confirmWelcome()` and closes the dialog
+- Update the column split (now 4/4 instead of 4/3)
+
+**4. Update the congratulations message**
+- Update the text to reference "BuilderSuiteML" instead of "BuilderSuite"
 
 ### Technical Details
 
-New section in the edge function (after specifications insert, before the success response):
+The welcome dialog will auto-trigger when:
+- `email_verified === true`
+- `welcome_confirmed === false`
+- The onboarding checklist is visible (not dismissed, not all complete)
 
+This ensures it only pops up once, right after email verification, and the user must acknowledge it before proceeding. The "Go" button on the step also opens the dialog manually if they somehow skipped it.
+
+The `confirmWelcome` function will:
 ```text
-// Fetch price history for all template cost codes
-// Map cost_code_id using idMap to new IDs
-// Insert with: cost_code_id (mapped), price, unit_of_measure, changed_at, notes
-// Skip: file_path (not transferable between owners)
-// Batch insert in groups of 100
+UPDATE onboarding_progress
+SET welcome_confirmed = true
+WHERE home_builder_id = effectiveOwnerId
 ```
 
-The existing `idMap` (old template cost code ID to new user cost code ID) is reused for this mapping, so no additional lookups are needed.
+No new edge functions or external dependencies needed.
 
