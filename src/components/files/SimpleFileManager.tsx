@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { FolderPlus, FileText, FolderOpen, Archive, X, XCircle } from 'lucide-react';
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { X, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -15,17 +15,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
 
+export interface SimpleFileManagerHandle {
+  triggerFileUpload: () => void;
+  triggerFolderUpload: () => void;
+  triggerZipUpload: () => void;
+  triggerCreateFolder: () => void;
+  processingZip: boolean;
+}
+
 interface SimpleFileManagerProps {
   projectId: string;
   refreshKey?: number;
   onUploadSuccess?: () => void;
 }
 
-export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({ 
+export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileManagerProps>(({ 
   projectId, 
   refreshKey,
   onUploadSuccess
-}) => {
+}, ref) => {
   const [currentPath, setCurrentPath] = useState<string>('');
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [processingZip, setProcessingZip] = useState(false);
@@ -45,6 +53,14 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    triggerFileUpload: () => fileInputRef.current?.click(),
+    triggerFolderUpload: () => folderInputRef.current?.click(),
+    triggerZipUpload: () => zipInputRef.current?.click(),
+    triggerCreateFolder: () => setShowNewFolderModal(true),
+    processingZip,
+  }), [processingZip]);
 
   // Trigger refetch when refreshKey changes
   React.useEffect(() => {
@@ -774,61 +790,13 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
   return (
     <UniversalFilePreviewProvider onFileDeleted={() => refetch()}>
       <div className="space-y-4">
-      {/* Breadcrumb Navigation with Upload Buttons */}
-      <div className="flex items-center justify-between">
-        {currentPath ? (
-          <SimpleBreadcrumb 
-            currentPath={currentPath} 
-            onPathClick={handleBreadcrumbClick} 
-          />
-        ) : (
-          <div />
-        )}
-        
-        <div className="flex items-center space-x-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            className="h-10"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Choose Files
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            className="h-10"
-            onClick={() => folderInputRef.current?.click()}
-          >
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Choose Folder
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            className="h-10"
-            onClick={() => zipInputRef.current?.click()}
-            disabled={processingZip}
-          >
-            <Archive className="h-4 w-4 mr-2" />
-            {processingZip ? "Processing..." : "Choose Zip File"}
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            className="h-10"
-            onClick={() => setShowNewFolderModal(true)}
-          >
-            <FolderPlus className="h-4 w-4 mr-2" />
-            Create Folder
-          </Button>
-        </div>
-      </div>
+      {/* Breadcrumb Navigation */}
+      {currentPath && (
+        <SimpleBreadcrumb 
+          currentPath={currentPath} 
+          onPathClick={handleBreadcrumbClick} 
+        />
+      )}
 
       {/* Upload Progress */}
       {uploadingFiles.length > 0 && (
@@ -926,4 +894,6 @@ export const SimpleFileManager: React.FC<SimpleFileManagerProps> = ({
       </div>
     </UniversalFilePreviewProvider>
   );
-};
+});
+
+SimpleFileManager.displayName = 'SimpleFileManager';

@@ -61,10 +61,14 @@ export function DashboardHeader({ title, subtitle, projectId, headerAction }: Da
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-black">{title}</h1>
-              {headerAction}
             </div>
             {subtitle && <p className="text-sm text-muted-foreground -mt-0.5">{subtitle}</p>}
           </div>
+          {headerAction && (
+            <div className="ml-auto flex items-center">
+              {headerAction}
+            </div>
+          )}
         </div>
       </header>
     );
