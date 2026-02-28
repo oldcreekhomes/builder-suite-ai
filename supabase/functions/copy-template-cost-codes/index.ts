@@ -178,11 +178,52 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Copy price history records
+    let priceHistoryInserted = 0;
+    for (let i = 0; i < templateCodeIds.length; i += SPEC_BATCH) {
+      const batchIds = templateCodeIds.slice(i, i + SPEC_BATCH);
+      const { data: templateHistory, error: historyError } = await adminClient
+        .from("cost_code_price_history")
+        .select("*")
+        .in("cost_code_id", batchIds);
+
+      if (historyError) {
+        console.error("Error fetching price history batch:", historyError);
+        continue;
+      }
+
+      if (templateHistory && templateHistory.length > 0) {
+        const newHistory = templateHistory
+          .filter((h) => idMap.has(h.cost_code_id))
+          .map((h) => ({
+            id: crypto.randomUUID(),
+            cost_code_id: idMap.get(h.cost_code_id)!,
+            owner_id: targetOwnerId,
+            price: h.price,
+            changed_at: h.changed_at,
+            notes: h.notes,
+          }));
+
+        for (let j = 0; j < newHistory.length; j += BATCH_SIZE) {
+          const batch = newHistory.slice(j, j + BATCH_SIZE);
+          const { error: histInsertError } = await adminClient
+            .from("cost_code_price_history")
+            .insert(batch);
+          if (histInsertError) {
+            console.error("Error inserting price history:", histInsertError);
+          } else {
+            priceHistoryInserted += batch.length;
+          }
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         costCodesImported: newCostCodes.length,
         specificationsImported: specsInserted,
+        priceHistoryImported: priceHistoryInserted,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
