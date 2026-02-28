@@ -43,18 +43,12 @@ export default function ProjectPurchaseOrders() {
         <SidebarInset className="flex-1">
           <div className="flex flex-col min-h-screen">
             <DashboardHeader 
-              title="Project Purchase Orders"
+              title="Purchase Orders"
+              subtitle="Manage purchase orders for this project."
               projectId={projectId}
             />
             
             <main className="flex-1 p-6 space-y-4">
-              {/* Header */}
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold">Purchase Orders</h1>
-                <p className="text-muted-foreground">
-                  Manage purchase orders for this project
-                </p>
-              </div>
 
               {/* Stats Cards */}
               <div className="grid gap-4 grid-cols-2">

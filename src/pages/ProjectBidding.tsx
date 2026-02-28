@@ -46,14 +46,11 @@ export default function ProjectBidding() {
           <SidebarInset className="flex-1">
             <DashboardHeader 
               title="Bidding" 
+              subtitle="Manage bid packages and vendor proposals."
               projectId={projectId}
             />
             
             <div className="flex-1 p-6 space-y-4">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold">Bidding</h1>
-                <p className="text-muted-foreground">Manage bid packages and vendor proposals.</p>
-              </div>
               <BiddingTabs
                 projectId={projectId} 
                 projectAddress={project?.address}

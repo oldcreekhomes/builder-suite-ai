@@ -44,6 +44,8 @@ export default function ProjectBudget() {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
+            title="Budget"
+            subtitle="Manage project budget and cost tracking."
             projectId={projectId}
           />
           

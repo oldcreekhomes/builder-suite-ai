@@ -20,15 +20,12 @@ export default function ProjectSchedule() {
         <AppSidebar />
         <SidebarInset className="flex-1 overflow-hidden">
           <DashboardHeader 
-            title="Project Schedule" 
+            title="Schedule" 
+            subtitle="View and manage the project timeline."
             projectId={projectId}
           />
           
           <div className="flex-1 flex flex-col p-6 overflow-hidden">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold">Schedule</h1>
-              <p className="text-muted-foreground">View and manage the project timeline.</p>
-            </div>
 
             <CustomGanttChart projectId={projectId} />
           </div>

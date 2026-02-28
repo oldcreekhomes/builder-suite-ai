@@ -155,6 +155,7 @@ export default function TakeoffEditor() {
           <SidebarInset className="flex-1">
             <DashboardHeader 
               title="Estimate & Takeoff"
+              subtitle="Measure and estimate project quantities."
               projectId={projectId}
             />
             <div className="flex-1 flex items-center justify-center p-6">
@@ -176,6 +177,7 @@ export default function TakeoffEditor() {
           
           <DashboardHeader 
             title={takeoff.name || "Estimate & Takeoff"}
+            subtitle="Measure and estimate project quantities."
             projectId={projectId}
           />
           

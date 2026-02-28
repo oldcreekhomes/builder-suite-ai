@@ -83,15 +83,12 @@ export default function ProjectPhotos() {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader 
-            title="Project Photos" 
+            title="Photos" 
+            subtitle="View and upload project photos."
             projectId={projectId}
           />
           
           <div className="flex-1 p-6 space-y-6">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold">Photos</h1>
-              <p className="text-muted-foreground">View and upload project photos.</p>
-            </div>
             <PhotoUploadDropzone
               projectId={projectId}
               onUploadSuccess={handleUploadSuccess}

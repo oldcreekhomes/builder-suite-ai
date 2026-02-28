@@ -18,13 +18,10 @@ export default function ApproveBills() {
             <SidebarInset>
               <DashboardHeader 
                 title="Manage Bills" 
+                subtitle="Review, approve and locate invoices - all in one place."
                 projectId={projectId}
               />
               <div className="container mx-auto p-6">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold">Manage Bills</h1>
-                <p className="text-muted-foreground">Review, approve and locate invoices - all in one place.</p>
-              </div>
 
                 <BillsApprovalTabs projectId={projectId} />
               </div>

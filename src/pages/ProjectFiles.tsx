@@ -23,15 +23,12 @@ const ProjectFiles = () => {
           <AppSidebar />
           <SidebarInset className="flex-1">
             <DashboardHeader 
-              title="Project Files" 
+              title="Files" 
+              subtitle="Manage and organize project documents."
               projectId={projectId}
             />
             
             <div className="flex-1 p-6">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold">Files</h1>
-                <p className="text-muted-foreground">Manage and organize project documents.</p>
-              </div>
               <SimpleFileManager
                 projectId={projectId} 
                 refreshKey={refreshKey}
