@@ -46,7 +46,7 @@ export function LotSelector({ projectId, selectedLotId, onSelectLot, showTotal =
       value={selectedLotId || undefined}
       onValueChange={onSelectLot}
     >
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="w-[200px] h-9 text-sm">
         <SelectValue placeholder="Select lot..." />
       </SelectTrigger>
       <SelectContent>

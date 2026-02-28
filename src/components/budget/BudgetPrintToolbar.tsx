@@ -29,7 +29,7 @@ export function BudgetPrintToolbar({
   return (
     <div className="flex items-center justify-end gap-2">
       {onToggleExpandCollapse && (
-        <Button onClick={onToggleExpandCollapse} variant="outline" size="sm">
+        <Button onClick={onToggleExpandCollapse} variant="outline" size="icon" className="h-9 w-9">
           {allExpanded ? (
             <ChevronsUpDown className="h-4 w-4" />
           ) : (
