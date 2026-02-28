@@ -10,8 +10,8 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { BudgetTable } from "@/components/budget/BudgetTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
+import { Button } from "@/components/ui/button";
 import { Lock, LockOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -51,22 +51,19 @@ export default function ProjectBudget() {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
             onClick={canLockBudgets ? () => (isLocked ? unlockBudget(undefined) : lockBudget(undefined)) : undefined}
             disabled={!canLockBudgets}
-            className={cn(
-              "p-1 rounded transition-colors",
-              canLockBudgets 
-                ? "cursor-pointer hover:bg-accent" 
-                : "cursor-not-allowed opacity-50"
-            )}
           >
             {isLocked ? (
               <Lock className="h-5 w-5 text-red-600" />
             ) : (
               <LockOpen className="h-5 w-5 text-green-600" />
             )}
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent>
           {!canLockBudgets ? (
