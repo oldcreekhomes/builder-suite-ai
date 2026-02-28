@@ -1,4 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
+import { FileText } from "lucide-react";
+import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { BalanceSheetContent } from "./BalanceSheetContent";
 import { IncomeStatementContent } from "./IncomeStatementContent";
 import { JobCostsContent } from "./JobCostsContent";
@@ -8,31 +10,31 @@ interface ReportsTabsProps {
   projectId?: string;
 }
 
+const items = [
+  { value: "balance-sheet", label: "Balance Sheet" },
+  { value: "income-statement", label: "Income Statement" },
+  { value: "job-costs", label: "Job Costs" },
+  { value: "accounts-payable", label: "Accounts Payable" },
+];
+
 export function ReportsTabs({ projectId }: ReportsTabsProps) {
+  const [active, setActive] = useState("balance-sheet");
+
   return (
-    <Tabs defaultValue="balance-sheet" className="w-full">
-      <TabsList className="grid w-full max-w-4xl grid-cols-4">
-        <TabsTrigger value="balance-sheet">Balance Sheet</TabsTrigger>
-        <TabsTrigger value="income-statement">Income Statement</TabsTrigger>
-        <TabsTrigger value="job-costs">Job Costs</TabsTrigger>
-        <TabsTrigger value="accounts-payable">Accounts Payable</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="balance-sheet" className="mt-6">
-        <BalanceSheetContent projectId={projectId} />
-      </TabsContent>
-      
-      <TabsContent value="income-statement" className="mt-6">
-        <IncomeStatementContent projectId={projectId} />
-      </TabsContent>
-      
-      <TabsContent value="job-costs" className="mt-6">
-        <JobCostsContent projectId={projectId} />
-      </TabsContent>
-      
-      <TabsContent value="accounts-payable" className="mt-6">
-        <AccountsPayableContent projectId={projectId} />
-      </TabsContent>
-    </Tabs>
+    <div className="flex flex-1 overflow-hidden">
+      <ContentSidebar
+        title="Report Type"
+        icon={FileText}
+        items={items}
+        activeItem={active}
+        onItemChange={setActive}
+      />
+      <div className="flex-1 min-w-0 p-6 overflow-auto">
+        {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} />}
+        {active === "income-statement" && <IncomeStatementContent projectId={projectId} />}
+        {active === "job-costs" && <JobCostsContent projectId={projectId} />}
+        {active === "accounts-payable" && <AccountsPayableContent projectId={projectId} />}
+      </div>
+    </div>
   );
 }

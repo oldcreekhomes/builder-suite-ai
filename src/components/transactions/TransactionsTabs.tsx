@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowRightLeft } from "lucide-react";
+import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { JournalEntryForm } from "@/components/journal/JournalEntryForm";
 import { WriteChecksContent } from "./WriteChecksContent";
 import { MakeDepositsContent } from "./MakeDepositsContent";
@@ -12,49 +13,43 @@ interface TransactionsTabsProps {
   projectId?: string;
 }
 
+const items = [
+  { value: "journal-entry", label: "Journal Entry" },
+  { value: "write-checks", label: "Write Checks" },
+  { value: "make-deposits", label: "Make Deposits" },
+  { value: "credit-cards", label: "Credit Cards" },
+  { value: "reconcile-accounts", label: "Reconcile Accounts" },
+];
+
 function TransactionsTabsInner({ projectId }: TransactionsTabsProps) {
-  const [activeTab, setActiveTab] = useState("journal-entry");
+  const [active, setActive] = useState("journal-entry");
   const { requestNavigation, showDialog, confirmSave, confirmDiscard, cancelNavigation, isSaving } = useUnsavedChangesContext();
 
-  const handleTabChange = useCallback((newTab: string) => {
-    if (newTab === activeTab) return;
-    
+  const handleItemChange = useCallback((newItem: string) => {
+    if (newItem === active) return;
     requestNavigation(() => {
-      setActiveTab(newTab);
+      setActive(newItem);
     });
-  }, [activeTab, requestNavigation]);
+  }, [active, requestNavigation]);
 
   return (
     <>
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="journal-entry">Journal Entry</TabsTrigger>
-          <TabsTrigger value="write-checks">Write Checks</TabsTrigger>
-          <TabsTrigger value="make-deposits">Make Deposits</TabsTrigger>
-          <TabsTrigger value="credit-cards">Credit Cards</TabsTrigger>
-          <TabsTrigger value="reconcile-accounts">Reconcile Accounts</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="journal-entry" className="mt-6">
-          <JournalEntryForm projectId={projectId} activeTab={activeTab} />
-        </TabsContent>
-        
-        <TabsContent value="write-checks" className="mt-6">
-          <WriteChecksContent projectId={projectId} />
-        </TabsContent>
-        
-        <TabsContent value="make-deposits" className="mt-6">
-          <MakeDepositsContent projectId={projectId} activeTab={activeTab} />
-        </TabsContent>
-        
-        <TabsContent value="credit-cards" className="mt-6">
-          <CreditCardsContent projectId={projectId} />
-        </TabsContent>
-        
-        <TabsContent value="reconcile-accounts" className="mt-6">
-          <ReconcileAccountsContent projectId={projectId} />
-        </TabsContent>
-      </Tabs>
+      <div className="flex flex-1 overflow-hidden">
+        <ContentSidebar
+          title="Transaction Type"
+          icon={ArrowRightLeft}
+          items={items}
+          activeItem={active}
+          onItemChange={handleItemChange}
+        />
+        <div className="flex-1 min-w-0 p-6 overflow-auto">
+          {active === "journal-entry" && <JournalEntryForm projectId={projectId} activeTab={active} />}
+          {active === "write-checks" && <WriteChecksContent projectId={projectId} />}
+          {active === "make-deposits" && <MakeDepositsContent projectId={projectId} activeTab={active} />}
+          {active === "credit-cards" && <CreditCardsContent projectId={projectId} />}
+          {active === "reconcile-accounts" && <ReconcileAccountsContent projectId={projectId} />}
+        </div>
+      </div>
 
       <UnsavedChangesDialog
         open={showDialog}

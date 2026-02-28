@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings as SettingsIcon } from "lucide-react";
+import { ContentSidebar, type ContentSidebarGroup } from "@/components/ui/ContentSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditCostCodeDialog } from "@/components/EditCostCodeDialog";
 import { EditSpecificationDescriptionDialog } from "@/components/settings/EditSpecificationDescriptionDialog";
@@ -16,8 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight } from "lucide-react";
 import { CostCodesTab } from "@/components/settings/CostCodesTab";
 import { SpecificationsTab } from "@/components/settings/SpecificationsTab";
 import { ChartOfAccountsTab } from "@/components/settings/ChartOfAccountsTab";
@@ -44,8 +43,9 @@ const Settings = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || "company-profile";
-  const [suppliersOpen, setSuppliersOpen] = useState(
-    defaultTab === "companies" || defaultTab === "representatives"
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [openGroups, setOpenGroups] = useState<string[]>(
+    defaultTab === "companies" || defaultTab === "representatives" ? ["Suppliers"] : []
   );
   const {
     costCodes,
@@ -155,54 +155,48 @@ const Settings = () => {
   return (
     <UniversalFilePreviewProvider>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-gray-50">
+        <div className="min-h-screen flex w-full bg-muted/30">
           <AppSidebar />
           <main className="flex-1 flex flex-col">
             <DashboardHeader />
-            <div className="flex-1 flex">
-              <Tabs defaultValue={defaultTab} orientation="vertical" className="flex w-full">
-                <div className="w-52 shrink-0 border-r border-border bg-background p-4">
-                  <h1 className="text-2xl font-bold text-foreground mb-6">Settings</h1>
-                  <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
-                    <TabsTrigger value="budget" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Budget</TabsTrigger>
-                    <TabsTrigger value="chart-of-accounts" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Chart of Accounts</TabsTrigger>
-                    <TabsTrigger value="company-profile" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Company Profile</TabsTrigger>
-                    <TabsTrigger value="cost-codes" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Cost Codes</TabsTrigger>
-                    <TabsTrigger value="dashboard" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Dashboards</TabsTrigger>
-                    <TabsTrigger value="my-profile" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">My Profile</TabsTrigger>
-                    <TabsTrigger value="employees" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Employees</TabsTrigger>
-                    <TabsTrigger value="specifications" className="justify-start w-full px-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Specifications</TabsTrigger>
-                    <Collapsible open={suppliersOpen} onOpenChange={setSuppliersOpen} className="w-full">
-                      <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all focus-visible:outline-none focus-visible:ring-0 data-[state=open]:bg-transparent">
-                        Suppliers
-                        <ChevronRight className={`h-4 w-4 transition-transform ${suppliersOpen ? 'rotate-90' : ''}`} />
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <TabsTrigger value="companies" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Companies</TabsTrigger>
-                        <TabsTrigger value="representatives" className="justify-start w-full pl-6 pr-3 py-2.5 border-l-2 border-transparent data-[state=active]:border-l-primary data-[state=active]:bg-muted rounded-none text-sm">Representatives</TabsTrigger>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </TabsList>
-                </div>
-                
-                <div className="flex-1 min-w-0 p-6">
-                  <TabsContent value="company-profile" className="mt-0">
-                    <CompanyProfileTab />
-                  </TabsContent>
+            <div className="flex flex-1 overflow-hidden">
+              <ContentSidebar
+                title="Settings"
+                icon={SettingsIcon}
+                items={[
+                  { value: "budget", label: "Budget" },
+                  { value: "chart-of-accounts", label: "Chart of Accounts" },
+                  { value: "company-profile", label: "Company Profile" },
+                  { value: "cost-codes", label: "Cost Codes" },
+                  { value: "dashboard", label: "Dashboards" },
+                  { value: "my-profile", label: "My Profile" },
+                  { value: "employees", label: "Employees" },
+                  { value: "specifications", label: "Specifications" },
+                  {
+                    label: "Suppliers",
+                    collapsible: true,
+                    items: [
+                      { value: "companies", label: "Companies" },
+                      { value: "representatives", label: "Representatives" },
+                    ],
+                  } as ContentSidebarGroup,
+                ]}
+                activeItem={activeTab}
+                onItemChange={setActiveTab}
+                openGroups={openGroups}
+                onGroupToggle={(label) =>
+                  setOpenGroups((prev) =>
+                    prev.includes(label) ? prev.filter((g) => g !== label) : [...prev, label]
+                  )
+                }
+              />
 
-                  <TabsContent value="employees" className="mt-0">
-                    <EmployeesTab />
-                  </TabsContent>
-
-                  <TabsContent value="companies" className="mt-0">
-                    <CompaniesTab />
-                  </TabsContent>
-
-                  <TabsContent value="representatives" className="mt-0">
-                    <RepresentativesTab />
-                  </TabsContent>
-
-                  <TabsContent value="cost-codes" className="mt-0">
+              <div className="flex-1 min-w-0 p-6 overflow-auto">
+                {activeTab === "company-profile" && <CompanyProfileTab />}
+                {activeTab === "employees" && <EmployeesTab />}
+                {activeTab === "companies" && <CompaniesTab />}
+                {activeTab === "representatives" && <RepresentativesTab />}
+                {activeTab === "cost-codes" && (
                     <CostCodesTab
                       costCodes={costCodes}
                       loading={loading}
@@ -222,9 +216,8 @@ const Settings = () => {
                       isEditing={editingCostCode !== null}
                       onRefetch={refetch}
                     />
-                  </TabsContent>
-                  
-                  <TabsContent value="specifications" className="mt-0">
+                )}
+                {activeTab === "specifications" && (
                     <SpecificationsTab
                       specifications={specifications}
                       loading={specificationsLoading}
@@ -241,26 +234,12 @@ const Settings = () => {
                       onFileUpload={handleSpecificationFileUpload}
                       onDeleteIndividualFile={handleDeleteIndividualSpecificationFile}
                     />
-                  </TabsContent>
-
-                  <TabsContent value="chart-of-accounts" className="mt-0">
-                    <ChartOfAccountsTab />
-                  </TabsContent>
-
-                  <TabsContent value="budget" className="mt-0">
-                    <BudgetWarningsTab />
-                  </TabsContent>
-
-                  <TabsContent value="dashboard" className="mt-0">
-                    <DashboardSettingsTab />
-                  </TabsContent>
-
-                  <TabsContent value="my-profile" className="mt-0">
-                    <MyProfileTab />
-                  </TabsContent>
-
-                </div>
-              </Tabs>
+                )}
+                {activeTab === "chart-of-accounts" && <ChartOfAccountsTab />}
+                {activeTab === "budget" && <BudgetWarningsTab />}
+                {activeTab === "dashboard" && <DashboardSettingsTab />}
+                {activeTab === "my-profile" && <MyProfileTab />}
+              </div>
             </div>
           </main>
 

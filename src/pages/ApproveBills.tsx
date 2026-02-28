@@ -21,7 +21,7 @@ export default function ApproveBills() {
                 subtitle="Review, approve and locate invoices - all in one place."
                 projectId={projectId}
               />
-              <div className="container mx-auto p-6">
+              <div className="flex flex-1 overflow-hidden">
 
                 <BillsApprovalTabs projectId={projectId} />
               </div>
