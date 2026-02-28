@@ -1,13 +1,10 @@
-
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, MoreHorizontal, ChevronsRight } from "lucide-react";
-import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { Plus, ArrowLeft, ChevronsRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
-import { useProject } from "@/hooks/useProject";
 import { useProjectContextWithData } from "@/hooks/useProjectContext";
 import { useSidebar } from "@/components/ui/sidebar";
 
@@ -18,13 +15,10 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const { profile } = useUserProfile();
   const { preferences } = useNotificationPreferences();
-  const canEditProjects = preferences?.can_edit_projects ?? false;
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: project, isLoading: projectLoading, error: projectError } = useProject(projectId);
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -52,47 +46,18 @@ export function DashboardHeader({ title, projectId }: DashboardHeaderProps) {
                       location.pathname === '/companies' || 
                       location.pathname === '/employees';
 
-  // If this is a project page, show project-specific header
+  // If this is a project page, show minimal header strip
   if (projectId) {
     return (
-      <>
-        <header className="bg-white border-b border-border px-6 py-3.5">
-          <div className="flex items-center justify-between h-10">
-           <div className="flex items-center space-x-4">
-              {isCollapsed && (
-                <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              )}
-              {projectLoading ? (
-                <div className="h-8 w-80 bg-muted animate-pulse rounded"></div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-black">
-                    {(project?.address?.replace(/,?\s*USA$/i, '') || (projectError ? "Project" : "Project"))}
-                  </h1>
-                  {canEditProjects && project && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditDialogOpen(true)}
-                      className="h-7 w-7"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <EditProjectDialog
-          project={project || null}
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-        />
-      </>
+      <header className="bg-white border-b border-border px-6 py-2">
+        <div className="flex items-center h-8">
+          {isCollapsed && (
+            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </header>
     );
   }
 
