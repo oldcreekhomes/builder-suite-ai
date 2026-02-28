@@ -21,8 +21,7 @@ export default function Transactions() {
                 subtitle="Manage all transaction types in one place."
                 projectId={projectId}
               />
-              <div className="mx-auto p-6 w-full">
-
+              <div className="flex flex-1 overflow-hidden">
                 <TransactionsTabs projectId={projectId} />
               </div>
             </SidebarInset>

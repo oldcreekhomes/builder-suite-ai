@@ -26,7 +26,7 @@ export default function Reports() {
             ) : (
               <CompanyDashboardHeader />
             )}
-            <div className="flex-1 p-6 space-y-4">
+            <div className="flex flex-1 overflow-hidden">
               <UniversalFilePreviewProvider>
                 <ReportsTabs projectId={projectId} />
               </UniversalFilePreviewProvider>

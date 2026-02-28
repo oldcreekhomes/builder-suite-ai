@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Receipt } from "lucide-react";
+import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -683,24 +684,26 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
       ];
 
+  const sidebarItems = tabs.map(tab => ({ value: tab.value, label: tab.label }));
+
   return (
     <>
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className={`grid w-full ${reviewOnly ? 'grid-cols-4' : 'grid-cols-6'}`}>
-        {tabs.map(tab => (
-          <TabsTrigger key={tab.value} value={tab.value}>
-            {tab.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+    <div className="flex flex-1 overflow-hidden">
+      <ContentSidebar
+        title="Bill Actions"
+        icon={Receipt}
+        items={sidebarItems}
+        activeItem={activeTab}
+        onItemChange={setActiveTab}
+      />
+      <div className="flex-1 min-w-0 p-6 overflow-auto">
 
-      {!reviewOnly && (
-        <>
-          <TabsContent value="manual" className="mt-6">
+      {!reviewOnly && activeTab === "manual" && (
             <ManualBillEntry />
-          </TabsContent>
+      )}
 
-          <TabsContent value="upload" className="mt-6 space-y-6">
+      {!reviewOnly && activeTab === "upload" && (
+          <div className="space-y-6">
             <SimplifiedAIBillExtraction 
               onDataExtracted={() => {}}
               onSwitchToManual={() => setActiveTab("manual")}
@@ -762,14 +765,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
               </CardContent>
             </Card>
           )}
-          </TabsContent>
-        </>
+          </div>
       )}
 
-      <TabsContent value="review" className="mt-6">
+      {activeTab === "review" && (
+        <>
         <div className="mb-4">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search bills..."
               value={searchQuery}
@@ -786,12 +789,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           enableSorting={true}
           searchQuery={searchQuery}
         />
-      </TabsContent>
+        </>
+      )}
 
-      <TabsContent value="rejected" className="mt-6">
+      {activeTab === "rejected" && (
+        <>
         <div className="mb-4">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search bills..."
               value={searchQuery}
@@ -809,12 +814,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           searchQuery={searchQuery}
           showEditButton={true}
         />
-      </TabsContent>
+        </>
+      )}
 
-      <TabsContent value="approve" className="mt-6">
+      {activeTab === "approve" && (
+        <>
         <div className="mb-4 flex items-center gap-4">
           <div className="relative w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search bills..."
               value={searchQuery}
@@ -868,12 +875,14 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           dueDateFilter={dueDateFilter}
           filterDate={filterDate}
         />
-      </TabsContent>
+        </>
+      )}
 
-      <TabsContent value="pay" className="mt-6">
+      {activeTab === "pay" && (
+        <>
         <div className="mb-4">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search bills..."
               value={searchQuery}
@@ -891,8 +900,11 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false }:
           searchQuery={searchQuery}
           showEditButton={true}
         />
-      </TabsContent>
-    </Tabs>
+        </>
+      )}
+
+      </div>
+    </div>
 
     {/* Multi-lot allocation dialog */}
     <LotAllocationDialog

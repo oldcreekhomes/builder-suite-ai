@@ -46,7 +46,7 @@ export function ManageBillsDialog({ open, onOpenChange, projectId, projectIds }:
             Review, approve and locate invoices - all in one place.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-auto px-6 pb-6">
+        <div className="flex-1 overflow-hidden">
           <UniversalFilePreviewProvider>
             <BillsApprovalTabs projectId={projectId} projectIds={projectIds} reviewOnly={false} />
           </UniversalFilePreviewProvider>
