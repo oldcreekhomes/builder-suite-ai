@@ -24,7 +24,7 @@ export default function ApproveBills() {
                 projectId={projectId}
                 headerAction={billsHeaderActions}
               />
-              <div className="flex flex-1 overflow-hidden pt-3">
+              <div className="flex flex-1 overflow-hidden">
                 <BillsApprovalTabs 
                   projectId={projectId}
                   onHeaderActionChange={setBillsHeaderActions}
