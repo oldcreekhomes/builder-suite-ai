@@ -1,48 +1,54 @@
 
+## Fix Manage Bills Table Alignment and Submit Button Location
 
-## Add Drag-and-Drop Zone to "Enter with AI" Tab
+### Problem 1: Table Top Border Misaligned
+The Manage Bills content area uses `p-6` padding (equal padding on all sides), while every other page in the app uses `px-6 pt-3 pb-6`. The extra top padding (`pt-6` vs `pt-3`) pushes the table border down so it doesn't align with the sidebar's project dropdown -- inconsistent with Files, Budget, Bidding, etc.
 
-### Problem
-The "Enter with AI" tab only has a small "Upload PDFs" button in the header. There's no visual indication that drag-and-drop is supported, and in fact it currently isn't -- unlike the Photos page which has an obvious dropzone.
-
-### Complexity Assessment
-**Very low.** `react-dropzone` is already installed. The upload logic already exists in `SimplifiedAIBillExtraction`. We just need to surface a dropzone in the content area.
-
-### Approach
-Rather than restructuring the extraction component, add a `useDropzone` hook directly in `BillsApprovalTabs.tsx` for the upload tab's empty state area. When files are dropped, programmatically trigger the same file input that the header "Upload PDFs" button uses.
+### Problem 2: "Submit Selected Bills" Button in Wrong Location
+When bills are extracted on the "Enter with AI" tab, a "Submit Selected Bills" button appears inline above the table. Per the header-action bridge pattern, this button should be in the DashboardHeader's action slot alongside the "Upload PDFs" button.
 
 ### Changes
 
-**`src/components/bills/BillsApprovalTabs.tsx`**
+**File: `src/components/bills/BillsApprovalTabs.tsx`**
 
-1. Import `useDropzone` from `react-dropzone`.
-2. Add a ref to the `SimplifiedAIBillExtraction` component (or its hidden file input) so we can trigger uploads programmatically from dropped files. Alternatively, since `SimplifiedAIBillExtraction` already renders a hidden `<input type="file">`, we can add an `onFilesDropped` prop or expose a ref.
-3. Replace the plain empty state div (lines 803-806) with a styled dropzone matching the Photos page pattern:
-   - Upload icon
-   - "Upload bills by dragging and dropping here" heading
-   - "Drag and drop PDF files here, or use the Upload PDFs button above" description
-   - "Supports: PDF" note
-   - Card with subtle border, highlight on drag-over
+1. **Fix padding** (line 819): Change `p-6` to `px-6 pt-3 pb-6` to match the standard content wrapper padding used across all project pages.
 
-**`src/components/bills/SimplifiedAIBillExtraction.tsx`**
-
-1. Add a `forwardRef` pattern (like PhotoUploadDropzone) exposing a `dropFiles(files: File[])` method.
-2. The `dropFiles` method creates a synthetic event or directly calls the upload logic from `handleFileUpload`, bypassing the file input element.
+2. **Move "Submit Selected Bills" to header** (lines 790-801 and 840-844):
+   - Update the `useEffect` header action emission for the `upload` tab: when `batchBills.length > 0 && selectedBillIds.size > 0`, emit the Submit button alongside the Upload PDFs component in the header action slot.
+   - Remove the inline `<div className="flex justify-end">` block containing the Submit button from the content area (lines 840-844).
+   - The header action for the upload tab will conditionally render:
+     - Always: The `SimplifiedAIBillExtraction` upload button
+     - When bills exist: The "Submit Selected Bills (N)" button next to it
 
 ### Technical Detail
 
-The `SimplifiedAIBillExtraction` component will be updated to:
-```
-export interface SimplifiedAIBillExtractionHandle {
-  dropFiles: (files: File[]) => void;
+The `useEffect` for `activeTab === 'upload'` (line 790) will be updated to:
+
+```tsx
+} else if (activeTab === 'upload') {
+  onHeaderActionChange(
+    <div className="flex items-center gap-2">
+      <SimplifiedAIBillExtraction
+        ref={extractionRef}
+        onDataExtracted={() => {}}
+        onSwitchToManual={() => setActiveTab("manual")}
+        suppressIndividualToasts={true}
+        onExtractionStart={(total) => handleExtractionStart()}
+        onExtractionComplete={handleExtractionComplete}
+        onExtractionProgress={handleExtractionProgress}
+      />
+      {batchBills.length > 0 && (
+        <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="sm" className="bg-black hover:bg-gray-800 text-white">
+          {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+        </Button>
+      )}
+    </div>
+  );
 }
 ```
 
-The parent (`BillsApprovalTabs`) will hold a ref to it and pass dropped files through. The dropzone in the content area will use `useDropzone({ onDrop, accept: { 'application/pdf': ['.pdf'] } })`.
+The dependency array of the `useEffect` will be updated to include `batchBills.length`, `selectedBillIds.size`, and `isSubmitting` so the header re-renders when these values change.
 
 ### Result
-- The empty state shows a clear drag-and-drop zone (consistent with Photos page style)
-- When bills are present (table showing), the dropzone is replaced by the table (users use the header button for additional uploads)
-- When extracting, the existing loading state shows as before
-- Zero new dependencies, minimal code addition
-
+- All Manage Bills tabs (Enter Manually, Enter with AI, Review, Rejected, Approved, Paid) will have their table top borders aligned with the project dropdown, matching every other page.
+- The "Submit Selected Bills" button moves to the header bar, consistent with the header-action bridge pattern.
