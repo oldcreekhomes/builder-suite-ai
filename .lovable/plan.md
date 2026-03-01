@@ -1,16 +1,26 @@
 
-## Fix Bidding Page Sidebar Alignment
+
+## Fix Bidding Table Alignment and Remove Footer
 
 ### Problem
-The "Bid Status" sidebar header is pushed down and misaligned with the "Menus" and "Messages" tabs. This is the same issue that was previously fixed on the Manage Bills page.
+1. The bidding table is not vertically aligned with the top of the project dropdown and sidebar menu -- it needs to match the Files page alignment.
+2. "Total Items: 2" text appears below the table and should be removed entirely.
 
-### Change
+### Changes
 
-**`src/pages/ProjectBidding.tsx` (line 56)**
-- Remove `pt-3` from the content wrapper: change `className="flex flex-1 overflow-hidden pt-3"` to `className="flex flex-1 overflow-hidden"`
-- The ContentSidebar already has internal padding (`px-4 py-3`), so the extra top padding is unnecessary and causes the misalignment with the main sidebar tabs.
+**1. `src/components/bidding/BiddingTabs.tsx` (line 39)**
+- Change `px-6 pt-0 pb-6` to `px-6 pt-3 pb-6` to match the Files page content wrapper padding standard.
+
+**2. `src/components/bidding/BiddingTable.tsx` (line 294)**
+- Remove `space-y-4` from the wrapper div (change to just `relative`) since the toolbar is rendered in the header via the bridge pattern, not inline. This eliminates extra vertical gaps that push the table down.
+
+**3. `src/components/bidding/BiddingTable.tsx` (line 438)**
+- Remove the `<BiddingTableFooter biddingItems={biddingItems} />` line entirely.
+
+**4. `src/components/bidding/BiddingTable.tsx` (line 14)**
+- Remove the unused `BiddingTableFooter` import.
 
 ### Result
-- "Bid Status" sidebar header bottom border aligns horizontally with the "Menus" and "Messages" tabs.
-- The vertical border on the ContentSidebar extends fully without gaps.
-- Content area top aligns with the project dropdown.
+- The bidding table top border aligns with the project dropdown and sidebar menu, matching the Files page exactly.
+- The "Total Items: 2" footer text is removed.
+
