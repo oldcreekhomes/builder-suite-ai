@@ -11,7 +11,7 @@ import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
 import { BiddingTableHeader } from './BiddingTableHeader';
 import { BiddingGroupHeader } from './BiddingGroupHeader';
 import { BiddingTableRow } from './BiddingTableRow';
-import { BiddingTableFooter } from './BiddingTableFooter';
+
 
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { useBiddingData, useAllBiddingData } from '@/hooks/useBiddingData';
@@ -291,7 +291,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   ) : null;
 
   return (
-    <div className="space-y-4 relative">
+    <div className="relative">
       {/* Loading overlay during global settings update */}
       {isApplying && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -435,7 +435,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         </Table>
       </div>
 
-      <BiddingTableFooter biddingItems={biddingItems} />
+      
 
       {status === 'draft' && (
         <>
