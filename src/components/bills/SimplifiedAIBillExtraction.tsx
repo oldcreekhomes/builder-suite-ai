@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { createRoot } from "react-dom/client";
 import { Document as PdfDocument, Page as PdfPage } from 'react-pdf';
 import { supabase } from "@/integrations/supabase/client";
@@ -36,14 +36,18 @@ interface SimplifiedAIBillExtractionProps {
   onExtractionComplete?: () => void;
 }
 
-export default function SimplifiedAIBillExtraction({ 
+export interface SimplifiedAIBillExtractionHandle {
+  dropFiles: (files: File[]) => void;
+}
+
+const SimplifiedAIBillExtraction = forwardRef<SimplifiedAIBillExtractionHandle, SimplifiedAIBillExtractionProps>(({ 
   onDataExtracted, 
   onSwitchToManual, 
   suppressIndividualToasts = false,
   onExtractionStart,
   onExtractionProgress,
   onExtractionComplete
-}: SimplifiedAIBillExtractionProps) {
+}, ref) => {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const [isExtractingLocal, setIsExtractingLocal] = useState(false);
@@ -138,12 +142,9 @@ export default function SimplifiedAIBillExtraction({
     };
   }, []);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputEl = e.target;
-    const files = inputEl.files;
+  const processFiles = async (files: File[], inputEl?: HTMLInputElement) => {
     if (!files || files.length === 0) {
-      // Reset value so selecting the same file again will re-trigger onChange
-      inputEl.value = "";
+      if (inputEl) inputEl.value = "";
       return;
     }
 
@@ -399,10 +400,21 @@ export default function SimplifiedAIBillExtraction({
       });
     } finally {
       setUploading(false);
-      // Allow selecting the same file(s) again to retrigger onChange
-      inputEl.value = "";
+      if (inputEl) inputEl.value = "";
     }
   };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputEl = e.target;
+    const files = Array.from(inputEl.files || []);
+    await processFiles(files, inputEl);
+  };
+
+  useImperativeHandle(ref, () => ({
+    dropFiles: (files: File[]) => {
+      processFiles(files);
+    },
+  }), []);
 
   // Extract text from PDF client-side
   const extractPdfText = async (filePath: string): Promise<string> => {
@@ -824,4 +836,8 @@ export default function SimplifiedAIBillExtraction({
       )}
     </div>
   );
-}
+});
+
+SimplifiedAIBillExtraction.displayName = "SimplifiedAIBillExtraction";
+
+export default SimplifiedAIBillExtraction;

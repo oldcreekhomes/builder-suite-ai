@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, ReactNode } from "react";
+import { useState, useCallback, useEffect, ReactNode, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Receipt } from "lucide-react";
+import { Receipt, Upload } from "lucide-react";
+import { useDropzone } from "react-dropzone";
 import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { BillsApprovalTable } from "./BillsApprovalTable";
 import { PayBillsTable } from "./PayBillsTable";
-import SimplifiedAIBillExtraction from "./SimplifiedAIBillExtraction";
+import SimplifiedAIBillExtraction, { type SimplifiedAIBillExtractionHandle } from "./SimplifiedAIBillExtraction";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
 import { ManualBillEntry } from "./ManualBillEntry";
 import { LotAllocationDialog, type LotAllocation } from "./LotAllocationDialog"; // Kept for future custom allocation feature
@@ -26,6 +27,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBestPOLineMatch, type POLineCandidate } from "@/utils/poLineMatching";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+
+function UploadDropzone({ onDrop }: { onDrop: (files: File[]) => void }) {
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: true,
+    accept: { 'application/pdf': ['.pdf'] },
+  });
+
+  return (
+    <Card>
+      <div
+        {...getRootProps()}
+        className={`p-8 text-center cursor-pointer ${
+          isDragActive ? 'bg-blue-50 border-blue-400' : ''
+        }`}
+      >
+        <input {...getInputProps()} />
+        <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">
+          {isDragActive ? 'Drop PDFs here' : 'Upload bills by dragging and dropping here'}
+        </h3>
+        <p className="text-muted-foreground mb-4">
+          Drag and drop PDF files here, or use the Upload PDFs button above
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Supports: PDF
+        </p>
+      </div>
+    </Card>
+  );
+}
 
 interface BillsApprovalTabsProps {
   projectId?: string;
@@ -53,6 +85,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { checkDuplicate } = useReferenceNumberValidation();
+  const extractionRef = useRef<SimplifiedAIBillExtractionHandle>(null);
   const effectiveProjectId = projectId || (projectIds && projectIds.length === 1 ? projectIds[0] : undefined);
   
   // Fetch lots for the project to enable auto-population when only one lot exists
@@ -757,6 +790,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     } else if (activeTab === 'upload') {
       onHeaderActionChange(
         <SimplifiedAIBillExtraction 
+          ref={extractionRef}
           onDataExtracted={() => {}}
           onSwitchToManual={() => setActiveTab("manual")}
           suppressIndividualToasts={true}
@@ -800,10 +834,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
               </div>
             </div>
           ) : batchBills.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-              <p className="text-base font-medium">No bills uploaded yet</p>
-              <p className="text-sm mt-1">Use the Upload PDFs button above to extract bill data automatically</p>
-            </div>
+            <UploadDropzone onDrop={(files) => extractionRef.current?.dropFiles(files)} />
           ) : (
             <>
               <div className="flex justify-end">
