@@ -30,9 +30,10 @@ import { useProjectResources } from "@/hooks/useProjectResources";
 
 interface CustomGanttChartProps {
   projectId: string;
+  onHeaderActionChange?: (action: React.ReactNode | null) => void;
 }
 
-export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
+export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGanttChartProps) {
   const { data: tasks = [], isLoading, error } = useProjectTasks(projectId);
   const { updateTask, createTask, deleteTask } = useTaskMutations(projectId);
   const { bulkDeleteTasks, bulkUpdateHierarchies, bulkUpdatePredecessors } = useTaskBulkMutations(projectId);
@@ -621,6 +622,34 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
     }
   };
 
+  // Header Action Bridge: emit toolbar to header
+  useEffect(() => {
+    if (onHeaderActionChange) {
+      onHeaderActionChange(
+        <ScheduleToolbar
+          selectedTasks={selectedTasks}
+          tasks={tasks}
+          projectId={projectId}
+          onAddTask={handleAddTask}
+          onPublish={() => setShowPublishDialog(true)}
+          onCopySchedule={handleCopySchedule}
+          allExpanded={expandedTasks.size > 0}
+          onToggleExpandCollapse={handleToggleExpandCollapse}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onUndo={undo}
+          canUndo={canUndo}
+          isUndoing={isUndoing}
+          onBulkDelete={handleBulkDelete}
+          isDeleting={isDeletingBulk}
+        />
+      );
+    }
+    return () => {
+      if (onHeaderActionChange) onHeaderActionChange(null);
+    };
+  }, [onHeaderActionChange, selectedTasks, tasks, projectId, expandedTasks.size, canUndo, isUndoing, isDeletingBulk]);
+
 
   if (isLoading) {
     return (
@@ -641,25 +670,7 @@ export function CustomGanttChart({ projectId }: CustomGanttChartProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Gantt Chart Container */}
-      <div className="bg-card text-card-foreground rounded-lg border overflow-hidden flex flex-col flex-1">
-        {/* Toolbar */}
-        <ScheduleToolbar
-          selectedTasks={selectedTasks}
-          tasks={tasks}
-          projectId={projectId}
-          onAddTask={handleAddTask}
-          onPublish={() => setShowPublishDialog(true)}
-          onCopySchedule={handleCopySchedule}
-          allExpanded={expandedTasks.size > 0}
-          onToggleExpandCollapse={handleToggleExpandCollapse}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onUndo={undo}
-          canUndo={canUndo}
-          isUndoing={isUndoing}
-          onBulkDelete={handleBulkDelete}
-          isDeleting={isDeletingBulk}
-        />
+      <div className="overflow-hidden flex flex-col flex-1">
         
         <UnifiedScheduleTable
           tasks={tasks}
