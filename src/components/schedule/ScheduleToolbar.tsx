@@ -51,7 +51,7 @@ export function ScheduleToolbar({
 }: ScheduleToolbarProps) {
 
   return (
-    <div className="flex items-center gap-2 p-3 bg-card border-b">
+    <div className="flex items-center gap-2">
       <Button
         onClick={onAddTask}
         size="sm"
