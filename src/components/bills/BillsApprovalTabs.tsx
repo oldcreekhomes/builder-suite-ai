@@ -789,22 +789,29 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       );
     } else if (activeTab === 'upload') {
       onHeaderActionChange(
-        <SimplifiedAIBillExtraction 
-          ref={extractionRef}
-          onDataExtracted={() => {}}
-          onSwitchToManual={() => setActiveTab("manual")}
-          suppressIndividualToasts={true}
-          onExtractionStart={(total) => handleExtractionStart()}
-          onExtractionComplete={handleExtractionComplete}
-          onExtractionProgress={handleExtractionProgress}
-        />
+        <div className="flex items-center gap-2">
+          <SimplifiedAIBillExtraction 
+            ref={extractionRef}
+            onDataExtracted={() => {}}
+            onSwitchToManual={() => setActiveTab("manual")}
+            suppressIndividualToasts={true}
+            onExtractionStart={(total) => handleExtractionStart()}
+            onExtractionComplete={handleExtractionComplete}
+            onExtractionProgress={handleExtractionProgress}
+          />
+          {batchBills.length > 0 && (
+            <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="sm" className="bg-black hover:bg-gray-800 text-white">
+              {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+            </Button>
+          )}
+        </div>
       );
     } else {
       onHeaderActionChange(null);
     }
 
     return () => onHeaderActionChange(null);
-  }, [onHeaderActionChange, activeTab, searchQuery, dueDateFilter, filterDate, handleExtractionStart, handleExtractionComplete]);
+  }, [onHeaderActionChange, activeTab, searchQuery, dueDateFilter, filterDate, handleExtractionStart, handleExtractionComplete, batchBills.length, selectedBillIds.size, isSubmitting]);
 
   return (
     <>
@@ -816,7 +823,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         activeItem={activeTab}
         onItemChange={setActiveTab}
       />
-      <div className="flex-1 min-w-0 p-6 overflow-auto">
+      <div className="flex-1 min-w-0 px-6 pt-3 pb-6 overflow-auto">
 
       {!reviewOnly && activeTab === "manual" && (
             <ManualBillEntry />
@@ -837,11 +844,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
             <UploadDropzone onDrop={(files) => extractionRef.current?.dropFiles(files)} />
           ) : (
             <>
-              <div className="flex justify-end">
-                <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="lg">
-                  {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
-                </Button>
-              </div>
               <BatchBillReviewTable
                 bills={batchBills}
                 onBillUpdate={handleBillUpdate}
