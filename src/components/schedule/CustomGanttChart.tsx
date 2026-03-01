@@ -670,7 +670,7 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
   return (
     <div className="flex flex-col h-full">
       {/* Gantt Chart Container */}
-      <div className="overflow-hidden flex flex-col flex-1">
+      <div className="overflow-hidden flex flex-col flex-1 rounded-lg border">
         
         <UnifiedScheduleTable
           tasks={tasks}
