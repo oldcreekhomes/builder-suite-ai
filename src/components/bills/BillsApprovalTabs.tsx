@@ -706,6 +706,43 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     } else if (activeTab === 'approve') {
       onHeaderActionChange(
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 rounded-lg border bg-background h-9">
+            <span className="text-xs font-medium whitespace-nowrap">Show bills</span>
+            <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="due-on-or-before" id="due-filter" />
+                <Label htmlFor="due-filter" className="cursor-pointer font-normal whitespace-nowrap text-xs">Due on or before</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={dueDateFilter !== "due-on-or-before"}
+                      className={cn(
+                        "w-[130px] justify-start text-left font-normal h-7 text-xs text-foreground",
+                        !filterDate && "text-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-1.5 h-3 w-3 text-foreground" />
+                      {filterDate ? format(filterDate, "MM/dd/yyyy") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDate}
+                      onSelect={setFilterDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="all" id="all-filter" />
+                <Label htmlFor="all-filter" className="cursor-pointer font-normal whitespace-nowrap text-xs">All</Label>
+              </div>
+            </RadioGroup>
+          </div>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -717,12 +754,23 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           </div>
         </div>
       );
+    } else if (activeTab === 'upload') {
+      onHeaderActionChange(
+        <SimplifiedAIBillExtraction 
+          onDataExtracted={() => {}}
+          onSwitchToManual={() => setActiveTab("manual")}
+          suppressIndividualToasts={true}
+          onExtractionStart={(total) => handleExtractionStart()}
+          onExtractionComplete={handleExtractionComplete}
+          onExtractionProgress={handleExtractionProgress}
+        />
+      );
     } else {
       onHeaderActionChange(null);
     }
 
     return () => onHeaderActionChange(null);
-  }, [onHeaderActionChange, activeTab, searchQuery]);
+  }, [onHeaderActionChange, activeTab, searchQuery, dueDateFilter, filterDate, handleExtractionStart, handleExtractionComplete]);
 
   return (
     <>
@@ -741,16 +789,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       )}
 
       {!reviewOnly && activeTab === "upload" && (
-          <div className="space-y-6">
-            <SimplifiedAIBillExtraction 
-              onDataExtracted={() => {}}
-              onSwitchToManual={() => setActiveTab("manual")}
-              suppressIndividualToasts={true}
-              onExtractionStart={(total) => handleExtractionStart()}
-              onExtractionComplete={handleExtractionComplete}
-              onExtractionProgress={handleExtractionProgress}
-            />
-
+          <div className="space-y-4">
           {isExtracting ? (
             <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -761,64 +800,34 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
               </div>
             </div>
           ) : batchBills.length === 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Extracted Bills</CardTitle>
-                <CardDescription>Upload PDF files above to extract bill data automatically</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <p>No bills uploaded yet</p>
-                  <p className="text-sm">Upload PDF files above to extract bill data automatically</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+              <p className="text-base font-medium">No bills uploaded yet</p>
+              <p className="text-sm mt-1">Use the Upload PDFs button above to extract bill data automatically</p>
+            </div>
           ) : (
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Extracted Bills</CardTitle>
-                    <CardDescription>
-                      Review and edit {batchBills.length} bill{batchBills.length > 1 ? "s" : ""} before submitting
-                    </CardDescription>
-                  </div>
-                  <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="lg">
-                    {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <BatchBillReviewTable
-                  bills={batchBills}
-                  onBillUpdate={handleBillUpdate}
-                  onBillDelete={handleBillDelete}
-                  onLinesUpdate={handleLinesUpdate}
-                  selectedBillIds={selectedBillIds}
-                  onBillSelect={handleBillSelect}
-                  onSelectAll={handleSelectAll}
-                  showProjectColumn={!effectiveProjectId}
-                  projectId={effectiveProjectId}
-                />
-              </CardContent>
-            </Card>
+            <>
+              <div className="flex justify-end">
+                <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="lg">
+                  {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+                </Button>
+              </div>
+              <BatchBillReviewTable
+                bills={batchBills}
+                onBillUpdate={handleBillUpdate}
+                onBillDelete={handleBillDelete}
+                onLinesUpdate={handleLinesUpdate}
+                selectedBillIds={selectedBillIds}
+                onBillSelect={handleBillSelect}
+                onSelectAll={handleSelectAll}
+                showProjectColumn={!effectiveProjectId}
+                projectId={effectiveProjectId}
+              />
+            </>
           )}
           </div>
       )}
 
       {activeTab === "review" && (
-        <>
-        <div className="mb-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search bills..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </div>
         <BillsApprovalTable 
           status="draft"
           projectId={effectiveProjectId} 
@@ -827,22 +836,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           enableSorting={true}
           searchQuery={searchQuery}
         />
-        </>
       )}
 
       {activeTab === "rejected" && (
-        <>
-        <div className="mb-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search bills..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </div>
         <BillsApprovalTable 
           status="void"
           projectId={effectiveProjectId} 
@@ -852,59 +848,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           searchQuery={searchQuery}
           showEditButton={true}
         />
-        </>
       )}
 
       {activeTab === "approve" && (
-        <>
-        <div className="mb-4 flex items-center gap-4">
-          <div className="relative w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search bills..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10"
-            />
-          </div>
-          <div className="flex items-center gap-4 px-4 rounded-lg border bg-background" style={{ height: '40px' }}>
-            <span className="text-sm font-medium whitespace-nowrap">Show bills</span>
-            <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="due-on-or-before" id="due-filter" />
-                <Label htmlFor="due-filter" className="cursor-pointer font-normal whitespace-nowrap">Due on or before</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      disabled={dueDateFilter !== "due-on-or-before"}
-                      className={cn(
-                        "w-[150px] justify-start text-left font-normal h-8 text-xs text-foreground",
-                        !filterDate && "text-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3 w-3 text-foreground" />
-                      {filterDate ? format(filterDate, "MM/dd/yyyy") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filterDate}
-                      onSelect={setFilterDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="all" id="all-filter" />
-                <Label htmlFor="all-filter" className="cursor-pointer font-normal whitespace-nowrap">Show all bills</Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </div>
         <PayBillsTable 
           projectId={effectiveProjectId} 
           projectIds={projectIds}
@@ -913,22 +859,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           dueDateFilter={dueDateFilter}
           filterDate={filterDate}
         />
-        </>
       )}
 
       {activeTab === "pay" && (
-        <>
-        <div className="mb-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search bills..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </div>
         <BillsApprovalTable 
           status="paid"
           projectId={effectiveProjectId} 
@@ -938,7 +871,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           searchQuery={searchQuery}
           showEditButton={true}
         />
-        </>
       )}
 
       </div>
