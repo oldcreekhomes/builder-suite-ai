@@ -509,7 +509,7 @@ export function UnifiedScheduleTable({
   // Row height now comes from useScheduleRowHeight hook based on density setting
 
   return (
-    <div className="flex" style={{ height: 'calc(100vh - 220px)' }}>
+    <div className="flex flex-1 min-h-0">
       {/* LEFT PANEL - Task Data (pixel-controlled width, no gap possible) */}
       <div 
         style={{ width: leftPanelWidth, flexShrink: 0 }} 
