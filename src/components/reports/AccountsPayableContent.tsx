@@ -20,6 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 interface AccountsPayableContentProps {
   projectId?: string;
   onHeaderActionChange?: (actions: React.ReactNode) => void;
+  asOfDate: Date;
+  onAsOfDateChange: (date: Date) => void;
 }
 
 interface BillWithVendor {
@@ -33,9 +35,8 @@ interface BillWithVendor {
   bill_lines: { lot_id: string | null; amount: number }[];
 }
 
-export function AccountsPayableContent({ projectId, onHeaderActionChange }: AccountsPayableContentProps) {
+export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: AccountsPayableContentProps) {
   const { user, session, loading: authLoading } = useAuth();
-  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set(['1-30', '31-60', '61-90', '>90']));
@@ -355,7 +356,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
               <Calendar
                 mode="single"
                 selected={asOfDate}
-                onSelect={(date) => date && setAsOfDate(date)}
+                onSelect={(date) => date && onAsOfDateChange(date)}
                 initialFocus
                 className="pointer-events-auto"
               />
@@ -380,7 +381,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, asOfDate, isExportingPdf, totalBillCount, selectedLotId]);
+  }, [onHeaderActionChange, projectId, asOfDate, onAsOfDateChange, isExportingPdf, totalBillCount, selectedLotId]);
 
   const hasHeaderBridge = !!onHeaderActionChange;
 
@@ -430,7 +431,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
               <Calendar
                 mode="single"
                 selected={asOfDate}
-                onSelect={(date) => date && setAsOfDate(date)}
+                onSelect={(date) => date && onAsOfDateChange(date)}
                 initialFocus
                 className="pointer-events-auto"
               />

@@ -32,12 +32,13 @@ interface IncomeStatementData {
 interface IncomeStatementContentProps {
   projectId?: string;
   onHeaderActionChange?: (actions: ReactNode) => void;
+  asOfDate: Date;
+  onAsOfDateChange: (date: Date) => void;
 }
 
-export function IncomeStatementContent({ projectId, onHeaderActionChange }: IncomeStatementContentProps) {
+export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: IncomeStatementContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
-  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   
   const { data: incomeStatementData, isLoading, error } = useQuery({
@@ -285,7 +286,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange }: Inco
             <Calendar
               mode="single"
               selected={asOfDate}
-              onSelect={(date) => date && setAsOfDate(date)}
+              onSelect={(date) => date && onAsOfDateChange(date)}
               initialFocus
               className="pointer-events-auto"
             />
@@ -294,7 +295,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange }: Inco
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, asOfDate]);
+  }, [onHeaderActionChange, asOfDate, onAsOfDateChange]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     <div className="flex items-center justify-end">
@@ -309,7 +310,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange }: Inco
           <Calendar
             mode="single"
             selected={asOfDate}
-            onSelect={(date) => date && setAsOfDate(date)}
+            onSelect={(date) => date && onAsOfDateChange(date)}
             initialFocus
             className="pointer-events-auto"
           />

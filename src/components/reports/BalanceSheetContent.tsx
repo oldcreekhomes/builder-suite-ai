@@ -40,12 +40,13 @@ interface BalanceSheetData {
 interface BalanceSheetContentProps {
   projectId?: string;
   onHeaderActionChange?: (actions: ReactNode) => void;
+  asOfDate: Date;
+  onAsOfDateChange: (date: Date) => void;
 }
 
-export function BalanceSheetContent({ projectId, onHeaderActionChange }: BalanceSheetContentProps) {
+export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: BalanceSheetContentProps) {
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
-  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
@@ -391,7 +392,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange }: Balance
             <Calendar
               mode="single"
               selected={asOfDate}
-              onSelect={(date) => date && setAsOfDate(date)}
+              onSelect={(date) => date && onAsOfDateChange(date)}
               initialFocus
               className="pointer-events-auto"
             />
@@ -400,7 +401,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange }: Balance
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, asOfDate]);
+  }, [onHeaderActionChange, asOfDate, onAsOfDateChange]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     <div className="flex items-center justify-end">
@@ -415,7 +416,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange }: Balance
           <Calendar
             mode="single"
             selected={asOfDate}
-            onSelect={(date) => date && setAsOfDate(date)}
+            onSelect={(date) => date && onAsOfDateChange(date)}
             initialFocus
             className="pointer-events-auto"
           />
