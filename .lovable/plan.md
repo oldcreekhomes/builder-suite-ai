@@ -1,23 +1,36 @@
 
-## Fix: A/P Aging Report Excludes Credit Memos
+## Share "As of Date" Across All Report Tabs
 
-### Root Cause
-The A/P Aging report in `AccountsPayableContent.tsx` filters bills with `openBalance > 0.01` (line 198-201). Credit memos have negative `total_amount` values (e.g., -$500 for the JZ Structural credit OCH-02302), so their open balance is negative and they get excluded. This causes a $500 discrepancy vs. the Balance Sheet which correctly includes the credit via journal entries.
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### The Numbers (As of Oct 31, 2025)
-- Balance Sheet A/P: $12,151.13 (correct -- includes the -$500 credit)
-- A/P Aging Total: $12,651.13 (wrong -- missing the credit)
-- Difference: exactly $500
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Fix
+### Changes
 
-**File: `src/components/reports/AccountsPayableContent.tsx`**
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-1. **Line 198-201**: Change the open balance filter from `openBalance > 0.01` to `Math.abs(openBalance) > 0.01`. This includes credit memos (negative open balances) in the report.
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-Credits will naturally:
-- Appear in the appropriate aging bucket based on their bill date
-- Display with negative (parenthesized) amounts
-- Reduce the bucket subtotals and grand total to match the Balance Sheet
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-This is a one-line fix. No changes needed to the Balance Sheet, Account Detail dialog, or PDF export -- they all already handle negative amounts correctly.
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
