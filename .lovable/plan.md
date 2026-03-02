@@ -1,27 +1,23 @@
 
+## Fix: A/P Aging Report Excludes Credit Memos
 
-## Remove Duplicate Table Borders on Job Costs and Accounts Payable
+### Root Cause
+The A/P Aging report in `AccountsPayableContent.tsx` filters bills with `openBalance > 0.01` (line 198-201). Credit memos have negative `total_amount` values (e.g., -$500 for the JZ Structural credit OCH-02302), so their open balance is negative and they get excluded. This causes a $500 discrepancy vs. the Balance Sheet which correctly includes the credit via journal entries.
 
-### Problem
-Both the Job Costs and Accounts Payable report pages have a `<Card>` component wrapping the content (which renders an outer border), and then inside `<CardContent>` there's another `<div className="border rounded-lg">` creating a second inner border. This creates a visible "table within a table" effect that doesn't match the rest of the application.
+### The Numbers (As of Oct 31, 2025)
+- Balance Sheet A/P: $12,151.13 (correct -- includes the -$500 credit)
+- A/P Aging Total: $12,651.13 (wrong -- missing the credit)
+- Difference: exactly $500
 
-Per the project standard, tables should use a single `border rounded-lg overflow-hidden` container with no Card wrapper.
-
-### Changes
-
-**File: `src/components/reports/JobCostsContent.tsx`**
-
-1. Remove the `<Card>` / `<CardHeader>` / `<CardContent>` wrapper around the main table (lines 713-865).
-2. Keep the existing `<div className="border rounded-lg">` (line 790) as the single table container, adding `overflow-hidden` to match the standard.
-3. Move the AlertDialog (lock confirmation) outside the removed Card, keeping it at the same level.
-4. Also remove the Card wrapper from the loading and fallback (no header bridge) states to stay consistent.
+### Fix
 
 **File: `src/components/reports/AccountsPayableContent.tsx`**
 
-1. Remove the `<Card>` / `<CardHeader>` / `<CardContent>` wrapper around the main content (lines 471-570).
-2. Each aging bucket already has its own `<div className="border rounded-lg">` -- these become the direct containers, matching the standard single-border pattern.
-3. Also remove Card wrappers from loading/error states.
+1. **Line 198-201**: Change the open balance filter from `openBalance > 0.01` to `Math.abs(openBalance) > 0.01`. This includes credit memos (negative open balances) in the report.
 
-### Result
-Both pages will display a single bordered table that matches the outer edge established by every other page in the application -- no more nested borders.
+Credits will naturally:
+- Appear in the appropriate aging bucket based on their bill date
+- Display with negative (parenthesized) amounts
+- Reduce the bucket subtotals and grand total to match the Balance Sheet
 
+This is a one-line fix. No changes needed to the Balance Sheet, Account Detail dialog, or PDF export -- they all already handle negative amounts correctly.
