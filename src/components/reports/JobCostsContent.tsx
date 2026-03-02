@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JobCostBudgetDialog } from "./JobCostBudgetDialog";
@@ -618,11 +618,7 @@ return parentRows;
   if (!projectId) {
     return (
       <div className="space-y-4">
-      <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground">Please select a project to view job costs report.</p>
-          </CardContent>
-        </Card>
+        <p className="text-muted-foreground">Please select a project to view job costs report.</p>
       </div>
     );
   }
@@ -630,18 +626,11 @@ return parentRows;
   if (authLoading) {
     return (
       <div className="space-y-4">
-      <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-4 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-2 p-4">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -650,27 +639,23 @@ return parentRows;
     console.error("🔍 Job Costs: Query error:", error);
     return (
       <div className="space-y-4">
-      <Card>
-          <CardContent className="p-6">
-            <p className="text-destructive">Error loading job costs data.</p>
-            {error?.message?.includes('WIP account not configured') ? (
-              <p className="text-sm text-muted-foreground mt-2">
-                Please configure your WIP account in accounting settings.
-              </p>
-            ) : error?.code === 'PGRST301' || error?.message?.includes('row-level security') ? (
-              <p className="text-sm text-muted-foreground mt-2">
-                Authentication issue detected. Please refresh the page and try again.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground mt-2">
-                {error?.message || 'An unexpected error occurred'}
-              </p>
-            )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+        <p className="text-destructive">Error loading job costs data.</p>
+        {error?.message?.includes('WIP account not configured') ? (
+          <p className="text-sm text-muted-foreground mt-2">
+            Please configure your WIP account in accounting settings.
+          </p>
+        ) : error?.code === 'PGRST301' || error?.message?.includes('row-level security') ? (
+          <p className="text-sm text-muted-foreground mt-2">
+            Authentication issue detected. Please refresh the page and try again.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground mt-2">
+            {error?.message || 'An unexpected error occurred'}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -696,23 +681,38 @@ return parentRows;
         </div>
       )}
 
+      {/* Lock/Unlock Confirmation Dialog */}
+      <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lockAction === 'lock' ? 'Lock Budget?' : 'Unlock Budget?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {lockAction === 'lock' 
+                ? 'Locking the budget will prevent any modifications to budget amounts. This applies to both Budget and Job Costs pages.'
+                : 'Unlocking the budget will allow modifications to budget amounts. This applies to both Budget and Job Costs pages.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLock}>
+              {lockAction === 'lock' ? 'Lock Budget' : 'Unlock Budget'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {isLoading ? (
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-4 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-2 p-4">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
       ) : (
-        <Card>
+        <>
           {!hasHeaderBridge && (
-            <CardHeader className="flex flex-row items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
@@ -761,108 +761,84 @@ return parentRows;
                   onSelectLot={setSelectedLotId}
                 />
               </div>
-            </CardHeader>
+            </div>
           )}
 
-          {/* Lock/Unlock Confirmation Dialog */}
-          <AlertDialog open={showLockDialog} onOpenChange={setShowLockDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {lockAction === 'lock' ? 'Lock Budget?' : 'Unlock Budget?'}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {lockAction === 'lock' 
-                    ? 'Locking the budget will prevent any modifications to budget amounts. This applies to both Budget and Job Costs pages.'
-                    : 'Unlocking the budget will allow modifications to budget amounts. This applies to both Budget and Job Costs pages.'}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmLock}>
-                  {lockAction === 'lock' ? 'Lock Budget' : 'Unlock Budget'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <CardContent>
-            {/* Table */}
-            <div className="border rounded-lg">
-              <Table className="table-fixed">
-                <colgroup>
-                  <col style={{ width: '200px' }} />
-                  <col />
-                  <col style={{ width: '180px' }} />
-                  <col style={{ width: '180px' }} />
-                  <col style={{ width: '180px' }} />
-                </colgroup>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-left">Cost Code</TableHead>
-                    <TableHead className="text-left">Name</TableHead>
-                    <TableHead className="text-right">Budget</TableHead>
-                    <TableHead className="text-right">Actual</TableHead>
-                    <TableHead className="text-right">Variance</TableHead>
-                  </TableRow>
-                </TableHeader>
-                {!jobCostsData || jobCostsData.length === 0 ? (
-                  <tbody>
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
-                        No job cost data available for this project.
-                      </td>
-                    </tr>
-                  </tbody>
-                ) : (
-                  <>
-                    {Object.entries(groupedJobCosts).map(([group, rows], index) => {
-                      const groupTotals = calculateGroupTotals(rows);
-                      return (
-                        <tbody key={group}>
-                          <JobCostGroupHeader
-                            group={group}
-                            isExpanded={expandedGroups.has(group)}
-                            onToggle={() => handleGroupToggle(group)}
-                            groupTotal={groupTotals}
-                          />
-                          {expandedGroups.has(group) && (
-                            <>
-                              {rows.map(row => (
-                                <JobCostRow
-                                  key={row.costCodeId}
-                                  row={row}
-                                  onBudgetClick={() => {
-                                    setSelectedCostCode(row);
-                                    setDialogType('budget');
-                                  }}
-                                  onActualClick={() => {
-                                    setSelectedCostCode(row);
-                                    setDialogType('actual');
-                                  }}
-                                />
-                              ))}
-                              <JobCostGroupTotalRow
-                                group={group}
-                                totals={groupTotals}
+          <div className="border rounded-lg overflow-hidden">
+            <Table className="table-fixed">
+              <colgroup>
+                <col style={{ width: '200px' }} />
+                <col />
+                <col style={{ width: '180px' }} />
+                <col style={{ width: '180px' }} />
+                <col style={{ width: '180px' }} />
+              </colgroup>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left">Cost Code</TableHead>
+                  <TableHead className="text-left">Name</TableHead>
+                  <TableHead className="text-right">Budget</TableHead>
+                  <TableHead className="text-right">Actual</TableHead>
+                  <TableHead className="text-right">Variance</TableHead>
+                </TableRow>
+              </TableHeader>
+              {!jobCostsData || jobCostsData.length === 0 ? (
+                <tbody>
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-sm text-muted-foreground">
+                      No job cost data available for this project.
+                    </td>
+                  </tr>
+                </tbody>
+              ) : (
+                <>
+                  {Object.entries(groupedJobCosts).map(([group, rows], index) => {
+                    const groupTotals = calculateGroupTotals(rows);
+                    return (
+                      <tbody key={group}>
+                        <JobCostGroupHeader
+                          group={group}
+                          isExpanded={expandedGroups.has(group)}
+                          onToggle={() => handleGroupToggle(group)}
+                          groupTotal={groupTotals}
+                        />
+                        {expandedGroups.has(group) && (
+                          <>
+                            {rows.map(row => (
+                              <JobCostRow
+                                key={row.costCodeId}
+                                row={row}
+                                onBudgetClick={() => {
+                                  setSelectedCostCode(row);
+                                  setDialogType('budget');
+                                }}
+                                onActualClick={() => {
+                                  setSelectedCostCode(row);
+                                  setDialogType('actual');
+                                }}
                               />
-                            </>
-                          )}
-                        </tbody>
-                      );
-                    })}
-                    <tbody>
-                      <JobCostProjectTotalRow
-                        totalBudget={totalBudget}
-                        totalActual={totalActual}
-                        totalVariance={totalVariance}
-                      />
-                    </tbody>
-                  </>
-                )}
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                            ))}
+                            <JobCostGroupTotalRow
+                              group={group}
+                              totals={groupTotals}
+                            />
+                          </>
+                        )}
+                      </tbody>
+                    );
+                  })}
+                  <tbody>
+                    <JobCostProjectTotalRow
+                      totalBudget={totalBudget}
+                      totalActual={totalActual}
+                      totalVariance={totalVariance}
+                    />
+                  </tbody>
+                </>
+              )}
+            </Table>
+          </div>
+        </>
       )}
 
       {/* Dialogs */}
