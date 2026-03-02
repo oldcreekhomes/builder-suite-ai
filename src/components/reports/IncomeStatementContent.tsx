@@ -276,7 +276,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange }: Inco
       onHeaderActionChange(
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+            <Button variant="outline" className="w-auto justify-start text-left font-normal">
               <CalendarIcon className="mr-2 h-4 w-4" />
               As of {format(asOfDate, "PPP")}
             </Button>
@@ -300,7 +300,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange }: Inco
     <div className="flex items-center justify-end">
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+          <Button variant="outline" className="w-auto justify-start text-left font-normal">
             <CalendarIcon className="mr-2 h-4 w-4" />
             As of {format(asOfDate, "PPP")}
           </Button>

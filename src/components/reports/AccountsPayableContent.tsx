@@ -346,7 +346,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
         <div className="flex items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+              <Button variant="outline" className="w-auto justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 As of {format(asOfDate, "PPP")}
               </Button>
@@ -436,7 +436,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
         <div className="flex items-center justify-end mb-4">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[300px] justify-start text-left font-normal">
+              <Button variant="outline" className="w-auto justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 As of {format(asOfDate, "PPP")}
               </Button>
