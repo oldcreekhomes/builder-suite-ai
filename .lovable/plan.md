@@ -1,21 +1,14 @@
 
 
-## Fix Reports Page: Calendar Whitespace and Table Alignment
+## Fix Transactions Page Content Alignment
 
-### Problem 1: Calendar Button Has Too Much Whitespace
-The "As of March 2nd, 2026" date picker button uses `w-[300px]`, which creates excess white space to the right of the calendar icon. It should auto-size to fit its content.
+### Problem
+The Transactions content area (Journal Entry, Write Checks, etc.) uses `p-6` padding, which adds too much top padding. This pushes the content down so its top border doesn't align with the sidebar's project dropdown -- inconsistent with all other pages that use the standard `px-6 pt-3 pb-6`.
 
-### Problem 2: Assets/Liabilities Tables Too High
-The `ReportsTabs` content wrapper uses `pt-0` top padding. Per the application standard, it should be `pt-3` so the content's top border aligns with the project dropdown in the sidebar.
+### Change
 
-### Changes
+**File: `src/components/transactions/TransactionsTabs.tsx`**
+- Line 45: Change `p-6` to `px-6 pt-3 pb-6` on the inner content wrapper div.
 
-**File: `src/components/reports/ReportsTabs.tsx`**
-- Line 33: Change `pt-0` to `pt-3` in the content wrapper padding.
-
-**File: `src/components/reports/BalanceSheetContent.tsx`**
-- Line 385: Change `w-[300px]` to `w-auto` on the header action date picker button.
-- Line 409: Change `w-[300px]` to `w-auto` on the fallback inline date picker button.
-
-These same changes will be checked across the other report content files (IncomeStatementContent, JobCostsContent, AccountsPayableContent) if they also emit a date picker with a fixed width.
+This is the same one-line fix applied to Reports and Manage Bills previously.
 
