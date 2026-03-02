@@ -197,7 +197,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
       // Filter out fully paid bills
       filteredBills = filteredBills.filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
-        return openBalance > 0.01;
+        return Math.abs(openBalance) > 0.01;
       });
 
       return filteredBills as BillWithVendor[];
