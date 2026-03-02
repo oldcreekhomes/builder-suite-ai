@@ -42,7 +42,7 @@ function TransactionsTabsInner({ projectId }: TransactionsTabsProps) {
           activeItem={active}
           onItemChange={handleItemChange}
         />
-        <div className="flex-1 min-w-0 p-6 overflow-auto">
+        <div className="flex-1 min-w-0 px-6 pt-3 pb-6 overflow-auto">
           {active === "journal-entry" && <JournalEntryForm projectId={projectId} activeTab={active} />}
           {active === "write-checks" && <WriteChecksContent projectId={projectId} />}
           {active === "make-deposits" && <MakeDepositsContent projectId={projectId} activeTab={active} />}
