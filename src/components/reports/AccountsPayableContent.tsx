@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -387,11 +387,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
   if (!projectId) {
     return (
       <div className="space-y-4">
-      <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground">Please select a project to view A/P aging report.</p>
-          </CardContent>
-        </Card>
+        <p className="text-muted-foreground">Please select a project to view A/P aging report.</p>
       </div>
     );
   }
@@ -399,18 +395,11 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
   if (authLoading) {
     return (
       <div className="space-y-4">
-      <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-4 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-2 p-4">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -418,14 +407,10 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
   if (error) {
     return (
       <div className="space-y-4">
-      <Card>
-          <CardContent className="p-6">
-            <p className="text-destructive">Error loading A/P aging data.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {(error as Error)?.message || 'An unexpected error occurred'}
-            </p>
-          </CardContent>
-        </Card>
+        <p className="text-destructive">Error loading A/P aging data.</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {(error as Error)?.message || 'An unexpected error occurred'}
+        </p>
       </div>
     );
   }
@@ -455,22 +440,15 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
       )}
 
       {isLoading ? (
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {[...Array(8)].map((_, i) => (
-                <Skeleton key={i} className="h-4 w-full" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-2 p-4">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
       ) : (
-        <Card>
+        <>
           {!hasHeaderBridge && (
-            <CardHeader className="flex flex-row items-center justify-end">
+            <div className="flex items-center justify-end mb-4">
               <div className="flex items-center gap-2">
                 <Button 
                   onClick={handleExportPdf} 
@@ -487,87 +465,85 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange }: Acco
                   showTotal
                 />
               </div>
-            </CardHeader>
+            </div>
           )}
-          <CardContent>
-            {totalBillCount === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No outstanding bills found for the selected criteria.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {(Object.entries(agingBuckets) as [keyof typeof agingBuckets, APAgingBill[]][]).map(([bucketKey, bills]) => {
-                  if (bills.length === 0) return null;
-                  const bucketTotal = bills.reduce((sum, bill) => sum + bill.openBalance, 0);
-                  const isExpanded = expandedBuckets.has(bucketKey);
+          {totalBillCount === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No outstanding bills found for the selected criteria.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {(Object.entries(agingBuckets) as [keyof typeof agingBuckets, APAgingBill[]][]).map(([bucketKey, bills]) => {
+                if (bills.length === 0) return null;
+                const bucketTotal = bills.reduce((sum, bill) => sum + bill.openBalance, 0);
+                const isExpanded = expandedBuckets.has(bucketKey);
 
-                  return (
-                    <Collapsible
-                      key={bucketKey}
-                      open={isExpanded}
-                      onOpenChange={() => handleBucketToggle(bucketKey)}
-                    >
-                      <div className="border rounded-lg">
-                        <CollapsibleTrigger asChild>
-                          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                            <div className="flex items-center gap-2">
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                              <span className="font-semibold">{bucketLabels[bucketKey]}</span>
-                              <span className="text-muted-foreground text-sm">
-                                ({bills.length} bill{bills.length !== 1 ? 's' : ''})
-                              </span>
-                            </div>
-                            <span className="font-semibold">{formatCurrency(bucketTotal)}</span>
+                return (
+                  <Collapsible
+                    key={bucketKey}
+                    open={isExpanded}
+                    onOpenChange={() => handleBucketToggle(bucketKey)}
+                  >
+                    <div className="border rounded-lg overflow-hidden">
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            <span className="font-semibold">{bucketLabels[bucketKey]}</span>
+                            <span className="text-muted-foreground text-sm">
+                              ({bills.length} bill{bills.length !== 1 ? 's' : ''})
+                            </span>
                           </div>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="border-t">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="w-[14%]">Date</TableHead>
-                                  <TableHead className="w-[12%]">Num</TableHead>
-                                  <TableHead className="w-[28%]">Name</TableHead>
-                                  <TableHead className="w-[14%]">Due Date</TableHead>
-                                  <TableHead className="w-[10%] text-right">Aging</TableHead>
-                                  <TableHead className="w-[22%] text-right">Open Balance</TableHead>
+                          <span className="font-semibold">{formatCurrency(bucketTotal)}</span>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="border-t">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[14%]">Date</TableHead>
+                                <TableHead className="w-[12%]">Num</TableHead>
+                                <TableHead className="w-[28%]">Name</TableHead>
+                                <TableHead className="w-[14%]">Due Date</TableHead>
+                                <TableHead className="w-[10%] text-right">Aging</TableHead>
+                                <TableHead className="w-[22%] text-right">Open Balance</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {bills.map((bill) => (
+                                <TableRow key={bill.id}>
+                                  <TableCell>{formatDate(bill.billDate)}</TableCell>
+                                  <TableCell>{bill.referenceNumber || '-'}</TableCell>
+                                  <TableCell className="font-medium">{bill.vendorName}</TableCell>
+                                  <TableCell>{formatDate(bill.dueDate)}</TableCell>
+                                  <TableCell className="text-right">{bill.aging}</TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {formatCurrency(bill.openBalance)}
+                                  </TableCell>
                                 </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {bills.map((bill) => (
-                                  <TableRow key={bill.id}>
-                                    <TableCell>{formatDate(bill.billDate)}</TableCell>
-                                    <TableCell>{bill.referenceNumber || '-'}</TableCell>
-                                    <TableCell className="font-medium">{bill.vendorName}</TableCell>
-                                    <TableCell>{formatDate(bill.dueDate)}</TableCell>
-                                    <TableCell className="text-right">{bill.aging}</TableCell>
-                                    <TableCell className="text-right font-medium">
-                                      {formatCurrency(bill.openBalance)}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </CollapsibleContent>
-                      </div>
-                    </Collapsible>
-                  );
-                })}
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
 
-                {/* Grand Total */}
-                <div className="flex items-center justify-between p-4 bg-muted rounded-lg border-2 border-primary/20">
-                  <span className="font-bold text-lg">Total Outstanding</span>
-                  <span className="font-bold text-lg">{formatCurrency(grandTotal)}</span>
-                </div>
+              {/* Grand Total */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg border-2 border-primary/20">
+                <span className="font-bold text-lg">Total Outstanding</span>
+                <span className="font-bold text-lg">{formatCurrency(grandTotal)}</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
