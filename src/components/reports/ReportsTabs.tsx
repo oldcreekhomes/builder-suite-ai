@@ -30,7 +30,7 @@ export function ReportsTabs({ projectId, onHeaderActionChange }: ReportsTabsProp
         activeItem={active}
         onItemChange={setActive}
       />
-      <div className="flex-1 min-w-0 px-6 pt-0 pb-6 overflow-auto">
+      <div className="flex-1 min-w-0 px-6 pt-3 pb-6 overflow-auto">
         {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
         {active === "income-statement" && <IncomeStatementContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
         {active === "job-costs" && <JobCostsContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
