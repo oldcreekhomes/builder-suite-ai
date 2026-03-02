@@ -20,6 +20,7 @@ const items = [
 
 export function ReportsTabs({ projectId, onHeaderActionChange }: ReportsTabsProps) {
   const [active, setActive] = useState("balance-sheet");
+  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -31,10 +32,10 @@ export function ReportsTabs({ projectId, onHeaderActionChange }: ReportsTabsProp
         onItemChange={setActive}
       />
       <div className="flex-1 min-w-0 px-6 pt-3 pb-6 overflow-auto">
-        {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
-        {active === "income-statement" && <IncomeStatementContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
-        {active === "job-costs" && <JobCostsContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
-        {active === "accounts-payable" && <AccountsPayableContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} />}
+        {active === "balance-sheet" && <BalanceSheetContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} asOfDate={asOfDate} onAsOfDateChange={setAsOfDate} />}
+        {active === "income-statement" && <IncomeStatementContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} asOfDate={asOfDate} onAsOfDateChange={setAsOfDate} />}
+        {active === "job-costs" && <JobCostsContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} asOfDate={asOfDate} onAsOfDateChange={setAsOfDate} />}
+        {active === "accounts-payable" && <AccountsPayableContent projectId={projectId} onHeaderActionChange={onHeaderActionChange} asOfDate={asOfDate} onAsOfDateChange={setAsOfDate} />}
       </div>
     </div>
   );

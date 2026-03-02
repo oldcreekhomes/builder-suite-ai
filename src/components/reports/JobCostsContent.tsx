@@ -50,11 +50,12 @@ interface JobCostRow {
 interface JobCostsContentProps {
   projectId?: string;
   onHeaderActionChange?: (actions: React.ReactNode) => void;
+  asOfDate: Date;
+  onAsOfDateChange: (date: Date) => void;
 }
 
-export function JobCostsContent({ projectId, onHeaderActionChange }: JobCostsContentProps) {
+export function JobCostsContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: JobCostsContentProps) {
   const { user, session, loading: authLoading } = useAuth();
-  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
   const [selectedCostCode, setSelectedCostCode] = useState<JobCostRow | null>(null);
   const [dialogType, setDialogType] = useState<'budget' | 'actual' | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -587,7 +588,7 @@ return parentRows;
               <Calendar
                 mode="single"
                 selected={asOfDate}
-                onSelect={(date) => date && setAsOfDate(date)}
+                onSelect={(date) => date && onAsOfDateChange(date)}
                 initialFocus
                 className="pointer-events-auto"
               />
@@ -611,7 +612,7 @@ return parentRows;
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, asOfDate, isLocked, canLockBudgets, isLocking, isUnlocking, isExportingPdf, jobCostsData?.length, selectedLotId]);
+  }, [onHeaderActionChange, projectId, asOfDate, onAsOfDateChange, isLocked, canLockBudgets, isLocking, isUnlocking, isExportingPdf, jobCostsData?.length, selectedLotId]);
 
   const hasHeaderBridge = !!onHeaderActionChange;
 
@@ -672,7 +673,7 @@ return parentRows;
               <Calendar
                 mode="single"
                 selected={asOfDate}
-                onSelect={(date) => date && setAsOfDate(date)}
+                onSelect={(date) => date && onAsOfDateChange(date)}
                 initialFocus
                 className="pointer-events-auto"
               />
