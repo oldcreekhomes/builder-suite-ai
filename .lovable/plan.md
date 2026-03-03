@@ -1,40 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Remove "Actual" Column from Budget Table
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-The "Actual" column (`w-32`) exists in the budget table header, rows, group headers, group total rows, and project total row. It will be removed from all of them, and the freed space will be redistributed to adjacent columns.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
 ### Changes
 
-**1. `src/components/budget/BudgetTableHeader.tsx`** (line 38)
-- Remove `<TableHead className="w-32">Actual</TableHead>`
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-**2. `src/components/budget/BudgetTableRow.tsx`** (lines 289-318)
-- Remove the entire Actual `<TableCell>` block (the editable actual amount cell)
-- Remove `onUpdateActual` from props interface and destructuring
-- Remove `actualAmount`, `isEditingActual`, `setIsEditingActual` state variables
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-**3. `src/components/budget/BudgetGroupHeader.tsx`** (line 85)
-- Remove `<TableCell className="w-32 py-1"></TableCell>`
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**4. `src/components/budget/BudgetGroupTotalRow.tsx`** (lines 64-66)
-- Remove `<TableCell className="w-32 ...">` for actual total
-- Remove `actualTotal` from props
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**5. `src/components/budget/BudgetProjectTotalRow.tsx`** (lines 64-66)
-- Remove `<TableCell className="w-32 ...">` for total actual
-- Remove `totalActual` from props
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**6. `src/components/budget/BudgetTable.tsx`**
-- Remove `totalActual` calculation (~lines 431-435)
-- Remove `actualTotal` prop from `BudgetGroupTotalRow` usage (~line 623)
-- Remove `totalActual` prop from `BudgetProjectTotalRow` usage (~line 686)
-- Remove `onUpdateActual` / `handleUpdateActual` if only used for the budget table (keep if used by ActualTable)
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
 
-### Column Width Redistribution
-The removed `w-32` (128px) will be spread to the Name and Total Budget columns:
-- Name: `w-[320px]` → `w-[380px]`
-- Total Budget: `w-52` → `w-60`
-
-This applies consistently across all 5 components (header, row, group header, group total, project total).
-
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.

@@ -4,7 +4,6 @@ import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetProjectTotalRowProps {
   totalBudget: number;
-  totalActual?: number;
   totalHistorical: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
@@ -12,7 +11,6 @@ interface BudgetProjectTotalRowProps {
 
 export function BudgetProjectTotalRow({ 
   totalBudget, 
-  totalActual,
   totalHistorical,
   showVarianceAsPercentage = false,
   visibleColumns
@@ -58,11 +56,8 @@ export function BudgetProjectTotalRow({
       <TableCell colSpan={3}>Total Project Budget</TableCell>
       <TableCell className="w-48"></TableCell>
       <TableCell className="w-10 px-0"></TableCell>
-      <TableCell className="w-52 text-left">
+      <TableCell className="w-60 text-left">
         {formatCurrency(totalBudget)}
-      </TableCell>
-      <TableCell className="w-32 text-left">
-        {totalActual !== undefined && totalActual > 0 ? formatCurrency(totalActual) : '-'}
       </TableCell>
       {visibleColumns.historicalCosts && (
         <TableCell className="w-52">
