@@ -668,7 +668,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                         <BudgetGroupTotalRow
                           group={group}
                           groupTotal={0}
-                          actualTotal={0}
                           historicalTotal={items.reduce((sum, item) => sum + item.amount, 0)}
                           showVarianceAsPercentage={showVarianceAsPercentage}
                           visibleColumns={visibleColumns}
