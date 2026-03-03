@@ -1,36 +1,22 @@
 
-## Share "As of Date" Across All Report Tabs
 
-### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+## Fix: Vendor Bid Per-Lot Amount Not Reflecting in Budget Table
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+### Root Cause
+The `calculateBudgetItemTotal` function in `src/utils/budgetUtils.ts` (line 31-32) always returns `selectedBid.price` (the full bid amount from the `project_bids` table) when `budget_source` is `'vendor-bid'`. It completely ignores the `unit_price` that was carefully set to the per-lot amount ($1,072.73) by the allocation mutation.
 
-### Changes
+So the DB is being updated correctly (`unit_price = 1072.86, quantity = 1`), but the display logic bypasses those fields and shows the full bid price ($20,382.00).
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+### Fix
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+**`src/utils/budgetUtils.ts`** — In the `'vendor-bid'` case of `calculateBudgetItemTotal`:
+- Change the logic to use `quantity * unit_price` when those values are set (which happens after per-lot allocation), falling back to `selectedBid.price` only when they are not.
+- Specifically: if `item.unit_price > 0 && item.quantity > 0`, return `item.quantity * item.unit_price`. Otherwise, fall back to `selectedBid.price`.
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+This ensures:
+- **Full bid allocation** (no lot division): `unit_price` is not updated by the mutation, so it falls back to `selectedBid.price` — correct.
+- **Per-lot allocation**: `unit_price` is set to the per-lot amount, so `quantity * unit_price` returns the divided amount — correct.
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+### Files to Change
+1. `src/utils/budgetUtils.ts` — update `'vendor-bid'` case logic (lines 30-33)
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
