@@ -619,7 +619,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                       <BudgetGroupTotalRow
                         group={group}
                         groupTotal={calculateGroupTotal(items, itemTotalsMap)}
-                        actualTotal={items.reduce((sum, item) => sum + (item.actual_amount || 0), 0)}
                         historicalTotal={
                           items.reduce((sum, item) => {
                             const costCode = item.cost_codes?.code;
