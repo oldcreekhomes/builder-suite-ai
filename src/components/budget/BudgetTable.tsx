@@ -455,7 +455,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
               variant="outline"
               isLoading={isDeletingSelected}
               showIcon={true}
-              triggerClassName="border-destructive text-destructive hover:bg-destructive/10"
             />
           )}
           <BudgetPrintToolbar 
