@@ -445,21 +445,35 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
   useEffect(() => {
     if (onHeaderActionChange) {
       onHeaderActionChange(
-        <BudgetPrintToolbar 
-          projectId={projectId}
-          selectedLotId={selectedLotId}
-          onSelectLot={selectLot}
-          onPrint={handlePrint}
-          onExportPdf={() => setShowExportDialog(true)}
-          onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
-          onToggleExpandCollapse={handleToggleExpandCollapse}
-          allExpanded={allGroupsExpanded}
-          isExportingPdf={isExportingPdf}
-        />
+        <>
+          {selectedCount > 0 && (
+            <DeleteButton
+              onDelete={onBulkDelete}
+              title="Delete Selected"
+              description={`Are you sure you want to delete ${selectedCount} selected budget item(s)? This action cannot be undone.`}
+              size="sm"
+              variant="outline"
+              isLoading={isDeletingSelected}
+              showIcon={true}
+              triggerClassName="border-destructive text-destructive hover:bg-destructive/10"
+            />
+          )}
+          <BudgetPrintToolbar 
+            projectId={projectId}
+            selectedLotId={selectedLotId}
+            onSelectLot={selectLot}
+            onPrint={handlePrint}
+            onExportPdf={() => setShowExportDialog(true)}
+            onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+            onToggleExpandCollapse={handleToggleExpandCollapse}
+            allExpanded={allGroupsExpanded}
+            isExportingPdf={isExportingPdf}
+          />
+        </>
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf, selectedCount, isDeletingSelected, onBulkDelete]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     <div className="flex items-center justify-end gap-2">
