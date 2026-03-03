@@ -78,7 +78,7 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="w-[320px] py-3 px-3 font-bold text-sm">{groupName}</TableCell>
+      <TableCell className="w-[380px] py-3 px-3 font-bold text-sm">{groupName}</TableCell>
       <TableCell className="w-48 py-1"></TableCell>
       <TableCell className="w-10 px-0 py-1"></TableCell>
       <TableCell className="w-52 pr-3 py-1"></TableCell>
