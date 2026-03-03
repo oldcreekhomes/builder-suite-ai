@@ -1,36 +1,38 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Add Allocation Mode Toggle for Vendor Bids
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
-
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+Currently, when a vendor bid is selected on a multi-lot project, it always assumes per-lot division. The user needs the **option** to either:
+1. **Full Amount** — Apply the entire bid to this specific lot only
+2. **Divide by Lots** — Split the bid evenly across all lots
 
 ### Changes
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**`src/components/budget/BudgetDetailsModal.tsx`**:
+- Add a new state: `allocationMode` with values `'full'` or `'per-lot'`, defaulting to `'full'`
+- Replace the current static "Per-Lot Allocation" info box (lines 486-501) with a **radio group** that lets the user choose:
+  - **"Apply full amount to this lot"** — shows the full bid price
+  - **"Divide equally across all {lotCount} lots"** — shows the per-lot breakdown (Bid Total, Lot Count, Per Lot amount)
+- Update the `perLotAmount` calculation and footer total to respect the chosen mode
+- Update `handleApply` (line 172-173): only pass `lotCount` and `bidTotal` to `selectBid` when `allocationMode === 'per-lot'`
+- Only show the radio group when `hasMultipleLots && selectedBidId && selectedBidPrice > 0` (same condition as now)
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+### UI Mockup
+```text
+┌─ Allocation Mode ─────────────────────────┐
+│ ○ Apply full amount to this lot           │
+│     Budget: $20,382.00                    │
+│                                           │
+│ ● Divide equally across all 19 lots       │
+│     Bid Total:    $20,382.00              │
+│     Project Lots: 19                      │
+│     Per Lot:      $1,072.73               │
+└───────────────────────────────────────────┘
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+Total Budget (per lot):  $1,072.73
+```
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+### Files to Change
+1. `src/components/budget/BudgetDetailsModal.tsx` — add allocation mode radio, update total display and handleApply logic
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
