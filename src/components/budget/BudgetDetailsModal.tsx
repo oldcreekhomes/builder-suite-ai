@@ -506,40 +506,27 @@ export function BudgetDetailsModal({
                 </div>
                 {/* Allocation Mode Toggle */}
                 {hasMultipleLots && selectedBidId && selectedBidPrice > 0 && (
-                  <div className="border rounded-lg bg-muted/50 p-4 space-y-3">
+                  <div className="border rounded-lg bg-muted/50 p-3 space-y-2">
                     <div className="text-sm font-medium">Allocation Mode</div>
                     <RadioGroup
                       value={allocationMode}
                       onValueChange={(val) => setAllocationMode(val as 'full' | 'per-lot')}
-                      className="space-y-3"
+                      className="grid grid-cols-2 gap-3"
                     >
-                      <div className="flex items-start gap-2">
-                        <RadioGroupItem value="full" id="alloc-full" className="mt-0.5" />
-                        <div>
-                          <Label htmlFor="alloc-full" className="text-sm font-medium cursor-pointer">
-                            Apply full amount to this lot
-                          </Label>
-                          <div className="text-sm text-muted-foreground mt-0.5">
-                            Budget: {formatCurrency(selectedBidPrice)}
-                          </div>
+                      <label htmlFor="alloc-full" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${allocationMode === 'full' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                        <RadioGroupItem value="full" id="alloc-full" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium">Full amount</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrency(selectedBidPrice)}</div>
                         </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <RadioGroupItem value="per-lot" id="alloc-per-lot" className="mt-0.5" />
-                        <div>
-                          <Label htmlFor="alloc-per-lot" className="text-sm font-medium cursor-pointer">
-                            Divide equally across all {lotCount} lots
-                          </Label>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm text-muted-foreground mt-1">
-                            <span>Bid Total:</span>
-                            <span className="font-medium text-foreground">{formatCurrency(selectedBidPrice)}</span>
-                            <span>Project Lots:</span>
-                            <span className="font-medium text-foreground">{lotCount}</span>
-                            <span>Per Lot:</span>
-                            <span className="font-semibold text-foreground">{formatCurrency(perLotAmount)}</span>
-                          </div>
+                      </label>
+                      <label htmlFor="alloc-per-lot" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${allocationMode === 'per-lot' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                        <RadioGroupItem value="per-lot" id="alloc-per-lot" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium">Divide by {lotCount} lots</div>
+                          <div className="text-xs text-muted-foreground">{formatCurrency(selectedBidPrice)} ÷ {lotCount} = {formatCurrency(perLotAmount)}/lot</div>
                         </div>
-                      </div>
+                      </label>
                     </RadioGroup>
                   </div>
                 )}
