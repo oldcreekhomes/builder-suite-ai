@@ -34,6 +34,7 @@ interface BudgetDetailsModalProps {
   currentSelectedBidId?: string | null;
   onBidSelected: (bidId: string | null) => void;
   isLocked?: boolean;
+  lotCount?: number;
 }
 
 export function BudgetDetailsModal({
