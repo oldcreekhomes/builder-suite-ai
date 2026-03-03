@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BudgetDetailsModal } from "@/components/budget/BudgetDetailsModal";
 import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
+import { useLots } from "@/hooks/useLots";
 
 interface JobCostBudgetDialogProps {
   isOpen: boolean;
