@@ -593,7 +593,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                               itemTotal={itemTotalsMap[row.item.id]}
                               onUpdate={handleUpdateItem}
                               onUpdateUnit={handleUpdateUnit}
-                              onUpdateActual={handleUpdateActual}
                               onDelete={onDeleteItem}
                               formatUnitOfMeasure={formatUnitOfMeasure}
                               isSelected={selectedItems.has(row.item.id)}
