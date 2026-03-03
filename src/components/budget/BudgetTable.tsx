@@ -38,7 +38,7 @@ import {
 
 import { useBudgetItemTotals } from '@/hooks/useBudgetItemTotals';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
-import { BulkActionBar } from '@/components/files/components/BulkActionBar';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
