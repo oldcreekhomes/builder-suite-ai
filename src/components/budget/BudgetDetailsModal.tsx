@@ -97,6 +97,19 @@ export function BudgetDetailsModal({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Infer allocation mode from saved data when dialog opens
+  useEffect(() => {
+    if (lotCount > 1 && selectedBidId && budgetItem.unit_price > 0 && availableBids.length > 0) {
+      const matchingBid = availableBids.find(b => b.id === selectedBidId);
+      if (matchingBid) {
+        const bidTotal = matchingBid.price;
+        const expectedPerLot = bidTotal / lotCount;
+        const isPerLot = Math.abs(budgetItem.unit_price - expectedPerLot) < 0.02;
+        setAllocationMode(isPerLot ? 'per-lot' : 'full');
+      }
+    }
+  }, [lotCount, selectedBidId, budgetItem.unit_price, availableBids]);
+
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
   }, [currentSelectedBidId]);

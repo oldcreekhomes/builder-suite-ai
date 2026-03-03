@@ -1,21 +1,36 @@
 
-
-## Fix: Dialog Should Open with Previously Saved Allocation Mode
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-The `allocationMode` state always initializes to `'full'`, regardless of what was last saved. So if a user saved "divide by 19 lots", reopening the dialog shows "full amount" even though the budget table correctly shows the per-lot value.
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### Approach: Infer from Saved Data
-No schema change needed. When the dialog opens with a selected vendor bid, we can compare the saved `unit_price` against the full bid price:
-- If `unit_price ≈ bidPrice` → was saved as `'full'`
-- If `unit_price ≈ bidPrice / lotCount` → was saved as `'per-lot'`
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Change
+### Changes
 
-**`src/components/budget/BudgetDetailsModal.tsx`** (line 93):
-- Replace the hardcoded `useState('full')` with logic that infers the mode from `budgetItem.unit_price` vs the selected bid's price.
-- Use a `useEffect` that runs when the dialog opens (or when `availableBids` load) to detect: if `hasMultipleLots && selectedBidId && budgetItem.unit_price > 0`, find the matching bid price. If `budgetItem.unit_price` is significantly less than the bid price (e.g., approximately `bidPrice / lotCount`), set mode to `'per-lot'`. Otherwise `'full'`.
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-### Files
-1. `src/components/budget/BudgetDetailsModal.tsx` — add useEffect to infer initial `allocationMode` from saved data
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
