@@ -446,17 +446,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
     if (onHeaderActionChange) {
       onHeaderActionChange(
         <>
-          {selectedCount > 0 && (
-            <DeleteButton
-              onDelete={onBulkDelete}
-              title="Delete Selected"
-              description={`Are you sure you want to delete ${selectedCount} selected budget item(s)? This action cannot be undone.`}
-              size="sm"
-              variant="outline"
-              isLoading={isDeletingSelected}
-              showIcon={true}
-            />
-          )}
           <BudgetPrintToolbar 
             projectId={projectId}
             selectedLotId={selectedLotId}
@@ -468,7 +457,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
             allExpanded={allGroupsExpanded}
             isExportingPdf={isExportingPdf}
           />
-        </>
+        
       );
       return () => onHeaderActionChange(null);
     }
