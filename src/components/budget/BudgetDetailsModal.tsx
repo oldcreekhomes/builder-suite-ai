@@ -90,6 +90,7 @@ export function BudgetDetailsModal({
   // Manual tab state - store as strings to allow empty inputs
   const [manualQuantityInput, setManualQuantityInput] = useState<string>(budgetItem.quantity?.toString() || '');
   const [manualUnitPriceInput, setManualUnitPriceInput] = useState<string>(budgetItem.unit_price?.toString() || '');
+  const [allocationMode, setAllocationMode] = useState<'full' | 'per-lot'>('full');
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
@@ -162,6 +163,7 @@ export function BudgetDetailsModal({
   const perLotAmount = hasMultipleLots && selectedBidPrice > 0
     ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
     : selectedBidPrice;
+  const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : selectedBidPrice;
 
   const handleApply = async () => {
     if (isLocked) return; // No-op when locked
@@ -169,8 +171,9 @@ export function BudgetDetailsModal({
     const source = activeTab as 'estimate' | 'vendor-bid' | 'manual';
     
     if (source === 'vendor-bid') {
+      const shouldDivide = hasMultipleLots && allocationMode === 'per-lot';
       selectBid(
-        { budgetItemId: budgetItem.id, bidId: selectedBidId, lotCount: hasMultipleLots ? lotCount : undefined, bidTotal: hasMultipleLots ? selectedBidPrice : undefined },
+        { budgetItemId: budgetItem.id, bidId: selectedBidId, lotCount: shouldDivide ? lotCount : undefined, bidTotal: shouldDivide ? selectedBidPrice : undefined },
         {
           onSuccess: () => {
             updateSource({
@@ -482,30 +485,52 @@ export function BudgetDetailsModal({
                     </tbody>
                   </table>
                 </div>
-                {/* Per-Lot Allocation Info Box */}
+                {/* Allocation Mode Toggle */}
                 {hasMultipleLots && selectedBidId && selectedBidPrice > 0 && (
-                  <div className="border rounded-lg bg-muted/50 p-4 space-y-2">
-                    <div className="text-sm font-medium">Per-Lot Allocation</div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                      <span className="text-muted-foreground">Bid Total:</span>
-                      <span className="font-medium">{formatCurrency(selectedBidPrice)}</span>
-                      <span className="text-muted-foreground">Project Lots:</span>
-                      <span className="font-medium">{lotCount}</span>
-                      <span className="text-muted-foreground">Per Lot:</span>
-                      <span className="font-semibold">{formatCurrency(perLotAmount)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground pt-1">
-                      This bid covers the entire job. The amount will be divided equally across all {lotCount} lots.
-                    </p>
+                  <div className="border rounded-lg bg-muted/50 p-4 space-y-3">
+                    <div className="text-sm font-medium">Allocation Mode</div>
+                    <RadioGroup
+                      value={allocationMode}
+                      onValueChange={(val) => setAllocationMode(val as 'full' | 'per-lot')}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <RadioGroupItem value="full" id="alloc-full" className="mt-0.5" />
+                        <div>
+                          <Label htmlFor="alloc-full" className="text-sm font-medium cursor-pointer">
+                            Apply full amount to this lot
+                          </Label>
+                          <div className="text-sm text-muted-foreground mt-0.5">
+                            Budget: {formatCurrency(selectedBidPrice)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <RadioGroupItem value="per-lot" id="alloc-per-lot" className="mt-0.5" />
+                        <div>
+                          <Label htmlFor="alloc-per-lot" className="text-sm font-medium cursor-pointer">
+                            Divide equally across all {lotCount} lots
+                          </Label>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm text-muted-foreground mt-1">
+                            <span>Bid Total:</span>
+                            <span className="font-medium text-foreground">{formatCurrency(selectedBidPrice)}</span>
+                            <span>Project Lots:</span>
+                            <span className="font-medium text-foreground">{lotCount}</span>
+                            <span>Per Lot:</span>
+                            <span className="font-semibold text-foreground">{formatCurrency(perLotAmount)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </RadioGroup>
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-4 border-t">
                   <span className="text-sm font-medium">
-                    {hasMultipleLots && selectedBidId ? 'Total Budget (per lot):' : 'Total Budget:'}
+                    {hasMultipleLots && selectedBidId && allocationMode === 'per-lot' ? 'Total Budget (per lot):' : 'Total Budget:'}
                   </span>
                   <span className="text-lg font-semibold">
                     {selectedBidId 
-                      ? formatCurrency(hasMultipleLots ? perLotAmount : selectedBidPrice)
+                      ? formatCurrency(displayAmount)
                       : '$0'
                     }
                   </span>
