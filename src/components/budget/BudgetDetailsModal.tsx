@@ -45,6 +45,7 @@ export function BudgetDetailsModal({
   currentSelectedBidId,
   onBidSelected,
   isLocked = false,
+  lotCount = 1,
 }: BudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
   const { openProposalFile } = useUniversalFilePreviewContext();
