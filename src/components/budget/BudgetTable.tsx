@@ -516,14 +516,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
         </AlertDialogContent>
       </AlertDialog>
 
-      {selectedCount > 0 && (
-        <BulkActionBar
-          selectedCount={selectedCount}
-          selectedFolderCount={0}
-          onBulkDelete={onBulkDelete}
-          isDeleting={isDeletingSelected}
-        />
-      )}
 
       <div ref={containerRef} className="border rounded-lg overflow-hidden">
         <Table className="table-fixed">
