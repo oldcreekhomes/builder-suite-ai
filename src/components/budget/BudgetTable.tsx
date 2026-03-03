@@ -47,9 +47,10 @@ interface BudgetTableProps {
   projectId: string;
   projectAddress?: string;
   onHeaderActionChange?: (actions: React.ReactNode) => void;
+  onSelectionChange?: (info: { count: number; onDelete: () => void; isDeleting: boolean }) => void;
 }
 
-export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }: BudgetTableProps) {
+export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, onSelectionChange }: BudgetTableProps) {
   const { toast } = useToast();
   const { selectedLotId, selectLot } = useLotManagement(projectId);
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
@@ -445,19 +446,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
   useEffect(() => {
     if (onHeaderActionChange) {
       onHeaderActionChange(
-        <>
-          {selectedCount > 0 && (
-            <DeleteButton
-              onDelete={onBulkDelete}
-              title="Delete Selected"
-              description={`Are you sure you want to delete ${selectedCount} selected budget item(s)? This action cannot be undone.`}
-              size="sm"
-              variant="outline"
-              isLoading={isDeletingSelected}
-              showIcon={true}
-            />
-          )}
-          <BudgetPrintToolbar 
+        <BudgetPrintToolbar 
             projectId={projectId}
             selectedLotId={selectedLotId}
             onSelectLot={selectLot}
@@ -468,11 +457,15 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
             allExpanded={allGroupsExpanded}
             isExportingPdf={isExportingPdf}
           />
-        </>
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf, selectedCount, isDeletingSelected, onBulkDelete]);
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+
+  // Emit selection state to parent
+  useEffect(() => {
+    onSelectionChange?.({ count: selectedCount, onDelete: onBulkDelete, isDeleting: isDeletingSelected });
+  }, [onSelectionChange, selectedCount, isDeletingSelected]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     <div className="flex items-center justify-end gap-2">

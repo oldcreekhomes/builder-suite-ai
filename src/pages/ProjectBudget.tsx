@@ -1,5 +1,5 @@
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import { BudgetTable } from "@/components/budget/BudgetTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
 import { Button } from "@/components/ui/button";
-import { Lock, LockOpen } from "lucide-react";
+import { Lock, LockOpen, Trash2 } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import {
   Tooltip,
   TooltipContent,
@@ -22,7 +23,11 @@ import {
 export default function ProjectBudget() {
   const { projectId } = useParams();
   const [budgetHeaderActions, setBudgetHeaderActions] = useState<ReactNode>(null);
+  const [selectionInfo, setSelectionInfo] = useState<{ count: number; onDelete: () => void; isDeleting: boolean }>({ count: 0, onDelete: () => {}, isDeleting: false });
 
+  const handleSelectionChange = useCallback((info: { count: number; onDelete: () => void; isDeleting: boolean }) => {
+    setSelectionInfo(info);
+  }, []);
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
@@ -80,6 +85,19 @@ export default function ProjectBudget() {
 
   const combinedHeaderAction = (
     <div className="flex items-center gap-2">
+      {selectionInfo.count > 0 && (
+        <DeleteButton
+          onDelete={selectionInfo.onDelete}
+          title="Delete Selected"
+          description={`Are you sure you want to delete ${selectionInfo.count} selected budget item(s)? This action cannot be undone.`}
+          isLoading={selectionInfo.isDeleting}
+          showIcon={true}
+          variant="destructive"
+          size="sm"
+        >
+          Delete Selected ({selectionInfo.count})
+        </DeleteButton>
+      )}
       {lockButton}
       {budgetHeaderActions}
     </div>
@@ -103,6 +121,7 @@ export default function ProjectBudget() {
                 projectId={projectId} 
                 projectAddress={project?.address}
                 onHeaderActionChange={setBudgetHeaderActions}
+                onSelectionChange={handleSelectionChange}
               />
             </UniversalFilePreviewProvider>
           </main>
