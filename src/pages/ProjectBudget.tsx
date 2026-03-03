@@ -85,6 +85,16 @@ export default function ProjectBudget() {
 
   const combinedHeaderAction = (
     <div className="flex items-center gap-2">
+      {selectionInfo.count > 0 && (
+        <DeleteButton
+          onDelete={selectionInfo.onDelete}
+          title="Delete Selected"
+          description={`Are you sure you want to delete ${selectionInfo.count} selected budget item(s)? This action cannot be undone.`}
+          isLoading={selectionInfo.isDeleting}
+          showIcon={true}
+          variant="destructive"
+        />
+      )}
       {lockButton}
       {budgetHeaderActions}
     </div>
