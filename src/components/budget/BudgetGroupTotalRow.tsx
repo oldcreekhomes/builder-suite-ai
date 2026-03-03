@@ -13,7 +13,6 @@ interface BudgetGroupTotalRowProps {
 export function BudgetGroupTotalRow({ 
   group, 
   groupTotal,
-  actualTotal,
   historicalTotal,
   showVarianceAsPercentage = false,
   visibleColumns
