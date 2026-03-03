@@ -163,6 +163,7 @@ export function BudgetDetailsModal({
   const perLotAmount = hasMultipleLots && selectedBidPrice > 0
     ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
     : selectedBidPrice;
+  const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : selectedBidPrice;
 
   const handleApply = async () => {
     if (isLocked) return; // No-op when locked
