@@ -47,9 +47,10 @@ interface BudgetTableProps {
   projectId: string;
   projectAddress?: string;
   onHeaderActionChange?: (actions: React.ReactNode) => void;
+  onSelectionChange?: (info: { count: number; onDelete: () => void; isDeleting: boolean }) => void;
 }
 
-export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }: BudgetTableProps) {
+export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, onSelectionChange }: BudgetTableProps) {
   const { toast } = useToast();
   const { selectedLotId, selectLot } = useLotManagement(projectId);
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
