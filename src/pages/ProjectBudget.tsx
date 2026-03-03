@@ -23,7 +23,11 @@ import {
 export default function ProjectBudget() {
   const { projectId } = useParams();
   const [budgetHeaderActions, setBudgetHeaderActions] = useState<ReactNode>(null);
+  const [selectionInfo, setSelectionInfo] = useState<{ count: number; onDelete: () => void; isDeleting: boolean }>({ count: 0, onDelete: () => {}, isDeleting: false });
 
+  const handleSelectionChange = useCallback((info: { count: number; onDelete: () => void; isDeleting: boolean }) => {
+    setSelectionInfo(info);
+  }, []);
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
