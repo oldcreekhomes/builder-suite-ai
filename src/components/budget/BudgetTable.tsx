@@ -38,7 +38,7 @@ import {
 
 import { useBudgetItemTotals } from '@/hooks/useBudgetItemTotals';
 import { formatUnitOfMeasure } from '@/utils/budgetUtils';
-import { BulkActionBar } from '@/components/files/components/BulkActionBar';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
@@ -445,21 +445,34 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
   useEffect(() => {
     if (onHeaderActionChange) {
       onHeaderActionChange(
-        <BudgetPrintToolbar 
-          projectId={projectId}
-          selectedLotId={selectedLotId}
-          onSelectLot={selectLot}
-          onPrint={handlePrint}
-          onExportPdf={() => setShowExportDialog(true)}
-          onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
-          onToggleExpandCollapse={handleToggleExpandCollapse}
-          allExpanded={allGroupsExpanded}
-          isExportingPdf={isExportingPdf}
-        />
+        <>
+          {selectedCount > 0 && (
+            <DeleteButton
+              onDelete={onBulkDelete}
+              title="Delete Selected"
+              description={`Are you sure you want to delete ${selectedCount} selected budget item(s)? This action cannot be undone.`}
+              size="sm"
+              variant="outline"
+              isLoading={isDeletingSelected}
+              showIcon={true}
+            />
+          )}
+          <BudgetPrintToolbar 
+            projectId={projectId}
+            selectedLotId={selectedLotId}
+            onSelectLot={selectLot}
+            onPrint={handlePrint}
+            onExportPdf={() => setShowExportDialog(true)}
+            onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+            onToggleExpandCollapse={handleToggleExpandCollapse}
+            allExpanded={allGroupsExpanded}
+            isExportingPdf={isExportingPdf}
+          />
+        </>
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf, selectedCount, isDeletingSelected, onBulkDelete]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     <div className="flex items-center justify-end gap-2">
@@ -502,14 +515,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange }:
         </AlertDialogContent>
       </AlertDialog>
 
-      {selectedCount > 0 && (
-        <BulkActionBar
-          selectedCount={selectedCount}
-          selectedFolderCount={0}
-          onBulkDelete={onBulkDelete}
-          isDeleting={isDeletingSelected}
-        />
-      )}
 
       <div ref={containerRef} className="border rounded-lg overflow-hidden">
         <Table className="table-fixed">
