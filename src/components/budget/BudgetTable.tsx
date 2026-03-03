@@ -428,12 +428,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
     }, 0);
   }, [groupedBudgetItems, itemTotalsMap, calculateGroupTotal]);
 
-  // Calculate total actual by summing actual_amount across all groups
-  const totalActual = useMemo(() => {
-    return Object.entries(groupedBudgetItems).reduce((sum, [group, items]) => {
-      return sum + items.reduce((itemSum, item) => itemSum + (item.actual_amount || 0), 0);
-    }, 0);
-  }, [groupedBudgetItems]);
 
   const allGroupsExpanded = expandedGroups.size === Object.keys(groupedBudgetItems).length;
   
