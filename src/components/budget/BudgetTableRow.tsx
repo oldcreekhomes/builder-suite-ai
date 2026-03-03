@@ -58,6 +58,7 @@ export function BudgetTableRow({
   projectId,
   itemTotal,
   isLocked = false,
+  lotCount,
 }: BudgetTableRowProps) {
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
