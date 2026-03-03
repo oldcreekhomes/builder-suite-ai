@@ -11,7 +11,6 @@ interface BudgetProjectTotalRowProps {
 
 export function BudgetProjectTotalRow({ 
   totalBudget, 
-  totalActual,
   totalHistorical,
   showVarianceAsPercentage = false,
   visibleColumns
