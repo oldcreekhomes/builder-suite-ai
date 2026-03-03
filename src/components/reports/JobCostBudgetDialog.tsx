@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BudgetDetailsModal } from "@/components/budget/BudgetDetailsModal";
 import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
+import { useLots } from "@/hooks/useLots";
 
 interface JobCostBudgetDialogProps {
   isOpen: boolean;
@@ -22,6 +23,8 @@ export function JobCostBudgetDialog({
   totalBudget,
 }: JobCostBudgetDialogProps) {
   const { isLocked } = useBudgetLockStatus(projectId);
+  const { lots } = useLots(projectId);
+  const lotCount = lots.length;
   
   const { data: budgetItem, isLoading } = useQuery({
     queryKey: ['job-cost-budget-details', projectId, costCode],
@@ -64,6 +67,7 @@ export function JobCostBudgetDialog({
       currentSelectedBidId={budgetItem.selected_bid_id}
       onBidSelected={onClose}
       isLocked={isLocked}
+      lotCount={lotCount}
     />
   );
 }

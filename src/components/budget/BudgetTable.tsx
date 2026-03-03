@@ -25,6 +25,7 @@ import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { useAllBudgetSubcategories } from '@/hooks/useAllBudgetSubcategories';
 import { useBudgetLockStatus } from '@/hooks/useBudgetLockStatus';
 import { useLotManagement } from '@/hooks/useLotManagement';
+import { useLots } from '@/hooks/useLots';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +54,8 @@ interface BudgetTableProps {
 export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, onSelectionChange }: BudgetTableProps) {
   const { toast } = useToast();
   const { selectedLotId, selectLot } = useLotManagement(projectId);
+  const { lots } = useLots(projectId);
+  const lotCount = lots.length;
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
@@ -601,6 +604,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                               visibleColumns={visibleColumns}
                               projectId={projectId}
                               isLocked={isLocked}
+                              lotCount={lotCount}
                             />
                           ) : (
                             <HistoricalOnlyRow

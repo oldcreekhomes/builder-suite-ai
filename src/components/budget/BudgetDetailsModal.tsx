@@ -34,6 +34,7 @@ interface BudgetDetailsModalProps {
   currentSelectedBidId?: string | null;
   onBidSelected: (bidId: string | null) => void;
   isLocked?: boolean;
+  lotCount?: number;
 }
 
 export function BudgetDetailsModal({
@@ -44,6 +45,7 @@ export function BudgetDetailsModal({
   currentSelectedBidId,
   onBidSelected,
   isLocked = false,
+  lotCount = 1,
 }: BudgetDetailsModalProps) {
   const costCode = budgetItem.cost_codes;
   const { openProposalFile } = useUniversalFilePreviewContext();
@@ -154,6 +156,13 @@ export function BudgetDetailsModal({
     }
   };
 
+  // Per-lot calculation
+  const selectedBidPrice = selectedBidId ? (availableBids.find(b => b.id === selectedBidId)?.price || 0) : 0;
+  const hasMultipleLots = lotCount > 1;
+  const perLotAmount = hasMultipleLots && selectedBidPrice > 0
+    ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
+    : selectedBidPrice;
+
   const handleApply = async () => {
     if (isLocked) return; // No-op when locked
     
@@ -161,7 +170,7 @@ export function BudgetDetailsModal({
     
     if (source === 'vendor-bid') {
       selectBid(
-        { budgetItemId: budgetItem.id, bidId: selectedBidId },
+        { budgetItemId: budgetItem.id, bidId: selectedBidId, lotCount: hasMultipleLots ? lotCount : undefined, bidTotal: hasMultipleLots ? selectedBidPrice : undefined },
         {
           onSuccess: () => {
             updateSource({
@@ -473,11 +482,30 @@ export function BudgetDetailsModal({
                     </tbody>
                   </table>
                 </div>
+                {/* Per-Lot Allocation Info Box */}
+                {hasMultipleLots && selectedBidId && selectedBidPrice > 0 && (
+                  <div className="border rounded-lg bg-muted/50 p-4 space-y-2">
+                    <div className="text-sm font-medium">Per-Lot Allocation</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                      <span className="text-muted-foreground">Bid Total:</span>
+                      <span className="font-medium">{formatCurrency(selectedBidPrice)}</span>
+                      <span className="text-muted-foreground">Project Lots:</span>
+                      <span className="font-medium">{lotCount}</span>
+                      <span className="text-muted-foreground">Per Lot:</span>
+                      <span className="font-semibold">{formatCurrency(perLotAmount)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                      This bid covers the entire job. The amount will be divided equally across all {lotCount} lots.
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-4 border-t">
-                  <span className="text-sm font-medium">Total Budget:</span>
+                  <span className="text-sm font-medium">
+                    {hasMultipleLots && selectedBidId ? 'Total Budget (per lot):' : 'Total Budget:'}
+                  </span>
                   <span className="text-lg font-semibold">
                     {selectedBidId 
-                      ? formatCurrency(availableBids.find(b => b.id === selectedBidId)?.price || 0)
+                      ? formatCurrency(hasMultipleLots ? perLotAmount : selectedBidPrice)
                       : '$0'
                     }
                   </span>
