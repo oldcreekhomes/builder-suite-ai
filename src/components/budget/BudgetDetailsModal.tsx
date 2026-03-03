@@ -99,13 +99,21 @@ export function BudgetDetailsModal({
 
   // Infer allocation mode from saved data when dialog opens
   useEffect(() => {
+    const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
+
     if (lotCount > 1 && selectedBidId && budgetItem.unit_price > 0 && availableBids.length > 0) {
       const matchingBid = availableBids.find(b => b.id === selectedBidId);
       if (matchingBid) {
         const bidTotal = matchingBid.price;
-        const expectedPerLot = bidTotal / lotCount;
-        const isPerLot = Math.abs(budgetItem.unit_price - expectedPerLot) < 0.02;
-        setAllocationMode(isPerLot ? 'per-lot' : 'full');
+        const basePerLot = Math.floor((bidTotal / lotCount) * 100) / 100;
+        const remainderPerLot = Number((bidTotal - basePerLot * (lotCount - 1)).toFixed(2));
+        const savedPrice = budgetItem.unit_price;
+
+        if (isNear(savedPrice, basePerLot) || isNear(savedPrice, remainderPerLot)) {
+          setAllocationMode('per-lot');
+        } else {
+          setAllocationMode('full');
+        }
       }
     }
   }, [lotCount, selectedBidId, budgetItem.unit_price, availableBids]);
