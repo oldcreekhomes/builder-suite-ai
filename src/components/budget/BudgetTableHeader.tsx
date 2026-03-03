@@ -29,7 +29,7 @@ export function BudgetTableHeader({
       <TableRow className="border-b-2">
         <TableHead className="w-12"></TableHead>
         <TableHead className="pl-12 w-40">Cost Code</TableHead>
-        <TableHead className="w-[320px]">Name</TableHead>
+        <TableHead className="w-[380px]">Name</TableHead>
         <TableHead className="w-48">Source</TableHead>
         <TableHead className="w-10 text-center px-0">
           <span className="sr-only">Warnings</span>

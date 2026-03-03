@@ -279,38 +279,8 @@ export function BudgetTableRow({
             </TooltipProvider>
           )}
         </TableCell>
-        <TableCell className="w-52 pl-3 pr-3 py-1 text-sm text-left">
+        <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
           {formatCurrency(total)}
-        </TableCell>
-        <TableCell className="w-32 pl-3 pr-3 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
-          {isEditingActual ? (
-            <Input
-              type="number"
-              value={actualAmount}
-              onChange={(e) => setActualAmount(e.target.value)}
-              onBlur={() => {
-                const numActual = parseFloat(actualAmount) || 0;
-                if (numActual !== (item.actual_amount || 0)) {
-                  onUpdateActual(item.id, numActual);
-                }
-                setIsEditingActual(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.currentTarget.blur();
-                }
-              }}
-              className="h-7 w-full text-sm"
-              autoFocus
-            />
-          ) : (
-            <div 
-              className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded"
-              onClick={() => setIsEditingActual(true)}
-            >
-              {item.actual_amount ? formatCurrency(item.actual_amount) : '-'}
-            </div>
-          )}
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 pl-3 py-1 text-sm">

@@ -680,7 +680,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
               <tbody>
                 <BudgetProjectTotalRow
                   totalBudget={totalBudget}
-                  totalActual={totalActual}
                   totalHistorical={historicalTotal}
                   showVarianceAsPercentage={showVarianceAsPercentage}
                   visibleColumns={visibleColumns}
