@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
@@ -165,28 +166,18 @@ export function BudgetDetailsModal({
   const truncateUnit = (unit: string | null | undefined) => {
     if (!unit) return '';
     const unitMap: Record<string, string> = {
-      'square-feet': 'SF',
-      'linear-feet': 'LF',
-      'cubic-yard': 'CY',
-      'square-yard': 'SY',
-      'lump-sum': 'LS',
-      'each': 'EA',
-      'hour': 'HR',
-      'month': 'MO'
+      'square-feet': 'SF', 'linear-feet': 'LF', 'cubic-yard': 'CY',
+      'square-yard': 'SY', 'lump-sum': 'LS', 'each': 'EA', 'hour': 'HR', 'month': 'MO'
     };
     return unitMap[unit] || unit;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'won':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'lost':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'won': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'lost': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -255,10 +246,9 @@ export function BudgetDetailsModal({
       });
       onClose();
     } else if (source === 'purchase-orders') {
-      // PO tab is informational - set source to track that POs are the chosen source
       updateSource({
         budgetItemId: budgetItem.id,
-        source: 'vendor-bid', // POs use vendor-bid source since they derive from bids
+        source: 'vendor-bid',
       });
       onClose();
     } else if (source === 'historical') {
@@ -273,9 +263,7 @@ export function BudgetDetailsModal({
       }
       onClose();
     } else if (source === 'estimate') {
-      // Persist all selections and child budget items
       try {
-        // 1. Upsert all selections
         const selectionsToUpsert = subcategories.map(sub => ({
           project_budget_id: budgetItem.id,
           cost_code_id: sub.cost_codes.id,
@@ -284,13 +272,10 @@ export function BudgetDetailsModal({
 
         const { error: selectionsError } = await supabase
           .from('budget_subcategory_selections')
-          .upsert(selectionsToUpsert, { 
-            onConflict: 'project_budget_id,cost_code_id' 
-          });
+          .upsert(selectionsToUpsert, { onConflict: 'project_budget_id,cost_code_id' });
 
         if (selectionsError) throw selectionsError;
 
-        // 2. Query existing child budget items and upsert by primary key
         const includedCostCodeIds = subcategories
           .filter(sub => selections[sub.cost_codes.id] !== false)
           .map(sub => sub.cost_codes.id);
@@ -307,37 +292,20 @@ export function BudgetDetailsModal({
           const childBudgetItems = subcategories
             .filter(sub => selections[sub.cost_codes.id] !== false)
             .map(sub => {
-              const qty = Number.isFinite(parseFloat(String(sub.quantity))) 
-                ? parseFloat(String(sub.quantity)) 
-                : 1;
-              const price = Number.isFinite(parseFloat(String(sub.unit_price))) 
-                ? parseFloat(String(sub.unit_price)) 
-                : 0;
-
-              return {
-                project_id: projectId,
-                cost_code_id: sub.cost_codes.id,
-                quantity: qty,
-                unit_price: price,
-              };
+              const qty = Number.isFinite(parseFloat(String(sub.quantity))) ? parseFloat(String(sub.quantity)) : 1;
+              const price = Number.isFinite(parseFloat(String(sub.unit_price))) ? parseFloat(String(sub.unit_price)) : 0;
+              return { project_id: projectId, cost_code_id: sub.cost_codes.id, quantity: qty, unit_price: price };
             });
 
           const { error: budgetError } = await supabase
             .from('project_budgets')
-            .upsert(childBudgetItems, { 
-              onConflict: 'project_id,cost_code_id'
-            });
+            .upsert(childBudgetItems, { onConflict: 'project_id,cost_code_id' });
 
           if (budgetError) throw budgetError;
         }
 
-        // 3. Update the source
-        updateSource({
-          budgetItemId: budgetItem.id,
-          source: 'estimate',
-        });
+        updateSource({ budgetItemId: budgetItem.id, source: 'estimate' });
 
-        // 4. Invalidate queries to refresh the UI
         queryClient.invalidateQueries({ queryKey: ['all-budget-subcategories', projectId] });
         queryClient.invalidateQueries({ queryKey: ['budget-subcategories', budgetItem.id] });
         queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
@@ -346,24 +314,15 @@ export function BudgetDetailsModal({
         onClose();
       } catch (error: any) {
         console.error('Error saving estimate:', error);
-        toast({
-          title: "Error",
-          description: error?.message || "Failed to save estimate selections",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: error?.message || "Failed to save estimate selections", variant: "destructive" });
       }
     } else {
-      updateSource({
-        budgetItemId: budgetItem.id,
-        source,
-      });
+      updateSource({ budgetItemId: budgetItem.id, source });
       onClose();
     }
   };
 
-  const calculateEstimateTotal = () => {
-    return calculatedTotal;
-  };
+  const calculateEstimateTotal = () => calculatedTotal;
 
   const hasChanges = () => {
     const currentSource = budgetItem.budget_source || 'estimate';
@@ -395,32 +354,32 @@ export function BudgetDetailsModal({
           <TabsContent value="estimate" className="flex-1 overflow-auto mt-4">
             {!hasSubcategories ? (
               <div className="space-y-4">
-                <div className="text-center py-8 space-y-2">
+                <div className="text-center py-6 space-y-2">
                   <p className="text-sm text-muted-foreground">
                     No estimate subcategories available for this cost code.
                   </p>
                 </div>
-                <div className="flex justify-between items-center pt-4 border-t">
+                <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm font-medium">Total Budget:</span>
-                  <span className="text-lg font-semibold">$0.00</span>
+                  <span className="text-sm font-semibold">$0.00</span>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="w-12 p-3"></th>
-                        <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                        <th className="text-left p-3 text-sm font-medium">Description</th>
-                        <th className="text-left p-3 text-sm font-medium">Unit Price</th>
-                        <th className="text-center p-3 text-sm font-medium">Unit</th>
-                        <th className="text-left p-3 text-sm font-medium">Quantity</th>
-                        <th className="text-left p-3 text-sm font-medium">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>Cost Code</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Unit Price</TableHead>
+                        <TableHead className="text-center">Unit</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {subcategories.map((subcategory) => {
                         const isSelected = selections[subcategory.cost_codes.id] !== false;
                         const quantity = parseFloat(subcategory.quantity?.toString() || '0');
@@ -428,34 +387,34 @@ export function BudgetDetailsModal({
                         const subtotal = quantity * unitPrice;
 
                         return (
-                          <tr 
+                          <TableRow 
                             key={subcategory.id} 
-                            className={`border-t ${isSelected ? 'bg-blue-50' : ''}`}
+                            className={isSelected ? 'bg-muted' : ''}
                           >
-                            <td className="p-3">
+                            <TableCell>
                               <Checkbox
                                 checked={isSelected}
                                 disabled={isLocked}
                                 onCheckedChange={(checked) => !isLocked && toggleSubcategory(subcategory.cost_codes.id, checked as boolean)}
                               />
-                            </td>
-                            <td className="p-3 text-sm">{subcategory.cost_codes?.code}</td>
-                            <td className="p-3 text-sm">{subcategory.cost_codes?.name}</td>
-                            <td className="p-3 text-sm text-left">
+                            </TableCell>
+                            <TableCell className="text-sm">{subcategory.cost_codes?.code}</TableCell>
+                            <TableCell className="text-sm">{subcategory.cost_codes?.name}</TableCell>
+                            <TableCell className="text-sm">
                               {formatCurrency(unitPrice)}
-                            </td>
-                            <td className="p-3 text-sm text-center">
+                            </TableCell>
+                            <TableCell className="text-sm text-center">
                               {truncateUnit(subcategory.cost_codes?.unit_of_measure)}
-                            </td>
-                            <td className="p-3 text-sm text-left">
+                            </TableCell>
+                            <TableCell className="text-sm">
                               {editingQuantityId === subcategory.id && !isLocked ? (
-                                <input
+                                <Input
                                   type="number"
                                   value={editingValue}
                                   onChange={(e) => setEditingValue(e.target.value)}
                                   onBlur={() => handleQuantityBlur(subcategory)}
                                   onKeyDown={(e) => handleQuantityKeyDown(e, subcategory)}
-                                  className="w-20 px-2 py-1 text-left border rounded"
+                                  className="w-20 h-8"
                                   autoFocus
                                 />
                               ) : (
@@ -466,19 +425,19 @@ export function BudgetDetailsModal({
                                   {quantity}
                                 </span>
                               )}
-                            </td>
-                            <td className="p-3 text-sm text-left font-medium">
+                            </TableCell>
+                            <TableCell className="text-sm font-medium">
                               {formatCurrency(subtotal)}
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="flex justify-between items-center pt-4 border-t">
+                <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm font-medium">Total Budget:</span>
-                  <span className="text-lg font-semibold">
+                  <span className="text-sm font-semibold">
                     {formatCurrency(calculateEstimateTotal())}
                   </span>
                 </div>
@@ -490,7 +449,7 @@ export function BudgetDetailsModal({
           <TabsContent value="vendor-bid" className="flex-1 overflow-auto mt-4">
             {availableBids.length === 0 ? (
               <div className="space-y-4">
-                <div className="text-center py-8 space-y-2">
+                <div className="text-center py-6 space-y-2">
                   <p className="text-sm text-muted-foreground">
                     No bids available for this cost code yet.
                   </p>
@@ -498,85 +457,85 @@ export function BudgetDetailsModal({
                     You can still enter manual pricing in the budget table.
                   </p>
                 </div>
-                <div className="flex justify-between items-center pt-4 border-t">
+                <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm font-medium">Total Budget:</span>
-                  <span className="text-lg font-semibold">$0.00</span>
+                  <span className="text-sm font-semibold">$0.00</span>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="w-12 p-3"></th>
-                        <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                        <th className="text-left p-3 text-sm font-medium">Vendor</th>
-                        <th className="text-left p-3 text-sm font-medium">Proposal</th>
-                        <th className="text-left p-3 text-sm font-medium">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                        {availableBids.map((bid) => {
-                          const subtotal = bid.price || 0;
-                          
-                          return (
-                            <tr 
-                              key={bid.id}
-                              className={`border-t ${isLocked ? '' : 'cursor-pointer'} ${
-                                selectedBidId === bid.id ? 'bg-blue-50' : isLocked ? '' : 'hover:bg-muted/50'
-                              }`}
-                              onClick={() => !isLocked && setSelectedBidId(bid.id)}
-                            >
-                              <td className="p-3">
-                                <Checkbox
-                                  checked={selectedBidId === bid.id}
-                                  disabled={isLocked}
-                                  onCheckedChange={(checked) => !isLocked && checked && setSelectedBidId(bid.id)}
-                                />
-                              </td>
-                              <td className="p-3 text-sm">{costCode.code}</td>
-                              <td className="p-3 text-sm">
-                                {bid.companies?.company_name || 'Unknown Company'}
-                              </td>
-                              <td className="p-3 text-sm">
-                                {bid.proposals && bid.proposals.length > 0 ? (
-                                  <div className="flex items-center space-x-2">
-                                    {bid.proposals.map((fileName, idx) => {
-                                      const IconComponent = getFileIcon(fileName);
-                                      const iconColorClass = getFileIconColor(fileName);
-                                      return (
-                                        <Tooltip key={idx}>
-                                          <TooltipTrigger asChild>
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                openProposalFile(fileName);
-                                              }}
-                                              className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
-                                            >
-                                              <IconComponent className="h-4 w-4" />
-                                            </button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>
-                                            <p>View {fileName.split('.').pop()?.toUpperCase()} file - {fileName}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </td>
-                              <td className="p-3 text-sm text-left font-medium">
-                                {formatCurrency(subtotal)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12"></TableHead>
+                        <TableHead>Cost Code</TableHead>
+                        <TableHead>Vendor</TableHead>
+                        <TableHead>Proposal</TableHead>
+                        <TableHead>Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {availableBids.map((bid) => {
+                        const subtotal = bid.price || 0;
+                        
+                        return (
+                          <TableRow 
+                            key={bid.id}
+                            className={`${isLocked ? '' : 'cursor-pointer'} ${
+                              selectedBidId === bid.id ? 'bg-muted' : ''
+                            }`}
+                            onClick={() => !isLocked && setSelectedBidId(bid.id)}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedBidId === bid.id}
+                                disabled={isLocked}
+                                onCheckedChange={(checked) => !isLocked && checked && setSelectedBidId(bid.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-sm">{costCode.code}</TableCell>
+                            <TableCell className="text-sm">
+                              {bid.companies?.company_name || 'Unknown Company'}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {bid.proposals && bid.proposals.length > 0 ? (
+                                <div className="flex items-center space-x-2">
+                                  {bid.proposals.map((fileName, idx) => {
+                                    const IconComponent = getFileIcon(fileName);
+                                    const iconColorClass = getFileIconColor(fileName);
+                                    return (
+                                      <Tooltip key={idx}>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openProposalFile(fileName);
+                                            }}
+                                            className={`${iconColorClass} transition-colors p-1 hover:scale-110`}
+                                          >
+                                            <IconComponent className="h-4 w-4" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>View {fileName.split('.').pop()?.toUpperCase()} file - {fileName}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm font-medium">
+                              {formatCurrency(subtotal)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
                 {/* Allocation Mode Toggle */}
                 {hasMultipleLots && selectedBidId && selectedBidPrice > 0 && (
@@ -604,11 +563,11 @@ export function BudgetDetailsModal({
                     </RadioGroup>
                   </div>
                 )}
-                <div className="flex justify-between items-center pt-4 border-t">
+                <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm font-medium">
                     {hasMultipleLots && selectedBidId && allocationMode === 'per-lot' ? 'Total Budget (per lot):' : 'Total Budget:'}
                   </span>
-                  <span className="text-lg font-semibold">
+                  <span className="text-sm font-semibold">
                     {selectedBidId 
                       ? formatCurrency(displayAmount)
                       : '$0.00'
@@ -623,56 +582,56 @@ export function BudgetDetailsModal({
           <TabsContent value="manual" className="flex-1 overflow-auto mt-4">
             <div className="space-y-4">
               <div className="border rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="w-12 p-3"></th>
-                      <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                      <th className="text-left p-3 text-sm font-medium">Description</th>
-                      <th className="text-left p-3 text-sm font-medium">Unit Price</th>
-                      <th className="text-center p-3 text-sm font-medium">Unit</th>
-                      <th className="text-left p-3 text-sm font-medium">Quantity</th>
-                      <th className="text-left p-3 text-sm font-medium">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-t">
-                      <td className="p-3"></td>
-                      <td className="p-3 text-sm">{costCode.code}</td>
-                      <td className="p-3 text-sm">{costCode.name}</td>
-                      <td className="p-3 text-sm text-left">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Cost Code</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Unit Price</TableHead>
+                      <TableHead className="text-center">Unit</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell></TableCell>
+                      <TableCell className="text-sm">{costCode.code}</TableCell>
+                      <TableCell className="text-sm">{costCode.name}</TableCell>
+                      <TableCell className="text-sm">
                         <Input
                           type="number"
                           value={manualUnitPriceInput}
                           onChange={(e) => setManualUnitPriceInput(e.target.value)}
-                          className="w-28 h-8 text-left"
+                          className="w-28 h-8"
                           disabled={isLocked}
                           readOnly={isLocked}
                         />
-                      </td>
-                      <td className="p-3 text-sm text-center">
+                      </TableCell>
+                      <TableCell className="text-sm text-center">
                         {truncateUnit(costCode.unit_of_measure)}
-                      </td>
-                      <td className="p-3 text-sm text-left">
+                      </TableCell>
+                      <TableCell className="text-sm">
                         <Input
                           type="number"
                           value={manualQuantityInput}
                           onChange={(e) => setManualQuantityInput(e.target.value)}
-                          className="w-28 h-8 text-left"
+                          className="w-28 h-8"
                           disabled={isLocked}
                           readOnly={isLocked}
                         />
-                      </td>
-                      <td className="p-3 text-sm text-left font-medium">
+                      </TableCell>
+                      <TableCell className="text-sm font-medium">
                         {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
-              <div className="flex justify-between items-center pt-4 border-t">
+              <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm font-medium">Total Budget:</span>
-                <span className="text-lg font-semibold">
+                <span className="text-sm font-semibold">
                   {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
                 </span>
               </div>
@@ -689,14 +648,14 @@ export function BudgetDetailsModal({
             <div className="space-y-4">
               {historicalProjects.length === 0 ? (
                 <>
-                  <div className="text-center py-8 space-y-2">
+                  <div className="text-center py-6 space-y-2">
                     <p className="text-sm text-muted-foreground">
                       No historical projects with actual costs available.
                     </p>
                   </div>
-                  <div className="flex justify-between items-center pt-4 border-t">
+                  <div className="flex justify-between items-center pt-2 border-t">
                     <span className="text-sm font-medium">Total Budget:</span>
-                    <span className="text-lg font-semibold">$0.00</span>
+                    <span className="text-sm font-semibold">$0.00</span>
                   </div>
                 </>
               ) : (
@@ -724,34 +683,34 @@ export function BudgetDetailsModal({
 
                     {selectedHistoricalProjectId && (
                       <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-muted">
-                            <tr>
-                              <th className="text-left p-3 text-sm font-medium">Cost Code</th>
-                              <th className="text-left p-3 text-sm font-medium">Description</th>
-                              <th className="text-right p-3 text-sm font-medium">Actual Cost</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="border-t">
-                              <td className="p-3 text-sm">{costCode.code}</td>
-                              <td className="p-3 text-sm">{costCode.name}</td>
-                              <td className="p-3 text-sm text-right font-medium">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Cost Code</TableHead>
+                              <TableHead>Description</TableHead>
+                              <TableHead className="text-right">Actual Cost</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="text-sm">{costCode.code}</TableCell>
+                              <TableCell className="text-sm">{costCode.name}</TableCell>
+                              <TableCell className="text-sm text-right font-medium">
                                 {historicalCostForCode > 0 
                                   ? formatCurrency(historicalCostForCode) 
                                   : <span className="text-muted-foreground">No data</span>
                                 }
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center pt-4 border-t">
+                  <div className="flex justify-between items-center pt-2 border-t">
                     <span className="text-sm font-medium">Total Budget:</span>
-                    <span className="text-lg font-semibold">
+                    <span className="text-sm font-semibold">
                       {formatCurrency(historicalCostForCode)}
                     </span>
                   </div>
