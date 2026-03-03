@@ -232,7 +232,7 @@ export function BudgetTableRow({
   };
 
   const formatCurrency = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
+    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   // Get budget warnings

@@ -27,7 +27,7 @@ export function ActualTableFooter({ budgetItems, purchaseOrders }: ActualTableFo
   const totalVariance = totalBudget - totalActual - totalCommitted; // Budget - Actual Cost - Committed Costs
 
   const formatCurrency = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
+    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const getVarianceColor = (variance: number) => {

@@ -21,7 +21,7 @@ export function HistoricalOnlyRow({
   visibleColumns,
 }: HistoricalOnlyRowProps) {
   const formatCurrency = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
+    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   // Variance is always negative (we have $0 budget but historical cost exists)

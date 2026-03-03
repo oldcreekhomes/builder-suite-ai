@@ -57,7 +57,7 @@ export function FromHistoricalTab({ projectId, onImportComplete }: FromHistorica
   };
 
   const formatCurrency = (value: number) => {
-    return `$${Math.round(value).toLocaleString()}`;
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const calculatePreviewTotal = () => {

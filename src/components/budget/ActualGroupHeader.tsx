@@ -39,7 +39,7 @@ export function ActualGroupHeader({
 }: ActualGroupHeaderProps) {
 
   const formatCurrency = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
+    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const calculateVariance = (budget: number, actual: number, committed: number) => {

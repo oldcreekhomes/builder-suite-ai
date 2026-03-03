@@ -38,8 +38,8 @@ export function ViewBudgetDetailsModal({
   const [tempQuantities, setTempQuantities] = useState<Record<string, string>>({});
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (!value) return '$0';
-    return `$${Math.round(value).toLocaleString()}`;
+    if (!value) return '$0.00';
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const truncateUnit = (unit: string | null | undefined) => {
