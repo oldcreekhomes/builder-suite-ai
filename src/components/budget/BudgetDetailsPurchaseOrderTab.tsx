@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 interface BudgetDetailsPurchaseOrderTabProps {
   projectId: string;
@@ -17,7 +18,6 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
   const { data: purchaseOrders = [], isLoading } = useQuery({
     queryKey: ['budget-purchase-orders', projectId, costCodeId],
     queryFn: async () => {
-      // Fetch purchase orders
       const { data: pos, error: posError } = await supabase
         .from('project_purchase_orders')
         .select('*')
@@ -29,27 +29,22 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
       if (posError) throw posError;
       if (!pos || pos.length === 0) return [];
 
-      // Get unique company and cost code IDs
       const companyIds = [...new Set(pos.map(po => po.company_id))];
       const costCodeIds = [...new Set(pos.map(po => po.cost_code_id))];
 
-      // Fetch companies
       const { data: companies } = await supabase
         .from('companies')
         .select('id, company_name')
         .in('id', companyIds);
 
-      // Fetch cost codes
       const { data: costCodes } = await supabase
         .from('cost_codes')
         .select('id, code, name, parent_group, category')
         .in('id', costCodeIds);
 
-      // Create lookup maps
       const companyMap = new Map(companies?.map(c => [c.id, c]) || []);
       const costCodeMap = new Map(costCodes?.map(cc => [cc.id, cc]) || []);
 
-      // Merge data and return as PurchaseOrder objects
       const enrichedPOs: PurchaseOrder[] = pos.map(po => ({
         ...po,
         companies: companyMap.get(po.company_id),
@@ -87,7 +82,7 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="flex items-center justify-center py-6">
         <p className="text-sm text-muted-foreground">Loading purchase orders...</p>
       </div>
     );
@@ -96,14 +91,14 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
   if (purchaseOrders.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="text-center py-8 space-y-2">
+        <div className="text-center py-6 space-y-2">
           <p className="text-sm text-muted-foreground">
             No approved purchase orders found for this cost code.
           </p>
         </div>
-        <div className="flex justify-between items-center pt-4 border-t">
-          <span className="text-sm font-medium">Total Amount:</span>
-          <span className="text-lg font-semibold">$0</span>
+        <div className="flex justify-between items-center pt-2 border-t">
+          <span className="text-sm font-medium">Total Budget:</span>
+          <span className="text-sm font-semibold">$0.00</span>
         </div>
       </div>
     );
@@ -112,56 +107,56 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
   return (
     <div className="space-y-4">
       <div className="border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted">
-            <tr>
-              <th className="text-left p-3 text-sm font-medium">PO Number</th>
-              <th className="text-left p-3 text-sm font-medium">Vendor</th>
-              <th className="text-center p-3 text-sm font-medium">Status</th>
-              <th className="text-right p-3 text-sm font-medium">Amount</th>
-              <th className="text-center p-3 text-sm font-medium">Date</th>
-              <th className="text-center p-3 text-sm font-medium w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>PO Number</TableHead>
+              <TableHead>Vendor</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-center">Date</TableHead>
+              <TableHead className="text-center w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {purchaseOrders.map((po) => (
-              <tr 
+              <TableRow 
                 key={po.id} 
-                className="border-t hover:bg-muted/50 cursor-pointer"
+                className="cursor-pointer"
                 onClick={() => handleViewPO(po.id)}
               >
-                <td className="p-3 text-sm font-medium">
+                <TableCell className="text-sm font-medium">
                   {po.po_number || `PO-${po.id.slice(0, 8)}`}
-                </td>
-                <td className="p-3 text-sm">
+                </TableCell>
+                <TableCell className="text-sm">
                   {po.companies?.company_name || 'Unknown Vendor'}
-                </td>
-                <td className="p-3 text-sm text-center">
+                </TableCell>
+                <TableCell className="text-sm text-center">
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${getStatusColor(po.status)}`}
                   >
                     {po.status}
                   </Badge>
-                </td>
-                <td className="p-3 text-sm text-right font-medium">
+                </TableCell>
+                <TableCell className="text-sm text-right font-medium">
                   {formatCurrency(po.total_amount)}
-                </td>
-                <td className="p-3 text-sm text-center">
+                </TableCell>
+                <TableCell className="text-sm text-center">
                   {format(new Date(po.created_at), 'MM/dd/yyyy')}
-                </td>
-                <td className="p-3 text-center">
+                </TableCell>
+                <TableCell className="text-center">
                   <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       
-      <div className="flex justify-between items-center pt-4 border-t">
-        <span className="text-sm font-medium">Total Amount:</span>
-        <span className="text-lg font-semibold">
+      <div className="flex justify-between items-center pt-2 border-t">
+        <span className="text-sm font-medium">Total Budget:</span>
+        <span className="text-sm font-semibold">
           {formatCurrency(totalAmount)}
         </span>
       </div>
