@@ -19,12 +19,7 @@ export function BudgetProjectTotalRow({
 }: BudgetProjectTotalRowProps) {
   const formatCurrency = (amount: number | null) => {
     if (amount === null) return '-';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const calculateVariance = () => {
