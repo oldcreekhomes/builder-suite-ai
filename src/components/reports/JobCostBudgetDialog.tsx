@@ -67,6 +67,7 @@ export function JobCostBudgetDialog({
       currentSelectedBidId={budgetItem.selected_bid_id}
       onBidSelected={onClose}
       isLocked={isLocked}
+      lotCount={lotCount}
     />
   );
 }
