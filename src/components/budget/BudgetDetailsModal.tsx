@@ -173,7 +173,13 @@ export function BudgetDetailsModal({
     if (source === 'vendor-bid') {
       const shouldDivide = hasMultipleLots && allocationMode === 'per-lot';
       selectBid(
-        { budgetItemId: budgetItem.id, bidId: selectedBidId, lotCount: shouldDivide ? lotCount : undefined, bidTotal: shouldDivide ? selectedBidPrice : undefined },
+        { 
+          budgetItemId: budgetItem.id, 
+          bidId: selectedBidId, 
+          allocationMode: shouldDivide ? 'per-lot' : 'full',
+          lotCount: shouldDivide ? lotCount : undefined, 
+          bidTotal: selectedBidPrice || undefined,
+        },
         {
           onSuccess: () => {
             updateSource({
