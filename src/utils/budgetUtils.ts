@@ -28,6 +28,10 @@ export const calculateBudgetItemTotal = (
   if (item.budget_source) {
     switch (item.budget_source) {
       case 'vendor-bid':
+        // Use allocated unit_price if set (per-lot division), otherwise full bid price
+        if (item.unit_price > 0 && item.quantity > 0) {
+          return item.quantity * item.unit_price;
+        }
         const selectedBid = item.selected_bid as any;
         if (selectedBid?.price) return selectedBid.price;
         break;
