@@ -12,11 +12,14 @@ import { useUniversalFilePreviewContext } from "@/components/files/UniversalFile
 import { useBudgetSubcategories } from "@/hooks/useBudgetSubcategories";
 import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
 import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
+import { useHistoricalProjects } from "@/hooks/useHistoricalProjects";
+import { useHistoricalActualCosts } from "@/hooks/useHistoricalActualCosts";
+import { BudgetDetailsPurchaseOrderTab } from "@/components/budget/BudgetDetailsPurchaseOrderTab";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -61,21 +64,42 @@ export function BudgetDetailsModal({
   
   const hasSubcategories = subcategories.length > 0;
   
+  // Historical tab state and hooks
+  const { data: historicalProjects = [] } = useHistoricalProjects();
+  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(
+    budgetItem.budget_source === 'historical' ? (budgetItem as any).historical_project_id || null : null
+  );
+  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
+
+  // PO tab - query PO count/total for this cost code
+  const { data: poData } = useQuery({
+    queryKey: ['budget-purchase-orders-summary', projectId, costCode.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_purchase_orders')
+        .select('id, total_amount')
+        .eq('project_id', projectId)
+        .eq('cost_code_id', costCode.id)
+        .eq('status', 'approved');
+      if (error) throw error;
+      const total = (data || []).reduce((sum, po) => sum + (po.total_amount || 0), 0);
+      return { count: data?.length || 0, total };
+    },
+    enabled: !!projectId && !!costCode.id,
+  });
+
   // Determine initial tab based on budget_source
   const getInitialTab = () => {
     if (budgetItem.budget_source) {
       const source = budgetItem.budget_source;
-      // Only return valid tabs: estimate, vendor-bid, or manual
-      if (source === 'vendor-bid' || source === 'manual') {
+      if (source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
         return source;
       }
-      // If source is 'estimate' but no subcategories, default to vendor-bid
-      if (source === 'estimate' && !hasSubcategories) {
-        return 'vendor-bid';
+      if (source === 'estimate') {
+        return 'estimate';
       }
     }
-    // Default to vendor-bid if no subcategories, otherwise estimate
-    return hasSubcategories ? 'estimate' : 'vendor-bid';
+    return 'estimate';
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab());
@@ -125,6 +149,13 @@ export function BudgetDetailsModal({
   useEffect(() => {
     setActiveTab(getInitialTab());
   }, [budgetItem.budget_source]);
+
+  // Reset historical project selection when dialog opens
+  useEffect(() => {
+    if (isOpen && budgetItem.budget_source === 'historical') {
+      setSelectedHistoricalProjectId((budgetItem as any).historical_project_id || null);
+    }
+  }, [isOpen, budgetItem.budget_source]);
 
   const formatCurrency = (value: number | null | undefined) => {
     if (!value) return '$0.00';
@@ -186,10 +217,13 @@ export function BudgetDetailsModal({
     : selectedBidPrice;
   const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : selectedBidPrice;
 
+  // Historical cost for current cost code
+  const historicalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
+
   const handleApply = async () => {
-    if (isLocked) return; // No-op when locked
+    if (isLocked) return;
     
-    const source = activeTab as 'estimate' | 'vendor-bid' | 'manual';
+    const source = activeTab as 'estimate' | 'vendor-bid' | 'manual' | 'purchase-orders' | 'historical';
     
     if (source === 'vendor-bid') {
       const shouldDivide = hasMultipleLots && allocationMode === 'per-lot';
@@ -220,6 +254,24 @@ export function BudgetDetailsModal({
         manualUnitPrice: parseFloat(manualUnitPriceInput) || 0,
       });
       onClose();
+    } else if (source === 'purchase-orders') {
+      // PO tab is informational - set source to track that POs are the chosen source
+      updateSource({
+        budgetItemId: budgetItem.id,
+        source: 'vendor-bid', // POs use vendor-bid source since they derive from bids
+      });
+      onClose();
+    } else if (source === 'historical') {
+      if (selectedHistoricalProjectId && historicalCostForCode > 0) {
+        updateSource({
+          budgetItemId: budgetItem.id,
+          source: 'historical',
+          historicalProjectId: selectedHistoricalProjectId,
+          manualUnitPrice: historicalCostForCode,
+          manualQuantity: 1,
+        });
+      }
+      onClose();
     } else if (source === 'estimate') {
       // Persist all selections and child budget items
       try {
@@ -227,7 +279,7 @@ export function BudgetDetailsModal({
         const selectionsToUpsert = subcategories.map(sub => ({
           project_budget_id: budgetItem.id,
           cost_code_id: sub.cost_codes.id,
-          included: selections[sub.cost_codes.id] !== false, // Default to true
+          included: selections[sub.cost_codes.id] !== false,
         }));
 
         const { error: selectionsError } = await supabase
@@ -244,7 +296,6 @@ export function BudgetDetailsModal({
           .map(sub => sub.cost_codes.id);
 
         if (includedCostCodeIds.length > 0) {
-          // Fetch existing rows to get their IDs
           const { data: existingRows, error: existingErr } = await supabase
             .from('project_budgets')
             .select('id, cost_code_id')
@@ -253,7 +304,6 @@ export function BudgetDetailsModal({
 
           if (existingErr) throw existingErr;
 
-          // Build upsert payload - no need for IDs, we'll use (project_id, cost_code_id) for conflict resolution
           const childBudgetItems = subcategories
             .filter(sub => selections[sub.cost_codes.id] !== false)
             .map(sub => {
@@ -334,14 +384,29 @@ export function BudgetDetailsModal({
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="justify-start">
-            {hasSubcategories && <TabsTrigger value="estimate">Estimate</TabsTrigger>}
+            <TabsTrigger value="estimate">Estimate</TabsTrigger>
             <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
             <TabsTrigger value="manual">Manual</TabsTrigger>
+            <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
+            <TabsTrigger value="historical">Historical</TabsTrigger>
           </TabsList>
 
           {/* Estimate Tab */}
           <TabsContent value="estimate" className="flex-1 overflow-auto mt-4">
-            <div className="space-y-4">
+            {!hasSubcategories ? (
+              <div className="space-y-4">
+                <div className="text-center py-8 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No estimate subcategories available for this cost code.
+                  </p>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <span className="text-sm font-medium">Total Budget:</span>
+                  <span className="text-lg font-semibold">$0.00</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full">
                     <thead className="bg-muted">
@@ -418,6 +483,7 @@ export function BudgetDetailsModal({
                   </span>
                 </div>
               </div>
+            )}
           </TabsContent>
 
           {/* Vendor Bid Tab */}
@@ -434,7 +500,7 @@ export function BudgetDetailsModal({
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t">
                   <span className="text-sm font-medium">Total Budget:</span>
-                  <span className="text-lg font-semibold">$0</span>
+                  <span className="text-lg font-semibold">$0.00</span>
                 </div>
               </div>
             ) : (
@@ -545,7 +611,7 @@ export function BudgetDetailsModal({
                   <span className="text-lg font-semibold">
                     {selectedBidId 
                       ? formatCurrency(displayAmount)
-                      : '$0'
+                      : '$0.00'
                     }
                   </span>
                 </div>
@@ -610,6 +676,87 @@ export function BudgetDetailsModal({
                   {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
                 </span>
               </div>
+            </div>
+          </TabsContent>
+
+          {/* Purchase Orders Tab */}
+          <TabsContent value="purchase-orders" className="flex-1 overflow-auto mt-4">
+            <BudgetDetailsPurchaseOrderTab projectId={projectId} costCodeId={costCode.id} />
+          </TabsContent>
+
+          {/* Historical Tab */}
+          <TabsContent value="historical" className="flex-1 overflow-auto mt-4">
+            <div className="space-y-4">
+              {historicalProjects.length === 0 ? (
+                <>
+                  <div className="text-center py-8 space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      No historical projects with actual costs available.
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center pt-4 border-t">
+                    <span className="text-sm font-medium">Total Budget:</span>
+                    <span className="text-lg font-semibold">$0.00</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-sm font-medium">Select a Historical Project</Label>
+                      <Select
+                        value={selectedHistoricalProjectId || ''}
+                        onValueChange={(val) => setSelectedHistoricalProjectId(val || null)}
+                        disabled={isLocked}
+                      >
+                        <SelectTrigger className="mt-1.5">
+                          <SelectValue placeholder="Choose a project..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {historicalProjects.map((project: any) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.address}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedHistoricalProjectId && (
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3 text-sm font-medium">Cost Code</th>
+                              <th className="text-left p-3 text-sm font-medium">Description</th>
+                              <th className="text-right p-3 text-sm font-medium">Actual Cost</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-t">
+                              <td className="p-3 text-sm">{costCode.code}</td>
+                              <td className="p-3 text-sm">{costCode.name}</td>
+                              <td className="p-3 text-sm text-right font-medium">
+                                {historicalCostForCode > 0 
+                                  ? formatCurrency(historicalCostForCode) 
+                                  : <span className="text-muted-foreground">No data</span>
+                                }
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center pt-4 border-t">
+                    <span className="text-sm font-medium">Total Budget:</span>
+                    <span className="text-lg font-semibold">
+                      {formatCurrency(historicalCostForCode)}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
         </Tabs>

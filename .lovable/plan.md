@@ -1,38 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Add Purchase Orders and Historical Tabs to Budget Details Dialog
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### Summary
-Add two new tabs ("Purchase Orders" and "Historical") to the Budget Details dialog, making all 5 tabs always visible. Only one tab's data can be applied at a time. Empty states show "no data available" messages.
-
-### Current State
-- Dialog shows: Estimate (conditional), Vendor Bid, Manual
-- `BudgetDetailsPurchaseOrderTab` component already exists but is standalone (not in the dialog)
-- Historical hooks exist: `useHistoricalProjects`, `useHistoricalActualCosts`, `useBudgetSourceUpdate` already supports `'historical'` source
-- `project_budgets` table has `historical_project_id` and `budget_source` columns
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
 ### Changes
 
-**`src/components/budget/BudgetDetailsModal.tsx`**
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-1. **Always show all 5 tabs**: Estimate, Vendor Bid, Manual, Purchase Orders, Historical — remove the conditional `hasSubcategories` gate on Estimate tab (always show it; empty state if no subcategories)
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-2. **Update `getInitialTab`** to handle `'purchase-orders'` and `'historical'` sources
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-3. **Purchase Orders tab**: Embed `BudgetDetailsPurchaseOrderTab` inline (or refactor it to be selectable). Show approved POs for this project + cost code. Since POs are informational (committed costs), this tab is read-only — selecting it as the active source sets `budget_source = 'purchase-orders'` or simply displays the data. Given the existing pattern, this tab will show PO data but the "Apply" action would set the source. If no POs exist, show "No approved purchase orders for this cost code."
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-4. **Historical tab**: 
-   - Use `useHistoricalProjects()` to list projects with actual costs
-   - Use `useHistoricalActualCosts(selectedProjectId)` to get the cost for this specific cost code
-   - UI: dropdown/select to pick a historical project, then display the actual cost for this cost code from that project
-   - On Apply with historical tab active: call `updateSource({ source: 'historical', historicalProjectId })` 
-   - Initialize selected historical project from `budgetItem.historical_project_id` if source is historical
-   - Empty state: "No historical projects with actual costs available."
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-5. **Uniform empty states**: Each tab with no data shows centered text "No [data type] available for this cost code" with a Total Budget: $0 footer
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
 
-6. **handleApply updates**: Add cases for `'purchase-orders'` and `'historical'` sources
-
-### Files to Edit
-1. `src/components/budget/BudgetDetailsModal.tsx` — add PO and Historical tabs, always show all 5 tabs, update apply logic
-
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
