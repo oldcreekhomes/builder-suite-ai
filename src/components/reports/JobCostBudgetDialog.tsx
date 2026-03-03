@@ -23,6 +23,8 @@ export function JobCostBudgetDialog({
   totalBudget,
 }: JobCostBudgetDialogProps) {
   const { isLocked } = useBudgetLockStatus(projectId);
+  const { lots } = useLots(projectId);
+  const lotCount = lots.length;
   
   const { data: budgetItem, isLoading } = useQuery({
     queryKey: ['job-cost-budget-details', projectId, costCode],
