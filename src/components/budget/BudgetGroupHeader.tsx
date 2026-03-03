@@ -52,14 +52,12 @@ export function BudgetGroupHeader({
 
   return (
     <TableRow className={baseClassName} style={style}>
-      <TableCell className="w-12 py-1 px-1">
-        <div className="flex items-center justify-center">
-          <Checkbox
-            checked={isSelected}
-            disabled={isLocked}
-            onCheckedChange={(checked) => !isLocked && onCheckboxChange(group, checked === true)}
-          />
-        </div>
+      <TableCell className="w-12 py-1" onClick={(e) => e.stopPropagation()}>
+        <Checkbox
+          checked={isSelected}
+          disabled={isLocked}
+          onCheckedChange={(checked) => !isLocked && onCheckboxChange(group, checked === true)}
+        />
       </TableCell>
       <TableCell 
         className="w-40 font-bold text-sm py-3 pl-2"
