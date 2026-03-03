@@ -52,13 +52,19 @@ export function BudgetGroupHeader({
 
   return (
     <TableRow className={baseClassName} style={style}>
-      <TableCell className="py-3 px-3">
-        <div className="flex items-center gap-2">
+      <TableCell className="w-12 py-1 px-1">
+        <div className="flex items-center justify-center">
           <Checkbox
-            checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
+            checked={isSelected}
             disabled={isLocked}
             onCheckedChange={(checked) => !isLocked && onCheckboxChange(group, checked === true)}
           />
+        </div>
+      </TableCell>
+      <TableCell 
+        className="w-40 font-bold text-sm py-3 pl-2"
+      >
+        <div className="flex items-center gap-1">
           <button
             type="button"
             aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
@@ -71,12 +77,8 @@ export function BudgetGroupHeader({
               }`} 
             />
           </button>
+          {group}
         </div>
-      </TableCell>
-      <TableCell 
-        className="w-40 font-bold text-sm py-3 pl-12"
-      >
-        {group}
       </TableCell>
       <TableCell className="w-[320px] py-3 px-3 font-bold text-sm">{groupName}</TableCell>
       <TableCell className="w-48 py-1"></TableCell>

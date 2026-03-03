@@ -1,26 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Fix Budget Checkbox Behavior and Alignment
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### Issue 1: Child checkbox selection should not affect parent checkbox
-Currently, when a child item (e.g., 1030) is checked, the parent group header (1000) shows an indeterminate checkbox state via `isGroupPartiallySelected`. The user wants: selecting individual children should NOT visually affect the parent group checkbox. The parent checkbox should only change when directly clicked.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-**Fix in `BudgetGroupHeader.tsx`**: Change the checkbox to only reflect `isSelected` (all selected via parent click), not `isPartiallySelected`. Remove the indeterminate state:
-```typescript
-// Before
-checked={isSelected ? true : isPartiallySelected ? 'indeterminate' : false}
+### Changes
 
-// After  
-checked={isSelected}
-```
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-### Issue 2: Parent checkbox misaligned with children
-The parent group header cell uses `px-3` (12px padding) and puts the checkbox + chevron together. The child row cell uses default padding. This shifts the parent checkbox to the right.
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-**Fix in `BudgetGroupHeader.tsx`**: Move the chevron out of the checkbox cell into the Cost Code cell, and match the child's padding so both checkboxes align vertically.
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-- First cell (checkbox only): match child's `w-12 py-1` styling
-- Move the expand/collapse chevron button into the Cost Code cell (before the group code text)
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**Files to change**: `src/components/budget/BudgetGroupHeader.tsx` only.
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
