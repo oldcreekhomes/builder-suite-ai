@@ -25,6 +25,7 @@ import { useMultipleHistoricalCosts } from '@/hooks/useMultipleHistoricalCosts';
 import { useAllBudgetSubcategories } from '@/hooks/useAllBudgetSubcategories';
 import { useBudgetLockStatus } from '@/hooks/useBudgetLockStatus';
 import { useLotManagement } from '@/hooks/useLotManagement';
+import { useLots } from '@/hooks/useLots';
 import {
   AlertDialog,
   AlertDialogAction,
