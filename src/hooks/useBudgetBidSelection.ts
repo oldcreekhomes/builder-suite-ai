@@ -25,21 +25,27 @@ export function useBudgetBidSelection(projectId: string, costCodeId: string) {
 
   // Mutation to save selected bid
   const selectBidMutation = useMutation({
-    mutationFn: async ({ budgetItemId, bidId, lotCount, bidTotal }: { budgetItemId: string; bidId: string | null; lotCount?: number; bidTotal?: number }) => {
-      // Update the current budget item's selected bid
-      const { error } = await supabase
-        .from('project_budgets')
-        .update({ selected_bid_id: bidId })
-        .eq('id', budgetItemId);
-      
-      if (error) throw error;
+    mutationFn: async ({ budgetItemId, bidId, lotCount, bidTotal, allocationMode }: { budgetItemId: string; bidId: string | null; lotCount?: number; bidTotal?: number; allocationMode?: 'full' | 'per-lot' }) => {
+      // If full allocation (or no multi-lot), write the full bid amount to this row
+      if (!allocationMode || allocationMode === 'full' || !lotCount || lotCount <= 1) {
+        const { error } = await supabase
+          .from('project_budgets')
+          .update({ 
+            selected_bid_id: bidId,
+            quantity: bidTotal ? 1 : undefined,
+            unit_price: bidTotal || undefined,
+          })
+          .eq('id', budgetItemId);
+        
+        if (error) throw error;
+        return;
+      }
 
-      // If multi-lot allocation, update the unit_price for all lot budget rows
-      if (lotCount && lotCount > 1 && bidTotal && bidId) {
+      // Per-lot allocation: split across all lots
+      if (bidTotal && bidId) {
         const perLot = Math.floor((bidTotal / lotCount) * 100) / 100;
         const lastLotAmount = Number((bidTotal - (perLot * (lotCount - 1))).toFixed(2));
 
-        // Get the current budget item to find its cost_code_id and project_id
         const { data: currentItem, error: fetchError } = await supabase
           .from('project_budgets')
           .select('cost_code_id, project_id')
@@ -48,7 +54,6 @@ export function useBudgetBidSelection(projectId: string, costCodeId: string) {
 
         if (fetchError) throw fetchError;
 
-        // Get all budget items for this cost code across the project (all lots)
         const { data: allBudgetItems, error: allError } = await supabase
           .from('project_budgets')
           .select('id, lot_id')
@@ -59,7 +64,6 @@ export function useBudgetBidSelection(projectId: string, costCodeId: string) {
         if (allError) throw allError;
 
         if (allBudgetItems && allBudgetItems.length > 0) {
-          // Update all but the last with perLot, last with remainder
           for (let i = 0; i < allBudgetItems.length; i++) {
             const amount = i === allBudgetItems.length - 1 ? lastLotAmount : perLot;
             const { error: updateError } = await supabase

@@ -1,49 +1,36 @@
 
-Problem confirmed and root cause:
-- I verified the current flow in `BudgetDetailsModal` + `useBudgetBidSelection` + `calculateBudgetItemTotal`.
-- In full-allocation mode, Apply currently updates only `selected_bid_id` for the row.
-- Your table total for `vendor-bid` now prioritizes `unit_price * quantity` when those exist.
-- So if that row was previously split per-lot (example: `unit_price = 2169.22, quantity = 1`), selecting “full amount” does not overwrite those values, and the table keeps showing the old split value.
-- DB check confirms this for Knob Hill Court demolition (`3220`): row still has `unit_price: 2169.22` and old `updated_at`, so full amount was not persisted.
+## Share "As of Date" Across All Report Tabs
 
-Implementation plan:
-1) Update vendor-bid mutation to persist allocation intent
-- File: `src/hooks/useBudgetBidSelection.ts`
-- Extend mutation input to include allocation mode and selected bid total.
-- In mutation:
-  - Always resolve current row (`project_id`, `cost_code_id`, `lot_id`).
-  - If mode = `per-lot`: keep existing all-lots split behavior.
-  - If mode = `full`: update current lot row with:
-    - `selected_bid_id = bidId`
-    - `quantity = 1`
-    - `unit_price = bidTotal` (full selected bid amount)
-  - This ensures DB always reflects what user chose in the dialog.
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-2) Pass correct payload from dialog Apply
-- File: `src/components/budget/BudgetDetailsModal.tsx`
-- In `handleApply` vendor-bid branch:
-  - Pass `allocationMode` and `selectedBidPrice` to `selectBid`.
-  - Continue using `lotCount` only for per-lot mode.
-- Result: Apply writes either full or split values explicitly instead of relying on fallback behavior.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-3) Tighten immediate refresh behavior for budget + job costs
-- File: `src/hooks/useBudgetBidSelection.ts`
-- Keep invalidation, but target project-specific key:
-  - `['project-budgets', projectId]` (covers lot-filtered variants by prefix)
-  - `['job-costs']`
-- This preserves mirror sync between Budget and Job Costs and refreshes right after Apply.
+### Changes
 
-4) Preserve existing calculation contract (no further formula change)
-- File: `src/utils/budgetUtils.ts` (no new logic required)
-- Current rule is correct once DB is written correctly:
-  - vendor-bid uses `unit_price * quantity` when populated (allocated values),
-  - falls back to selected bid price otherwise.
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-Validation checklist after implementation:
-- In demolition row (3220), choose full $41,215 and click Apply:
-  - DB row for selected lot updates to `unit_price=41215`, `quantity=1`, new `updated_at`.
-  - Budget table updates immediately without manual refresh.
-- Reopen dialog, choose divide across 19:
-  - All lot rows for that cost code are split with remainder-safe cents.
-  - Current lot shows per-lot amount in Budget table.
-- Confirm Job Costs view reflects the same number as Budget for that lot/cost code.
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
