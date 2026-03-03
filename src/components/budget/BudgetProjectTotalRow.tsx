@@ -4,7 +4,6 @@ import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetProjectTotalRowProps {
   totalBudget: number;
-  totalActual?: number;
   totalHistorical: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
