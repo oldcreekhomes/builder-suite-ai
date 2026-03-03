@@ -1,5 +1,5 @@
 
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import { BudgetTable } from "@/components/budget/BudgetTable";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { useBudgetLockStatus } from "@/hooks/useBudgetLockStatus";
 import { Button } from "@/components/ui/button";
-import { Lock, LockOpen } from "lucide-react";
+import { Lock, LockOpen, Trash2 } from "lucide-react";
+import { DeleteButton } from "@/components/ui/delete-button";
 import {
   Tooltip,
   TooltipContent,
