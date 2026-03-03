@@ -344,6 +344,7 @@ export function BudgetTableRow({
           setShowDetailsModal(false);
         }}
         isLocked={isLocked}
+        lotCount={lotCount}
       />
     )}
     </React.Fragment>
