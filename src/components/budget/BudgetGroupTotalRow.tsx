@@ -5,7 +5,6 @@ import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 interface BudgetGroupTotalRowProps {
   group: string;
   groupTotal: number;
-  actualTotal?: number;
   historicalTotal?: number;
   showVarianceAsPercentage?: boolean;
   visibleColumns: VisibleColumns;
