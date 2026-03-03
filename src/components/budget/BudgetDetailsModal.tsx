@@ -482,11 +482,30 @@ export function BudgetDetailsModal({
                     </tbody>
                   </table>
                 </div>
+                {/* Per-Lot Allocation Info Box */}
+                {hasMultipleLots && selectedBidId && selectedBidPrice > 0 && (
+                  <div className="border rounded-lg bg-muted/50 p-4 space-y-2">
+                    <div className="text-sm font-medium">Per-Lot Allocation</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                      <span className="text-muted-foreground">Bid Total:</span>
+                      <span className="font-medium">{formatCurrency(selectedBidPrice)}</span>
+                      <span className="text-muted-foreground">Project Lots:</span>
+                      <span className="font-medium">{lotCount}</span>
+                      <span className="text-muted-foreground">Per Lot:</span>
+                      <span className="font-semibold">{formatCurrency(perLotAmount)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pt-1">
+                      This bid covers the entire job. The amount will be divided equally across all {lotCount} lots.
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-4 border-t">
-                  <span className="text-sm font-medium">Total Budget:</span>
+                  <span className="text-sm font-medium">
+                    {hasMultipleLots && selectedBidId ? 'Total Budget (per lot):' : 'Total Budget:'}
+                  </span>
                   <span className="text-lg font-semibold">
                     {selectedBidId 
-                      ? formatCurrency(availableBids.find(b => b.id === selectedBidId)?.price || 0)
+                      ? formatCurrency(hasMultipleLots ? perLotAmount : selectedBidPrice)
                       : '$0'
                     }
                   </span>

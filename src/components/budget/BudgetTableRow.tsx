@@ -39,6 +39,7 @@ interface BudgetTableRowProps {
   projectId?: string;
   itemTotal?: number; // Pre-calculated total from itemTotalsMap
   isLocked?: boolean;
+  lotCount?: number;
 }
 
 export function BudgetTableRow({ 
