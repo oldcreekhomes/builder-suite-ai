@@ -517,7 +517,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
           <colgroup>
             <col style={{ width: '48px' }} />
             <col style={{ width: '160px' }} />
-            <col style={{ width: '320px' }} />
+            <col style={{ width: '380px' }} />
             <col style={{ width: '192px' }} />
             <col style={{ width: '48px' }} />
             {visibleColumns.historicalCosts && <col style={{ width: '208px' }} />}
