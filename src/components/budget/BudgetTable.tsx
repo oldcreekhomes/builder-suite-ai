@@ -54,6 +54,8 @@ interface BudgetTableProps {
 export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, onSelectionChange }: BudgetTableProps) {
   const { toast } = useToast();
   const { selectedLotId, selectLot } = useLotManagement(projectId);
+  const { lots } = useLots(projectId);
+  const lotCount = lots.length;
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [selectedHistoricalProject, setSelectedHistoricalProject] = useState('');
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
