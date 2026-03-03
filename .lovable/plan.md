@@ -1,36 +1,24 @@
 
-## Share "As of Date" Across All Report Tabs
 
-### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+## Compact Allocation Mode Layout
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+The current allocation section stacks the two radio options vertically with detailed breakdown info beneath "Divide equally," consuming significant vertical space and causing a scrollbar.
 
-### Changes
+### Change
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**`src/components/budget/BudgetDetailsModal.tsx`** (lines 508-545):
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+Restructure the allocation section to place both options side-by-side in a horizontal layout:
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+- Use a 2-column grid (`grid grid-cols-2 gap-4`) for the two radio options
+- Each option becomes a compact card-like cell
+- For "Full amount": radio + label + single line showing the budget amount
+- For "Divide equally": radio + label + compact inline summary (e.g., `$20,382.00 ÷ 19 = $1,072.73/lot`)
+- Reduce padding from `p-4` to `p-3` and `space-y-3` to `space-y-2`
+- Collapse the 3-row grid breakdown (Bid Total / Project Lots / Per Lot) into a single descriptive line
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+This eliminates roughly 50% of the vertical space used by the allocation section, removing the need for a scrollbar.
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+### File
+1. `src/components/budget/BudgetDetailsModal.tsx` — restructure allocation mode to horizontal 2-column layout with inline details
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
