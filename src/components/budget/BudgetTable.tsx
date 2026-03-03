@@ -460,7 +460,12 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf, selectedCount, isDeletingSelected, onBulkDelete]);
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+
+  // Emit selection state to parent
+  useEffect(() => {
+    onSelectionChange?.({ count: selectedCount, onDelete: onBulkDelete, isDeleting: isDeletingSelected });
+  }, [onSelectionChange, selectedCount, isDeletingSelected]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     <div className="flex items-center justify-end gap-2">
