@@ -156,6 +156,13 @@ export function BudgetDetailsModal({
     }
   };
 
+  // Per-lot calculation
+  const selectedBidPrice = selectedBidId ? (availableBids.find(b => b.id === selectedBidId)?.price || 0) : 0;
+  const hasMultipleLots = lotCount > 1;
+  const perLotAmount = hasMultipleLots && selectedBidPrice > 0
+    ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
+    : selectedBidPrice;
+
   const handleApply = async () => {
     if (isLocked) return; // No-op when locked
     
@@ -163,7 +170,7 @@ export function BudgetDetailsModal({
     
     if (source === 'vendor-bid') {
       selectBid(
-        { budgetItemId: budgetItem.id, bidId: selectedBidId },
+        { budgetItemId: budgetItem.id, bidId: selectedBidId, lotCount: hasMultipleLots ? lotCount : undefined, bidTotal: hasMultipleLots ? selectedBidPrice : undefined },
         {
           onSuccess: () => {
             updateSource({
