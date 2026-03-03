@@ -90,6 +90,7 @@ export function BudgetDetailsModal({
   // Manual tab state - store as strings to allow empty inputs
   const [manualQuantityInput, setManualQuantityInput] = useState<string>(budgetItem.quantity?.toString() || '');
   const [manualUnitPriceInput, setManualUnitPriceInput] = useState<string>(budgetItem.unit_price?.toString() || '');
+  const [allocationMode, setAllocationMode] = useState<'full' | 'per-lot'>('full');
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
