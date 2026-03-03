@@ -26,7 +26,7 @@ export function FromBidsTab({ projectId, selectedBids, onBidsChange }: FromBidsT
   };
 
   const formatCurrency = (value: number) => {
-    return `$${Math.round(value).toLocaleString()}`;
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const getStatusColor = (status: string) => {

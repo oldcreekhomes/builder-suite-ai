@@ -62,8 +62,8 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
   });
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (!value) return '$0';
-    return `$${Math.round(value).toLocaleString()}`;
+    if (!value) return '$0.00';
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const getStatusColor = (status: string) => {

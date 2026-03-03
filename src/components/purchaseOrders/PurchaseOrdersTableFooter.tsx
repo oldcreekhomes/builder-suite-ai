@@ -16,7 +16,7 @@ export function PurchaseOrdersTableFooter({ purchaseOrders }: PurchaseOrdersTabl
         Total Items: {purchaseOrders.length}
       </div>
       <div className="text-lg font-semibold">
-        Total Amount: ${totalAmount.toLocaleString()}
+        Total Amount: {totalAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
       </div>
     </div>
   );

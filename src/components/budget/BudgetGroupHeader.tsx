@@ -40,7 +40,7 @@ export function BudgetGroupHeader({
   floatingClassName = '',
   isLocked = false,
 }: BudgetGroupHeaderProps) {
-  const formatCurrency = (amount: number) => `$${Math.round(amount).toLocaleString()}`;
+  const formatCurrency = (amount: number) => amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   const baseClassName = stickyTop !== undefined 
     ? `bg-background hover:bg-muted/60 border-b ${floatingClassName} ${rowClassName}`.trim()

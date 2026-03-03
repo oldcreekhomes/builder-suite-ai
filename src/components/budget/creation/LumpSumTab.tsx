@@ -38,7 +38,7 @@ export function LumpSumTab({
   };
 
   const formatCurrency = (value: number) => {
-    return `$${Math.round(value).toLocaleString()}`;
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
   const calculateTotal = () => {
