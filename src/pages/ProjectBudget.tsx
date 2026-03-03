@@ -118,6 +118,7 @@ export default function ProjectBudget() {
                 projectId={projectId} 
                 projectAddress={project?.address}
                 onHeaderActionChange={setBudgetHeaderActions}
+                onSelectionChange={handleSelectionChange}
               />
             </UniversalFilePreviewProvider>
           </main>
