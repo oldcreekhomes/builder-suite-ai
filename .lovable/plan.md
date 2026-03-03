@@ -1,20 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Set All Budget Items to "Manual" Source at $0
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### What's happening now
-All budget items for this project (100 Nob Hill) have `budget_source` set to `NULL`. This causes the legacy fallback logic to kick in, which for cost codes with `has_subcategories` pulls in estimate/subcategory totals (e.g., Civil Engineering $19,500, Surveying $5,900, MEP Engineering $5,360). That's why some items show "Estimate" badges with non-zero dollar amounts.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Fix
-This is a **data-only** change — no code modifications needed.
+### Changes
 
-Run a single UPDATE on the `project_budgets` table to set `budget_source = 'manual'` for all items in this project. Since `quantity` and `unit_price` are already `0` on every row, the `manual` source calculation (`quantity × unit_price`) will return $0 for all items, and the source badge will show "Manual" everywhere.
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-```sql
-UPDATE project_budgets
-SET budget_source = 'manual'
-WHERE project_id = '691271e6-e46f-4745-8efb-200500e819f0';
-```
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-This updates approximately 45 rows. The UI will reflect the changes on the next page refresh or query refetch — every item will show "Manual" with $0.
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
