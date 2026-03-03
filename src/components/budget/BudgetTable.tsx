@@ -604,6 +604,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                               visibleColumns={visibleColumns}
                               projectId={projectId}
                               isLocked={isLocked}
+                              lotCount={lotCount}
                             />
                           ) : (
                             <HistoricalOnlyRow
