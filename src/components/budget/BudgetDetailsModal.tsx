@@ -526,11 +526,11 @@ export function BudgetDetailsModal({
                 )}
                 <div className="flex justify-between items-center pt-4 border-t">
                   <span className="text-sm font-medium">
-                    {hasMultipleLots && selectedBidId ? 'Total Budget (per lot):' : 'Total Budget:'}
+                    {hasMultipleLots && selectedBidId && allocationMode === 'per-lot' ? 'Total Budget (per lot):' : 'Total Budget:'}
                   </span>
                   <span className="text-lg font-semibold">
                     {selectedBidId 
-                      ? formatCurrency(hasMultipleLots ? perLotAmount : selectedBidPrice)
+                      ? formatCurrency(displayAmount)
                       : '$0'
                     }
                   </span>
