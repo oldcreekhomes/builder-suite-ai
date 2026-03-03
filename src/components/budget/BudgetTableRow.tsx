@@ -61,8 +61,6 @@ export function BudgetTableRow({
   const [quantity, setQuantity] = useState((item.quantity || 0).toString());
   const [unitPrice, setUnitPrice] = useState((item.unit_price || 0).toString());
   const [tempUnit, setTempUnit] = useState('');
-  const [actualAmount, setActualAmount] = useState((item.actual_amount || 0).toString());
-  const [isEditingActual, setIsEditingActual] = useState(false);
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [isEditingUnit, setIsEditingUnit] = useState(false);
