@@ -446,8 +446,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   useEffect(() => {
     if (onHeaderActionChange) {
       onHeaderActionChange(
-        <>
-          <BudgetPrintToolbar 
+        <BudgetPrintToolbar 
             projectId={projectId}
             selectedLotId={selectedLotId}
             onSelectLot={selectLot}
@@ -458,7 +457,6 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             allExpanded={allGroupsExpanded}
             isExportingPdf={isExportingPdf}
           />
-        
       );
       return () => onHeaderActionChange(null);
     }
