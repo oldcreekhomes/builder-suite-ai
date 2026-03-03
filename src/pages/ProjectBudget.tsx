@@ -93,7 +93,10 @@ export default function ProjectBudget() {
           isLoading={selectionInfo.isDeleting}
           showIcon={true}
           variant="destructive"
-        />
+          size="sm"
+        >
+          Delete Selected ({selectionInfo.count})
+        </DeleteButton>
       )}
       {lockButton}
       {budgetHeaderActions}
