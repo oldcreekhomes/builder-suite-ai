@@ -39,7 +39,7 @@ export function BudgetTableHeader({
           <TableHead className="w-52">
             {historicalProjects.length > 0 ? (
               <Select value={selectedHistoricalProject || "none"} onValueChange={(value) => onHistoricalProjectChange(value === "none" ? "" : value)}>
-                <SelectTrigger className="h-6 text-xs border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 gap-1">
+                <SelectTrigger className="h-6 text-sm font-medium border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 gap-1">
                   <span>Historical</span>
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-lg z-50">
