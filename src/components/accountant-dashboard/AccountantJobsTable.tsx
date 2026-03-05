@@ -286,9 +286,7 @@ export function AccountantJobsTable() {
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            {!showQuickBooks && (
-              <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
-            )}
+            <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
             {showQuickBooks && (
