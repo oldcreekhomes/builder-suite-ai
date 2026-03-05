@@ -350,14 +350,12 @@ export function AccountantJobsTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {project.address || "No address"}
                   </TableCell>
-                  {!showQuickBooks && (
-                    <TableCell>
-                      {project.accounting_manager_user 
-                        ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`
-                        : <span className="text-muted-foreground">-</span>
-                      }
-                    </TableCell>
-                  )}
+                  <TableCell>
+                    {project.accounting_manager_user 
+                      ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`
+                      : <span className="text-muted-foreground">-</span>
+                    }
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {showQuickBooks ? (
                       <Popover 
