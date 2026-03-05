@@ -315,7 +315,7 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? (showQuickBooks ? 10 : 9) : (showQuickBooks ? 9 : 8)} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? (showQuickBooks ? 11 : 9) : (showQuickBooks ? 10 : 8)} className="text-center text-muted-foreground py-8">
                 No active projects
               </TableCell>
             </TableRow>
