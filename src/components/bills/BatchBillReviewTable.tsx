@@ -583,7 +583,7 @@ export function BatchBillReviewTable({
               <TableHead className="w-24">Amount</TableHead>
               <TableHead className="w-32">Reference</TableHead>
               <TableHead className="w-12 text-center">Memo</TableHead>
-              <TableHead className="w-24">Address</TableHead>
+              {showAddressColumn && <TableHead className="w-24">Address</TableHead>}
               <TableHead className="w-14 text-center">Files</TableHead>
               <TableHead className="w-20 text-center">PO Status</TableHead>
               <TableHead className="w-20 text-center">Actions</TableHead>
