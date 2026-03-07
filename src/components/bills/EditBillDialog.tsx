@@ -823,7 +823,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 )}
 
                 <div className="border rounded-lg overflow-hidden w-full">
-                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? (isApprovedBill ? "grid-cols-23" : "grid-cols-24") : (isApprovedBill ? "grid-cols-19" : "grid-cols-20"))}>
                     <div className="col-span-5">Cost Code</div>
                     <div className="col-span-5">Memo</div>
                     <div className="col-span-2">Quantity</div>
@@ -831,11 +831,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                     <div className="col-span-2">Total</div>
                     {showAddressColumn && <div className="col-span-3">Address</div>}
                     <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>Purchase Order</div>
-                    <div className="col-span-1 text-right">Action</div>
+                    {!isApprovedBill && <div className="col-span-1 text-right">Action</div>}
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? (isApprovedBill ? "grid-cols-23" : "grid-cols-24") : (isApprovedBill ? "grid-cols-19" : "grid-cols-20"))}>
                       <div className="col-span-5">
                         <CostCodeSearchInput
                           value={row.account}
@@ -920,8 +920,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-1 flex items-center justify-end">
-                        {!isApprovedBill && (
+                      {!isApprovedBill && (
+                        <div className="col-span-1 flex items-center justify-end">
                           <Button
                             onClick={() => removeJobCostRow(row.id, row.dbId)}
                             size="sm"
@@ -931,8 +931,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
 
@@ -984,18 +984,18 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 )}
 
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", isApprovedBill ? "grid-cols-11" : "grid-cols-12")}>
                     <div className="col-span-2">Account</div>
                     <div className="col-span-2">Project</div>
                     <div className="col-span-4">Memo</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
-                    <div className="col-span-1 text-center">Action</div>
+                    {!isApprovedBill && <div className="col-span-1 text-center">Action</div>}
                   </div>
 
                   {expenseRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t", isApprovedBill ? "grid-cols-11" : "grid-cols-12")}>
                       <div className="col-span-2">
                         <AccountSearchInput
                           value={row.accountId || ""}
@@ -1053,8 +1053,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
                         </span>
                       </div>
-                      <div className="col-span-1 flex justify-center items-center">
-                        {!isApprovedBill && (
+                      {!isApprovedBill && (
+                        <div className="col-span-1 flex justify-center items-center">
                           <Button
                             onClick={() => removeExpenseRow(row.id, row.dbId)}
                             size="sm"
@@ -1064,8 +1064,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
 
