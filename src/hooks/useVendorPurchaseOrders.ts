@@ -111,7 +111,12 @@ export function useVendorPurchaseOrders(
           bl.bills?.status && bl.bills.status !== 'draft'
         );
 
-        activeBilled.filter((bl: any) => bl.bill_id !== excludeBillId).forEach((bl: any) => {
+        activeBilled.filter((bl: any) => {
+          if (bl.bill_id === excludeBillId) return false;
+          if (excludeBillDate && bl.bills?.bill_date > excludeBillDate) return false;
+          if (excludeBillDate && bl.bills?.bill_date === excludeBillDate && bl.bill_id > excludeBillId) return false;
+          return true;
+        }).forEach((bl: any) => {
           if (bl.purchase_order_line_id) {
             const current = billedByLineId.get(bl.purchase_order_line_id) || 0;
             billedByLineId.set(bl.purchase_order_line_id, current + (bl.amount || 0));
