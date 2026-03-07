@@ -17,18 +17,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DeleteButton } from "@/components/ui/delete-button";
 import { useChecks } from "@/hooks/useChecks";
 import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
 import { Check } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { TableRowActions } from "@/components/ui/table-row-actions";
+import { EditBillDialog } from "@/components/bills/EditBillDialog";
+import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
+import { formatDateSafe } from "@/utils/dateOnly";
 
 interface IncludedBillPayment {
   bill_id: string;
