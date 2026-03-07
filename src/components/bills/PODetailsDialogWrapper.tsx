@@ -6,7 +6,7 @@ interface PODetailsDialogWrapperProps {
   poDialogState: {
     open: boolean;
     poMatch: POMatch | null;
-    bill: { id?: string; project_id?: string | null; vendor_id?: string; total_amount?: number; reference_number?: string | null } | null;
+    bill: { id?: string; project_id?: string | null; vendor_id?: string; total_amount?: number; reference_number?: string | null; bill_date?: string } | null;
   };
   onClose: () => void;
 }
