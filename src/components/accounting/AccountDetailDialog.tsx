@@ -1107,24 +1107,12 @@ export function AccountDetailDialog({
                 <span className="text-xs">{getTypeLabel(txn.source_type)}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1">
-                        <AccountTransactionInlineEditor
-                          value={toLocalDate(txn.date)}
-                          field="date"
-                          onSave={(value) => handleUpdate(txn, "date", value)}
-                          readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
-                        />
+                        <span className="text-xs">{formatDateSafe(txn.date, 'MM/dd/yyyy')}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1 max-w-[120px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="truncate">
-                              <AccountTransactionInlineEditor
-                                value={txn.reference || '-'}
-                                field="reference"
-                                onSave={(value) => handleUpdate(txn, "reference", value)}
-                                readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type) || isConsolidated}
-                              />
-                            </div>
+                            <span className="text-xs truncate block">{txn.reference || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent>{txn.reference || '-'}</TooltipContent>
                         </Tooltip>
@@ -1167,14 +1155,7 @@ export function AccountDetailDialog({
                       <TableCell className="px-2 py-1 max-w-[160px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="truncate">
-                              <AccountTransactionInlineEditor
-                                value={txn.description || '-'}
-                                field="description"
-                                onSave={(value) => handleUpdate(txn, "description", value)}
-                                readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
-                              />
-                            </div>
+                            <span className="text-xs truncate block">{txn.description || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">{txn.description || '-'}</TooltipContent>
                         </Tooltip>
@@ -1192,41 +1173,53 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && !isConsolidated && (
-                            <DeleteButton
-                              onDelete={() => handleDelete(txn)}
-                              title="Delete Transaction"
-                              description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0"
-                            />
-                          )}
-                          {(txn.reconciled || isDateLocked(txn.date)) && (
+                          {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="text-muted-foreground text-lg cursor-help">🔒</span>
+                                <div>
+                                  <TableRowActions actions={[]} disabled />
+                                </div>
                               </TooltipTrigger>
                               <TooltipContent side="left" align="center">
-                                {txn.reconciled && isDateLocked(txn.date) ? (
+                                {isConsolidated ? (
+                                  <>
+                                    <p className="font-medium">Consolidated Payment</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
+                                  </>
+                                ) : txn.reconciled && isDateLocked(txn.date) ? (
                                   <>
                                     <p className="font-medium">Reconciled and Books Closed</p>
-                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                   </>
                                 ) : txn.reconciled ? (
                                   <>
                                     <p className="font-medium">Reconciled</p>
-                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                   </>
                                 ) : (
                                   <>
                                     <p className="font-medium">Books Closed</p>
-                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                   </>
                                 )}
                               </TooltipContent>
                             </Tooltip>
-                          )}
+                          ) : canDeleteBills ? (
+                            <TableRowActions actions={[
+                              ...(['bill', 'deposit'].includes(txn.source_type) ? [{
+                                label: txn.source_type === 'bill' ? 'Edit Bill' : 'Edit Deposit',
+                                onClick: () => handleEditTransaction(txn),
+                              }] : []),
+                              {
+                                label: 'Delete',
+                                onClick: () => handleDelete(txn),
+                                variant: 'destructive' as const,
+                                requiresConfirmation: true,
+                                confirmTitle: 'Delete Transaction',
+                                confirmDescription: `Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`,
+                              },
+                            ]} />
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
