@@ -921,7 +921,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               </TableHead>
               <TableHead className="w-24">Amount</TableHead>
               <TableHead className="w-40">Reference</TableHead>
-              <TableHead className="w-24">Address</TableHead>
+              {showAddressColumn && <TableHead className="w-24">Address</TableHead>}
               
               <TableHead className="w-16">Files</TableHead>
               <TableHead className="text-center w-16">Notes</TableHead>
