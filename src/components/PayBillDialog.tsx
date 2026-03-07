@@ -203,50 +203,26 @@ export function PayBillDialog({
             </div>
             {isMultiple ? (
               <>
-                <div className="flex justify-between font-semibold">
-                  <span>Total Amount ({billsArray.length} items):</span>
-                  <span>{formatCurrency(totalAmount)}</span>
-                </div>
-                {hasCredits && (
-                  <div className="mt-2 pt-2 border-t space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Bills:</span>
-                      <span>{formatCurrency(regularBillsTotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Credits Applied:</span>
-                      <span>-{formatCurrency(Math.min(creditsTotal, regularBillsTotal))}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold pt-1 border-t">
-                      <span>Net Payment:</span>
-                      <span>{formatCurrency(Math.max(0, netPayment))}</span>
-                    </div>
-                    {creditExceedsBills && (
-                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 rounded text-sm text-green-700 dark:text-green-400">
-                        <strong>Note:</strong> {formatCurrency(remainingCreditAfter)} credit will remain available after this transaction.
+                <div className="space-y-1">
+                  {billsArray.map((bill) => {
+                    const openBalance = getOpenBalance(bill);
+                    const isCredit = openBalance < 0;
+                    return (
+                      <div key={bill.id} className="flex justify-between text-sm">
+                        <span>
+                          {bill.reference_number || 'No ref'}
+                          {isCredit && <span className="ml-1 text-green-600">(Credit)</span>}
+                        </span>
+                        <span className={isCredit ? 'text-green-600' : ''}>
+                          {formatCurrency(openBalance)}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                )}
-                <div className="mt-2 pt-2 border-t">
-                  <div className="text-sm font-medium mb-1">Items:</div>
-                  <div className="max-h-32 overflow-y-auto space-y-1">
-                    {billsArray.map((bill) => {
-                      const remaining = getOpenBalance(bill);
-                      const isCredit = remaining < 0;
-                      return (
-                        <div key={bill.id} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {bill.reference_number || 'No ref'}
-                            {isCredit && <span className="ml-1 text-green-600">(Credit)</span>}
-                          </span>
-                          <span className={isCredit ? 'text-green-600' : ''}>
-                            {isCredit ? '-' : ''}{formatCurrency(Math.abs(remaining))}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between font-semibold pt-2 border-t">
+                  <span>Total:</span>
+                  <span>{formatCurrency(totalAmount)}</span>
                 </div>
               </>
             ) : (
