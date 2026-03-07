@@ -1246,5 +1246,20 @@ export function AccountDetailDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Edit Bill Dialog */}
+    <EditBillDialog
+      open={!!editingBillId}
+      onOpenChange={handleEditDialogClose}
+      billId={editingBillId || ''}
+    />
+
+    {/* Edit Deposit Dialog */}
+    <EditDepositDialog
+      open={!!editingDepositId}
+      onOpenChange={handleEditDepositDialogClose}
+      depositId={editingDepositId || ''}
+    />
+    </>
   );
 }
