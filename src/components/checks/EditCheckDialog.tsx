@@ -245,13 +245,13 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
         <div className="border rounded-lg overflow-hidden">
           <div className={cn(
             "grid gap-2 p-3 bg-muted font-medium text-sm",
-            showAddressColumn ? "grid-cols-20" : "grid-cols-16"
+            "grid-cols-20"
           )}>
             <div className="col-span-5">{type === 'job_cost' ? 'Cost Code' : 'Account'}</div>
             <div className="col-span-4">Memo</div>
             <div className="col-span-3">Amount</div>
             {showAddressColumn && <div className="col-span-4">Address</div>}
-            <div className="col-span-4 text-right">Action</div>
+            <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8", "text-right")}>Action</div>
           </div>
 
           {rows.map(row => (
